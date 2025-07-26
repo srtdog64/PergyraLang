@@ -87,7 +87,73 @@ let result = Parallel {
 - 타입명: `Type`, `Int`, `String`, `Vector` (PascalCase)
 - 상수명: `CONSTANT_NAME`, `MAX_VALUE` (UPPER_SNAKE_CASE)
 
-## 4. 타입 시스템
+## 4. 제네릭 문법
+
+### 4.1 기본 제네릭
+```pergyra
+// 제네릭 함수
+func Identity<T>(value: T) -> T {
+    return value
+}
+
+// 제네릭 클래스
+class Container<T> {
+    private _value: T
+    
+    func Get() -> T {
+        return _value
+    }
+}
+
+// 다중 타입 파라미터
+func Swap<A, B>(a: A, b: B) -> (B, A) {
+    return (b, a)
+}
+```
+
+### 4.2 제약조건 (Where 절)
+```pergyra
+func Sort<T>(items: Array<T>) -> Array<T>
+    where T: Comparable {
+    // T는 Comparable을 구현해야 함
+}
+
+// 다중 제약
+func Process<T, U>(input: T) -> U
+    where T: Readable + Sized,
+          U: Writable {
+    // 구현
+}
+```
+
+### 4.3 Associated Types
+```pergyra
+trait Iterator<T> {
+    type Item = T
+    func Next() -> Option<Self.Item>
+}
+
+// 구현
+impl Iterator<Int> for Range {
+    type Item = Int
+    func Next() -> Option<Int> {
+        // ...
+    }
+}
+```
+
+### 4.4 제네릭 기본값
+```pergyra
+class Cache<K = String, V = Any> {
+    // K의 기본값은 String, V의 기본값은 Any
+}
+
+let cache1 = Cache()              // Cache<String, Any>
+let cache2 = Cache<Int>()         // Cache<Int, Any>
+let cache3 = Cache<Int, User>()   // Cache<Int, User>
+```
+
+## 5. 타입 시스템
 
 ### 4.1 기본 타입
 - `Int`: 32비트 정수

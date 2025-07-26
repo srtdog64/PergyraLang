@@ -40,42 +40,75 @@ typedef enum
 {
     /* Keywords */
     TOKEN_LET,
-    TOKEN_CLAIM_SLOT,
-    TOKEN_WRITE,
-    TOKEN_READ,
-    TOKEN_RELEASE,
+    TOKEN_FUNC,
+    TOKEN_CLASS,
+    TOKEN_STRUCT,
     TOKEN_WITH,
     TOKEN_AS,
     TOKEN_PARALLEL,
-    TOKEN_LOG,
+    TOKEN_FOR,
+    TOKEN_IN,
+    TOKEN_IF,
+    TOKEN_ELSE,
+    TOKEN_WHILE,
+    TOKEN_RETURN,
+    TOKEN_TRUE,
+    TOKEN_FALSE,
+    TOKEN_PUBLIC,
+    TOKEN_PRIVATE,
+    TOKEN_WHERE,
+    TOKEN_TYPE,
+    TOKEN_TRAIT,
+    TOKEN_IMPL,
     
     /* Operators */
     TOKEN_ASSIGN,       /* = */
+    TOKEN_PLUS,         /* + */
+    TOKEN_MINUS,        /* - */
+    TOKEN_STAR,         /* * */
+    TOKEN_SLASH,        /* / */
+    TOKEN_PERCENT,      /* % */
+    TOKEN_EQUAL,        /* == */
+    TOKEN_NOT_EQUAL,    /* != */
+    TOKEN_LESS,         /* < */
+    TOKEN_LESS_EQUAL,   /* <= */
+    TOKEN_GREATER,      /* > */
+    TOKEN_GREATER_EQUAL,/* >= */
+    TOKEN_AND,          /* && */
+    TOKEN_OR,           /* || */
+    TOKEN_NOT,          /* ! */
+    TOKEN_ARROW,        /* -> */
+    TOKEN_DOT,          /* . */
+    TOKEN_COMMA,        /* , */
+    TOKEN_COLON,        /* : */
+    TOKEN_SEMICOLON,    /* ; */
+    
+    /* Delimiters */
     TOKEN_LPAREN,       /* ( */
     TOKEN_RPAREN,       /* ) */
     TOKEN_LBRACE,       /* { */
     TOKEN_RBRACE,       /* } */
-    TOKEN_LANGLE,       /* < */
-    TOKEN_RANGLE,       /* > */
-    TOKEN_DOT,          /* . */
-    TOKEN_SEMICOLON,    /* ; */
-    TOKEN_COMMA,        /* , */
+    TOKEN_LBRACKET,     /* [ */
+    TOKEN_RBRACKET,     /* ] */
     
     /* Literals */
-    TOKEN_INTEGER,
-    TOKEN_FLOAT,
+    TOKEN_NUMBER,       /* Combined int/float */
     TOKEN_STRING,
-    TOKEN_BOOL_TRUE,
-    TOKEN_BOOL_FALSE,
     
     /* Identifiers */
     TOKEN_IDENTIFIER,
-    TOKEN_TYPE_NAME,
     
     /* Special */
     TOKEN_EOF,
     TOKEN_ERROR,
-    TOKEN_NEWLINE
+    TOKEN_NEWLINE,
+    
+    /* Structured Comments */
+    TOKEN_DOC_COMMENT,      /* /// */
+    TOKEN_DOC_TAG_WHAT,     /* [What]: */
+    TOKEN_DOC_TAG_WHY,      /* [Why]: */
+    TOKEN_DOC_TAG_ALT,      /* [Alt]: */
+    TOKEN_DOC_TAG_NEXT      /* [Next]: */
 } TokenType;
 
 /*
@@ -112,16 +145,16 @@ typedef struct
 /*
  * Function prototypes
  */
-Lexer      *LexerCreate(const char *source);
-void        LexerDestroy(Lexer *lexer);
-Token       LexerNextToken(Lexer *lexer);
-bool        LexerHasError(const Lexer *lexer);
-const char *LexerGetError(const Lexer *lexer);
+Lexer      *lexer_create(const char *source);
+void        lexer_destroy(Lexer *lexer);
+Token       lexer_next_token(Lexer *lexer);
+bool        lexer_has_error(const Lexer *lexer);
+const char *lexer_get_error(const Lexer *lexer);
 
 /*
  * Token utility functions
  */
-const char *TokenTypeToString(TokenType type);
-void        TokenPrint(const Token *token);
+const char *token_type_to_string(TokenType type);
+void        token_print(const Token *token);
 
 #endif /* PERGYRA_LEXER_H */

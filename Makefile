@@ -74,7 +74,7 @@ DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures
 SECURITY_TEST = $(BIN_DIR)/test_security
 
 # Default target
-all: $(TARGET) $(LEXER_TEST) $(DATASTRUCTURES_TEST) $(SECURITY_TEST)
+all: $(TARGET) $(LEXER_TEST) $(PARSER_TEST) $(DATASTRUCTURES_TEST) $(SECURITY_TEST)
 
 # Main executable build
 $(TARGET): $(ALL_OBJECTS) | $(BIN_DIR)
@@ -82,6 +82,10 @@ $(TARGET): $(ALL_OBJECTS) | $(BIN_DIR)
 
 # Lexer test build
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Parser test build
+$(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(TEST_PARSER_OBJECT) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Data structures test build
@@ -128,13 +132,18 @@ test: $(LEXER_TEST)
 	@echo "=== Running Pergyra Lexer Test ==="
 	./$(LEXER_TEST)
 
+# Parser test execution
+test-parser: $(PARSER_TEST)
+	@echo "=== Running Pergyra Parser Test ==="
+	./$(PARSER_TEST)
+
 # Security test execution
 test-security: $(SECURITY_TEST)
 	@echo "=== Running Pergyra Security Test Suite ==="
 	./$(SECURITY_TEST)
 
 # All tests
-test-all: test test-security
+test-all: test test-parser test-security
 	@echo "=== All Pergyra Tests Completed ==="
 
 # Clean targets

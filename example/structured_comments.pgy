@@ -1,0 +1,141 @@
+/*
+ * Pergyra Structured Comments Example
+ * Demonstrates the What/Why/Alt/Next comment system
+ */
+
+/// [What]: 게임 플레이어의 핵심 상태를 안전하게 관리하는 클래스
+/// [Why]: 외부 메모리 조작 도구로부터 중요 게임 데이터를 보호하기 위함
+/// [Alt]: 일반 변수 사용 - 보안 취약점 존재
+/// [Next]: 네트워크 동기화 시에도 보안 유지하는 기능 추가 예정
+class SecurePlayer {
+    // Private fields with underscore prefix
+    private let _nameSlot: Slot<String>
+    private let (_healthSlot, _healthToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED)
+    private let (_moneySlot, _moneyToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE)
+    
+    /// [What]: 플레이어 초기화 및 기본값 설정
+    /// [Why]: 모든 보안 슬롯을 초기 상태로 설정하여 안전한 시작 보장
+    public func Init(name: String) {
+        _nameSlot = ClaimSlot<String>()
+        Write(_nameSlot, name)
+        Write(_healthSlot, 100, _healthToken)
+        Write(_moneySlot, 1000, _moneyToken)
+    }
+    
+    /// [What]: 플레이어가 데미지를 받아 체력 감소
+    /// [Why]: 토큰 검증을 통해 무단 체력 수정 방지
+    /// [Alt]: 직접 체력 변수 수정 - 치트에 취약함
+    public func TakeDamage(damage: Int) {
+        let currentHealth = Read(_healthSlot, _healthToken)
+        let newHealth = Max(0, currentHealth - damage)
+        Write(_healthSlot, newHealth, _healthToken)
+        
+        if newHealth <= 0 {
+            OnPlayerDeath()
+        }
+    }
+    
+    /// [What]: 아이템 구매 시 돈 차감
+    /// [Why]: 하드웨어 바인딩으로 메모리 덤프 공격에도 안전
+    /// [Next]: 트랜잭션 로깅 기능 추가로 감사 추적 가능하게
+    public func PurchaseItem(cost: Int) -> Bool {
+        let currentMoney = Read(_moneySlot, _moneyToken)
+        
+        if currentMoney >= cost {
+            Write(_moneySlot, currentMoney - cost, _moneyToken)
+            return true
+        }
+        
+        return false
+    }
+    
+    /// [What]: 플레이어 사망 처리
+    /// [Why]: 중요 이벤트이므로 별도 메서드로 분리하여 확장성 확보
+    private func OnPlayerDeath() {
+        Log("Player died: ", Read(_nameSlot))
+        // Reset money but keep some for respawn
+        Write(_moneySlot, 100, _moneyToken)
+    }
+    
+    // Destructor
+    func Deinit() {
+        Release(_nameSlot)
+        Release(_healthSlot, _healthToken)
+        Release(_moneySlot, _moneyToken)
+    }
+}
+
+/// [What]: 병렬 처리를 활용한 멀티플레이어 게임 상태 업데이트
+/// [Why]: 각 플레이어의 상태 업데이트가 독립적이므로 병렬 처리로 성능 향상
+/// [Alt]: 순차 처리 - 플레이어가 많을수록 지연 시간 증가
+/// [Next]: GPU 가속을 통한 대규모 플레이어 처리
+func UpdateAllPlayers(players: Array<SecurePlayer>) {
+    Parallel {
+        /// [What]: 각 플레이어별 독립적인 상태 업데이트
+        /// [Why]: 플레이어 간 의존성이 없어 안전한 병렬 처리 가능
+        for player in players {
+            player.UpdateState()
+        }
+    }
+}
+
+/// [What]: 복잡한 게임 로직을 처리하는 메인 게임 루프
+/// [Why]: 프레임 기반 업데이트로 일관된 게임 경험 제공
+/// [Alt]: 이벤트 기반 - 복잡한 상태 관리 필요
+/// [Next]: 가변 프레임레이트 지원 추가
+func GameLoop() {
+    with slot<Float> as deltaTime {
+        deltaTime.Write(0.016) // 60 FPS
+        
+        while IsGameRunning() {
+            /// [What]: 프레임 시작 시간 측정
+            /// [Why]: 정확한 델타 타임 계산을 위해
+            let frameStart = GetTime()
+            
+            // Update game state
+            UpdatePhysics(deltaTime.Read())
+            UpdateAllPlayers(GetActivePlayers())
+            RenderFrame()
+            
+            /// [What]: 다음 프레임을 위한 델타 타임 계산
+            /// [Why]: 프레임 드롭 시에도 일관된 게임 속도 유지
+            let frameEnd = GetTime()
+            deltaTime.Write(frameEnd - frameStart)
+        }
+    }
+}
+
+/// [What]: 효율적인 정렬 알고리즘 (제네릭 퀵소트)
+/// [Why]: 평균 O(n log n)의 성능으로 대부분의 경우 최적
+/// [Alt]: 
+///   - 머지소트: 안정적이지만 추가 메모리 필요
+///   - 힙소트: 최악의 경우도 O(n log n)이지만 평균적으로 느림
+/// [Next]: 작은 배열에 대해 삽입 정렬로 전환하는 하이브리드 구현
+func QuickSort<T>(arr: Array<T>, low: Int, high: Int) 
+    where T: Comparable {
+    
+    if low < high {
+        /// [What]: 피벗을 기준으로 배열 분할
+        /// [Why]: 분할 정복으로 문제를 작게 만들어 해결
+        let pivotIndex = Partition(arr, low, high)
+        
+        /// [What]: 좌우 부분 배열을 재귀적으로 정렬
+        /// [Why]: 각 부분이 정렬되면 전체가 정렬됨
+        QuickSort(arr, low, pivotIndex - 1)
+        QuickSort(arr, pivotIndex + 1, high)
+    }
+}
+
+// Main entry point
+func Main() {
+    /// [What]: 게임 초기화 및 메인 루프 시작
+    /// [Why]: 모든 시스템을 순서대로 초기화하여 안정성 확보
+    Log("Pergyra Game Engine Starting...")
+    
+    InitializeGameSystems()
+    LoadGameAssets()
+    
+    GameLoop()
+    
+    Log("Game ended gracefully")
+}
