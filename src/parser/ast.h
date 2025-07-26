@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Pergyra Language Project nor the names of
+ *    its contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #ifndef PERGYRA_AST_H
 #define PERGYRA_AST_H
 
@@ -5,16 +34,19 @@
 #include <stdbool.h>
 #include "../lexer/lexer.h"
 
-// AST 노드 타입
-typedef enum {
-    // 표현식
+/*
+ * AST node types for Pergyra language constructs
+ */
+typedef enum
+{
+    /* Expressions */
     AST_LITERAL,
     AST_IDENTIFIER,
     AST_FUNCTION_CALL,
     AST_MEMBER_ACCESS,
     AST_TYPE_PARAM,
     
-    // 문장
+    /* Statements */
     AST_LET_DECLARATION,
     AST_SLOT_CLAIM,
     AST_SLOT_WRITE,
@@ -24,12 +56,15 @@ typedef enum {
     AST_PARALLEL_BLOCK,
     AST_BLOCK,
     
-    // 프로그램
+    /* Program */
     AST_PROGRAM
 } ASTNodeType;
 
-// 값 타입
-typedef enum {
+/*
+ * Value types for literal nodes
+ */
+typedef enum
+{
     VALUE_INT,
     VALUE_FLOAT,
     VALUE_STRING,
@@ -37,169 +72,227 @@ typedef enum {
     VALUE_SLOT_REF
 } ValueType;
 
-// 값 구조체
-typedef struct {
+/*
+ * Value structure for storing literal values
+ */
+typedef struct
+{
     ValueType type;
     union {
         int64_t int_val;
-        double float_val;
-        char* string_val;
-        bool bool_val;
+        double  float_val;
+        char   *string_val;
+        bool    bool_val;
         struct {
             uint32_t slot_id;
-            char* type_name;
+            char    *type_name;
         } slot_ref;
     } data;
 } Value;
 
-// AST 노드 (전방 선언)
+/*
+ * Forward declaration of AST node
+ */
 typedef struct ASTNode ASTNode;
 
-// 리터럴 노드
-typedef struct {
+/*
+ * Literal node structure
+ */
+typedef struct
+{
     Value value;
 } LiteralNode;
 
-// 식별자 노드
-typedef struct {
-    char* name;
-    char* type_name;  // 타입 추론 또는 명시적 타입
+/*
+ * Identifier node structure
+ */
+typedef struct
+{
+    char *name;
+    char *type_name;  /* For type inference or explicit type */
 } IdentifierNode;
 
-// 함수 호출 노드
-typedef struct {
-    char* function_name;
-    ASTNode** arguments;
-    size_t arg_count;
-    ASTNode* type_params;  // 제네릭 타입 매개변수
+/*
+ * Function call node structure
+ */
+typedef struct
+{
+    char     *function_name;
+    ASTNode **arguments;
+    size_t    arg_count;
+    ASTNode  *type_params;  /* Generic type parameters */
 } FunctionCallNode;
 
-// 멤버 접근 노드
-typedef struct {
-    ASTNode* object;
-    char* member_name;
+/*
+ * Member access node structure
+ */
+typedef struct
+{
+    ASTNode *object;
+    char    *member_name;
 } MemberAccessNode;
 
-// 타입 매개변수 노드
-typedef struct {
-    char** type_names;
-    size_t type_count;
+/*
+ * Type parameter node structure
+ */
+typedef struct
+{
+    char  **type_names;
+    size_t  type_count;
 } TypeParamNode;
 
-// Let 선언 노드
-typedef struct {
-    char* variable_name;
-    char* type_name;
-    ASTNode* initializer;
+/*
+ * Let declaration node structure
+ */
+typedef struct
+{
+    char    *variable_name;
+    char    *type_name;
+    ASTNode *initializer;
 } LetDeclarationNode;
 
-// 슬롯 클레임 노드
-typedef struct {
-    char* type_name;
-    char* slot_variable;
+/*
+ * Slot claim node structure
+ */
+typedef struct
+{
+    char *type_name;
+    char *slot_variable;
 } SlotClaimNode;
 
-// 슬롯 쓰기 노드
-typedef struct {
-    ASTNode* slot_ref;
-    ASTNode* value;
+/*
+ * Slot write node structure
+ */
+typedef struct
+{
+    ASTNode *slot_ref;
+    ASTNode *value;
 } SlotWriteNode;
 
-// 슬롯 읽기 노드
-typedef struct {
-    ASTNode* slot_ref;
+/*
+ * Slot read node structure
+ */
+typedef struct
+{
+    ASTNode *slot_ref;
 } SlotReadNode;
 
-// 슬롯 해제 노드
-typedef struct {
-    ASTNode* slot_ref;
+/*
+ * Slot release node structure
+ */
+typedef struct
+{
+    ASTNode *slot_ref;
 } SlotReleaseNode;
 
-// With 문 노드
-typedef struct {
-    char* type_name;
-    char* slot_alias;
-    ASTNode* body;
+/*
+ * With statement node structure
+ */
+typedef struct
+{
+    char    *type_name;
+    char    *slot_alias;
+    ASTNode *body;
 } WithStatementNode;
 
-// 병렬 블록 노드
-typedef struct {
-    ASTNode** statements;
-    size_t statement_count;
+/*
+ * Parallel block node structure
+ */
+typedef struct
+{
+    ASTNode **statements;
+    size_t    statement_count;
 } ParallelBlockNode;
 
-// 블록 노드
-typedef struct {
-    ASTNode** statements;
-    size_t statement_count;
+/*
+ * Block node structure
+ */
+typedef struct
+{
+    ASTNode **statements;
+    size_t    statement_count;
 } BlockNode;
 
-// 프로그램 노드
-typedef struct {
-    ASTNode** declarations;
-    size_t declaration_count;
+/*
+ * Program node structure
+ */
+typedef struct
+{
+    ASTNode **declarations;
+    size_t    declaration_count;
 } ProgramNode;
 
-// 메인 AST 노드 구조체
-struct ASTNode {
+/*
+ * Main AST node structure
+ */
+struct ASTNode
+{
     ASTNodeType type;
-    uint32_t line;
-    uint32_t column;
+    uint32_t    line;
+    uint32_t    column;
     
     union {
-        LiteralNode literal;
-        IdentifierNode identifier;
-        FunctionCallNode function_call;
-        MemberAccessNode member_access;
-        TypeParamNode type_param;
+        LiteralNode        literal;
+        IdentifierNode     identifier;
+        FunctionCallNode   function_call;
+        MemberAccessNode   member_access;
+        TypeParamNode      type_param;
         LetDeclarationNode let_declaration;
-        SlotClaimNode slot_claim;
-        SlotWriteNode slot_write;
-        SlotReadNode slot_read;
-        SlotReleaseNode slot_release;
-        WithStatementNode with_statement;
-        ParallelBlockNode parallel_block;
-        BlockNode block;
-        ProgramNode program;
+        SlotClaimNode      slot_claim;
+        SlotWriteNode      slot_write;
+        SlotReadNode       slot_read;
+        SlotReleaseNode    slot_release;
+        WithStatementNode  with_statement;
+        ParallelBlockNode  parallel_block;
+        BlockNode          block;
+        ProgramNode        program;
     } data;
 };
 
-// AST 노드 생성 함수들
-ASTNode* ast_create_literal(Value value, uint32_t line, uint32_t column);
-ASTNode* ast_create_identifier(const char* name, uint32_t line, uint32_t column);
-ASTNode* ast_create_function_call(const char* name, ASTNode** args, size_t arg_count, 
+/*
+ * AST node creation functions
+ */
+ASTNode *ast_create_literal(Value value, uint32_t line, uint32_t column);
+ASTNode *ast_create_identifier(const char *name, uint32_t line, uint32_t column);
+ASTNode *ast_create_function_call(const char *name, ASTNode **args, size_t arg_count, 
                                   uint32_t line, uint32_t column);
-ASTNode* ast_create_member_access(ASTNode* object, const char* member, 
+ASTNode *ast_create_member_access(ASTNode *object, const char *member, 
                                   uint32_t line, uint32_t column);
-ASTNode* ast_create_let_declaration(const char* var_name, const char* type_name, 
-                                    ASTNode* initializer, uint32_t line, uint32_t column);
-ASTNode* ast_create_slot_claim(const char* type_name, const char* slot_var, 
+ASTNode *ast_create_let_declaration(const char *var_name, const char *type_name, 
+                                    ASTNode *initializer, uint32_t line, uint32_t column);
+ASTNode *ast_create_slot_claim(const char *type_name, const char *slot_var, 
                                uint32_t line, uint32_t column);
-ASTNode* ast_create_slot_write(ASTNode* slot_ref, ASTNode* value, 
+ASTNode *ast_create_slot_write(ASTNode *slot_ref, ASTNode *value, 
                                uint32_t line, uint32_t column);
-ASTNode* ast_create_slot_read(ASTNode* slot_ref, uint32_t line, uint32_t column);
-ASTNode* ast_create_slot_release(ASTNode* slot_ref, uint32_t line, uint32_t column);
-ASTNode* ast_create_with_statement(const char* type_name, const char* alias, 
-                                   ASTNode* body, uint32_t line, uint32_t column);
-ASTNode* ast_create_parallel_block(ASTNode** statements, size_t count, 
+ASTNode *ast_create_slot_read(ASTNode *slot_ref, uint32_t line, uint32_t column);
+ASTNode *ast_create_slot_release(ASTNode *slot_ref, uint32_t line, uint32_t column);
+ASTNode *ast_create_with_statement(const char *type_name, const char *alias, 
+                                   ASTNode *body, uint32_t line, uint32_t column);
+ASTNode *ast_create_parallel_block(ASTNode **statements, size_t count, 
                                    uint32_t line, uint32_t column);
-ASTNode* ast_create_block(ASTNode** statements, size_t count, 
+ASTNode *ast_create_block(ASTNode **statements, size_t count, 
                           uint32_t line, uint32_t column);
-ASTNode* ast_create_program(ASTNode** declarations, size_t count);
+ASTNode *ast_create_program(ASTNode **declarations, size_t count);
 
-// AST 노드 해제
-void ast_destroy_node(ASTNode* node);
+/*
+ * AST node destruction
+ */
+void ast_destroy_node(ASTNode *node);
 
-// AST 출력 (디버깅용)
-void ast_print_node(const ASTNode* node, int indent);
-const char* ast_node_type_to_string(ASTNodeType type);
+/*
+ * AST printing for debugging
+ */
+void        ast_print_node(const ASTNode *node, int indent);
+const char *ast_node_type_to_string(ASTNodeType type);
 
-// 값 유틸리티
+/*
+ * Value utility functions
+ */
 Value value_create_int(int64_t val);
 Value value_create_float(double val);
-Value value_create_string(const char* val);
+Value value_create_string(const char *val);
 Value value_create_bool(bool val);
-void value_destroy(Value* value);
-void value_print(const Value* value);
+void  value_destroy(Value *value);
+void  value_print(const Value *value);
 
-#endif // PERGYRA_AST_H
+#endif /* PERGYRA_AST_H */

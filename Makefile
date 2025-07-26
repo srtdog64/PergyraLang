@@ -1,9 +1,38 @@
-# Pergyra 언어 컴파일러 빌드 시스템
+# Pergyra Programming Language
+#
+# Copyright (c) 2025 Pergyra Language Project
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of the Pergyra Language Project nor the names of
+#    its contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# Pergyra Language Compiler Build System
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -O2 -g
 ASMFLAGS = -f elf64
 
-# 디렉토리
+# Directories
 SRC_DIR = src
 BUILD_DIR = build
 BIN_DIR = bin
@@ -13,44 +42,59 @@ RUNTIME_DIR = $(SRC_DIR)/runtime
 CODEGEN_DIR = $(SRC_DIR)/codegen
 JVM_DIR = $(SRC_DIR)/jvm_bridge
 
-# 소스 파일
+# Source files
 LEXER_SOURCES = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES = $(PARSER_DIR)/ast.c $(PARSER_DIR)/parser.c
-RUNTIME_SOURCES = $(RUNTIME_DIR)/slot_manager.c $(RUNTIME_DIR)/memory_pool.c
+RUNTIME_SOURCES = $(RUNTIME_DIR)/slot_manager.c $(RUNTIME_DIR)/slot_pool.c
+RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 CODEGEN_SOURCES = $(CODEGEN_DIR)/codegen.c
 JVM_SOURCES = $(JVM_DIR)/jni_bridge.c
 MAIN_SOURCE = $(SRC_DIR)/main.c
+TEST_DATASTRUCTURES_SOURCE = $(SRC_DIR)/test_datastructures.c
 
-# 오브젝트 파일
+# Object files
 LEXER_OBJECTS = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 PARSER_OBJECTS = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 RUNTIME_OBJECTS = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+RUNTIME_ASM_OBJECTS = $(RUNTIME_ASM_SOURCES:$(SRC_DIR)/%.s=$(BUILD_DIR)/%.o)
 CODEGEN_OBJECTS = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 JVM_OBJECTS = $(JVM_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 MAIN_OBJECT = $(MAIN_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+TEST_DATASTRUCTURES_OBJECT = $(TEST_DATASTRUCTURES_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-ALL_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(RUNTIME_OBJECTS) $(CODEGEN_OBJECTS) $(MAIN_OBJECT)
+ALL_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(RUNTIME_OBJECTS) \
+              $(RUNTIME_ASM_OBJECTS) $(CODEGEN_OBJECTS) $(MAIN_OBJECT)
 
-# 실행 파일
+# Executables
 TARGET = $(BIN_DIR)/pergyra
 LEXER_TEST = $(BIN_DIR)/lexer_test
+DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures
 
-# 기본 타겟
-all: $(TARGET) $(LEXER_TEST)
+# Default target
+all: $(TARGET) $(LEXER_TEST) $(DATASTRUCTURES_TEST)
 
-# 실행 파일 빌드
+# Main executable build
 $(TARGET): $(ALL_OBJECTS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
-# 렉서 테스트 빌드
+# Lexer test build
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# 오브젝트 파일 빌드
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/lexer $(BUILD_DIR)/parser $(BUILD_DIR)/runtime $(BUILD_DIR)/codegen $(BUILD_DIR)/jvm_bridge
+# Data structures test build
+$(DATASTRUCTURES_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) $(TEST_DATASTRUCTURES_OBJECT) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# C source compilation
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/lexer $(BUILD_DIR)/parser \
+                   $(BUILD_DIR)/runtime $(BUILD_DIR)/codegen $(BUILD_DIR)/jvm_bridge
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# 디렉토리 생성
+# Assembly source compilation
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)/runtime
+	nasm $(ASMFLAGS) -o $@ $<
+
+# Directory creation
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
@@ -72,50 +116,75 @@ $(BUILD_DIR)/jvm_bridge: | $(BUILD_DIR)
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# 테스트 실행
+# Test execution
 test: $(LEXER_TEST)
-	@echo "=== 렉서 테스트 실행 ==="
+	@echo "=== Running Pergyra Lexer Test ==="
 	./$(LEXER_TEST)
 
-# 청소
+# Clean targets
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-# 부분 청소
 clean-objects:
 	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/*/*.o
 
-# 디버그 빌드
-debug: CFLAGS += -DDEBUG -g3
+# Build variants
+debug: CFLAGS += -DDEBUG -g3 -O0
 debug: $(TARGET)
 
-# 릴리즈 빌드  
-release: CFLAGS += -DNDEBUG -O3
+release: CFLAGS += -DNDEBUG -O3 -flto
 release: $(TARGET)
 
-# 정적 분석
+# Static analysis
 analyze:
 	cppcheck --enable=all --suppress=missingIncludeSystem $(SRC_DIR)
 
-# 의존성 생성
+# Dependency generation
 depend:
 	makedepend -Y -p$(BUILD_DIR)/ $(SRC_DIR)/*.c $(SRC_DIR)/*/*.c 2>/dev/null
 
-# 설치
+# Installation
 install: $(TARGET)
-	cp $(TARGET) /usr/local/bin/
+	install -m 755 $(TARGET) /usr/local/bin/
 
-# 문서 생성
+# Documentation generation
 docs:
 	doxygen docs/Doxyfile
 
-.PHONY: all test clean clean-objects debug release analyze depend install docs
+# Format code (requires clang-format)
+format:
+	find $(SRC_DIR) -name "*.c" -o -name "*.h" | xargs clang-format -i
 
-# 개별 컴포넌트 빌드
+# Individual component builds
 lexer: $(LEXER_OBJECTS)
-parser: $(PARSER_OBJECTS)
-runtime: $(RUNTIME_OBJECTS)
-codegen: $(CODEGEN_OBJECTS)
-jvm: $(JVM_OBJECTS)
+	@echo "Lexer component built successfully"
 
-.PHONY: lexer parser runtime codegen jvm
+parser: $(PARSER_OBJECTS)
+	@echo "Parser component built successfully"
+
+runtime: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
+	@echo "Runtime component built successfully"
+
+codegen: $(CODEGEN_OBJECTS)
+	@echo "Codegen component built successfully"
+
+jvm: $(JVM_OBJECTS)
+	@echo "JVM bridge component built successfully"
+
+# Benchmark target
+benchmark: release
+	@echo "Running performance benchmarks..."
+	./$(TARGET) --benchmark
+
+# Memory check (requires valgrind)
+memcheck: debug
+	valgrind --leak-check=full --show-leak-kinds=all ./$(LEXER_TEST)
+
+# Coverage analysis (requires gcov)
+coverage: CFLAGS += --coverage
+coverage: $(TARGET)
+	./$(LEXER_TEST)
+	gcov $(SRC_DIR)/*.c
+
+.PHONY: all test clean clean-objects debug release analyze depend install \
+        docs format lexer parser runtime codegen jvm benchmark memcheck coverage

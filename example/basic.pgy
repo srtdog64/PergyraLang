@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * This example demonstrates basic Pergyra language features
+ * including slot-based memory management and parallel processing.
+ *
+ * Licensed under BSD 3-Clause License.
+ */
+
 // Pergyra 언어 기본 예제
 // 슬롯 기반 메모리 관리와 병렬 처리 데모
 

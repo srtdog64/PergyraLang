@@ -1,5 +1,18 @@
 # Pergyra 언어 문법 정의
 
+<!--
+Copyright (c) 2025 Pergyra Language Project
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice
+2. Redistributions in binary form must reproduce the above copyright notice
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+-->
+
 ## 1. 핵심 철학
 - **Slot-based Memory Management**: 포인터 대신 슬롯으로 메모리 관리
 - **의미 기반 선언**: 모든 코드는 의미 단위로 구성

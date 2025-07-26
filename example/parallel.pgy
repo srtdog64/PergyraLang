@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * This example demonstrates advanced parallel processing features
+ * including multithreaded matrix multiplication.
+ *
+ * Licensed under BSD 3-Clause License.
+ */
+
 // Pergyra 병렬 처리 고급 예제
 // 멀티스레드 행렬 곱셈
 
