@@ -1,0 +1,293 @@
+// Example: Async/await and channels in Pergyra
+// Demonstrates the Structured Effect Async (SEA) model
+
+// Async function to fetch data from a URL
+async func FetchWeatherData(city: String) -> Result<WeatherData, Error>
+{
+    let url = "https://api.weather.com/v1/location/" + city
+    
+    // Await the HTTP request
+    let response = await HttpClient.Get(url)
+    
+    if response.StatusCode != 200
+    {
+        return .Err(HttpError(response.StatusCode))
+    }
+    
+    // Parse JSON asynchronously
+    let data = await response.ParseJsonAsync<WeatherData>()
+    return .Ok(data)
+}
+
+// Actor for managing weather cache
+actor WeatherCache
+{
+    private _cache: Map<String, WeatherData>
+    private _lastUpdate: Map<String, Timestamp>
+    private const CACHE_TTL = 300 // 5 minutes
+    
+    public func GetWeather(city: String) -> Option<WeatherData>
+    {
+        let lastUpdate = _lastUpdate.Get(city)
+        if lastUpdate.IsSome() && (Now() - lastUpdate.Unwrap()) < CACHE_TTL
+        {
+            return _cache.Get(city)
+        }
+        return .None
+    }
+    
+    public func UpdateWeather(city: String, data: WeatherData)
+    {
+        _cache.Put(city, data)
+        _lastUpdate.Put(city, Now())
+    }
+}
+
+// Channel-based producer/consumer pattern
+async func WeatherMonitor(cities: Array<String>)
+{
+    // Create channels
+    let requestChannel = Channel<String>(bufferSize: 10)
+    let resultChannel = Channel<WeatherResult>(bufferSize: 10)
+    
+    // Create cache actor
+    let cache = WeatherCache()
+    
+    // Spawn producer task
+    spawn async func()
+    {
+        for city in cities
+        {
+            await requestChannel.Send(city)
+            await Sleep(1000) // Rate limiting
+        }
+        requestChannel.Close()
+    }
+    
+    // Spawn multiple consumer workers
+    let workerCount = 3
+    for i in 0..workerCount
+    {
+        spawn async func()
+        {
+            await for city in requestChannel
+            {
+                // Check cache first
+                let cached = await cache.GetWeather(city)
+                if cached.IsSome()
+                {
+                    await resultChannel.Send(.Cached(city, cached.Unwrap()))
+                    continue
+                }
+                
+                // Fetch fresh data
+                match await FetchWeatherData(city)
+                {
+                    case .Ok(data):
+                        await cache.UpdateWeather(city, data)
+                        await resultChannel.Send(.Fresh(city, data))
+                        
+                    case .Err(error):
+                        await resultChannel.Send(.Error(city, error))
+                }
+            }
+        }
+    }
+    
+    // Process results
+    spawn async func()
+    {
+        await for result in resultChannel
+        {
+            match result
+            {
+                case .Fresh(city, data):
+                    Log("Fresh weather for ", city, ": ", data.Temperature, "°C")
+                    
+                case .Cached(city, data):
+                    Log("Cached weather for ", city, ": ", data.Temperature, "°C")
+                    
+                case .Error(city, error):
+                    LogError("Failed to get weather for ", city, ": ", error)
+            }
+        }
+    }
+}
+
+// Select statement for handling multiple channels
+async func MultiSourceAggregator()
+{
+    let sensor1 = Channel<SensorData>()
+    let sensor2 = Channel<SensorData>()
+    let commandChannel = Channel<Command>()
+    let timeout = Timer.After(5000)
+    
+    let aggregatedData = ClaimSlot<Array<SensorData>>()
+    Write(aggregatedData, CreateArray<SensorData>())
+    
+    loop
+    {
+        select
+        {
+            case data = <-sensor1:
+                let current = Read(aggregatedData)
+                current.Append(data)
+                Write(aggregatedData, current)
+                Log("Received from sensor 1: ", data.Value)
+                
+            case data = <-sensor2:
+                let current = Read(aggregatedData)
+                current.Append(data)
+                Write(aggregatedData, current)
+                Log("Received from sensor 2: ", data.Value)
+                
+            case cmd = <-commandChannel:
+                match cmd
+                {
+                    case .Stop:
+                        Log("Stopping aggregator")
+                        break loop
+                        
+                    case .Reset:
+                        Write(aggregatedData, CreateArray<SensorData>())
+                        Log("Reset aggregated data")
+                }
+                
+            case <-timeout:
+                Log("Timeout - processing partial data")
+                ProcessData(Read(aggregatedData))
+                timeout = Timer.After(5000) // Reset timeout
+                
+            default:
+                // Non-blocking - do other work
+                await Yield()
+        }
+    }
+    
+    Release(aggregatedData)
+}
+
+// Structured concurrency with task groups
+async func ParallelImageProcessing(images: Array<Image>) -> Array<ProcessedImage>
+{
+    return await WithTaskGroup(of: ProcessedImage.self)
+    {
+        group in
+        
+        // Add tasks with priority
+        for image in images
+        {
+            group.AddTaskWithPriority(priority: image.Size > 1000000 ? .High : .Normal)
+            {
+                let enhanced = await EnhanceImage(image)
+                let compressed = await CompressImage(enhanced)
+                return ProcessedImage(original: image, processed: compressed)
+            }
+        }
+        
+        // Collect results as they complete
+        var results = Array<ProcessedImage>()
+        for await result in group
+        {
+            results.Append(result)
+            Log("Processed image ", results.Length, " of ", images.Length)
+        }
+        
+        return results
+    }
+}
+
+// Main async entry point
+async func Main()
+{
+    Log("Starting async Pergyra example")
+    
+    // Example 1: Simple async/await
+    match await FetchWeatherData("Tokyo")
+    {
+        case .Ok(data):
+            Log("Tokyo weather: ", data.Temperature, "°C")
+            
+        case .Err(error):
+            LogError("Failed to fetch weather: ", error)
+    }
+    
+    // Example 2: Parallel execution
+    let cities = ["Tokyo", "London", "New York", "Sydney", "Paris"]
+    await WeatherMonitor(cities)
+    
+    // Example 3: Select with channels
+    spawn async func()
+    {
+        await MultiSourceAggregator()
+    }
+    
+    // Example 4: Structured concurrency
+    let images = LoadImages("./photos/")
+    let processed = await ParallelImageProcessing(images)
+    Log("Processed ", processed.Length, " images")
+    
+    Log("Async example completed")
+}
+
+// Error handling with async
+async func RobustFetch<T>(url: String, retries: Int = 3) -> Result<T, Error>
+{
+    for attempt in 0..retries
+    {
+        match await HttpClient.Get(url)
+        {
+            case .Ok(response):
+                return await response.ParseJsonAsync<T>()
+                
+            case .Err(error):
+                if attempt < retries - 1
+                {
+                    Log("Retry ", attempt + 1, " after error: ", error)
+                    await Sleep(1000 * (attempt + 1)) // Exponential backoff
+                }
+                else
+                {
+                    return .Err(error)
+                }
+        }
+    }
+    
+    // Should never reach here
+    return .Err(UnknownError)
+}
+
+// Type definitions
+type WeatherData = 
+{
+    Temperature: Float,
+    Humidity: Float,
+    Condition: String,
+    Timestamp: Int
+}
+
+type SensorData = 
+{
+    SensorId: String,
+    Value: Float,
+    Timestamp: Int
+}
+
+enum WeatherResult
+{
+    Fresh(String, WeatherData),
+    Cached(String, WeatherData),
+    Error(String, Error)
+}
+
+enum Command
+{
+    Stop,
+    Reset
+}
+
+type ProcessedImage = 
+{
+    original: Image,
+    processed: Image
+}

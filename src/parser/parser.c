@@ -254,6 +254,21 @@ ASTNode* parser_parse_program(Parser* parser) {
 
 // 문장 파싱
 ASTNode* parser_parse_statement(Parser* parser) {
+    // async 함수 선언
+    if (parser_match(parser, TOKEN_ASYNC)) {
+        return parser_parse_async_function(parser);
+    }
+    
+    // actor 선언
+    if (parser_match(parser, TOKEN_ACTOR)) {
+        return parser_parse_actor_declaration(parser);
+    }
+    
+    // select 문
+    if (parser_match(parser, TOKEN_SELECT)) {
+        return parser_parse_select_statement(parser);
+    }
+    
     // 함수 선언
     if (parser_match(parser, TOKEN_FUNC)) {
         return parse_function_declaration(parser);
@@ -617,6 +632,21 @@ static ASTNode* finish_call(Parser* parser, ASTNode* callee) {
 
 // 기본 표현식
 ASTNode* parser_parse_primary(Parser* parser) {
+    // await 표현식
+    if (parser_match(parser, TOKEN_AWAIT)) {
+        return parser_parse_await_expression(parser);
+    }
+    
+    // spawn 표현식
+    if (parser_match(parser, TOKEN_SPAWN)) {
+        return parser_parse_spawn_expression(parser);
+    }
+    
+    // 채널 수신: <-channel
+    if (parser_check(parser, TOKEN_CHANNEL_OP)) {
+        return parser_parse_channel_expression(parser);
+    }
+    
     // true
     if (parser_match(parser, TOKEN_TRUE)) {
         return ast_create_boolean(true);
@@ -648,11 +678,20 @@ ASTNode* parser_parse_primary(Parser* parser) {
             strcmp(name, "Read") == 0 ||
             strcmp(name, "Release") == 0 ||
             strcmp(name, "Log") == 0 ||
-            strcmp(name, "Parallel") == 0) {
+            strcmp(name, "Parallel") == 0 ||
+            strcmp(name, "Channel") == 0) {
             return ast_create_identifier(name);
         }
         
-        return ast_create_identifier(name);
+        // 채널 송신 체크: channel <- value
+        ASTNode* ident = ast_create_identifier(name);
+        if (parser_check(parser, TOKEN_CHANNEL_OP)) {
+            parser_advance(parser);
+            ASTNode* value = parser_parse_expression(parser);
+            return ast_create_channel_send(ident, value);
+        }
+        
+        return ident;
     }
     
     // 괄호 표현식

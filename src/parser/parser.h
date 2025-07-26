@@ -47,6 +47,8 @@ typedef struct
     /* Parsing context */
     bool    in_parallel_block;
     bool    in_with_statement;
+    bool    in_async_context;
+    bool    in_select_statement;
     int     scope_depth;
 } Parser;
 
@@ -70,6 +72,9 @@ ASTNode *parser_parse_with_statement(Parser *parser);
 ASTNode *parser_parse_parallel_block(Parser *parser);
 ASTNode *parser_parse_expression_statement(Parser *parser);
 ASTNode *parser_parse_block(Parser *parser);
+ASTNode *parser_parse_async_function(Parser *parser);
+ASTNode *parser_parse_actor_declaration(Parser *parser);
+ASTNode *parser_parse_select_statement(Parser *parser);
 
 /*
  * Expression parsing functions (precedence-based)
@@ -86,6 +91,9 @@ ASTNode *parser_parse_primary(Parser *parser);
 ASTNode *parser_parse_function_call(Parser *parser, const char *function_name);
 ASTNode *parser_parse_slot_operation(Parser *parser);
 ASTNode *parser_parse_type_parameter(Parser *parser);
+ASTNode *parser_parse_await_expression(Parser *parser);
+ASTNode *parser_parse_channel_expression(Parser *parser);
+ASTNode *parser_parse_spawn_expression(Parser *parser);
 
 /*
  * Token management functions

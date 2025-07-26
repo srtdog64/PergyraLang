@@ -61,6 +61,16 @@ typedef enum
     TOKEN_TRAIT,
     TOKEN_IMPL,
     
+    /* Async keywords */
+    TOKEN_ASYNC,
+    TOKEN_AWAIT,
+    TOKEN_ACTOR,
+    TOKEN_CHANNEL,
+    TOKEN_SELECT,
+    TOKEN_CASE,
+    TOKEN_DEFAULT,
+    TOKEN_SPAWN,
+    
     /* Operators */
     TOKEN_ASSIGN,       /* = */
     TOKEN_PLUS,         /* + */
@@ -78,6 +88,7 @@ typedef enum
     TOKEN_OR,           /* || */
     TOKEN_NOT,          /* ! */
     TOKEN_ARROW,        /* -> */
+    TOKEN_CHANNEL_OP,   /* <- */
     TOKEN_DOT,          /* . */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */

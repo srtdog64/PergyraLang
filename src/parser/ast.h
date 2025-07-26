@@ -68,6 +68,7 @@ typedef enum
     AST_CLASS_DECL,
     AST_LET_DECL,
     AST_TYPE_ALIAS,
+    AST_ACTOR_DECL,
     
     /* Statements */
     AST_WITH_STMT,
@@ -77,6 +78,7 @@ typedef enum
     AST_IF_STMT,
     AST_RETURN,
     AST_EXPRESSION_STMT,
+    AST_SELECT_STMT,
     
     /* Expressions */
     AST_BINARY,
@@ -85,6 +87,9 @@ typedef enum
     AST_MEMBER_ACCESS,
     AST_ARRAY_ACCESS,
     AST_ASSIGNMENT,
+    AST_AWAIT_EXPR,
+    AST_CHANNEL_SEND,
+    AST_CHANNEL_RECV,
     
     /* Literals */
     AST_NUMBER,
@@ -95,12 +100,19 @@ typedef enum
     /* Types */
     AST_TYPE,
     AST_GENERIC_TYPE,
+    AST_CHANNEL_TYPE,
+    AST_FUTURE_TYPE,
     
     /* Slot operations */
     AST_CLAIM_SLOT,
     AST_WRITE_SLOT,
     AST_READ_SLOT,
-    AST_RELEASE_SLOT
+    AST_RELEASE_SLOT,
+    
+    /* Async operations */
+    AST_ASYNC_BLOCK,
+    AST_SPAWN_EXPR,
+    AST_TASK_GROUP
 } ASTNodeType;
 
 /*
@@ -304,6 +316,84 @@ struct ASTNode
             char*          name;
             GenericParams* generic_args;
         } type;
+        
+        /* Async function declaration */
+        struct {
+            char*          name;
+            FuncParam**    params;
+            size_t         param_count;
+            ASTNode*       return_type;
+            ASTNode*       body;
+            GenericParams* generic_params;
+            WhereClause*   where_clause;
+            AccessModifier access;
+            bool           is_async;
+            StructuredComment* doc_comment;
+        } async_func_decl;
+        
+        /* Actor declaration */
+        struct {
+            char*          name;
+            ClassField**   fields;
+            size_t         field_count;
+            ASTNode**      methods;
+            size_t         method_count;
+            GenericParams* generic_params;
+            StructuredComment* doc_comment;
+        } actor_decl;
+        
+        /* Await expression */
+        struct {
+            ASTNode* expression;
+        } await_expr;
+        
+        /* Channel operations */
+        struct {
+            ASTNode* channel;
+            ASTNode* value;
+        } channel_send;
+        
+        struct {
+            ASTNode* channel;
+        } channel_recv;
+        
+        /* Select statement */
+        struct {
+            ASTNode** cases;
+            size_t case_count;
+            ASTNode* default_case;
+        } select_stmt;
+        
+        /* Async block */
+        struct {
+            ASTNode** statements;
+            size_t statement_count;
+        } async_block;
+        
+        /* Spawn expression */
+        struct {
+            ASTNode* function;
+            ASTNode** arguments;
+            size_t arg_count;
+        } spawn_expr;
+        
+        /* Channel type */
+        struct {
+            ASTNode* element_type;
+            ASTNode* capacity;  /* Optional, null for unbuffered */
+        } channel_type;
+        
+        /* Future type */
+        struct {
+            ASTNode* value_type;
+        } future_type;
+        
+        /* Task group */
+        struct {
+            ASTNode** tasks;
+            size_t task_count;
+            bool wait_all;  /* true for all, false for any */
+        } task_group;
     } data;
 };
 
@@ -329,6 +419,19 @@ ASTNode* ast_create_string(const char* value);
 ASTNode* ast_create_boolean(bool value);
 ASTNode* ast_create_identifier(const char* name);
 ASTNode* ast_create_type(const char* name);
+
+/* Async AST creation functions */
+ASTNode* ast_create_async_function(const char* name, bool is_async);
+ASTNode* ast_create_actor(const char* name);
+ASTNode* ast_create_await_expression(ASTNode* expression);
+ASTNode* ast_create_channel_send(ASTNode* channel, ASTNode* value);
+ASTNode* ast_create_channel_recv(ASTNode* channel);
+ASTNode* ast_create_select_statement(void);
+ASTNode* ast_create_async_block(void);
+ASTNode* ast_create_spawn_expression(ASTNode* function);
+ASTNode* ast_create_channel_type(ASTNode* element_type);
+ASTNode* ast_create_future_type(ASTNode* value_type);
+ASTNode* ast_create_task_group(bool wait_all);
 
 /* AST manipulation functions */
 void ast_add_statement(ASTNode* parent, ASTNode* statement);
