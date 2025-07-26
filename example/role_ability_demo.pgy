@@ -1,0 +1,276 @@
+// Pergyra Role/Ability Example with Generic Security Levels
+// This demonstrates the language's innovative features
+
+// Define a simple struct for Player
+struct Player
+{
+    _healthSlot: SecureSlot<Int, Basic>
+    _token: Token
+    _name: String
+    _level: Int
+}
+
+// Define the Damageable ability
+ability Damageable
+{
+    require _healthSlot: Slot<Int, any SecurityModel>
+    
+    func TakeDamage(&mut self, amount: Int)
+    func Heal(&mut self, amount: Int)
+    func IsAlive(&self) -> Bool
+}
+
+// Generic role that works with any security level
+role BasicDamageable<T, S: SecurityModel> for T 
+    where T has _healthSlot: Slot<Int, S>
+{
+    impl ability Damageable
+    {
+        func TakeDamage(&mut self, amount: Int)
+        {
+            let current = Read(self._healthSlot)
+            Write(self._healthSlot, Max(0, current - amount))
+        }
+        
+        func Heal(&mut self, amount: Int)
+        {
+            let current = Read(self._healthSlot)
+            Write(self._healthSlot, Min(100, current + amount))
+        }
+        
+        func IsAlive(&self) -> Bool
+        {
+            return Read(self._healthSlot) > 0
+        }
+    }
+}
+
+// Player-specific role with security requirements
+role PlayerCombat for Player
+{
+    // Include the generic role with Player's security level
+    include role BasicDamageable<Player, Basic>
+    
+    // Override to add player-specific behavior
+    override func TakeDamage(&mut self, amount: Int)
+    {
+        Log($"Player {self._name} is taking {amount} damage!")
+        
+        // Reduce damage based on level
+        let reducedDamage = amount - (self._level / 10)
+        super.TakeDamage(Max(0, reducedDamage))
+        
+        if !self.IsAlive()
+        {
+            Log($"Player {self._name} has been defeated!")
+        }
+    }
+}
+
+// Monster with zero-cost (no security) slots for performance
+struct Monster
+{
+    _healthSlot: Slot<Int, ZeroCost>
+    _attackPower: Int
+    _type: String
+}
+
+// Monster role using zero-cost slots
+role MonsterCombat for Monster
+{
+    include role BasicDamageable<Monster, ZeroCost>
+    
+    impl ability Attackable
+    {
+        func Attack(&self, target: &mut impl Damageable) -> Int
+        {
+            Log($"{self._type} attacks for {self._attackPower} damage!")
+            target.TakeDamage(self._attackPower)
+            return self._attackPower
+        }
+    }
+}
+
+// Bank account requiring high security
+struct BankAccount
+{
+    _balanceSlot: SecureSlot<Decimal, Hardware>
+    _token: HardwareToken
+    _accountNumber: String
+}
+
+// Secure transferable ability
+secure ability SecureTransferable
+{
+    require _balanceSlot: SecureSlot<Decimal, any>
+    require _token: Token
+    
+    func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) 
+        -> Result<TransferReceipt, Error>
+        with effects Security
+}
+
+// Bank account role with hardware security
+role SecureBankOperations for BankAccount
+{
+    impl ability SecureTransferable
+    {
+        func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) 
+            -> Result<TransferReceipt, Error>
+            with effects Security
+        {
+            // Validate hardware token
+            Security.ValidateToken(self._token)?
+            
+            let balance = Read(self._balanceSlot, self._token)
+            if balance < amount
+            {
+                return .Err(InsufficientFunds)
+            }
+            
+            // Atomic transfer with hardware protection
+            Write(self._balanceSlot, balance - amount, self._token)
+            to.Deposit(amount)?
+            
+            return .Ok(TransferReceipt {
+                from: self._accountNumber,
+                amount: amount,
+                timestamp: Time.Now()
+            })
+        }
+    }
+}
+
+// Parallel composition example
+ability Renderable
+{
+    require _meshSlot: Slot<Mesh>
+    require _textureSlot: Slot<Texture>
+}
+
+ability Physics
+{
+    require _transformSlot: Slot<Transform>
+    require _rigidbodySlot: Slot<Rigidbody>
+}
+
+// Parallel role for rendering
+role ParallelRenderer<T> for T where T: Renderable
+{
+    parallel on (gpuFiber)
+    {
+        let mesh = Read(self._meshSlot)
+        let texture = Read(self._textureSlot)
+        await GpuScheduler.SubmitDrawCall(mesh, texture)
+    }
+}
+
+// Parallel role for physics
+role ParallelPhysics<T> for T where T: Physics
+{
+    parallel on (cpuFiber)
+    {
+        let transform = Read(self._transformSlot)
+        let rigidbody = Read(self._rigidbodySlot)
+        let newTransform = await CpuScheduler.CalculatePhysics(transform, rigidbody)
+        Write(self._transformSlot, newTransform)
+    }
+}
+
+// Game entity combining multiple parallel roles
+struct GameObject
+{
+    _meshSlot: Slot<Mesh>
+    _textureSlot: Slot<Texture>
+    _transformSlot: Slot<Transform>
+    _rigidbodySlot: Slot<Rigidbody>
+    _healthSlot: Slot<Int, ZeroCost>  // Performance mode for game objects
+}
+
+role CompleteGameObject for GameObject
+{
+    include role ParallelRenderer<GameObject>
+    include role ParallelPhysics<GameObject>
+    include role BasicDamageable<GameObject, ZeroCost>
+}
+
+// Main game loop demonstrating parallel composition
+async func GameLoop(objects: Array<GameObject>)
+{
+    let frameResults = parallel (objects) join with all
+    {
+        // Each GameObject automatically executes:
+        // - ParallelRenderer on GPU fiber
+        // - ParallelPhysics on CPU fiber
+        // - All in parallel, type-safe, and secure
+    }
+    
+    // Process results
+    for result in frameResults
+    {
+        match result
+        {
+            case .Success(data):
+                UpdateGameState(data)
+                
+            case .Error(err):
+                LogError("Frame processing failed", err)
+        }
+    }
+}
+
+// Function with security constraints
+func ProcessFinancialTransaction(
+    account: Slot<BankAccount, Secure<Hardware>>,
+    amount: Decimal
+) -> Result<(), Error>
+    with effects Security, IO
+{
+    // This function can only be called with hardware-secure slots
+    // Compiler enforces this at compile time
+    
+    let token = Security.CreateHardwareToken()
+    let acc = Read(account, token)
+    
+    // Process transaction with full hardware protection
+    // ...
+}
+
+// Example of security downgrade (requires explicit audit)
+func ExportForReporting(
+    secureData: Slot<FinancialData, Secure<any>>
+) -> Slot<FinancialData, ZeroCost>
+{
+    // Explicit downgrade with audit trail
+    let publicData = SecurityDowngrade(secureData, 
+        auditReason: "Monthly reporting export",
+        approvedBy: "CFO")
+    
+    return publicData
+}
+
+// Example usage
+func Main()
+{
+    // Create a secure player
+    let player = Player {
+        _healthSlot: ClaimSecureSlot<Int>(SECURITY_LEVEL_BASIC),
+        _token: CreateToken(SECURITY_LEVEL_BASIC),
+        _name: "Hero",
+        _level: 10
+    }
+    
+    // Create a performance-optimized monster
+    let monster = Monster {
+        _healthSlot: ClaimSlot<Int>(),  // Zero-cost slot
+        _attackPower: 15,
+        _type: "Dragon"
+    }
+    
+    // Combat works seamlessly despite different security levels
+    monster.Attack(&player)  // Type-safe and secure
+    
+    // Parallel game processing
+    let gameObjects = LoadGameObjects()
+    await GameLoop(gameObjects)
+}

@@ -1,0 +1,533 @@
+// Pergyra Party System Example
+// Demonstrates the revolutionary party concept for role collaboration
+
+// ============= Basic Abilities =============
+
+ability Damageable
+{
+    require _healthSlot: Slot<Int, any SecurityModel>
+    
+    func TakeDamage(&mut self, amount: Int)
+    func Heal(&mut self, amount: Int)
+    func GetHealth(&self) -> Int
+    func GetMaxHealth(&self) -> Int
+    func IsAlive(&self) -> Bool
+}
+
+ability Taunting
+{
+    require _threatSlot: Slot<Map<EntityId, Int>>
+    
+    func Taunt(&mut self, target: EntityId)
+    func GetThreatLevel(&self, from: EntityId) -> Int
+    func GetPrimaryTarget(&self) -> Option<EntityId>
+}
+
+ability Healing
+{
+    require _manaSlot: Slot<Int>
+    require _spellPower: Int
+    
+    func HealTarget(&mut self, amount: Int) -> Int
+    func GetMana(&self) -> Int
+    func ConsumeMana(&mut self, amount: Int) -> Bool
+}
+
+ability DamageDealing
+{
+    require _attackPower: Int
+    require _critChance: Float
+    
+    func CalculateDamage(&self) -> Int
+    func Attack(&self, target: &mut impl Damageable) -> Int
+}
+
+ability Buffing
+{
+    func ApplyBuff(&self, target: EntityId, buff: Buff)
+    func RemoveBuff(&self, target: EntityId, buffId: BuffId)
+}
+
+// ============= Character Structs =============
+
+struct Warrior
+{
+    _healthSlot: Slot<Int, Basic>
+    _threatSlot: Slot<Map<EntityId, Int>>
+    _armor: Int
+    name: String
+}
+
+struct Priest
+{
+    _healthSlot: Slot<Int, Basic>
+    _manaSlot: Slot<Int>
+    _spellPower: Int
+    name: String
+}
+
+struct Mage
+{
+    _healthSlot: Slot<Int, Basic>
+    _manaSlot: Slot<Int>
+    _attackPower: Int
+    _critChance: Float
+    name: String
+}
+
+// ============= Role Implementations =============
+
+role WarriorTank for Warrior
+{
+    impl ability Damageable
+    {
+        func TakeDamage(&mut self, amount: Int)
+        {
+            // Armor reduces damage
+            let reducedDamage = Max(1, amount - self._armor / 10)
+            let current = Read(self._healthSlot)
+            Write(self._healthSlot, Max(0, current - reducedDamage))
+        }
+        
+        func GetHealth(&self) -> Int { Read(self._healthSlot) }
+        func GetMaxHealth(&self) -> Int { 1000 } // Warriors have high HP
+        func IsAlive(&self) -> Bool { GetHealth() > 0 }
+        
+        func Heal(&mut self, amount: Int)
+        {
+            let current = GetHealth()
+            Write(self._healthSlot, Min(GetMaxHealth(), current + amount))
+        }
+    }
+    
+    impl ability Taunting
+    {
+        func Taunt(&mut self, target: EntityId)
+        {
+            let threats = Read(self._threatSlot)
+            threats[target] = threats.GetOrDefault(target, 0) + 100
+            Write(self._threatSlot, threats)
+        }
+        
+        func GetThreatLevel(&self, from: EntityId) -> Int
+        {
+            Read(self._threatSlot).GetOrDefault(from, 0)
+        }
+        
+        func GetPrimaryTarget(&self) -> Option<EntityId>
+        {
+            let threats = Read(self._threatSlot)
+            threats.MaxBy(|(_, threat)| threat).Map(|(id, _)| id)
+        }
+    }
+    
+    // Parallel behavior: continuously manage threat
+    parallel on (mainThread)
+    {
+        every (1000ms)
+        {
+            // Decay threat over time
+            let threats = Read(self._threatSlot)
+            let decayed = threats.MapValues(|t| Max(0, t - 5))
+            Write(self._threatSlot, decayed)
+            
+            // Check if we need to taunt
+            if let Some(target) = GetPrimaryTarget()
+            {
+                if GetThreatLevel(target) < 50
+                {
+                    Taunt(target)
+                }
+            }
+        }
+    }
+}
+
+role PriestHealer for Priest
+{
+    impl ability Healing
+    {
+        func HealTarget(&mut self, amount: Int) -> Int
+        {
+            let healAmount = amount + self._spellPower / 10
+            healAmount
+        }
+        
+        func GetMana(&self) -> Int { Read(self._manaSlot) }
+        
+        func ConsumeMana(&mut self, amount: Int) -> Bool
+        {
+            let current = GetMana()
+            if current >= amount
+            {
+                Write(self._manaSlot, current - amount)
+                true
+            }
+            else
+            {
+                false
+            }
+        }
+    }
+    
+    impl ability Damageable
+    {
+        func TakeDamage(&mut self, amount: Int)
+        {
+            let current = Read(self._healthSlot)
+            Write(self._healthSlot, Max(0, current - amount))
+        }
+        
+        func GetHealth(&self) -> Int { Read(self._healthSlot) }
+        func GetMaxHealth(&self) -> Int { 500 } // Priests are squishy
+        func IsAlive(&self) -> Bool { GetHealth() > 0 }
+        
+        func Heal(&mut self, amount: Int)
+        {
+            let current = GetHealth()
+            Write(self._healthSlot, Min(GetMaxHealth(), current + amount))
+        }
+    }
+    
+    // Parallel behavior: smart healing
+    parallel on (backgroundThread)
+    {
+        every (500ms)
+        {
+            // Access party members through context
+            let tank = context.GetRole<Damageable>("tank")
+            let dps = context.GetRole<Damageable>("dps")
+            
+            // Find lowest HP member
+            let members = [(tank, "tank"), (dps, "dps")]
+            let needsHealing = members
+                .Filter(|(m, _)| m.GetHealth() < m.GetMaxHealth() * 0.7)
+                .MinBy(|(m, _)| m.GetHealth())
+            
+            if let Some((member, role)) = needsHealing
+            {
+                if ConsumeMana(40)
+                {
+                    let healAmount = HealTarget(200)
+                    member.Heal(healAmount)
+                    Log($"Healed {role} for {healAmount}")
+                }
+            }
+            
+            // Mana regeneration
+            let currentMana = GetMana()
+            Write(self._manaSlot, Min(500, currentMana + 5))
+        }
+    }
+}
+
+role MageDPS for Mage
+{
+    impl ability DamageDealing
+    {
+        func CalculateDamage(&self) -> Int
+        {
+            let baseDamage = self._attackPower
+            let critRoll = Random.Float()
+            
+            if critRoll < self._critChance
+            {
+                baseDamage * 2 // Critical hit!
+            }
+            else
+            {
+                baseDamage
+            }
+        }
+        
+        func Attack(&self, target: &mut impl Damageable) -> Int
+        {
+            let damage = CalculateDamage()
+            target.TakeDamage(damage)
+            damage
+        }
+    }
+    
+    impl ability Damageable
+    {
+        func TakeDamage(&mut self, amount: Int)
+        {
+            let current = Read(self._healthSlot)
+            Write(self._healthSlot, Max(0, current - amount))
+        }
+        
+        func GetHealth(&self) -> Int { Read(self._healthSlot) }
+        func GetMaxHealth(&self) -> Int { 400 }
+        func IsAlive(&self) -> Bool { GetHealth() > 0 }
+        
+        func Heal(&mut self, amount: Int)
+        {
+            let current = GetHealth()
+            Write(self._healthSlot, Min(GetMaxHealth(), current + amount))
+        }
+    }
+    
+    // Parallel behavior: optimal damage rotation
+    parallel on (computeThread)
+    {
+        continuous
+        {
+            // Get tank's target
+            let tank = context.GetRole<Taunting>("tank")
+            
+            if let Some(targetId) = tank.GetPrimaryTarget()
+            {
+                // In real game, would look up target entity
+                // For demo, we attack a dummy target
+                let dummyTarget = GetTargetEntity(targetId)
+                let damage = Attack(dummyTarget)
+                
+                // Update threat on tank
+                tank.Taunt(targetId) // Help tank maintain aggro
+            }
+            
+            await Delay(2000ms) // Global cooldown
+        }
+    }
+}
+
+// ============= Party Definition =============
+
+party DungeonParty
+{
+    // Required roles with ability constraints
+    role slot tank: Damageable & Taunting
+    role slot healer: Healing & Damageable
+    role slot dps: DamageDealing & Damageable
+    
+    // Shared party data
+    shared formationBonus: Int = 10
+    shared partyLevel: Int = 1
+    shared inCombat: Bool = false
+    
+    // Party-wide methods
+    func StartCombat(&mut self)
+    {
+        self.inCombat = true
+        Log("Party engaging in combat!")
+        
+        // Apply formation bonus to all members
+        ApplyFormationBonus()
+    }
+    
+    func EndCombat(&mut self)
+    {
+        self.inCombat = false
+        Log("Combat ended. Party victorious!")
+        
+        // Level up check
+        if ShouldLevelUp()
+        {
+            self.partyLevel += 1
+            Log($"Party reached level {self.partyLevel}!")
+        }
+    }
+    
+    private func ApplyFormationBonus(&self)
+    {
+        // In real implementation, would apply stat bonuses
+        Log($"Formation bonus of {self.formationBonus}% applied")
+    }
+    
+    private func ShouldLevelUp(&self) -> Bool
+    {
+        // Simplified level up logic
+        Random.Float() > 0.7
+    }
+}
+
+// Extended party for raids
+party RaidParty extends DungeonParty
+{
+    // Additional roles for larger content
+    role slot offtank: Damageable & Taunting
+    role slot dps2: DamageDealing & Damageable
+    role slot support: Buffing & Damageable
+    
+    shared raidDifficulty: String = "Normal"
+    
+    func ExecuteRaidMechanic(&mut self, mechanic: String)
+    {
+        match mechanic
+        {
+            case "TankSwap":
+                // Offtank takes over
+                let maintank = context.GetRole<Taunting>("tank")
+                let offtank = context.GetRole<Taunting>("offtank")
+                SwapTanks(maintank, offtank)
+                
+            case "StackForHealing":
+                // Everyone groups up
+                Log("Party stacking for AoE heal")
+                
+            case "SpreadOut":
+                // Everyone spreads to avoid AoE
+                Log("Party spreading out")
+                
+            default:
+                Log($"Unknown mechanic: {mechanic}")
+        }
+    }
+}
+
+// ============= Generic Party Template =============
+
+party Squad<T> where T: CombatReady
+{
+    role slot leader: T & Leadership
+    role slot members: Array<T>
+    
+    shared objective: Mission
+    shared morale: Int = 100
+    
+    func ExecuteMission(&mut self) -> Result<MissionReport, Error>
+    {
+        Log($"Squad executing mission: {self.objective.GetName()}")
+        
+        // Leader gives orders
+        let strategy = context.GetRole<Leadership>("leader").PlanStrategy(self.objective)
+        
+        // Execute in parallel
+        let results = parallel (context.GetRole<Array<T>>("members")) join with all
+        {
+            // Each member executes their part
+            member.ExecuteOrders(strategy)
+        }
+        
+        // Compile mission report
+        CompileMissionReport(results)
+    }
+}
+
+// ============= Main Example =============
+
+func Main()
+{
+    // Create characters
+    let tank = Warrior {
+        _healthSlot: ClaimSlot<Int>(),
+        _threatSlot: ClaimSlot<Map<EntityId, Int>>(),
+        _armor: 100,
+        name: "Thorin"
+    }
+    
+    let healer = Priest {
+        _healthSlot: ClaimSlot<Int>(),
+        _manaSlot: ClaimSlot<Int>(),
+        _spellPower: 50,
+        name: "Elara"
+    }
+    
+    let dps = Mage {
+        _healthSlot: ClaimSlot<Int>(),
+        _manaSlot: ClaimSlot<Int>(),
+        _attackPower: 80,
+        _critChance: 0.25,
+        name: "Gandorf"
+    }
+    
+    // Initialize health and mana
+    Write(tank._healthSlot, 1000)
+    Write(healer._healthSlot, 500)
+    Write(healer._manaSlot, 500)
+    Write(dps._healthSlot, 400)
+    Write(dps._manaSlot, 600)
+    
+    // Create party
+    let party = DungeonParty {
+        tank: tank,
+        healer: healer,
+        dps: dps
+    }
+    
+    // Start combat
+    party.StartCombat()
+    
+    // Run party in parallel
+    // Each role's parallel block executes simultaneously:
+    // - Tank manages threat on main thread
+    // - Healer monitors health on background thread
+    // - DPS optimizes rotation on compute thread
+    let combatTask = async {
+        parallel (party) join with all
+        {
+            // All parallel behaviors run here
+        }
+    }
+    
+    // Simulate combat for 10 seconds
+    await Sleep(10000ms)
+    
+    // End combat
+    party.EndCombat()
+    
+    // Cancel parallel execution
+    combatTask.Cancel()
+    
+    // Report final state
+    Log("=== Combat Summary ===")
+    Log($"Tank Health: {tank.GetHealth()}/{tank.GetMaxHealth()}")
+    Log($"Healer Health: {healer.GetHealth()}/{healer.GetMaxHealth()}")
+    Log($"Healer Mana: {healer.GetMana()}/500")
+    Log($"DPS Health: {dps.GetHealth()}/{dps.GetMaxHealth()}")
+    Log($"Party Level: {party.partyLevel}")
+}
+
+// ============= Helper Types =============
+
+type EntityId = Int
+type BuffId = Int
+
+struct Buff
+{
+    id: BuffId
+    name: String
+    duration: Int
+    effect: Effect
+}
+
+enum Effect
+{
+    StatBoost(stat: String, amount: Int)
+    DamageOverTime(damage: Int, ticks: Int)
+    HealOverTime(healing: Int, ticks: Int)
+}
+
+struct Mission
+{
+    name: String
+    difficulty: Int
+    objectives: Array<String>
+    
+    func GetName(&self) -> String { self.name }
+}
+
+struct MissionReport
+{
+    success: Bool
+    casualties: Int
+    duration: Duration
+    notes: Array<String>
+}
+
+// Placeholder abilities for generic example
+ability CombatReady
+{
+    func ExecuteOrders(&mut self, strategy: Strategy) -> Result<(), Error>
+}
+
+ability Leadership
+{
+    func PlanStrategy(&self, mission: Mission) -> Strategy
+}
+
+struct Strategy
+{
+    approach: String
+    priorities: Array<String>
+}

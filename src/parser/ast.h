@@ -112,7 +112,23 @@ typedef enum
     /* Async operations */
     AST_ASYNC_BLOCK,
     AST_SPAWN_EXPR,
-    AST_TASK_GROUP
+    AST_TASK_GROUP,
+    
+    /* Role and Ability system */
+    AST_ABILITY_DECL,
+    AST_ROLE_DECL,
+    AST_INCLUDE_STMT,
+    AST_REQUIRE_FIELD,
+    AST_IMPL_ABILITY,
+    AST_OVERRIDE_FUNC,
+    
+    /* Party system */
+    AST_PARTY_DECL,
+    AST_ROLE_SLOT,
+    AST_PARTY_SHARED,
+    AST_PARTY_METHOD,
+    AST_CONTEXT_ACCESS,
+    AST_PARTY_INSTANCE
 } ASTNodeType;
 
 /*
@@ -394,6 +410,102 @@ struct ASTNode
             size_t task_count;
             bool wait_all;  /* true for all, false for any */
         } task_group;
+        
+        /* Ability declaration */
+        struct {
+            char* name;
+            ASTNode** require_fields;
+            size_t require_count;
+            ASTNode** methods;
+            size_t method_count;
+            StructuredComment* doc_comment;
+        } ability_decl;
+        
+        /* Role declaration */
+        struct {
+            char* name;
+            ASTNode* for_type;  /* The struct this role is for */
+            ASTNode** includes; /* Other roles to include */
+            size_t include_count;
+            ASTNode** impl_abilities;  /* Abilities implemented */
+            size_t impl_count;
+            ASTNode* parallel_block;  /* Optional parallel on block */
+            GenericParams* generic_params;
+            WhereClause* where_clause;
+            StructuredComment* doc_comment;
+        } role_decl;
+        
+        /* Include statement */
+        struct {
+            char* role_name;
+            GenericParams* type_args;  /* For generic roles */
+        } include_stmt;
+        
+        /* Require field */
+        struct {
+            char* name;
+            ASTNode* type;
+        } require_field;
+        
+        /* Impl ability block */
+        struct {
+            char* ability_name;
+            ASTNode** methods;
+            size_t method_count;
+        } impl_ability;
+        
+        /* Override function */
+        struct {
+            ASTNode* func_decl;
+            bool calls_super;
+        } override_func;
+        
+        /* Party declaration */
+        struct {
+            char* name;
+            ASTNode** role_slots;      /* Required roles */
+            size_t role_count;
+            ASTNode** shared_fields;   /* Shared data */
+            size_t shared_count;
+            ASTNode** methods;         /* Party methods */
+            size_t method_count;
+            ASTNode* extends;          /* Parent party (optional) */
+            GenericParams* generic_params;
+            StructuredComment* doc_comment;
+        } party_decl;
+        
+        /* Role slot in party */
+        struct {
+            char* slot_name;
+            ASTNode** required_abilities;  /* Ability requirements */
+            size_t ability_count;
+            bool is_array;                 /* Array<T> slot */
+        } role_slot;
+        
+        /* Party shared field */
+        struct {
+            char* name;
+            ASTNode* type;
+            ASTNode* initializer;
+            AccessModifier access;
+        } party_shared;
+        
+        /* Context access */
+        struct {
+            char* method_name;     /* GetRole, FindRole, etc */
+            char* role_slot_name;  /* Which slot to access */
+            ASTNode* ability_type; /* Expected ability */
+        } context_access;
+        
+        /* Party instance creation */
+        struct {
+            char* party_type;
+            struct {
+                char* slot_name;
+                ASTNode* value;
+            }* assignments;
+            size_t assignment_count;
+        } party_instance;
     } data;
 };
 

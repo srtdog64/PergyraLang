@@ -61,6 +61,22 @@ typedef enum
     TOKEN_TRAIT,
     TOKEN_IMPL,
     
+    /* Role/Ability keywords */
+    TOKEN_ABILITY,
+    TOKEN_ROLE,
+    TOKEN_INCLUDE,
+    TOKEN_REQUIRE,
+    TOKEN_OVERRIDE,
+    TOKEN_SUPER,
+    TOKEN_SECURE,
+    
+    /* Party keywords */
+    TOKEN_PARTY,
+    TOKEN_SLOT,
+    TOKEN_SHARED,
+    TOKEN_CONTEXT,
+    TOKEN_EXTENDS,
+    
     /* Async keywords */
     TOKEN_ASYNC,
     TOKEN_AWAIT,
