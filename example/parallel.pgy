@@ -19,30 +19,30 @@ type Matrix = {
 }
 
 // 행렬 생성 함수
-func create_matrix(rows: Int, cols: Int) -> Matrix {
+func CreateMatrix(rows: Int, cols: Int) -> Matrix {
     with slot<Matrix> as matrix {
-        matrix.write(Matrix {
+        matrix.Write(Matrix {
             rows: rows,
             cols: cols,
-            data: create_array(rows * cols)
+            data: CreateArray(rows * cols)
         })
         
-        return matrix.read()
+        return matrix.Read()
     }
 }
 
 // 병렬 행렬 곱셈
-func parallel_matrix_multiply(a: Matrix, b: Matrix) -> Matrix {
+func ParallelMatrixMultiply(a: Matrix, b: Matrix) -> Matrix {
     if a.cols != b.rows {
-        panic("행렬 차원이 맞지 않습니다")
+        Panic("행렬 차원이 맞지 않습니다")
     }
     
-    let result = create_matrix(a.rows, b.cols)
+    let result = CreateMatrix(a.rows, b.cols)
     
     // 각 행을 병렬로 처리
-    parallel {
-        for row_idx in 0..a.rows {
-            calculate_row(a, b, result, row_idx)
+    Parallel {
+        for rowIdx in 0..a.rows {
+            CalculateRow(a, b, result, rowIdx)
         }
     }
     
@@ -50,105 +50,105 @@ func parallel_matrix_multiply(a: Matrix, b: Matrix) -> Matrix {
 }
 
 // 단일 행 계산 (병렬 작업 단위)
-func calculate_row(a: Matrix, b: Matrix, result: Matrix, row: Int) {
+func CalculateRow(a: Matrix, b: Matrix, result: Matrix, row: Int) {
     with slot<Float> as sum {
         for col in 0..b.cols {
-            sum.write(0.0)
+            sum.Write(0.0)
             
             for k in 0..a.cols {
-                let a_val = a.data[row * a.cols + k]
-                let b_val = b.data[k * b.cols + col]
-                let current_sum = sum.read()
-                sum.write(current_sum + a_val * b_val)
+                let aVal = a.data[row * a.cols + k]
+                let bVal = b.data[k * b.cols + col]
+                let currentSum = sum.Read()
+                sum.Write(currentSum + aVal * bVal)
             }
             
-            result.data[row * result.cols + col] = sum.read()
+            result.data[row * result.cols + col] = sum.Read()
         }
     }
 }
 
 // 스레드 풀 기반 병렬 처리
-func threaded_computation() {
-    let thread_count = get_cpu_count()
+func ThreadedComputation() {
+    let threadCount = GetCpuCount()
     
     with slot<Array<Int>> as results {
-        results.write(create_array(thread_count))
+        results.Write(CreateArray(threadCount))
         
-        parallel {
-            for thread_id in 0..thread_count {
-                worker_thread(thread_id, results)
+        Parallel {
+            for threadId in 0..threadCount {
+                WorkerThread(threadId, results)
             }
         }
         
         // 결과 집계
         with slot<Int> as total {
-            total.write(0)
+            total.Write(0)
             
-            for result in results.read() {
-                total.write(total.read() + result)
+            for result in results.Read() {
+                total.Write(total.Read() + result)
             }
             
-            log("총 합계:", total.read())
+            Log("총 합계:", total.Read())
         }
     }
 }
 
 // 워커 스레드 함수
-func worker_thread(id: Int, shared_results: slot<Array<Int>>) {
-    with slot<Int> as local_sum {
-        local_sum.write(0)
+func WorkerThread(id: Int, sharedResults: slot<Array<Int>>) {
+    with slot<Int> as localSum {
+        localSum.Write(0)
         
         // 각 스레드별 작업 범위 계산
-        let work_size = 1000 / get_cpu_count()
-        let start = id * work_size
-        let end = start + work_size
+        let workSize = 1000 / GetCpuCount()
+        let start = id * workSize
+        let end = start + workSize
         
         for i in start..end {
-            local_sum.write(local_sum.read() + compute_expensive(i))
+            localSum.Write(localSum.Read() + ComputeExpensive(i))
         }
         
         // 결과를 공유 배열에 저장
-        shared_results.read()[id] = local_sum.read()
+        sharedResults.Read()[id] = localSum.Read()
     }
 }
 
 // 비용이 많이 드는 계산 (예시)
-func compute_expensive(n: Int) -> Int {
+func ComputeExpensive(n: Int) -> Int {
     with slot<Int> as result {
-        result.write(1)
+        result.Write(1)
         
         for i in 1..n {
-            result.write(result.read() * 2)
-            result.write(result.read() % 1000000)  // 오버플로우 방지
+            result.Write(result.Read() * 2)
+            result.Write(result.Read() % 1000000)  // 오버플로우 방지
         }
         
-        return result.read()
+        return result.Read()
     }
 }
 
 // 메인 실행
-func main() {
-    log("=== Pergyra 병렬 처리 데모 ===")
+func Main() {
+    Log("=== Pergyra 병렬 처리 데모 ===")
     
     // 행렬 곱셈 테스트
-    let matrix_a = create_matrix(100, 100)
-    let matrix_b = create_matrix(100, 100)
+    let matrixA = CreateMatrix(100, 100)
+    let matrixB = CreateMatrix(100, 100)
     
     // 행렬 초기화
-    initialize_random_matrix(matrix_a)
-    initialize_random_matrix(matrix_b)
+    InitializeRandomMatrix(matrixA)
+    InitializeRandomMatrix(matrixB)
     
-    log("행렬 곱셈 시작...")
-    let start_time = get_time()
+    Log("행렬 곱셈 시작...")
+    let startTime = GetTime()
     
-    let result_matrix = parallel_matrix_multiply(matrix_a, matrix_b)
+    let resultMatrix = ParallelMatrixMultiply(matrixA, matrixB)
     
-    let end_time = get_time()
-    log("행렬 곱셈 완료 (", end_time - start_time, "ms)")
+    let endTime = GetTime()
+    Log("행렬 곱셈 완료 (", endTime - startTime, "ms)")
     
     // 스레드 풀 테스트
-    log("스레드 풀 테스트 시작...")
-    threaded_computation()
+    Log("스레드 풀 테스트 시작...")
+    ThreadedComputation()
     
-    log("모든 테스트 완료!")
+    Log("모든 테스트 완료!")
 }

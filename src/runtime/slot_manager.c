@@ -28,6 +28,7 @@
  */
 
 #include "slot_manager.h"
+#include "slot_security.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -560,4 +561,672 @@ static inline void
 SlotMemoryBarrier(void)
 {
     SlotMemoryBarrierAsm();
+}                                   handle->slotId, "Token lacks read permission");
+        return SLOT_ERROR_PERMISSION_DENIED;
+    }
+    
+    /* Validate token */
+    secResult = TokenValidate(manager->securityContext, handle->slotId, token);
+    if (secResult != SECURITY_SUCCESS) {
+        manager->securityViolations++;
+        SlotManagerLogSecurityEvent(manager, "TOKEN_VALIDATION_FAILED", 
+                                   handle->slotId, "Invalid or expired token");
+        
+        switch (secResult) {
+            case SECURITY_ERROR_TOKEN_EXPIRED:
+                return SLOT_ERROR_TTL_EXPIRED;
+            case SECURITY_ERROR_HARDWARE_MISMATCH:
+            case SECURITY_ERROR_INVALID_TOKEN:
+            default:
+                return SLOT_ERROR_PERMISSION_DENIED;
+        }
+    }
+    
+    /* Update access statistics */
+    entry->lastAccessTime = SecureTimestamp();
+    entry->accessCount++;
+    
+    /* Perform the actual read */
+    SlotError result = SlotRead(manager, handle, buffer, bufferSize, bytesRead);
+    
+    if (result == SLOT_SUCCESS) {
+        SlotManagerLogSecurityEvent(manager, "SECURE_READ_SUCCESS", 
+                                   handle->slotId, "Secure read completed");
+    }
+    
+    return result;
+}
+
+/*
+ * Release a secure slot with token validation
+ */
+SlotError
+SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
+                 const TokenCapability *token)
+{
+    SlotEntry *entry = NULL;
+    size_t slotIndex;
+    SecurityError secResult;
+    
+    if (manager == NULL || handle == NULL || token == NULL)
+        return SLOT_ERROR_INVALID_HANDLE;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return SLOT_ERROR_PERMISSION_DENIED;
+    
+    /* Find the slot entry */
+    for (slotIndex = 0; slotIndex < manager->tableSize; slotIndex++) {
+        if (manager->slotTable[slotIndex].slotId == handle->slotId) {
+            entry = &manager->slotTable[slotIndex];
+            break;
+        }
+    }
+    
+    if (entry == NULL || !entry->occupied)
+        return SLOT_ERROR_SLOT_NOT_FOUND;
+    
+    if (entry->securityEnabled) {
+        /* Validate token for secure release */
+        secResult = TokenValidate(manager->securityContext, handle->slotId, token);
+        if (secResult != SECURITY_SUCCESS) {
+            manager->securityViolations++;
+            SlotManagerLogSecurityEvent(manager, "RELEASE_TOKEN_VALIDATION_FAILED", 
+                                       handle->slotId, "Cannot release slot without valid token");
+            return SLOT_ERROR_PERMISSION_DENIED;
+        }
+        
+        /* Securely wipe token data */
+        SecureMemoryWipe(&entry->writeToken, sizeof(EncryptedToken));
+        entry->securityEnabled = false;
+        entry->tokenGeneration = 0;
+        
+        SlotManagerLogSecurityEvent(manager, "SECURE_RELEASE_SUCCESS", 
+                                   handle->slotId, "Secure slot released");
+    }
+    
+    /* Perform the actual release */
+    return SlotRelease(manager, handle);
+}
+
+/*
+ * Validate token for a slot
+ */
+bool
+SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
+                 const TokenCapability *token)
+{
+    if (manager == NULL || handle == NULL || token == NULL)
+        return false;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return false;
+    
+    SecurityError result = TokenValidate(manager->securityContext, 
+                                       handle->slotId, token);
+    return result == SECURITY_SUCCESS;
+}
+
+/*
+ * Refresh token for a slot
+ */
+SlotError
+SlotRefreshToken(SlotManager *manager, const SlotHandle *handle,
+                TokenCapability *token)
+{
+    SlotEntry *entry = NULL;
+    size_t slotIndex;
+    SecurityError secResult;
+    
+    if (manager == NULL || handle == NULL || token == NULL)
+        return SLOT_ERROR_INVALID_HANDLE;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return SLOT_ERROR_PERMISSION_DENIED;
+    
+    /* Find the slot entry */
+    for (slotIndex = 0; slotIndex < manager->tableSize; slotIndex++) {
+        if (manager->slotTable[slotIndex].slotId == handle->slotId) {
+            entry = &manager->slotTable[slotIndex];
+            break;
+        }
+    }
+    
+    if (entry == NULL || !entry->occupied || !entry->securityEnabled)
+        return SLOT_ERROR_SLOT_NOT_FOUND;
+    
+    /* Validate current token first */
+    secResult = TokenValidate(manager->securityContext, handle->slotId, token);
+    if (secResult != SECURITY_SUCCESS)
+        return SLOT_ERROR_PERMISSION_DENIED;
+    
+    /* Generate new token */
+    TokenCapability newToken;
+    secResult = TokenGenerate(manager->securityContext, handle->slotId,
+                            entry->securityLevel, &newToken);
+    if (secResult != SECURITY_SUCCESS)
+        return SLOT_ERROR_OUT_OF_MEMORY;
+    
+    /* Update stored token */
+    SecureToken plainToken = newToken.token;
+    secResult = TokenEncrypt(manager->securityContext, &plainToken,
+                           &entry->writeToken);
+    if (secResult != SECURITY_SUCCESS) {
+        SecureMemoryWipe(&newToken, sizeof(TokenCapability));
+        return SLOT_ERROR_OUT_OF_MEMORY;
+    }
+    
+    /* Update token generation */
+    entry->tokenGeneration++;
+    
+    /* Copy new token to output */
+    *token = newToken;
+    
+    /* Wipe temporary data */
+    SecureMemoryWipe(&plainToken, sizeof(SecureToken));
+    
+    SlotManagerLogSecurityEvent(manager, "TOKEN_REFRESHED", 
+                               handle->slotId, "Token successfully refreshed");
+    
+    return SLOT_SUCCESS;
+}
+
+/*
+ * Revoke token for a slot
+ */
+SlotError
+SlotRevokeToken(SlotManager *manager, const SlotHandle *handle)
+{
+    SlotEntry *entry = NULL;
+    size_t slotIndex;
+    
+    if (manager == NULL || handle == NULL)
+        return SLOT_ERROR_INVALID_HANDLE;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return SLOT_ERROR_PERMISSION_DENIED;
+    
+    /* Find the slot entry */
+    for (slotIndex = 0; slotIndex < manager->tableSize; slotIndex++) {
+        if (manager->slotTable[slotIndex].slotId == handle->slotId) {
+            entry = &manager->slotTable[slotIndex];
+            break;
+        }
+    }
+    
+    if (entry == NULL || !entry->occupied)
+        return SLOT_ERROR_SLOT_NOT_FOUND;
+    
+    if (entry->securityEnabled) {
+        /* Securely wipe token data */
+        SecureMemoryWipe(&entry->writeToken, sizeof(EncryptedToken));
+        entry->tokenGeneration = 0;
+        
+        SlotManagerLogSecurityEvent(manager, "TOKEN_REVOKED", 
+                                   handle->slotId, "Token revoked by administrator");
+    }
+    
+    return SLOT_SUCCESS;
+}
+
+/*
+ * Security audit and monitoring functions
+ */
+void
+SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
+                           uint32_t slotId, const char *details)
+{
+    if (manager == NULL || event == NULL)
+        return;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return;
+    
+    /* Simple logging implementation - in production would use proper logging */
+    time_t now = time(NULL);
+    struct tm *timeinfo = localtime(&now);
+    char timestamp[64];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+    
+    printf("[SECURITY] %s - SlotID:%u - Event:%s - Details:%s\n",
+           timestamp, slotId, event, details ? details : "N/A");
+    
+    /* Update security context statistics */
+    if (manager->securityContext != NULL) {
+        SecurityAuditLog(manager->securityContext, event, details);
+    }
+}
+
+bool
+SlotManagerDetectAnomalies(SlotManager *manager)
+{
+    if (manager == NULL || !SlotManagerIsSecurityEnabled(manager))
+        return false;
+    
+    /* Simple anomaly detection */
+    bool anomalyDetected = false;
+    
+    /* Check for excessive security violations */
+    if (manager->securityViolations > SECURITY_MAX_VALIDATION_FAILURES) {
+        SlotManagerLogSecurityEvent(manager, "ANOMALY_EXCESSIVE_VIOLATIONS", 
+                                   0, "Too many security violations detected");
+        anomalyDetected = true;
+    }
+    
+    /* Check individual slots for suspicious access patterns */
+    uint64_t currentTime = SecureTimestamp();
+    for (size_t i = 0; i < manager->tableSize; i++) {
+        SlotEntry *entry = &manager->slotTable[i];
+        if (entry->occupied && entry->securityEnabled) {
+            /* Check for rapid successive accesses (potential automation) */
+            if (entry->accessCount > 1000 && 
+                (currentTime - entry->lastAccessTime) < 1000000) { /* 1 second */
+                SlotManagerLogSecurityEvent(manager, "ANOMALY_RAPID_ACCESS", 
+                                           entry->slotId, "Suspicious rapid access pattern");
+                anomalyDetected = true;
+            }
+            
+            /* Check for very old slots that haven't been accessed */
+            if ((currentTime - entry->lastAccessTime) > 86400000000ULL) { /* 1 day */
+                SlotManagerLogSecurityEvent(manager, "ANOMALY_STALE_SLOT", 
+                                           entry->slotId, "Slot not accessed for extended period");
+            }
+        }
+    }
+    
+    /* Use security context's anomaly detection */
+    if (manager->securityContext != NULL) {
+        anomalyDetected |= SecurityDetectAnomalies(manager->securityContext);
+    }
+    
+    return anomalyDetected;
+}
+
+void
+SlotManagerPrintSecurityStats(const SlotManager *manager)
+{
+    if (manager == NULL) {
+        printf("SlotManager is NULL\n");
+        return;
+    }
+    
+    printf("=== Slot Manager Security Statistics ===\n");
+    printf("Security Enabled: %s\n", 
+           SlotManagerIsSecurityEnabled(manager) ? "Yes" : "No");
+    
+    if (SlotManagerIsSecurityEnabled(manager)) {
+        printf("Default Security Level: %d\n", manager->defaultSecurityLevel);
+        printf("Security Violations: %llu\n", 
+               (unsigned long long)manager->securityViolations);
+        
+        /* Count secure slots */
+        size_t secureSlots = 0;
+        size_t totalActiveSlots = 0;
+        for (size_t i = 0; i < manager->tableSize; i++) {
+            if (manager->slotTable[i].occupied) {
+                totalActiveSlots++;
+                if (manager->slotTable[i].securityEnabled) {
+                    secureSlots++;
+                }
+            }
+        }
+        
+        printf("Active Slots: %zu\n", totalActiveSlots);
+        printf("Secure Slots: %zu\n", secureSlots);
+        printf("Security Coverage: %.1f%%\n", 
+               totalActiveSlots > 0 ? (secureSlots * 100.0 / totalActiveSlots) : 0.0);
+        
+        /* Print security context statistics */
+        if (manager->securityContext != NULL) {
+            printf("\n=== Security Context Statistics ===\n");
+            SecurityPrintStatistics(manager->securityContext);
+        }
+    }
+    
+    printf("==========================================\n");
+}
+
+/*
+ * ==================================================================
+ * ENHANCED SLOT MANAGER CREATION WITH SECURITY SUPPORT
+ * ==================================================================
+ */
+
+/*
+ * Create slot manager with optional security
+ */
+SlotManager *
+SlotManagerCreateSecure(size_t maxSlots, size_t memoryPoolSize, 
+                       bool enableSecurity, SecurityLevel defaultLevel)
+{
+    SlotManager *manager = SlotManagerCreate(maxSlots, memoryPoolSize);
+    if (manager == NULL)
+        return NULL;
+    
+    /* Initialize security fields */
+    manager->securityContext = NULL;
+    manager->securityEnabled = false;
+    manager->defaultSecurityLevel = SECURITY_LEVEL_BASIC;
+    manager->securityViolations = 0;
+    
+    if (enableSecurity) {
+        SlotError result = SlotManagerEnableSecurity(manager, defaultLevel);
+        if (result != SLOT_SUCCESS) {
+            SlotManagerDestroy(manager);
+            return NULL;
+        }
+    }
+    
+    return manager;
+}
+
+/*
+ * Enhanced slot manager destruction with security cleanup
+ */
+void
+SlotManagerDestroySecure(SlotManager *manager)
+{
+    if (manager == NULL)
+        return;
+    
+    /* Disable security first to clean up sensitive data */
+    if (SlotManagerIsSecurityEnabled(manager)) {
+        SlotManagerDisableSecurity(manager);
+    }
+    
+    /* Call original destroy function */
+    SlotManagerDestroy(manager);
+}
+
+/*
+ * ==================================================================
+ * SCOPE-BASED SECURE SLOT MANAGEMENT
+ * ==================================================================
+ */
+
+/*
+ * Scope-based secure slot claiming with automatic cleanup
+ */
+typedef struct SecureSlotScope {
+    SlotManager *manager;
+    SlotHandle *handles;
+    TokenCapability *tokens;
+    size_t count;
+    size_t capacity;
+    bool autoCleanup;
+} SecureSlotScope;
+
+SecureSlotScope *
+SecureSlotScopeCreate(SlotManager *manager, size_t capacity)
+{
+    if (manager == NULL || !SlotManagerIsSecurityEnabled(manager))
+        return NULL;
+    
+    SecureSlotScope *scope = malloc(sizeof(SecureSlotScope));
+    if (scope == NULL)
+        return NULL;
+    
+    scope->handles = malloc(capacity * sizeof(SlotHandle));
+    scope->tokens = malloc(capacity * sizeof(TokenCapability));
+    
+    if (scope->handles == NULL || scope->tokens == NULL) {
+        free(scope->handles);
+        free(scope->tokens);
+        free(scope);
+        return NULL;
+    }
+    
+    scope->manager = manager;
+    scope->count = 0;
+    scope->capacity = capacity;
+    scope->autoCleanup = true;
+    
+    return scope;
+}
+
+SlotError
+SecureSlotScopeClaimSlot(SecureSlotScope *scope, TypeTag type, 
+                        SecurityLevel level, SlotHandle **handle, 
+                        TokenCapability **token)
+{
+    if (scope == NULL || scope->count >= scope->capacity)
+        return SLOT_ERROR_OUT_OF_MEMORY;
+    
+    SlotError result = SlotClaimSecure(scope->manager, type, level,
+                                     &scope->handles[scope->count],
+                                     &scope->tokens[scope->count]);
+    
+    if (result == SLOT_SUCCESS) {
+        if (handle != NULL)
+            *handle = &scope->handles[scope->count];
+        if (token != NULL)
+            *token = &scope->tokens[scope->count];
+        scope->count++;
+    }
+    
+    return result;
+}
+
+void
+SecureSlotScopeDestroy(SecureSlotScope *scope)
+{
+    if (scope == NULL)
+        return;
+    
+    /* Release all slots if auto-cleanup is enabled */
+    if (scope->autoCleanup) {
+        for (size_t i = 0; i < scope->count; i++) {
+            SlotReleaseSecure(scope->manager, &scope->handles[i], 
+                            &scope->tokens[i]);
+        }
+    }
+    
+    /* Securely wipe token data */
+    if (scope->tokens != NULL) {
+        SecureMemoryWipe(scope->tokens, 
+                        scope->capacity * sizeof(TokenCapability));
+        free(scope->tokens);
+    }
+    
+    free(scope->handles);
+    free(scope);
+}
+
+/*
+ * ==================================================================
+ * LANGUAGE-LEVEL API FOR PERGYRA
+ * ==================================================================
+ */
+
+/*
+ * High-level Pergyra language API for secure slots
+ * These functions provide the interface that the Pergyra compiler will use
+ */
+
+typedef struct PergyraSecureSlot {
+    SlotHandle handle;
+    TokenCapability token;
+    TypeTag typeTag;
+    bool isValid;
+} PergyraSecureSlot;
+
+/*
+ * claim_secure_slot<Type>() equivalent
+ */
+PergyraSecureSlot *
+pergyra_claim_secure_slot(SlotManager *manager, const char *typeName, 
+                         SecurityLevel level)
+{
+    if (manager == NULL || typeName == NULL)
+        return NULL;
+    
+    if (!SlotManagerIsSecurityEnabled(manager))
+        return NULL;
+    
+    PergyraSecureSlot *slot = malloc(sizeof(PergyraSecureSlot));
+    if (slot == NULL)
+        return NULL;
+    
+    TypeTag typeTag = TypeTagHash(typeName);
+    
+    SlotError result = SlotClaimSecure(manager, typeTag, level, 
+                                     &slot->handle, &slot->token);
+    
+    if (result != SLOT_SUCCESS) {
+        free(slot);
+        return NULL;
+    }
+    
+    slot->typeTag = typeTag;
+    slot->isValid = true;
+    
+    return slot;
+}
+
+/*
+ * write(slot, value, token) equivalent
+ */
+bool
+pergyra_slot_write_secure(PergyraSecureSlot *slot, const void *data, 
+                         size_t dataSize)
+{
+    if (slot == NULL || !slot->isValid || data == NULL)
+        return false;
+    
+    /* The manager reference would need to be stored or passed */
+    /* For now, assume global manager or retrieve from slot context */
+    extern SlotManager *g_pergyraSlotManager; /* Global manager reference */
+    
+    SlotError result = SlotWriteSecure(g_pergyraSlotManager, &slot->handle,
+                                     data, dataSize, &slot->token);
+    
+    return result == SLOT_SUCCESS;
+}
+
+/*
+ * read(slot) equivalent
+ */
+bool
+pergyra_slot_read_secure(PergyraSecureSlot *slot, void *buffer, 
+                        size_t bufferSize, size_t *bytesRead)
+{
+    if (slot == NULL || !slot->isValid || buffer == NULL)
+        return false;
+    
+    extern SlotManager *g_pergyraSlotManager;
+    
+    SlotError result = SlotReadSecure(g_pergyraSlotManager, &slot->handle,
+                                    buffer, bufferSize, bytesRead, 
+                                    &slot->token);
+    
+    return result == SLOT_SUCCESS;
+}
+
+/*
+ * release(slot) equivalent
+ */
+void
+pergyra_slot_release_secure(PergyraSecureSlot *slot)
+{
+    if (slot == NULL || !slot->isValid)
+        return;
+    
+    extern SlotManager *g_pergyraSlotManager;
+    
+    SlotReleaseSecure(g_pergyraSlotManager, &slot->handle, &slot->token);
+    
+    /* Securely wipe slot data */
+    SecureMemoryWipe(slot, sizeof(PergyraSecureSlot));
+    slot->isValid = false;
+    
+    free(slot);
+}
+
+/*
+ * Scope-based syntax: with slot<Type> as s { ... }
+ */
+typedef struct PergyraSlotScope {
+    SecureSlotScope *scope;
+    SlotManager *manager;
+} PergyraSlotScope;
+
+PergyraSlotScope *
+pergyra_scope_begin(SlotManager *manager)
+{
+    PergyraSlotScope *pscope = malloc(sizeof(PergyraSlotScope));
+    if (pscope == NULL)
+        return NULL;
+    
+    pscope->scope = SecureSlotScopeCreate(manager, 64); /* Default capacity */
+    pscope->manager = manager;
+    
+    if (pscope->scope == NULL) {
+        free(pscope);
+        return NULL;
+    }
+    
+    return pscope;
+}
+
+PergyraSecureSlot *
+pergyra_scope_claim_slot(PergyraSlotScope *pscope, const char *typeName, 
+                        SecurityLevel level)
+{
+    if (pscope == NULL || pscope->scope == NULL)
+        return NULL;
+    
+    SlotHandle *handle;
+    TokenCapability *token;
+    TypeTag typeTag = TypeTagHash(typeName);
+    
+    SlotError result = SecureSlotScopeClaimSlot(pscope->scope, typeTag, level,
+                                              &handle, &token);
+    
+    if (result != SLOT_SUCCESS)
+        return NULL;
+    
+    /* Create wrapper for language-level use */
+    PergyraSecureSlot *slot = malloc(sizeof(PergyraSecureSlot));
+    if (slot == NULL)
+        return NULL;
+    
+    slot->handle = *handle;
+    slot->token = *token;
+    slot->typeTag = typeTag;
+    slot->isValid = true;
+    
+    return slot;
+}
+
+void
+pergyra_scope_end(PergyraSlotScope *pscope)
+{
+    if (pscope == NULL)
+        return;
+    
+    if (pscope->scope != NULL) {
+        SecureSlotScopeDestroy(pscope->scope);
+    }
+    
+    free(pscope);
+}
+
+/*
+ * Example usage tracking for security auditing
+ */
+void
+pergyra_security_audit_usage_example(void)
+{
+    printf("=== Pergyra Secure Slot Usage Example ===\n");
+    printf("// High-level Pergyra syntax:\n");
+    printf("let (slot, token) = claim_secure_slot<Int>(SECURITY_LEVEL_HARDWARE)\n");
+    printf("write(slot, 42, token)\n");
+    printf("let value = read(slot, token)\n");
+    printf("release(slot, token)\n");
+    printf("\n");
+    printf("// Scope-based syntax:\n");
+    printf("with secure_slot<Int>(SECURITY_LEVEL_ENCRYPTED) as s {\n");
+    printf("    s.write(42)\n");
+    printf("    log(s.read())\n");
+    printf("} // automatic release with token validation\n");
+    printf("==========================================\n");
 }

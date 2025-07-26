@@ -1,0 +1,214 @@
+/*
+ * Pergyra Secure Slot Example
+ * 
+ * This example demonstrates the secure slot-based memory management
+ * with token-based access control to prevent external memory manipulation.
+ */
+
+/* Basic secure slot usage */
+class SecureHealth {
+    private let (_hpSlot, _token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE)
+    
+    public func Init() {
+        Write(_hpSlot, 100, _token)  // Initial health value
+    }
+    
+    public func TakeDamage(damage: Int) {
+        let currentHp = Read(_hpSlot, _token)
+        let newHp = currentHp - damage
+        Write(_hpSlot, newHp, _token)
+        
+        if newHp <= 0 {
+            Log("Player died!")
+        }
+    }
+    
+    public func Heal(amount: Int) {
+        let currentHp = Read(_hpSlot, _token)
+        let newHp = Min(currentHp + amount, 100)
+        Write(_hpSlot, newHp, _token)
+    }
+    
+    public func GetHealth() -> Int {
+        return Read(_hpSlot, _token)
+    }
+    
+    func Deinit() {
+        Release(_hpSlot, _token)
+    }
+}
+
+/* Scope-based secure slot usage */
+func ProcessGameData() {
+    with SecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED) as scoreSlot {
+        scoreSlot.Write(0)
+        
+        // Game logic that updates score
+        for i in 1..10 {
+            let currentScore = scoreSlot.Read()
+            scoreSlot.Write(currentScore + i * 100)
+        }
+        
+        Log("Final score:", scoreSlot.Read())
+    } // Automatic secure release with token validation
+}
+
+/* Advanced secure slot with custom permissions */
+func SecureDataProcessing() {
+    // Create read-only token for data integrity
+    let (dataSlot, readOnlyToken) = ClaimSecureSlot<String>(SECURITY_LEVEL_HARDWARE)
+    readOnlyToken.CanWrite = false  // Remove write permission
+    
+    Write(dataSlot, "Sensitive game data", readOnlyToken) // This will fail!
+    
+    // Create separate write token for authorized operations
+    let writeToken = RefreshToken(dataSlot)
+    Write(dataSlot, "Updated data", writeToken)  // This succeeds
+    
+    // Share read-only access safely
+    let sharedToken = readOnlyToken
+    let data = Read(dataSlot, sharedToken)
+    Log("Read data:", data)
+    
+    Release(dataSlot, writeToken)
+}
+
+/* Multi-level security example */
+func MultiLevelSecurity() {
+    // Basic security for temporary data
+    with SecureSlot<Float>(SECURITY_LEVEL_BASIC) as tempSlot {
+        tempSlot.Write(3.14159)
+        Log("Temp value:", tempSlot.Read())
+    }
+    
+    // Hardware-bound security for important data
+    with SecureSlot<Array<Int>>(SECURITY_LEVEL_HARDWARE) as criticalSlot {
+        criticalSlot.Write([1, 2, 3, 4, 5])
+        Log("Critical data:", criticalSlot.Read())
+    }
+    
+    // Maximum security for encrypted storage
+    with SecureSlot<String>(SECURITY_LEVEL_ENCRYPTED) as secretSlot {
+        secretSlot.Write("Top secret information")
+        
+        // This data is encrypted in memory and hardware-bound
+        // External tools cannot modify this even with memory dumps
+        let secret = secretSlot.Read()
+        Log("Secret retrieved:", secret)
+    }
+}
+
+/* Secure slot validation and error handling */
+func RobustSecureAccess() {
+    let (slot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE)
+    
+    guard ValidateToken(slot, token) else {
+        Log("Token validation failed!")
+        return
+    }
+    
+    // Try to write with potentially compromised token
+    let result = TryWrite(slot, 42, token)
+    match result {
+        case .Success:
+            Log("Write successful")
+        case .TokenExpired:
+            Log("Token expired, refreshing...")
+            token = RefreshToken(slot, token)
+            Write(slot, 42, token)
+        case .PermissionDenied:
+            Log("Access denied - security violation detected")
+            SecurityAuditLog("Unauthorized access attempt")
+        case .HardwareMismatch:
+            Log("Hardware mismatch - possible attack detected")
+            SecurityAlert("Hardware binding violation")
+    }
+    
+    Release(slot, token)
+}
+
+/* Performance comparison: secure vs regular slots */
+func PerformanceComparison() {
+    let iterations = 1000000
+    
+    // Regular slot performance
+    let startTime = GetCurrentTime()
+    let regularSlot = ClaimSlot<Int>()
+    for i in 1..iterations {
+        Write(regularSlot, i)
+        let value = Read(regularSlot)
+    }
+    Release(regularSlot)
+    let regularTime = GetCurrentTime() - startTime
+    
+    // Secure slot performance
+    let secureStartTime = GetCurrentTime()
+    let (secureSlot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_BASIC)
+    for i in 1..iterations {
+        Write(secureSlot, i, token)
+        let value = Read(secureSlot, token)
+    }
+    Release(secureSlot, token)
+    let secureTime = GetCurrentTime() - secureStartTime
+    
+    Log("Regular slot time:", regularTime, "ms")
+    Log("Secure slot time:", secureTime, "ms")
+    Log("Security overhead:", ((secureTime - regularTime) / regularTime) * 100, "%")
+}
+
+/* Demonstrating security protection */
+func SecurityProtectionDemo() {
+    Log("=== Security Protection Demonstration ===")
+    
+    // Create a secure slot for player money
+    let (moneySlot, moneyToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED)
+    Write(moneySlot, 1000, moneyToken)  // Initial money
+    
+    Log("Player money:", Read(moneySlot, moneyToken))
+    
+    // Simulate external tool trying to modify memory
+    // This would normally succeed with traditional pointers
+    Log("Simulating external memory modification attempt...")
+    
+    // In traditional systems, cheat engines could directly modify memory
+    // With secure slots, this is prevented by:
+    // 1. Token validation
+    // 2. Hardware binding
+    // 3. Encrypted storage
+    // 4. Access control
+    
+    // Attempt to write without proper token (simulates cheat engine)
+    let fakeToken = CreateFakeToken()  // Simulated attack
+    let attackResult = TryWrite(moneySlot, 999999, fakeToken)
+    
+    Log("Attack result:", attackResult)  // Should fail
+    Log("Money after attack:", Read(moneySlot, moneyToken))  // Should be unchanged
+    
+    // Security audit would show the violation attempt
+    PrintSecurityViolations()
+    
+    Release(moneySlot, moneyToken)
+    Log("==========================================")
+}
+
+/* Main demonstration function */
+func Main() {
+    Log("Pergyra Secure Slot Demonstration")
+    Log("==================================")
+    
+    // Initialize security system
+    EnableSecurity(SECURITY_LEVEL_HARDWARE)
+    
+    // Run demonstrations
+    ProcessGameData()
+    SecureDataProcessing()
+    MultiLevelSecurity()
+    RobustSecureAccess()
+    PerformanceComparison()
+    SecurityProtectionDemo()
+    
+    // Print final security statistics
+    PrintSecurityStatistics()
+    
+    Log("Demonstration complete.")
+}

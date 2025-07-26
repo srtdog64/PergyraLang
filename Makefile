@@ -45,12 +45,13 @@ JVM_DIR = $(SRC_DIR)/jvm_bridge
 # Source files
 LEXER_SOURCES = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES = $(PARSER_DIR)/ast.c $(PARSER_DIR)/parser.c
-RUNTIME_SOURCES = $(RUNTIME_DIR)/slot_manager.c $(RUNTIME_DIR)/slot_pool.c
+RUNTIME_SOURCES = $(RUNTIME_DIR)/slot_manager.c $(RUNTIME_DIR)/slot_pool.c $(RUNTIME_DIR)/slot_security.c
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 CODEGEN_SOURCES = $(CODEGEN_DIR)/codegen.c
 JVM_SOURCES = $(JVM_DIR)/jni_bridge.c
 MAIN_SOURCE = $(SRC_DIR)/main.c
 TEST_DATASTRUCTURES_SOURCE = $(SRC_DIR)/test_datastructures.c
+TEST_SECURITY_SOURCE = $(SRC_DIR)/test_security.c
 
 # Object files
 LEXER_OBJECTS = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -61,6 +62,7 @@ CODEGEN_OBJECTS = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 JVM_OBJECTS = $(JVM_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 MAIN_OBJECT = $(MAIN_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 TEST_DATASTRUCTURES_OBJECT = $(TEST_DATASTRUCTURES_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+TEST_SECURITY_OBJECT = $(TEST_SECURITY_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 ALL_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(RUNTIME_OBJECTS) \
               $(RUNTIME_ASM_OBJECTS) $(CODEGEN_OBJECTS) $(MAIN_OBJECT)
@@ -69,13 +71,14 @@ ALL_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(RUNTIME_OBJECTS) \
 TARGET = $(BIN_DIR)/pergyra
 LEXER_TEST = $(BIN_DIR)/lexer_test
 DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures
+SECURITY_TEST = $(BIN_DIR)/test_security
 
 # Default target
-all: $(TARGET) $(LEXER_TEST) $(DATASTRUCTURES_TEST)
+all: $(TARGET) $(LEXER_TEST) $(DATASTRUCTURES_TEST) $(SECURITY_TEST)
 
 # Main executable build
 $(TARGET): $(ALL_OBJECTS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread -lssl -lcrypto
 
 # Lexer test build
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
@@ -84,6 +87,10 @@ $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 # Data structures test build
 $(DATASTRUCTURES_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) $(TEST_DATASTRUCTURES_OBJECT) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# Security test build
+$(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) $(TEST_SECURITY_OBJECT) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread -lssl -lcrypto
 
 # C source compilation
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/lexer $(BUILD_DIR)/parser \
@@ -120,6 +127,15 @@ $(BIN_DIR):
 test: $(LEXER_TEST)
 	@echo "=== Running Pergyra Lexer Test ==="
 	./$(LEXER_TEST)
+
+# Security test execution
+test-security: $(SECURITY_TEST)
+	@echo "=== Running Pergyra Security Test Suite ==="
+	./$(SECURITY_TEST)
+
+# All tests
+test-all: test test-security
+	@echo "=== All Pergyra Tests Completed ==="
 
 # Clean targets
 clean:

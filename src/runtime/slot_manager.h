@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "slot_security.h"
 
 /*
  * Slot table entry structure
@@ -46,6 +47,14 @@ typedef struct
     uint32_t ttl;              /* Time-To-Live in milliseconds */
     uint32_t threadAffinity;   /* Assigned thread ID */
     uint64_t allocationTime;   /* Allocation timestamp */
+    
+    /* Security extensions */
+    SecurityLevel securityLevel;     /* Security level for this slot */
+    EncryptedToken writeToken;       /* Encrypted write access token */
+    uint32_t tokenGeneration;        /* Token generation counter */
+    bool     securityEnabled;        /* Whether security is active */
+    uint64_t lastAccessTime;         /* Last access timestamp */
+    uint32_t accessCount;            /* Access counter for anomaly detection */
 } SlotEntry;
 
 /*
@@ -64,12 +73,18 @@ typedef struct
     /* Concurrency control */
     void *mutex;                /* pthread_mutex_t or equivalent */
     
+    /* Security context */
+    SecurityContext *securityContext;  /* Security management */
+    bool             securityEnabled;  /* Global security toggle */
+    SecurityLevel    defaultSecurityLevel; /* Default security level */
+    
     /* Statistics */
     uint64_t totalAllocations;
     uint64_t totalDeallocations;
     uint64_t activeSlots;
     uint64_t cacheHits;
     uint64_t cacheMisses;
+    uint64_t securityViolations;        /* Security violation counter */
 } SlotManager;
 
 /*
@@ -179,6 +194,46 @@ static inline uint32_t SlotHashFunction(uint32_t slotId);
 static inline bool     SlotCompareAndSwap(volatile uint32_t *ptr, 
                                          uint32_t expected, uint32_t newVal);
 static inline void     SlotMemoryBarrier(void);
+
+/*
+ * Secure slot operations with token-based access control
+ */
+SlotError SlotClaimSecure(SlotManager *manager, TypeTag type, 
+                         SecurityLevel level, SlotHandle *handle, 
+                         TokenCapability *token);
+SlotError SlotWriteSecure(SlotManager *manager, const SlotHandle *handle,
+                         const void *data, size_t dataSize, 
+                         const TokenCapability *token);
+SlotError SlotReadSecure(SlotManager *manager, const SlotHandle *handle,
+                        void *buffer, size_t bufferSize, size_t *bytesRead,
+                        const TokenCapability *token);
+SlotError SlotReleaseSecure(SlotManager *manager, const SlotHandle *handle,
+                           const TokenCapability *token);
+
+/*
+ * Token validation and management
+ */
+bool      SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
+                           const TokenCapability *token);
+SlotError SlotRefreshToken(SlotManager *manager, const SlotHandle *handle,
+                          TokenCapability *token);
+SlotError SlotRevokeToken(SlotManager *manager, const SlotHandle *handle);
+
+/*
+ * Security management functions
+ */
+SlotError SlotManagerEnableSecurity(SlotManager *manager, SecurityLevel level);
+SlotError SlotManagerDisableSecurity(SlotManager *manager);
+bool      SlotManagerIsSecurityEnabled(const SlotManager *manager);
+SlotError SlotManagerSetDefaultSecurityLevel(SlotManager *manager, SecurityLevel level);
+
+/*
+ * Security audit and monitoring
+ */
+void      SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
+                                     uint32_t slotId, const char *details);
+bool      SlotManagerDetectAnomalies(SlotManager *manager);
+void      SlotManagerPrintSecurityStats(const SlotManager *manager);
 
 /*
  * Assembly implementation prototypes

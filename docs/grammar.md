@@ -23,23 +23,23 @@ modification, are permitted provided that the following conditions are met:
 
 ### 2.1 슬롯 관리
 ```pergyra
-let slot = claim_slot<Type>()
-write(slot, value)
-let val = read(slot)
-release(slot)
+let slot = ClaimSlot<Type>()
+Write(slot, value)
+let val = Read(slot)
+Release(slot)
 ```
 
 ### 2.2 스코프 기반 슬롯
 ```pergyra
 with slot<Type> as s {
-    s.write(42)
-    log(s.read())
+    s.Write(42)
+    Log(s.Read())
 }
 ```
 
 ### 2.3 병렬 실행
 ```pergyra
-let result = parallel {
+let result = Parallel {
     A()
     B()
     C()
@@ -50,14 +50,23 @@ let result = parallel {
 
 ### 3.1 키워드 (Keywords)
 - `let`: 변수/슬롯 선언
-- `claim_slot`: 슬롯 할당
-- `write`: 슬롯에 값 쓰기
-- `read`: 슬롯에서 값 읽기
-- `release`: 슬롯 해제
 - `with`: 스코프 기반 슬롯 선언
 - `as`: 슬롯 별칭
-- `parallel`: 병렬 실행 블록
-- `log`: 출력 함수
+- `func`: 함수 선언
+- `if`, `else`: 조건문
+- `for`, `while`: 반복문
+- `return`: 함수 반환
+- `match`, `case`: 패턴 매칭
+- `class`, `struct`: 타입 선언
+- `public`, `private`: 접근 제어자
+
+### 3.1.1 내장 함수 (Built-in Functions)
+- `ClaimSlot`: 슬롯 할당
+- `Write`: 슬롯에 값 쓰기
+- `Read`: 슬롯에서 값 읽기
+- `Release`: 슬롯 해제
+- `Parallel`: 병렬 실행 블록
+- `Log`: 출력 함수
 
 ### 3.2 연산자 (Operators)
 - `=`: 할당
@@ -73,9 +82,10 @@ let result = parallel {
 - 부울: `true`, `false`
 
 ### 3.4 식별자 (Identifiers)
-- 변수명: `variable_name`, `slotA`
-- 함수명: `function_name`, `process_data`
-- 타입명: `Type`, `Int`, `String`, `Vector`
+- 변수명: `variableName`, `slotA` (camelCase)
+- 함수명: `FunctionName`, `ProcessData` (PascalCase)
+- 타입명: `Type`, `Int`, `String`, `Vector` (PascalCase)
+- 상수명: `CONSTANT_NAME`, `MAX_VALUE` (UPPER_SNAKE_CASE)
 
 ## 4. 타입 시스템
 
@@ -100,5 +110,34 @@ SlotId | TypeTag | Occupied | DataBlockRef | TTL
 
 ### 5.2 생명주기
 - **스코프 기반**: `with` 블록 종료 시 자동 해제
-- **명시적 해제**: `release()` 호출
+- **명시적 해제**: `Release()` 호출
 - **TTL 기반**: 시간 초과 시 자동 해제
+
+## 6. 명명 규칙 (Naming Conventions)
+
+### 6.1 BSD 스타일 + C# 컨벤션
+- **변수**: camelCase (예: `counterSlot`, `userData`)
+- **함수/메서드**: PascalCase (예: `ProcessData`, `GetValue`)
+- **타입/클래스**: PascalCase (예: `TreeNode`, `SecureSlot`)
+- **상수**: UPPER_SNAKE_CASE (예: `MAX_SLOTS`, `DEFAULT_TTL`)
+- **프로퍼티**: 
+  - Public: PascalCase (예: `Health`, `Name`)
+  - Private: camelCase with underscore (예: `_health`, `_name`)
+
+### 6.2 예제
+```pergyra
+class Player {
+    private _healthSlot: SecureSlot<Int>
+    private _nameSlot: Slot<String>
+    
+    public Health: Int {
+        get { return Read(_healthSlot) }
+        set { Write(_healthSlot, value) }
+    }
+    
+    public func TakeDamage(damage: Int) {
+        let currentHealth = Read(_healthSlot)
+        Write(_healthSlot, Max(0, currentHealth - damage))
+    }
+}
+```
