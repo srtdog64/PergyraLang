@@ -1,0 +1,362 @@
+// Pergyra World-Systemic Example
+// Complete hierarchy from World to Ability
+
+// ============= ABILITY Level =============
+// 기본 능력 정의
+
+ability Living {
+    require _healthSlot: Slot<Int>
+    require _maxHealth: Int
+    
+    func IsAlive(&self) -> Bool
+    func GetHealthPercent(&self) -> Float
+}
+
+ability Economic {
+    require _goldSlot: Slot<Int>
+    
+    func GetGold(&self) -> Int
+    func SpendGold(&mut self, amount: Int) -> Bool
+    func EarnGold(&mut self, amount: Int)
+}
+
+ability Productive {
+    require _productionRate: Int
+    require _resourceType: ResourceType
+    
+    func Produce(&mut self) -> Option<Resource>
+    func GetProductionRate(&self) -> Int
+}
+
+// ============= ROLE Level =============
+// 구체적인 역할 구현
+
+struct Citizen {
+    _healthSlot: Slot<Int>
+    _maxHealth: Int = 100
+    _goldSlot: Slot<Int>
+    _jobType: JobType
+    name: String
+}
+
+role WorkingCitizen for Citizen {
+    impl ability Living {
+        func IsAlive(&self) -> Bool {
+            Read(self._healthSlot) > 0
+        }
+        
+        func GetHealthPercent(&self) -> Float {
+            Float(Read(self._healthSlot)) / Float(self._maxHealth)
+        }
+    }
+    
+    impl ability Economic {
+        func GetGold(&self) -> Int { Read(self._goldSlot) }
+        
+        func SpendGold(&mut self, amount: Int) -> Bool {
+            let current = GetGold()
+            if current >= amount {
+                Write(self._goldSlot, current - amount)
+                true
+            } else {
+                false
+            }
+        }
+        
+        func EarnGold(&mut self, amount: Int) {
+            Write(self._goldSlot, GetGold() + amount)
+        }
+    }
+    
+    // 시민의 일상 활동
+    parallel on (aiThread) {
+        every (5000ms) {
+            // 일하고 돈 벌기
+            WorkAndEarn()
+            // 건강 체크
+            if GetHealthPercent() < 0.3 {
+                SeekMedicalHelp()
+            }
+        }
+    }
+}
+
+struct Factory {
+    _productionRate: Int
+    _resourceType: ResourceType
+    _outputSlot: Slot<Array<Resource>>
+    _workerCount: Int
+}
+
+role ProductionFacility for Factory {
+    impl ability Productive {
+        func Produce(&mut self) -> Option<Resource> {
+            if self._workerCount > 0 {
+                let resource = Resource {
+                    type: self._resourceType,
+                    quality: CalculateQuality(),
+                    timestamp: Time.Now()
+                }
+                Some(resource)
+            } else {
+                None
+            }
+        }
+        
+        func GetProductionRate(&self) -> Int {
+            self._productionRate * self._workerCount
+        }
+    }
+    
+    // 생산 시설의 지속적 생산
+    parallel on (backgroundThread) {
+        every (1000ms) {
+            if let Some(resource) = Produce() {
+                let output = Read(self._outputSlot)
+                output.Push(resource)
+                Write(self._outputSlot, output)
+            }
+        }
+    }
+}
+
+// ============= PARTY Level =============
+// 협력 단위 정의
+
+party CityDistrict {
+    // 구역 내 시민들
+    role slot citizens: Array<Living & Economic>
+    
+    // 생산 시설들
+    role slot factories: Array<Productive>
+    
+    // 서비스 시설
+    role slot hospital: Medical & ServiceProvider
+    role slot market: Trading & ServiceProvider
+    
+    // 구역 공유 데이터
+    shared districtName: String
+    shared population: Int
+    shared prosperity: Float = 0.5
+    
+    // 구역 경제 시뮬레이션
+    func SimulateEconomy() {
+        // 모든 공장 가동
+        parallel (context.GetRole("factories")) join with all
+        
+        // 시민들의 경제 활동
+        let totalSpending = 0
+        let totalEarnings = 0
+        
+        for citizen in context.GetRole("citizens") {
+            // 시민이 시장에서 소비
+            if citizen.SpendGold(10) {
+                totalSpending += 10
+                context.GetRole("market").RecordSale(10)
+            }
+            
+            // 시민이 일해서 수입
+            citizen.EarnGold(CalculateWage())
+            totalEarnings += CalculateWage()
+        }
+        
+        // 번영도 업데이트
+        UpdateProsperity(totalEarnings - totalSpending)
+    }
+    
+    // 구역 건강 관리
+    func ManageHealth() {
+        let hospital = context.GetRole<Medical>("hospital")
+        let sickCitizens = context.GetRole<Array<Living>>("citizens")
+            .Filter(|c| c.GetHealthPercent() < 0.5)
+        
+        for sick in sickCitizens {
+            hospital.Treat(sick)
+        }
+    }
+}
+
+// ============= SYSTEMIC Level =============
+// 시스템 단위 구성
+
+systemic CityEconomy {
+    // 도시의 모든 구역들
+    party slot downtownDistrict: CityDistrict
+    party slot industrialDistrict: CityDistrict
+    party slot residentialDistrict: CityDistrict
+    
+    // 도시 전체 경제 시스템
+    party slot centralBank: BankingSystem
+    party slot stockExchange: TradingSystem
+    
+    // 시스템 공유 데이터
+    shared cityGDP: Int = 0
+    shared inflationRate: Float = 0.02
+    shared unemploymentRate: Float = 0.05
+    
+    // 도시 경제 순환
+    func RunEconomicCycle() {
+        // 모든 구역 동시 경제 활동
+        parallel {
+            downtownDistrict.SimulateEconomy()
+            industrialDistrict.SimulateEconomy()
+            residentialDistrict.SimulateEconomy()
+        }
+        
+        // 중앙은행 통화 정책
+        centralBank.AdjustInterestRate(inflationRate)
+        
+        // 주식시장 운영
+        stockExchange.ProcessTrades()
+        
+        // GDP 계산
+        CalculateCityGDP()
+    }
+}
+
+systemic CityServices {
+    // 공공 서비스들
+    party slot policeForce: LawEnforcement
+    party slot fireService: EmergencyResponse
+    party slot education: EducationSystem
+    party slot transportation: PublicTransport
+    
+    // 서비스 조율
+    shared emergencyLevel: EmergencyLevel = Normal
+    shared serviceQuality: Float = 0.7
+    
+    func CoordinateServices() {
+        // 긴급 상황 대응
+        if emergencyLevel != Normal {
+            parallel {
+                policeForce.RespondToEmergency()
+                fireService.RespondToEmergency()
+            }
+        }
+        
+        // 일상 서비스
+        parallel {
+            education.ConductClasses()
+            transportation.RunSchedule()
+        }
+    }
+}
+
+// ============= WORLD Level =============
+// 전체 도시 세계
+
+world SimCity {
+    // 주요 시스템들
+    systemic economy: CityEconomy
+    systemic services: CityServices
+    systemic infrastructure: CityInfrastructure
+    systemic environment: CityEnvironment
+    
+    // 월드 상태
+    shared currentTime: GameTime
+    shared season: Season = Spring
+    shared weatherSystem: WeatherSystem
+    shared totalPopulation: Int = 50000
+    
+    // 도시 메인 루프
+    func CityMainLoop() {
+        loop {
+            let frameStart = Time.Now()
+            
+            // 시간 진행
+            currentTime.Advance()
+            
+            // 계절 변화
+            if currentTime.IsNewSeason() {
+                season = currentTime.GetSeason()
+                weatherSystem.UpdateSeason(season)
+            }
+            
+            // 모든 시스템 병렬 실행
+            parallel {
+                // 경제 시스템
+                economy.RunEconomicCycle()
+                
+                // 서비스 시스템
+                services.CoordinateServices()
+                
+                // 인프라 시스템
+                infrastructure.MaintainCity()
+                
+                // 환경 시스템
+                environment.SimulateEnvironment()
+            }
+            
+            // 시스템 간 상호작용
+            HandleCrossSystemEvents()
+            
+            // 통계 업데이트
+            UpdateCityStatistics()
+            
+            // 프레임 동기화
+            SyncFrame(frameStart)
+        }
+    }
+    
+    // 시스템 간 이벤트 처리
+    func HandleCrossSystemEvents() {
+        // 환경이 경제에 영향
+        if environment.GetPollutionLevel() > 0.8 {
+            economy.ApplyEnvironmentalPenalty()
+        }
+        
+        // 서비스가 시민 만족도에 영향
+        let satisfaction = services.GetAverageServiceQuality()
+        UpdateCitizenSatisfaction(satisfaction)
+        
+        // 인프라가 모든 시스템에 영향
+        if infrastructure.GetMaintenanceLevel() < 0.5 {
+            economy.ApplyInfrastructurePenalty()
+            services.ReduceEfficiency()
+        }
+    }
+}
+
+// ============= 실행 예제 =============
+
+func Main() {
+    // 도시 생성
+    let city = SimCity {
+        economy: CreateCityEconomy(),
+        services: CreateCityServices(),
+        infrastructure: CreateCityInfrastructure(),
+        environment: CreateCityEnvironment()
+    }
+    
+    // 초기 설정
+    city.totalPopulation = 50000
+    city.economy.cityGDP = 1000000000
+    
+    // 도시 시뮬레이션 시작
+    Log("Starting city simulation...")
+    
+    // 월드 실행 (60 FPS)
+    RUN_WORLD(city, 60)
+}
+
+// 통계 모니터링
+async func MonitorCity(city: SimCity) {
+    loop {
+        await Sleep(10000ms) // 10초마다
+        
+        Log("=== City Statistics ===")
+        Log($"Population: {city.totalPopulation}")
+        Log($"GDP: ${city.economy.cityGDP}")
+        Log($"Unemployment: {city.economy.unemploymentRate * 100}%")
+        Log($"Service Quality: {city.services.serviceQuality * 100}%")
+        Log($"Season: {city.season}")
+        
+        // 계층별 성능 통계
+        let stats = GetWorldStatistics(city)
+        Log($"Average Frame Time: {stats.avgFrameTimeNs / 1000000}ms")
+        
+        for systemic in stats.systemicStats {
+            Log($"  {systemic.systemicName}: {systemic.avgExecutionTimeNs / 1000000}ms")
+        }
+    }
+}

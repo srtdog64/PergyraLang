@@ -128,7 +128,13 @@ typedef enum
     AST_PARTY_SHARED,
     AST_PARTY_METHOD,
     AST_CONTEXT_ACCESS,
-    AST_PARTY_INSTANCE
+    AST_PARTY_INSTANCE,
+    
+    /* Systemic and World */
+    AST_SYSTEMIC_DECL,
+    AST_SYSTEMIC_SLOT,
+    AST_WORLD_DECL,
+    AST_WORLD_SYSTEMIC
 } ASTNodeType;
 
 /*
@@ -506,6 +512,45 @@ struct ASTNode
             }* assignments;
             size_t assignment_count;
         } party_instance;
+        
+        /* Systemic declaration */
+        struct {
+            char* name;
+            ASTNode** party_slots;     /* Party slots */
+            size_t party_count;
+            ASTNode** shared_fields;   /* Shared system data */
+            size_t shared_count;
+            ASTNode** methods;         /* System methods */
+            size_t method_count;
+            GenericParams* generic_params;
+            StructuredComment* doc_comment;
+        } systemic_decl;
+        
+        /* Systemic slot */
+        struct {
+            char* slot_name;
+            char* party_type;          /* Required party type */
+            bool is_array;             /* Array<Party> slot */
+        } systemic_slot;
+        
+        /* World declaration */
+        struct {
+            char* name;
+            ASTNode** systemics;       /* Systemic instances */
+            size_t systemic_count;
+            ASTNode** shared_fields;   /* World-level data */
+            size_t shared_count;
+            ASTNode** methods;         /* World methods */
+            size_t method_count;
+            StructuredComment* doc_comment;
+        } world_decl;
+        
+        /* World systemic instance */
+        struct {
+            char* slot_name;
+            char* systemic_type;
+            ASTNode* initializer;      /* Optional initialization */
+        } world_systemic;
     } data;
 };
 

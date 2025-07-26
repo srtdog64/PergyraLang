@@ -77,6 +77,10 @@ typedef enum
     TOKEN_CONTEXT,
     TOKEN_EXTENDS,
     
+    /* Systemic and World keywords */
+    TOKEN_SYSTEMIC,
+    TOKEN_WORLD,
+    
     /* Async keywords */
     TOKEN_ASYNC,
     TOKEN_AWAIT,
