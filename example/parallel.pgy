@@ -1,0 +1,144 @@
+// Pergyra 병렬 처리 고급 예제
+// 멀티스레드 행렬 곱셈
+
+// 행렬 데이터 타입 정의
+type Matrix = {
+    rows: Int,
+    cols: Int,
+    data: Array<Float>
+}
+
+// 행렬 생성 함수
+func create_matrix(rows: Int, cols: Int) -> Matrix {
+    with slot<Matrix> as matrix {
+        matrix.write(Matrix {
+            rows: rows,
+            cols: cols,
+            data: create_array(rows * cols)
+        })
+        
+        return matrix.read()
+    }
+}
+
+// 병렬 행렬 곱셈
+func parallel_matrix_multiply(a: Matrix, b: Matrix) -> Matrix {
+    if a.cols != b.rows {
+        panic("행렬 차원이 맞지 않습니다")
+    }
+    
+    let result = create_matrix(a.rows, b.cols)
+    
+    // 각 행을 병렬로 처리
+    parallel {
+        for row_idx in 0..a.rows {
+            calculate_row(a, b, result, row_idx)
+        }
+    }
+    
+    return result
+}
+
+// 단일 행 계산 (병렬 작업 단위)
+func calculate_row(a: Matrix, b: Matrix, result: Matrix, row: Int) {
+    with slot<Float> as sum {
+        for col in 0..b.cols {
+            sum.write(0.0)
+            
+            for k in 0..a.cols {
+                let a_val = a.data[row * a.cols + k]
+                let b_val = b.data[k * b.cols + col]
+                let current_sum = sum.read()
+                sum.write(current_sum + a_val * b_val)
+            }
+            
+            result.data[row * result.cols + col] = sum.read()
+        }
+    }
+}
+
+// 스레드 풀 기반 병렬 처리
+func threaded_computation() {
+    let thread_count = get_cpu_count()
+    
+    with slot<Array<Int>> as results {
+        results.write(create_array(thread_count))
+        
+        parallel {
+            for thread_id in 0..thread_count {
+                worker_thread(thread_id, results)
+            }
+        }
+        
+        // 결과 집계
+        with slot<Int> as total {
+            total.write(0)
+            
+            for result in results.read() {
+                total.write(total.read() + result)
+            }
+            
+            log("총 합계:", total.read())
+        }
+    }
+}
+
+// 워커 스레드 함수
+func worker_thread(id: Int, shared_results: slot<Array<Int>>) {
+    with slot<Int> as local_sum {
+        local_sum.write(0)
+        
+        // 각 스레드별 작업 범위 계산
+        let work_size = 1000 / get_cpu_count()
+        let start = id * work_size
+        let end = start + work_size
+        
+        for i in start..end {
+            local_sum.write(local_sum.read() + compute_expensive(i))
+        }
+        
+        // 결과를 공유 배열에 저장
+        shared_results.read()[id] = local_sum.read()
+    }
+}
+
+// 비용이 많이 드는 계산 (예시)
+func compute_expensive(n: Int) -> Int {
+    with slot<Int> as result {
+        result.write(1)
+        
+        for i in 1..n {
+            result.write(result.read() * 2)
+            result.write(result.read() % 1000000)  // 오버플로우 방지
+        }
+        
+        return result.read()
+    }
+}
+
+// 메인 실행
+func main() {
+    log("=== Pergyra 병렬 처리 데모 ===")
+    
+    // 행렬 곱셈 테스트
+    let matrix_a = create_matrix(100, 100)
+    let matrix_b = create_matrix(100, 100)
+    
+    // 행렬 초기화
+    initialize_random_matrix(matrix_a)
+    initialize_random_matrix(matrix_b)
+    
+    log("행렬 곱셈 시작...")
+    let start_time = get_time()
+    
+    let result_matrix = parallel_matrix_multiply(matrix_a, matrix_b)
+    
+    let end_time = get_time()
+    log("행렬 곱셈 완료 (", end_time - start_time, "ms)")
+    
+    // 스레드 풀 테스트
+    log("스레드 풀 테스트 시작...")
+    threaded_computation()
+    
+    log("모든 테스트 완료!")
+}

@@ -1,0 +1,1 @@
+Pergamentum + papyra

@@ -1,0 +1,70 @@
+// Pergyra 언어 기본 예제
+// 슬롯 기반 메모리 관리와 병렬 처리 데모
+
+// 기본 슬롯 사용법
+let counter_slot = claim_slot<Int>()
+write(counter_slot, 0)
+
+// 반복문에서 슬롯 사용
+for i in 1..10 {
+    let current = read(counter_slot)
+    write(counter_slot, current + i)
+}
+
+log("최종 카운터 값:", read(counter_slot))
+release(counter_slot)
+
+// 스코프 기반 슬롯 관리
+with slot<String> as message {
+    message.write("안녕하세요, Pergyra!")
+    
+    with slot<Int> as length {
+        length.write(message.read().length())
+        log("메시지 길이:", length.read())
+    }
+    
+    log("메시지:", message.read())
+} // 자동으로 모든 슬롯 해제
+
+// 병렬 처리 예제
+let data = create_array(1000)
+
+let results = parallel {
+    // 작업 A: 배열 정렬
+    sort_data(data)
+    
+    // 작업 B: 통계 계산
+    calculate_stats(data)
+    
+    // 작업 C: 데이터 압축
+    compress_data(data)
+}
+
+log("병렬 처리 완료")
+
+// 함수 정의
+func fibonacci(n: Int) -> Int {
+    if n <= 1 {
+        return n
+    }
+    
+    with slot<Int> as prev {
+        prev.write(0)
+        
+        with slot<Int> as curr {
+            curr.write(1)
+            
+            for i in 2..n {
+                let next = prev.read() + curr.read()
+                prev.write(curr.read())
+                curr.write(next)
+            }
+            
+            return curr.read()
+        }
+    }
+}
+
+// 메인 실행부
+let fib_result = fibonacci(20)
+log("피보나치 20:", fib_result)
