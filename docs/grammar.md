@@ -19,7 +19,7 @@ modification, are permitted provided that the following conditions are met:
 - **내장 병렬성**: 언어 문법 차원에서 병렬 실행 지원
 - **타입 안전성**: 컴파일 타임 타입 검증
 
-## 2. 기본 문법
+## 2. 기본 문법 (BSD Style)
 
 ### 2.1 슬롯 관리
 ```pergyra
@@ -31,7 +31,8 @@ Release(slot)
 
 ### 2.2 스코프 기반 슬롯
 ```pergyra
-with slot<Type> as s {
+with slot<Type> as s
+{
     s.Write(42)
     Log(s.Read())
 }
@@ -39,10 +40,90 @@ with slot<Type> as s {
 
 ### 2.3 병렬 실행
 ```pergyra
-let result = Parallel {
+let result = Parallel
+{
     A()
     B()
     C()
+}
+```
+
+### 2.4 함수 정의 (BSD Style)
+```pergyra
+func ProcessData(input: String) -> Int
+{
+    // 함수 본문
+    return 42
+}
+
+// 제네릭 함수
+func Map<T, U>(items: Array<T>, transform: (T) -> U) -> Array<U>
+    where T: Readable,
+          U: Writable
+{
+    // 구현
+}
+```
+
+### 2.5 클래스 정의 (BSD Style)
+```pergyra
+class SecureContainer<T>
+    where T: Serializable
+{
+    private _slot: SecureSlot<T>
+    private _token: SecurityToken
+    
+    public func Store(value: T)
+    {
+        Write(_slot, value, _token)
+    }
+    
+    public func Retrieve() -> T
+    {
+        return Read(_slot, _token)
+    }
+}
+```
+
+### 2.6 제어 구조 (BSD Style)
+```pergyra
+// If 문
+if condition
+{
+    // true 블록
+}
+else if otherCondition
+{
+    // else if 블록
+}
+else
+{
+    // else 블록
+}
+
+// For 루프
+for i in 0..10
+{
+    Log(i)
+}
+
+// While 루프
+while IsRunning()
+{
+    Process()
+}
+
+// Match 문
+match value
+{
+    case .Success(data):
+        ProcessData(data)
+        
+    case .Error(msg):
+        LogError(msg)
+        
+    default:
+        HandleUnknown()
 }
 ```
 
