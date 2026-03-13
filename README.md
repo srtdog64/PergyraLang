@@ -120,14 +120,31 @@ make test-memory    # 메모리 레이아웃
 - 이중 해제
 - 잘못된 토큰 접근
 
+## TODO
+
+- [ ] 어셈블리 최적화 런타임 (x86-64 슬롯 연산)
+- [ ] 비동기 런타임 (Fiber, M:N 스케줄러, Channel)
+- [ ] Effect System (I/O, Timer 등 부작용 타입화)
+- [ ] LLVM 백엔드
+- [ ] JVM 연동 (JNI 브릿지)
+- [ ] 패턴 매칭 코드 생성
+- [ ] Role/Party/World 시스템 코드 생성
+- [ ] 표준 라이브러리
+- [ ] 패키지 매니저 / 모듈 시스템
+- [ ] WebAssembly 타겟
+- [ ] LSP 서버 (IDE 지원)
+- [ ] 디버거
+
 ## 문서
 
-- [문법 정의](docs/grammar.md)
-- [비동기/동시성](docs/async_concurrency.md)
-- [제네릭 설계](docs/generic_design.md)
-- [보안 모드 설계](docs/security_mode_design.md)
-- [네이밍 규칙](docs/naming_conventions.md)
-- [구문 레퍼런스](doc/syntax.md)
+- [현재 진행 상황](docs/00_progress.md)
+- [구문 레퍼런스](docs/00_syntax.md)
+- [문법 정의](docs/01_grammar.md)
+- [네이밍 규칙](docs/02_naming_conventions.md)
+- [보안 모드 설계](docs/03_security_mode_design.md)
+- [제네릭 설계](docs/04_generic_design.md)
+- [비동기/동시성 설계](docs/05_async_concurrency.md)
+- [개발 현황](docs/17_development_status.md)
 
 ## 라이센스
 
