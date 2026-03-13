@@ -98,6 +98,7 @@ compiler_build_native(ASTNode *ast,
     char command[1024];
     snprintf(command, sizeof(command),
              "gcc -std=c11 -Wall -O2 "
+             "-fopenmp "
              "-I src "
              "-I src/runtime "
              "%s "
@@ -198,7 +199,7 @@ compiler_build_native_llvm(ASTNode *ast,
     /* Link object file with GCC + runtime library */
     char command[2048];
     snprintf(command, sizeof(command),
-             "gcc -std=c11 -O2 "
+             "gcc -std=c11 -O2 -fopenmp "
              "-DPGY_LLVM_ENABLED "
              "-I src "
              "-o %s %s "

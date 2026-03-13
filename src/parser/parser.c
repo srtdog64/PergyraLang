@@ -34,6 +34,7 @@ static ASTNode* parse_if_statement(Parser* parser);
 static ASTNode* parse_return_statement(Parser* parser);
 static ASTNode* parse_type_constraint(Parser* parser);
 static void skip_generic_arguments(Parser* parser);
+static Token consume_name_token(Parser* parser, const char* message);
 
 /* Role/Ability system parsing functions */
 static ASTNode* parse_ability_declaration(Parser* parser);
@@ -102,6 +103,14 @@ Token parser_consume(Parser* parser, TokenType type, const char* message) {
     
     parser_error(parser, message);
     return parser->current_token;
+}
+
+static Token
+consume_name_token(Parser* parser, const char* message)
+{
+    if (parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_SLOT))
+        return parser_advance(parser);
+    return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 
 // 에러 처리
@@ -459,7 +468,7 @@ static ASTNode* parse_function_declaration(Parser* parser) {
 // let 선언 파싱
 ASTNode* parser_parse_let_declaration(Parser* parser) {
     // 변수 이름
-    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name");
+    Token name = consume_name_token(parser, "Expected variable name");
     
     ASTNode* let_decl = ast_create_let_declaration(name.text);
     
@@ -787,7 +796,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
     }
     
     // 식별자 또는 슬롯 연산
-    if (parser_match(parser, TOKEN_IDENTIFIER)) {
+    if (parser_match(parser, TOKEN_IDENTIFIER) || parser_match(parser, TOKEN_SLOT)) {
         char* name = pergyra_strdup(parser->previous_token.text);
 
         if ((strcmp(name, "ClaimSlot") == 0 ||
@@ -1650,6 +1659,9 @@ static ASTNode* parse_event_declaration(Parser* parser) {
 }
 
 // 람다식 파싱: (x, y) => x + y
+#if defined(__GNUC__)
+__attribute__((unused))
+#endif
 static ASTNode* parse_lambda_expression(Parser* parser) {
     ASTNode* lambda = ast_create_lambda_expression();
     

@@ -566,7 +566,7 @@ test_program_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("parallel block emits PGY_PARALLEL_BEGIN / TASK / END");
+    TEST("parallel block emits pgy_spawn / pgy_await per task");
     {
         ASTNode *tasks[2] = {
             make_call("A", NULL, 0, 1),
@@ -583,9 +583,9 @@ test_program_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_program(prog, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PARALLEL_BEGIN");
-        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PARALLEL_TASK");
-        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PARALLEL_END");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_spawn");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_await");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_par_");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -994,7 +994,7 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("spawn expression emits direct call comment");
+    TEST("spawn expression emits wrapper-based task launch");
     {
         ASTNode id_node; memset(&id_node, 0, sizeof(id_node));
         id_node.type = AST_IDENTIFIER;
@@ -1011,7 +1011,8 @@ test_async_emit(void)
 
         EXPECT(result != NULL);
         EXPECT(strstr(result, "spawn") != NULL);
-        EXPECT(strstr(result, "DoWork") != NULL);
+        EXPECT(strstr(result, "pgy_spawn_wrapper") != NULL);
+        EXPECT(strstr(ctx->helpers->data, "DoWork") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);

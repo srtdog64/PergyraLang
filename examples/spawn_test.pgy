@@ -1,0 +1,14 @@
+func Compute(x: Int) -> Int {
+    return x * x;
+}
+
+func Main() -> Void {
+    let result: Slot<Int> = ClaimSlot<Int>();
+
+    parallel {
+        Write(result, 42);
+    }
+
+    Log(Read(result));
+    Release(result);
+}

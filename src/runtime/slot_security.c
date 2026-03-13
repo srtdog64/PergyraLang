@@ -436,19 +436,32 @@ SecureRandomGenerate(uint8_t *buffer, size_t size)
 SecurityError
 SecureHashSHA256(const uint8_t *input, size_t inputSize, uint8_t output[32])
 {
+    EVP_MD_CTX *ctx;
+    unsigned int digestLen = 0;
+
     if (input == NULL || output == NULL || inputSize == 0)
         return SECURITY_ERROR_INVALID_TOKEN;
-    
-    SHA256_CTX ctx;
-    if (SHA256_Init(&ctx) != 1)
+
+    ctx = EVP_MD_CTX_new();
+    if (ctx == NULL)
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-    
-    if (SHA256_Update(&ctx, input, inputSize) != 1)
+
+    if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1) {
+        EVP_MD_CTX_free(ctx);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-    
-    if (SHA256_Final(output, &ctx) != 1)
+    }
+
+    if (EVP_DigestUpdate(ctx, input, inputSize) != 1) {
+        EVP_MD_CTX_free(ctx);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-    
+    }
+
+    if (EVP_DigestFinal_ex(ctx, output, &digestLen) != 1 || digestLen != 32) {
+        EVP_MD_CTX_free(ctx);
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    EVP_MD_CTX_free(ctx);
     return SECURITY_SUCCESS;
 }
 

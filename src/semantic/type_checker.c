@@ -190,6 +190,18 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
     if (node == NULL)
         return TYPE_VOID;
 
+    if (node->type == AST_CHANNEL_TYPE) {
+        Type *inner = resolve_type_node(node->data.channel_type.element_type, ctx);
+        Type *args[1] = { inner };
+        return type_create_constructed(TYPE_CHANNEL, args, 1);
+    }
+
+    if (node->type == AST_FUTURE_TYPE) {
+        Type *inner = resolve_type_node(node->data.future_type.value_type, ctx);
+        Type *args[1] = { inner };
+        return type_create_constructed(TYPE_FUTURE, args, 1);
+    }
+
     if (node->type != AST_TYPE)
         return TYPE_UNKNOWN;
 
@@ -209,7 +221,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
 
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
-        || strcmp(name, "Weak") == 0) {
+        || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
+        || strcmp(name, "Future") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
             semantic_error(ctx, node,
@@ -225,6 +238,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "Box") == 0) constructor = TYPE_BOX;
         else if (strcmp(name, "Rc") == 0) constructor = TYPE_RC;
         else if (strcmp(name, "Weak") == 0) constructor = TYPE_WEAK;
+        else if (strcmp(name, "Channel") == 0) constructor = TYPE_CHANNEL;
+        else if (strcmp(name, "Future") == 0) constructor = TYPE_FUTURE;
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
     }
@@ -769,7 +784,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             semantic_error(ctx, expr,
                 "'await' used outside of async function");
         }
-        return type_check_expression(expr->data.await_expr.expression, ctx);
+        {
+            Type *future_type = type_check_expression(expr->data.await_expr.expression, ctx);
+            if (future_type != NULL
+                && future_type->kind == TYPE_KIND_CONSTRUCTED
+                && type_equals(future_type->data.constructed.constructor, TYPE_FUTURE)
+                && future_type->data.constructed.arg_count == 1) {
+                return future_type->data.constructed.args[0];
+            }
+            semantic_error(ctx, expr->data.await_expr.expression,
+                "'await' requires Future<T>");
+            return TYPE_UNKNOWN;
+        }
 
     case AST_SPAWN_EXPR:
         return type_check_spawn_expr(expr, ctx);
@@ -862,6 +888,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         BuiltinKind bk   = builtin_resolve(name);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
+
+        /* Channel(capacity) is a built-in constructor that the transpiler
+         * handles; let it pass without a symbol table entry. The actual
+         * type is resolved from the annotation in emit_let_decl. */
+        if (strcmp(name, "Channel") == 0)
+            return TYPE_UNKNOWN;  /* type inferred from let annotation */
 
         Symbol *sym = scope_lookup(ctx->scope, name);
         if (sym == NULL) {
@@ -1631,25 +1663,44 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 {
     /* Type-check the spawned function/expression */
     Type *inner = type_check_expression(expr->data.spawn_expr.function, ctx);
-    /* spawn returns Future<T> where T is the return type of the function */
-    (void)inner;
-    return TYPE_VOID; /* MVP: spawn returns void in single-threaded mode */
+    Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
+    return type_create_constructed(TYPE_FUTURE, args, 1);
 }
 
 Type *
 type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
     /* Check channel and value types */
-    type_check_expression(expr->data.channel_send.channel, ctx);
-    type_check_expression(expr->data.channel_send.value, ctx);
+    Type *channel_type = type_check_expression(expr->data.channel_send.channel, ctx);
+    Type *value_type = type_check_expression(expr->data.channel_send.value, ctx);
+    if (channel_type == NULL
+        || channel_type->kind != TYPE_KIND_CONSTRUCTED
+        || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
+        || channel_type->data.constructed.arg_count != 1) {
+        semantic_error(ctx, expr->data.channel_send.channel,
+            "Channel send requires Channel<T>, got '%s'",
+            channel_type != NULL ? channel_type->name : "<null>");
+        return TYPE_VOID;
+    }
+    require_assignable(value_type, channel_type->data.constructed.args[0],
+        expr->data.channel_send.value, ctx);
     return TYPE_VOID;
 }
 
 Type *
 type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 {
-    type_check_expression(expr->data.channel_recv.channel, ctx);
-    return TYPE_UNKNOWN; /* element type not resolved in MVP */
+    Type *channel_type = type_check_expression(expr->data.channel_recv.channel, ctx);
+    if (channel_type == NULL
+        || channel_type->kind != TYPE_KIND_CONSTRUCTED
+        || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
+        || channel_type->data.constructed.arg_count != 1) {
+        semantic_error(ctx, expr->data.channel_recv.channel,
+            "Channel recv requires Channel<T>, got '%s'",
+            channel_type != NULL ? channel_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return channel_type->data.constructed.args[0];
 }
 
 bool
@@ -1849,6 +1900,24 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
                 Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
                 Symbol *s = symbol_create_function(fname, placeholder,
+                                                    stmt->line, stmt->column);
+                scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_EVENT_DECL) {
+            const char *ename = stmt->data.event_decl.name;
+            if (scope_lookup_current(ctx->scope, ename) == NULL) {
+                size_t epc = stmt->data.event_decl.param_count;
+                Type **eptypes = calloc(epc > 0 ? epc : 1, sizeof(Type *));
+                for (size_t j = 0; j < epc; j++) {
+                    ASTNode *p = stmt->data.event_decl.params[j];
+                    if (p->data.let_decl.type != NULL)
+                        eptypes[j] = resolve_type_node(p->data.let_decl.type, ctx);
+                    else
+                        eptypes[j] = TYPE_INT;
+                }
+                Type *evt_ft = type_create_function(eptypes, epc, TYPE_VOID);
+                free(eptypes);
+                Symbol *s = symbol_create_function(ename, evt_ft,
                                                     stmt->line, stmt->column);
                 scope_declare(ctx->scope, s);
             }

@@ -1062,8 +1062,12 @@ test_async_system(void)
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
         ctx->in_async_func = true;
 
-        ASTNode *num = make_number(42, 1);
-        ASTNode *await = ast_create_await_expression(num);
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *await = ast_create_await_expression(make_identifier("pending", 1));
         await->line = 1; await->column = 1;
 
         type_check_expression(await, ctx);
@@ -1088,7 +1092,7 @@ test_async_system(void)
         ast_destroy(sel);
     }
 
-    TEST("spawn expression type-checks inner expression");
+    TEST("spawn expression returns Future<T>");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -1098,7 +1102,10 @@ test_async_system(void)
         spawn->line = 1; spawn->column = 1;
 
         Type *t = type_check_spawn_expr(spawn, ctx);
-        EXPECT(t == TYPE_VOID);
+        EXPECT(t != NULL);
+        EXPECT(t->kind == TYPE_KIND_CONSTRUCTED);
+        EXPECT(type_equals(t->data.constructed.constructor, TYPE_FUTURE));
+        EXPECT(type_equals(t->data.constructed.args[0], TYPE_INT));
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);

@@ -368,6 +368,10 @@ Token lexer_next_token(Lexer* lexer) {
                 advance(lexer);
                 return make_token(lexer, TOKEN_LESS_EQUAL, start, 2);
             }
+            if (peek(lexer) == '-') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_CHANNEL_OP, start, 2);
+            }
             return make_token(lexer, TOKEN_LESS, start, 1);
             
         case '>':

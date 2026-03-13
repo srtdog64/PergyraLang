@@ -248,54 +248,130 @@ void pgy_release_String(PgySlot_String *s)
 }
 
 /* =================================================================
- * Channel — Int (minimal stub, full impl in later phases)
+ * Channel — Int (thread-safe with mutex + condvar)
  * ================================================================= */
 
-typedef struct {
-    int32_t *buffer;
-    size_t   capacity;
-    size_t   head;
-    size_t   tail;
-    size_t   count;
-} PgyChannel_Int;
+#include <pthread.h>
 
-void pgy_channel_init_Int(PgyChannel_Int *ch, size_t cap)
+typedef struct {
+    int32_t        *buffer;
+    size_t          capacity;
+    size_t          head;
+    size_t          tail;
+    size_t          count;
+    bool            closed;
+    pthread_mutex_t mutex;
+    pthread_cond_t  cond_not_full;
+    pthread_cond_t  cond_not_empty;
+} PgyChannel_Int_RT;
+
+void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
 {
     if (ch == NULL) return;
-    ch->buffer = (int32_t *)calloc(cap, sizeof(int32_t));
+    ch->buffer   = (int32_t *)calloc(cap, sizeof(int32_t));
     ch->capacity = cap;
-    ch->head = 0;
-    ch->tail = 0;
-    ch->count = 0;
+    ch->head     = 0;
+    ch->tail     = 0;
+    ch->count    = 0;
+    ch->closed   = false;
+    pthread_mutex_init(&ch->mutex, NULL);
+    pthread_cond_init(&ch->cond_not_full, NULL);
+    pthread_cond_init(&ch->cond_not_empty, NULL);
 }
 
-void pgy_channel_destroy_Int(PgyChannel_Int *ch)
+void pgy_channel_destroy_Int(PgyChannel_Int_RT *ch)
 {
     if (ch == NULL) return;
+    pthread_mutex_destroy(&ch->mutex);
+    pthread_cond_destroy(&ch->cond_not_full);
+    pthread_cond_destroy(&ch->cond_not_empty);
     free(ch->buffer);
     ch->buffer = NULL;
 }
 
-void pgy_channel_send_Int(PgyChannel_Int *ch, int32_t v)
+void pgy_channel_close_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL || ch->count >= ch->capacity) return;
+    if (ch == NULL) return;
+    pthread_mutex_lock(&ch->mutex);
+    ch->closed = true;
+    pthread_cond_broadcast(&ch->cond_not_full);
+    pthread_cond_broadcast(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+}
+
+bool pgy_channel_send_Int(PgyChannel_Int_RT *ch, int32_t v)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed)
+        pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
     ch->buffer[ch->tail] = v;
     ch->tail = (ch->tail + 1) % ch->capacity;
     ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
 }
 
-int32_t pgy_channel_recv_Int(PgyChannel_Int *ch)
+bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 {
-    if (ch == NULL || ch->count == 0) return 0;
-    int32_t v = ch->buffer[ch->head];
+    if (ch == NULL || out == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == 0 && !ch->closed)
+        pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+    if (ch->count == 0 && ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
     ch->head = (ch->head + 1) % ch->capacity;
     ch->count--;
-    return v;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
 }
 
-bool pgy_channel_ready_Int(PgyChannel_Int *ch)
+bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
 {
-    return ch != NULL && ch->count > 0;
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    bool ready = ch->count > 0;
+    pthread_mutex_unlock(&ch->mutex);
+    return ready;
+}
+
+int32_t pgy_channel_recv_val_Int(PgyChannel_Int_RT *ch)
+{
+    int32_t out = 0;
+    pgy_channel_recv_Int(ch, &out);
+    return out;
+}
+
+/* =================================================================
+ * Thread pool runtime (real pthread-based concurrency)
+ *
+ * These are non-inline exports of the pgy_parallel.h functions.
+ * The LLVM backend links against these symbols.
+ * ================================================================= */
+
+#include "runtime/pgy_parallel.h"
+
+/* Force non-inline symbol exports for the linker */
+void pgy_pool_init_export(size_t n)    { pgy_pool_init(n); }
+void pgy_pool_shutdown_export(void)    { pgy_pool_shutdown(); }
+
+PgyTaskHandle pgy_spawn_export(void *(*fn)(void *), void *arg)
+{
+    return pgy_spawn(fn, arg);
+}
+
+void *pgy_await_export(PgyTaskHandle h)
+{
+    return pgy_await(h);
 }
 
 #endif /* PGY_LLVM_ENABLED */

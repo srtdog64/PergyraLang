@@ -238,6 +238,24 @@ find_role_decl(TranspilerCtx *ctx, const char *role_name)
     return NULL;
 }
 
+static ASTNode *
+find_function_decl(TranspilerCtx *ctx, const char *function_name)
+{
+    if (ctx == NULL || ctx->program == NULL || ctx->program->type != AST_PROGRAM)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->program->data.program.count; i++) {
+        ASTNode *stmt = ctx->program->data.program.statements[i];
+        if (stmt->type == AST_FUNC_DECL
+            && stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, function_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 role_has_ability(ASTNode *role, const char *ability_name)
 {
@@ -328,6 +346,14 @@ pergyra_type_to_c(const char *name)
 {
     if (strcmp(name, "Allocator") == 0)
         return "PgyAllocator";
+    if (strncmp(name, "Future<", 7) == 0)
+        return "PgyTaskHandle";
+    if (strncmp(name, "Channel<", 8) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgyChannel_%s", inner);
+        return buf;
+    }
     if (strncmp(name, "Weak<", 5) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
@@ -415,9 +441,28 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
     }
 }
 
+static char *strdup_fmt(const char *fmt, ...);
+
 static char *
 render_type_name(ASTNode *type_node)
 {
+    if (type_node == NULL)
+        return pergyra_strdup("Int");
+
+    if (type_node->type == AST_CHANNEL_TYPE) {
+        char *inner = render_type_name(type_node->data.channel_type.element_type);
+        char *result = strdup_fmt("Channel<%s>", inner);
+        free(inner);
+        return result;
+    }
+
+    if (type_node->type == AST_FUTURE_TYPE) {
+        char *inner = render_type_name(type_node->data.future_type.value_type);
+        char *result = strdup_fmt("Future<%s>", inner);
+        free(inner);
+        return result;
+    }
+
     CodeBuf *buf = codebuf_create();
     if (buf == NULL)
         return pergyra_strdup("Int");
@@ -425,6 +470,91 @@ render_type_name(ASTNode *type_node)
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
     return result;
+}
+
+static const char *
+infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
+{
+    if (expr == NULL)
+        return "Int";
+
+    switch (expr->type) {
+    case AST_NUMBER:
+        return "Int";
+    case AST_STRING:
+        return "String";
+    case AST_BOOLEAN:
+        return "Bool";
+    case AST_IDENTIFIER: {
+        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        return type_name != NULL ? type_name : "Int";
+    }
+    case AST_CHANNEL_RECV: {
+        ASTNode *channel = expr->data.channel_recv.channel;
+        if (channel != NULL && channel->type == AST_IDENTIFIER) {
+            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+                return slot_inner_type_name(type_name);
+        }
+        return "Int";
+    }
+    default:
+        return "Int";
+    }
+}
+
+static char *
+infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
+{
+    ASTNode *target = spawn_expr != NULL ? spawn_expr->data.spawn_expr.function : NULL;
+    const char *function_name = NULL;
+
+    if (target == NULL)
+        return pergyra_strdup("Void");
+
+    if (target->type == AST_CALL
+        && target->data.call.callee != NULL
+        && target->data.call.callee->type == AST_IDENTIFIER) {
+        function_name = target->data.call.callee->data.identifier.name;
+    } else if (target->type == AST_IDENTIFIER) {
+        function_name = target->data.identifier.name;
+    } else if (target->type == AST_FUNC_DECL) {
+        if (target->data.func_decl.return_type != NULL)
+            return render_type_name(target->data.func_decl.return_type);
+        return pergyra_strdup("Void");
+    }
+
+    if (function_name == NULL)
+        return pergyra_strdup("Void");
+
+    ASTNode *decl = find_function_decl(ctx, function_name);
+    if (decl != NULL && decl->data.func_decl.return_type != NULL)
+        return render_type_name(decl->data.func_decl.return_type);
+
+    return pergyra_strdup("Void");
+}
+
+static const char *
+lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
+{
+    if (expr == NULL)
+        return "Void";
+
+    if (expr->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "Future<", 7) == 0)
+            return slot_inner_type_name(type_name);
+    }
+
+    if (expr->type == AST_SPAWN_EXPR) {
+        char *inner = infer_spawn_return_type_name(ctx, expr);
+        static char buf[128];
+        snprintf(buf, sizeof(buf), "%s", inner);
+        free(inner);
+        return buf;
+    }
+
+    return "Void";
 }
 
 static const char *
@@ -889,6 +1019,178 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
 }
 
 char *
+emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
+{
+    ASTNode *target = node->data.spawn_expr.function;
+    ASTNode *call = NULL;
+    ASTNode *callee = NULL;
+    const char *function_name = NULL;
+    ASTNode *decl = NULL;
+    size_t arg_count = 0;
+    int wrapper_id = ++ctx->tmp_counter;
+    char *wrapper_name = strdup_fmt("pgy_spawn_wrapper_%d", wrapper_id);
+    char *args_type_name = NULL;
+    char *return_type_name = infer_spawn_return_type_name(ctx, node);
+    char *return_c_type = pergyra_strdup(pergyra_type_to_c(return_type_name));
+
+    if (target == NULL) {
+        free(wrapper_name);
+        free(return_type_name);
+        free(return_c_type);
+        return pergyra_strdup("pgy_spawn(NULL, NULL)");
+    }
+
+    if (target->type == AST_CALL) {
+        call = target;
+        callee = target->data.call.callee;
+        arg_count = target->data.call.arg_count;
+    } else {
+        callee = target;
+    }
+
+    if (callee != NULL && callee->type == AST_IDENTIFIER)
+        function_name = callee->data.identifier.name;
+    if (function_name == NULL) {
+        free(wrapper_name);
+        free(return_type_name);
+        free(return_c_type);
+        return pergyra_strdup("/* unsupported spawn target */");
+    }
+
+    decl = find_function_decl(ctx, function_name);
+    if (arg_count > 0)
+        args_type_name = strdup_fmt("PgySpawnArgs_%d", wrapper_id);
+
+    if (args_type_name != NULL) {
+        codebuf_write(ctx->decls, "\ntypedef struct {\n");
+        for (size_t i = 0; i < arg_count; i++) {
+            const char *arg_type = "int32_t";
+            if (decl != NULL && i < decl->data.func_decl.param_count
+                && decl->data.func_decl.params[i] != NULL
+                && decl->data.func_decl.params[i]->type != NULL) {
+                arg_type = pergyra_ast_type_to_c(decl->data.func_decl.params[i]->type);
+            } else if (call != NULL) {
+                arg_type = pergyra_type_to_c(infer_expression_type_name(
+                    ctx, call->data.call.arguments[i]));
+            }
+            codebuf_write(ctx->decls, "    %s arg%zu;\n", arg_type, i);
+        }
+        codebuf_write(ctx->decls, "} %s;\n", args_type_name);
+    }
+
+    codebuf_write(ctx->decls, "static void *%s(void *raw);\n", wrapper_name);
+    codebuf_write(ctx->helpers, "\nstatic void *%s(void *raw)\n{\n", wrapper_name);
+    if (args_type_name != NULL) {
+        codebuf_write(ctx->helpers, "    %s *args = (%s *)raw;\n",
+            args_type_name, args_type_name);
+    } else {
+        codebuf_write(ctx->helpers, "    (void)raw;\n");
+    }
+
+    if (strcmp(return_type_name, "Void") == 0) {
+        codebuf_write(ctx->helpers, "    %s(", function_name);
+    } else {
+        codebuf_write(ctx->helpers,
+            "    %s *result = (%s *)malloc(sizeof(%s));\n",
+            return_c_type, return_c_type, return_c_type);
+        codebuf_write(ctx->helpers,
+            "    if (result == NULL) {\n"
+            "        PGY_PANIC(\"spawn result allocation failed\");\n"
+            "    }\n"
+            "    *result = %s(",
+            function_name);
+    }
+
+    for (size_t i = 0; i < arg_count; i++) {
+        if (i > 0)
+            codebuf_write(ctx->helpers, ", ");
+        codebuf_write(ctx->helpers, "args->arg%zu", i);
+    }
+    codebuf_write(ctx->helpers, ");\n");
+
+    if (args_type_name != NULL)
+        codebuf_write(ctx->helpers, "    free(args);\n");
+
+    if (strcmp(return_type_name, "Void") == 0)
+        codebuf_write(ctx->helpers, "    return NULL;\n");
+    else
+        codebuf_write(ctx->helpers, "    return result;\n");
+    codebuf_write(ctx->helpers, "}\n");
+
+    CodeBuf *expr = codebuf_create();
+    if (expr == NULL) {
+        free(wrapper_name);
+        free(args_type_name);
+        free(return_type_name);
+        free(return_c_type);
+        return pergyra_strdup("/* spawn alloc failed */");
+    }
+
+    if (args_type_name == NULL) {
+        codebuf_write(expr, "pgy_spawn(%s, NULL)", wrapper_name);
+    } else {
+        codebuf_write(expr,
+            "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
+            "if (_pgy_args == NULL) { PGY_PANIC(\"spawn arg allocation failed\"); } ",
+            args_type_name, args_type_name, args_type_name);
+        for (size_t i = 0; i < arg_count; i++) {
+            char *arg = emit_expression(call->data.call.arguments[i], ctx);
+            codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
+            free(arg);
+        }
+        codebuf_write(expr, "pgy_spawn(%s, _pgy_args); })", wrapper_name);
+    }
+
+    char *result = pergyra_strdup(expr->data);
+    codebuf_destroy(expr);
+    free(wrapper_name);
+    free(args_type_name);
+    free(return_type_name);
+    free(return_c_type);
+    return result;
+}
+
+char *
+emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
+{
+    char *ch  = emit_expression(node->data.channel_send.channel, ctx);
+    char *val = emit_expression(node->data.channel_send.value, ctx);
+    const char *inner = "Int";
+
+    if (node->data.channel_send.channel != NULL
+        && node->data.channel_send.channel->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx,
+            node->data.channel_send.channel->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    char *result = strdup_fmt("pgy_channel_send_%s(&%s, %s)", inner, ch, val);
+    free(ch);
+    free(val);
+    return result;
+}
+
+char *
+emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
+{
+    char *ch = emit_expression(node->data.channel_recv.channel, ctx);
+    const char *inner = "Int";
+
+    if (node->data.channel_recv.channel != NULL
+        && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx,
+            node->data.channel_recv.channel->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    char *result = strdup_fmt("pgy_channel_recv_val_%s(&%s)", inner, ch);
+    free(ch);
+    return result;
+}
+
+char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
 {
     if (node == NULL)
@@ -906,8 +1208,23 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_BOOLEAN:
         return pergyra_strdup(node->data.boolean.value ? "true" : "false");
 
-    case AST_IDENTIFIER:
-        return pergyra_strdup(node->data.identifier.name);
+    case AST_IDENTIFIER: {
+        const char *id_name = node->data.identifier.name;
+        /* Inside parallel wrapper: captured outer variables are accessed
+         * through the context struct pointer.  (*_pctx->x) yields the
+         * value, and &(*_pctx->x) collapses to _pctx->x (a pointer). */
+        if (ctx->in_parallel_wrapper) {
+            for (int i = 0; i < ctx->par_capture_slot_end; i++) {
+                if (strcmp(ctx->slot_vars[i].name, id_name) == 0)
+                    return strdup_fmt("(*_pctx->%s)", id_name);
+            }
+            for (int i = 0; i < ctx->par_capture_typed_end; i++) {
+                if (strcmp(ctx->typed_vars[i].name, id_name) == 0)
+                    return strdup_fmt("(*_pctx->%s)", id_name);
+            }
+        }
+        return pergyra_strdup(id_name);
+    }
 
     case AST_BINARY:
         return emit_binary(node, ctx);
@@ -944,37 +1261,29 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     }
 
     case AST_AWAIT_EXPR:
-        /* Await a spawned task */
         {
             char *expr = emit_expression(node->data.await_expr.expression, ctx);
-            char *result = strdup_fmt("pgy_await(%s)", expr);
+            const char *inner = lookup_future_inner_type(ctx,
+                node->data.await_expr.expression);
+            char *result;
+            if (strcmp(inner, "Void") == 0) {
+                result = strdup_fmt("pgy_await_void(%s)", expr);
+            } else {
+                result = strdup_fmt("pgy_await_take(%s, %s)",
+                    expr, pergyra_type_to_c(inner));
+            }
             free(expr);
             return result;
         }
 
-    case AST_SPAWN_EXPR: {
-        /* Spawn a new task in thread pool */
-        char *func = emit_expression(node->data.spawn_expr.function, ctx);
-        char *result = strdup_fmt("pgy_spawn(%s, NULL)", func);
-        free(func);
-        return result;
-    }
+    case AST_SPAWN_EXPR:
+        return emit_spawn_expr(node, ctx);
 
-    case AST_CHANNEL_SEND: {
-        char *ch  = emit_expression(node->data.channel_send.channel, ctx);
-        char *val = emit_expression(node->data.channel_send.value, ctx);
-        char *result = strdup_fmt("pgy_channel_send(%s, %s)", ch, val);
-        free(ch);
-        free(val);
-        return result;
-    }
+    case AST_CHANNEL_SEND:
+        return emit_channel_send(node, ctx);
 
-    case AST_CHANNEL_RECV: {
-        char *ch = emit_expression(node->data.channel_recv.channel, ctx);
-        char *result = strdup_fmt("pgy_channel_recv(%s, void*)", ch);
-        free(ch);
-        return result;
-    }
+    case AST_CHANNEL_RECV:
+        return emit_channel_recv(node, ctx);
 
     case AST_EVENT_INVOKE: {
         char *event = emit_expression(node->data.event_invoke.event, ctx);
@@ -1185,6 +1494,27 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
+    if (ann_type_name != NULL && strncmp(ann_type_name, "Channel<", 8) == 0) {
+        const char *inner = slot_inner_type_name(ann_type_name);
+        char *capacity = pergyra_strdup("16");
+
+        if (init != NULL && init->type == AST_CALL
+            && init->data.call.arg_count > 0) {
+            free(capacity);
+            capacity = emit_expression(init->data.call.arguments[0], ctx);
+        }
+
+        write_indent(ctx);
+        codebuf_write(ctx->out, "PgyChannel_%s %s;\n", inner, name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_channel_init_%s(&%s, %s);\n",
+            inner, name, capacity);
+        register_typed_var(ctx, name, ann_type_name);
+        free(capacity);
+        free(ann_type_name);
+        return;
+    }
+
     /* Normal variable with type inference */
     const char *c_type = "int32_t"; /* fallback */
     if (ann != NULL) {
@@ -1194,6 +1524,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (init->type == AST_NUMBER)  c_type = "int32_t";
         else if (init->type == AST_STRING)  c_type = "char*";
         else if (init->type == AST_BOOLEAN) c_type = "bool";
+        else if (init->type == AST_SPAWN_EXPR) c_type = "PgyTaskHandle";
+        else if (init->type == AST_CHANNEL_RECV) {
+            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
+        }
         else if (init->type == AST_CALL) {
             /* Infer from call return type - default to int for now */
             c_type = "int32_t";
@@ -1212,6 +1546,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     if (ann_type_name != NULL) {
         register_typed_var(ctx, name, ann_type_name);
         free(ann_type_name);
+    } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
+        char *future_type = infer_spawn_return_type_name(ctx, init);
+        char *wrapped = strdup_fmt("Future<%s>", future_type);
+        register_typed_var(ctx, name, wrapped);
+        free(future_type);
+        free(wrapped);
+    } else if (init != NULL && init->type == AST_CHANNEL_RECV) {
+        const char *inner = infer_expression_type_name(ctx, init);
+        register_typed_var(ctx, name, inner);
     }
 }
 
@@ -1421,23 +1764,147 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
-    write_indent(ctx);
-    codebuf_write(ctx->out, "PGY_PARALLEL_BEGIN\n");
+    size_t count = node->data.parallel.task_count;
+    if (count == 0)
+        return;
 
-    for (size_t i = 0; i < node->data.parallel.task_count; i++) {
-        write_indent(ctx);
-        codebuf_write(ctx->out, "PGY_PARALLEL_TASK\n");
-        write_indent(ctx);
-        codebuf_write(ctx->out, "{\n");
-        ctx->indent++;
-        emit_statement(node->data.parallel.tasks[i], ctx);
-        ctx->indent--;
-        write_indent(ctx);
-        codebuf_write(ctx->out, "}\n");
+    unsigned int pid = ctx->parallel_id++;
+
+    /* ---------------------------------------------------------------
+     * 1) Generate a context struct that holds pointers to all local
+     *    variables currently in scope (slots + non-duplicate typed vars).
+     *    Wrapper functions access outer variables through this struct.
+     * --------------------------------------------------------------- */
+    int n_slots  = ctx->slot_var_count;
+    int n_typed  = ctx->typed_var_count;
+
+    /* Helper: check if a typed_var is already in slot_vars (avoid dupes) */
+    #define IS_SLOT_DUP(name_str) ({ \
+        bool _dup = false; \
+        for (int _j = 0; _j < n_slots; _j++) { \
+            if (strcmp(ctx->slot_vars[_j].name, (name_str)) == 0) \
+                { _dup = true; break; } \
+        } _dup; })
+
+    /* Count non-duplicate typed vars */
+    int n_unique_typed = 0;
+    for (int i = 0; i < n_typed; i++) {
+        if (!IS_SLOT_DUP(ctx->typed_vars[i].name))
+            n_unique_typed++;
     }
 
+    bool has_captures = (n_slots > 0 || n_unique_typed > 0);
+
+    if (has_captures) {
+        codebuf_write(ctx->helpers,
+            "typedef struct {\n");
+        for (int i = 0; i < n_slots; i++) {
+            codebuf_write(ctx->helpers,
+                "    PgySlot_%s *%s;\n",
+                ctx->slot_vars[i].inner_type,
+                ctx->slot_vars[i].name);
+        }
+        for (int i = 0; i < n_typed; i++) {
+            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
+                continue;
+            const char *c_type = pergyra_type_to_c(ctx->typed_vars[i].type_name);
+            codebuf_write(ctx->helpers,
+                "    %s *%s;\n", c_type, ctx->typed_vars[i].name);
+        }
+        codebuf_write(ctx->helpers,
+            "} _pgy_par_ctx_%u;\n\n", pid);
+    }
+
+    /* ---------------------------------------------------------------
+     * 2) Generate static wrapper functions for each task.
+     *    Variable references inside the wrapper go through _pctx->.
+     * --------------------------------------------------------------- */
+    for (size_t i = 0; i < count; i++) {
+        codebuf_write(ctx->helpers,
+            "static void *_pgy_par_%zu_%u(void *_arg) {\n",
+            i, pid);
+        if (has_captures) {
+            codebuf_write(ctx->helpers,
+                "    _pgy_par_ctx_%u *_pctx = "
+                "(_pgy_par_ctx_%u *)_arg;\n",
+                pid, pid);
+        } else {
+            codebuf_write(ctx->helpers, "    (void)_arg;\n");
+        }
+
+        /* Redirect output to helpers and set parallel-capture mode */
+        CodeBuf *saved = ctx->out;
+        int saved_indent = ctx->indent;
+        bool saved_in_pw = ctx->in_parallel_wrapper;
+        int saved_slot_end  = ctx->par_capture_slot_end;
+        int saved_typed_end = ctx->par_capture_typed_end;
+
+        ctx->out = ctx->helpers;
+        ctx->indent = 1;
+        ctx->in_parallel_wrapper  = true;
+        ctx->par_capture_slot_end  = n_slots;
+        ctx->par_capture_typed_end = n_typed;
+
+        emit_statement(node->data.parallel.tasks[i], ctx);
+
+        ctx->out = saved;
+        ctx->indent = saved_indent;
+        ctx->in_parallel_wrapper  = saved_in_pw;
+        ctx->par_capture_slot_end  = saved_slot_end;
+        ctx->par_capture_typed_end = saved_typed_end;
+
+        codebuf_write(ctx->helpers,
+            "    return NULL;\n"
+            "}\n\n");
+    }
+
+    /* ---------------------------------------------------------------
+     * 3) Emit context initialization + spawn + await at call site.
+     * --------------------------------------------------------------- */
     write_indent(ctx);
-    codebuf_write(ctx->out, "PGY_PARALLEL_END\n");
+    codebuf_write(ctx->out, "{\n");
+    ctx->indent++;
+
+    if (has_captures) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_par_ctx_%u _pctx%u = { ", pid, pid);
+        bool first = true;
+        for (int i = 0; i < n_slots; i++) {
+            if (!first) codebuf_write(ctx->out, ", ");
+            codebuf_write(ctx->out, "&%s", ctx->slot_vars[i].name);
+            first = false;
+        }
+        for (int i = 0; i < n_typed; i++) {
+            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
+                continue;
+            if (!first) codebuf_write(ctx->out, ", ");
+            codebuf_write(ctx->out, "&%s", ctx->typed_vars[i].name);
+            first = false;
+        }
+        codebuf_write(ctx->out, " };\n");
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        write_indent(ctx);
+        if (has_captures) {
+            codebuf_write(ctx->out,
+                "PgyTaskHandle _ph_%zu = pgy_spawn(_pgy_par_%zu_%u, &_pctx%u);\n",
+                i, i, pid, pid);
+        } else {
+            codebuf_write(ctx->out,
+                "PgyTaskHandle _ph_%zu = pgy_spawn(_pgy_par_%zu_%u, NULL);\n",
+                i, i, pid);
+        }
+    }
+    for (size_t i = 0; i < count; i++) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_await(_ph_%zu);\n", i);
+    }
+
+    ctx->indent--;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "}\n");
+    #undef IS_SLOT_DUP
 }
 
 /* -----------------------------------------------------------------
@@ -1805,11 +2272,32 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write_raw(ctx->out, ctx->decls->data, ctx->decls->len);
     }
 
-    /* Pass 4: functions */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_FUNC_DECL)
-            emit_func_decl(stmt, ctx);
+    /* Pass 4: functions — emit in two sub-passes so that helpers
+     * (parallel context structs, wrapper functions) generated during
+     * function emission are available.  First pass: emit all functions
+     * into a temporary buffer. */
+    {
+        CodeBuf *func_buf = codebuf_create();
+        CodeBuf *saved_out = ctx->out;
+        ctx->out = func_buf;
+        for (size_t i = 0; i < node->data.program.count; i++) {
+            ASTNode *stmt = node->data.program.statements[i];
+            if (stmt->type == AST_FUNC_DECL)
+                emit_func_decl(stmt, ctx);
+        }
+        ctx->out = saved_out;
+
+        /* Emit helpers (parallel context structs + wrappers) first */
+        if (ctx->helpers->len > 0) {
+            codebuf_write(ctx->out, "\n");
+            codebuf_write_raw(ctx->out, ctx->helpers->data, ctx->helpers->len);
+        }
+
+        /* Then emit the function bodies */
+        if (func_buf->len > 0) {
+            codebuf_write_raw(ctx->out, func_buf->data, func_buf->len);
+        }
+        codebuf_destroy(func_buf);
     }
 
     /* Check if a Main() function exists */
@@ -1845,7 +2333,7 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
         ctx->indent++;
 
         /* Initialize runtime */
-        codebuf_write(ctx->out, "/* Initialize parallel runtime */\n");
+        write_indent(ctx);
         codebuf_write(ctx->out, "pgy_pool_init(0);\n\n");
 
         /* Emit top-level statements inside main() */
@@ -1868,18 +2356,13 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
         }
 
         /* Shutdown runtime */
-        codebuf_write(ctx->out, "\n/* Shutdown parallel runtime */\n");
+        write_indent(ctx);
         codebuf_write(ctx->out, "pgy_pool_shutdown();\n");
 
         write_indent(ctx);
         codebuf_write(ctx->out, "return 0;\n");
         ctx->indent--;
         codebuf_write(ctx->out, "}\n");
-    }
-
-    if (ctx->helpers->len > 0) {
-        codebuf_write(ctx->out, "\n");
-        codebuf_write_raw(ctx->out, ctx->helpers->data, ctx->helpers->len);
     }
 }
 

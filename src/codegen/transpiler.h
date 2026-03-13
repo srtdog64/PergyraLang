@@ -83,6 +83,15 @@ typedef struct
     int          slot_var_count;
     TypedVarEntry typed_vars[MAX_SLOT_VARS];
     int           typed_var_count;
+
+    /* Counter for unique parallel wrapper function names */
+    unsigned int  parallel_id;
+
+    /* Parallel variable capture: when emitting a parallel wrapper body,
+     * identifiers from the outer scope are accessed through _pctx->name */
+    bool  in_parallel_wrapper;
+    int   par_capture_slot_end;    /* slot_vars[0..end) are captured  */
+    int   par_capture_typed_end;   /* typed_vars[0..end) are captured */
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

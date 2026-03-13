@@ -1,0 +1,5 @@
+event OnHit(damage: Int);
+
+func Main() -> Void {
+    OnHit(42);
+}

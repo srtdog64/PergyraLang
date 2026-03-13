@@ -28,7 +28,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 CC      = gcc
-CFLAGS  = -Wall -Wextra -std=c11 -O2 -g -I$(SRC_DIR)
+OPENMP_FLAGS = -fopenmp
+TMPDIR ?= /tmp
+export TMPDIR
+CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 
@@ -97,6 +100,7 @@ TEST_SECURITY_SRC       = $(SRC_DIR)/test_security.c
 TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
 TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
 TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
+TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
 DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
 
 # -----------------------------------------------------------------
@@ -121,6 +125,7 @@ TEST_SECURITY_OBJ      = $(BUILD_DIR)/test_security.o
 TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
 TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
 TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
+TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
 DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
 
 # Common frontend objects used by many targets
@@ -138,12 +143,13 @@ SECURITY_TEST       = $(BIN_DIR)/test_security
 SEMANTIC_TEST       = $(BIN_DIR)/test_semantic
 TRANSPILE_TEST      = $(BIN_DIR)/test_transpile
 MEMORY_TEST         = $(BIN_DIR)/test_memory_layout
+CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency
 PGY                 = $(BIN_DIR)/pgy
 
 # -----------------------------------------------------------------
 # Default target — build the driver and all tests
 # -----------------------------------------------------------------
-all: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST)
+all: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST)
 
 pgy: $(PGY)
 
@@ -153,7 +159,7 @@ pgy: $(PGY)
 
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
@@ -175,15 +181,19 @@ $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^
+
+# Concurrency runtime test
+$(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # -----------------------------------------------------------------
 # Compilation rules
@@ -203,7 +213,14 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
 # Directory creation
 # -----------------------------------------------------------------
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR) \
+		$(BUILD_DIR)/lexer \
+		$(BUILD_DIR)/parser \
+		$(BUILD_DIR)/semantic \
+		$(BUILD_DIR)/codegen \
+		$(BUILD_DIR)/compiler \
+		$(BUILD_DIR)/runtime \
+		$(BUILD_DIR)/runtime/async
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -235,7 +252,11 @@ test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	./$(MEMORY_TEST)
 
-test-all: test test-parser test-semantic test-transpile test-memory
+test-concurrency: $(CONCURRENCY_TEST)
+	@echo "=== Concurrency Test ==="
+	./$(CONCURRENCY_TEST)
+
+test-all: test test-parser test-semantic test-transpile test-memory test-concurrency
 	@echo "=== All Frontend Tests Completed ==="
 
 # -----------------------------------------------------------------
@@ -276,5 +297,5 @@ memcheck: debug
 	valgrind --leak-check=full --show-leak-kinds=all ./$(TRANSPILE_TEST)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
-        test test-parser test-security test-semantic test-transpile test-memory test-all \
+        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-all \
         example-hello example-slots

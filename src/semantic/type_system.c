@@ -28,6 +28,8 @@ Type *TYPE_SLICE  = NULL;
 Type *TYPE_BOX    = NULL;
 Type *TYPE_RC     = NULL;
 Type *TYPE_WEAK   = NULL;
+Type *TYPE_CHANNEL = NULL;
+Type *TYPE_FUTURE = NULL;
 Type *TYPE_ALLOCATOR = NULL;
 
 void
@@ -49,6 +51,8 @@ type_system_init(void)
     TYPE_BOX    = type_create_primitive("Box",    0, false);
     TYPE_RC     = type_create_primitive("Rc",     0, false);
     TYPE_WEAK   = type_create_primitive("Weak",   0, false);
+    TYPE_CHANNEL = type_create_primitive("Channel", 0, false);
+    TYPE_FUTURE = type_create_primitive("Future", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
 }
 
@@ -68,12 +72,14 @@ type_system_cleanup(void)
     free(TYPE_BOX->name);    free(TYPE_BOX);
     free(TYPE_RC->name);     free(TYPE_RC);
     free(TYPE_WEAK->name);   free(TYPE_WEAK);
+    free(TYPE_CHANNEL->name); free(TYPE_CHANNEL);
+    free(TYPE_FUTURE->name); free(TYPE_FUTURE);
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
     TYPE_BOOL = TYPE_STRING = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
-    TYPE_WEAK = TYPE_ALLOCATOR = NULL;
+    TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_ALLOCATOR = NULL;
 }
 
 /* -----------------------------------------------------------------
@@ -488,6 +494,12 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
             return inner->data.constructed.args[0];
         }
         return TYPE_UNKNOWN;
+    }
+
+    case AST_SPAWN_EXPR: {
+        Type *inner = type_infer_expression(expr->data.spawn_expr.function, env);
+        Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
+        return type_create_constructed(TYPE_FUTURE, args, 1);
     }
 
     case AST_CHANNEL_RECV: {

@@ -141,6 +141,8 @@ extern Type* TYPE_SLICE;
 extern Type* TYPE_BOX;
 extern Type* TYPE_RC;
 extern Type* TYPE_WEAK;
+extern Type* TYPE_CHANNEL;
+extern Type* TYPE_FUTURE;
 extern Type* TYPE_ALLOCATOR;
 
 void type_system_init(void);
