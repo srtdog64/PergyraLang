@@ -108,7 +108,7 @@ Token parser_consume(Parser *parser, TokenType type, const char *message);
  */
 bool        parser_has_error(const Parser *parser);
 const char *parser_get_error(const Parser *parser);
-void        parser_error(Parser *parser, const char *message);
+void        parser_error(Parser *parser, const char *format, ...);
 void        parser_synchronize(Parser *parser);
 
 /*

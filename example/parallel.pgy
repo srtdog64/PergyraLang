@@ -40,7 +40,7 @@ func ParallelMatrixMultiply(a: Matrix, b: Matrix) -> Matrix {
     let result = CreateMatrix(a.rows, b.cols)
     
     // 각 행을 병렬로 처리
-    Parallel {
+    parallel {
         for rowIdx in 0..a.rows {
             CalculateRow(a, b, result, rowIdx)
         }
@@ -74,7 +74,7 @@ func ThreadedComputation() {
     with slot<Array<Int>> as results {
         results.Write(CreateArray(threadCount))
         
-        Parallel {
+        parallel {
             for threadId in 0..threadCount {
                 WorkerThread(threadId, results)
             }

@@ -32,7 +32,7 @@ func TakeDamage(damage: Int) {
 ### 2.3 블록 레벨 주석
 
 ```pergyra
-Parallel {
+parallel {
     /// [What]: 세 가지 독립적인 작업을 병렬 실행
     /// [Why]: 각 작업이 서로 의존성이 없어 동시 실행 가능
     ProcessA()

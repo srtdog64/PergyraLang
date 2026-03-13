@@ -1,5 +1,7 @@
 # Pergyra 에러 처리 시스템
 
+엔진용 코어 언어 우선순위에서 오류 처리의 기준은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)의 10장을 우선한다.
+
 ## 1. Result 타입 (Rust 스타일)
 
 ```pergyra

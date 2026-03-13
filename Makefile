@@ -27,192 +27,219 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Pergyra Language Compiler Build System
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -O2 -g
+CC      = gcc
+CFLAGS  = -Wall -Wextra -std=c11 -O2 -g -I$(SRC_DIR)
 ASMFLAGS = -f elf64
 
+# -----------------------------------------------------------------
 # Directories
-SRC_DIR = src
-BUILD_DIR = build
-BIN_DIR = bin
-LEXER_DIR = $(SRC_DIR)/lexer
-PARSER_DIR = $(SRC_DIR)/parser
-RUNTIME_DIR = $(SRC_DIR)/runtime
-ASYNC_DIR = $(RUNTIME_DIR)/async
-CODEGEN_DIR = $(SRC_DIR)/codegen
-JVM_DIR = $(SRC_DIR)/jvm_bridge
+# -----------------------------------------------------------------
+SRC_DIR      = src
+BUILD_DIR    = build
+BIN_DIR      = bin
+LEXER_DIR    = $(SRC_DIR)/lexer
+PARSER_DIR   = $(SRC_DIR)/parser
+RUNTIME_DIR  = $(SRC_DIR)/runtime
+ASYNC_DIR    = $(RUNTIME_DIR)/async
+SEMANTIC_DIR = $(SRC_DIR)/semantic
+CODEGEN_DIR  = $(SRC_DIR)/codegen
 
-# Source files
-LEXER_SOURCES = $(LEXER_DIR)/lexer.c
-PARSER_SOURCES = $(PARSER_DIR)/ast.c $(PARSER_DIR)/parser.c $(PARSER_DIR)/parser_async.c
-RUNTIME_SOURCES = $(RUNTIME_DIR)/slot_manager.c $(RUNTIME_DIR)/slot_pool.c $(RUNTIME_DIR)/slot_security.c
-ASYNC_SOURCES = $(ASYNC_DIR)/fiber.c $(ASYNC_DIR)/scheduler.c $(ASYNC_DIR)/async_scope.c
+# -----------------------------------------------------------------
+# Source groups
+# -----------------------------------------------------------------
+LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
+PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
+                   $(PARSER_DIR)/parser.c \
+                   $(PARSER_DIR)/parser_async.c
+RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
+                   $(RUNTIME_DIR)/slot_pool.c \
+                   $(RUNTIME_DIR)/slot_security.c
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
-CODEGEN_SOURCES = $(CODEGEN_DIR)/codegen.c
-JVM_SOURCES = $(JVM_DIR)/jni_bridge.c
-MAIN_SOURCE = $(SRC_DIR)/main.c
-TEST_DATASTRUCTURES_SOURCE = $(SRC_DIR)/test_datastructures.c
-TEST_SECURITY_SOURCE = $(SRC_DIR)/test_security.c
+SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/symbol_table.c \
+                   $(SEMANTIC_DIR)/type_checker.c \
+                   $(SEMANTIC_DIR)/slot_analyzer.c \
+                   $(SEMANTIC_DIR)/semantic.c
+CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
 
+# Test & driver sources
+MAIN_SOURCE             = $(SRC_DIR)/main.c
+PARSER_TEST_SOURCE      = $(SRC_DIR)/test_parser.c
+TEST_DATASTRUCTURES_SRC = $(SRC_DIR)/test_datastructures.c
+TEST_SECURITY_SRC       = $(SRC_DIR)/test_security.c
+TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
+TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
+TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
+DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
+
+# -----------------------------------------------------------------
 # Object files
-LEXER_OBJECTS = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-PARSER_OBJECTS = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-RUNTIME_OBJECTS = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-ASYNC_OBJECTS = $(ASYNC_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# -----------------------------------------------------------------
+LEXER_OBJECTS    = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+PARSER_OBJECTS   = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+RUNTIME_OBJECTS  = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 RUNTIME_ASM_OBJECTS = $(RUNTIME_ASM_SOURCES:$(SRC_DIR)/%.s=$(BUILD_DIR)/%.o)
-CODEGEN_OBJECTS = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-JVM_OBJECTS = $(JVM_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-MAIN_OBJECT = $(MAIN_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-TEST_DATASTRUCTURES_OBJECT = $(TEST_DATASTRUCTURES_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-TEST_SECURITY_OBJECT = $(TEST_SECURITY_SOURCE:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+SEMANTIC_OBJECTS = $(SEMANTIC_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+CODEGEN_OBJECTS  = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-ALL_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(RUNTIME_OBJECTS) $(ASYNC_OBJECTS) \
-              $(RUNTIME_ASM_OBJECTS) $(CODEGEN_OBJECTS) $(MAIN_OBJECT)
+MAIN_OBJECT            = $(BUILD_DIR)/main.o
+PARSER_TEST_OBJECT     = $(BUILD_DIR)/test_parser.o
+TEST_DATASTRUCTURES_OBJ = $(BUILD_DIR)/test_datastructures.o
+TEST_SECURITY_OBJ      = $(BUILD_DIR)/test_security.o
+TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
+TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
+TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
+DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
 
+# Common frontend objects used by many targets
+FRONTEND_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
+                   $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS)
+
+# -----------------------------------------------------------------
 # Executables
-TARGET = $(BIN_DIR)/pergyra
-LEXER_TEST = $(BIN_DIR)/lexer_test
+# -----------------------------------------------------------------
+LEXER_TEST          = $(BIN_DIR)/lexer_test
+PARSER_TEST         = $(BIN_DIR)/test_parser
 DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures
-SECURITY_TEST = $(BIN_DIR)/test_security
+SECURITY_TEST       = $(BIN_DIR)/test_security
+SEMANTIC_TEST       = $(BIN_DIR)/test_semantic
+TRANSPILE_TEST      = $(BIN_DIR)/test_transpile
+MEMORY_TEST         = $(BIN_DIR)/test_memory_layout
+PGY                 = $(BIN_DIR)/pgy
 
-# Default target
-all: $(TARGET) $(LEXER_TEST) $(PARSER_TEST) $(DATASTRUCTURES_TEST) $(SECURITY_TEST)
+# -----------------------------------------------------------------
+# Default target — build the driver and all tests
+# -----------------------------------------------------------------
+all: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST)
 
-# Main executable build
-$(TARGET): $(ALL_OBJECTS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ -lpthread -lssl -lcrypto
+# -----------------------------------------------------------------
+# Build rules
+# -----------------------------------------------------------------
 
-# Lexer test build
+# pgy compiler driver
+$(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Parser test build
-$(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(TEST_PARSER_OBJECT) | $(BIN_DIR)
+# Parser test
+$(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Data structures test build
-$(DATASTRUCTURES_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) $(TEST_DATASTRUCTURES_OBJECT) | $(BIN_DIR)
+# Data structures test
+$(DATASTRUCTURES_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
+                         $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
-# Security test build
-$(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) $(TEST_SECURITY_OBJECT) | $(BIN_DIR)
+# Security test
+$(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
+                   $(TEST_SECURITY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread -lssl -lcrypto
 
-# C source compilation
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/lexer $(BUILD_DIR)/parser \
-                   $(BUILD_DIR)/runtime $(BUILD_DIR)/codegen $(BUILD_DIR)/jvm_bridge
+# Semantic analyzer test
+$(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Transpiler test
+$(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# Memory layout test (runtime-only, no frontend)
+$(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# -----------------------------------------------------------------
+# Compilation rules
+# -----------------------------------------------------------------
+
+# C sources
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-# Assembly source compilation
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)/runtime
+# Assembly sources
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	nasm $(ASMFLAGS) -o $@ $<
 
+# -----------------------------------------------------------------
 # Directory creation
+# -----------------------------------------------------------------
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
-
-$(BUILD_DIR)/lexer: | $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/lexer
-
-$(BUILD_DIR)/parser: | $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/parser
-
-$(BUILD_DIR)/runtime: | $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/runtime
-
-$(BUILD_DIR)/codegen: | $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/codegen
-
-$(BUILD_DIR)/jvm_bridge: | $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/jvm_bridge
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Test execution
+# -----------------------------------------------------------------
+# Test execution targets
+# -----------------------------------------------------------------
 test: $(LEXER_TEST)
-	@echo "=== Running Pergyra Lexer Test ==="
+	@echo "=== Lexer Test ==="
 	./$(LEXER_TEST)
 
-# Parser test execution
 test-parser: $(PARSER_TEST)
-	@echo "=== Running Pergyra Parser Test ==="
+	@echo "=== Parser Test ==="
 	./$(PARSER_TEST)
 
-# Security test execution
 test-security: $(SECURITY_TEST)
-	@echo "=== Running Pergyra Security Test Suite ==="
+	@echo "=== Security Test ==="
 	./$(SECURITY_TEST)
 
-# All tests
-test-all: test test-parser test-security
-	@echo "=== All Pergyra Tests Completed ==="
+test-semantic: $(SEMANTIC_TEST)
+	@echo "=== Semantic Analyzer Test ==="
+	./$(SEMANTIC_TEST)
 
-# Clean targets
+test-transpile: $(TRANSPILE_TEST)
+	@echo "=== Transpiler Test ==="
+	./$(TRANSPILE_TEST)
+
+test-memory: $(MEMORY_TEST)
+	@echo "=== Memory Layout Test ==="
+	./$(MEMORY_TEST)
+
+test-all: test test-parser test-semantic test-transpile test-memory
+	@echo "=== All Frontend Tests Completed ==="
+
+# -----------------------------------------------------------------
+# pgy driver convenience targets
+# -----------------------------------------------------------------
+example-hello: $(PGY)
+	./$(PGY) examples/hello.pgy --compile --run -v
+
+example-slots: $(PGY)
+	./$(PGY) examples/slots.pgy --compile --run -v
+
+# Transpile only (no gcc)
+transpile-%: $(PGY)
+	./$(PGY) examples/$*.pgy -v
+
+# -----------------------------------------------------------------
+# Maintenance
+# -----------------------------------------------------------------
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 clean-objects:
-	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/*/*.o
+	find $(BUILD_DIR) -name "*.o" -delete 2>/dev/null || true
 
-# Build variants
 debug: CFLAGS += -DDEBUG -g3 -O0
-debug: $(TARGET)
+debug: $(PGY)
 
 release: CFLAGS += -DNDEBUG -O3 -flto
-release: $(TARGET)
+release: $(PGY)
 
-# Static analysis
 analyze:
 	cppcheck --enable=all --suppress=missingIncludeSystem $(SRC_DIR)
 
-# Dependency generation
-depend:
-	makedepend -Y -p$(BUILD_DIR)/ $(SRC_DIR)/*.c $(SRC_DIR)/*/*.c 2>/dev/null
-
-# Installation
-install: $(TARGET)
-	install -m 755 $(TARGET) /usr/local/bin/
-
-# Documentation generation
-docs:
-	doxygen docs/Doxyfile
-
-# Format code (requires clang-format)
 format:
 	find $(SRC_DIR) -name "*.c" -o -name "*.h" | xargs clang-format -i
 
-# Individual component builds
-lexer: $(LEXER_OBJECTS)
-	@echo "Lexer component built successfully"
-
-parser: $(PARSER_OBJECTS)
-	@echo "Parser component built successfully"
-
-runtime: $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS)
-	@echo "Runtime component built successfully"
-
-codegen: $(CODEGEN_OBJECTS)
-	@echo "Codegen component built successfully"
-
-jvm: $(JVM_OBJECTS)
-	@echo "JVM bridge component built successfully"
-
-# Benchmark target
-benchmark: release
-	@echo "Running performance benchmarks..."
-	./$(TARGET) --benchmark
-
-# Memory check (requires valgrind)
 memcheck: debug
-	valgrind --leak-check=full --show-leak-kinds=all ./$(LEXER_TEST)
+	valgrind --leak-check=full --show-leak-kinds=all ./$(TRANSPILE_TEST)
 
-# Coverage analysis (requires gcov)
-coverage: CFLAGS += --coverage
-coverage: $(TARGET)
-	./$(LEXER_TEST)
-	gcov $(SRC_DIR)/*.c
-
-.PHONY: all test clean clean-objects debug release analyze depend install \
-        docs format lexer parser runtime codegen jvm benchmark memcheck coverage
+.PHONY: all clean clean-objects debug release analyze format memcheck \
+        test test-parser test-security test-semantic test-transpile test-memory test-all \
+        example-hello example-slots

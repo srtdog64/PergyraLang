@@ -1,5 +1,7 @@
 # Pergyra 모듈 시스템
 
+엔진용 코어 언어 우선순위에서 모듈 시스템의 기준은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)의 9장을 우선한다.
+
 ## 1. 모듈 정의 (BSD Style)
 
 ```pergyra

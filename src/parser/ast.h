@@ -258,7 +258,13 @@ struct ASTNode
             ASTNode* range_end;
             ASTNode* body;
         } for_loop;
-        
+
+        /* While loop */
+        struct {
+            ASTNode* condition;
+            ASTNode* body;
+        } while_loop;
+
         /* If statement */
         struct {
             ASTNode* condition;

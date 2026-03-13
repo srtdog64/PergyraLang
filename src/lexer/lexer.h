@@ -32,6 +32,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /*
  * Token types for Pergyra language lexical analysis

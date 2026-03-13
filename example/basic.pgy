@@ -39,7 +39,7 @@ with slot<String> as message {
 // 병렬 처리 예제
 let data = CreateArray(1000)
 
-let results = Parallel {
+let results = parallel {
     // 작업 A: 배열 정렬
     SortData(data)
     

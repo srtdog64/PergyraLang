@@ -4,8 +4,10 @@
  */
 
 #include "ast.h"
+#include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // ============= AST 노드 생성 함수들 =============
 
@@ -28,7 +30,7 @@ ASTNode* ast_create_program(void) {
 // 함수 선언
 ASTNode* ast_create_function(const char* name) {
     ASTNode* node = ast_create_node(AST_FUNC_DECL);
-    node->data.func_decl.name = strdup(name);
+    node->data.func_decl.name = pergyra_strdup(name);
     node->data.func_decl.params = NULL;
     node->data.func_decl.param_count = 0;
     node->data.func_decl.return_type = NULL;
@@ -42,7 +44,7 @@ ASTNode* ast_create_function(const char* name) {
 // 클래스 선언
 ASTNode* ast_create_class(const char* name) {
     ASTNode* node = ast_create_node(AST_CLASS_DECL);
-    node->data.class_decl.name = strdup(name);
+    node->data.class_decl.name = pergyra_strdup(name);
     node->data.class_decl.fields = NULL;
     node->data.class_decl.field_count = 0;
     node->data.class_decl.methods = NULL;
@@ -55,7 +57,7 @@ ASTNode* ast_create_class(const char* name) {
 // let 선언
 ASTNode* ast_create_let_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_LET_DECL);
-    node->data.let_decl.name = strdup(name);
+    node->data.let_decl.name = pergyra_strdup(name);
     node->data.let_decl.type = NULL;
     node->data.let_decl.initializer = NULL;
     node->data.let_decl.is_mutable = false;
@@ -147,7 +149,7 @@ ASTNode* ast_create_call(ASTNode* callee) {
 ASTNode* ast_create_member_access(ASTNode* object, const char* member) {
     ASTNode* node = ast_create_node(AST_MEMBER_ACCESS);
     node->data.member.object = object;
-    node->data.member.name = strdup(member);
+    node->data.member.name = pergyra_strdup(member);
     return node;
 }
 
@@ -182,9 +184,9 @@ ASTNode* ast_create_string(const char* value) {
     // 따옴표 제거
     size_t len = strlen(value);
     if (len >= 2 && value[0] == '"' && value[len-1] == '"') {
-        node->data.string.value = strndup(value + 1, len - 2);
+        node->data.string.value = pergyra_strndup(value + 1, len - 2);
     } else {
-        node->data.string.value = strdup(value);
+        node->data.string.value = pergyra_strdup(value);
     }
     return node;
 }
@@ -199,15 +201,118 @@ ASTNode* ast_create_boolean(bool value) {
 // 식별자
 ASTNode* ast_create_identifier(const char* name) {
     ASTNode* node = ast_create_node(AST_IDENTIFIER);
-    node->data.identifier.name = strdup(name);
+    node->data.identifier.name = pergyra_strdup(name);
     return node;
 }
 
 // 타입
 ASTNode* ast_create_type(const char* name) {
     ASTNode* node = ast_create_node(AST_TYPE);
-    node->data.type.name = strdup(name);
+    node->data.type.name = pergyra_strdup(name);
     node->data.type.generic_args = NULL;
+    return node;
+}
+
+ASTNode* ast_create_async_function(const char* name, bool is_async) {
+    ASTNode* node = ast_create_node(AST_FUNC_DECL);
+    if (!node) return NULL;
+
+    node->data.async_func_decl.name = pergyra_strdup(name);
+    node->data.async_func_decl.params = NULL;
+    node->data.async_func_decl.param_count = 0;
+    node->data.async_func_decl.return_type = NULL;
+    node->data.async_func_decl.body = NULL;
+    node->data.async_func_decl.generic_params = NULL;
+    node->data.async_func_decl.where_clause = NULL;
+    node->data.async_func_decl.access = ACCESS_PUBLIC;
+    node->data.async_func_decl.is_async = is_async;
+    node->data.async_func_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_actor(const char* name) {
+    ASTNode* node = ast_create_node(AST_ACTOR_DECL);
+    if (!node) return NULL;
+
+    node->data.actor_decl.name = pergyra_strdup(name);
+    node->data.actor_decl.fields = NULL;
+    node->data.actor_decl.field_count = 0;
+    node->data.actor_decl.methods = NULL;
+    node->data.actor_decl.method_count = 0;
+    node->data.actor_decl.generic_params = NULL;
+    node->data.actor_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_await_expression(ASTNode* expression) {
+    ASTNode* node = ast_create_node(AST_AWAIT_EXPR);
+    if (!node) return NULL;
+    node->data.await_expr.expression = expression;
+    return node;
+}
+
+ASTNode* ast_create_channel_send(ASTNode* channel, ASTNode* value) {
+    ASTNode* node = ast_create_node(AST_CHANNEL_SEND);
+    if (!node) return NULL;
+    node->data.channel_send.channel = channel;
+    node->data.channel_send.value = value;
+    return node;
+}
+
+ASTNode* ast_create_channel_recv(ASTNode* channel) {
+    ASTNode* node = ast_create_node(AST_CHANNEL_RECV);
+    if (!node) return NULL;
+    node->data.channel_recv.channel = channel;
+    return node;
+}
+
+ASTNode* ast_create_select_statement(void) {
+    ASTNode* node = ast_create_node(AST_SELECT_STMT);
+    if (!node) return NULL;
+    node->data.select_stmt.cases = NULL;
+    node->data.select_stmt.case_count = 0;
+    node->data.select_stmt.default_case = NULL;
+    return node;
+}
+
+ASTNode* ast_create_async_block(void) {
+    ASTNode* node = ast_create_node(AST_ASYNC_BLOCK);
+    if (!node) return NULL;
+    node->data.async_block.statements = NULL;
+    node->data.async_block.statement_count = 0;
+    return node;
+}
+
+ASTNode* ast_create_spawn_expression(ASTNode* function) {
+    ASTNode* node = ast_create_node(AST_SPAWN_EXPR);
+    if (!node) return NULL;
+    node->data.spawn_expr.function = function;
+    node->data.spawn_expr.arguments = NULL;
+    node->data.spawn_expr.arg_count = 0;
+    return node;
+}
+
+ASTNode* ast_create_channel_type(ASTNode* element_type) {
+    ASTNode* node = ast_create_node(AST_CHANNEL_TYPE);
+    if (!node) return NULL;
+    node->data.channel_type.element_type = element_type;
+    node->data.channel_type.capacity = NULL;
+    return node;
+}
+
+ASTNode* ast_create_future_type(ASTNode* value_type) {
+    ASTNode* node = ast_create_node(AST_FUTURE_TYPE);
+    if (!node) return NULL;
+    node->data.future_type.value_type = value_type;
+    return node;
+}
+
+ASTNode* ast_create_task_group(bool wait_all) {
+    ASTNode* node = ast_create_node(AST_TASK_GROUP);
+    if (!node) return NULL;
+    node->data.task_group.tasks = NULL;
+    node->data.task_group.task_count = 0;
+    node->data.task_group.wait_all = wait_all;
     return node;
 }
 
@@ -384,6 +489,72 @@ void ast_destroy(ASTNode* node) {
             free(node->data.type.name);
             // TODO: generic_args 해제
             break;
+
+        case AST_ACTOR_DECL:
+            free(node->data.actor_decl.name);
+            for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
+                free(node->data.actor_decl.fields[i]->name);
+                ast_destroy(node->data.actor_decl.fields[i]->type);
+                free(node->data.actor_decl.fields[i]);
+            }
+            free(node->data.actor_decl.fields);
+            for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
+                ast_destroy(node->data.actor_decl.methods[i]);
+            }
+            free(node->data.actor_decl.methods);
+            break;
+
+        case AST_AWAIT_EXPR:
+            ast_destroy(node->data.await_expr.expression);
+            break;
+
+        case AST_CHANNEL_SEND:
+            ast_destroy(node->data.channel_send.channel);
+            ast_destroy(node->data.channel_send.value);
+            break;
+
+        case AST_CHANNEL_RECV:
+            ast_destroy(node->data.channel_recv.channel);
+            break;
+
+        case AST_SELECT_STMT:
+            for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+                ast_destroy(node->data.select_stmt.cases[i]);
+            }
+            free(node->data.select_stmt.cases);
+            ast_destroy(node->data.select_stmt.default_case);
+            break;
+
+        case AST_ASYNC_BLOCK:
+            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+                ast_destroy(node->data.async_block.statements[i]);
+            }
+            free(node->data.async_block.statements);
+            break;
+
+        case AST_SPAWN_EXPR:
+            ast_destroy(node->data.spawn_expr.function);
+            for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++) {
+                ast_destroy(node->data.spawn_expr.arguments[i]);
+            }
+            free(node->data.spawn_expr.arguments);
+            break;
+
+        case AST_CHANNEL_TYPE:
+            ast_destroy(node->data.channel_type.element_type);
+            ast_destroy(node->data.channel_type.capacity);
+            break;
+
+        case AST_FUTURE_TYPE:
+            ast_destroy(node->data.future_type.value_type);
+            break;
+
+        case AST_TASK_GROUP:
+            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
+                ast_destroy(node->data.task_group.tasks[i]);
+            }
+            free(node->data.task_group.tasks);
+            break;
             
         default:
             break;
@@ -397,6 +568,27 @@ void ast_destroy(ASTNode* node) {
 static void print_indent(int level) {
     for (int i = 0; i < level; i++) {
         printf("  ");
+    }
+}
+
+static const char* ast_operator_to_string(TokenType type) {
+    switch (type) {
+        case TOKEN_PLUS: return "+";
+        case TOKEN_MINUS: return "-";
+        case TOKEN_STAR: return "*";
+        case TOKEN_SLASH: return "/";
+        case TOKEN_PERCENT: return "%";
+        case TOKEN_EQUAL: return "==";
+        case TOKEN_NOT_EQUAL: return "!=";
+        case TOKEN_LESS: return "<";
+        case TOKEN_LESS_EQUAL: return "<=";
+        case TOKEN_GREATER: return ">";
+        case TOKEN_GREATER_EQUAL: return ">=";
+        case TOKEN_AND: return "&&";
+        case TOKEN_OR: return "||";
+        case TOKEN_NOT: return "!";
+        case TOKEN_ASSIGN: return "=";
+        default: return "?";
     }
 }
 
@@ -502,7 +694,7 @@ void ast_print(ASTNode* node, int indent) {
         case AST_BINARY:
             printf("(");
             ast_print(node->data.binary.left, 0);
-            printf(" %s ", token_type_to_string(node->data.binary.op.type));
+            printf(" %s ", ast_operator_to_string(node->data.binary.op.type));
             ast_print(node->data.binary.right, 0);
             printf(")");
             break;
@@ -515,24 +707,3 @@ void ast_print(ASTNode* node, int indent) {
     if (indent == 0) printf("\n");
 }
 
-// 토큰 타입을 문자열로 변환 (디버깅용)
-const char* token_type_to_string(TokenType type) {
-    switch (type) {
-        case TOKEN_PLUS: return "+";
-        case TOKEN_MINUS: return "-";
-        case TOKEN_STAR: return "*";
-        case TOKEN_SLASH: return "/";
-        case TOKEN_PERCENT: return "%";
-        case TOKEN_EQUAL: return "==";
-        case TOKEN_NOT_EQUAL: return "!=";
-        case TOKEN_LESS: return "<";
-        case TOKEN_LESS_EQUAL: return "<=";
-        case TOKEN_GREATER: return ">";
-        case TOKEN_GREATER_EQUAL: return ">=";
-        case TOKEN_AND: return "&&";
-        case TOKEN_OR: return "||";
-        case TOKEN_NOT: return "!";
-        case TOKEN_ASSIGN: return "=";
-        default: return "?";
-    }
-}

@@ -1,0 +1,29 @@
+// slots_simple.pgy — Simplified slot demo (no for loop)
+
+func DemoWith() -> Void {
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+}
+
+func DemoParallel() -> Void {
+    let a: Slot<Int> = ClaimSlot<Int>();
+    let b: Slot<Int> = ClaimSlot<Int>();
+
+    Parallel {
+        Write(a, 10);
+        Write(b, 20);
+    }
+
+    let sum: Int = Read(a) + Read(b);
+    Log(sum);
+
+    Release(a);
+    Release(b);
+}
+
+func Main() -> Void {
+    DemoWith();
+    DemoParallel();
+}

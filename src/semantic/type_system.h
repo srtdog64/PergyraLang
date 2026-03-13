@@ -129,10 +129,13 @@ Type* type_instantiate(Type* generic_type, Type** type_args, size_t arg_count);
 
 /* Built-in types */
 extern Type* TYPE_INT;
+extern Type* TYPE_LONG;
 extern Type* TYPE_FLOAT;
+extern Type* TYPE_DOUBLE;
 extern Type* TYPE_BOOL;
 extern Type* TYPE_STRING;
 extern Type* TYPE_VOID;
+extern Type* TYPE_UNKNOWN;
 
 void type_system_init(void);
 void type_system_cleanup(void);

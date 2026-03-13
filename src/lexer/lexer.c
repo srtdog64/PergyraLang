@@ -4,6 +4,7 @@
  */
 
 #include "lexer.h"
+#include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -22,7 +23,7 @@ static const KeywordEntry keywords[] = {
     {"struct",   TOKEN_STRUCT},
     {"with",     TOKEN_WITH},
     {"as",       TOKEN_AS},
-    {"Parallel", TOKEN_PARALLEL},
+    {"parallel", TOKEN_PARALLEL},
     {"for",      TOKEN_FOR},
     {"in",       TOKEN_IN},
     {"if",       TOKEN_IF},
@@ -37,6 +38,14 @@ static const KeywordEntry keywords[] = {
     {"type",     TOKEN_TYPE},
     {"trait",    TOKEN_TRAIT},
     {"impl",     TOKEN_IMPL},
+    {"async",    TOKEN_ASYNC},
+    {"await",    TOKEN_AWAIT},
+    {"actor",    TOKEN_ACTOR},
+    {"channel",  TOKEN_CHANNEL},
+    {"select",   TOKEN_SELECT},
+    {"case",     TOKEN_CASE},
+    {"default",  TOKEN_DEFAULT},
+    {"spawn",    TOKEN_SPAWN},
     {NULL,       TOKEN_EOF}
 };
 
@@ -159,7 +168,7 @@ static bool is_alnum(char c) {
 static Token make_token(Lexer* lexer, TokenType type, const char* start, size_t length) {
     Token token;
     token.type = type;
-    token.text = strndup(start, length);
+    token.text = pergyra_strndup(start, length);
     token.length = length;
     token.line = lexer->line;
     token.column = lexer->column - length;
@@ -174,7 +183,7 @@ static Token error_token(Lexer* lexer, const char* message) {
     
     Token token;
     token.type = TOKEN_ERROR;
-    token.text = strdup(message);
+    token.text = pergyra_strdup(message);
     token.length = strlen(message);
     token.line = lexer->line;
     token.column = lexer->column;
@@ -376,6 +385,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_WITH: return "WITH";
         case TOKEN_AS: return "AS";
         case TOKEN_PARALLEL: return "PARALLEL";
+        case TOKEN_SLOT: return "SLOT";
         case TOKEN_FOR: return "FOR";
         case TOKEN_IN: return "IN";
         case TOKEN_IF: return "IF";
@@ -387,10 +397,46 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_PUBLIC: return "PUBLIC";
         case TOKEN_PRIVATE: return "PRIVATE";
         case TOKEN_WHERE: return "WHERE";
+        case TOKEN_ASYNC: return "ASYNC";
+        case TOKEN_AWAIT: return "AWAIT";
+        case TOKEN_ACTOR: return "ACTOR";
+        case TOKEN_CHANNEL: return "CHANNEL";
+        case TOKEN_SELECT: return "SELECT";
+        case TOKEN_CASE: return "CASE";
+        case TOKEN_DEFAULT: return "DEFAULT";
+        case TOKEN_SPAWN: return "SPAWN";
+        case TOKEN_ASSIGN: return "=";
+        case TOKEN_PLUS: return "+";
+        case TOKEN_MINUS: return "-";
+        case TOKEN_STAR: return "*";
+        case TOKEN_SLASH: return "/";
+        case TOKEN_PERCENT: return "%";
+        case TOKEN_EQUAL: return "==";
+        case TOKEN_NOT_EQUAL: return "!=";
+        case TOKEN_LESS: return "<";
+        case TOKEN_LESS_EQUAL: return "<=";
+        case TOKEN_GREATER: return ">";
+        case TOKEN_GREATER_EQUAL: return ">=";
+        case TOKEN_AND: return "&&";
+        case TOKEN_OR: return "||";
+        case TOKEN_NOT: return "!";
+        case TOKEN_ARROW: return "->";
+        case TOKEN_CHANNEL_OP: return "<-";
+        case TOKEN_DOT: return ".";
+        case TOKEN_COMMA: return ",";
+        case TOKEN_COLON: return ":";
+        case TOKEN_SEMICOLON: return ";";
+        case TOKEN_LPAREN: return "(";
+        case TOKEN_RPAREN: return ")";
+        case TOKEN_LBRACE: return "{";
+        case TOKEN_RBRACE: return "}";
+        case TOKEN_LBRACKET: return "[";
+        case TOKEN_RBRACKET: return "]";
         case TOKEN_IDENTIFIER: return "IDENTIFIER";
         case TOKEN_NUMBER: return "NUMBER";
         case TOKEN_STRING: return "STRING";
         case TOKEN_EOF: return "EOF";
+        case TOKEN_ERROR: return "ERROR";
         default: return "UNKNOWN";
     }
 }

@@ -6,13 +6,40 @@
 
 #include "parser.h"
 #include "ast.h"
+#include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 // Forward declarations
 static ASTNode* parse_type(Parser* parser);
-static ASTNode* parse_function_body(Parser* parser);
+
+static ASTNode*
+parse_type(Parser* parser)
+{
+    Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
+    ASTNode* type = ast_create_type(type_name.text);
+
+    if (parser_match(parser, TOKEN_LESS)) {
+        ASTNode* element_type = parse_type(parser);
+        parser_consume(parser, TOKEN_GREATER, "Expected '>' after generic type");
+
+        if (strcmp(type_name.text, "Channel") == 0) {
+            return ast_create_channel_type(element_type);
+        }
+
+        if (strcmp(type_name.text, "Future") == 0) {
+            return ast_create_future_type(element_type);
+        }
+
+        type->data.type.generic_args = calloc(1, sizeof(GenericParams));
+        if (type->data.type.generic_args != NULL) {
+            type->data.type.generic_args->count = 1;
+        }
+    }
+
+    return type;
+}
 
 // Parse async function declaration
 ASTNode* parser_parse_async_function(Parser* parser)
@@ -43,7 +70,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
         
         // Add parameter to function
         FuncParam* param = calloc(1, sizeof(FuncParam));
-        param->name = strdup(param_name.text);
+        param->name = pergyra_strdup(param_name.text);
         param->type = param_type;
         
         func->data.async_func_decl.param_count++;
@@ -108,7 +135,7 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
             ASTNode* field_type = parse_type(parser);
             
             ClassField* field = calloc(1, sizeof(ClassField));
-            field->name = strdup(field_name.text);
+            field->name = pergyra_strdup(field_name.text);
             field->type = field_type;
             field->access = access;
             field->is_mutable = true;  // Actor fields are mutable by default
@@ -123,7 +150,7 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
             
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
             
-        } else if (parser_match(parser, TOKEN_FUNC)) {
+        } else if (parser_check(parser, TOKEN_FUNC)) {
             // Method (implicitly async in actors)
             ASTNode* method = parser_parse_async_function(parser);
             
@@ -233,6 +260,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             } else {
                 // Send case or other
                 Token var_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name");
+                (void)var_name;
                 
                 if (parser_match(parser, TOKEN_ASSIGN)) {
                     parser_consume(parser, TOKEN_CHANNEL_OP, "Expected '<-' in select case");
@@ -249,6 +277,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             
             // Parse case body
             ASTNode* body = parser_parse_statement(parser);
+            (void)body;
             
             // Add case to select statement
             select_stmt->data.select_stmt.case_count++;
@@ -274,32 +303,3 @@ ASTNode* parser_parse_select_statement(Parser* parser)
     return select_stmt;
 }
 
-// Helper function to parse type (stub for now)
-static ASTNode* parse_type(Parser* parser)
-{
-    // This should be implemented in the main parser
-    // For now, just parse identifier
-    Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
-    
-    ASTNode* type = ast_create_type(type_name.text);
-    
-    // Handle generic types like Channel<T>
-    if (parser_match(parser, TOKEN_LESS)) {
-        // Parse generic arguments
-        ASTNode* element_type = parse_type(parser);
-        parser_consume(parser, TOKEN_GREATER, "Expected '>' after generic type");
-        
-        if (strcmp(type_name.text, "Channel") == 0) {
-            return ast_create_channel_type(element_type);
-        } else if (strcmp(type_name.text, "Future") == 0) {
-            return ast_create_future_type(element_type);
-        }
-        
-        // Regular generic type
-        type->data.type.generic_args = calloc(1, sizeof(GenericParams));
-        type->data.type.generic_args->count = 1;
-        // TODO: Properly handle generic arguments
-    }
-    
-    return type;
-}

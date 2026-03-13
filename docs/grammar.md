@@ -20,33 +20,44 @@ modification, are permitted provided that the following conditions are met:
 - **타입 안전성**: 컴파일 타임 타입 검증
 - **구조화된 비동기**: Structured Effect Async (SEA) 모델
 
-## 2. 기본 문법 (BSD Style)
+## 2. 구현 기준 문법
+
+현재 구현에서 고정된 기준은 다음과 같습니다.
+- 키워드: 소문자 `let`, `func`, `with`, `parallel`, `for`, `if`, `else`, `return`, `async`, `await`, `select`, `case`, `default`, `spawn`
+- 내장 API: PascalCase `ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `Log`, `Panic`
+- 문장 종료: 세미콜론 `;` 필수
+- 블록 시작: 같은 줄에서 `{`
+
+이 문서 아래의 예시는 구현 기준 문법에 맞춰 읽어야 합니다.
+
+주의:
+- 위 규칙과 [doc/syntax.md](/mnt/e/PergyraLang/doc/syntax.md)의 예시가 현재 파서 구현의 기준이다.
+- 엔진 코어 방향의 다음 단계 언어 기준은 [doc/engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)에 정리한다.
+- 아래 2.4 이후 섹션에는 아직 구현되지 않은 설계 문법이 일부 포함되어 있다.
 
 ### 2.1 슬롯 관리
 ```pergyra
-let slot = ClaimSlot<Type>()
-Write(slot, value)
-let val = Read(slot)
-Release(slot)
+let slot = ClaimSlot<Type>();
+Write(slot, value);
+let val = Read(slot);
+Release(slot);
 ```
 
 ### 2.2 스코프 기반 슬롯
 ```pergyra
-with slot<Type> as s
-{
-    s.Write(42)
-    Log(s.Read())
+with slot<Type> as s {
+    s.Write(42);
+    Log(s.Read());
 }
 ```
 
 ### 2.3 병렬 실행
 ```pergyra
-let result = Parallel
-{
-    A()
-    B()
-    C()
-}
+let result = parallel {
+    A();
+    B();
+    C();
+};
 ```
 
 ### 2.4 함수 정의 (BSD Style)
@@ -66,10 +77,9 @@ func Map<T, U>(items: Array<T>, transform: (T) -> U) -> Array<U>
 }
 
 // 비동기 함수
-async func FetchData(url: String) -> Result<Data, Error>
-{
-    let response = await HttpClient.Get(url)
-    return response.ToData()
+async func FetchData(url: String) -> Result<Data, Error> {
+    let response = await HttpClient.Get(url);
+    return response.ToData();
 }
 ```
 
@@ -175,12 +185,11 @@ select
 let data = await FetchData("https://api.example.com")
 
 // 여러 비동기 작업 동시 실행
-let (a, b, c) = await Parallel
-{
-    FetchA()
-    FetchB()
-    FetchC()
-}
+let (a, b, c) = await parallel {
+    FetchA();
+    FetchB();
+    FetchC();
+};
 ```
 
 ### 3.2 채널 (Channels)
@@ -262,7 +271,7 @@ let balance = await account.GetBalance()
 - `Write`: 슬롯에 값 쓰기
 - `Read`: 슬롯에서 값 읽기
 - `Release`: 슬롯 해제
-- `Parallel`: 병렬 실행 블록
+- `parallel`: 병렬 실행 블록 키워드
 - `Log`: 출력 함수
 - `Channel`: 채널 생성
 - `WithTaskGroup`: 태스크 그룹 생성

@@ -1,1 +1,23 @@
+# Build artifacts
+build/
+bin/
+*.o
+*.exe
+
+# Generated C files from transpiler
+examples/*.c
+
+# Editor / OS
 *.backup
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Debug
+*.dSYM/
+core
+vgcore.*

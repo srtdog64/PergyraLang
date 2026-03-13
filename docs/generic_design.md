@@ -153,7 +153,7 @@ let cache3 = Cache<Int, User>() // Cache<Int, User>
 class ParallelArray<T> where T: Send + Sync {
     func Map<U>(f: (T) -> U) -> ParallelArray<U> 
         where U: Send + Sync {
-        Parallel {
+        parallel {
             // 자동 병렬화
         }
     }

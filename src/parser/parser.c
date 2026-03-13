@@ -5,6 +5,7 @@
 
 #include "parser.h"
 #include "ast.h"
+#include "../common/string_compat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -27,6 +28,7 @@ static ASTNode* parse_for_loop(Parser* parser);
 static ASTNode* parse_if_statement(Parser* parser);
 static ASTNode* parse_return_statement(Parser* parser);
 static ASTNode* parse_type_constraint(Parser* parser);
+static void skip_generic_arguments(Parser* parser);
 
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
@@ -153,7 +155,7 @@ static GenericParams* parse_generic_params(Parser* parser) {
         
         // 타입 파라미터 이름
         Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter name");
-        param->name = strdup(name.text);
+        param->name = pergyra_strdup(name.text);
         
         // 제약조건 ': Trait'
         if (parser_match(parser, TOKEN_COLON)) {
@@ -191,7 +193,7 @@ static WhereClause* parse_where_clause(Parser* parser) {
         
         // 타입 파라미터
         Token param = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter");
-        constraint->type_param = strdup(param.text);
+        constraint->type_param = pergyra_strdup(param.text);
         
         parser_consume(parser, TOKEN_COLON, "Expected ':' after type parameter");
         
@@ -335,7 +337,7 @@ static ASTNode* parse_function_declaration(Parser* parser) {
         ASTNode* param_type = parse_type(parser);
         
         FuncParam* param = calloc(1, sizeof(FuncParam));
-        param->name = strdup(param_name.text);
+        param->name = pergyra_strdup(param_name.text);
         param->type = param_type;
         
         // 파라미터 추가
@@ -390,11 +392,19 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
     ASTNode* with_stmt = ast_create_with_statement();
     
     // 슬롯 타입
-    if (parser_match(parser, TOKEN_IDENTIFIER)) {
-        if (strcmp(parser->previous_token.text, "slot") == 0 ||
-            strcmp(parser->previous_token.text, "SecureSlot") == 0) {
-            with_stmt->data.with_stmt.is_secure = 
-                strcmp(parser->previous_token.text, "SecureSlot") == 0;
+    if (parser_match(parser, TOKEN_SLOT)) {
+        with_stmt->data.with_stmt.is_secure = false;
+    } else {
+        Token slot_kind = parser_consume(
+            parser,
+            TOKEN_IDENTIFIER,
+            "Expected 'slot' or 'SecureSlot' after 'with'"
+        );
+
+        if (strcmp(slot_kind.text, "SecureSlot") == 0) {
+            with_stmt->data.with_stmt.is_secure = true;
+        } else if (strcmp(slot_kind.text, "slot") != 0) {
+            parser_error(parser, "Expected 'slot' or 'SecureSlot' after 'with'");
         }
     }
     
@@ -406,14 +416,14 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
     // 보안 레벨 (선택적)
     if (parser_match(parser, TOKEN_LPAREN)) {
         Token level = parser_consume(parser, TOKEN_IDENTIFIER, "Expected security level");
-        with_stmt->data.with_stmt.security_level = strdup(level.text);
+        with_stmt->data.with_stmt.security_level = pergyra_strdup(level.text);
         parser_consume(parser, TOKEN_RPAREN, "Expected ')' after security level");
     }
     
     // as 변수명
     parser_consume(parser, TOKEN_AS, "Expected 'as' in with statement");
     Token alias = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name after 'as'");
-    with_stmt->data.with_stmt.alias = strdup(alias.text);
+    with_stmt->data.with_stmt.alias = pergyra_strdup(alias.text);
     
     // 블록
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after with statement");
@@ -428,7 +438,7 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
 ASTNode* parser_parse_parallel_block(Parser* parser) {
     ASTNode* parallel = ast_create_parallel_block();
     
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'Parallel'");
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'parallel'");
     
     parser->in_parallel_block = true;
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -596,7 +606,10 @@ ASTNode* parser_parse_call(Parser* parser) {
         if (parser_match(parser, TOKEN_LPAREN)) {
             // 함수 호출
             expr = finish_call(parser, expr);
-        } else if (parser_match(parser, TOKEN_DOT)) {
+        } else if (parser_check(parser, TOKEN_DOT) &&
+                   parser->current_token.length == 1 &&
+                   strcmp(parser->current_token.text, ".") == 0) {
+            parser_advance(parser);
             // 멤버 접근
             Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
@@ -641,6 +654,11 @@ ASTNode* parser_parse_primary(Parser* parser) {
     if (parser_match(parser, TOKEN_SPAWN)) {
         return parser_parse_spawn_expression(parser);
     }
+
+    // parallel 블록은 초기화 식에서도 쓰인다.
+    if (parser_match(parser, TOKEN_PARALLEL)) {
+        return parser_parse_parallel_block(parser);
+    }
     
     // 채널 수신: <-channel
     if (parser_check(parser, TOKEN_CHANNEL_OP)) {
@@ -669,7 +687,13 @@ ASTNode* parser_parse_primary(Parser* parser) {
     
     // 식별자 또는 슬롯 연산
     if (parser_match(parser, TOKEN_IDENTIFIER)) {
-        char* name = strdup(parser->previous_token.text);
+        char* name = pergyra_strdup(parser->previous_token.text);
+
+        if ((strcmp(name, "ClaimSlot") == 0 ||
+             strcmp(name, "ClaimSecureSlot") == 0) &&
+            parser_check(parser, TOKEN_LESS)) {
+            skip_generic_arguments(parser);
+        }
         
         // 내장 함수 처리
         if (strcmp(name, "ClaimSlot") == 0 || 
@@ -678,13 +702,15 @@ ASTNode* parser_parse_primary(Parser* parser) {
             strcmp(name, "Read") == 0 ||
             strcmp(name, "Release") == 0 ||
             strcmp(name, "Log") == 0 ||
-            strcmp(name, "Parallel") == 0 ||
             strcmp(name, "Channel") == 0) {
-            return ast_create_identifier(name);
+            ASTNode* ident = ast_create_identifier(name);
+            free(name);
+            return ident;
         }
         
         // 채널 송신 체크: channel <- value
         ASTNode* ident = ast_create_identifier(name);
+        free(name);
         if (parser_check(parser, TOKEN_CHANNEL_OP)) {
             parser_advance(parser);
             ASTNode* value = parser_parse_expression(parser);
@@ -713,14 +739,16 @@ static ASTNode* parse_for_loop(Parser* parser) {
     
     // 루프 변수
     Token var = parser_consume(parser, TOKEN_IDENTIFIER, "Expected loop variable");
-    for_loop->data.for_loop.variable = strdup(var.text);
+    for_loop->data.for_loop.variable = pergyra_strdup(var.text);
     
     parser_consume(parser, TOKEN_IN, "Expected 'in' in for loop");
     
     // 범위 표현식 (예: 1..10)
     ASTNode* start = parser_parse_expression(parser);
-    parser_consume(parser, TOKEN_DOT, "Expected '..' in range");
-    parser_consume(parser, TOKEN_DOT, "Expected '..' in range");
+    Token range = parser_consume(parser, TOKEN_DOT, "Expected '..' in range");
+    if (range.length != 2 || strcmp(range.text, "..") != 0) {
+        parser_error(parser, "Expected '..' in range");
+    }
     ASTNode* end = parser_parse_expression(parser);
     
     for_loop->data.for_loop.range_start = start;
@@ -800,7 +828,7 @@ static ASTNode* parse_class_declaration(Parser* parser) {
             ASTNode* field_type = parse_type(parser);
             
             ClassField* field = calloc(1, sizeof(ClassField));
-            field->name = strdup(field_name.text);
+            field->name = pergyra_strdup(field_name.text);
             field->type = field_type;
             field->access = access;
             
@@ -837,4 +865,23 @@ static ASTNode* parse_class_declaration(Parser* parser) {
 static ASTNode* parse_type_constraint(Parser* parser) {
     // 단순 버전 - 향후 확장 필요
     return parse_type(parser);
+}
+
+static void skip_generic_arguments(Parser* parser) {
+    int depth = 0;
+
+    if (!parser_match(parser, TOKEN_LESS)) {
+        return;
+    }
+
+    depth = 1;
+    while (depth > 0 && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_LESS)) {
+            depth++;
+        } else if (parser_match(parser, TOKEN_GREATER)) {
+            depth--;
+        } else {
+            parser_advance(parser);
+        }
+    }
 }

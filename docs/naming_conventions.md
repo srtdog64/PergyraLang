@@ -60,7 +60,9 @@ Pergyra adopts a hybrid naming convention that combines BSD-style clarity with C
 All built-in functions follow PascalCase:
 - `ClaimSlot`, `ClaimSecureSlot`
 - `Write`, `Read`, `Release`
-- `Parallel`, `Log`, `Panic`
+- `Log`, `Panic`
+
+`parallel` is a lowercase keyword, not a built-in function.
 
 ### 2.2 Enum Values
 - **Enum Type**: PascalCase
@@ -153,7 +155,7 @@ class SecureGameState {
 func ParallelMatrixOperation(matrices: Array<Matrix>) -> Array<Matrix> {
     let resultSlot = ClaimSlot<Array<Matrix>>()
     
-    Parallel {
+    parallel {
         for i in 0..matrices.Length {
             let processed = ProcessMatrix(matrices[i])
             AppendToSlot(resultSlot, processed)
@@ -175,7 +177,7 @@ When converting existing Pergyra code to the new convention:
 | `claim_slot` | `ClaimSlot` |
 | `write` | `Write` |
 | `read` | `Read` |
-| `parallel` | `Parallel` |
+| `parallel` | `parallel` |
 | `counter_slot` | `counterSlot` |
 | `process_data()` | `ProcessData()` |
 | `MAX_VALUE` | `MAX_VALUE` (unchanged) |

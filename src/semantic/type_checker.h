@@ -1,0 +1,210 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Type Checker — expression type inference and rule validation
+ */
+
+#ifndef PERGYRA_TYPE_CHECKER_H
+#define PERGYRA_TYPE_CHECKER_H
+
+#include <stdbool.h>
+#include "../parser/ast.h"
+#include "../semantic/type_system.h"
+#include "../semantic/symbol_table.h"
+
+/* Forward declarations */
+typedef struct SemanticContext SemanticContext;
+typedef struct Diagnostic      Diagnostic;
+
+/*
+ * Diagnostic severity
+ */
+typedef enum
+{
+    DIAG_ERROR,
+    DIAG_WARNING
+} DiagnosticLevel;
+
+/*
+ * One compiler message
+ */
+struct Diagnostic
+{
+    DiagnosticLevel level;
+    uint32_t        line;
+    uint32_t        col;
+    char*           message;
+};
+
+/*
+ * Semantic analysis context — passed through all check functions
+ */
+struct SemanticContext
+{
+    Scope*       scope;          /* Current scope                  */
+    Type*        current_return; /* Expected return type of func   */
+    bool         in_async_func;  /* Inside async func              */
+    bool         in_parallel;    /* Inside parallel block          */
+
+    Diagnostic** diagnostics;
+    size_t       diagnostic_count;
+    size_t       diagnostic_capacity;
+
+    bool         has_error;
+};
+
+/* -----------------------------------------------------------------
+ * Context lifecycle
+ * ----------------------------------------------------------------- */
+
+SemanticContext* semantic_context_create(void);
+void             semantic_context_destroy(SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Error / warning emission
+ * ----------------------------------------------------------------- */
+
+void semantic_error(SemanticContext* ctx, const ASTNode* node,
+                    const char* fmt, ...);
+
+void semantic_warning(SemanticContext* ctx, const ASTNode* node,
+                      const char* fmt, ...);
+
+void semantic_print_diagnostics(SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Top-level check entry points
+ * ----------------------------------------------------------------- */
+
+bool type_check_program(ASTNode* program, SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Declaration checkers
+ * ----------------------------------------------------------------- */
+
+bool type_check_func_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Statement checkers
+ * ----------------------------------------------------------------- */
+
+bool type_check_statement(ASTNode* node, SemanticContext* ctx);
+bool type_check_block(ASTNode* node, SemanticContext* ctx);
+bool type_check_if_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_for_loop(ASTNode* node, SemanticContext* ctx);
+bool type_check_return_stmt(ASTNode* node, SemanticContext* ctx);
+
+/*
+ * with slot<T> as s { ... }
+ *
+ * Validates that:
+ *   - T is a valid type
+ *   - s is registered as a Slot<T> in the inner scope
+ *   - s is automatically released when the block exits
+ */
+bool type_check_with_stmt(ASTNode* node, SemanticContext* ctx);
+
+/*
+ * parallel { A()  B()  C() }
+ *
+ * Each task must be an expression statement.
+ * Tasks must not write to the same Slot<T> simultaneously.
+ * (basic check: no two tasks reference the same slot in write position)
+ */
+bool type_check_parallel_block(ASTNode* node, SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Expression checkers — return inferred Type* (NULL on error)
+ * ----------------------------------------------------------------- */
+
+Type* type_check_expression(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_binary(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_unary(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_call(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_member_access(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Slot-specific checkers (Pergyra core rules)
+ * ----------------------------------------------------------------- */
+
+/*
+ * ClaimSlot<T>() → validates T is a known type, returns Slot<T>
+ * ClaimSecureSlot<T>(level) → returns (SecureSlot<T>, SecurityToken)
+ */
+Type* type_check_claim_slot(ASTNode* call, SemanticContext* ctx);
+
+/*
+ * Write(slot, value)            — plain Slot<T>
+ * Write(slot, value, token)     — SecureSlot<T>
+ *
+ * Rules enforced:
+ *   R1: value type must match Slot inner type
+ *   R2: SecureSlot requires exactly one token argument
+ *   R3: token must be paired with this slot (not another slot's token)
+ *   R4: slot must be in CLAIMED state
+ */
+bool type_check_write_slot(ASTNode* call, SemanticContext* ctx);
+
+/*
+ * Read(slot)         — plain Slot<T>, returns T
+ * Read(slot, token)  — SecureSlot<T>, returns T
+ *
+ * Same rules as Write except no value argument.
+ */
+Type* type_check_read_slot(ASTNode* call, SemanticContext* ctx);
+
+/*
+ * Release(slot)         — plain Slot<T>
+ * Release(slot, token)  — SecureSlot<T>
+ *
+ * Marks slot as RELEASED in symbol table.
+ * Emits error if slot is already RELEASED.
+ */
+bool type_check_release_slot(ASTNode* call, SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Built-in function dispatch
+ *
+ * Called from type_check_call when the callee is an identifier
+ * matching a built-in name.
+ * ----------------------------------------------------------------- */
+
+typedef enum
+{
+    BUILTIN_CLAIM_SLOT,
+    BUILTIN_CLAIM_SECURE_SLOT,
+    BUILTIN_WRITE,
+    BUILTIN_READ,
+    BUILTIN_RELEASE,
+    BUILTIN_LOG,
+    BUILTIN_PARALLEL,
+    BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
+} BuiltinKind;
+
+BuiltinKind builtin_resolve(const char* name);
+
+Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
+                               SemanticContext* ctx);
+
+/* -----------------------------------------------------------------
+ * Utility
+ * ----------------------------------------------------------------- */
+
+/*
+ * Resolve an AST type node (AST_TYPE / AST_GENERIC_TYPE) to a
+ * Type* using the current scope's type definitions.
+ */
+Type* resolve_type_node(ASTNode* type_node, SemanticContext* ctx);
+
+/*
+ * Check two types are compatible for assignment (from → to).
+ * Emits a semantic_error if not.
+ */
+bool require_assignable(Type* from, Type* to,
+                         const ASTNode* site, SemanticContext* ctx);
+
+#endif /* PERGYRA_TYPE_CHECKER_H */

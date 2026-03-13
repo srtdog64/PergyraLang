@@ -307,7 +307,7 @@ module PhysicsEngine {
         deltaTime: Float
     ) {
         // Zero security overhead for maximum performance
-        Parallel {
+        parallel {
             for i in 0..positions.Length {
                 let pos = Read(positions[i])
                 let vel = Read(velocities[i])

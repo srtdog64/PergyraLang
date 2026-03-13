@@ -107,7 +107,7 @@ int main(void) {
         },
         {
             "Parallel Block",
-            "let result = Parallel {\n"
+            "let result = parallel {\n"
             "    ProcessA();\n"
             "    ProcessB();\n"
             "    ProcessC();\n"

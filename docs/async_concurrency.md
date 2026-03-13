@@ -78,8 +78,7 @@ async func TransferMoney()
     let account2 = BankAccount("ACC002")
     
     // 동시에 여러 액터에 접근해도 안전
-    await Parallel
-    {
+    await parallel {
         account1.Deposit(1000)
         account2.Deposit(500)
     }
@@ -212,8 +211,7 @@ actor SecureDataStore<T>
     
     public async func ParallelProcess(processor: async (T) -> T)
     {
-        await Parallel
-        {
+        await parallel {
             for i in 0.._slots.Length
             {
                 let value = Read(_slots[i], _tokens[i])

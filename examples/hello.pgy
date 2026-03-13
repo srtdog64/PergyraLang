@@ -1,0 +1,14 @@
+// hello.pgy — Hello World in Pergyra
+//
+// Expected C output:
+//   PgySlot_String msg = pgy_claim_String();
+//   pgy_write_String(&msg, "Hello, Pergyra!");
+//   pgy_log(pgy_read_String(&msg));
+//   pgy_release_String(&msg);
+
+func Main() -> Void {
+    let msg: Slot<String> = ClaimSlot<String>();
+    Write(msg, "Hello, Pergyra!");
+    Log(Read(msg));
+    Release(msg);
+}

@@ -70,7 +70,7 @@ class SecurePlayer {
 /// [Alt]: 순차 처리 - 플레이어가 많을수록 지연 시간 증가
 /// [Next]: GPU 가속을 통한 대규모 플레이어 처리
 func UpdateAllPlayers(players: Array<SecurePlayer>) {
-    Parallel {
+    parallel {
         /// [What]: 각 플레이어별 독립적인 상태 업데이트
         /// [Why]: 플레이어 간 의존성이 없어 안전한 병렬 처리 가능
         for player in players {
