@@ -44,6 +44,7 @@ typedef enum
     TOKEN_FUNC,
     TOKEN_CLASS,
     TOKEN_STRUCT,
+    TOKEN_EXTERN,
     TOKEN_WITH,
     TOKEN_AS,
     TOKEN_PARALLEL,
@@ -91,7 +92,14 @@ typedef enum
     TOKEN_CASE,
     TOKEN_DEFAULT,
     TOKEN_SPAWN,
-    
+    TOKEN_MATCH,
+
+    /* Event keywords */
+    TOKEN_EVENT,
+    TOKEN_SUBSCRIBE,    /* += */
+    TOKEN_UNSUBSCRIBE,  /* -= */
+    TOKEN_LAMBDA,       /* => */
+
     /* Operators */
     TOKEN_ASSIGN,       /* = */
     TOKEN_PLUS,         /* + */

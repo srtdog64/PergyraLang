@@ -92,6 +92,33 @@ typedef struct
     uint64_t           securityViolations;
 } SecurityContext;
 
+typedef enum
+{
+    SECURE_SLOT_STORAGE_NONE = 0,
+    SECURE_SLOT_STORAGE_SEALED = 1
+} SecureSlotStorageMode;
+
+typedef struct
+{
+    SecureSlotStorageMode storageMode;
+    bool obfuscateInMemory;
+    bool shadowCopy;
+    bool isolateShadowCopy;
+    bool auditReads;
+} SecureSlotPolicy;
+
+typedef struct
+{
+    uint8_t  *primaryData;
+    uint8_t  *shadowData;
+    uint8_t   primaryMac[32];
+    uint8_t   shadowMac[32];
+    uint8_t   nonce[16];
+    size_t    size;
+    SecureSlotPolicy policy;
+    bool      initialized;
+} SecureSealedPayload;
+
 /*
  * Security error codes
  */
@@ -170,6 +197,30 @@ void SecurityAuditLog(SecurityContext *context, const char *event,
                      const char *details);
 void SecurityPrintStatistics(const SecurityContext *context);
 bool SecurityDetectAnomalies(const SecurityContext *context);
+
+/*
+ * Secure slot sealed storage
+ */
+SecureSlotPolicy SecurityPolicyForLevel(SecurityLevel level);
+void             SecureSealedPayloadInit(SecureSealedPayload *payload);
+void             SecureSealedPayloadDestroy(SecureSealedPayload *payload);
+SecurityError    SecureSealedPayloadSeal(SecurityContext *context,
+                                        uint32_t slotId,
+                                        uint32_t generation,
+                                        const void *data,
+                                        size_t size,
+                                        const SecureSlotPolicy *policy,
+                                        SecureSealedPayload *payload);
+SecurityError    SecureSealedPayloadOpen(SecurityContext *context,
+                                        uint32_t slotId,
+                                        uint32_t generation,
+                                        SecureSealedPayload *payload,
+                                        void *buffer,
+                                        size_t bufferSize,
+                                        size_t *bytesRead,
+                                        bool *usedShadowRecovery);
+const uint8_t   *SecureSealedPayloadPrimaryBytes(const SecureSealedPayload *payload);
+const uint8_t   *SecureSealedPayloadShadowBytes(const SecureSealedPayload *payload);
 
 /*
  * Platform-specific implementations

@@ -2,7 +2,7 @@
 
 이 문서는 현재 저장소의 `lexer`와 `parser` 구현을 기준으로 정리한 최소 문법 요약이다. 기존 `docs/grammar.md`는 설계안이 많이 섞여 있어서, 여기서는 실제 코드가 해석하려는 형태만 따로 적는다.
 
-엔진 목표 기준의 다음 단계 코어 스펙은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)에 정리한다.
+엔진 목표 기준의 코어 스펙은 [00_engine_core_spec.md](/mnt/e/PergyraLang/docs/00_engine_core_spec.md)에 정리한다.
 
 ## 기본 선언
 
@@ -36,6 +36,53 @@ where T: Comparable {
 }
 ```
 
+## 배열과 슬라이스 타입
+
+```pergyra
+let vertices: Array<Vertex> = meshData;
+let view: Slice<Vertex> = window;
+
+let first = vertices[0];
+let count = view.Length;
+```
+
+- 현재 구현은 `Array<T>`와 `Slice<T>` 타입 주석을 해석한다.
+- `arr[index]` 형태의 인덱싱을 파싱하고 타입 검사한다.
+- `Array<T>`와 `Slice<T>`의 `Length` 멤버 접근을 `Int`로 본다.
+
+## 공유 메모리와 할당기
+
+```pergyra
+let shared: Rc<Int> = RcNew(42);
+let weak: Weak<Int> = RcDowngrade(shared);
+let again: Rc<Int> = WeakUpgrade(weak);
+
+let alloc: Allocator = AllocatorPool(4096);
+let trace: Allocator = AllocatorTracing();
+
+let numbers: Box<Array<Int>> = BoxArray(128, alloc);
+```
+
+- 공유 소유권은 `Rc<T>`와 `Weak<T>` 타입으로 표현한다.
+- 현재 구현 기준 빌트인:
+  `RcNew`, `RcClone`, `RcDrop`, `RcGet`, `RcDowngrade`, `WeakUpgrade`, `WeakDrop`
+- 할당기 생성 빌트인:
+  `AllocatorSystem`, `AllocatorTracing`, `AllocatorDebug`, `AllocatorPool`
+- `BoxArray(capacity[, allocator])`는 `Box<Array<T>>`용 단일 할당 경로로 처리한다.
+
+## FFI
+
+```pergyra
+extern "C" {
+    func SDL_Init(flags: Int) -> Int;
+    func SDL_Quit();
+}
+```
+
+- `extern "C"` 블록 안에서는 함수 선언만 둔다.
+- 외부 함수 선언은 본문 없이 `;`로 끝난다.
+- 현재 구현은 ABI 문자열 `"C"`를 기준으로 동작한다.
+
 ## 클래스
 
 ```pergyra
@@ -48,6 +95,20 @@ class Player<T> where T: Serializable {
     }
 }
 ```
+
+## 구조체
+
+```pergyra
+struct Vec3 {
+    x: Float;
+    y: Float;
+    z: Float;
+}
+```
+
+- `struct`는 bare field 선언을 사용한다.
+- 필드는 `name: Type;` 형식이다.
+- 메서드도 같은 블록 안에 둘 수 있다.
 
 ## 슬롯
 

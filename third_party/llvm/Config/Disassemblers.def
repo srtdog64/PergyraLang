@@ -1,0 +1,4 @@
+/*===- llvm/Config/Disassemblers.def - Stub for Pergyra build ---*- C -*-===*/
+LLVM_DISASSEMBLER(X86)
+LLVM_DISASSEMBLER(AArch64)
+#undef LLVM_DISASSEMBLER

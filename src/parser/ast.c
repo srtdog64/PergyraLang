@@ -11,6 +11,10 @@
 
 // ============= AST 노드 생성 함수들 =============
 
+static void ast_destroy_generic_params(GenericParams* params);
+static void ast_destroy_where_clause(WhereClause* clause);
+static void ast_destroy_structured_comment(StructuredComment* comment);
+
 // 기본 노드 생성
 static ASTNode* ast_create_node(ASTNodeType type) {
     ASTNode* node = calloc(1, sizeof(ASTNode));
@@ -51,6 +55,25 @@ ASTNode* ast_create_class(const char* name) {
     node->data.class_decl.method_count = 0;
     node->data.class_decl.generic_params = NULL;
     node->data.class_decl.where_clause = NULL;
+    node->data.class_decl.is_struct = false;
+    return node;
+}
+
+// 구조체 선언
+ASTNode* ast_create_struct(const char* name) {
+    ASTNode* node = ast_create_class(name);
+    if (node) {
+        node->data.class_decl.is_struct = true;
+    }
+    return node;
+}
+
+ASTNode* ast_create_extern_block(const char* abi) {
+    ASTNode* node = ast_create_node(AST_EXTERN_BLOCK);
+    if (!node) return NULL;
+    node->data.extern_block.abi = pergyra_strdup(abi);
+    node->data.extern_block.declarations = NULL;
+    node->data.extern_block.count = 0;
     return node;
 }
 
@@ -98,6 +121,251 @@ ASTNode* ast_create_for_loop(void) {
     node->data.for_loop.range_start = NULL;
     node->data.for_loop.range_end = NULL;
     node->data.for_loop.body = NULL;
+    return node;
+}
+
+// while 루프
+ASTNode* ast_create_while_loop(void) {
+    ASTNode* node = ast_create_node(AST_WHILE_LOOP);
+    node->data.while_loop.condition = NULL;
+    node->data.while_loop.body = NULL;
+    return node;
+}
+
+// match 문
+ASTNode* ast_create_match_statement(void) {
+    ASTNode* node = ast_create_node(AST_MATCH_STMT);
+    node->data.match_stmt.subject = NULL;
+    node->data.match_stmt.cases = NULL;
+    node->data.match_stmt.case_count = 0;
+    node->data.match_stmt.default_body = NULL;
+    return node;
+}
+
+// match case
+ASTNode* ast_create_match_case(void) {
+    ASTNode* node = ast_create_node(AST_MATCH_CASE);
+    node->data.match_case.pattern = NULL;
+    node->data.match_case.guard = NULL;
+    node->data.match_case.body = NULL;
+    return node;
+}
+
+// Ability declaration
+ASTNode* ast_create_ability_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_ABILITY_DECL);
+    node->data.ability_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.ability_decl.require_fields = NULL;
+    node->data.ability_decl.require_count = 0;
+    node->data.ability_decl.methods = NULL;
+    node->data.ability_decl.method_count = 0;
+    node->data.ability_decl.doc_comment = NULL;
+    return node;
+}
+
+// Role declaration
+ASTNode* ast_create_role_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_ROLE_DECL);
+    node->data.role_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.role_decl.for_type = NULL;
+    node->data.role_decl.includes = NULL;
+    node->data.role_decl.include_count = 0;
+    node->data.role_decl.impl_abilities = NULL;
+    node->data.role_decl.impl_count = 0;
+    node->data.role_decl.parallel_block = NULL;
+    node->data.role_decl.generic_params = NULL;
+    node->data.role_decl.where_clause = NULL;
+    node->data.role_decl.doc_comment = NULL;
+    return node;
+}
+
+// Include statement
+ASTNode* ast_create_include_statement(const char* role_name) {
+    ASTNode* node = ast_create_node(AST_INCLUDE_STMT);
+    node->data.include_stmt.role_name = role_name ? pergyra_strdup(role_name) : NULL;
+    node->data.include_stmt.type_args = NULL;
+    return node;
+}
+
+// Require field
+ASTNode* ast_create_require_field(const char* name) {
+    ASTNode* node = ast_create_node(AST_REQUIRE_FIELD);
+    node->data.require_field.name = name ? pergyra_strdup(name) : NULL;
+    node->data.require_field.type = NULL;
+    return node;
+}
+
+// Impl ability block
+ASTNode* ast_create_impl_ability(const char* ability_name) {
+    ASTNode* node = ast_create_node(AST_IMPL_ABILITY);
+    node->data.impl_ability.ability_name = ability_name ? pergyra_strdup(ability_name) : NULL;
+    node->data.impl_ability.methods = NULL;
+    node->data.impl_ability.method_count = 0;
+    return node;
+}
+
+// Override function
+ASTNode* ast_create_override_func(ASTNode* func_decl) {
+    ASTNode* node = ast_create_node(AST_OVERRIDE_FUNC);
+    node->data.override_func.func_decl = func_decl;
+    node->data.override_func.calls_super = false;
+    return node;
+}
+
+// Systemic declaration
+ASTNode* ast_create_systemic_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_SYSTEMIC_DECL);
+    node->data.systemic_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.systemic_decl.party_slots = NULL;
+    node->data.systemic_decl.party_count = 0;
+    node->data.systemic_decl.shared_fields = NULL;
+    node->data.systemic_decl.shared_count = 0;
+    node->data.systemic_decl.methods = NULL;
+    node->data.systemic_decl.method_count = 0;
+    node->data.systemic_decl.generic_params = NULL;
+    node->data.systemic_decl.doc_comment = NULL;
+    return node;
+}
+
+// Systemic slot
+ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type) {
+    ASTNode* node = ast_create_node(AST_SYSTEMIC_SLOT);
+    node->data.systemic_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.systemic_slot.party_type = party_type ? pergyra_strdup(party_type) : NULL;
+    node->data.systemic_slot.is_array = false;
+    return node;
+}
+
+// World declaration
+ASTNode* ast_create_world_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_WORLD_DECL);
+    node->data.world_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.world_decl.systemics = NULL;
+    node->data.world_decl.systemic_count = 0;
+    node->data.world_decl.shared_fields = NULL;
+    node->data.world_decl.shared_count = 0;
+    node->data.world_decl.methods = NULL;
+    node->data.world_decl.method_count = 0;
+    node->data.world_decl.doc_comment = NULL;
+    return node;
+}
+
+// World systemic instance
+ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type) {
+    ASTNode* node = ast_create_node(AST_WORLD_SYSTEMIC);
+    node->data.world_systemic.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.world_systemic.systemic_type = systemic_type ? pergyra_strdup(systemic_type) : NULL;
+    node->data.world_systemic.initializer = NULL;
+    return node;
+}
+
+// Party declaration
+ASTNode* ast_create_party_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_PARTY_DECL);
+    node->data.party_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.party_decl.role_slots = NULL;
+    node->data.party_decl.role_count = 0;
+    node->data.party_decl.shared_fields = NULL;
+    node->data.party_decl.shared_count = 0;
+    node->data.party_decl.methods = NULL;
+    node->data.party_decl.method_count = 0;
+    node->data.party_decl.extends = NULL;
+    node->data.party_decl.generic_params = NULL;
+    node->data.party_decl.doc_comment = NULL;
+    return node;
+}
+
+// Role slot in party
+ASTNode* ast_create_role_slot(const char* slot_name) {
+    ASTNode* node = ast_create_node(AST_ROLE_SLOT);
+    node->data.role_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.role_slot.required_abilities = NULL;
+    node->data.role_slot.ability_count = 0;
+    node->data.role_slot.is_array = false;
+    return node;
+}
+
+// Party shared field
+ASTNode* ast_create_party_shared(const char* name) {
+    ASTNode* node = ast_create_node(AST_PARTY_SHARED);
+    node->data.party_shared.name = name ? pergyra_strdup(name) : NULL;
+    node->data.party_shared.type = NULL;
+    node->data.party_shared.initializer = NULL;
+    node->data.party_shared.access = ACCESS_PUBLIC;
+    return node;
+}
+
+// Context access
+ASTNode* ast_create_context_access(const char* method_name, const char* slot_name) {
+    ASTNode* node = ast_create_node(AST_CONTEXT_ACCESS);
+    node->data.context_access.method_name = method_name ? pergyra_strdup(method_name) : NULL;
+    node->data.context_access.role_slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.context_access.ability_type = NULL;
+    return node;
+}
+
+// Party instance creation
+ASTNode* ast_create_party_instance(const char* party_type) {
+    ASTNode* node = ast_create_node(AST_PARTY_INSTANCE);
+    node->data.party_instance.party_type = party_type ? pergyra_strdup(party_type) : NULL;
+    node->data.party_instance.assignments = NULL;
+    node->data.party_instance.assignment_count = 0;
+    return node;
+}
+
+// Event declaration
+ASTNode* ast_create_event_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_EVENT_DECL);
+    node->data.event_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.event_decl.params = NULL;
+    node->data.event_decl.param_count = 0;
+    node->data.event_decl.return_type = NULL;
+    node->data.event_decl.access = ACCESS_PUBLIC;
+    return node;
+}
+
+// Event subscribe
+ASTNode* ast_create_event_subscribe(ASTNode* event, ASTNode* handler) {
+    ASTNode* node = ast_create_node(AST_EVENT_SUBSCRIBE);
+    node->data.event_op.event = event;
+    node->data.event_op.handler = handler;
+    return node;
+}
+
+// Event unsubscribe
+ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler) {
+    ASTNode* node = ast_create_node(AST_EVENT_UNSUBSCRIBE);
+    node->data.event_op.event = event;
+    node->data.event_op.handler = handler;
+    return node;
+}
+
+// Event invoke
+ASTNode* ast_create_event_invoke(ASTNode* event) {
+    ASTNode* node = ast_create_node(AST_EVENT_INVOKE);
+    node->data.event_invoke.event = event;
+    node->data.event_invoke.arguments = NULL;
+    node->data.event_invoke.arg_count = 0;
+    return node;
+}
+
+// Event handler type
+ASTNode* ast_create_event_handler_type(void) {
+    ASTNode* node = ast_create_node(AST_EVENT_HANDLER_TYPE);
+    node->data.event_handler_type.param_types = NULL;
+    node->data.event_handler_type.param_count = 0;
+    node->data.event_handler_type.return_type = NULL;
+    return node;
+}
+
+// Lambda expression
+ASTNode* ast_create_lambda_expression(void) {
+    ASTNode* node = ast_create_node(AST_LAMBDA_EXPR);
+    node->data.lambda_expr.params = NULL;
+    node->data.lambda_expr.param_count = 0;
+    node->data.lambda_expr.body = NULL;
+    node->data.lambda_expr.return_type = NULL;
+    node->data.lambda_expr.is_async = false;
     return node;
 }
 
@@ -334,6 +602,13 @@ void ast_add_statement(ASTNode* parent, ASTNode* statement) {
             parent->data.block.count * sizeof(ASTNode*)
         );
         parent->data.block.statements[parent->data.block.count - 1] = statement;
+    } else if (parent->type == AST_EXTERN_BLOCK) {
+        parent->data.extern_block.count++;
+        parent->data.extern_block.declarations = realloc(
+            parent->data.extern_block.declarations,
+            parent->data.extern_block.count * sizeof(ASTNode*)
+        );
+        parent->data.extern_block.declarations[parent->data.extern_block.count - 1] = statement;
     }
 }
 
@@ -363,6 +638,57 @@ void ast_add_argument(ASTNode* call, ASTNode* arg) {
 
 // ============= AST 메모리 해제 =============
 
+static void
+ast_destroy_generic_params(GenericParams* params) {
+    if (params == NULL) return;
+
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam* param = params->params[i];
+        if (param == NULL) continue;
+        free(param->name);
+        ast_destroy(param->constraint);
+        ast_destroy(param->default_type);
+        free(param);
+    }
+
+    free(params->params);
+    free(params);
+}
+
+static void
+ast_destroy_where_clause(WhereClause* clause) {
+    if (clause == NULL) return;
+
+    for (size_t i = 0; i < clause->count; i++) {
+        TypeConstraint* constraint = clause->constraints[i];
+        if (constraint == NULL) continue;
+        free(constraint->type_param);
+        for (size_t j = 0; j < constraint->bound_count; j++) {
+            ast_destroy(constraint->bounds[j]);
+        }
+        free(constraint->bounds);
+        free(constraint);
+    }
+
+    free(clause->constraints);
+    free(clause);
+}
+
+static void
+ast_destroy_structured_comment(StructuredComment* comment) {
+    while (comment != NULL) {
+        StructuredComment* next = comment->next;
+        for (size_t i = 0; i < comment->tag_count; i++) {
+            if (comment->tags[i] == NULL) continue;
+            free(comment->tags[i]->content);
+            free(comment->tags[i]);
+        }
+        free(comment->tags);
+        free(comment);
+        comment = next;
+    }
+}
+
 void ast_destroy(ASTNode* node) {
     if (!node) return;
     
@@ -379,12 +705,15 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
                 free(node->data.func_decl.params[i]->name);
                 ast_destroy(node->data.func_decl.params[i]->type);
+                ast_destroy(node->data.func_decl.params[i]->default_value);
                 free(node->data.func_decl.params[i]);
             }
             free(node->data.func_decl.params);
             ast_destroy(node->data.func_decl.return_type);
             ast_destroy(node->data.func_decl.body);
-            // TODO: generic_params, where_clause 해제
+            ast_destroy_generic_params(node->data.func_decl.generic_params);
+            ast_destroy_where_clause(node->data.func_decl.where_clause);
+            ast_destroy_structured_comment(node->data.func_decl.doc_comment);
             break;
             
         case AST_CLASS_DECL:
@@ -399,6 +728,17 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.class_decl.methods[i]);
             }
             free(node->data.class_decl.methods);
+            ast_destroy_generic_params(node->data.class_decl.generic_params);
+            ast_destroy_where_clause(node->data.class_decl.where_clause);
+            ast_destroy_structured_comment(node->data.class_decl.doc_comment);
+            break;
+
+        case AST_EXTERN_BLOCK:
+            free(node->data.extern_block.abi);
+            for (size_t i = 0; i < node->data.extern_block.count; i++) {
+                ast_destroy(node->data.extern_block.declarations[i]);
+            }
+            free(node->data.extern_block.declarations);
             break;
             
         case AST_LET_DECL:
@@ -435,6 +775,25 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.for_loop.body);
             break;
             
+        case AST_WHILE_LOOP:
+            ast_destroy(node->data.while_loop.condition);
+            ast_destroy(node->data.while_loop.body);
+            break;
+
+        case AST_MATCH_STMT:
+            ast_destroy(node->data.match_stmt.subject);
+            for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+                ast_destroy(node->data.match_stmt.cases[i]);
+            free(node->data.match_stmt.cases);
+            ast_destroy(node->data.match_stmt.default_body);
+            break;
+
+        case AST_MATCH_CASE:
+            ast_destroy(node->data.match_case.pattern);
+            ast_destroy(node->data.match_case.guard);
+            ast_destroy(node->data.match_case.body);
+            break;
+
         case AST_IF_STMT:
             ast_destroy(node->data.if_stmt.condition);
             ast_destroy(node->data.if_stmt.then_branch);
@@ -487,7 +846,14 @@ void ast_destroy(ASTNode* node) {
             
         case AST_TYPE:
             free(node->data.type.name);
-            // TODO: generic_args 해제
+            ast_destroy_generic_params(node->data.type.generic_args);
+            break;
+
+        case AST_ASYNC_BLOCK:
+            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+                ast_destroy(node->data.async_block.statements[i]);
+            }
+            free(node->data.async_block.statements);
             break;
 
         case AST_ACTOR_DECL:
@@ -502,6 +868,8 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.actor_decl.methods[i]);
             }
             free(node->data.actor_decl.methods);
+            ast_destroy_generic_params(node->data.actor_decl.generic_params);
+            ast_destroy_structured_comment(node->data.actor_decl.doc_comment);
             break;
 
         case AST_AWAIT_EXPR:
@@ -523,13 +891,6 @@ void ast_destroy(ASTNode* node) {
             }
             free(node->data.select_stmt.cases);
             ast_destroy(node->data.select_stmt.default_case);
-            break;
-
-        case AST_ASYNC_BLOCK:
-            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
-                ast_destroy(node->data.async_block.statements[i]);
-            }
-            free(node->data.async_block.statements);
             break;
 
         case AST_SPAWN_EXPR:
@@ -555,7 +916,174 @@ void ast_destroy(ASTNode* node) {
             }
             free(node->data.task_group.tasks);
             break;
-            
+
+        case AST_SYSTEMIC_DECL:
+            free(node->data.systemic_decl.name);
+            for (size_t i = 0; i < node->data.systemic_decl.party_count; i++)
+                ast_destroy(node->data.systemic_decl.party_slots[i]);
+            free(node->data.systemic_decl.party_slots);
+            for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++)
+                ast_destroy(node->data.systemic_decl.shared_fields[i]);
+            free(node->data.systemic_decl.shared_fields);
+            for (size_t i = 0; i < node->data.systemic_decl.method_count; i++)
+                ast_destroy(node->data.systemic_decl.methods[i]);
+            free(node->data.systemic_decl.methods);
+            ast_destroy_generic_params(node->data.systemic_decl.generic_params);
+            ast_destroy_structured_comment(node->data.systemic_decl.doc_comment);
+            break;
+
+        case AST_SYSTEMIC_SLOT:
+            free(node->data.systemic_slot.slot_name);
+            free(node->data.systemic_slot.party_type);
+            break;
+
+        case AST_WORLD_DECL:
+            free(node->data.world_decl.name);
+            for (size_t i = 0; i < node->data.world_decl.systemic_count; i++)
+                ast_destroy(node->data.world_decl.systemics[i]);
+            free(node->data.world_decl.systemics);
+            for (size_t i = 0; i < node->data.world_decl.shared_count; i++)
+                ast_destroy(node->data.world_decl.shared_fields[i]);
+            free(node->data.world_decl.shared_fields);
+            for (size_t i = 0; i < node->data.world_decl.method_count; i++)
+                ast_destroy(node->data.world_decl.methods[i]);
+            free(node->data.world_decl.methods);
+            ast_destroy_structured_comment(node->data.world_decl.doc_comment);
+            break;
+
+        case AST_WORLD_SYSTEMIC:
+            free(node->data.world_systemic.slot_name);
+            free(node->data.world_systemic.systemic_type);
+            ast_destroy(node->data.world_systemic.initializer);
+            break;
+
+        case AST_PARTY_DECL:
+            free(node->data.party_decl.name);
+            for (size_t i = 0; i < node->data.party_decl.role_count; i++)
+                ast_destroy(node->data.party_decl.role_slots[i]);
+            free(node->data.party_decl.role_slots);
+            for (size_t i = 0; i < node->data.party_decl.shared_count; i++)
+                ast_destroy(node->data.party_decl.shared_fields[i]);
+            free(node->data.party_decl.shared_fields);
+            for (size_t i = 0; i < node->data.party_decl.method_count; i++)
+                ast_destroy(node->data.party_decl.methods[i]);
+            free(node->data.party_decl.methods);
+            ast_destroy(node->data.party_decl.extends);
+            ast_destroy_generic_params(node->data.party_decl.generic_params);
+            ast_destroy_structured_comment(node->data.party_decl.doc_comment);
+            break;
+
+        case AST_ROLE_SLOT:
+            free(node->data.role_slot.slot_name);
+            for (size_t i = 0; i < node->data.role_slot.ability_count; i++)
+                ast_destroy(node->data.role_slot.required_abilities[i]);
+            free(node->data.role_slot.required_abilities);
+            break;
+
+        case AST_PARTY_SHARED:
+            free(node->data.party_shared.name);
+            ast_destroy(node->data.party_shared.type);
+            ast_destroy(node->data.party_shared.initializer);
+            break;
+
+        case AST_CONTEXT_ACCESS:
+            free(node->data.context_access.method_name);
+            free(node->data.context_access.role_slot_name);
+            ast_destroy(node->data.context_access.ability_type);
+            break;
+
+        case AST_PARTY_INSTANCE:
+            free(node->data.party_instance.party_type);
+            for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
+                free(node->data.party_instance.assignments[i].slot_name);
+                ast_destroy(node->data.party_instance.assignments[i].value);
+            }
+            free(node->data.party_instance.assignments);
+            break;
+
+        case AST_ABILITY_DECL:
+            free(node->data.ability_decl.name);
+            for (size_t i = 0; i < node->data.ability_decl.require_count; i++)
+                ast_destroy(node->data.ability_decl.require_fields[i]);
+            free(node->data.ability_decl.require_fields);
+            for (size_t i = 0; i < node->data.ability_decl.method_count; i++)
+                ast_destroy(node->data.ability_decl.methods[i]);
+            free(node->data.ability_decl.methods);
+            ast_destroy_structured_comment(node->data.ability_decl.doc_comment);
+            break;
+
+        case AST_ROLE_DECL:
+            free(node->data.role_decl.name);
+            ast_destroy(node->data.role_decl.for_type);
+            for (size_t i = 0; i < node->data.role_decl.include_count; i++)
+                ast_destroy(node->data.role_decl.includes[i]);
+            free(node->data.role_decl.includes);
+            for (size_t i = 0; i < node->data.role_decl.impl_count; i++)
+                ast_destroy(node->data.role_decl.impl_abilities[i]);
+            free(node->data.role_decl.impl_abilities);
+            ast_destroy(node->data.role_decl.parallel_block);
+            ast_destroy_generic_params(node->data.role_decl.generic_params);
+            ast_destroy_where_clause(node->data.role_decl.where_clause);
+            ast_destroy_structured_comment(node->data.role_decl.doc_comment);
+            break;
+
+        case AST_INCLUDE_STMT:
+            free(node->data.include_stmt.role_name);
+            ast_destroy_generic_params(node->data.include_stmt.type_args);
+            break;
+
+        case AST_REQUIRE_FIELD:
+            free(node->data.require_field.name);
+            ast_destroy(node->data.require_field.type);
+            break;
+
+        case AST_IMPL_ABILITY:
+            free(node->data.impl_ability.ability_name);
+            for (size_t i = 0; i < node->data.impl_ability.method_count; i++)
+                ast_destroy(node->data.impl_ability.methods[i]);
+            free(node->data.impl_ability.methods);
+            break;
+
+        case AST_OVERRIDE_FUNC:
+            ast_destroy(node->data.override_func.func_decl);
+            break;
+
+        case AST_EVENT_DECL:
+            free(node->data.event_decl.name);
+            for (size_t i = 0; i < node->data.event_decl.param_count; i++)
+                ast_destroy(node->data.event_decl.params[i]);
+            free(node->data.event_decl.params);
+            ast_destroy(node->data.event_decl.return_type);
+            break;
+
+        case AST_EVENT_SUBSCRIBE:
+        case AST_EVENT_UNSUBSCRIBE:
+            ast_destroy(node->data.event_op.event);
+            ast_destroy(node->data.event_op.handler);
+            break;
+
+        case AST_EVENT_INVOKE:
+            ast_destroy(node->data.event_invoke.event);
+            for (size_t i = 0; i < node->data.event_invoke.arg_count; i++)
+                ast_destroy(node->data.event_invoke.arguments[i]);
+            free(node->data.event_invoke.arguments);
+            break;
+
+        case AST_EVENT_HANDLER_TYPE:
+            for (size_t i = 0; i < node->data.event_handler_type.param_count; i++)
+                ast_destroy(node->data.event_handler_type.param_types[i]);
+            free(node->data.event_handler_type.param_types);
+            ast_destroy(node->data.event_handler_type.return_type);
+            break;
+
+        case AST_LAMBDA_EXPR:
+            for (size_t i = 0; i < node->data.lambda_expr.param_count; i++)
+                ast_destroy(node->data.lambda_expr.params[i]);
+            free(node->data.lambda_expr.params);
+            ast_destroy(node->data.lambda_expr.body);
+            ast_destroy(node->data.lambda_expr.return_type);
+            break;
+
         default:
             break;
     }
@@ -631,6 +1159,35 @@ void ast_print(ASTNode* node, int indent) {
                 print_indent(indent + 1);
                 printf("Body:\n");
                 ast_print(node->data.func_decl.body, indent + 2);
+            }
+            break;
+
+        case AST_CLASS_DECL:
+            printf("%s: %s\n",
+                node->data.class_decl.is_struct ? "Struct" : "Class",
+                node->data.class_decl.name);
+            if (node->data.class_decl.field_count > 0) {
+                print_indent(indent + 1);
+                printf("Fields:\n");
+                for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+                    print_indent(indent + 2);
+                    printf("%s: ", node->data.class_decl.fields[i]->name);
+                    ast_print(node->data.class_decl.fields[i]->type, 0);
+                }
+            }
+            if (node->data.class_decl.method_count > 0) {
+                print_indent(indent + 1);
+                printf("Methods:\n");
+                for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+                    ast_print(node->data.class_decl.methods[i], indent + 2);
+                }
+            }
+            break;
+
+        case AST_EXTERN_BLOCK:
+            printf("Extern Block (%s):\n", node->data.extern_block.abi);
+            for (size_t i = 0; i < node->data.extern_block.count; i++) {
+                ast_print(node->data.extern_block.declarations[i], indent + 1);
             }
             break;
             

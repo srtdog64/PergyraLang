@@ -30,6 +30,20 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -std=c11 -O2 -g -I$(SRC_DIR)
 ASMFLAGS = -f elf64
+NASM    := $(shell command -v nasm 2>/dev/null)
+
+# -----------------------------------------------------------------
+# LLVM backend (optional)
+#   make LLVM_ENABLED=1          — build with LLVM native backend
+#   make                         — build without LLVM (C transpiler only)
+# -----------------------------------------------------------------
+LLVM_DIR     = third_party
+LLVM_INSTALL = C:/Program Files/LLVM
+
+ifdef LLVM_ENABLED
+  CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
+  LDFLAGS_LLVM = -L"$(LLVM_INSTALL)/lib" -lLLVM-C
+endif
 
 # -----------------------------------------------------------------
 # Directories
@@ -43,6 +57,7 @@ RUNTIME_DIR  = $(SRC_DIR)/runtime
 ASYNC_DIR    = $(RUNTIME_DIR)/async
 SEMANTIC_DIR = $(SRC_DIR)/semantic
 CODEGEN_DIR  = $(SRC_DIR)/codegen
+COMPILER_DIR = $(SRC_DIR)/compiler
 
 # -----------------------------------------------------------------
 # Source groups
@@ -61,6 +76,18 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
+COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c
+
+# LLVM backend sources (only compiled when LLVM_ENABLED=1)
+ifdef LLVM_ENABLED
+  LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c
+  RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
+  LLVM_BACKEND_OBJECTS = $(LLVM_BACKEND_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+  RUNTIME_LIB_OBJECTS  = $(RUNTIME_LIB_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+else
+  LLVM_BACKEND_OBJECTS =
+  RUNTIME_LIB_OBJECTS  =
+endif
 
 # Test & driver sources
 MAIN_SOURCE             = $(SRC_DIR)/main.c
@@ -78,9 +105,14 @@ DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
 LEXER_OBJECTS    = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 PARSER_OBJECTS   = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 RUNTIME_OBJECTS  = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+ifeq ($(NASM),)
+RUNTIME_ASM_OBJECTS =
+else
 RUNTIME_ASM_OBJECTS = $(RUNTIME_ASM_SOURCES:$(SRC_DIR)/%.s=$(BUILD_DIR)/%.o)
+endif
 SEMANTIC_OBJECTS = $(SEMANTIC_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 CODEGEN_OBJECTS  = $(CODEGEN_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+COMPILER_OBJECTS = $(COMPILER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 MAIN_OBJECT            = $(BUILD_DIR)/main.o
 PARSER_TEST_OBJECT     = $(BUILD_DIR)/test_parser.o
@@ -93,7 +125,8 @@ DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
 
 # Common frontend objects used by many targets
 FRONTEND_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
-                   $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS)
+                   $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS) $(COMPILER_OBJECTS) \
+                   $(LLVM_BACKEND_OBJECTS) $(RUNTIME_LIB_OBJECTS)
 
 # -----------------------------------------------------------------
 # Executables
@@ -112,13 +145,15 @@ PGY                 = $(BIN_DIR)/pgy
 # -----------------------------------------------------------------
 all: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST)
 
+pgy: $(PGY)
+
 # -----------------------------------------------------------------
 # Build rules
 # -----------------------------------------------------------------
 
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
@@ -140,11 +175,11 @@ $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
 
-# Transpiler test
+# C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM)
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
@@ -162,7 +197,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	nasm $(ASMFLAGS) -o $@ $<
+	$(NASM) $(ASMFLAGS) -o $@ $<
 
 # -----------------------------------------------------------------
 # Directory creation
@@ -193,7 +228,7 @@ test-semantic: $(SEMANTIC_TEST)
 	./$(SEMANTIC_TEST)
 
 test-transpile: $(TRANSPILE_TEST)
-	@echo "=== Transpiler Test ==="
+	@echo "=== C Backend Test ==="
 	./$(TRANSPILE_TEST)
 
 test-memory: $(MEMORY_TEST)
@@ -207,14 +242,14 @@ test-all: test test-parser test-semantic test-transpile test-memory
 # pgy driver convenience targets
 # -----------------------------------------------------------------
 example-hello: $(PGY)
-	./$(PGY) examples/hello.pgy --compile --run -v
+	./$(PGY) examples/hello.pgy --run -v
 
 example-slots: $(PGY)
-	./$(PGY) examples/slots.pgy --compile --run -v
+	./$(PGY) examples/slots.pgy --run -v
 
-# Transpile only (no gcc)
-transpile-%: $(PGY)
-	./$(PGY) examples/$*.pgy -v
+# Emit C only
+emit-c-%: $(PGY)
+	./$(PGY) examples/$*.pgy --emit-c -v
 
 # -----------------------------------------------------------------
 # Maintenance

@@ -66,6 +66,7 @@ typedef enum
     /* Declarations */
     AST_FUNC_DECL,
     AST_CLASS_DECL,
+    AST_EXTERN_BLOCK,
     AST_LET_DECL,
     AST_TYPE_ALIAS,
     AST_ACTOR_DECL,
@@ -77,8 +78,9 @@ typedef enum
     AST_WHILE_LOOP,
     AST_IF_STMT,
     AST_RETURN,
-    AST_EXPRESSION_STMT,
     AST_SELECT_STMT,
+    AST_MATCH_STMT,
+    AST_MATCH_CASE,
     
     /* Expressions */
     AST_BINARY,
@@ -99,15 +101,8 @@ typedef enum
     
     /* Types */
     AST_TYPE,
-    AST_GENERIC_TYPE,
     AST_CHANNEL_TYPE,
     AST_FUTURE_TYPE,
-    
-    /* Slot operations */
-    AST_CLAIM_SLOT,
-    AST_WRITE_SLOT,
-    AST_READ_SLOT,
-    AST_RELEASE_SLOT,
     
     /* Async operations */
     AST_ASYNC_BLOCK,
@@ -134,7 +129,15 @@ typedef enum
     AST_SYSTEMIC_DECL,
     AST_SYSTEMIC_SLOT,
     AST_WORLD_DECL,
-    AST_WORLD_SYSTEMIC
+    AST_WORLD_SYSTEMIC,
+
+    /* Event system (C# style) */
+    AST_EVENT_DECL,
+    AST_EVENT_SUBSCRIBE,
+    AST_EVENT_UNSUBSCRIBE,
+    AST_EVENT_INVOKE,
+    AST_EVENT_HANDLER_TYPE,
+    AST_LAMBDA_EXPR
 } ASTNodeType;
 
 /*
@@ -225,8 +228,16 @@ struct ASTNode
             size_t         method_count;
             GenericParams* generic_params;
             WhereClause*   where_clause;
+            bool           is_struct;
             StructuredComment* doc_comment;  /* Attached documentation */
         } class_decl;
+
+        /* extern "C" { func ...; } */
+        struct {
+            char*    abi;
+            ASTNode** declarations;
+            size_t   count;
+        } extern_block;
         
         /* Let declaration */
         struct {
@@ -392,6 +403,21 @@ struct ASTNode
             ASTNode* default_case;
         } select_stmt;
         
+        /* Match statement */
+        struct {
+            ASTNode* subject;           /* match target expression */
+            ASTNode** cases;            /* AST_MATCH_CASE array */
+            size_t case_count;
+            ASTNode* default_body;      /* default block (optional) */
+        } match_stmt;
+
+        /* Match case */
+        struct {
+            ASTNode* pattern;           /* literal value or identifier */
+            ASTNode* guard;             /* optional if guard */
+            ASTNode* body;              /* case body block */
+        } match_case;
+
         /* Async block */
         struct {
             ASTNode** statements;
@@ -557,6 +583,44 @@ struct ASTNode
             char* systemic_type;
             ASTNode* initializer;      /* Optional initialization */
         } world_systemic;
+
+        /* Event declaration */
+        struct {
+            char* name;
+            ASTNode** params;          /* Event handler parameters */
+            size_t param_count;
+            ASTNode* return_type;      /* Usually Void */
+            AccessModifier access;
+        } event_decl;
+
+        /* Event subscribe/unsubscribe */
+        struct {
+            ASTNode* event;            /* Event reference */
+            ASTNode* handler;          /* Handler function/lambda */
+        } event_op;
+
+        /* Event invoke */
+        struct {
+            ASTNode* event;            /* Event reference */
+            ASTNode** arguments;       /* Arguments to pass */
+            size_t arg_count;
+        } event_invoke;
+
+        /* Event handler type */
+        struct {
+            ASTNode** param_types;     /* Parameter types */
+            size_t param_count;
+            ASTNode* return_type;      /* Return type */
+        } event_handler_type;
+
+        /* Lambda expression */
+        struct {
+            ASTNode** params;          /* Lambda parameters */
+            size_t param_count;
+            ASTNode* body;             /* Expression or block */
+            ASTNode* return_type;      /* Optional return type */
+            bool is_async;             /* async lambda */
+        } lambda_expr;
     } data;
 };
 
@@ -564,11 +628,16 @@ struct ASTNode
 ASTNode* ast_create_program(void);
 ASTNode* ast_create_function(const char* name);
 ASTNode* ast_create_class(const char* name);
+ASTNode* ast_create_struct(const char* name);
+ASTNode* ast_create_extern_block(const char* abi);
 ASTNode* ast_create_let_declaration(const char* name);
 ASTNode* ast_create_with_statement(void);
 ASTNode* ast_create_parallel_block(void);
 ASTNode* ast_create_block(void);
 ASTNode* ast_create_for_loop(void);
+ASTNode* ast_create_while_loop(void);
+ASTNode* ast_create_match_statement(void);
+ASTNode* ast_create_match_case(void);
 ASTNode* ast_create_if_statement(void);
 ASTNode* ast_create_return_statement(void);
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right);
@@ -605,5 +674,34 @@ void ast_add_argument(ASTNode* call, ASTNode* arg);
 void ast_destroy(ASTNode* node);
 void ast_print(ASTNode* node, int indent);
 const char* token_type_to_string(TokenType type);
+
+/* Role/Ability system AST creation functions */
+ASTNode* ast_create_ability_declaration(const char* name);
+ASTNode* ast_create_role_declaration(const char* name);
+ASTNode* ast_create_include_statement(const char* role_name);
+ASTNode* ast_create_require_field(const char* name);
+ASTNode* ast_create_impl_ability(const char* ability_name);
+ASTNode* ast_create_override_func(ASTNode* func_decl);
+
+/* Systemic/World system AST creation functions */
+ASTNode* ast_create_systemic_declaration(const char* name);
+ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type);
+ASTNode* ast_create_world_declaration(const char* name);
+ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type);
+
+/* Party system AST creation functions */
+ASTNode* ast_create_party_declaration(const char* name);
+ASTNode* ast_create_role_slot(const char* slot_name);
+ASTNode* ast_create_party_shared(const char* name);
+ASTNode* ast_create_context_access(const char* method_name, const char* slot_name);
+ASTNode* ast_create_party_instance(const char* party_type);
+
+/* Event system AST creation functions */
+ASTNode* ast_create_event_declaration(const char* name);
+ASTNode* ast_create_event_subscribe(ASTNode* event, ASTNode* handler);
+ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler);
+ASTNode* ast_create_event_invoke(ASTNode* event);
+ASTNode* ast_create_event_handler_type(void);
+ASTNode* ast_create_lambda_expression(void);
 
 #endif /* PERGYRA_AST_H */

@@ -1,10 +1,11 @@
-# Pergyra 보안 시스템 구현 완료 보고서
+# Pergyra 보안 시스템 구현 보고서
 
-## 🎯 구현 목표 달성
+## 개요
 
-Pergyra 언어의 **SBSR (Slot-Based Safe References)** 보안 시스템이 성공적으로 구현되었습니다. 이 시스템은 **외부 메모리 변조 도구(Cheat Engine 등)의 접근을 원천적으로 차단**하는 혁신적인 보안 메커니즘입니다.
+이 문서는 Pergyra의 **SBSR (Slot-Based Safe References)** 보안 시스템 구현 범위를 정리한다.
+현재 구현은 토큰 기반 접근 제어, 하드웨어 지문, 보안 이벤트 로깅, 보안 테스트 스위트를 포함한다.
 
-## 🔐 핵심 보안 기능
+## 핵심 보안 기능
 
 ### 1. 토큰 기반 접근 제어 (Token Capability System)
 - **256비트 암호화 토큰**: 각 슬롯마다 고유한 AES-256 암호화 토큰
@@ -26,22 +27,22 @@ typedef struct {
 ### 3. 다단계 보안 레벨
 - **BASIC**: 기본 토큰 검증 (~5% 오버헤드)
 - **HARDWARE**: 하드웨어 바인딩 추가 (~15% 오버헤드)
-- **ENCRYPTED**: 최고 보안 - 암호화 + 하드웨어 바인딩 (~25% 오버헤드)
+- **ENCRYPTED**: 암호화 + 하드웨어 바인딩 (~25% 오버헤드)
 
-## 🛡️ 차단 가능한 공격 유형
+## 대응 대상으로 가정한 접근 유형
 
-### ✅ 완전 차단
+### 직접 대응
 - **Cheat Engine**: 메모리 스캐닝 및 값 변조
 - **ArtMoney**: 게임 메모리 해킹 도구
 - **메모리 덤프**: 프로세스 메모리 직접 수정
 - **포인터 추적**: 다단계 포인터 체이닝
 - **DLL 인젝션**: 외부 라이브러리 주입 공격
 
-### ⚠️ 부분 차단 (고급 공격)
+### 제한적 대응
 - **디버거 부착**: 감지 가능하나 완전 차단은 어려움
 - **가상머신 우회**: 하드웨어 지문으로 일부 대응
 
-## 📁 구현된 파일 구조
+## 구현된 파일 구조
 
 ```
 src/runtime/
@@ -57,7 +58,7 @@ example/
 ├── secure_slots.pgy        # 보안 슬롯 사용법 예제 (6.86KB)
 ```
 
-## 🔧 API 설계
+## API 설계
 
 ### 보안 슬롯 생성
 ```c
@@ -66,8 +67,8 @@ SlotError SlotClaimSecure(SlotManager *manager, TypeTag type,
                          SecurityLevel level, SlotHandle *handle, 
                          TokenCapability *token);
 
-// Pergyra 언어 레벨 API  
-let (secureSlot, token) = claim_secure_slot<Int>(SECURITY_LEVEL_HARDWARE)
+// Pergyra 언어 레벨 API
+let (secureSlot, token) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
 ```
 
 ### 토큰 기반 조작
@@ -78,19 +79,19 @@ SlotError SlotWriteSecure(SlotManager *manager, const SlotHandle *handle,
                          const TokenCapability *token);
 
 // Pergyra 문법
-write(slot, value, token)  // ✅ 허용
-write(slot, value)         // ❌ 컴파일 에러
+Write(slot, value, token);  // 허용
+Write(slot, value);         // 컴파일 에러
 ```
 
 ### 스코프 기반 자동 관리
 ```pergyra
 with secure_slot<Int>(SECURITY_LEVEL_ENCRYPTED) as s {
-    s.write(42)
-    log(s.read())
+    Write(s, 42);
+    Log(Read(s));
 } // 자동 해제 + 토큰 검증
 ```
 
-## 🧪 테스트 시스템
+## 테스트 시스템
 
 ### 8가지 테스트 카테고리
 1. **보안 컨텍스트 생명주기**
@@ -114,7 +115,7 @@ make test-security
 ./bin/test_security --performance
 ```
 
-## ⚡ 성능 최적화
+## 성능 최적화
 
 ### 어셈블리 최적화 함수
 ```c
@@ -133,7 +134,7 @@ extern uint64_t SecureTimestamp(void);
 - **스레드별 슬롯 풀**: 컨텐션 최소화
 - **원자적 카운터**: 통계 수집 최적화
 
-## 🔍 보안 모니터링
+## 보안 모니터링
 
 ### 실시간 보안 감시
 ```c
@@ -154,18 +155,17 @@ void SlotManagerPrintSecurityStats(const SlotManager *manager);
 - 하드웨어 바인딩 불일치
 - 토큰 재생 공격 시도
 
-## 🎮 실전 활용 사례
+## 활용 예시
 
 ### 게임 보안 (치트 방지)
 ```pergyra
 class SecurePlayerStats {
-    private let (hpSlot, hpToken) = claim_secure_slot<Int>(SECURITY_LEVEL_ENCRYPTED)
-    private let (moneySlot, moneyToken) = claim_secure_slot<Int>(SECURITY_LEVEL_HARDWARE)
-    
-    func takeDamage(damage: Int) {
-        let currentHp = read(hpSlot, hpToken)
-        write(hpSlot, currentHp - damage, hpToken)
-        // 외부 도구로 HP 수정 불가능
+    private let (hpSlot, hpToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED);
+    private let (moneySlot, moneyToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_HARDWARE);
+
+    func TakeDamage(damage: Int) {
+        let currentHp = Read(hpSlot, hpToken);
+        Write(hpSlot, currentHp - damage, hpToken);
     }
 }
 ```
@@ -173,18 +173,17 @@ class SecurePlayerStats {
 ### 금융 데이터 보호
 ```pergyra  
 class SecureBankAccount {
-    private let (balanceSlot, balanceToken) = 
-        claim_secure_slot<Decimal>(SECURITY_LEVEL_ENCRYPTED)
-    
-    func transfer(amount: Decimal, to: Account) {
-        // 하드웨어 바인딩 + 암호화로 잔고 보호
-        let balance = read(balanceSlot, balanceToken)
+    private let (balanceSlot, balanceToken) =
+        ClaimSecureSlot<Decimal>(SECURITY_LEVEL_ENCRYPTED);
+
+    func Transfer(amount: Decimal, to: Account) {
+        let balance = Read(balanceSlot, balanceToken);
         // ... 안전한 이체 로직
     }
 }
 ```
 
-## 📚 문서화
+## 문서화
 
 ### README.md 업데이트
 - 🛡️ 보안 시스템 소개 섹션 추가
@@ -197,9 +196,9 @@ class SecureBankAccount {
 - 보안 테스트 타겟 추가
 - 의존성 관리 개선
 
-## 🎉 구현 완료 요약
+## 구현 요약
 
-### ✅ 완성된 기능들
+### 현재 포함된 기능
 1. **토큰 기반 보안 시스템**: 256비트 암호화 토큰
 2. **하드웨어 바인딩**: CPU/보드/네트워크 지문
 3. **다단계 보안 레벨**: BASIC/HARDWARE/ENCRYPTED
@@ -209,10 +208,7 @@ class SecureBankAccount {
 7. **언어 통합**: Pergyra 문법에 자연스럽게 통합
 8. **실시간 모니터링**: 보안 위반 감지 및 로깅
 
-### 🚀 혁신적 특징
-- **치트 엔진 원천 차단**: 업계 최초 토큰 기반 메모리 보호
-- **컴파일 타임 보장**: 토큰 누락 시 컴파일 에러
-- **제로 트러스트 메모리**: 모든 메모리 접근이 검증됨
-- **하드웨어 보안**: 물리적 메모리 덤프도 무력화
-
-이제 Pergyra 언어는 **세계에서 가장 안전한 메모리 관리 시스템**을 갖춘 프로그래밍 언어가 되었습니다! 🎯
+### 현재 문서의 범위
+- 토큰이 없는 SecureSlot 접근은 언어 규칙과 런타임 검증의 대상이다.
+- 하드웨어 지문과 암호화는 보안 레벨에 따라 선택적으로 적용된다.
+- 공격 대응 범위는 구현과 테스트에 포함된 시나리오 기준으로만 해석해야 한다.

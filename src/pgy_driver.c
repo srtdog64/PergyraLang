@@ -9,16 +9,16 @@
  *     → Lexer
  *     → Parser   → AST
  *     → Semantic → annotated AST  (errors abort here)
- *     → Transpile → .c file
- *     → GCC       → native binary  (optional, --run to also execute)
+ *     → C backend → .c file
+ *     → GCC       → native binary
  *
  * Usage:
- *   pgy <source.pgy>              transpile only → source.c
- *   pgy <source.pgy> -o <out.c>   transpile to named .c file
- *   pgy <source.pgy> --compile    transpile + compile → binary
- *   pgy <source.pgy> --run        transpile + compile + run
+ *   pgy <source.pgy>              compile → binary
+ *   pgy <source.pgy> --emit-c     stop after generating C
+ *   pgy <source.pgy> -o <out.c>   name the generated C file
+ *   pgy <source.pgy> --run        compile + run
  *   pgy --tokens <source.pgy>     dump token stream
- *   pgy --ast    <source.pgy>     dump AST (placeholder)
+ *   pgy --ast    <source.pgy>     dump AST
  */
 
 #include <stdio.h>
@@ -30,26 +30,27 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
-#include "codegen/transpiler.h"
+#include "compiler/compiler.h"
+#include "common/string_compat.h"
 
-/* -----------------------------------------------------------------
- * Flags
- * ----------------------------------------------------------------- */
+typedef enum
+{
+    BACKEND_C,
+    BACKEND_LLVM
+} BackendKind;
 
 typedef struct
 {
     const char *source_path;
-    const char *output_c;     /* NULL → replace .pgy with .c */
-    bool        do_compile;   /* invoke gcc after transpile  */
-    bool        do_run;       /* run the binary after build  */
+    const char *output_c;
+    bool        emit_c_only;
+    bool        emit_llvm_ir;
+    bool        do_run;
     bool        dump_tokens;
     bool        dump_ast;
     bool        verbose;
+    BackendKind backend;
 } DriverFlags;
-
-/* -----------------------------------------------------------------
- * Utilities
- * ----------------------------------------------------------------- */
 
 static char *
 read_file(const char *path)
@@ -59,6 +60,7 @@ read_file(const char *path)
         fprintf(stderr, "pgy: cannot open '%s'\n", path);
         return NULL;
     }
+
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
     rewind(f);
@@ -68,33 +70,33 @@ read_file(const char *path)
         fclose(f);
         return NULL;
     }
-    fread(buf, 1, (size_t)sz, f);
+
+    size_t read_len = fread(buf, 1, (size_t)sz, f);
+    if (read_len != (size_t)sz) {
+        fclose(f);
+        free(buf);
+        fprintf(stderr, "pgy: failed to read '%s'\n", path);
+        return NULL;
+    }
     buf[sz] = '\0';
     fclose(f);
     return buf;
 }
 
-/*
- * Replace the extension of path with new_ext.
- * Caller must free the returned string.
- */
 static char *
 replace_extension(const char *path, const char *new_ext)
 {
     const char *dot = strrchr(path, '.');
     size_t base_len = dot ? (size_t)(dot - path) : strlen(path);
-    size_t new_len  = base_len + strlen(new_ext) + 1;
-    char  *result   = malloc(new_len);
+    size_t new_len = base_len + strlen(new_ext) + 1;
+    char *result = malloc(new_len);
     if (result == NULL)
         return NULL;
+
     memcpy(result, path, base_len);
     strcpy(result + base_len, new_ext);
     return result;
 }
-
-/* -----------------------------------------------------------------
- * Token dump
- * ----------------------------------------------------------------- */
 
 static int
 run_token_dump(const char *source, const char *path)
@@ -124,14 +126,9 @@ run_token_dump(const char *source, const char *path)
     return 0;
 }
 
-/* -----------------------------------------------------------------
- * Core pipeline
- * ----------------------------------------------------------------- */
-
 static int
 run_pipeline(const DriverFlags *flags)
 {
-    /* 1 — read source */
     char *source = read_file(flags->source_path);
     if (source == NULL)
         return 1;
@@ -145,7 +142,6 @@ run_pipeline(const DriverFlags *flags)
     if (flags->verbose)
         printf("pgy: lexing %s\n", flags->source_path);
 
-    /* 2 — lex */
     Lexer *lexer = lexer_create(source);
     if (lexer == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
@@ -153,7 +149,6 @@ run_pipeline(const DriverFlags *flags)
         return 1;
     }
 
-    /* 3 — parse */
     if (flags->verbose)
         printf("pgy: parsing\n");
 
@@ -166,7 +161,6 @@ run_pipeline(const DriverFlags *flags)
     }
 
     ASTNode *ast = parser_parse_program(parser);
-
     if (parser_has_error(parser)) {
         fprintf(stderr, "pgy: parse error: %s\n", parser_get_error(parser));
         parser_destroy(parser);
@@ -176,21 +170,21 @@ run_pipeline(const DriverFlags *flags)
     }
 
     if (flags->dump_ast) {
-        /* Placeholder — ast_print not yet implemented */
-        printf("pgy: AST dump not yet implemented\n");
+        ast_print(ast, 0);
+        ast_destroy(ast);
         parser_destroy(parser);
         lexer_destroy(lexer);
         free(source);
         return 0;
     }
 
-    /* 4 — semantic analysis */
     if (flags->verbose)
         printf("pgy: semantic analysis\n");
 
     SemanticResult *sem = semantic_analyze(ast);
     if (sem == NULL) {
         fprintf(stderr, "pgy: out of memory during semantic analysis\n");
+        ast_destroy(ast);
         parser_destroy(parser);
         lexer_destroy(lexer);
         free(source);
@@ -198,116 +192,199 @@ run_pipeline(const DriverFlags *flags)
     }
 
     semantic_result_print(sem);
-
     if (!sem->success) {
         fprintf(stderr, "pgy: %zu error(s) — aborting\n", sem->error_count);
         semantic_result_destroy(sem);
+        ast_destroy(ast);
         parser_destroy(parser);
         lexer_destroy(lexer);
         free(source);
         return 1;
     }
 
-    /* 5 — transpile */
-    char *output_c = flags->output_c
-                     ? strdup(flags->output_c)
-                     : replace_extension(flags->source_path, ".c");
-
-    if (flags->verbose)
-        printf("pgy: transpiling → %s\n", output_c);
-
-    TranspileResult *trans = transpile(sem->annotated_ast, output_c);
-
-    semantic_result_destroy(sem);
-    parser_destroy(parser);
-    lexer_destroy(lexer);
-    free(source);
-
-    if (trans == NULL || !trans->success) {
-        fprintf(stderr, "pgy: transpile failed: %s\n",
-                trans ? trans->error_message : "out of memory");
-        transpile_result_destroy(trans);
-        free(output_c);
+    char *output_c = flags->output_c != NULL
+        ? pergyra_strdup(flags->output_c)
+        : replace_extension(flags->source_path, ".c");
+    if (output_c == NULL) {
+        fprintf(stderr, "pgy: out of memory\n");
+        semantic_result_destroy(sem);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        free(source);
         return 1;
     }
 
-    transpile_result_destroy(trans);
-    printf("pgy: wrote %s\n", output_c);
-
     int exit_code = 0;
 
-    /* 6 — compile (optional) */
-    if (flags->do_compile || flags->do_run) {
+#ifdef PGY_LLVM_ENABLED
+    /* ---- LLVM backend ---- */
+    if (flags->backend == BACKEND_LLVM) {
+        if (flags->emit_llvm_ir) {
+            if (flags->verbose)
+                printf("pgy: emitting LLVM IR\n");
+
+            CompilerResult *result = compiler_emit_llvm_ir(sem->annotated_ast,
+                                                            "pergyra_module");
+            if (result == NULL || !result->success) {
+                fprintf(stderr, "pgy: LLVM IR generation failed: %s\n",
+                        result != NULL ? result->error_message : "out of memory");
+                compiler_result_destroy(result);
+                free(output_c);
+                semantic_result_destroy(sem);
+                ast_destroy(ast);
+                parser_destroy(parser);
+                lexer_destroy(lexer);
+                free(source);
+                return 1;
+            }
+            compiler_result_destroy(result);
+        } else {
+            char *obj_path = replace_extension(flags->source_path, ".o");
+#ifdef _WIN32
+            char *bin_path = replace_extension(flags->source_path, ".exe");
+#else
+            char *bin_path = replace_extension(flags->source_path, "");
+#endif
+            if (obj_path == NULL || bin_path == NULL) {
+                fprintf(stderr, "pgy: out of memory\n");
+                free(obj_path);
+                free(bin_path);
+                free(output_c);
+                semantic_result_destroy(sem);
+                ast_destroy(ast);
+                parser_destroy(parser);
+                lexer_destroy(lexer);
+                free(source);
+                return 1;
+            }
+
+            CompilerResult *result = compiler_build_native_llvm(
+                sem->annotated_ast, obj_path, bin_path, flags->verbose);
+            if (result == NULL || !result->success) {
+                fprintf(stderr, "pgy: LLVM compile failed: %s\n",
+                        result != NULL ? result->error_message : "out of memory");
+                compiler_result_destroy(result);
+                free(obj_path);
+                free(bin_path);
+                free(output_c);
+                semantic_result_destroy(sem);
+                ast_destroy(ast);
+                parser_destroy(parser);
+                lexer_destroy(lexer);
+                free(source);
+                return 1;
+            }
+
+            printf("pgy: compiled (LLVM) → %s\n", bin_path);
+            if (flags->do_run) {
+                exit_code = compiler_run_binary(bin_path, flags->verbose);
+                if (exit_code != 0)
+                    fprintf(stderr, "pgy: program exited with code %d\n",
+                            exit_code);
+            }
+
+            compiler_result_destroy(result);
+            free(obj_path);
+            free(bin_path);
+        }
+    } else
+#endif /* PGY_LLVM_ENABLED */
+
+    /* ---- C transpiler backend (default) ---- */
+    if (flags->emit_c_only) {
+        if (flags->verbose)
+            printf("pgy: generating C → %s\n", output_c);
+
+        CompilerResult *result = compiler_emit_c(sem->annotated_ast, output_c);
+        if (result == NULL || !result->success) {
+            fprintf(stderr, "pgy: C generation failed: %s\n",
+                    result != NULL ? result->error_message : "out of memory");
+            compiler_result_destroy(result);
+            free(output_c);
+            semantic_result_destroy(sem);
+            ast_destroy(ast);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+            free(source);
+            return 1;
+        }
+
+        printf("pgy: wrote %s\n", output_c);
+        compiler_result_destroy(result);
+    } else {
+        if (flags->verbose)
+            printf("pgy: generating C → %s\n", output_c);
+
 #ifdef _WIN32
         char *bin_path = replace_extension(flags->source_path, ".exe");
 #else
         char *bin_path = replace_extension(flags->source_path, "");
 #endif
-
-        /*
-         * Locate the runtime header relative to the output .c file.
-         * We assume the driver is run from the project root so that
-         * src/runtime is findable.
-         */
-        char cmd[1024];
-        snprintf(cmd, sizeof(cmd),
-                 "gcc -std=c11 -Wall -O2 "
-                 "-I src "
-                 "-I src/runtime "
-                 "%s "
-                 "-o %s "
-                 "-lpthread",
-                 output_c, bin_path);
-
-        if (flags->verbose)
-            printf("pgy: %s\n", cmd);
-
-        int rc = system(cmd);
-        if (rc != 0) {
-            fprintf(stderr, "pgy: gcc exited with code %d\n", rc);
-            exit_code = 1;
-        } else {
-            printf("pgy: compiled → %s\n", bin_path);
-
-            /* 7 — run (optional) */
-            if (flags->do_run && exit_code == 0) {
-                char run_cmd[512];
-#ifdef _WIN32
-                /* Convert forward slashes to backslashes for cmd.exe */
-                snprintf(run_cmd, sizeof(run_cmd), "%s", bin_path);
-                for (char *p = run_cmd; *p; p++)
-                    if (*p == '/') *p = '\\';
-#else
-                snprintf(run_cmd, sizeof(run_cmd), "./%s", bin_path);
-#endif
-                printf("pgy: running %s\n--- output ---\n", bin_path);
-                exit_code = system(run_cmd);
-                printf("--- end ---\n");
-            }
+        if (bin_path == NULL) {
+            fprintf(stderr, "pgy: out of memory\n");
+            free(output_c);
+            semantic_result_destroy(sem);
+            ast_destroy(ast);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+            free(source);
+            return 1;
         }
 
+        CompilerResult *result = compiler_build_native(sem->annotated_ast,
+                                                       output_c,
+                                                       bin_path,
+                                                       flags->verbose);
+        if (result == NULL || !result->success) {
+            fprintf(stderr, "pgy: compile failed: %s\n",
+                    result != NULL ? result->error_message : "out of memory");
+            compiler_result_destroy(result);
+            free(bin_path);
+            free(output_c);
+            semantic_result_destroy(sem);
+            ast_destroy(ast);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+            free(source);
+            return 1;
+        }
+
+        printf("pgy: compiled → %s\n", bin_path);
+        if (flags->do_run) {
+            exit_code = compiler_run_binary(bin_path, flags->verbose);
+            if (exit_code != 0)
+                fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
+        }
+
+        compiler_result_destroy(result);
         free(bin_path);
     }
 
     free(output_c);
+    semantic_result_destroy(sem);
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    free(source);
     return exit_code;
 }
-
-/* -----------------------------------------------------------------
- * Argument parsing
- * ----------------------------------------------------------------- */
 
 static void
 print_usage(void)
 {
     printf(
         "Usage:\n"
-        "  pgy <source.pgy>              transpile only  → source.c\n"
-        "  pgy <source.pgy> -o <out.c>   transpile to named output\n"
-        "  pgy <source.pgy> --compile    transpile + compile\n"
-        "  pgy <source.pgy> --run        transpile + compile + run\n"
+        "  pgy <source.pgy>              compile to native binary\n"
+        "  pgy <source.pgy> --emit-c     stop after generating C\n"
+        "  pgy <source.pgy> -o <out.c>   name the generated C file\n"
+        "  pgy <source.pgy> --run        compile + run\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump AST\n"
+#ifdef PGY_LLVM_ENABLED
+        "  pgy <source.pgy> --backend=llvm   use LLVM native backend\n"
+        "  pgy <source.pgy> --emit-llvm      emit LLVM IR text\n"
+#endif
         "  pgy --help\n");
 }
 
@@ -322,10 +399,18 @@ parse_args(int argc, char *argv[])
             print_usage();
             exit(0);
         } else if (strcmp(argv[i], "--compile") == 0) {
-            f.do_compile = true;
+            continue;
+        } else if (strcmp(argv[i], "--emit-c") == 0) {
+            f.emit_c_only = true;
+        } else if (strcmp(argv[i], "--backend=llvm") == 0) {
+            f.backend = BACKEND_LLVM;
+        } else if (strcmp(argv[i], "--backend=c") == 0) {
+            f.backend = BACKEND_C;
+        } else if (strcmp(argv[i], "--emit-llvm") == 0) {
+            f.emit_llvm_ir = true;
+            f.backend = BACKEND_LLVM;
         } else if (strcmp(argv[i], "--run") == 0) {
-            f.do_run     = true;
-            f.do_compile = true;
+            f.do_run = true;
         } else if (strcmp(argv[i], "--tokens") == 0) {
             f.dump_tokens = true;
         } else if (strcmp(argv[i], "--ast") == 0) {
@@ -354,10 +439,6 @@ parse_args(int argc, char *argv[])
 
     return f;
 }
-
-/* -----------------------------------------------------------------
- * Entry point
- * ----------------------------------------------------------------- */
 
 int
 main(int argc, char *argv[])

@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * C Transpiler — converts annotated Pergyra AST to C source code.
+ * C backend — converts annotated Pergyra AST to C source code.
  *
  * Strategy:
  *   Pergyra Slot<T>          → PgySlot_<T> struct  (pgy_runtime.h)
@@ -56,6 +56,12 @@ typedef struct
     bool is_secure;        /* SecureSlot?                    */
 } SlotVarEntry;
 
+typedef struct
+{
+    char name[64];
+    char type_name[128];
+} TypedVarEntry;
+
 /* -----------------------------------------------------------------
  * Transpiler context
  * ----------------------------------------------------------------- */
@@ -63,9 +69,11 @@ typedef struct
 typedef struct
 {
     CodeBuf *out;          /* main output buffer            */
-    CodeBuf *decls;        /* forward declarations buffer   */
+    CodeBuf *decls;        /* prototypes and forward decls  */
+    CodeBuf *helpers;      /* late helper definitions       */
     int      indent;       /* current indent level          */
     bool     in_parallel;  /* inside a Parallel block       */
+    ASTNode  *program;     /* owning AST program            */
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
@@ -73,6 +81,8 @@ typedef struct
     /* Slot variable → inner type mapping */
     SlotVarEntry slot_vars[MAX_SLOT_VARS];
     int          slot_var_count;
+    TypedVarEntry typed_vars[MAX_SLOT_VARS];
+    int           typed_var_count;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);
@@ -106,6 +116,7 @@ void emit_block(ASTNode *node, TranspilerCtx *ctx);
 /* Declarations */
 void emit_func_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_class_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_extern_block(ASTNode *node, TranspilerCtx *ctx);
 void emit_let_decl(ASTNode *node, TranspilerCtx *ctx);
 
 /* Statements */
@@ -144,5 +155,46 @@ char *emit_builtin_write(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_read(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_release(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log(ASTNode *call, TranspilerCtx *ctx);
+char *emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
+char *emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
+
+/* -----------------------------------------------------------------
+ * Role/Ability system emitters
+ * ----------------------------------------------------------------- */
+
+void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
+
+/* -----------------------------------------------------------------
+ * Async system emitters
+ * ----------------------------------------------------------------- */
+
+void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
+char *emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx);
+char *emit_channel_send(ASTNode *node, TranspilerCtx *ctx);
+char *emit_channel_recv(ASTNode *node, TranspilerCtx *ctx);
+
+/* -----------------------------------------------------------------
+ * Event system emitters
+ * ----------------------------------------------------------------- */
+
+void emit_event_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_event_subscribe(ASTNode *node, TranspilerCtx *ctx);
+void emit_event_unsubscribe(ASTNode *node, TranspilerCtx *ctx);
+void emit_event_invoke(ASTNode *node, TranspilerCtx *ctx);
+char *emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx);
+
+/* -----------------------------------------------------------------
+ * Role/Ability system emitters
+ * ----------------------------------------------------------------- */
+
+void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_include_stmt(ASTNode *node, TranspilerCtx *ctx);
+void emit_impl_ability(ASTNode *node, TranspilerCtx *ctx);
 
 #endif /* PERGYRA_TRANSPILER_H */

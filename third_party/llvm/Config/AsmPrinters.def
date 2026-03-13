@@ -1,0 +1,4 @@
+/*===- llvm/Config/AsmPrinters.def - Stub for Pergyra build -----*- C -*-===*/
+LLVM_ASM_PRINTER(X86)
+LLVM_ASM_PRINTER(AArch64)
+#undef LLVM_ASM_PRINTER

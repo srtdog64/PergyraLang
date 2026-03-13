@@ -21,6 +21,7 @@ static const KeywordEntry keywords[] = {
     {"func",     TOKEN_FUNC},
     {"class",    TOKEN_CLASS},
     {"struct",   TOKEN_STRUCT},
+    {"extern",   TOKEN_EXTERN},
     {"with",     TOKEN_WITH},
     {"as",       TOKEN_AS},
     {"parallel", TOKEN_PARALLEL},
@@ -46,6 +47,22 @@ static const KeywordEntry keywords[] = {
     {"case",     TOKEN_CASE},
     {"default",  TOKEN_DEFAULT},
     {"spawn",    TOKEN_SPAWN},
+    {"event",    TOKEN_EVENT},
+    {"match",    TOKEN_MATCH},
+    {"ability",  TOKEN_ABILITY},
+    {"role",     TOKEN_ROLE},
+    {"include",  TOKEN_INCLUDE},
+    {"require",  TOKEN_REQUIRE},
+    {"override", TOKEN_OVERRIDE},
+    {"super",    TOKEN_SUPER},
+    {"secure",   TOKEN_SECURE},
+    {"party",    TOKEN_PARTY},
+    {"slot",     TOKEN_SLOT},
+    {"shared",   TOKEN_SHARED},
+    {"context",  TOKEN_CONTEXT},
+    {"extends",  TOKEN_EXTENDS},
+    {"systemic", TOKEN_SYSTEMIC},
+    {"world",    TOKEN_WORLD},
     {NULL,       TOKEN_EOF}
 };
 
@@ -305,7 +322,12 @@ Token lexer_next_token(Lexer* lexer) {
             return make_token(lexer, TOKEN_DOT, start, 1);
         case ';': return make_token(lexer, TOKEN_SEMICOLON, start, 1);
         case ':': return make_token(lexer, TOKEN_COLON, start, 1);
-        case '+': return make_token(lexer, TOKEN_PLUS, start, 1);
+        case '+':
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_SUBSCRIBE, start, 2); /* += */
+            }
+            return make_token(lexer, TOKEN_PLUS, start, 1);
         case '*': return make_token(lexer, TOKEN_STAR, start, 1);
         case '/': return make_token(lexer, TOKEN_SLASH, start, 1);
         case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
@@ -317,12 +339,20 @@ Token lexer_next_token(Lexer* lexer) {
                 advance(lexer);
                 return make_token(lexer, TOKEN_ARROW, start, 2);
             }
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_UNSUBSCRIBE, start, 2); /* -= */
+            }
             return make_token(lexer, TOKEN_MINUS, start, 1);
             
         case '=':
             if (peek(lexer) == '=') {
                 advance(lexer);
                 return make_token(lexer, TOKEN_EQUAL, start, 2);
+            }
+            if (peek(lexer) == '>') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_LAMBDA, start, 2); /* => */
             }
             return make_token(lexer, TOKEN_ASSIGN, start, 1);
             
@@ -353,15 +383,16 @@ Token lexer_next_token(Lexer* lexer) {
                 return make_token(lexer, TOKEN_AND, start, 2);
             }
             break;
-            
+
         case '|':
             if (peek(lexer) == '|') {
                 advance(lexer);
                 return make_token(lexer, TOKEN_OR, start, 2);
             }
             break;
+
     }
-    
+
     return error_token(lexer, "Unexpected character");
 }
 
@@ -382,6 +413,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_FUNC: return "FUNC";
         case TOKEN_CLASS: return "CLASS";
         case TOKEN_STRUCT: return "STRUCT";
+        case TOKEN_EXTERN: return "EXTERN";
         case TOKEN_WITH: return "WITH";
         case TOKEN_AS: return "AS";
         case TOKEN_PARALLEL: return "PARALLEL";
@@ -405,6 +437,10 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_CASE: return "CASE";
         case TOKEN_DEFAULT: return "DEFAULT";
         case TOKEN_SPAWN: return "SPAWN";
+        case TOKEN_EVENT: return "EVENT";
+        case TOKEN_SUBSCRIBE: return "+=";
+        case TOKEN_UNSUBSCRIBE: return "-=";
+        case TOKEN_LAMBDA: return "=>";
         case TOKEN_ASSIGN: return "=";
         case TOKEN_PLUS: return "+";
         case TOKEN_MINUS: return "-";

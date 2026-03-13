@@ -1,7 +1,8 @@
 # Pergyra Role/Interface System Design
 
 ## Overview
-Pergyra의 혁신적인 역할 기반 조합 시스템으로, 기존의 trait 상속을 대체하는 더 단순하고 안전한 패러다임입니다.
+이 문서는 Pergyra의 역할 기반 조합 시스템 초안을 정리한다.
+`struct`, `ability`, `role`, `include`를 기준으로 데이터와 행위의 결합 방식을 설명한다.
 
 ## Core Concepts
 

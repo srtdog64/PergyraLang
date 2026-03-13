@@ -1,8 +1,8 @@
 # Pergyra Language Naming Convention
 
-## BSD Style + C# Convention
+## Convention Summary
 
-Pergyra adopts a hybrid naming convention that combines BSD-style clarity with C# conventions for modern readability.
+This document defines the naming rules currently used by the Pergyra codebase and examples.
 
 ## 1. Basic Rules
 
@@ -94,17 +94,7 @@ All built-in functions follow PascalCase:
   - `pergyra.security`
   - `pergyra.parallel`
 
-## 5. Comparison with Other Languages
-
-| Element | Pergyra | C# | Rust | Go |
-|---------|---------|----|----|-----|
-| Variables | camelCase | camelCase | snake_case | camelCase |
-| Functions | PascalCase | PascalCase | snake_case | PascalCase |
-| Types | PascalCase | PascalCase | PascalCase | PascalCase |
-| Constants | UPPER_SNAKE | PascalCase | UPPER_SNAKE | PascalCase |
-| Private Fields | _camelCase | _camelCase | snake_case | camelCase |
-
-## 6. Examples
+## 5. Examples
 
 ### Complete Class Example
 ```pergyra
@@ -168,7 +158,7 @@ func ParallelMatrixOperation(matrices: Array<Matrix>) -> Array<Matrix> {
 }
 ```
 
-## 7. Migration Guide
+## 6. Migration Guide
 
 When converting existing Pergyra code to the new convention:
 
@@ -182,12 +172,8 @@ When converting existing Pergyra code to the new convention:
 | `process_data()` | `ProcessData()` |
 | `MAX_VALUE` | `MAX_VALUE` (unchanged) |
 
-## 8. Rationale
+## 7. Rationale
 
-This naming convention combines:
-- **BSD clarity**: Clear distinction between types, functions, and variables
-- **C# familiarity**: PascalCase for public APIs makes the language feel modern
-- **Consistency**: All public APIs use the same convention
-- **Safety**: Private field prefix prevents naming conflicts
-
-The result is a language that feels both professional and approachable, with clear visual distinctions between different code elements.
+- **Clarity**: Types, functions, variables, and constants use distinct forms.
+- **Consistency**: Public APIs use one convention across compiler code and examples.
+- **Safety**: Private field prefixes reduce naming conflicts inside roles and classes.

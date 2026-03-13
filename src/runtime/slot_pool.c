@@ -430,8 +430,18 @@ uint64_t
 GetTimestampNs(void)
 {
     struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+
+#if defined(CLOCK_MONOTONIC)
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
+        return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+    }
+#endif
+
+    if (timespec_get(&ts, TIME_UTC) == TIME_UTC) {
+        return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+    }
+
+    return (uint64_t)clock() * (1000000000ULL / CLOCKS_PER_SEC);
 }
 
 /*
@@ -499,6 +509,7 @@ BenchmarkLinkedList(size_t nodeCount, size_t iterations)
         while (current != NULL_INDEX) {
             LinkedListNode *node = LinkedListGetNode(list, current);
             volatile int32_t value = node->value; /* Prevent optimization */
+            (void)value;
             current = node->next;
         }
     }

@@ -65,13 +65,19 @@ ASTNode* parser_parse_async_function(Parser* parser)
     // Parse parameters (similar to regular function)
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
         Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
-        parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
-        ASTNode* param_type = parse_type(parser);
-        
-        // Add parameter to function
+
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);
-        param->type = param_type;
+
+        // self parameter: no type annotation needed
+        if (strcmp(param_name.text, "self") == 0
+            && !parser_check(parser, TOKEN_COLON)) {
+            param->type = NULL;
+        } else {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+            ASTNode* param_type = parse_type(parser);
+            param->type = param_type;
+        }
         
         func->data.async_func_decl.param_count++;
         func->data.async_func_decl.params = realloc(
@@ -251,33 +257,46 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             ASTNode* case_node = NULL;
             
             if (parser_check(parser, TOKEN_CHANNEL_OP)) {
-                // Receive case: case value = <-channel:
+                // Receive case: case <-channel:
                 parser_advance(parser);
                 ASTNode* channel = parser_parse_expression(parser);
-                
-                // TODO: Create proper case node with pattern
                 case_node = ast_create_channel_recv(channel);
             } else {
-                // Send case or other
+                // Receive with assignment: case val = <-channel:
                 Token var_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name");
-                (void)var_name;
-                
+
                 if (parser_match(parser, TOKEN_ASSIGN)) {
                     parser_consume(parser, TOKEN_CHANNEL_OP, "Expected '<-' in select case");
                     ASTNode* channel = parser_parse_expression(parser);
-                    
-                    // TODO: Create receive case with assignment
-                    case_node = ast_create_channel_recv(channel);
+                    ASTNode* recv = ast_create_channel_recv(channel);
+
+                    // Wrap in a let-like assignment: let var_name = <-channel
+                    ASTNode* var_id = ast_create_identifier(var_name.text);
+                    ASTNode* assign = calloc(1, sizeof(ASTNode));
+                    assign->type = AST_ASSIGNMENT;
+                    assign->data.assignment.target = var_id;
+                    assign->data.assignment.value = recv;
+                    case_node = assign;
                 } else {
                     parser_error(parser, "Invalid select case");
                 }
             }
-            
+
             parser_consume(parser, TOKEN_COLON, "Expected ':' after select case");
-            
-            // Parse case body
+
+            // Parse case body and attach to the case node
             ASTNode* body = parser_parse_statement(parser);
-            (void)body;
+
+            // Wrap case_node + body in a block so both are preserved
+            if (body != NULL && case_node != NULL) {
+                ASTNode* block = calloc(1, sizeof(ASTNode));
+                block->type = AST_BLOCK;
+                block->data.block.statements = calloc(2, sizeof(ASTNode*));
+                block->data.block.statements[0] = case_node;
+                block->data.block.statements[1] = body;
+                block->data.block.count = 2;
+                case_node = block;
+            }
             
             // Add case to select statement
             select_stmt->data.select_stmt.case_count++;

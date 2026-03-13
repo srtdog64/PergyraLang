@@ -22,6 +22,8 @@
 #include <signal.h>
 #include <setjmp.h>
 
+/* Enable debug mode for slot safety checks */
+#define PGY_DEBUG
 #include "runtime/pgy_runtime.h"
 
 /* -----------------------------------------------------------------
@@ -421,6 +423,90 @@ test_slot_isolation(void)
     }
 }
 
+static void
+test_allocator_features(void)
+{
+    printf("\n[allocator]\n");
+
+    TEST("tracing allocator tracks allocation and free counts");
+    {
+        PgyAllocator alloc = pgy_allocator_tracing();
+        int32_t *data = (int32_t*)pgy_alloc(&alloc, sizeof(int32_t) * 4, _Alignof(int32_t));
+        pgy_free(&alloc, data, sizeof(int32_t) * 4);
+        EXPECT(alloc.allocations == 1 && alloc.deallocations == 1);
+    }
+
+    TEST("pool allocator serves allocations from fixed buffer");
+    {
+        PgyAllocator alloc = pgy_allocator_pool(256);
+        void *a = pgy_alloc(&alloc, 32, 8);
+        void *b = pgy_alloc(&alloc, 32, 8);
+        EXPECT(a != NULL && b != NULL && a != b);
+        pgy_allocator_destroy(&alloc);
+    }
+}
+
+static void
+test_rc_weak_features(void)
+{
+    printf("\n[rc_weak]\n");
+
+    TEST("Rc clone increments strong count and preserves value");
+    {
+        PgyRc_Int rc = pgy_rc_new_Int(42);
+        PgyRc_Int clone = pgy_rc_clone_Int(rc);
+        EXPECT(rc.ctrl->strong_count == 2);
+        EXPECT(*pgy_rc_get_Int(&clone) == 42);
+        pgy_rc_drop_Int(&rc);
+        pgy_rc_drop_Int(&clone);
+    }
+
+    TEST("Weak upgrade succeeds while strong refs are alive");
+    {
+        PgyRc_Int rc = pgy_rc_new_Int(7);
+        PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
+        PgyRc_Int upgraded = pgy_weak_upgrade_Int(weak);
+        EXPECT(*pgy_rc_get_Int(&upgraded) == 7);
+        pgy_rc_drop_Int(&rc);
+        pgy_rc_drop_Int(&upgraded);
+        pgy_weak_drop_Int(&weak);
+    }
+
+    EXPECT_PANIC("Weak upgrade after Rc drop triggers panic", {
+        PgyRc_Int rc = pgy_rc_new_Int(9);
+        PgyWeak_Int weak = pgy_rc_downgrade_Int(rc);
+        pgy_rc_drop_Int(&rc);
+        pgy_weak_upgrade_Int(weak);
+    });
+}
+
+static void
+test_box_array_features(void)
+{
+    printf("\n[box_array]\n");
+
+    TEST("BoxArray uses single fused allocation layout");
+    {
+        PgyAllocator alloc = pgy_allocator_tracing();
+        PgyBoxArray_Int box = pgy_box_array_new_Int(16, &alloc);
+        PgyArray_Int *arr = pgy_box_array_get_Int(&box);
+        EXPECT(arr->data == ((int32_t*)((char*)arr + sizeof(PgyArray_Int))));
+        EXPECT(alloc.allocations == 1);
+        pgy_box_array_drop_Int(&box);
+    }
+
+    TEST("BoxArray stores values through embedded array");
+    {
+        PgyBoxArray_Int box = pgy_box_array_new_Int(4, NULL);
+        PgyArray_Int *arr = pgy_box_array_get_Int(&box);
+        pgy_array_push_Int(arr, 10);
+        pgy_array_push_Int(arr, 20);
+        EXPECT(pgy_array_get_Int(arr, 0) == 10);
+        EXPECT(pgy_array_get_Int(arr, 1) == 20);
+        pgy_box_array_drop_Int(&box);
+    }
+}
+
 /* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
@@ -441,6 +527,9 @@ main(void)
     test_secure_slot_lifecycle();
     test_panic_conditions();
     test_slot_isolation();
+    test_allocator_features();
+    test_rc_weak_features();
+    test_box_array_features();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return (g_fail > 0) ? 1 : 0;

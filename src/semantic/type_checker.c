@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include "../common/string_compat.h"
 #include "type_checker.h"
 
 #define INITIAL_DIAG_CAPACITY 16
@@ -85,7 +86,7 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
 
     char buf[512];
     vsnprintf(buf, sizeof(buf), fmt, ap);
-    d->message = strdup(buf);
+    d->message = pergyra_strdup(buf);
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 
@@ -128,18 +129,9 @@ semantic_print_diagnostics(SemanticContext *ctx)
  * Utility — resolve AST type node to Type*
  * ----------------------------------------------------------------- */
 
-Type *
-resolve_type_node(ASTNode *node, SemanticContext *ctx)
+static Type *
+resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
-    if (node == NULL)
-        return TYPE_VOID;
-
-    if (node->type != AST_TYPE && node->type != AST_GENERIC_TYPE)
-        return TYPE_UNKNOWN;
-
-    const char *name = node->data.type.name;
-
-    /* Built-in primitive types */
     if (strcmp(name, "Int")    == 0) return TYPE_INT;
     if (strcmp(name, "Long")   == 0) return TYPE_LONG;
     if (strcmp(name, "Float")  == 0) return TYPE_FLOAT;
@@ -147,46 +139,97 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
     if (strcmp(name, "Bool")   == 0) return TYPE_BOOL;
     if (strcmp(name, "String") == 0) return TYPE_STRING;
     if (strcmp(name, "Void")   == 0) return TYPE_VOID;
+    if (strcmp(name, "Array")  == 0) return TYPE_ARRAY;
+    if (strcmp(name, "Slice")  == 0) return TYPE_SLICE;
+    if (strcmp(name, "Box")    == 0) return TYPE_BOX;
+    if (strcmp(name, "Rc")     == 0) return TYPE_RC;
+    if (strcmp(name, "Weak")   == 0) return TYPE_WEAK;
+    if (strcmp(name, "Allocator") == 0) return TYPE_ALLOCATOR;
 
-    /* Slot<T> */
-    if (strcmp(name, "Slot") == 0) {
-        if (node->data.type.generic_args == NULL
-            || node->data.type.generic_args->count == 0) {
-            semantic_error(ctx, node, "Slot requires a type argument");
-            return TYPE_UNKNOWN;
-        }
-        /* parse_generic_params stores "String" in param->name,
-           not in param->constraint (which is for T: Trait bounds). */
-        GenericParam *gp = node->data.type.generic_args->params[0];
-        ASTNode *inner_node = gp->constraint;
-        if (inner_node == NULL)
-            inner_node = ast_create_type(gp->name);
-        Type *inner = resolve_type_node(inner_node, ctx);
-        return type_create_slot(inner, false);
-    }
-
-    /* SecureSlot<T> */
-    if (strcmp(name, "SecureSlot") == 0) {
-        if (node->data.type.generic_args == NULL
-            || node->data.type.generic_args->count == 0) {
-            semantic_error(ctx, node, "SecureSlot requires a type argument");
-            return TYPE_UNKNOWN;
-        }
-        GenericParam *gp = node->data.type.generic_args->params[0];
-        ASTNode *inner_node = gp->constraint;
-        if (inner_node == NULL)
-            inner_node = ast_create_type(gp->name);
-        Type *inner = resolve_type_node(inner_node, ctx);
-        return type_create_slot(inner, true);
-    }
-
-    /* User-defined type: look up in scope */
     Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL)
         return sym->type;
 
-    semantic_error(ctx, node, "Unknown type '%s'", name);
+    semantic_error(ctx, site, "Unknown type '%s'", name);
     return TYPE_UNKNOWN;
+}
+
+static Type *
+resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
+                         const ASTNode *site)
+{
+    if (gp == NULL)
+        return TYPE_UNKNOWN;
+    if (gp->constraint != NULL)
+        return resolve_type_node(gp->constraint, ctx);
+    return resolve_named_type(gp->name, ctx, site);
+}
+
+static bool
+type_is_constructed_named(const Type *type, const char *name)
+{
+    return type != NULL
+        && type->kind == TYPE_KIND_CONSTRUCTED
+        && type->data.constructed.constructor != NULL
+        && strcmp(type->data.constructed.constructor->name, name) == 0;
+}
+
+static Type *
+type_get_constructed_arg(const Type *type, size_t index)
+{
+    if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
+        return TYPE_UNKNOWN;
+    if (index >= type->data.constructed.arg_count)
+        return TYPE_UNKNOWN;
+    return type->data.constructed.args[index];
+}
+
+Type *
+resolve_type_node(ASTNode *node, SemanticContext *ctx)
+{
+    if (node == NULL)
+        return TYPE_VOID;
+
+    if (node->type != AST_TYPE)
+        return TYPE_UNKNOWN;
+
+    const char *name = node->data.type.name;
+
+    if (strcmp(name, "Slot") == 0 || strcmp(name, "SecureSlot") == 0) {
+        if (node->data.type.generic_args == NULL
+            || node->data.type.generic_args->count != 1) {
+            semantic_error(ctx, node,
+                "%s requires exactly one type argument", name);
+            return TYPE_UNKNOWN;
+        }
+        Type *inner = resolve_generic_type_arg(
+            node->data.type.generic_args->params[0], ctx, node);
+        return type_create_slot(inner, strcmp(name, "SecureSlot") == 0);
+    }
+
+    if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
+        || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
+        || strcmp(name, "Weak") == 0) {
+        if (node->data.type.generic_args == NULL
+            || node->data.type.generic_args->count != 1) {
+            semantic_error(ctx, node,
+                "%s requires exactly one type argument", name);
+            return TYPE_UNKNOWN;
+        }
+
+        Type *inner = resolve_generic_type_arg(
+            node->data.type.generic_args->params[0], ctx, node);
+        Type *constructor = TYPE_UNKNOWN;
+        if (strcmp(name, "Array") == 0) constructor = TYPE_ARRAY;
+        else if (strcmp(name, "Slice") == 0) constructor = TYPE_SLICE;
+        else if (strcmp(name, "Box") == 0) constructor = TYPE_BOX;
+        else if (strcmp(name, "Rc") == 0) constructor = TYPE_RC;
+        else if (strcmp(name, "Weak") == 0) constructor = TYPE_WEAK;
+        Type *args[1] = { inner };
+        return type_create_constructed(constructor, args, 1);
+    }
+
+    return resolve_named_type(name, ctx, node);
 }
 
 bool
@@ -215,6 +258,19 @@ builtin_resolve(const char *name)
     if (strcmp(name, "Read")            == 0) return BUILTIN_READ;
     if (strcmp(name, "Release")         == 0) return BUILTIN_RELEASE;
     if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
+    if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
+    if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
+    if (strcmp(name, "RcDrop")          == 0) return BUILTIN_RC_DROP;
+    if (strcmp(name, "RcDowngrade")     == 0) return BUILTIN_RC_DOWNGRADE;
+    if (strcmp(name, "RcGet")           == 0) return BUILTIN_RC_GET;
+    if (strcmp(name, "WeakUpgrade")     == 0) return BUILTIN_WEAK_UPGRADE;
+    if (strcmp(name, "WeakDrop")        == 0) return BUILTIN_WEAK_DROP;
+    if (strcmp(name, "AllocatorSystem") == 0) return BUILTIN_ALLOCATOR_SYSTEM;
+    if (strcmp(name, "AllocatorTracing")== 0) return BUILTIN_ALLOCATOR_TRACING;
+    if (strcmp(name, "AllocatorDebug")  == 0) return BUILTIN_ALLOCATOR_DEBUG;
+    if (strcmp(name, "AllocatorPool")   == 0) return BUILTIN_ALLOCATOR_POOL;
+    if (strcmp(name, "Box")             == 0) return BUILTIN_BOX;
+    if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -428,6 +484,163 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     return true;
 }
 
+static Type *
+wrap_constructed(Type *constructor, Type *inner)
+{
+    Type *args[1] = { inner };
+    return type_create_constructed(constructor, args, 1);
+}
+
+static Type *
+type_check_rc_new(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "RcNew requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *inner = type_check_expression(call->data.call.arguments[0], ctx);
+    return wrap_constructed(TYPE_RC, inner);
+}
+
+static Type *
+type_check_rc_clone(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "RcClone requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(rc_type, "Rc")) {
+        semantic_error(ctx, call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
+        return TYPE_UNKNOWN;
+    }
+    return rc_type;
+}
+
+static Type *
+type_check_rc_get(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "RcGet requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(rc_type, "Rc")) {
+        semantic_error(ctx, call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
+        return TYPE_UNKNOWN;
+    }
+    return type_get_constructed_arg(rc_type, 0);
+}
+
+static Type *
+type_check_rc_downgrade(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "RcDowngrade requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(rc_type, "Rc")) {
+        semantic_error(ctx, call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
+        return TYPE_UNKNOWN;
+    }
+    return wrap_constructed(TYPE_WEAK, type_get_constructed_arg(rc_type, 0));
+}
+
+static Type *
+type_check_weak_upgrade(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "WeakUpgrade requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(weak_type, "Weak")) {
+        semantic_error(ctx, call, "WeakUpgrade requires Weak<T>, got '%s'", weak_type->name);
+        return TYPE_UNKNOWN;
+    }
+    return wrap_constructed(TYPE_RC, type_get_constructed_arg(weak_type, 0));
+}
+
+static Type *
+type_check_weak_drop(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "WeakDrop requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(weak_type, "Weak")) {
+        semantic_error(ctx, call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
+        return TYPE_UNKNOWN;
+    }
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx, bool requires_capacity)
+{
+    if ((!requires_capacity && call->data.call.arg_count != 0)
+        || (requires_capacity && call->data.call.arg_count != 1)) {
+        semantic_error(ctx, call,
+            requires_capacity
+                ? "AllocatorPool requires exactly 1 capacity argument"
+                : "Allocator constructor takes no arguments");
+        return TYPE_UNKNOWN;
+    }
+
+    if (requires_capacity) {
+        Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
+        if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
+            semantic_error(ctx, call->data.call.arguments[0],
+                "AllocatorPool capacity must be Int or Long, got '%s'",
+                cap_type->name);
+            return TYPE_UNKNOWN;
+        }
+    }
+
+    return TYPE_ALLOCATOR;
+}
+
+static Type *
+type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "Box requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+    Type *inner = type_check_expression(call->data.call.arguments[0], ctx);
+    return wrap_constructed(TYPE_BOX, inner);
+}
+
+static Type *
+type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count < 1 || call->data.call.arg_count > 2) {
+        semantic_error(ctx, call,
+            "BoxArray requires capacity and optional allocator");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
+        semantic_error(ctx, call->data.call.arguments[0],
+            "BoxArray capacity must be Int or Long, got '%s'", cap_type->name);
+        return TYPE_UNKNOWN;
+    }
+
+    if (call->data.call.arg_count == 2) {
+        Type *alloc_type = type_check_expression(call->data.call.arguments[1], ctx);
+        if (!type_equals(alloc_type, TYPE_ALLOCATOR)) {
+            semantic_error(ctx, call->data.call.arguments[1],
+                "BoxArray allocator must be Allocator, got '%s'", alloc_type->name);
+            return TYPE_UNKNOWN;
+        }
+    }
+
+    return TYPE_UNKNOWN;
+}
+
 /* -----------------------------------------------------------------
  * Built-in call dispatcher
  * ----------------------------------------------------------------- */
@@ -454,6 +667,42 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind,
     case BUILTIN_LOG:
         /* Log accepts any argument count and types */
         return TYPE_VOID;
+
+    case BUILTIN_RC_NEW:
+        return type_check_rc_new(call, ctx);
+
+    case BUILTIN_RC_CLONE:
+        return type_check_rc_clone(call, ctx);
+
+    case BUILTIN_RC_DROP:
+        (void)type_check_rc_clone(call, ctx);
+        return TYPE_VOID;
+
+    case BUILTIN_RC_DOWNGRADE:
+        return type_check_rc_downgrade(call, ctx);
+
+    case BUILTIN_RC_GET:
+        return type_check_rc_get(call, ctx);
+
+    case BUILTIN_WEAK_UPGRADE:
+        return type_check_weak_upgrade(call, ctx);
+
+    case BUILTIN_WEAK_DROP:
+        return type_check_weak_drop(call, ctx);
+
+    case BUILTIN_ALLOCATOR_SYSTEM:
+    case BUILTIN_ALLOCATOR_TRACING:
+    case BUILTIN_ALLOCATOR_DEBUG:
+        return type_check_allocator_builtin(call, ctx, false);
+
+    case BUILTIN_ALLOCATOR_POOL:
+        return type_check_allocator_builtin(call, ctx, true);
+
+    case BUILTIN_BOX:
+        return type_check_box_builtin(call, ctx);
+
+    case BUILTIN_BOX_ARRAY:
+        return type_check_box_array_builtin(call, ctx);
 
     case BUILTIN_PARALLEL:
         /* Handled separately by type_check_parallel_block */
@@ -509,6 +758,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_MEMBER_ACCESS:
         return type_check_member_access(expr, ctx);
 
+    case AST_ARRAY_ACCESS:
+        return type_check_array_access(expr, ctx);
+
     case AST_ASSIGNMENT:
         return type_check_assignment(expr, ctx);
 
@@ -518,6 +770,15 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 "'await' used outside of async function");
         }
         return type_check_expression(expr->data.await_expr.expression, ctx);
+
+    case AST_SPAWN_EXPR:
+        return type_check_spawn_expr(expr, ctx);
+
+    case AST_CHANNEL_SEND:
+        return type_check_channel_send(expr, ctx);
+
+    case AST_CHANNEL_RECV:
+        return type_check_channel_recv(expr, ctx);
 
     default:
         return TYPE_UNKNOWN;
@@ -529,6 +790,16 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *left  = type_check_expression(expr->data.binary.left,  ctx);
     Type *right = type_check_expression(expr->data.binary.right, ctx);
+
+    /* If either operand is unknown, skip checks and propagate */
+    if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN) {
+        TokenType op = expr->data.binary.op.type;
+        if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
+            || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
+            || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL)
+            return TYPE_BOOL;
+        return (left != TYPE_UNKNOWN) ? left : right;
+    }
 
     /* Comparison operators → Bool */
     TokenType op = expr->data.binary.op.type;
@@ -598,6 +869,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 "Undefined function '%s'", name);
             return TYPE_UNKNOWN;
         }
+        /* Allow class constructors: ClassName() */
+        if (sym->kind == SYMBOL_CLASS) {
+            sym->is_used = true;
+            return sym->type;
+        }
+
         if (sym->type->kind != TYPE_KIND_FUNCTION) {
             semantic_error(ctx, expr,
                 "'%s' is not a function", name);
@@ -641,8 +918,54 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 {
-    type_check_expression(expr->data.member.object, ctx);
-    /* Full member resolution deferred to Phase 2 */
+    Type *object_type = type_check_expression(expr->data.member.object, ctx);
+
+    if ((type_is_constructed_named(object_type, "Array")
+         || type_is_constructed_named(object_type, "Slice"))
+        && strcmp(expr->data.member.name, "Length") == 0) {
+        return TYPE_INT;
+    }
+
+    /* Resolve class field types */
+    if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS
+        && object_type->name != NULL) {
+        /* Look up the class declaration in scope */
+        Symbol *cls_sym = scope_lookup(ctx->scope, object_type->name);
+        if (cls_sym != NULL && cls_sym->kind == SYMBOL_CLASS) {
+            /* For now, return a generic type — full field resolution
+             * would require storing field info in the Type structure.
+             * Accept any field access on class types. */
+            return TYPE_UNKNOWN;
+        }
+    }
+
+    /* Unknown member access — allow without error for class types */
+    if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS)
+        return TYPE_UNKNOWN;
+
+    return TYPE_UNKNOWN;
+}
+
+Type *
+type_check_array_access(ASTNode *expr, SemanticContext *ctx)
+{
+    Type *object_type = type_check_expression(expr->data.array_access.array, ctx);
+    Type *index_type  = type_check_expression(expr->data.array_access.index, ctx);
+
+    if (!type_equals(index_type, TYPE_INT)) {
+        semantic_error(ctx, expr->data.array_access.index,
+            "Array index must be Int, got '%s'", index_type->name);
+        return TYPE_UNKNOWN;
+    }
+
+    if (type_is_constructed_named(object_type, "Array")
+        || type_is_constructed_named(object_type, "Slice")) {
+        return type_get_constructed_arg(object_type, 0);
+    }
+
+    semantic_error(ctx, expr->data.array_access.array,
+        "Index access requires Array<T> or Slice<T>, got '%s'",
+        object_type->name);
     return TYPE_UNKNOWN;
 }
 
@@ -713,17 +1036,44 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    /* Normal variable declaration */
+    /* Normal variable declaration with type inference */
     Type *init_type = (init != NULL)
                       ? type_check_expression(init, ctx)
                       : TYPE_VOID;
 
-    Type *decl_type = (ann != NULL)
-                      ? resolve_type_node(ann, ctx)
-                      : init_type;
-
-    if (ann != NULL && init != NULL)
-        require_assignable(init_type, decl_type, init, ctx);
+    Type *decl_type;
+    
+    /* Type inference: if no annotation, infer from initializer */
+    if (ann != NULL) {
+        /* Explicit type annotation */
+        decl_type = resolve_type_node(ann, ctx);
+        if (init != NULL) {
+            if (init->type == AST_CALL
+                && init->data.call.callee->type == AST_IDENTIFIER
+                && strcmp(init->data.call.callee->data.identifier.name,
+                          "BoxArray") == 0) {
+                init_type = decl_type;
+            }
+            require_assignable(init_type, decl_type, init, ctx);
+        }
+    } else if (init != NULL) {
+        /* Infer type from initializer */
+        decl_type = init_type;
+        
+        /* For generic types like Box<T>, Array<T>, Result<T,E>, 
+           ensure the inferred type is concrete */
+        if (init_type->kind == TYPE_KIND_GENERIC) {
+            semantic_error(ctx, init, 
+                "Cannot infer type: generic parameter '%s' is ambiguous. "
+                "Please provide a type annotation.", init_type->name);
+            decl_type = TYPE_UNKNOWN;
+        }
+    } else {
+        /* No annotation and no initializer */
+        semantic_error(ctx, node,
+            "Cannot infer type: provide a type annotation or initializer");
+        decl_type = TYPE_UNKNOWN;
+    }
 
     Symbol *sym = symbol_create_variable(name, decl_type,
                                           node->line, node->column);
@@ -794,6 +1144,66 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
+type_check_while_loop(ASTNode *node, SemanticContext *ctx)
+{
+    Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
+    if (!type_equals(cond, TYPE_BOOL)) {
+        semantic_error(ctx, node,
+            "While condition must be Bool, got '%s'", cond->name);
+    }
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    type_check_block(node->data.while_loop.body, ctx);
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_match_stmt(ASTNode *node, SemanticContext *ctx)
+{
+    Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
+
+    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+        ASTNode *mc = node->data.match_stmt.cases[i];
+
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+
+        /* Check pattern type compatibility */
+        if (mc->data.match_case.pattern != NULL) {
+            Type *pat_type = type_check_expression(mc->data.match_case.pattern, ctx);
+            if (!type_is_assignable(pat_type, subj_type) &&
+                !type_is_assignable(subj_type, pat_type)) {
+                semantic_error(ctx, mc->data.match_case.pattern,
+                    "Case pattern type '%s' incompatible with match subject '%s'",
+                    pat_type->name, subj_type->name);
+            }
+        }
+
+        /* Guard must be Bool */
+        if (mc->data.match_case.guard != NULL) {
+            Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
+            if (!type_equals(guard_type, TYPE_BOOL)) {
+                semantic_error(ctx, mc->data.match_case.guard,
+                    "Case guard must be Bool, got '%s'", guard_type->name);
+            }
+        }
+
+        type_check_block(mc->data.match_case.body, ctx);
+        scope_exit(&ctx->scope);
+    }
+
+    /* Check default body */
+    if (node->data.match_stmt.default_body != NULL) {
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        type_check_block(node->data.match_stmt.default_body, ctx);
+        scope_exit(&ctx->scope);
+    }
+
+    return !ctx->has_error;
+}
+
+bool
 type_check_with_stmt(ASTNode *node, SemanticContext *ctx)
 {
     scope_enter(&ctx->scope, SCOPE_WITH);
@@ -835,6 +1245,414 @@ type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
+type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.ability_decl.name;
+
+    /* Register ability as a symbol so roles can reference it */
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_ABILITY;
+    sym->type = TYPE_VOID; /* Abilities don't have a concrete type */
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of ability '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check require fields have valid types */
+    for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
+        ASTNode *req = node->data.ability_decl.require_fields[i];
+        resolve_type_node(req->data.require_field.type, ctx);
+    }
+
+    /* Check method signatures */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
+        ASTNode *method = node->data.ability_decl.methods[i];
+        /* Only type-check methods that have a body */
+        if (method->data.func_decl.body != NULL) {
+            type_check_func_decl(method, ctx);
+        } else {
+            /* Abstract method — just validate the signature types */
+            if (method->data.func_decl.return_type != NULL)
+                resolve_type_node(method->data.func_decl.return_type, ctx);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                if (method->data.func_decl.params[j]->type != NULL)
+                    resolve_type_node(method->data.func_decl.params[j]->type, ctx);
+            }
+        }
+    }
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_role_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.role_decl.name;
+
+    /* Register role as a symbol */
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_ROLE;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of role '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check for_type exists */
+    if (node->data.role_decl.for_type != NULL) {
+        resolve_type_node(node->data.role_decl.for_type, ctx);
+    }
+
+    /* Check includes reference existing roles */
+    for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
+        ASTNode *inc = node->data.role_decl.includes[i];
+        const char *role_name = inc->data.include_stmt.role_name;
+        Symbol *role_sym = scope_lookup(ctx->scope, role_name);
+        if (role_sym == NULL) {
+            semantic_warning(ctx, inc,
+                "Included role '%s' not found in current scope", role_name);
+        }
+    }
+
+    /* Check impl ability blocks */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
+        ASTNode *impl = node->data.role_decl.impl_abilities[i];
+
+        if (impl->type == AST_IMPL_ABILITY) {
+            /* Check that the ability exists */
+            if (impl->data.impl_ability.ability_name != NULL) {
+                Symbol *ab = scope_lookup(ctx->scope,
+                    impl->data.impl_ability.ability_name);
+                if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
+                    semantic_warning(ctx, impl,
+                        "Ability '%s' not found in current scope",
+                        impl->data.impl_ability.ability_name);
+                }
+            }
+
+            /* Type-check each method implementation */
+            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+                type_check_func_decl(impl->data.impl_ability.methods[j], ctx);
+            }
+        } else if (impl->type == AST_OVERRIDE_FUNC) {
+            /* Type-check the overridden function */
+            if (impl->data.override_func.func_decl != NULL)
+                type_check_func_decl(impl->data.override_func.func_decl, ctx);
+        }
+    }
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_party_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.party_decl.name;
+
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_PARTY;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of party '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check role slot ability references */
+    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
+        ASTNode *rs = node->data.party_decl.role_slots[i];
+        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
+            ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
+            if (ab_type != NULL && ab_type->data.type.name != NULL) {
+                Symbol *ab = scope_lookup(ctx->scope, ab_type->data.type.name);
+                if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
+                    semantic_warning(ctx, rs,
+                        "Ability '%s' not found for role slot '%s'",
+                        ab_type->data.type.name,
+                        rs->data.role_slot.slot_name);
+                }
+            }
+        }
+    }
+
+    /* Check shared fields */
+    for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
+        ASTNode *shared = node->data.party_decl.shared_fields[i];
+        if (shared->data.party_shared.type != NULL)
+            resolve_type_node(shared->data.party_shared.type, ctx);
+        if (shared->data.party_shared.initializer != NULL)
+            type_check_expression(shared->data.party_shared.initializer, ctx);
+    }
+
+    /* Check methods */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+        type_check_func_decl(node->data.party_decl.methods[i], ctx);
+    }
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.systemic_decl.name;
+
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_SYSTEMIC;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of systemic '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check party slot references */
+    for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
+        ASTNode *ps = node->data.systemic_decl.party_slots[i];
+        if (ps->data.systemic_slot.party_type != NULL) {
+            Symbol *party = scope_lookup(ctx->scope,
+                ps->data.systemic_slot.party_type);
+            if (party == NULL || party->kind != SYMBOL_PARTY) {
+                semantic_warning(ctx, ps,
+                    "Party type '%s' not found for slot '%s'",
+                    ps->data.systemic_slot.party_type,
+                    ps->data.systemic_slot.slot_name);
+            }
+        }
+    }
+
+    /* Check shared fields */
+    for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++) {
+        ASTNode *shared = node->data.systemic_decl.shared_fields[i];
+        if (shared->data.party_shared.type != NULL)
+            resolve_type_node(shared->data.party_shared.type, ctx);
+        if (shared->data.party_shared.initializer != NULL)
+            type_check_expression(shared->data.party_shared.initializer, ctx);
+    }
+
+    /* Check methods */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
+        type_check_func_decl(node->data.systemic_decl.methods[i], ctx);
+    }
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_world_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.world_decl.name;
+
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_WORLD;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of world '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check systemic references */
+    for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
+        ASTNode *ws = node->data.world_decl.systemics[i];
+        if (ws->data.world_systemic.systemic_type != NULL) {
+            Symbol *sys = scope_lookup(ctx->scope,
+                ws->data.world_systemic.systemic_type);
+            if (sys == NULL || sys->kind != SYMBOL_SYSTEMIC) {
+                semantic_warning(ctx, ws,
+                    "Systemic type '%s' not found for slot '%s'",
+                    ws->data.world_systemic.systemic_type,
+                    ws->data.world_systemic.slot_name);
+            }
+        }
+    }
+
+    /* Check shared fields */
+    for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
+        ASTNode *shared = node->data.world_decl.shared_fields[i];
+        if (shared->data.party_shared.type != NULL)
+            resolve_type_node(shared->data.party_shared.type, ctx);
+        if (shared->data.party_shared.initializer != NULL)
+            type_check_expression(shared->data.party_shared.initializer, ctx);
+    }
+
+    /* Check methods */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+        type_check_func_decl(node->data.world_decl.methods[i], ctx);
+    }
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+/* -----------------------------------------------------------------
+ * Async system type checkers
+ * ----------------------------------------------------------------- */
+
+bool
+type_check_actor_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.actor_decl.name;
+
+    /* Register actor as a symbol */
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = SYMBOL_ACTOR;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col  = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL) {
+        semantic_error(ctx, node,
+            "Duplicate actor declaration '%s'", name);
+        symbol_destroy(sym);
+        return false;
+    }
+    scope_declare(ctx->scope, sym);
+
+    /* Check fields */
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
+        ClassField *f = node->data.actor_decl.fields[i];
+        if (f && f->type) {
+            Type *ft = resolve_type_node(f->type, ctx);
+            if (ft && f->name) {
+                Symbol *fsym = symbol_create_variable(f->name, ft,
+                                                       node->line, node->column);
+                scope_declare(ctx->scope, fsym);
+            }
+        }
+    }
+
+    /* Check methods (implicitly async) */
+    bool saved_async = ctx->in_async_func;
+    ctx->in_async_func = true;
+    for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
+        ASTNode *method = node->data.actor_decl.methods[i];
+        if (method) {
+            scope_enter(&ctx->scope, SCOPE_FUNCTION);
+            /* Register self + params */
+            Symbol *self_sym = symbol_create_variable("self", TYPE_UNKNOWN,
+                                                        node->line, node->column);
+            scope_declare(ctx->scope, self_sym);
+            for (size_t k = 0; k < method->data.async_func_decl.param_count; k++) {
+                FuncParam *p = method->data.async_func_decl.params[k];
+                if (p == NULL || (p->type == NULL && strcmp(p->name, "self") == 0))
+                    continue;
+                Type *pt = (p->type != NULL) ? resolve_type_node(p->type, ctx) : TYPE_UNKNOWN;
+                Symbol *ps = symbol_create_variable(p->name, pt,
+                                                      node->line, node->column);
+                scope_declare(ctx->scope, ps);
+            }
+            if (method->data.async_func_decl.body)
+                type_check_block(method->data.async_func_decl.body, ctx);
+            scope_exit(&ctx->scope);
+        }
+    }
+    ctx->in_async_func = saved_async;
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_async_block(ASTNode *node, SemanticContext *ctx)
+{
+    bool saved_async = ctx->in_async_func;
+    ctx->in_async_func = true;
+
+    for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+        type_check_statement(node->data.async_block.statements[i], ctx);
+    }
+
+    ctx->in_async_func = saved_async;
+    return !ctx->has_error;
+}
+
+bool
+type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
+{
+    /* Each case should involve channel operations */
+    for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+        ASTNode *c = node->data.select_stmt.cases[i];
+        if (c) type_check_statement(c, ctx);
+    }
+
+    if (node->data.select_stmt.default_case)
+        type_check_statement(node->data.select_stmt.default_case, ctx);
+
+    return !ctx->has_error;
+}
+
+Type *
+type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
+{
+    /* Type-check the spawned function/expression */
+    Type *inner = type_check_expression(expr->data.spawn_expr.function, ctx);
+    /* spawn returns Future<T> where T is the return type of the function */
+    (void)inner;
+    return TYPE_VOID; /* MVP: spawn returns void in single-threaded mode */
+}
+
+Type *
+type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
+{
+    /* Check channel and value types */
+    type_check_expression(expr->data.channel_send.channel, ctx);
+    type_check_expression(expr->data.channel_send.value, ctx);
+    return TYPE_VOID;
+}
+
+Type *
+type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
+{
+    type_check_expression(expr->data.channel_recv.channel, ctx);
+    return TYPE_UNKNOWN; /* element type not resolved in MVP */
+}
+
+bool
 type_check_statement(ASTNode *node, SemanticContext *ctx)
 {
     if (node == NULL)
@@ -847,21 +1665,40 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_func_decl(node, ctx);
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);
+    case AST_EXTERN_BLOCK:
+        return type_check_extern_block(node, ctx);
     case AST_IF_STMT:
         return type_check_if_stmt(node, ctx);
     case AST_FOR_LOOP:
         return type_check_for_loop(node, ctx);
+    case AST_WHILE_LOOP:
+        return type_check_while_loop(node, ctx);
+    case AST_MATCH_STMT:
+        return type_check_match_stmt(node, ctx);
     case AST_RETURN:
         return type_check_return_stmt(node, ctx);
     case AST_WITH_STMT:
         return type_check_with_stmt(node, ctx);
     case AST_PARALLEL_BLOCK:
         return type_check_parallel_block(node, ctx);
+    case AST_ABILITY_DECL:
+        return type_check_ability_decl(node, ctx);
+    case AST_ROLE_DECL:
+        return type_check_role_decl(node, ctx);
+    case AST_PARTY_DECL:
+        return type_check_party_decl(node, ctx);
+    case AST_SYSTEMIC_DECL:
+        return type_check_systemic_decl(node, ctx);
+    case AST_WORLD_DECL:
+        return type_check_world_decl(node, ctx);
+    case AST_ACTOR_DECL:
+        return type_check_actor_decl(node, ctx);
+    case AST_ASYNC_BLOCK:
+        return type_check_async_block(node, ctx);
+    case AST_SELECT_STMT:
+        return type_check_select_stmt(node, ctx);
     case AST_BLOCK:
         return type_check_block(node, ctx);
-    case AST_EXPRESSION_STMT:
-        type_check_expression(node, ctx);
-        return !ctx->has_error;
     default:
         /* Expression statement */
         type_check_expression(node, ctx);
@@ -959,7 +1796,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     if (class_type == NULL)
         return false;
     class_type->kind = TYPE_KIND_CLASS;
-    class_type->name = strdup(name);
+    class_type->name = pergyra_strdup(name);
 
     Symbol *class_sym = symbol_create_function(name, class_type,
                                                 node->line, node->column);
@@ -977,6 +1814,17 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         type_check_func_decl(node->data.class_decl.methods[i], ctx);
     scope_exit(&ctx->scope);
 
+    return !ctx->has_error;
+}
+
+bool
+type_check_extern_block(ASTNode *node, SemanticContext *ctx)
+{
+    for (size_t i = 0; i < node->data.extern_block.count; i++) {
+        ASTNode *decl = node->data.extern_block.declarations[i];
+        if (decl != NULL && decl->type == AST_FUNC_DECL)
+            type_check_func_decl(decl, ctx);
+    }
     return !ctx->has_error;
 }
 
@@ -1003,6 +1851,19 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
                 scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_EXTERN_BLOCK) {
+            for (size_t j = 0; j < stmt->data.extern_block.count; j++) {
+                ASTNode *decl = stmt->data.extern_block.declarations[j];
+                if (decl == NULL || decl->type != AST_FUNC_DECL)
+                    continue;
+                const char *fname = decl->data.func_decl.name;
+                if (scope_lookup_current(ctx->scope, fname) == NULL) {
+                    Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
+                    Symbol *s = symbol_create_function(fname, placeholder,
+                                                        decl->line, decl->column);
+                    scope_declare(ctx->scope, s);
+                }
             }
         }
     }

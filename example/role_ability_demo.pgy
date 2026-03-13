@@ -1,276 +1,234 @@
-// Pergyra Role/Ability Example with Generic Security Levels
-// This demonstrates the language's innovative features
+// role_ability_demo.pgy — Role/Ability System Performance Demo
+//
+// Performance Test:
+//   - Direct struct access vs Role-based access
+//   - Event dispatch overhead
+//   - Slot vs Stack vs Box performance
 
-// Define a simple struct for Player
-struct Player
-{
-    _healthSlot: SecureSlot<Int, Basic>
-    _token: Token
-    _name: String
-    _level: Int
+// ===== Ability Definitions =====
+
+ability Damageable {
+    require _health: Slot<Int>
+
+    func TakeDamage(amount: Int);
+    func GetHealth() -> Int;
 }
 
-// Define the Damageable ability
-ability Damageable
-{
-    require _healthSlot: Slot<Int, any SecurityModel>
-    
-    func TakeDamage(&mut self, amount: Int)
-    func Heal(&mut self, amount: Int)
-    func IsAlive(&self) -> Bool
+ability Attackable {
+    require _attackPower: Int
+
+    func GetAttackPower() -> Int;
 }
 
-// Generic role that works with any security level
-role BasicDamageable<T, S: SecurityModel> for T 
-    where T has _healthSlot: Slot<Int, S>
-{
-    impl ability Damageable
-    {
-        func TakeDamage(&mut self, amount: Int)
-        {
-            let current = Read(self._healthSlot)
-            Write(self._healthSlot, Max(0, current - amount))
-        }
-        
-        func Heal(&mut self, amount: Int)
-        {
-            let current = Read(self._healthSlot)
-            Write(self._healthSlot, Min(100, current + amount))
-        }
-        
-        func IsAlive(&self) -> Bool
-        {
-            return Read(self._healthSlot) > 0
-        }
-    }
+// ===== Data Structures =====
+
+struct Entity {
+    _health: Slot<Int>,
+    _attackPower: Int,
+    name: String
 }
 
-// Player-specific role with security requirements
-role PlayerCombat for Player
-{
-    // Include the generic role with Player's security level
-    include role BasicDamageable<Player, Basic>
-    
-    // Override to add player-specific behavior
-    override func TakeDamage(&mut self, amount: Int)
-    {
-        Log($"Player {self._name} is taking {amount} damage!")
-        
-        // Reduce damage based on level
-        let reducedDamage = amount - (self._level / 10)
-        super.TakeDamage(Max(0, reducedDamage))
-        
-        if !self.IsAlive()
-        {
-            Log($"Player {self._name} has been defeated!")
+// ===== Role Implementations =====
+
+role EntityDamageable for Entity {
+    impl ability Damageable {
+        func TakeDamage(amount: Int) {
+            let current = Read(_health);
+            let newHealth = Max(0, current - amount);
+            Write(_health, newHealth);
+        }
+
+        func GetHealth() -> Int {
+            return Read(_health);
         }
     }
 }
 
-// Monster with zero-cost (no security) slots for performance
-struct Monster
-{
-    _healthSlot: Slot<Int, ZeroCost>
-    _attackPower: Int
-    _type: String
-}
-
-// Monster role using zero-cost slots
-role MonsterCombat for Monster
-{
-    include role BasicDamageable<Monster, ZeroCost>
-    
-    impl ability Attackable
-    {
-        func Attack(&self, target: &mut impl Damageable) -> Int
-        {
-            Log($"{self._type} attacks for {self._attackPower} damage!")
-            target.TakeDamage(self._attackPower)
-            return self._attackPower
+role EntityAttackable for Entity {
+    impl ability Attackable {
+        func GetAttackPower() -> Int {
+            return _attackPower;
         }
     }
 }
 
-// Bank account requiring high security
-struct BankAccount
-{
-    _balanceSlot: SecureSlot<Decimal, Hardware>
-    _token: HardwareToken
-    _accountNumber: String
-}
+// ===== Event Definitions =====
 
-// Secure transferable ability
-secure ability SecureTransferable
-{
-    require _balanceSlot: SecureSlot<Decimal, any>
-    require _token: Token
+event OnDamageTaken: (target: Object, damage: Int);
+event OnHealthChanged: (target: Object, newHealth: Int);
+
+// ===== Performance Test Functions =====
+
+// Test 1: Direct Slot Access
+func TestDirectSlotAccess(iterations: Int) -> Int {
+    let start = 0;
+    let slot = ClaimSlot<Int>();
+    Write(slot, 1000);
     
-    func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) 
-        -> Result<TransferReceipt, Error>
-        with effects Security
-}
-
-// Bank account role with hardware security
-role SecureBankOperations for BankAccount
-{
-    impl ability SecureTransferable
-    {
-        func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) 
-            -> Result<TransferReceipt, Error>
-            with effects Security
-        {
-            // Validate hardware token
-            Security.ValidateToken(self._token)?
-            
-            let balance = Read(self._balanceSlot, self._token)
-            if balance < amount
-            {
-                return .Err(InsufficientFunds)
-            }
-            
-            // Atomic transfer with hardware protection
-            Write(self._balanceSlot, balance - amount, self._token)
-            to.Deposit(amount)?
-            
-            return .Ok(TransferReceipt {
-                from: self._accountNumber,
-                amount: amount,
-                timestamp: Time.Now()
-            })
-        }
-    }
-}
-
-// Parallel composition example
-ability Renderable
-{
-    require _meshSlot: Slot<Mesh>
-    require _textureSlot: Slot<Texture>
-}
-
-ability Physics
-{
-    require _transformSlot: Slot<Transform>
-    require _rigidbodySlot: Slot<Rigidbody>
-}
-
-// Parallel role for rendering
-role ParallelRenderer<T> for T where T: Renderable
-{
-    parallel on (gpuFiber)
-    {
-        let mesh = Read(self._meshSlot)
-        let texture = Read(self._textureSlot)
-        await GpuScheduler.SubmitDrawCall(mesh, texture)
-    }
-}
-
-// Parallel role for physics
-role ParallelPhysics<T> for T where T: Physics
-{
-    parallel on (cpuFiber)
-    {
-        let transform = Read(self._transformSlot)
-        let rigidbody = Read(self._rigidbodySlot)
-        let newTransform = await CpuScheduler.CalculatePhysics(transform, rigidbody)
-        Write(self._transformSlot, newTransform)
-    }
-}
-
-// Game entity combining multiple parallel roles
-struct GameObject
-{
-    _meshSlot: Slot<Mesh>
-    _textureSlot: Slot<Texture>
-    _transformSlot: Slot<Transform>
-    _rigidbodySlot: Slot<Rigidbody>
-    _healthSlot: Slot<Int, ZeroCost>  // Performance mode for game objects
-}
-
-role CompleteGameObject for GameObject
-{
-    include role ParallelRenderer<GameObject>
-    include role ParallelPhysics<GameObject>
-    include role BasicDamageable<GameObject, ZeroCost>
-}
-
-// Main game loop demonstrating parallel composition
-async func GameLoop(objects: Array<GameObject>)
-{
-    let frameResults = parallel (objects) join with all
-    {
-        // Each GameObject automatically executes:
-        // - ParallelRenderer on GPU fiber
-        // - ParallelPhysics on CPU fiber
-        // - All in parallel, type-safe, and secure
+    for i in 0..iterations {
+        let current = Read(slot);
+        Write(slot, current - 1);
     }
     
-    // Process results
-    for result in frameResults
-    {
-        match result
-        {
-            case .Success(data):
-                UpdateGameState(data)
-                
-            case .Error(err):
-                LogError("Frame processing failed", err)
-        }
-    }
+    let result = Read(slot);
+    Release(slot);
+    return result;
 }
 
-// Function with security constraints
-func ProcessFinancialTransaction(
-    account: Slot<BankAccount, Secure<Hardware>>,
-    amount: Decimal
-) -> Result<(), Error>
-    with effects Security, IO
-{
-    // This function can only be called with hardware-secure slots
-    // Compiler enforces this at compile time
+// Test 2: Role-based Access (via ability)
+func TestRoleBasedAccess(iterations: Int) -> Int {
+    let healthSlot = ClaimSlot<Int>();
+    Write(healthSlot, 1000);
     
-    let token = Security.CreateHardwareToken()
-    let acc = Read(account, token)
+    let entity = Entity {
+        _health: healthSlot,
+        _attackPower: 10,
+        name: "TestEntity"
+    };
     
-    // Process transaction with full hardware protection
-    // ...
-}
-
-// Example of security downgrade (requires explicit audit)
-func ExportForReporting(
-    secureData: Slot<FinancialData, Secure<any>>
-) -> Slot<FinancialData, ZeroCost>
-{
-    // Explicit downgrade with audit trail
-    let publicData = SecurityDowngrade(secureData, 
-        auditReason: "Monthly reporting export",
-        approvedBy: "CFO")
+    let damageable = EntityDamageable_as_Damageable(&entity);
     
-    return publicData
-}
-
-// Example usage
-func Main()
-{
-    // Create a secure player
-    let player = Player {
-        _healthSlot: ClaimSecureSlot<Int>(SECURITY_LEVEL_BASIC),
-        _token: CreateToken(SECURITY_LEVEL_BASIC),
-        _name: "Hero",
-        _level: 10
+    for i in 0..iterations {
+        damageable.TakeDamage(1);
     }
     
-    // Create a performance-optimized monster
-    let monster = Monster {
-        _healthSlot: ClaimSlot<Int>(),  // Zero-cost slot
+    let result = damageable.GetHealth();
+    Release(healthSlot);
+    return result;
+}
+
+// Test 3: Event Dispatch Overhead
+func TestEventDispatch(iterations: Int) -> Int {
+    let counter = ClaimSlot<Int>();
+    Write(counter, 0);
+    
+    // Simple event handler
+    let handler = (target, damage) => {
+        let current = Read(counter);
+        Write(counter, current + 1);
+    };
+    
+    // Subscribe
+    OnDamageTaken += handler;
+    
+    // Fire events
+    for i in 0..iterations {
+        OnDamageTaken(this, 5);
+    }
+    
+    // Unsubscribe
+    OnDamageTaken -= handler;
+    
+    let result = Read(counter);
+    Release(counter);
+    return result;
+}
+
+// Test 4: Stack vs Slot Performance
+func TestStackPerformance(iterations: Int) -> Int {
+    let mut value = 1000;
+    
+    for i in 0..iterations {
+        value = value - 1;
+    }
+    
+    return value;
+}
+
+func TestSlotPerformance(iterations: Int) -> Int {
+    let slot = ClaimSlot<Int>();
+    Write(slot, 1000);
+    
+    for i in 0..iterations {
+        let current = Read(slot);
+        Write(slot, current - 1);
+    }
+    
+    let result = Read(slot);
+    Release(slot);
+    return result;
+}
+
+// Test 5: Multiple Roles Composition
+func TestMultipleRoles(iterations: Int) -> Int {
+    let healthSlot = ClaimSlot<Int>();
+    Write(healthSlot, 1000);
+    
+    let entity = Entity {
+        _health: healthSlot,
         _attackPower: 15,
-        _type: "Dragon"
+        name: "MultiRoleTest"
+    };
+    
+    let damageable = EntityDamageable_as_Damageable(&entity);
+    let attackable = EntityAttackable_as_Attackable(&entity);
+    
+    for i in 0..iterations {
+        let attack = attackable.GetAttackPower();
+        damageable.TakeDamage(attack / 10);
     }
     
-    // Combat works seamlessly despite different security levels
-    monster.Attack(&player)  // Type-safe and secure
+    let result = damageable.GetHealth();
+    Release(healthSlot);
+    return result;
+}
+
+// ===== Benchmark Helper =====
+
+func RunBenchmark(name: String, testFunc: Int -> Int, iterations: Int) -> Void {
+    Log("=== ");
+    Log(name);
+    Log(" ===");
+    Log("Iterations: ");
+    Log(iterations);
     
-    // Parallel game processing
-    let gameObjects = LoadGameObjects()
-    await GameLoop(gameObjects)
+    // In real implementation, we would measure time here
+    // For now, just verify correctness
+    let result = testFunc(iterations);
+    
+    Log("Result: ");
+    Log(result);
+    Log("Expected: 0");
+    
+    if result == 0 {
+        Log("Status: PASS");
+    } else {
+        Log("Status: FAIL");
+    }
+    
+    Log("");
+}
+
+// ===== Main Entry Point =====
+
+func Main() -> Void {
+    Log("========================================");
+    Log("Pergyra Role/Ability System Performance Test");
+    Log("========================================");
+    Log("");
+    
+    let iterations = 10000;
+    
+    // Run all benchmarks
+    RunBenchmark("Direct Slot Access", TestDirectSlotAccess, iterations);
+    RunBenchmark("Role-based Access (via Ability)", TestRoleBasedAccess, iterations);
+    RunBenchmark("Event Dispatch", TestEventDispatch, iterations);
+    RunBenchmark("Stack Performance", TestStackPerformance, iterations);
+    RunBenchmark("Slot Performance", TestSlotPerformance, iterations);
+    RunBenchmark("Multiple Roles Composition", TestMultipleRoles, iterations);
+    
+    Log("========================================");
+    Log("All Tests Complete");
+    Log("========================================");
+    
+    // Summary
+    Log("");
+    Log("Expected Results:");
+    Log("- Stack: Fastest (0 overhead)");
+    Log("- Direct Slot: ~2-3x slower than stack");
+    Log("- Role-based: ~1.1-1.3x overhead vs direct slot");
+    Log("- Event Dispatch: ~1.5-2x overhead vs direct call");
+    Log("");
+    Log("Note: Actual timing requires compiler runtime with timer support.");
+    Log("This demo verifies correctness of role/ability system.");
 }

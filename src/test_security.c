@@ -18,8 +18,8 @@
 #include <assert.h>
 #include <time.h>
 
-#include "../runtime/slot_manager.h"
-#include "../runtime/slot_security.h"
+#include "runtime/slot_manager.h"
+#include "runtime/slot_security.h"
 
 /* Global test manager */
 SlotManager *g_pergyraSlotManager = NULL;
@@ -410,10 +410,78 @@ void test_performance()
 }
 
 /*
+ * Test 9: Sealed storage and shadow recovery
+ */
+void test_sealed_storage_and_shadow_recovery()
+{
+    SlotManager *manager;
+    SlotHandle handle;
+    TokenCapability token;
+    SlotEntry *entry = NULL;
+    int testValue = 0x12345678;
+    int readValue = 0;
+    size_t bytesRead = 0;
+    size_t i;
+    SlotError result;
+
+    printf("\n=== Test 9: Sealed Storage And Shadow Recovery ===\n");
+
+    manager = SlotManagerCreateSecure(32, 4096, true, SECURITY_LEVEL_HARDWARE);
+    g_pergyraSlotManager = manager;
+
+    result = SlotClaimSecure(manager, TYPE_INT, SECURITY_LEVEL_HARDWARE, &handle, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Shadow recovery slot claim");
+
+    result = SlotWriteSecure(manager, &handle, &testValue, sizeof(testValue), &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Shadow recovery slot write");
+
+    for (i = 0; i < manager->tableSize; i++) {
+        if (manager->slotTable[i].occupied &&
+            manager->slotTable[i].slotId == handle.slotId) {
+            entry = &manager->slotTable[i];
+            break;
+        }
+    }
+
+    TEST_ASSERT(entry != NULL, "Shadow recovery slot lookup");
+    TEST_ASSERT(entry != NULL && entry->securityPolicy.storageMode == SECURE_SLOT_STORAGE_SEALED,
+                "Secure slot uses sealed storage policy");
+    TEST_ASSERT(entry != NULL &&
+                SecureSealedPayloadPrimaryBytes(&entry->securePayload) != NULL &&
+                memcmp(SecureSealedPayloadPrimaryBytes(&entry->securePayload),
+                       &testValue, sizeof(testValue)) != 0,
+                "In-memory primary payload is obfuscated");
+    TEST_ASSERT(entry != NULL &&
+                SecureSealedPayloadShadowBytes(&entry->securePayload) != NULL &&
+                memcmp(SecureSealedPayloadShadowBytes(&entry->securePayload),
+                       &testValue, sizeof(testValue)) != 0,
+                "In-memory shadow payload is obfuscated");
+
+    ((uint8_t *)SecureSealedPayloadPrimaryBytes(&entry->securePayload))[0] ^= 0x5a;
+
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue), &bytesRead, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Shadow copy recovers corrupted primary");
+    TEST_ASSERT(readValue == testValue, "Recovered value matches original");
+
+    ((uint8_t *)SecureSealedPayloadPrimaryBytes(&entry->securePayload))[0] ^= 0x33;
+    ((uint8_t *)SecureSealedPayloadShadowBytes(&entry->securePayload))[0] ^= 0x77;
+
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue), &bytesRead, &token);
+    TEST_SECURITY_VIOLATION(result != SLOT_SUCCESS,
+                            "Read fails when primary and shadow copies are both corrupted");
+
+    SlotReleaseSecure(manager, &handle, &token);
+    SlotManagerDestroySecure(manager);
+    g_pergyraSlotManager = NULL;
+}
+
+/*
  * Main test runner
  */
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
     printf("===== Pergyra Security System Test Suite =====\n");
     printf("Testing secure slot-based memory management...\n");
     
@@ -429,6 +497,7 @@ int main(int argc, char *argv[])
     test_scope_based_slots();
     test_pergyra_api();
     test_performance();
+    test_sealed_storage_and_shadow_recovery();
     
     /* Print final results */
     print_test_results();

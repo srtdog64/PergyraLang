@@ -43,8 +43,10 @@ typedef struct
     uint32_t slotId;
     uint32_t typeTag;          /* Type identifier hash */
     bool     occupied;
-    void    *dataBlockRef;     /* Actual data block pointer */
+    void    *dataBlockRef;     /* Plain payload for normal slots */
+    size_t   dataSize;         /* Actual payload size */
     uint32_t ttl;              /* Time-To-Live in milliseconds */
+    uint32_t scopeId;          /* Optional scope owner */
     uint32_t threadAffinity;   /* Assigned thread ID */
     uint64_t allocationTime;   /* Allocation timestamp */
     
@@ -53,8 +55,11 @@ typedef struct
     EncryptedToken writeToken;       /* Encrypted write access token */
     uint32_t tokenGeneration;        /* Token generation counter */
     bool     securityEnabled;        /* Whether security is active */
+    SecureSlotPolicy securityPolicy; /* Storage policy for secure slots */
+    SecureSealedPayload securePayload; /* Sealed storage for secure slots */
     uint64_t lastAccessTime;         /* Last access timestamp */
     uint32_t accessCount;            /* Access counter for anomaly detection */
+    uint32_t dataChecksum;           /* Checksum of un-obfuscated data for integrity checks */
 } SlotEntry;
 
 /*
@@ -97,6 +102,9 @@ typedef struct
     uint32_t generation;        /* For ABA problem prevention */
 } SlotHandle;
 
+typedef struct SecureSlotScope SecureSlotScope;
+typedef struct PergyraSlotScope PergyraSlotScope;
+
 /*
  * Type information enumeration
  */
@@ -111,6 +119,14 @@ typedef enum
     TYPE_VECTOR = 0x7,
     TYPE_CUSTOM = 0x1000        /* User-defined types start here */
 } TypeTag;
+
+typedef struct
+{
+    SlotHandle handle;
+    TokenCapability token;
+    TypeTag typeTag;
+    bool isValid;
+} PergyraSecureSlot;
 
 /*
  * Error codes for slot operations
@@ -187,13 +203,10 @@ const char *TypeTagToString(TypeTag tag);
 bool        TypeIsPrimitive(TypeTag tag);
 size_t      TypeGetSize(TypeTag tag);
 
-/*
- * Assembly-optimized internal functions (inline)
- */
-static inline uint32_t SlotHashFunction(uint32_t slotId);
-static inline bool     SlotCompareAndSwap(volatile uint32_t *ptr, 
-                                         uint32_t expected, uint32_t newVal);
-static inline void     SlotMemoryBarrier(void);
+uint32_t SlotHashFunction(uint32_t slotId);
+bool     SlotCompareAndSwap(volatile uint32_t *ptr, 
+                           uint32_t expected, uint32_t newVal);
+void     SlotMemoryBarrier(void);
 
 /*
  * Secure slot operations with token-based access control
@@ -234,6 +247,32 @@ void      SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
                                      uint32_t slotId, const char *details);
 bool      SlotManagerDetectAnomalies(SlotManager *manager);
 void      SlotManagerPrintSecurityStats(const SlotManager *manager);
+
+/*
+ * Extended secure manager and language-facing APIs
+ */
+SlotManager *SlotManagerCreateSecure(size_t maxSlots, size_t memoryPoolSize,
+                                    bool enableSecurity, SecurityLevel defaultLevel);
+void         SlotManagerDestroySecure(SlotManager *manager);
+
+SecureSlotScope *SecureSlotScopeCreate(SlotManager *manager, size_t capacity);
+SlotError        SecureSlotScopeClaimSlot(SecureSlotScope *scope, TypeTag type,
+                                         SecurityLevel level, SlotHandle **handle,
+                                         TokenCapability **token);
+void             SecureSlotScopeDestroy(SecureSlotScope *scope);
+
+PergyraSecureSlot *pergyra_claim_secure_slot(SlotManager *manager, const char *typeName,
+                                            SecurityLevel level);
+bool               pergyra_slot_write_secure(PergyraSecureSlot *slot, const void *data,
+                                            size_t dataSize);
+bool               pergyra_slot_read_secure(PergyraSecureSlot *slot, void *buffer,
+                                           size_t bufferSize, size_t *bytesRead);
+void               pergyra_slot_release_secure(PergyraSecureSlot *slot);
+PergyraSlotScope  *pergyra_scope_begin(SlotManager *manager);
+PergyraSecureSlot *pergyra_scope_claim_slot(PergyraSlotScope *pscope,
+                                           const char *typeName, SecurityLevel level);
+void               pergyra_scope_end(PergyraSlotScope *pscope);
+void               pergyra_security_audit_usage_example(void);
 
 /*
  * Assembly implementation prototypes

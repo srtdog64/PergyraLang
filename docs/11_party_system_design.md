@@ -1,11 +1,12 @@
 # Pergyra Party System Design
-## 역할의 협력을 위한 혁신적인 추상화
+## 역할 협력 모델
 
-## 🎯 핵심 철학: "개별에서 협력으로"
+## 설계 방향
 
-Party는 단순한 객체 컨테이너가 아닙니다. 이는 **역할들의 협력적 실행 단위**로, 복잡한 다중 에이전트 시스템을 직관적으로 모델링하는 Pergyra만의 독창적인 개념입니다.
+Party는 역할들의 협력적 실행 단위를 표현하기 위한 설계 요소다.
+이 문서는 role slot, context, 병렬 실행 모델을 한 단위로 다루는 방법을 정리한다.
 
-## 📋 Party의 3대 핵심 요소
+## Party의 핵심 요소
 
 ### 1. **Role Slot (역할 슬롯)**
 - Party가 요구하는 역할의 명세
@@ -22,7 +23,7 @@ Party는 단순한 객체 컨테이너가 아닙니다. 이는 **역할들의 �
 - 각 역할의 parallel on 블록 자동 실행
 - 동기화와 통신 자동 관리
 
-## 🏗️ Party 시스템 아키텍처
+## Party 시스템 아키텍처
 
 ### 기본 문법
 
@@ -154,7 +155,7 @@ async func GameLoop()
 }
 ```
 
-## 🔒 안전성 보장 메커니즘
+## 안전성 보장 메커니즘
 
 ### 1. **컴파일 타임 검증**
 ```pergyra
@@ -206,7 +207,7 @@ role A for StructA
 }
 ```
 
-## 🚀 고급 기능
+## 고급 기능
 
 ### 1. **Dynamic Party Composition**
 ```pergyra
@@ -272,7 +273,7 @@ let eliteSquad = Squad<Soldier>
 }
 ```
 
-## 📊 Party와 Effect System 통합
+## Party와 Effect System 통합
 
 ```pergyra
 // Party 실행에 필요한 효과 명시
@@ -294,7 +295,7 @@ party NetworkedTeam
 }
 ```
 
-## 🎮 실제 사용 예제: MOBA 게임
+## 실제 사용 예제: MOBA 게임
 
 ```pergyra
 // MOBA 팀 구성
@@ -331,7 +332,7 @@ party MOBATeam
 }
 ```
 
-## 🔧 구현 로드맵
+## 구현 로드맵
 
 ### Phase 1: Core Party System
 - [ ] AST에 `AST_PARTY_DECL` 노드 추가
@@ -353,11 +354,9 @@ party MOBATeam
 - [ ] Party inheritance
 - [ ] Generic parties
 
-## 💡 Party System의 혁신성
+## 설계 요약
 
-1. **세계 최초의 역할 기반 협력 모델**: 객체 지향의 한계를 넘어선 새로운 패러다임
-2. **컴파일 타임 협력 검증**: 팀 구성의 타당성을 컴파일러가 보장
-3. **자동 병렬 오케스트레이션**: 복잡한 병렬 로직을 단순하게 추상화
-4. **컨텍스트 기반 통신**: 안전하고 직관적인 역할 간 상호작용
-
-Party 시스템은 Pergyra를 단순한 시스템 프로그래밍 언어를 넘어, **복잡한 협력 시스템을 모델링하는 최고의 도구**로 만들 것입니다.
+1. `role slot`은 Party가 요구하는 역할 계약을 표현한다.
+2. `context`는 Party 내부 역할 간 참조 경로를 제공한다.
+3. `parallel` 실행은 Party 단위 작업 분해와 연결된다.
+4. 현재 문서는 설계 초안이며, 구현 전 로드맵과 예시 문법을 함께 포함한다.

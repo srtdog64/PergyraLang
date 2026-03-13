@@ -12,6 +12,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "common/string_compat.h"
 #include "semantic/type_system.h"
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"
@@ -37,7 +38,7 @@ make_string(const char *s, uint32_t line)
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_STRING;
     n->line = line;
-    n->data.string.value = (char *)s;
+    n->data.string.value = pergyra_strdup(s);
     return n;
 }
 
@@ -47,7 +48,7 @@ make_identifier(const char *name, uint32_t line)
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_IDENTIFIER;
     n->line = line;
-    n->data.identifier.name = (char *)name;
+    n->data.identifier.name = pergyra_strdup(name);
     return n;
 }
 
@@ -59,7 +60,10 @@ make_call(const char *callee_name, ASTNode **args, size_t arg_count,
     n->type = AST_CALL;
     n->line = line;
     n->data.call.callee     = make_identifier(callee_name, line);
-    n->data.call.arguments  = args;
+    if (arg_count > 0) {
+        n->data.call.arguments = calloc(arg_count, sizeof(ASTNode *));
+        memcpy(n->data.call.arguments, args, arg_count * sizeof(ASTNode *));
+    }
     n->data.call.arg_count  = arg_count;
     return n;
 }
@@ -69,8 +73,41 @@ make_program(ASTNode **stmts, size_t count)
 {
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_PROGRAM;
-    n->data.program.statements = stmts;
+    if (count > 0) {
+        n->data.program.statements = calloc(count, sizeof(ASTNode *));
+        memcpy(n->data.program.statements, stmts, count * sizeof(ASTNode *));
+    }
     n->data.program.count      = count;
+    return n;
+}
+
+static ASTNode *
+make_generic_type(const char *name, const char *arg_name)
+{
+    ASTNode *n = ast_create_type(name);
+    n->data.type.generic_args = calloc(1, sizeof(GenericParams));
+    n->data.type.generic_args->count = 1;
+    n->data.type.generic_args->params = calloc(1, sizeof(GenericParam *));
+
+    GenericParam *gp = calloc(1, sizeof(GenericParam));
+    gp->name = pergyra_strdup(arg_name);
+    gp->constraint = ast_create_type(arg_name);
+    n->data.type.generic_args->params[0] = gp;
+    return n;
+}
+
+static ASTNode *
+make_generic_type_from_node(const char *name, ASTNode *arg_type)
+{
+    ASTNode *n = ast_create_type(name);
+    n->data.type.generic_args = calloc(1, sizeof(GenericParams));
+    n->data.type.generic_args->count = 1;
+    n->data.type.generic_args->params = calloc(1, sizeof(GenericParam *));
+
+    GenericParam *gp = calloc(1, sizeof(GenericParam));
+    gp->name = pergyra_strdup(arg_type->data.type.name);
+    gp->constraint = arg_type;
+    n->data.type.generic_args->params[0] = gp;
     return n;
 }
 
@@ -126,6 +163,63 @@ test_type_system(void)
     TEST("type_equals: Slot<Int> != Slot<String>");
     Type *slot_str = type_create_slot(TYPE_STRING, false);
     EXPECT(!type_equals(slot_int, slot_str));
+
+    TEST("type_infer_expression: identifier lookup returns bound type");
+    {
+        TypeEnv *env = type_env_create(NULL);
+        type_env_add_variable(env, "count", TYPE_INT);
+        ASTNode *id = make_identifier("count", 1);
+        EXPECT(type_infer_expression(id, env) == TYPE_INT);
+        ast_destroy(id);
+        type_env_destroy(env);
+    }
+
+    TEST("type_infer_expression: array access returns element type");
+    {
+        Type *args[1] = { TYPE_FLOAT };
+        Type *array_float = type_create_constructed(TYPE_ARRAY, args, 1);
+        TypeEnv *env = type_env_create(NULL);
+        type_env_add_variable(env, "items", array_float);
+
+        ASTNode array_node; memset(&array_node, 0, sizeof(array_node));
+        array_node.type = AST_IDENTIFIER;
+        array_node.data.identifier.name = "items";
+
+        ASTNode index_node; memset(&index_node, 0, sizeof(index_node));
+        index_node.type = AST_NUMBER;
+        index_node.data.number.value = 0;
+
+        ASTNode access_node; memset(&access_node, 0, sizeof(access_node));
+        access_node.type = AST_ARRAY_ACCESS;
+        access_node.data.array_access.array = &array_node;
+        access_node.data.array_access.index = &index_node;
+
+        EXPECT(type_infer_expression(&access_node, env) == TYPE_FLOAT);
+
+        free(array_float->data.constructed.args);
+        free(array_float->name);
+        free(array_float);
+        type_env_destroy(env);
+    }
+
+    TEST("type_infer_expression: comparison returns Bool");
+    {
+        ASTNode left; memset(&left, 0, sizeof(left));
+        left.type = AST_NUMBER;
+        left.data.number.value = 1;
+
+        ASTNode right; memset(&right, 0, sizeof(right));
+        right.type = AST_NUMBER;
+        right.data.number.value = 2;
+
+        ASTNode expr; memset(&expr, 0, sizeof(expr));
+        expr.type = AST_BINARY;
+        expr.data.binary.left = &left;
+        expr.data.binary.right = &right;
+        expr.data.binary.op.type = TOKEN_LESS;
+
+        EXPECT(type_infer_expression(&expr, NULL) == TYPE_BOOL);
+    }
 }
 
 static void
@@ -378,6 +472,640 @@ test_undefined_symbol(void)
     }
 }
 
+static void
+test_while_loop(void)
+{
+    printf("\n[type_checker — while loop]\n");
+
+    TEST("While loop with Bool condition → no error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        /* Build: while true { } */
+        ASTNode *wh = calloc(1, sizeof(ASTNode));
+        wh->type = AST_WHILE_LOOP;
+        wh->line = 1;
+        ASTNode *cond = calloc(1, sizeof(ASTNode));
+        cond->type = AST_BOOLEAN;
+        cond->data.boolean.value = true;
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.statements = NULL;
+        body->data.block.count = 0;
+        wh->data.while_loop.condition = cond;
+        wh->data.while_loop.body = body;
+
+        type_check_while_loop(wh, ctx);
+        EXPECT(!ctx->has_error);
+        semantic_context_destroy(ctx);
+        free(wh); free(cond); free(body);
+    }
+
+    TEST("While loop with Int condition → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *wh = calloc(1, sizeof(ASTNode));
+        wh->type = AST_WHILE_LOOP;
+        wh->line = 1;
+        ASTNode *cond = calloc(1, sizeof(ASTNode));
+        cond->type = AST_NUMBER;
+        cond->data.number.value = 42;
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.statements = NULL;
+        body->data.block.count = 0;
+        wh->data.while_loop.condition = cond;
+        wh->data.while_loop.body = body;
+
+        type_check_while_loop(wh, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        free(wh); free(cond); free(body);
+    }
+}
+
+static void
+test_match_stmt(void)
+{
+    printf("\n[type_checker — match statement]\n");
+
+    TEST("Match with compatible Int cases → no error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *match = calloc(1, sizeof(ASTNode));
+        match->type = AST_MATCH_STMT;
+        match->line = 1;
+        match->data.match_stmt.subject = make_number(42, 1);
+        match->data.match_stmt.default_body = NULL;
+
+        ASTNode *mc = calloc(1, sizeof(ASTNode));
+        mc->type = AST_MATCH_CASE;
+        mc->line = 2;
+        mc->data.match_case.pattern = make_number(0, 2);
+        mc->data.match_case.guard = NULL;
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.statements = NULL;
+        body->data.block.count = 0;
+        mc->data.match_case.body = body;
+
+        match->data.match_stmt.cases = malloc(sizeof(ASTNode*));
+        match->data.match_stmt.cases[0] = mc;
+        match->data.match_stmt.case_count = 1;
+
+        type_check_match_stmt(match, ctx);
+        EXPECT(!ctx->has_error);
+        semantic_context_destroy(ctx);
+        free(match->data.match_stmt.cases);
+        free(match); free(mc); free(body);
+    }
+
+    TEST("Match with String guard (not Bool) → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *match = calloc(1, sizeof(ASTNode));
+        match->type = AST_MATCH_STMT;
+        match->line = 1;
+        match->data.match_stmt.subject = make_number(1, 1);
+        match->data.match_stmt.default_body = NULL;
+
+        ASTNode *mc = calloc(1, sizeof(ASTNode));
+        mc->type = AST_MATCH_CASE;
+        mc->line = 2;
+        mc->data.match_case.pattern = make_number(0, 2);
+        mc->data.match_case.guard = make_string("bad", 2);
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.statements = NULL;
+        body->data.block.count = 0;
+        mc->data.match_case.body = body;
+
+        match->data.match_stmt.cases = malloc(sizeof(ASTNode*));
+        match->data.match_stmt.cases[0] = mc;
+        match->data.match_stmt.case_count = 1;
+
+        type_check_match_stmt(match, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        free(match->data.match_stmt.cases);
+        free(match); free(mc); free(body);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Ability / Role declarations
+ * ----------------------------------------------------------------- */
+
+static void
+test_ability_decl(void)
+{
+    printf("\n[ability_decl]\n");
+
+    TEST("valid ability with require field passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *ability = ast_create_ability_declaration("Damageable");
+        ability->line = 1; ability->column = 1;
+
+        ASTNode *req = ast_create_require_field("health");
+        req->data.require_field.type = ast_create_type("Int");
+        req->line = 2; req->column = 1;
+        ability->data.ability_decl.require_count = 1;
+        ability->data.ability_decl.require_fields = malloc(sizeof(ASTNode*));
+        ability->data.ability_decl.require_fields[0] = req;
+
+        type_check_ability_decl(ability, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ability);
+    }
+
+    TEST("duplicate ability declaration triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *ability1 = ast_create_ability_declaration("Foo");
+        ability1->line = 1; ability1->column = 1;
+        type_check_ability_decl(ability1, ctx);
+
+        ASTNode *ability2 = ast_create_ability_declaration("Foo");
+        ability2->line = 2; ability2->column = 1;
+        type_check_ability_decl(ability2, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ability1);
+        ast_destroy(ability2);
+    }
+}
+
+static void
+test_role_decl(void)
+{
+    printf("\n[role_decl]\n");
+
+    TEST("valid role with impl ability passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *ability = ast_create_ability_declaration("Healable");
+        ability->line = 1; ability->column = 1;
+        type_check_ability_decl(ability, ctx);
+
+        ASTNode *role = ast_create_role_declaration("HealerRole");
+        role->line = 3; role->column = 1;
+
+        ASTNode *impl = ast_create_impl_ability("Healable");
+        impl->line = 4; impl->column = 1;
+        role->data.role_decl.impl_count = 1;
+        role->data.role_decl.impl_abilities = malloc(sizeof(ASTNode*));
+        role->data.role_decl.impl_abilities[0] = impl;
+
+        type_check_role_decl(role, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ability);
+        ast_destroy(role);
+    }
+
+    TEST("role with unknown ability produces warning");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *role = ast_create_role_declaration("BadRole");
+        role->line = 1; role->column = 1;
+
+        ASTNode *impl = ast_create_impl_ability("NonExistent");
+        impl->line = 2; impl->column = 1;
+        role->data.role_decl.impl_count = 1;
+        role->data.role_decl.impl_abilities = malloc(sizeof(ASTNode*));
+        role->data.role_decl.impl_abilities[0] = impl;
+
+        type_check_role_decl(role, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(ctx->diagnostic_count > 0);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(role);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Party declarations
+ * ----------------------------------------------------------------- */
+
+static void
+test_party_decl(void)
+{
+    printf("\n[party_decl]\n");
+
+    TEST("valid party with role slot and shared field passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        /* Register an ability first */
+        ASTNode *ability = ast_create_ability_declaration("Damageable");
+        ability->line = 1; ability->column = 1;
+        type_check_ability_decl(ability, ctx);
+
+        /* Create party */
+        ASTNode *party = ast_create_party_declaration("DungeonTeam");
+        party->line = 3; party->column = 1;
+
+        /* Add role slot */
+        ASTNode *rs = ast_create_role_slot("tank");
+        rs->line = 4; rs->column = 1;
+        ASTNode *ab_type = ast_create_type("Damageable");
+        rs->data.role_slot.ability_count = 1;
+        rs->data.role_slot.required_abilities = malloc(sizeof(ASTNode*));
+        rs->data.role_slot.required_abilities[0] = ab_type;
+        party->data.party_decl.role_count = 1;
+        party->data.party_decl.role_slots = malloc(sizeof(ASTNode*));
+        party->data.party_decl.role_slots[0] = rs;
+
+        type_check_party_decl(party, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ability);
+        ast_destroy(party);
+    }
+
+    TEST("duplicate party declaration triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *p1 = ast_create_party_declaration("Team");
+        p1->line = 1; p1->column = 1;
+        type_check_party_decl(p1, ctx);
+
+        ASTNode *p2 = ast_create_party_declaration("Team");
+        p2->line = 2; p2->column = 1;
+        type_check_party_decl(p2, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(p1);
+        ast_destroy(p2);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Systemic / World declarations
+ * ----------------------------------------------------------------- */
+
+static void
+test_systemic_world_decl(void)
+{
+    printf("\n[systemic_world_decl]\n");
+
+    TEST("valid systemic declaration passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *sys = ast_create_systemic_declaration("CombatSystem");
+        sys->line = 1; sys->column = 1;
+        type_check_systemic_decl(sys, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(sys);
+    }
+
+    TEST("valid world with systemic ref passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        /* Register systemic first */
+        ASTNode *sys = ast_create_systemic_declaration("Combat");
+        sys->line = 1; sys->column = 1;
+        type_check_systemic_decl(sys, ctx);
+
+        /* Create world referencing it */
+        ASTNode *world = ast_create_world_declaration("GameWorld");
+        world->line = 3; world->column = 1;
+        ASTNode *ws = ast_create_world_systemic("combat", "Combat");
+        ws->line = 4; ws->column = 1;
+        world->data.world_decl.systemic_count = 1;
+        world->data.world_decl.systemics = malloc(sizeof(ASTNode*));
+        world->data.world_decl.systemics[0] = ws;
+
+        type_check_world_decl(world, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(sys);
+        ast_destroy(world);
+    }
+}
+
+static void
+test_extern_block(void)
+{
+    printf("\n[extern_block]\n");
+
+    TEST("extern C function is visible to later call");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *ext = ast_create_extern_block("C");
+        ext->line = 1; ext->column = 1;
+
+        ASTNode *fn = ast_create_function("SDL_Init");
+        fn->line = 2; fn->column = 5;
+        fn->data.func_decl.return_type = ast_create_type("Int");
+        fn->data.func_decl.param_count = 1;
+        fn->data.func_decl.params = calloc(1, sizeof(FuncParam*));
+
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("flags");
+        param->type = ast_create_type("Int");
+        fn->data.func_decl.params[0] = param;
+
+        ast_add_statement(ext, fn);
+
+        ASTNode **call_args = calloc(1, sizeof(ASTNode*));
+        call_args[0] = make_number(0, 4);
+        ASTNode *call = make_call("SDL_Init", call_args, 1, 4);
+        ASTNode *decl = ast_create_let_declaration("result");
+        decl->line = 4; decl->column = 1;
+        decl->data.let_decl.initializer = call;
+
+        ASTNode *stmts[2] = { ext, decl };
+        ASTNode *program = make_program(stmts, 2);
+
+        type_check_program(program, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ext);
+        ast_destroy(decl);
+        free(program);
+    }
+}
+
+static void
+test_engine_collections(void)
+{
+    printf("\n[engine_collections]\n");
+
+    TEST("Array<Int> annotation resolves to constructed type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *array_type = make_generic_type("Array", "Int");
+        Type *resolved = resolve_type_node(array_type, ctx);
+
+        EXPECT(resolved->kind == TYPE_KIND_CONSTRUCTED
+               && strcmp(resolved->name, "Array<Int>") == 0);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(array_type);
+    }
+
+    TEST("Slice<Float>.Length resolves to Int");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_FLOAT };
+        Type *slice_type = type_create_constructed(TYPE_SLICE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("view", slice_type, 1, 1));
+
+        ASTNode *length = ast_create_member_access(
+            make_identifier("view", 2), "Length");
+        Type *resolved = type_check_expression(length, ctx);
+
+        EXPECT(resolved == TYPE_INT && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(length);
+    }
+
+    TEST("Array<Int> indexing returns element type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *array_type = type_create_constructed(TYPE_ARRAY, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("values", array_type, 1, 1));
+
+        ASTNode *access = ast_create_array_access(
+            make_identifier("values", 2), make_number(0, 2));
+        Type *resolved = type_check_expression(access, ctx);
+
+        EXPECT(resolved == TYPE_INT && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(access);
+    }
+}
+
+static void
+test_shared_memory_features(void)
+{
+    printf("\n[shared_memory]\n");
+
+    TEST("Rc<Int> annotation resolves to constructed type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *rc_type = make_generic_type("Rc", "Int");
+        Type *resolved = resolve_type_node(rc_type, ctx);
+
+        EXPECT(resolved->kind == TYPE_KIND_CONSTRUCTED
+               && strcmp(resolved->name, "Rc<Int>") == 0);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(rc_type);
+    }
+
+    TEST("RcClone returns same Rc<T> type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *rc_type = type_create_constructed(TYPE_RC, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("shared", rc_type, 1, 1));
+
+        ASTNode *call = make_call("RcClone", (ASTNode *[]){ make_identifier("shared", 2) }, 1, 2);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(type_equals(resolved, rc_type) && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("RcDowngrade returns Weak<T>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *rc_type = type_create_constructed(TYPE_RC, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("shared", rc_type, 1, 1));
+
+        ASTNode *call = make_call("RcDowngrade", (ASTNode *[]){ make_identifier("shared", 2) }, 1, 2);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved->kind == TYPE_KIND_CONSTRUCTED
+               && strcmp(resolved->name, "Weak<Int>") == 0
+               && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("AllocatorPool returns Allocator type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *call = make_call("AllocatorPool", (ASTNode *[]){ make_number(1024, 1) }, 1, 1);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved == TYPE_ALLOCATOR && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("Box<Array<Int>> let declaration accepts BoxArray initializer");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *array_type = make_generic_type("Array", "Int");
+        ASTNode *boxed_array = make_generic_type_from_node("Box", array_type);
+        ASTNode *call = make_call("BoxArray", (ASTNode *[]){ make_number(64, 1) }, 1, 1);
+        ASTNode *decl = ast_create_let_declaration("storage");
+        decl->data.let_decl.type = boxed_array;
+        decl->data.let_decl.initializer = call;
+
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Async system tests
+ * ----------------------------------------------------------------- */
+
+static void
+test_async_system(void)
+{
+    printf("\n[async_system]\n");
+
+    TEST("actor declaration registers SYMBOL_ACTOR");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *actor = ast_create_actor("Counter");
+        actor->line = 1; actor->column = 1;
+        type_check_actor_decl(actor, ctx);
+        EXPECT(!ctx->has_error);
+
+        /* Verify symbol was registered */
+        Symbol *sym = scope_lookup(ctx->scope, "Counter");
+        EXPECT(sym != NULL && sym->kind == SYMBOL_ACTOR);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(actor);
+    }
+
+    TEST("duplicate actor declaration triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *a1 = ast_create_actor("Counter");
+        a1->line = 1; a1->column = 1;
+        type_check_actor_decl(a1, ctx);
+
+        ASTNode *a2 = ast_create_actor("Counter");
+        a2->line = 3; a2->column = 1;
+        type_check_actor_decl(a2, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(a1);
+        ast_destroy(a2);
+    }
+
+    TEST("await outside async context triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = false;
+
+        ASTNode *num = make_number(42, 1);
+        ASTNode *await = ast_create_await_expression(num);
+        await->line = 1; await->column = 1;
+
+        type_check_expression(await, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await);
+    }
+
+    TEST("await inside async context passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        ASTNode *num = make_number(42, 1);
+        ASTNode *await = ast_create_await_expression(num);
+        await->line = 1; await->column = 1;
+
+        type_check_expression(await, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await);
+    }
+
+    TEST("select statement with empty cases passes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *sel = ast_create_select_statement();
+        sel->line = 1; sel->column = 1;
+
+        type_check_select_stmt(sel, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(sel);
+    }
+
+    TEST("spawn expression type-checks inner expression");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *num = make_number(42, 1);
+        ASTNode *spawn = ast_create_spawn_expression(num);
+        spawn->line = 1; spawn->column = 1;
+
+        Type *t = type_check_spawn_expr(spawn, ctx);
+        EXPECT(t == TYPE_VOID);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(spawn);
+    }
+}
+
 /* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
@@ -393,6 +1121,16 @@ main(void)
     test_symbol_table();
     test_type_checker_slot_rules();
     test_undefined_symbol();
+    test_while_loop();
+    test_match_stmt();
+    test_ability_decl();
+    test_role_decl();
+    test_party_decl();
+    test_systemic_world_decl();
+    test_extern_block();
+    test_engine_collections();
+    test_shared_memory_features();
+    test_async_system();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

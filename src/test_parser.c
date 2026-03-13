@@ -139,6 +139,27 @@ int main(void) {
             "}"
         },
         {
+            "Struct Declaration",
+            "struct Vec3 {\n"
+            "    x: Float;\n"
+            "    y: Float;\n"
+            "    z: Float;\n"
+            "    func Length() -> Float {\n"
+            "        return x;\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "Extern C Block",
+            "extern \"C\" {\n"
+            "    func SDL_Init(flags: Int) -> Int;\n"
+            "    func SDL_Quit();\n"
+            "}\n"
+            "func Main() -> Int {\n"
+            "    return SDL_Init(0);\n"
+            "}"
+        },
+        {
             "Complex Expression",
             "let result = (a + b * c) / (d - e) && flag || !other;"
         },
@@ -150,6 +171,31 @@ int main(void) {
             "Array Access",
             "let value = array[index + 1];\n"
             "matrix[i][j] = value * 2;"
+        },
+        {
+            "While Loop",
+            "func Countdown(n: Int) -> Void {\n"
+            "    let count: Int = n;\n"
+            "    while count > 0 {\n"
+            "        Log(count);\n"
+            "        count = count - 1;\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "Match Statement",
+            "func Classify(n: Int) -> Void {\n"
+            "    match n {\n"
+            "        case 0:\n"
+            "            Log(\"zero\");\n"
+            "        case 1:\n"
+            "            Log(\"one\");\n"
+            "        case 2 if n > 0:\n"
+            "            Log(\"two positive\");\n"
+            "        default:\n"
+            "            Log(\"other\");\n"
+            "    }\n"
+            "}"
         },
         {
             "Full Example",
@@ -175,11 +221,76 @@ int main(void) {
             "        }\n"
             "    }\n"
             "}"
+        },
+        {
+            "Ability Declaration",
+            "ability Damageable {\n"
+            "    require health: Int\n"
+            "    func TakeDamage(amount: Int) -> Void {\n"
+            "        Log(amount);\n"
+            "    }\n"
+            "    func GetHealth() -> Int;\n"
+            "}"
+        },
+        {
+            "Role Declaration",
+            "role PlayerDamageable for Player {\n"
+            "    include role BuffableRole\n"
+            "    impl ability Damageable {\n"
+            "        func TakeDamage(amount: Int) -> Void {\n"
+            "            Log(amount);\n"
+            "        }\n"
+            "    }\n"
+            "    override func GetHealth() -> Int {\n"
+            "        return 100;\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "Party Declaration",
+            "party DungeonTeam {\n"
+            "    role slot tank: Damageable\n"
+            "    role slot healer: Healing\n"
+            "    shared formation: String = \"standard\"\n"
+            "    func Execute() -> Void {\n"
+            "        Log(formation);\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "Systemic Declaration",
+            "systemic CombatSystem {\n"
+            "    party slot team1: DungeonTeam\n"
+            "    party slot team2: DungeonTeam\n"
+            "    shared round: Int = 0\n"
+            "    func StartRound() -> Void {\n"
+            "        Log(round);\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "World Declaration",
+            "world GameWorld {\n"
+            "    systemic combat: CombatSystem\n"
+            "    shared tick: Int = 0\n"
+            "    func Update() -> Void {\n"
+            "        Log(tick);\n"
+            "    }\n"
+            "}"
+        },
+        {
+            "Actor Declaration",
+            "actor Counter {\n"
+            "    let count: Int;\n"
+            "    func Increment() -> Void {\n"
+            "        count = count + 1;\n"
+            "    }\n"
+            "}"
         }
     };
-    
+
     int num_tests = sizeof(tests) / sizeof(tests[0]);
-    
+
     for (int i = 0; i < num_tests; i++) {
         test_parser(tests[i].name, tests[i].code);
         printf("\n");

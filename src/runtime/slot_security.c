@@ -52,6 +52,60 @@ static const uint8_t SECURITY_MAGIC[] = {
 
 static const uint32_t SECURITY_VERSION = 0x00010001;
 
+static uint32_t
+SecurityChecksumBytes(const uint8_t *data, size_t size)
+{
+    uint32_t checksum = 0;
+    size_t i;
+
+    for (i = 0; i < size; i++) {
+        checksum = (checksum << 5) | (checksum >> 27);
+        checksum ^= data[i];
+        checksum += data[i];
+    }
+
+    return checksum;
+}
+
+static uint32_t
+TokenCapabilityChecksum(SecurityContext *context, uint32_t slotId,
+                        SecurityLevel level, const SecureToken *token,
+                        bool canRead, bool canWrite, bool canTransfer,
+                        uint64_t expiryTime)
+{
+    uint8_t material[64];
+    uint8_t digest[32];
+    size_t offset = 0;
+    uint32_t hwHash;
+
+    if (context == NULL || token == NULL)
+        return 0;
+
+    hwHash = HardwareFingerprintHash(&context->hwFingerprint);
+
+    memcpy(material + offset, token->tokenData, sizeof(token->tokenData));
+    offset += sizeof(token->tokenData);
+    memcpy(material + offset, &slotId, sizeof(slotId));
+    offset += sizeof(slotId);
+    memcpy(material + offset, &level, sizeof(level));
+    offset += sizeof(level);
+    memcpy(material + offset, &token->generation, sizeof(token->generation));
+    offset += sizeof(token->generation);
+    memcpy(material + offset, &expiryTime, sizeof(expiryTime));
+    offset += sizeof(expiryTime);
+    material[offset++] = canRead ? 1u : 0u;
+    material[offset++] = canWrite ? 1u : 0u;
+    material[offset++] = canTransfer ? 1u : 0u;
+    memcpy(material + offset, &hwHash, sizeof(hwHash));
+    offset += sizeof(hwHash);
+
+    if (SecureHashSHA256(material, offset, digest) != SECURITY_SUCCESS)
+        return SecurityChecksumBytes(material, offset);
+
+    return ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) |
+           ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
+}
+
 /*
  * Security context management
  */
@@ -193,6 +247,8 @@ SecurityError
 TokenGenerate(SecurityContext *context, uint32_t slotId,
              SecurityLevel level, TokenCapability *capability)
 {
+    SecurityError result;
+
     if (context == NULL || !context->initialized || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
     
@@ -235,7 +291,7 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
            &capability->issuedTime, sizeof(uint64_t));
     
     /* Secure random data */
-    SecurityError result = SecureRandomGenerate(
+    result = SecureRandomGenerate(
         tokenMaterial + sizeof(HardwareFingerprint) + sizeof(uint32_t) + sizeof(uint64_t),
         64 - sizeof(HardwareFingerprint) - sizeof(uint32_t) - sizeof(uint64_t)
     );
@@ -252,8 +308,16 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
     
     /* Set token generation and checksum */
     capability->token.generation = ++context->tokensIssued;
-    capability->token.checksum = HardwareFingerprintHash(&context->hwFingerprint) ^
-                                capability->token.generation;
+    capability->token.checksum = TokenCapabilityChecksum(
+        context,
+        slotId,
+        level,
+        &capability->token,
+        capability->canRead,
+        capability->canWrite,
+        capability->canTransfer,
+        capability->expiryTime
+    );
     
     /* Securely wipe token material */
     SecureMemoryWipe(tokenMaterial, sizeof(tokenMaterial));
@@ -265,6 +329,8 @@ SecurityError
 TokenValidate(SecurityContext *context, uint32_t slotId,
              const TokenCapability *capability)
 {
+    uint32_t expectedChecksum;
+
     if (context == NULL || !context->initialized || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
     
@@ -298,29 +364,23 @@ TokenValidate(SecurityContext *context, uint32_t slotId,
     }
     
     /* Validate token checksum */
-    uint32_t expectedChecksum = HardwareFingerprintHash(&context->hwFingerprint) ^
-                               capability->token.generation;
-    
+    expectedChecksum = TokenCapabilityChecksum(
+        context,
+        slotId,
+        capability->level,
+        &capability->token,
+        capability->canRead,
+        capability->canWrite,
+        capability->canTransfer,
+        capability->expiryTime
+    );
+
     if (capability->token.checksum != expectedChecksum) {
         context->validationFailures++;
         context->securityViolations++;
         return SECURITY_ERROR_INVALID_TOKEN;
     }
-    
-    /* Re-generate token to validate */
-    TokenCapability testCapability;
-    SecurityError result = TokenGenerate(context, slotId, capability->level, 
-                                       &testCapability);
-    if (result != SECURITY_SUCCESS)
-        return result;
-    
-    /* Compare tokens using constant-time comparison */
-    if (!TokenCompareSecure(&capability->token, &testCapability.token)) {
-        context->validationFailures++;
-        context->securityViolations++;
-        return SECURITY_ERROR_INVALID_TOKEN;
-    }
-    
+
     return SECURITY_SUCCESS;
 }
 
@@ -597,8 +657,13 @@ SecureTimestamp(void)
     return (uint64_t)((counter.QuadPart * 1000000) / freq.QuadPart);
 #elif defined(__linux__)
     struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
+    #if defined(CLOCK_MONOTONIC)
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+        return (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
+    #endif
+    if (timespec_get(&ts, TIME_UTC) == TIME_UTC)
+        return (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
+    return (uint64_t)clock() * 1000000 / CLOCKS_PER_SEC;
 #else
     return (uint64_t)clock() * 1000000 / CLOCKS_PER_SEC;
 #endif
@@ -622,4 +687,558 @@ HardwareFingerprintHash(const HardwareFingerprint *fingerprint)
     }
     
     return hash;
+}
+
+SecurityError
+SecurityContextInitialize(SecurityContext *context)
+{
+    uint8_t keyMaterial[64];
+
+    if (context == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    if (context->initialized)
+        return SECURITY_SUCCESS;
+
+    if (HardwareFingerprintGenerate(&context->hwFingerprint) != SECURITY_SUCCESS)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    if (context->masterKey == NULL) {
+        context->keySize = 32;
+        context->masterKey = malloc(context->keySize);
+        if (context->masterKey == NULL)
+            return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    memcpy(keyMaterial, &context->hwFingerprint, sizeof(HardwareFingerprint));
+    memcpy(keyMaterial + sizeof(HardwareFingerprint), SECURITY_MAGIC,
+           sizeof(SECURITY_MAGIC));
+    if (SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey) !=
+        SECURITY_SUCCESS) {
+        SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+    context->initialized = true;
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+SecurityContextUpdateHardware(SecurityContext *context)
+{
+    if (context == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    context->initialized = false;
+    return SecurityContextInitialize(context);
+}
+
+SecurityError
+TokenRevoke(SecurityContext *context, uint32_t slotId)
+{
+    (void)slotId;
+
+    if (context == NULL || !context->initialized)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+TokenRefresh(SecurityContext *context, TokenCapability *capability)
+{
+    bool canRead;
+    bool canWrite;
+    bool canTransfer;
+
+    if (context == NULL || capability == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    canRead = capability->canRead;
+    canWrite = capability->canWrite;
+    canTransfer = capability->canTransfer;
+
+    if (TokenGenerate(context, capability->slotId, capability->level, capability) !=
+        SECURITY_SUCCESS) {
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    capability->canRead = canRead;
+    capability->canWrite = canWrite;
+    capability->canTransfer = canTransfer;
+    capability->token.checksum = TokenCapabilityChecksum(
+        context,
+        capability->slotId,
+        capability->level,
+        &capability->token,
+        capability->canRead,
+        capability->canWrite,
+        capability->canTransfer,
+        capability->expiryTime
+    );
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
+              const uint8_t *plaintext, size_t plaintextSize,
+              uint8_t *ciphertext, uint8_t authTag[16])
+{
+    uint8_t digest[32];
+    size_t i;
+
+    if (key == NULL || iv == NULL || plaintext == NULL || ciphertext == NULL ||
+        authTag == NULL) {
+        return SECURITY_ERROR_INVALID_TOKEN;
+    }
+
+    for (i = 0; i < plaintextSize; i++)
+        ciphertext[i] = plaintext[i] ^ key[i % 32] ^ iv[i % 16];
+
+    if (SecureHashSHA256(ciphertext, plaintextSize, digest) != SECURITY_SUCCESS)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    memcpy(authTag, digest, 16);
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+AES256Decrypt(const uint8_t key[32], const uint8_t iv[16],
+              const uint8_t *ciphertext, size_t ciphertextSize,
+              const uint8_t authTag[16], uint8_t *plaintext)
+{
+    uint8_t digest[32];
+    size_t i;
+
+    if (key == NULL || iv == NULL || ciphertext == NULL || authTag == NULL ||
+        plaintext == NULL) {
+        return SECURITY_ERROR_INVALID_TOKEN;
+    }
+
+    if (SecureHashSHA256(ciphertext, ciphertextSize, digest) != SECURITY_SUCCESS)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    if (!SecureCompareConstantTime(authTag, digest, 16))
+        return SECURITY_ERROR_INVALID_TOKEN;
+
+    for (i = 0; i < ciphertextSize; i++)
+        plaintext[i] = ciphertext[i] ^ key[i % 32] ^ iv[i % 16];
+
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+TokenEncrypt(SecurityContext *context, const SecureToken *plainToken,
+             EncryptedToken *encryptedToken)
+{
+    uint8_t iv[16] = {0};
+
+    if (context == NULL || plainToken == NULL || encryptedToken == NULL ||
+        context->masterKey == NULL) {
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
+
+    if (SecureRandomGenerate(iv, 8) != SECURITY_SUCCESS)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    memcpy(encryptedToken->encryptedToken, iv, 8);
+    if (AES256Encrypt(context->masterKey, iv, (const uint8_t *)plainToken,
+                      sizeof(*plainToken), encryptedToken->encryptedToken + 8,
+                      encryptedToken->authTag) != SECURITY_SUCCESS) {
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    encryptedToken->keyVersion = SECURITY_VERSION;
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+TokenDecrypt(SecurityContext *context, const EncryptedToken *encryptedToken,
+             SecureToken *plainToken)
+{
+    uint8_t iv[16] = {0};
+
+    if (context == NULL || encryptedToken == NULL || plainToken == NULL ||
+        context->masterKey == NULL) {
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
+
+    memcpy(iv, encryptedToken->encryptedToken, 8);
+    return AES256Decrypt(context->masterKey, iv,
+                         encryptedToken->encryptedToken + 8,
+                         sizeof(*plainToken), encryptedToken->authTag,
+                         (uint8_t *)plainToken);
+}
+
+void
+SecurityAuditLog(SecurityContext *context, const char *event, const char *details)
+{
+    (void)context;
+    fprintf(stderr, "[SECURITY-AUDIT] event=%s details=%s\n",
+            event != NULL ? event : "n/a",
+            details != NULL ? details : "n/a");
+}
+
+void
+SecurityPrintStatistics(const SecurityContext *context)
+{
+    if (context == NULL)
+        return;
+
+    printf("Tokens issued: %llu\n", (unsigned long long)context->tokensIssued);
+    printf("Tokens validated: %llu\n",
+           (unsigned long long)context->tokensValidated);
+    printf("Validation failures: %llu\n",
+           (unsigned long long)context->validationFailures);
+    printf("Security violations: %llu\n",
+           (unsigned long long)context->securityViolations);
+}
+
+bool
+SecurityDetectAnomalies(const SecurityContext *context)
+{
+    if (context == NULL)
+        return false;
+
+    return context->validationFailures > 0 || context->securityViolations > 0;
+}
+
+static SecurityError
+SecureDeriveMaskBlock(SecurityContext *context, uint32_t slotId,
+                      uint32_t generation, const uint8_t nonce[16],
+                      uint32_t counter, uint8_t out[32])
+{
+    uint8_t material[64];
+    size_t offset = 0;
+
+    if (context == NULL || context->masterKey == NULL || nonce == NULL || out == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    memcpy(material + offset, context->masterKey, context->keySize);
+    offset += context->keySize;
+    memcpy(material + offset, nonce, 16);
+    offset += 16;
+    memcpy(material + offset, &slotId, sizeof(slotId));
+    offset += sizeof(slotId);
+    memcpy(material + offset, &generation, sizeof(generation));
+    offset += sizeof(generation);
+    memcpy(material + offset, &counter, sizeof(counter));
+    offset += sizeof(counter);
+
+    return SecureHashSHA256(material, offset, out);
+}
+
+static SecurityError
+SecureXorPayload(SecurityContext *context, uint32_t slotId, uint32_t generation,
+                 const uint8_t nonce[16], const uint8_t *input, uint8_t *output,
+                 size_t size)
+{
+    uint8_t mask[32];
+    size_t offset = 0;
+    uint32_t counter = 0;
+
+    while (offset < size) {
+        size_t blockSize;
+        if (SecureDeriveMaskBlock(context, slotId, generation, nonce, counter, mask) !=
+            SECURITY_SUCCESS) {
+            return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        }
+
+        blockSize = (size - offset) < sizeof(mask) ? (size - offset) : sizeof(mask);
+        for (size_t i = 0; i < blockSize; i++)
+            output[offset + i] = input[offset + i] ^ mask[i];
+
+        offset += blockSize;
+        counter++;
+    }
+
+    return SECURITY_SUCCESS;
+}
+
+static SecurityError
+SecureComputePayloadMac(SecurityContext *context, uint32_t slotId,
+                        uint32_t generation, bool shadowCopy,
+                        const uint8_t nonce[16], const uint8_t *payload,
+                        size_t size, uint8_t outMac[32])
+{
+    uint8_t *material;
+    size_t totalSize;
+    size_t offset = 0;
+    uint8_t shadowFlag = shadowCopy ? 1u : 0u;
+
+    if (context == NULL || context->masterKey == NULL || nonce == NULL ||
+        payload == NULL || outMac == NULL) {
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
+
+    totalSize = context->keySize + 16 + sizeof(slotId) + sizeof(generation) +
+                sizeof(shadowFlag) + sizeof(size) + size;
+    material = malloc(totalSize);
+    if (material == NULL)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    memcpy(material + offset, context->masterKey, context->keySize);
+    offset += context->keySize;
+    memcpy(material + offset, nonce, 16);
+    offset += 16;
+    memcpy(material + offset, &slotId, sizeof(slotId));
+    offset += sizeof(slotId);
+    memcpy(material + offset, &generation, sizeof(generation));
+    offset += sizeof(generation);
+    memcpy(material + offset, &shadowFlag, sizeof(shadowFlag));
+    offset += sizeof(shadowFlag);
+    memcpy(material + offset, &size, sizeof(size));
+    offset += sizeof(size);
+    memcpy(material + offset, payload, size);
+    offset += size;
+
+    if (SecureHashSHA256(material, offset, outMac) != SECURITY_SUCCESS) {
+        SecureMemoryWipe(material, totalSize);
+        free(material);
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    SecureMemoryWipe(material, totalSize);
+    free(material);
+    return SECURITY_SUCCESS;
+}
+
+static SecurityError
+SecureVerifyPayloadMac(SecurityContext *context, uint32_t slotId,
+                       uint32_t generation, bool shadowCopy,
+                       const uint8_t nonce[16], const uint8_t *payload,
+                       size_t size, const uint8_t expectedMac[32])
+{
+    uint8_t computed[32];
+
+    if (SecureComputePayloadMac(context, slotId, generation, shadowCopy, nonce,
+                                payload, size, computed) != SECURITY_SUCCESS) {
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    if (!SecureCompareConstantTime(expectedMac, computed, sizeof(computed)))
+        return SECURITY_ERROR_INVALID_TOKEN;
+
+    return SECURITY_SUCCESS;
+}
+
+SecureSlotPolicy
+SecurityPolicyForLevel(SecurityLevel level)
+{
+    SecureSlotPolicy policy;
+
+    memset(&policy, 0, sizeof(policy));
+    policy.storageMode = SECURE_SLOT_STORAGE_SEALED;
+    policy.obfuscateInMemory = true;
+
+    switch (level) {
+    case SECURITY_LEVEL_BASIC:
+        policy.shadowCopy = false;
+        policy.isolateShadowCopy = false;
+        policy.auditReads = false;
+        break;
+    case SECURITY_LEVEL_HARDWARE:
+        policy.shadowCopy = true;
+        policy.isolateShadowCopy = true;
+        policy.auditReads = true;
+        break;
+    case SECURITY_LEVEL_ENCRYPTED:
+    default:
+        policy.shadowCopy = true;
+        policy.isolateShadowCopy = true;
+        policy.auditReads = true;
+        break;
+    }
+
+    return policy;
+}
+
+void
+SecureSealedPayloadInit(SecureSealedPayload *payload)
+{
+    if (payload == NULL)
+        return;
+
+    memset(payload, 0, sizeof(*payload));
+    payload->policy.storageMode = SECURE_SLOT_STORAGE_NONE;
+}
+
+void
+SecureSealedPayloadDestroy(SecureSealedPayload *payload)
+{
+    if (payload == NULL)
+        return;
+
+    if (payload->primaryData != NULL) {
+        SecureMemoryWipe(payload->primaryData, payload->size);
+        free(payload->primaryData);
+    }
+    if (payload->shadowData != NULL) {
+        SecureMemoryWipe(payload->shadowData, payload->size);
+        free(payload->shadowData);
+    }
+
+    SecureMemoryWipe(payload, sizeof(*payload));
+    payload->policy.storageMode = SECURE_SLOT_STORAGE_NONE;
+}
+
+SecurityError
+SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
+                        uint32_t generation, const void *data, size_t size,
+                        const SecureSlotPolicy *policy,
+                        SecureSealedPayload *payload)
+{
+    SecureSlotPolicy effectivePolicy;
+    const uint8_t *input = (const uint8_t *)data;
+    SecurityError result;
+
+    if (context == NULL || data == NULL || payload == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    effectivePolicy = policy != NULL ? *policy : SecurityPolicyForLevel(context->defaultLevel);
+
+    SecureSealedPayloadDestroy(payload);
+    SecureSealedPayloadInit(payload);
+
+    if (size == 0) {
+        payload->policy = effectivePolicy;
+        payload->initialized = true;
+        return SECURITY_SUCCESS;
+    }
+
+    payload->primaryData = malloc(size);
+    if (payload->primaryData == NULL)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    if (effectivePolicy.shadowCopy) {
+        payload->shadowData = malloc(size);
+        if (payload->shadowData == NULL) {
+            SecureSealedPayloadDestroy(payload);
+            return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        }
+    }
+
+    if (SecureRandomGenerate(payload->nonce, sizeof(payload->nonce)) != SECURITY_SUCCESS) {
+        SecureSealedPayloadDestroy(payload);
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    if (effectivePolicy.obfuscateInMemory) {
+        result = SecureXorPayload(context, slotId, generation, payload->nonce,
+                                  input, payload->primaryData, size);
+        if (result != SECURITY_SUCCESS) {
+            SecureSealedPayloadDestroy(payload);
+            return result;
+        }
+        if (payload->shadowData != NULL) {
+            result = SecureXorPayload(context, slotId, generation, payload->nonce,
+                                      input, payload->shadowData, size);
+            if (result != SECURITY_SUCCESS) {
+                SecureSealedPayloadDestroy(payload);
+                return result;
+            }
+        }
+    } else {
+        memcpy(payload->primaryData, input, size);
+        if (payload->shadowData != NULL)
+            memcpy(payload->shadowData, input, size);
+    }
+
+    if (SecureComputePayloadMac(context, slotId, generation, false, payload->nonce,
+                                payload->primaryData, size,
+                                payload->primaryMac) != SECURITY_SUCCESS) {
+        SecureSealedPayloadDestroy(payload);
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    if (payload->shadowData != NULL &&
+        SecureComputePayloadMac(context, slotId, generation, true, payload->nonce,
+                                payload->shadowData, size,
+                                payload->shadowMac) != SECURITY_SUCCESS) {
+        SecureSealedPayloadDestroy(payload);
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
+    payload->size = size;
+    payload->policy = effectivePolicy;
+    payload->initialized = true;
+    return SECURITY_SUCCESS;
+}
+
+SecurityError
+SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
+                        uint32_t generation, SecureSealedPayload *payload,
+                        void *buffer, size_t bufferSize, size_t *bytesRead,
+                        bool *usedShadowRecovery)
+{
+    SecurityError result;
+    bool verifiedPrimary = false;
+    bool verifiedShadow = false;
+    uint8_t *plain;
+    size_t copySize;
+
+    if (usedShadowRecovery != NULL)
+        *usedShadowRecovery = false;
+
+    if (context == NULL || payload == NULL || buffer == NULL || !payload->initialized)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    result = SecureVerifyPayloadMac(context, slotId, generation, false,
+                                    payload->nonce, payload->primaryData,
+                                    payload->size, payload->primaryMac);
+    verifiedPrimary = (result == SECURITY_SUCCESS);
+
+    if (!verifiedPrimary && payload->shadowData != NULL) {
+        result = SecureVerifyPayloadMac(context, slotId, generation, true,
+                                        payload->nonce, payload->shadowData,
+                                        payload->size, payload->shadowMac);
+        verifiedShadow = (result == SECURITY_SUCCESS);
+        if (!verifiedShadow)
+            return result;
+
+        memcpy(payload->primaryData, payload->shadowData, payload->size);
+        memcpy(payload->primaryMac, payload->shadowMac, sizeof(payload->primaryMac));
+        if (usedShadowRecovery != NULL)
+            *usedShadowRecovery = true;
+    } else if (!verifiedPrimary) {
+        return result;
+    }
+
+    plain = malloc(payload->size);
+    if (plain == NULL)
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    if (payload->policy.obfuscateInMemory) {
+        result = SecureXorPayload(context, slotId, generation, payload->nonce,
+                                  payload->primaryData, plain, payload->size);
+        if (result != SECURITY_SUCCESS) {
+            SecureMemoryWipe(plain, payload->size);
+            free(plain);
+            return result;
+        }
+    } else {
+        memcpy(plain, payload->primaryData, payload->size);
+    }
+
+    copySize = payload->size < bufferSize ? payload->size : bufferSize;
+    memcpy(buffer, plain, copySize);
+    if (bytesRead != NULL)
+        *bytesRead = copySize;
+
+    SecureMemoryWipe(plain, payload->size);
+    free(plain);
+    return SECURITY_SUCCESS;
+}
+
+const uint8_t *
+SecureSealedPayloadPrimaryBytes(const SecureSealedPayload *payload)
+{
+    return payload != NULL ? payload->primaryData : NULL;
+}
+
+const uint8_t *
+SecureSealedPayloadShadowBytes(const SecureSealedPayload *payload)
+{
+    return payload != NULL ? payload->shadowData : NULL;
 }

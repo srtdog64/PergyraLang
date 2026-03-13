@@ -136,6 +136,12 @@ extern Type* TYPE_BOOL;
 extern Type* TYPE_STRING;
 extern Type* TYPE_VOID;
 extern Type* TYPE_UNKNOWN;
+extern Type* TYPE_ARRAY;
+extern Type* TYPE_SLICE;
+extern Type* TYPE_BOX;
+extern Type* TYPE_RC;
+extern Type* TYPE_WEAK;
+extern Type* TYPE_ALLOCATOR;
 
 void type_system_init(void);
 void type_system_cleanup(void);

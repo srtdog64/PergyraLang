@@ -12,6 +12,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "common/string_compat.h"
 #include "codegen/transpiler.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
@@ -55,7 +56,7 @@ make_string_lit(const char *s, uint32_t line)
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_STRING;
     n->line = line;
-    n->data.string.value = (char *)s;
+    n->data.string.value = pergyra_strdup(s);
     return n;
 }
 
@@ -65,7 +66,7 @@ make_identifier(const char *name, uint32_t line)
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_IDENTIFIER;
     n->line = line;
-    n->data.identifier.name = (char *)name;
+    n->data.identifier.name = pergyra_strdup(name);
     return n;
 }
 
@@ -77,7 +78,10 @@ make_call(const char *callee_name, ASTNode **args, size_t arg_count,
     n->type = AST_CALL;
     n->line = line;
     n->data.call.callee    = make_identifier(callee_name, line);
-    n->data.call.arguments = args;
+    if (arg_count > 0) {
+        n->data.call.arguments = calloc(arg_count, sizeof(ASTNode *));
+        memcpy(n->data.call.arguments, args, arg_count * sizeof(ASTNode *));
+    }
     n->data.call.arg_count = arg_count;
     return n;
 }
@@ -87,7 +91,7 @@ make_type_node(const char *type_name)
 {
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_TYPE;
-    n->data.type.name = (char *)type_name;
+    n->data.type.name = pergyra_strdup(type_name);
     return n;
 }
 
@@ -97,7 +101,7 @@ make_let(const char *name, ASTNode *ann, ASTNode *init, uint32_t line)
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_LET_DECL;
     n->line = line;
-    n->data.let_decl.name        = (char *)name;
+    n->data.let_decl.name        = pergyra_strdup(name);
     n->data.let_decl.type        = ann;
     n->data.let_decl.initializer = init;
     return n;
@@ -118,7 +122,10 @@ make_block(ASTNode **stmts, size_t count)
 {
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_BLOCK;
-    n->data.block.statements = stmts;
+    if (count > 0) {
+        n->data.block.statements = calloc(count, sizeof(ASTNode *));
+        memcpy(n->data.block.statements, stmts, count * sizeof(ASTNode *));
+    }
     n->data.block.count      = count;
     return n;
 }
@@ -128,8 +135,41 @@ make_program(ASTNode **stmts, size_t count)
 {
     ASTNode *n = calloc(1, sizeof(ASTNode));
     n->type = AST_PROGRAM;
-    n->data.program.statements = stmts;
+    if (count > 0) {
+        n->data.program.statements = calloc(count, sizeof(ASTNode *));
+        memcpy(n->data.program.statements, stmts, count * sizeof(ASTNode *));
+    }
     n->data.program.count      = count;
+    return n;
+}
+
+static ASTNode *
+make_generic_type(const char *name, const char *arg_name)
+{
+    ASTNode *n = ast_create_type(name);
+    n->data.type.generic_args = calloc(1, sizeof(GenericParams));
+    n->data.type.generic_args->count = 1;
+    n->data.type.generic_args->params = calloc(1, sizeof(GenericParam *));
+
+    GenericParam *gp = calloc(1, sizeof(GenericParam));
+    gp->name = pergyra_strdup(arg_name);
+    gp->constraint = ast_create_type(arg_name);
+    n->data.type.generic_args->params[0] = gp;
+    return n;
+}
+
+static ASTNode *
+make_generic_type_from_node(const char *name, ASTNode *arg_type)
+{
+    ASTNode *n = ast_create_type(name);
+    n->data.type.generic_args = calloc(1, sizeof(GenericParams));
+    n->data.type.generic_args->count = 1;
+    n->data.type.generic_args->params = calloc(1, sizeof(GenericParam *));
+
+    GenericParam *gp = calloc(1, sizeof(GenericParam));
+    gp->name = pergyra_strdup(arg_type->data.type.name);
+    gp->constraint = arg_type;
+    n->data.type.generic_args->params[0] = gp;
     return n;
 }
 
@@ -228,6 +268,24 @@ test_type_mapping(void)
     TEST("SecureSlot<Int> → PgySecureSlot_Int");
     EXPECT(strcmp(pergyra_type_to_c("SecureSlot<Int>"), "PgySecureSlot_Int") == 0);
 
+    TEST("Array<Vertex> → PgyArray_Vertex");
+    EXPECT(strcmp(pergyra_type_to_c("Array<Vertex>"), "PgyArray_Vertex") == 0);
+
+    TEST("Slice<Vertex> → PgySlice_Vertex");
+    EXPECT(strcmp(pergyra_type_to_c("Slice<Vertex>"), "PgySlice_Vertex") == 0);
+
+    TEST("Rc<Int> → PgyRc_Int");
+    EXPECT(strcmp(pergyra_type_to_c("Rc<Int>"), "PgyRc_Int") == 0);
+
+    TEST("Weak<Int> → PgyWeak_Int");
+    EXPECT(strcmp(pergyra_type_to_c("Weak<Int>"), "PgyWeak_Int") == 0);
+
+    TEST("Allocator → PgyAllocator");
+    EXPECT(strcmp(pergyra_type_to_c("Allocator"), "PgyAllocator") == 0);
+
+    TEST("Box<Array<Int>> → PgyBoxArray_Int");
+    EXPECT(strcmp(pergyra_type_to_c("Box<Array<Int>>"), "PgyBoxArray_Int") == 0);
+
     TEST("slot_inner_type_name(Slot<Float>) → Float");
     EXPECT(strcmp(slot_inner_type_name("Slot<Float>"), "Float") == 0);
 
@@ -313,6 +371,43 @@ test_expression_emit(void)
         free(result);
         transpiler_ctx_destroy(ctx);
     }
+
+    TEST("array access → values[0]");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(
+            ast_create_array_access(make_identifier("values", 1),
+                                    make_number(0, 1)),
+            ctx);
+        EXPECT(strcmp(result, "values[0]") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("RcClone(shared) → pgy_rc_clone_Int(shared)");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        emit_statement(
+            make_let("shared",
+                     make_generic_type("Rc", "Int"),
+                     make_call("RcNew", init_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("shared", 1) };
+        result = emit_expression(make_call("RcClone", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_rc_clone_Int(shared)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("AllocatorTracing() → pgy_allocator_tracing()");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("AllocatorTracing", NULL, 0, 1), ctx);
+        EXPECT(strcmp(result, "pgy_allocator_tracing()") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -369,6 +464,50 @@ test_statement_emit(void)
         ASTNode *node = make_return(make_number(0, 1), 1);
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "return 0;");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let vertices: Array<Vertex> = meshData → PgyArray_Vertex vertices = meshData;");
+    {
+        ASTNode *node = make_let("vertices",
+                                 make_generic_type("Array", "Vertex"),
+                                 make_identifier("meshData", 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyArray_Vertex vertices = meshData;");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let shared: Rc<Int> = RcNew(42) → PgyRc_Int shared = pgy_rc_new_Int(42);");
+    {
+        ASTNode *args[1] = { make_number(42, 1) };
+        ASTNode *node = make_let("shared",
+                                 make_generic_type("Rc", "Int"),
+                                 make_call("RcNew", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyRc_Int shared = pgy_rc_new_Int(42);");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let alloc: Allocator = AllocatorPool(1024) → PgyAllocator alloc = pgy_allocator_pool(1024);");
+    {
+        ASTNode *args[1] = { make_number(1024, 1) };
+        ASTNode *node = make_let("alloc",
+                                 make_type_node("Allocator"),
+                                 make_call("AllocatorPool", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyAllocator alloc = pgy_allocator_pool(1024);");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let storage: Box<Array<Int>> = BoxArray(128) → fused BoxArray allocation");
+    {
+        ASTNode *array_type = make_generic_type("Array", "Int");
+        ASTNode *boxed_array = make_generic_type_from_node("Box", array_type);
+        ASTNode *args[1] = { make_number(128, 1) };
+        ASTNode *node = make_let("storage", boxed_array,
+                                 make_call("BoxArray", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyBoxArray_Int storage = pgy_box_array_new_Int(128, NULL);");
         transpiler_ctx_destroy(ctx);
     }
 
@@ -449,6 +588,597 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_PARALLEL_END");
         transpiler_ctx_destroy(ctx);
     }
+
+    TEST("struct emits typedef struct and method function");
+    {
+        ASTNode *st = calloc(1, sizeof(ASTNode));
+        st->type = AST_CLASS_DECL;
+        st->data.class_decl.name = "Vec3";
+        st->data.class_decl.is_struct = true;
+
+        ClassField fx, fy, fz;
+        memset(&fx, 0, sizeof(fx));
+        memset(&fy, 0, sizeof(fy));
+        memset(&fz, 0, sizeof(fz));
+        fx.name = "x"; fx.type = make_type_node("Float");
+        fy.name = "y"; fy.type = make_type_node("Float");
+        fz.name = "z"; fz.type = make_type_node("Float");
+        ClassField *fields[3] = { &fx, &fy, &fz };
+        st->data.class_decl.fields = fields;
+        st->data.class_decl.field_count = 3;
+
+        ASTNode method; memset(&method, 0, sizeof(method));
+        method.type = AST_FUNC_DECL;
+        method.data.func_decl.name = "Length";
+        method.data.func_decl.params = NULL;
+        method.data.func_decl.param_count = 0;
+        method.data.func_decl.return_type = make_type_node("Float");
+        method.data.func_decl.body = NULL;
+
+        ASTNode *methods[1] = { &method };
+        st->data.class_decl.methods = methods;
+        st->data.class_decl.method_count = 1;
+
+        ASTNode *stmts[1] = { st };
+        ASTNode *prog = make_program(stmts, 1);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_program(prog, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Vec3");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float x;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float y;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float z;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 *self)");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("extern block emits C prototypes");
+    {
+        ASTNode ext; memset(&ext, 0, sizeof(ext));
+        ext.type = AST_EXTERN_BLOCK;
+        ext.data.extern_block.abi = "C";
+
+        FuncParam p; memset(&p, 0, sizeof(p));
+        p.name = "flags";
+        p.type = make_type_node("Int");
+        FuncParam *params[1] = { &p };
+
+        ASTNode fn1; memset(&fn1, 0, sizeof(fn1));
+        fn1.type = AST_FUNC_DECL;
+        fn1.data.func_decl.name = "SDL_Init";
+        fn1.data.func_decl.params = params;
+        fn1.data.func_decl.param_count = 1;
+        fn1.data.func_decl.return_type = make_type_node("Int");
+        fn1.data.func_decl.body = NULL;
+
+        ASTNode fn2; memset(&fn2, 0, sizeof(fn2));
+        fn2.type = AST_FUNC_DECL;
+        fn2.data.func_decl.name = "SDL_Quit";
+        fn2.data.func_decl.params = NULL;
+        fn2.data.func_decl.param_count = 0;
+        fn2.data.func_decl.return_type = make_type_node("Void");
+        fn2.data.func_decl.body = NULL;
+
+        ASTNode *decls[2] = { &fn1, &fn2 };
+        ext.data.extern_block.declarations = decls;
+        ext.data.extern_block.count = 2;
+
+        ASTNode *stmts[1] = { &ext };
+        ASTNode *prog = make_program(stmts, 1);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_program(prog, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "extern \"C\"");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t SDL_Init(int32_t flags);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void SDL_Quit();");
+
+        transpiler_ctx_destroy(ctx);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Ability / Role codegen
+ * ----------------------------------------------------------------- */
+
+static void
+test_ability_role_emit(void)
+{
+    printf("\n[ability_role_emit]\n");
+
+    TEST("ability emits vtable typedef");
+    {
+        /* Build ability with one method manually (no ast_destroy — manual free) */
+        ASTNode ability_node; memset(&ability_node, 0, sizeof(ability_node));
+        ability_node.type = AST_ABILITY_DECL;
+        ability_node.data.ability_decl.name = "Damageable";
+
+        FuncParam p; memset(&p, 0, sizeof(p));
+        p.name = "amount";
+        p.type = make_type_node("Int");
+        FuncParam *params[1] = { &p };
+
+        ASTNode method; memset(&method, 0, sizeof(method));
+        method.type = AST_FUNC_DECL;
+        method.data.func_decl.name = "TakeDamage";
+        method.data.func_decl.params = params;
+        method.data.func_decl.param_count = 1;
+        method.data.func_decl.return_type = make_type_node("Void");
+        method.data.func_decl.body = NULL;
+
+        ASTNode *methods[1] = { &method };
+        ability_node.data.ability_decl.methods = methods;
+        ability_node.data.ability_decl.method_count = 1;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_ability_decl(&ability_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Damageable_vtable");
+        EXPECT_STR_CONTAINS(ctx->out->data, "(*TakeDamage)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void *self");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("role emits static method and vtable instance");
+    {
+        ASTNode role_node; memset(&role_node, 0, sizeof(role_node));
+        role_node.type = AST_ROLE_DECL;
+        role_node.data.role_decl.name = "PlayerHeal";
+
+        ASTNode method; memset(&method, 0, sizeof(method));
+        method.type = AST_FUNC_DECL;
+        method.data.func_decl.name = "Heal";
+        method.data.func_decl.params = NULL;
+        method.data.func_decl.param_count = 0;
+        method.data.func_decl.return_type = make_type_node("Void");
+        method.data.func_decl.body = NULL;
+
+        ASTNode *impl_methods[1] = { &method };
+        ASTNode impl_node; memset(&impl_node, 0, sizeof(impl_node));
+        impl_node.type = AST_IMPL_ABILITY;
+        impl_node.data.impl_ability.ability_name = "Healable";
+        impl_node.data.impl_ability.methods = impl_methods;
+        impl_node.data.impl_ability.method_count = 1;
+
+        ASTNode *impls[1] = { &impl_node };
+        role_node.data.role_decl.impl_abilities = impls;
+        role_node.data.role_decl.impl_count = 1;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_role_decl(&role_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PlayerHeal_Heal");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Healable_vtable");
+        EXPECT_STR_CONTAINS(ctx->out->data, "vtable_instance");
+        EXPECT_STR_CONTAINS(ctx->out->data, ".Heal = PlayerHeal_Heal");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("role include copies inherited impls into current role");
+    {
+        ASTNode base_method; memset(&base_method, 0, sizeof(base_method));
+        base_method.type = AST_FUNC_DECL;
+        base_method.data.func_decl.name = "Tick";
+        base_method.data.func_decl.return_type = make_type_node("Void");
+
+        ASTNode *base_methods[1] = { &base_method };
+        ASTNode base_impl; memset(&base_impl, 0, sizeof(base_impl));
+        base_impl.type = AST_IMPL_ABILITY;
+        base_impl.data.impl_ability.ability_name = "Updatable";
+        base_impl.data.impl_ability.methods = base_methods;
+        base_impl.data.impl_ability.method_count = 1;
+
+        ASTNode *base_impls[1] = { &base_impl };
+        ASTNode base_role; memset(&base_role, 0, sizeof(base_role));
+        base_role.type = AST_ROLE_DECL;
+        base_role.data.role_decl.name = "BaseRole";
+        base_role.data.role_decl.impl_abilities = base_impls;
+        base_role.data.role_decl.impl_count = 1;
+
+        ASTNode include_stmt; memset(&include_stmt, 0, sizeof(include_stmt));
+        include_stmt.type = AST_INCLUDE_STMT;
+        include_stmt.data.include_stmt.role_name = "BaseRole";
+
+        ASTNode *includes[1] = { &include_stmt };
+        ASTNode derived_role; memset(&derived_role, 0, sizeof(derived_role));
+        derived_role.type = AST_ROLE_DECL;
+        derived_role.data.role_decl.name = "DerivedRole";
+        derived_role.data.role_decl.includes = includes;
+        derived_role.data.role_decl.include_count = 1;
+
+        ASTNode *program_stmts[2] = { &base_role, &derived_role };
+        ASTNode program; memset(&program, 0, sizeof(program));
+        program.type = AST_PROGRAM;
+        program.data.program.statements = program_stmts;
+        program.data.program.count = 2;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->program = &program;
+        emit_role_decl(&derived_role, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "DerivedRole_Tick");
+        EXPECT_STR_CONTAINS(ctx->out->data, "DerivedRole_Updatable_vtable_instance");
+
+        transpiler_ctx_destroy(ctx);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Party codegen
+ * ----------------------------------------------------------------- */
+
+static void
+test_party_emit(void)
+{
+    printf("\n[party_emit]\n");
+
+    TEST("party emits struct with role slot and shared field");
+    {
+        ASTNode party_node; memset(&party_node, 0, sizeof(party_node));
+        party_node.type = AST_PARTY_DECL;
+        party_node.data.party_decl.name = "DungeonTeam";
+
+        /* Role slot */
+        ASTNode rs; memset(&rs, 0, sizeof(rs));
+        rs.type = AST_ROLE_SLOT;
+        rs.data.role_slot.slot_name = "tank";
+        ASTNode ab_type; memset(&ab_type, 0, sizeof(ab_type));
+        ab_type.type = AST_TYPE;
+        ab_type.data.type.name = "Damageable";
+        ASTNode *abilities[1] = { &ab_type };
+        rs.data.role_slot.required_abilities = abilities;
+        rs.data.role_slot.ability_count = 1;
+
+        ASTNode *role_slots[1] = { &rs };
+        party_node.data.party_decl.role_slots = role_slots;
+        party_node.data.party_decl.role_count = 1;
+
+        /* Shared field */
+        ASTNode shared; memset(&shared, 0, sizeof(shared));
+        shared.type = AST_PARTY_SHARED;
+        shared.data.party_shared.name = "formation";
+        shared.data.party_shared.type = make_type_node("String");
+
+        ASTNode *shared_fields[1] = { &shared };
+        party_node.data.party_decl.shared_fields = shared_fields;
+        party_node.data.party_decl.shared_count = 1;
+
+        party_node.data.party_decl.methods = NULL;
+        party_node.data.party_decl.method_count = 0;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_party_decl(&party_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct DungeonTeam");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void *tank");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Damageable_vtable");
+        EXPECT_STR_CONTAINS(ctx->out->data, "formation");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} DungeonTeam;");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("party instance emits C compound literal");
+    {
+        ASTNode value; memset(&value, 0, sizeof(value));
+        value.type = AST_IDENTIFIER;
+        value.data.identifier.name = "tankRole";
+
+        ASTNode instance; memset(&instance, 0, sizeof(instance));
+        instance.type = AST_PARTY_INSTANCE;
+        instance.data.party_instance.party_type = "DungeonTeam";
+        instance.data.party_instance.assignments = calloc(1, sizeof(*instance.data.party_instance.assignments));
+        instance.data.party_instance.assignment_count = 1;
+        instance.data.party_instance.assignments[0].slot_name = "tank";
+        instance.data.party_instance.assignments[0].value = &value;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&instance, ctx);
+
+        EXPECT_STR_CONTAINS(result, "(DungeonTeam){");
+        EXPECT_STR_CONTAINS(result, ".tank = tankRole");
+
+        free(result);
+        free(instance.data.party_instance.assignments);
+        transpiler_ctx_destroy(ctx);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Systemic / World codegen
+ * ----------------------------------------------------------------- */
+
+static void
+test_systemic_world_emit(void)
+{
+    printf("\n[systemic_world_emit]\n");
+
+    TEST("systemic emits struct with party slot");
+    {
+        ASTNode sys_node; memset(&sys_node, 0, sizeof(sys_node));
+        sys_node.type = AST_SYSTEMIC_DECL;
+        sys_node.data.systemic_decl.name = "CombatSystem";
+
+        ASTNode ps; memset(&ps, 0, sizeof(ps));
+        ps.type = AST_SYSTEMIC_SLOT;
+        ps.data.systemic_slot.slot_name = "team1";
+        ps.data.systemic_slot.party_type = "DungeonTeam";
+
+        ASTNode *party_slots[1] = { &ps };
+        sys_node.data.systemic_decl.party_slots = party_slots;
+        sys_node.data.systemic_decl.party_count = 1;
+        sys_node.data.systemic_decl.shared_fields = NULL;
+        sys_node.data.systemic_decl.shared_count = 0;
+        sys_node.data.systemic_decl.methods = NULL;
+        sys_node.data.systemic_decl.method_count = 0;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_systemic_decl(&sys_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct CombatSystem");
+        EXPECT_STR_CONTAINS(ctx->out->data, "DungeonTeam team1");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} CombatSystem;");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("world emits struct with systemic member");
+    {
+        ASTNode world_node; memset(&world_node, 0, sizeof(world_node));
+        world_node.type = AST_WORLD_DECL;
+        world_node.data.world_decl.name = "GameWorld";
+
+        ASTNode ws; memset(&ws, 0, sizeof(ws));
+        ws.type = AST_WORLD_SYSTEMIC;
+        ws.data.world_systemic.slot_name = "combat";
+        ws.data.world_systemic.systemic_type = "CombatSystem";
+
+        ASTNode *systemics[1] = { &ws };
+        world_node.data.world_decl.systemics = systemics;
+        world_node.data.world_decl.systemic_count = 1;
+        world_node.data.world_decl.shared_fields = NULL;
+        world_node.data.world_decl.shared_count = 0;
+        world_node.data.world_decl.methods = NULL;
+        world_node.data.world_decl.method_count = 0;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_world_decl(&world_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");
+        EXPECT_STR_CONTAINS(ctx->out->data, "CombatSystem combat");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} GameWorld;");
+
+        transpiler_ctx_destroy(ctx);
+    }
+}
+
+/* -----------------------------------------------------------------
+ * Async system emitter tests
+ * ----------------------------------------------------------------- */
+
+static void
+test_async_emit(void)
+{
+    printf("\n[async_emit]\n");
+
+    TEST("actor emits struct typedef");
+    {
+        ASTNode actor_node; memset(&actor_node, 0, sizeof(actor_node));
+        actor_node.type = AST_ACTOR_DECL;
+        actor_node.data.actor_decl.name = "Counter";
+
+        ClassField field; memset(&field, 0, sizeof(field));
+        field.name = "count";
+        ASTNode field_type; memset(&field_type, 0, sizeof(field_type));
+        field_type.type = AST_TYPE;
+        field_type.data.type.name = "Int";
+        field.type = &field_type;
+
+        ClassField *fields[1] = { &field };
+        actor_node.data.actor_decl.fields = fields;
+        actor_node.data.actor_decl.field_count = 1;
+        actor_node.data.actor_decl.methods = NULL;
+        actor_node.data.actor_decl.method_count = 0;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_actor_decl(&actor_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t count");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} Counter;");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("spawn expression emits direct call comment");
+    {
+        ASTNode id_node; memset(&id_node, 0, sizeof(id_node));
+        id_node.type = AST_IDENTIFIER;
+        id_node.data.identifier.name = "DoWork";
+
+        ASTNode spawn_node; memset(&spawn_node, 0, sizeof(spawn_node));
+        spawn_node.type = AST_SPAWN_EXPR;
+        spawn_node.data.spawn_expr.function = &id_node;
+        spawn_node.data.spawn_expr.arguments = NULL;
+        spawn_node.data.spawn_expr.arg_count = 0;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&spawn_node, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "spawn") != NULL);
+        EXPECT(strstr(result, "DoWork") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("channel send emits pgy_channel_send");
+    {
+        ASTNode ch_node; memset(&ch_node, 0, sizeof(ch_node));
+        ch_node.type = AST_IDENTIFIER;
+        ch_node.data.identifier.name = "myChan";
+
+        ASTNode val_node; memset(&val_node, 0, sizeof(val_node));
+        val_node.type = AST_NUMBER;
+        val_node.data.number.value = 42;
+
+        ASTNode send_node; memset(&send_node, 0, sizeof(send_node));
+        send_node.type = AST_CHANNEL_SEND;
+        send_node.data.channel_send.channel = &ch_node;
+        send_node.data.channel_send.value = &val_node;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&send_node, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_send") != NULL);
+        EXPECT(strstr(result, "myChan") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("channel recv emits pgy_channel_recv");
+    {
+        ASTNode ch_node; memset(&ch_node, 0, sizeof(ch_node));
+        ch_node.type = AST_IDENTIFIER;
+        ch_node.data.identifier.name = "myChan";
+
+        ASTNode recv_node; memset(&recv_node, 0, sizeof(recv_node));
+        recv_node.type = AST_CHANNEL_RECV;
+        recv_node.data.channel_recv.channel = &ch_node;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&recv_node, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_recv") != NULL);
+        EXPECT(strstr(result, "myChan") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("event invoke emits generated invoke helper call");
+    {
+        ASTNode event_node; memset(&event_node, 0, sizeof(event_node));
+        event_node.type = AST_IDENTIFIER;
+        event_node.data.identifier.name = "OnHit";
+
+        ASTNode arg_node; memset(&arg_node, 0, sizeof(arg_node));
+        arg_node.type = AST_NUMBER;
+        arg_node.data.number.value = 7;
+
+        ASTNode *args[1] = { &arg_node };
+        ASTNode invoke_node; memset(&invoke_node, 0, sizeof(invoke_node));
+        invoke_node.type = AST_EVENT_INVOKE;
+        invoke_node.data.event_invoke.event = &event_node;
+        invoke_node.data.event_invoke.arguments = args;
+        invoke_node.data.event_invoke.arg_count = 1;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&invoke_node, ctx);
+
+        EXPECT_STR_CONTAINS(result, "OnHit_INVOKE(&OnHit, 7)");
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("context access emits self role slot access");
+    {
+        ASTNode context; memset(&context, 0, sizeof(context));
+        context.type = AST_CONTEXT_ACCESS;
+        context.data.context_access.method_name = "GetRole";
+        context.data.context_access.role_slot_name = "tank";
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&context, ctx);
+
+        EXPECT_STR_CONTAINS(result, "self->tank");
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("select statement emits if-else chain");
+    {
+        ASTNode select_node; memset(&select_node, 0, sizeof(select_node));
+        select_node.type = AST_SELECT_STMT;
+        select_node.data.select_stmt.cases = NULL;
+        select_node.data.select_stmt.case_count = 0;
+
+        /* Add a default case */
+        ASTNode default_body; memset(&default_body, 0, sizeof(default_body));
+        default_body.type = AST_BLOCK;
+        default_body.data.block.statements = NULL;
+        default_body.data.block.count = 0;
+        select_node.data.select_stmt.default_case = &default_body;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_select_stmt(&select_node, ctx);
+
+        EXPECT(ctx->out->data != NULL);
+        EXPECT(strstr(ctx->out->data, "select") != NULL);
+        EXPECT(strstr(ctx->out->data, "default") != NULL);
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("lambda expression emits helper prototype and definition");
+    {
+        ASTNode param; memset(&param, 0, sizeof(param));
+        param.type = AST_IDENTIFIER;
+        param.data.identifier.name = "x";
+
+        ASTNode *body_expr = make_identifier("x", 1);
+        ASTNode *body_stmts[1] = { make_return(body_expr, 1) };
+        ASTNode *body = make_block(body_stmts, 1);
+
+        ASTNode *params[1] = { &param };
+        ASTNode lambda; memset(&lambda, 0, sizeof(lambda));
+        lambda.type = AST_LAMBDA_EXPR;
+        lambda.data.lambda_expr.params = params;
+        lambda.data.lambda_expr.param_count = 1;
+        lambda.data.lambda_expr.body = body;
+        lambda.data.lambda_expr.return_type = make_type_node("Int");
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(&lambda, ctx);
+
+        EXPECT_STR_CONTAINS(result, "pgy_lambda_");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "static int32_t pgy_lambda_");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "return x;");
+
+        free(result);
+        ast_destroy(body);
+        ast_destroy(lambda.data.lambda_expr.return_type);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("async block emits contained statements sequentially");
+    {
+        ASTNode *ret_stmt = make_return(make_number(1, 1), 1);
+        ASTNode *stmts[1] = { ret_stmt };
+
+        ASTNode async_block; memset(&async_block, 0, sizeof(async_block));
+        async_block.type = AST_ASYNC_BLOCK;
+        async_block.data.async_block.statements = stmts;
+        async_block.data.async_block.statement_count = 1;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_statement(&async_block, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "return 1;");
+
+        ast_destroy(ret_stmt);
+        transpiler_ctx_destroy(ctx);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -467,6 +1197,10 @@ main(void)
     test_expression_emit();
     test_statement_emit();
     test_program_emit();
+    test_ability_role_emit();
+    test_party_emit();
+    test_systemic_world_emit();
+    test_async_emit();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

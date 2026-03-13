@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "../common/string_compat.h"
 #include "symbol_table.h"
 
 #define INITIAL_SYMBOL_CAPACITY 16
@@ -181,7 +182,7 @@ symbol_create_variable(const char *name, Type *type,
     if (sym == NULL)
         return NULL;
 
-    sym->name      = strdup(name);
+    sym->name      = pergyra_strdup(name);
     sym->kind      = SYMBOL_VARIABLE;
     sym->type      = type;
     sym->decl_line = line;
@@ -197,7 +198,7 @@ symbol_create_function(const char *name, Type *func_type,
     if (sym == NULL)
         return NULL;
 
-    sym->name      = strdup(name);
+    sym->name      = pergyra_strdup(name);
     sym->kind      = SYMBOL_FUNCTION;
     sym->type      = func_type;
     sym->decl_line = line;
@@ -214,7 +215,7 @@ symbol_create_slot(const char *name, Type *slot_type,
     if (sym == NULL)
         return NULL;
 
-    sym->name      = strdup(name);
+    sym->name      = pergyra_strdup(name);
     sym->kind      = SYMBOL_SLOT;
     sym->type      = slot_type;
     sym->decl_line = line;
@@ -223,7 +224,7 @@ symbol_create_slot(const char *name, Type *slot_type,
     sym->slot_info.state             = SLOT_STATE_CLAIMED;
     sym->slot_info.is_secure         = is_secure;
     sym->slot_info.paired_token_name = paired_token
-                                       ? strdup(paired_token)
+                                       ? pergyra_strdup(paired_token)
                                        : NULL;
     return sym;
 }
@@ -236,13 +237,13 @@ symbol_create_token(const char *name, const char *paired_slot,
     if (sym == NULL)
         return NULL;
 
-    sym->name      = strdup(name);
+    sym->name      = pergyra_strdup(name);
     sym->kind      = SYMBOL_TOKEN;
     sym->decl_line = line;
     sym->decl_col  = col;
 
     sym->slot_info.paired_slot_name = paired_slot
-                                      ? strdup(paired_slot)
+                                      ? pergyra_strdup(paired_slot)
                                       : NULL;
     return sym;
 }

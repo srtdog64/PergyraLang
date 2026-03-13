@@ -5,10 +5,10 @@
 ## 개요
 
 Pergyra는 포인터 대신 **슬롯 기반 메모리 관리**를 채택한 시스템 프로그래밍 언어입니다.
-`.pgy` 소스를 C로 트랜스파일하여 네이티브 바이너리를 생성합니다.
+`.pgy` 소스를 분석한 뒤 C 백엔드를 거쳐 네이티브 바이너리를 생성합니다.
 
 ```
-.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  C Transpiler  -->  GCC  -->  Binary
+.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  C Backend  -->  GCC  -->  Binary
 ```
 
 ### 핵심 특징
@@ -32,10 +32,10 @@ Pergyra는 포인터 대신 **슬롯 기반 메모리 관리**를 채택한 시�
 make all
 
 # Hello World 실행
-./bin/pgy examples/hello.pgy --compile --run -v
+./bin/pgy examples/hello.pgy --run -v
 
 # 슬롯 데모 실행
-./bin/pgy examples/slots.pgy --compile --run -v
+./bin/pgy examples/slots.pgy --run -v
 ```
 
 ## 문법 예제
@@ -77,7 +77,8 @@ PergyraLang/
     lexer/          # 토크나이저
     parser/         # AST 생성
     semantic/       # 타입 검사, 슬롯 분석
-    codegen/        # C 트랜스파일러
+    codegen/        # C 백엔드
+    compiler/       # 컴파일 파사드와 네이티브 빌드
     runtime/        # pgy_runtime.h (슬롯 매크로)
     pgy_driver.c    # 컴파일러 드라이버
   examples/         # .pgy 예제 파일
@@ -95,11 +96,11 @@ make test-all
 make test           # 렉서
 make test-parser    # 파서
 make test-semantic  # 시맨틱 분석
-make test-transpile # 트랜스파일러
+make test-transpile # C 백엔드
 make test-memory    # 메모리 레이아웃
 ```
 
-현재 107개 테스트 통과 (시맨틱 29 + 트랜스파일러 34 + 메모리 44).
+현재 `make test-semantic`, `make test-transpile` 기준 핵심 프론트엔드 테스트가 통과합니다.
 
 ## 슬롯 시스템
 
@@ -138,9 +139,10 @@ make test-memory    # 메모리 레이아웃
 ## 문서
 
 - [현재 진행 상황](docs/00_progress.md)
-- [구문 레퍼런스](docs/00_syntax.md)
-- [문법 정의](docs/01_grammar.md)
-- [네이밍 규칙](docs/02_naming_conventions.md)
+- [구문 레퍼런스](docs/grammar/01_syntax.md)
+- [문법 정의](docs/grammar/02_grammar.md)
+- [네이밍 규칙](docs/grammar/03_naming.md)
+- [언어 상태 평가](docs/18_language_status.md)
 - [보안 모드 설계](docs/03_security_mode_design.md)
 - [제네릭 설계](docs/04_generic_design.md)
 - [비동기/동시성 설계](docs/05_async_concurrency.md)

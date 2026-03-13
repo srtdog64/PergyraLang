@@ -49,6 +49,7 @@ typedef struct
     bool    in_with_statement;
     bool    in_async_context;
     bool    in_select_statement;
+    bool    in_extern_block;
     int     scope_depth;
 } Parser;
 

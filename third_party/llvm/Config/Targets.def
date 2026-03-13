@@ -1,0 +1,4 @@
+/*===- llvm/Config/Targets.def - Stub for Pergyra build ---------*- C -*-===*/
+LLVM_TARGET(X86)
+LLVM_TARGET(AArch64)
+#undef LLVM_TARGET

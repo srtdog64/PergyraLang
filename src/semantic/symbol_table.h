@@ -28,7 +28,12 @@ typedef enum
     SYMBOL_ACTOR,       /* actor Baz                */
     SYMBOL_TYPE_PARAM,  /* T, U (generic parameter) */
     SYMBOL_SLOT,        /* Slot<T> variable         */
-    SYMBOL_TOKEN        /* SecurityToken for SecureSlot */
+    SYMBOL_TOKEN,       /* SecurityToken for SecureSlot */
+    SYMBOL_ABILITY,     /* ability Foo              */
+    SYMBOL_ROLE,        /* role Bar for Baz         */
+    SYMBOL_PARTY,       /* party Baz                */
+    SYMBOL_SYSTEMIC,    /* systemic Sys             */
+    SYMBOL_WORLD        /* world W                  */
 } SymbolKind;
 
 /*

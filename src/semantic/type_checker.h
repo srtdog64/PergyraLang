@@ -85,6 +85,7 @@ bool type_check_program(ASTNode* program, SemanticContext* ctx);
 
 bool type_check_func_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_extern_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
 
 /* -----------------------------------------------------------------
@@ -95,7 +96,22 @@ bool type_check_statement(ASTNode* node, SemanticContext* ctx);
 bool type_check_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_if_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_for_loop(ASTNode* node, SemanticContext* ctx);
+bool type_check_while_loop(ASTNode* node, SemanticContext* ctx);
+bool type_check_match_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_return_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_ability_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_role_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_party_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_systemic_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_world_decl(ASTNode* node, SemanticContext* ctx);
+
+/* Async system checkers */
+bool type_check_actor_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_async_block(ASTNode* node, SemanticContext* ctx);
+bool type_check_select_stmt(ASTNode* node, SemanticContext* ctx);
+Type* type_check_spawn_expr(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_channel_send(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_channel_recv(ASTNode* expr, SemanticContext* ctx);
 
 /*
  * with slot<T> as s { ... }
@@ -125,6 +141,7 @@ Type* type_check_binary(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_unary(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_call(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_member_access(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_array_access(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
 
 /* -----------------------------------------------------------------
@@ -181,6 +198,19 @@ typedef enum
     BUILTIN_READ,
     BUILTIN_RELEASE,
     BUILTIN_LOG,
+    BUILTIN_RC_NEW,
+    BUILTIN_RC_CLONE,
+    BUILTIN_RC_DROP,
+    BUILTIN_RC_DOWNGRADE,
+    BUILTIN_RC_GET,
+    BUILTIN_WEAK_UPGRADE,
+    BUILTIN_WEAK_DROP,
+    BUILTIN_ALLOCATOR_SYSTEM,
+    BUILTIN_ALLOCATOR_TRACING,
+    BUILTIN_ALLOCATOR_DEBUG,
+    BUILTIN_ALLOCATOR_POOL,
+    BUILTIN_BOX,
+    BUILTIN_BOX_ARRAY,
     BUILTIN_PARALLEL,
     BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
 } BuiltinKind;
@@ -195,7 +225,7 @@ Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
  * ----------------------------------------------------------------- */
 
 /*
- * Resolve an AST type node (AST_TYPE / AST_GENERIC_TYPE) to a
+ * Resolve an AST type node (AST_TYPE) to a
  * Type* using the current scope's type definitions.
  */
 Type* resolve_type_node(ASTNode* type_node, SemanticContext* ctx);

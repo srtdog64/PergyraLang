@@ -38,6 +38,8 @@ global slot_read_fast
 global slot_hash_function_asm
 global slot_compare_and_swap_asm
 global slot_memory_barrier_asm
+global SlotMaskMirrorChecksumAsm
+global SlotUnmaskChecksumAsm
 
 ;
 ; Fast slot hash function (FNV-1a variant)
@@ -296,19 +298,52 @@ slot_write_fast:
     jz      .write_allocate_block
     
 .write_data:
-    ; Optimized memory copy (memcpy equivalent)
+    ; Optimized memory copy with XOR Obfuscation
     mov     rsi, r14               ; source
     mov     rdi, r9                ; destination
     mov     rcx, r15               ; size
+
+    ; Generate Obfuscation Key (XOR Mask)
+    ; key = slot_magic_number ^ slot_id
+    mov     r11d, dword [rel slot_magic_number]
+    xor     r11d, ebx              ; EBX contains slot_id
+    ; duplicate this 32-bit key to 64-bit in R11
+    mov     r10d, r11d
+    shl     r11, 32
+    or      r11, r10               ; R11 now contains obfuscation key (64-bit)
     
     ; Copy 8 bytes at a time for optimization
+    mov     rax, rcx
     shr     rcx, 3                 ; divide by 8
-    rep movsq                      ; copy 8-byte chunks
-    
+    jz      .write_data_remainder
+
+.write_qword_loop:
+    mov     r10, [rsi]
+    xor     r10, r11               ; Apply XOR Mask
+    mov     [rdi], r10
+    add     rsi, 8
+    add     rdi, 8
+    dec     rcx
+    jnz     .write_qword_loop
+
+.write_data_remainder:
     ; Handle remaining bytes
-    mov     rcx, r15
+    mov     rcx, rax               ; restore original size
     and     rcx, 7                 ; remainder
-    rep movsb                      ; copy remaining bytes
+    jz      .write_data_done
+
+.write_byte_loop:
+    mov     r10b, [rsi]
+    xor     r10b, r11b             ; Apply XOR Mask (lowest byte of key)
+    mov     [rdi], r10b
+    add     rsi, 1
+    add     rdi, 1
+    ; Rotate key by 8 bits to keep masking somewhat consistent for uneven lengths
+    ror     r11, 8
+    dec     rcx
+    jnz     .write_byte_loop
+
+.write_data_done:
     
     mov     eax, 0                 ; SLOT_SUCCESS
     jmp     .write_cleanup
@@ -397,17 +432,50 @@ slot_read_fast:
     test    r9, r9
     jz      .read_error
     
-    ; Optimized memory copy
+    ; Optimized memory copy with XOR De-obfuscation
     mov     rsi, r9                ; source
     mov     rdi, r14               ; destination
     mov     rcx, r15               ; size
+
+    ; Generate Obfuscation Key (XOR Mask)
+    ; key = slot_magic_number ^ slot_id
+    mov     r11d, dword [rel slot_magic_number]
+    xor     r11d, ebx              ; EBX contains slot_id
+    ; duplicate this 32-bit key to 64-bit in R11
+    mov     r10d, r11d
+    shl     r11, 32
+    or      r11, r10               ; R11 now contains obfuscation key (64-bit)
     
-    shr     rcx, 3
-    rep movsq
-    
-    mov     rcx, r15
+    mov     rax, rcx
+    shr     rcx, 3                 ; divide by 8
+    jz      .read_data_remainder
+
+.read_qword_loop:
+    mov     r10, [rsi]
+    xor     r10, r11               ; Apply XOR De-Mask
+    mov     [rdi], r10
+    add     rsi, 8
+    add     rdi, 8
+    dec     rcx
+    jnz     .read_qword_loop
+
+.read_data_remainder:
+    mov     rcx, rax
     and     rcx, 7
-    rep movsb
+    jz      .read_data_done
+
+.read_byte_loop:
+    mov     r10b, [rsi]
+    xor     r10b, r11b             ; Apply XOR De-Mask (lowest byte of key)
+    mov     [rdi], r10b
+    add     rsi, 1
+    add     rdi, 1
+    ; Rotate key by 8 bits to keep masking somewhat consistent for uneven lengths
+    ror     r11, 8
+    dec     rcx
+    jnz     .read_byte_loop
+
+.read_data_done:
     
     ; Update cache hit statistics
     mov     rax, r12
@@ -442,3 +510,84 @@ error_messages:
     db "Invalid handle", 0
     db "Type mismatch", 0
     db "Out of memory", 0
+
+section .text
+
+; uint32_t SlotMaskMirrorChecksumAsm(uint8_t* primary, uint8_t* shadow,
+;                                    const uint8_t* src, size_t size,
+;                                    uint32_t mask_key)
+; RDI=primary, RSI=shadow, RDX=src, RCX=size, R8D=mask_key
+SlotMaskMirrorChecksumAsm:
+    push    rbp
+    mov     rbp, rsp
+    sub     rsp, 16
+    push    rbx
+    push    r12
+
+    mov     dword [rbp - 16], r8d
+    xor     r9d, r9d              ; checksum
+    xor     r10, r10              ; index
+
+.mask_loop:
+    cmp     r10, rcx
+    jae     .mask_done
+
+    movzx   ebx, byte [rdx + r10]
+    mov     r11, r10
+    and     r11, 3
+    mov     r12b, [rbp - 16 + r11]
+
+    rol     r9d, 5
+    xor     r9d, ebx
+    add     r9d, ebx
+
+    xor     bl, r12b
+    mov     [rdi + r10], bl
+    mov     [rsi + r10], bl
+
+    inc     r10
+    jmp     .mask_loop
+
+.mask_done:
+    mov     eax, r9d
+    pop     r12
+    pop     rbx
+    leave
+    ret
+
+; uint32_t SlotUnmaskChecksumAsm(uint8_t* dst, const uint8_t* src,
+;                                size_t size, uint32_t mask_key)
+; RDI=dst, RSI=src, RDX=size, ECX=mask_key
+SlotUnmaskChecksumAsm:
+    push    rbp
+    mov     rbp, rsp
+    sub     rsp, 16
+    push    rbx
+
+    mov     dword [rbp - 16], ecx
+    xor     r8d, r8d              ; checksum
+    xor     r9, r9                ; index
+
+.unmask_loop:
+    cmp     r9, rdx
+    jae     .unmask_done
+
+    movzx   ebx, byte [rsi + r9]
+    mov     r10, r9
+    and     r10, 3
+    mov     r11b, [rbp - 16 + r10]
+    xor     bl, r11b
+    mov     [rdi + r9], bl
+
+    rol     r8d, 5
+    xor     r8d, ebx
+    add     r8d, ebx
+
+    inc     r9
+    jmp     .unmask_loop
+
+.unmask_done:
+    mov     eax, r8d
+    pop     rbx
+    leave
+    ret
