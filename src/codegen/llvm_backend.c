@@ -689,47 +689,100 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
     }
 
     /* =================================================================
-     * Channel runtime (Int only for now)
+     * Channel runtime — all types (Int, String)
      * ================================================================= */
+    struct {
+        const char *suffix;
+        LLVMTypeRef val_type;
+    } chan_types[] = {
+        { "Int",    ctx->type_i32    },
+        { "String", ctx->type_i8ptr  },
+    };
 
-    /* void pgy_channel_init_Int(ptr, i64) */
-    {
-        LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64 };
-        LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                           "pgy_channel_init_Int", ft);
-        llvm_register_function(ctx, "pgy_channel_init_Int",
-                                fn, ft, ctx->type_void);
+    for (size_t ci = 0; ci < sizeof(chan_types) / sizeof(chan_types[0]); ci++) {
+        const char *suf = chan_types[ci].suffix;
+        LLVMTypeRef vt = chan_types[ci].val_type;
+        char fname[128];
+
+        /* void pgy_channel_init_T(ptr, i64) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i64 };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_init_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_void);
+        }
+
+        /* i1 pgy_channel_send_T(ptr, val_type) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr, vt };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_i1);
+        }
+
+        /* val_type pgy_channel_recv_val_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(vt, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, vt);
+        }
+
+        /* void pgy_channel_destroy_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_destroy_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_void);
+        }
     }
 
-    /* i1 pgy_channel_send_Int(ptr, i32) */
-    {
-        LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i32 };
-        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 2, 0);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                           "pgy_channel_send_Int", ft);
-        llvm_register_function(ctx, "pgy_channel_send_Int",
-                                fn, ft, ctx->type_i1);
-    }
+    /* =================================================================
+     * SecureSlot runtime (mirrors Slot but with token parameter)
+     * ================================================================= */
+    for (size_t si = 0; si < sizeof(slot_types) / sizeof(slot_types[0]); si++) {
+        const char *suf = slot_types[si].suffix;
+        LLVMTypeRef vt  = *slot_types[si].type;
+        char fname[128];
 
-    /* i32 pgy_channel_recv_val_Int(ptr) */
-    {
-        LLVMTypeRef params[] = { ctx->type_i8ptr };
-        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 0);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                           "pgy_channel_recv_val_Int", ft);
-        llvm_register_function(ctx, "pgy_channel_recv_val_Int",
-                                fn, ft, ctx->type_i32);
-    }
+        /* PgySecureSlot_T pgy_claim_secure_T() */
+        {
+            LLVMTypeRef ft = LLVMFunctionType(ctx->slot_types[si], NULL, 0, 0);
+            snprintf(fname, sizeof(fname), "pgy_claim_secure_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->slot_types[si]);
+        }
 
-    /* void pgy_channel_destroy_Int(ptr) */
-    {
-        LLVMTypeRef params[] = { ctx->type_i8ptr };
-        LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module,
-                                           "pgy_channel_destroy_Int", ft);
-        llvm_register_function(ctx, "pgy_channel_destroy_Int",
-                                fn, ft, ctx->type_void);
+        /* void pgy_write_secure_T(PgySecureSlot_T*, val_type, i64 token) */
+        {
+            LLVMTypeRef params[] = {
+                LLVMPointerType(ctx->slot_types[si], 0), vt, ctx->type_i64
+            };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
+            snprintf(fname, sizeof(fname), "pgy_write_secure_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_void);
+        }
+
+        /* val_type pgy_read_secure_T(PgySecureSlot_T*, i64 token) */
+        {
+            LLVMTypeRef params[] = {
+                LLVMPointerType(ctx->slot_types[si], 0), ctx->type_i64
+            };
+            LLVMTypeRef ft = LLVMFunctionType(vt, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_read_secure_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, vt);
+        }
     }
 }
 
@@ -1341,8 +1394,104 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ASSIGNMENT:    return llvm_emit_assignment(node, ctx);
     case AST_MEMBER_ACCESS: return llvm_emit_member_access(node, ctx);
 
+    case AST_ARRAY_ACCESS: {
+        /* arr[idx] → GEP + load */
+        LLVMValueRef arr = llvm_emit_expression(
+            node->data.array_access.array, ctx);
+        LLVMValueRef idx = llvm_emit_expression(
+            node->data.array_access.index, ctx);
+        if (arr == NULL || idx == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        /* If arr is a pointer (i8* string or typed array pointer),
+         * do a GEP + load */
+        LLVMTypeRef arr_ty = LLVMTypeOf(arr);
+        if (LLVMGetTypeKind(arr_ty) == LLVMPointerTypeKind) {
+            /* String indexing: i8* → GEP i8 */
+            LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
+                LLVMInt8TypeInContext(ctx->context),
+                arr, &idx, 1, llvm_tmp_name(ctx));
+            return LLVMBuildLoad2(ctx->builder,
+                LLVMInt8TypeInContext(ctx->context),
+                gep, llvm_tmp_name(ctx));
+        }
+        /* Array struct: get data pointer field (index 0), then GEP */
+        if (LLVMGetTypeKind(arr_ty) == LLVMStructTypeKind) {
+            LLVMValueRef data_ptr = LLVMBuildExtractValue(ctx->builder,
+                arr, 0, llvm_tmp_name(ctx));
+            LLVMTypeRef elem_ty = ctx->type_i32; /* default element type */
+            LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
+                elem_ty, data_ptr, &idx, 1, llvm_tmp_name(ctx));
+            return LLVMBuildLoad2(ctx->builder, elem_ty,
+                gep, llvm_tmp_name(ctx));
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    case AST_CONTEXT_ACCESS: {
+        /* context.GetRole("slotName") → load role slot from self (i8*)
+         * self is in scope as the party/systemic method's first param */
+        LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
+        if (self_var == NULL)
+            return LLVMConstNull(ctx->type_i8ptr);
+
+        /* For now: return the self pointer cast — the role slot is
+         * accessed through the party struct, which self points to */
+        LLVMValueRef self_val = LLVMBuildLoad2(ctx->builder,
+            ctx->type_i8ptr, self_var->alloca, llvm_tmp_name(ctx));
+        return self_val;
+    }
+
+    case AST_PARTY_INSTANCE: {
+        /* PartyType { slot1: val1, slot2: val2 }
+         * → alloca struct, store fields, return value */
+        const char *pty = node->data.party_instance.party_type;
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, pty);
+        if (cls == NULL)
+            return LLVMConstNull(ctx->type_i8ptr);
+
+        LLVMValueRef alloca = llvm_create_entry_alloca(ctx,
+            cls->struct_type, llvm_tmp_name(ctx));
+
+        /* Zero-initialize */
+        LLVMValueRef zero = LLVMConstNull(cls->struct_type);
+        LLVMBuildStore(ctx->builder, zero, alloca);
+
+        /* Store each assignment */
+        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
+            const char *slot_name = node->data.party_instance.assignments[i].slot_name;
+            ASTNode *val_node = node->data.party_instance.assignments[i].value;
+
+            /* Find field index */
+            for (int f = 0; f < cls->field_count; f++) {
+                if (strcmp(cls->fields[f].field_name, slot_name) == 0) {
+                    LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+                        ctx->builder, cls->struct_type, alloca,
+                        (unsigned)cls->fields[f].index,
+                        llvm_tmp_name(ctx));
+                    LLVMValueRef val = llvm_emit_expression(val_node, ctx);
+                    if (val != NULL)
+                        LLVMBuildStore(ctx->builder, val, field_ptr);
+                    break;
+                }
+            }
+        }
+
+        return LLVMBuildLoad2(ctx->builder, cls->struct_type,
+            alloca, llvm_tmp_name(ctx));
+    }
+
+    case AST_TASK_GROUP: {
+        /* TaskGroup { tasks... } → emit tasks sequentially (MVP) */
+        for (size_t i = 0; i < node->data.task_group.task_count; i++) {
+            if (node->data.task_group.tasks[i] != NULL)
+                llvm_emit_expression(node->data.task_group.tasks[i], ctx);
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     case AST_CHANNEL_SEND: {
-        /* ch <- value → pgy_channel_send_Int(&ch, value) */
+        /* ch <- value → pgy_channel_send_T(&ch, value) */
         LLVMVarEntry *ch_var = NULL;
         if (node->data.channel_send.channel != NULL
             && node->data.channel_send.channel->type == AST_IDENTIFIER) {
@@ -1352,9 +1501,16 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         if (ch_var != NULL) {
             LLVMValueRef val = llvm_emit_expression(
                 node->data.channel_send.value, ctx);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx,
-                "pgy_channel_send_Int");
-            if (fn != NULL) {
+            /* Determine channel type suffix from value type */
+            const char *suffix = "Int";
+            if (val != NULL) {
+                LLVMTypeRef vt = LLVMTypeOf(val);
+                if (vt == ctx->type_i8ptr) suffix = "String";
+            }
+            char fname[128];
+            snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+            if (fn != NULL && val != NULL) {
                 LLVMValueRef args[] = { ch_var->alloca, val };
                 return LLVMBuildCall2(ctx->builder, fn->fn_type,
                     fn->fn, args, 2, llvm_tmp_name(ctx));
@@ -1364,7 +1520,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     case AST_CHANNEL_RECV: {
-        /* <- ch → pgy_channel_recv_val_Int(&ch) */
+        /* <- ch → pgy_channel_recv_val_T(&ch) */
         LLVMVarEntry *ch_var = NULL;
         if (node->data.channel_recv.channel != NULL
             && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
@@ -1372,8 +1528,13 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 node->data.channel_recv.channel->data.identifier.name);
         }
         if (ch_var != NULL) {
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx,
-                "pgy_channel_recv_val_Int");
+            /* Determine channel type from variable's LLVM type */
+            const char *suffix = "Int";
+            /* Default to Int; if channel var tracks String type,
+             * the slot_var tracking would identify it */
+            char fname[128];
+            snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
             if (fn != NULL) {
                 LLVMValueRef args[] = { ch_var->alloca };
                 return LLVMBuildCall2(ctx->builder, fn->fn_type,
@@ -1567,6 +1728,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     default:
+        fprintf(stderr, "[llvm] warning: unhandled expression AST type %d\n",
+                (int)node->type);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 }
@@ -1983,14 +2146,15 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         && node->data.with_stmt.slot_type->data.type.name != NULL)
         inner = node->data.with_stmt.slot_type->data.type.name;
 
-    (void)is_secure; /* TODO: SecureSlot in later phase */
-
     LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
     LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, alias);
 
-    /* Call pgy_claim_T() and store */
+    /* Call pgy_claim_T() or pgy_claim_secure_T() and store */
     char fn_name[64];
-    snprintf(fn_name, sizeof(fn_name), "pgy_claim_%s", inner);
+    if (is_secure)
+        snprintf(fn_name, sizeof(fn_name), "pgy_claim_secure_%s", inner);
+    else
+        snprintf(fn_name, sizeof(fn_name), "pgy_claim_%s", inner);
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
     if (fn != NULL) {
         LLVMValueRef claimed = LLVMBuildCall2(ctx->builder,
@@ -2289,7 +2453,12 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_SYSTEMIC_DECL:
     case AST_WORLD_DECL:
     case AST_EVENT_DECL:
+    case AST_IMPORT_DECL:
         /* Handled in program pass or declaration-only — skip here */
+        break;
+
+    case AST_EXTERN_BLOCK:
+        /* extern "C" { func ...; } — handled in program pass (Pass 0) */
         break;
 
     /* Expression statements */
@@ -2304,6 +2473,12 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_BOOLEAN:
     case AST_CHANNEL_SEND:
     case AST_CHANNEL_RECV:
+    case AST_SPAWN_EXPR:
+    case AST_AWAIT_EXPR:
+    case AST_ARRAY_ACCESS:
+    case AST_PARTY_INSTANCE:
+    case AST_CONTEXT_ACCESS:
+    case AST_TASK_GROUP:
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
     case AST_EVENT_INVOKE:
@@ -2311,7 +2486,8 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
 
     default:
-        /* Unsupported — skip silently */
+        fprintf(stderr, "[llvm] warning: unhandled statement AST type %d\n",
+                (int)node->type);
         break;
     }
 }
@@ -2420,12 +2596,12 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
  * ================================================================= */
 
 static void
-llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
+llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
-    if (program == NULL || program->type != AST_PROGRAM) {
+    if (hir == NULL) {
         ctx->has_error = true;
         snprintf(ctx->error_msg, sizeof(ctx->error_msg),
-                 "Expected AST_PROGRAM node");
+                 "Expected lowered HIR program");
         return;
     }
 
@@ -2433,8 +2609,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     llvm_declare_runtime(ctx);
 
     /* Pass 0: Register class/struct types */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->type_count; i++) {
+        ASTNode *stmt = hir->types[i];
         if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             const char *cls_name = stmt->data.class_decl.name;
             size_t fc = stmt->data.class_decl.field_count;
@@ -2520,8 +2696,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 0 (actors): Register actor types (same as class) */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->actor_count; i++) {
+        ASTNode *stmt = hir->actors[i];
         if (stmt == NULL || stmt->type != AST_ACTOR_DECL)
             continue;
 
@@ -2595,8 +2771,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 0a: Register Party/Systemic/World struct types + methods */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->item_count; i++) {
+        ASTNode *stmt = hir->items[i].ast;
         if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
@@ -2706,8 +2882,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 0b: Register ability vtable types */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->ability_count; i++) {
+        ASTNode *stmt = hir->abilities[i];
         if (stmt == NULL || stmt->type != AST_ABILITY_DECL)
             continue;
 
@@ -2768,8 +2944,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 0c: Forward-declare role methods + create vtable globals */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->role_count; i++) {
+        ASTNode *stmt = hir->roles[i];
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
@@ -2832,8 +3008,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 0e: Register event types and generate helper functions */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->event_count; i++) {
+        ASTNode *stmt = hir->events[i];
         if (stmt == NULL || stmt->type != AST_EVENT_DECL)
             continue;
 
@@ -3124,16 +3300,52 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
         LLVMSetLinkage(gv, LLVMInternalLinkage);
     }
 
-    /* Pass 1: Forward-declare all user functions */
+    /* Pass 0f: Emit extern "C" declarations as LLVM function prototypes */
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_EXTERN_BLOCK)
+            continue;
+
+        for (size_t j = 0; j < stmt->data.extern_block.count; j++) {
+            ASTNode *decl = stmt->data.extern_block.declarations[j];
+            if (decl == NULL || decl->type != AST_FUNC_DECL)
+                continue;
+
+            const char *fname = decl->data.func_decl.name;
+            if (llvm_lookup_function(ctx, fname) != NULL)
+                continue; /* Already declared (e.g., runtime function) */
+
+            LLVMTypeRef ret = ctx->type_void;
+            if (decl->data.func_decl.return_type != NULL)
+                ret = ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
+
+            size_t pc = decl->data.func_decl.param_count;
+            LLVMTypeRef *ptypes = calloc(pc > 0 ? pc : 1,
+                                           sizeof(LLVMTypeRef));
+            for (size_t k = 0; k < pc; k++) {
+                FuncParam *p = decl->data.func_decl.params[k];
+                ptypes[k] = (p->type != NULL)
+                    ? ast_type_to_llvm(ctx, p->type)
+                    : ctx->type_i32;
+            }
+
+            LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)pc, 0);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
+            free(ptypes);
+        }
+    }
+
+    /* Pass 1: Forward-declare all user functions */
+    for (size_t i = 0; i < hir->function_count; i++) {
+        ASTNode *stmt = hir->functions[i];
         if (stmt != NULL && stmt->type == AST_FUNC_DECL)
             llvm_forward_declare_func(stmt, ctx);
     }
 
     /* Pass 2: Emit function bodies (standalone + class methods) */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->item_count; i++) {
+        ASTNode *stmt = hir->items[i].ast;
         if (stmt != NULL && stmt->type == AST_FUNC_DECL)
             llvm_emit_func_decl(stmt, ctx);
         else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
@@ -3219,8 +3431,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 2 (actors): Emit actor method bodies */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->actor_count; i++) {
+        ASTNode *stmt = hir->actors[i];
         if (stmt == NULL || stmt->type != AST_ACTOR_DECL)
             continue;
 
@@ -3310,8 +3522,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 2b: Emit role method bodies + vtable globals */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->role_count; i++) {
+        ASTNode *stmt = hir->roles[i];
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
@@ -3440,8 +3652,8 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 2c: Emit Party/Systemic/World method bodies */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->item_count; i++) {
+        ASTNode *stmt = hir->items[i].ast;
         if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
@@ -3549,21 +3761,7 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     /* Pass 3: Collect non-function/non-class top-level into main() */
-    bool has_top_level = false;
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt != NULL && stmt->type != AST_FUNC_DECL
-            && stmt->type != AST_CLASS_DECL
-            && stmt->type != AST_ABILITY_DECL
-            && stmt->type != AST_ROLE_DECL
-            && stmt->type != AST_PARTY_DECL
-            && stmt->type != AST_SYSTEMIC_DECL
-            && stmt->type != AST_WORLD_DECL
-            && stmt->type != AST_EVENT_DECL) {
-            has_top_level = true;
-            break;
-        }
-    }
+    bool has_top_level = hir->executable_count > 0;
 
     /* Create main() */
     LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
@@ -3615,16 +3813,9 @@ llvm_emit_program(ASTNode *program, LLVMGenCtx *ctx)
     }
 
     if (has_top_level) {
-        for (size_t i = 0; i < program->data.program.count; i++) {
-            ASTNode *stmt = program->data.program.statements[i];
-            if (stmt != NULL && stmt->type != AST_FUNC_DECL
-                && stmt->type != AST_CLASS_DECL
-                && stmt->type != AST_ABILITY_DECL
-                && stmt->type != AST_ROLE_DECL
-                && stmt->type != AST_PARTY_DECL
-                && stmt->type != AST_SYSTEMIC_DECL
-                && stmt->type != AST_WORLD_DECL
-                && stmt->type != AST_EVENT_DECL) {
+        for (size_t i = 0; i < hir->executable_count; i++) {
+            ASTNode *stmt = hir->executables[i];
+            if (stmt != NULL) {
                 llvm_emit_statement(stmt, ctx);
                 if (LLVMGetBasicBlockTerminator(
                         LLVMGetInsertBlock(ctx->builder)) != NULL)
@@ -3701,7 +3892,7 @@ llvm_codegen(const HIRProgram *hir, const char *module_name)
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(hir != NULL ? hir->root_ast : NULL, ctx);
+    llvm_emit_program(hir, ctx);
 
     if (ctx->has_error) {
         LLVMGenResult *res = llvm_result_error(ctx->error_msg);
@@ -3740,7 +3931,7 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(hir != NULL ? hir->root_ast : NULL, ctx);
+    llvm_emit_program(hir, ctx);
 
     if (ctx->has_error) {
         LLVMGenResult *res = llvm_result_error(ctx->error_msg);

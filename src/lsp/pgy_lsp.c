@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #endif
 
+#include "../common/string_compat.h"
 #include "../lexer/lexer.h"
 #include "../parser/parser.h"
 #include "../semantic/semantic.h"
@@ -291,7 +292,7 @@ main(void)
                 const char *text = json_find_string(msg, "text");
                 if (text) {
                     free(doc_content);
-                    doc_content = strdup(text);
+                    doc_content = pergyra_strdup(text);
                     publish_diagnostics(doc_uri, doc_content);
                 }
             }
@@ -301,7 +302,7 @@ main(void)
             const char *text = json_find_string(msg, "text");
             if (text) {
                 free(doc_content);
-                doc_content = strdup(text);
+                doc_content = pergyra_strdup(text);
                 publish_diagnostics(doc_uri, doc_content);
             }
         }

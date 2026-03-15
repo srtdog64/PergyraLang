@@ -10,13 +10,14 @@
  *     → Parser   → AST
  *     → Semantic → annotated AST  (errors abort here)
  *     → HIR      → lowered program buckets
- *     → C backend → .c file
- *     → GCC       → native binary
+ *     → LLVM backend (default when enabled) → object → native binary
+ *       or C backend (fallback)             → .c     → native binary
  *
  * Usage:
  *   pgy <source.pgy>              compile → binary
  *   pgy <source.pgy> --emit-c     stop after generating C
- *   pgy <source.pgy> -o <out.c>   name the generated C file
+ *   pgy <source.pgy> -o <out>     name the emitted native binary
+ *   pgy <source.pgy> --emit-c -o <out.c>
  *   pgy <source.pgy> --run        compile + run
  *   pgy --tokens <source.pgy>     dump token stream
  *   pgy --ast    <source.pgy>     dump AST
@@ -52,7 +53,7 @@ typedef enum
 typedef struct
 {
     const char *source_path;
-    const char *output_c;
+    const char *output_path;
     bool        emit_c_only;
     bool        emit_llvm_ir;
     bool        do_run;
@@ -108,6 +109,16 @@ replace_extension(const char *path, const char *new_ext)
     memcpy(result, path, base_len);
     strcpy(result + base_len, new_ext);
     return result;
+}
+
+static char *
+default_binary_output_path(const char *source_path)
+{
+#ifdef _WIN32
+    return replace_extension(source_path, ".exe");
+#else
+    return replace_extension(source_path, "");
+#endif
 }
 
 static int
@@ -338,36 +349,24 @@ run_pipeline(const DriverFlags *flags)
         return 0;
     }
 
-    char *output_c = flags->output_c != NULL
-        ? pergyra_strdup(flags->output_c)
-        : replace_extension(flags->source_path, ".c");
-    if (output_c == NULL) {
-        fprintf(stderr, "pgy: out of memory\n");
-        hir_destroy(hir);
-        semantic_result_destroy(sem);
-        ast_destroy(ast);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-        free(source);
-        return 1;
-    }
-
     int exit_code = 0;
 
 #ifdef PGY_LLVM_ENABLED
     /* ---- LLVM backend ---- */
-    if (flags->backend == BACKEND_LLVM) {
+    if (flags->backend == BACKEND_LLVM && !flags->emit_c_only) {
         if (flags->emit_llvm_ir) {
             if (flags->verbose)
                 printf("pgy: emitting LLVM IR\n");
 
-            CompilerResult *result = compiler_emit_llvm_ir(hir,
-                                                            "pergyra_module");
+            CompilerResult *result = flags->output_path != NULL
+                ? compiler_emit_llvm_ir_to_file(hir,
+                                                "pergyra_module",
+                                                flags->output_path)
+                : compiler_emit_llvm_ir(hir, "pergyra_module");
             if (result == NULL || !result->success) {
                 fprintf(stderr, "pgy: LLVM IR generation failed: %s\n",
                         result != NULL ? result->error_message : "out of memory");
                 compiler_result_destroy(result);
-                free(output_c);
                 hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
@@ -376,19 +375,21 @@ run_pipeline(const DriverFlags *flags)
                 free(source);
                 return 1;
             }
+
+            if (flags->output_path != NULL)
+                printf("pgy: wrote %s\n", flags->output_path);
             compiler_result_destroy(result);
         } else {
-            char *obj_path = replace_extension(flags->source_path, ".o");
-#ifdef _WIN32
-            char *bin_path = replace_extension(flags->source_path, ".exe");
-#else
-            char *bin_path = replace_extension(flags->source_path, "");
-#endif
+            char *bin_path = flags->output_path != NULL
+                ? pergyra_strdup(flags->output_path)
+                : default_binary_output_path(flags->source_path);
+            char *obj_path = bin_path != NULL
+                ? replace_extension(bin_path, ".o")
+                : NULL;
             if (obj_path == NULL || bin_path == NULL) {
                 fprintf(stderr, "pgy: out of memory\n");
                 free(obj_path);
                 free(bin_path);
-                free(output_c);
                 hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
@@ -406,7 +407,6 @@ run_pipeline(const DriverFlags *flags)
                 compiler_result_destroy(result);
                 free(obj_path);
                 free(bin_path);
-                free(output_c);
                 hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
@@ -433,6 +433,20 @@ run_pipeline(const DriverFlags *flags)
 
     /* ---- C transpiler backend (default) ---- */
     if (flags->emit_c_only) {
+        char *output_c = flags->output_path != NULL
+            ? pergyra_strdup(flags->output_path)
+            : replace_extension(flags->source_path, ".c");
+        if (output_c == NULL) {
+            fprintf(stderr, "pgy: out of memory\n");
+            hir_destroy(hir);
+            semantic_result_destroy(sem);
+            ast_destroy(ast);
+            parser_destroy(parser);
+            lexer_destroy(lexer);
+            free(source);
+            return 1;
+        }
+
         if (flags->verbose)
             printf("pgy: generating C → %s\n", output_c);
 
@@ -453,17 +467,15 @@ run_pipeline(const DriverFlags *flags)
 
         printf("pgy: wrote %s\n", output_c);
         compiler_result_destroy(result);
+        free(output_c);
     } else {
-        if (flags->verbose)
-            printf("pgy: generating C → %s\n", output_c);
-
-#ifdef _WIN32
-        char *bin_path = replace_extension(flags->source_path, ".exe");
-#else
-        char *bin_path = replace_extension(flags->source_path, "");
-#endif
-        if (bin_path == NULL) {
+        char *output_c = replace_extension(flags->source_path, ".c");
+        char *bin_path = flags->output_path != NULL
+            ? pergyra_strdup(flags->output_path)
+            : default_binary_output_path(flags->source_path);
+        if (output_c == NULL || bin_path == NULL) {
             fprintf(stderr, "pgy: out of memory\n");
+            free(bin_path);
             free(output_c);
             hir_destroy(hir);
             semantic_result_destroy(sem);
@@ -473,6 +485,9 @@ run_pipeline(const DriverFlags *flags)
             free(source);
             return 1;
         }
+
+        if (flags->verbose)
+            printf("pgy: generating C → %s\n", output_c);
 
         CompilerResult *result = compiler_build_native(hir,
                                                        output_c,
@@ -502,9 +517,9 @@ run_pipeline(const DriverFlags *flags)
 
         compiler_result_destroy(result);
         free(bin_path);
+        free(output_c);
     }
 
-    free(output_c);
     hir_destroy(hir);
     semantic_result_destroy(sem);
     ast_destroy(ast);
@@ -520,14 +535,21 @@ print_usage(void)
     printf(
         "Usage:\n"
         "  pgy <source.pgy>              compile to native binary\n"
+        "  pgy <source.pgy> -o <out>     name the emitted native binary\n"
         "  pgy <source.pgy> --emit-c     stop after generating C\n"
-        "  pgy <source.pgy> -o <out.c>   name the generated C file\n"
+        "  pgy <source.pgy> --emit-c -o <out.c>\n"
+        "  pgy <source.pgy> --emit-llvm -o <out.ll>\n"
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump AST\n"
         "  pgy --hir    <source.pgy>     dump lowered HIR summary\n"
 #ifdef PGY_LLVM_ENABLED
+        "  default backend: LLVM\n"
         "  pgy <source.pgy> --backend=llvm   use LLVM native backend\n"
+#else
+        "  default backend: C\n"
+#endif
+#ifdef PGY_LLVM_ENABLED
         "  pgy <source.pgy> --emit-llvm      emit LLVM IR text\n"
 #endif
         "  pgy --repl                    interactive REPL\n"
@@ -539,6 +561,11 @@ parse_args(int argc, char *argv[])
 {
     DriverFlags f;
     memset(&f, 0, sizeof(f));
+#ifdef PGY_LLVM_ENABLED
+    f.backend = BACKEND_LLVM;
+#else
+    f.backend = BACKEND_C;
+#endif
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -548,6 +575,7 @@ parse_args(int argc, char *argv[])
             continue;
         } else if (strcmp(argv[i], "--emit-c") == 0) {
             f.emit_c_only = true;
+            f.backend = BACKEND_C;
         } else if (strcmp(argv[i], "--backend=llvm") == 0) {
             f.backend = BACKEND_LLVM;
         } else if (strcmp(argv[i], "--backend=c") == 0) {
@@ -573,7 +601,7 @@ parse_args(int argc, char *argv[])
                 fprintf(stderr, "pgy: -o requires an argument\n");
                 exit(1);
             }
-            f.output_c = argv[++i];
+            f.output_path = argv[++i];
         } else if (argv[i][0] != '-') {
             f.source_path = argv[i];
         } else {
@@ -586,6 +614,13 @@ parse_args(int argc, char *argv[])
         print_usage();
         exit(1);
     }
+
+#ifndef PGY_LLVM_ENABLED
+    if (f.backend == BACKEND_LLVM || f.emit_llvm_ir) {
+        fprintf(stderr, "pgy: this build was compiled without LLVM backend support\n");
+        exit(1);
+    }
+#endif
 
     return f;
 }

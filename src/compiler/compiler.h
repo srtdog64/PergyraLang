@@ -23,7 +23,7 @@ void            compiler_result_destroy(CompilerResult *result);
 
 #ifdef PGY_LLVM_ENABLED
 /*
- * LLVM backend: AST → LLVM IR → object → link with GCC.
+ * LLVM backend: HIR → LLVM IR → object → link with GCC.
  */
 CompilerResult *compiler_build_native_llvm(const HIRProgram *hir,
                                             const char *output_obj_path,
@@ -34,6 +34,13 @@ CompilerResult *compiler_build_native_llvm(const HIRProgram *hir,
  * Emit LLVM IR text to stdout (--emit-llvm mode).
  */
 CompilerResult *compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name);
+
+/*
+ * Emit LLVM IR text to a file.
+ */
+CompilerResult *compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
+                                              const char *module_name,
+                                              const char *output_ir_path);
 #endif
 
 #endif

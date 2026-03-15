@@ -34,6 +34,12 @@ export TMPDIR
 CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
+LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null)
+LLVM_SYSTEM_SONAME := $(firstword $(wildcard /usr/lib/llvm-*/lib/libLLVM.so.1))
+LLVM_SYSTEM_LIB := $(firstword $(wildcard /usr/lib/x86_64-linux-gnu/libLLVM-*.so))
+LLVM_SYSTEM_LIB_NAME := $(patsubst lib%.so,%,$(notdir $(LLVM_SYSTEM_LIB)))
+LLVM_SYSTEM_LIB_DIR := $(dir $(LLVM_SYSTEM_LIB))
+LLVM_SYSTEM_SONAME_DIR := $(dir $(LLVM_SYSTEM_SONAME))
 
 # -----------------------------------------------------------------
 # LLVM backend (optional)
@@ -44,8 +50,21 @@ LLVM_DIR     = third_party
 LLVM_INSTALL = C:/Program Files/LLVM
 
 ifdef LLVM_ENABLED
-  CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
-  LDFLAGS_LLVM = -L"$(LLVM_INSTALL)/lib" -lLLVM-C
+  ifneq ($(LLVM_CONFIG),)
+    LLVM_INCLUDEDIR := $(shell $(LLVM_CONFIG) --includedir)
+    LLVM_LIBDIR     := $(shell $(LLVM_CONFIG) --libdir)
+    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_INCLUDEDIR)
+    LDFLAGS_LLVM = -L$(LLVM_LIBDIR) -lLLVM-C
+  else ifneq ($(LLVM_SYSTEM_SONAME),)
+    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
+    LDFLAGS_LLVM = -L$(LLVM_SYSTEM_SONAME_DIR) -l:$(notdir $(LLVM_SYSTEM_SONAME))
+  else ifneq ($(LLVM_SYSTEM_LIB),)
+    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
+    LDFLAGS_LLVM = -L$(LLVM_SYSTEM_LIB_DIR) -l$(LLVM_SYSTEM_LIB_NAME)
+  else
+    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
+    LDFLAGS_LLVM = -L"$(LLVM_INSTALL)/lib" -lLLVM-C
+  endif
 endif
 
 # -----------------------------------------------------------------
@@ -68,6 +87,10 @@ COMPILER_DIR = $(SRC_DIR)/compiler
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser.c \
+                   $(PARSER_DIR)/parser_expr.c \
+                   $(PARSER_DIR)/parser_stmt.c \
+                   $(PARSER_DIR)/parser_decl.c \
+                   $(PARSER_DIR)/parser_domain.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_pool.c \
@@ -159,6 +182,8 @@ PGY_LSP             = $(BIN_DIR)/pgy-lsp
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
 pgy: $(PGY)
+llvm:
+	$(MAKE) LLVM_ENABLED=1 all
 
 # -----------------------------------------------------------------
 # Build rules
@@ -279,6 +304,35 @@ test-hir: $(HIR_TEST)
 test-all: test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
 	@echo "=== All Frontend Tests Completed ==="
 
+llvm-test:
+	$(MAKE) LLVM_ENABLED=1 test
+
+llvm-test-parser:
+	$(MAKE) LLVM_ENABLED=1 test-parser
+
+llvm-test-semantic:
+	$(MAKE) LLVM_ENABLED=1 test-semantic
+
+llvm-test-transpile:
+	$(MAKE) LLVM_ENABLED=1 test-transpile
+
+llvm-test-memory:
+	$(MAKE) LLVM_ENABLED=1 test-memory
+
+llvm-test-concurrency:
+	$(MAKE) LLVM_ENABLED=1 test-concurrency
+
+llvm-test-hir:
+	$(MAKE) LLVM_ENABLED=1 test-hir
+
+llvm-test-backend-compare:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	bash tests/compare_backends.sh
+
+llvm-test-all:
+	$(MAKE) LLVM_ENABLED=1 test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
+	bash tests/compare_backends.sh
+
 # -----------------------------------------------------------------
 # pgy driver convenience targets
 # -----------------------------------------------------------------
@@ -291,6 +345,11 @@ example-slots: $(PGY)
 # Emit C only
 emit-c-%: $(PGY)
 	./$(PGY) examples/$*.pgy --emit-c -v
+
+# Emit LLVM IR only
+emit-llvm-%:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	./$(PGY) examples/$*.pgy --emit-llvm -o $*.ll -v
 
 # -----------------------------------------------------------------
 # Maintenance
@@ -320,4 +379,5 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
-        example-hello example-slots lsp
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all \
+        example-hello example-slots llvm emit-llvm-% lsp

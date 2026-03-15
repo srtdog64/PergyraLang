@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * C backend — converts annotated Pergyra AST to C source code.
+ * C backend — converts lowered Pergyra HIR to C source code.
  *
  * Strategy:
  *   Pergyra Slot<T>          → PgySlot_<T> struct  (pgy_runtime.h)
@@ -71,10 +71,10 @@ typedef struct
 {
     CodeBuf *out;          /* main output buffer            */
     CodeBuf *decls;        /* prototypes and forward decls  */
-    CodeBuf *helpers;      /* late helper definitions       */
-    int      indent;       /* current indent level          */
-    bool     in_parallel;  /* inside a Parallel block       */
-    ASTNode  *program;     /* owning AST program            */
+    CodeBuf          *helpers;      /* late helper definitions       */
+    int               indent;       /* current indent level          */
+    bool              in_parallel;  /* inside a Parallel block       */
+    const HIRProgram *hir;          /* owning lowered HIR program    */
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;

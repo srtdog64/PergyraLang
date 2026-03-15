@@ -5,10 +5,11 @@
 ## 개요
 
 Pergyra는 포인터 대신 **슬롯 기반 메모리 관리**를 채택한 시스템 프로그래밍 언어입니다.
-`.pgy` 소스를 분석한 뒤 C 백엔드를 거쳐 네이티브 바이너리를 생성합니다.
+LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 않은 경우 C 백엔드로 폴백합니다.
 
 ```
-.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  C Backend  -->  GCC  -->  Binary
+.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  HIR  -->  LLVM Backend  -->  Object  -->  Binary
+                                                      \\-> C Backend     -->  C       -->  GCC --> Binary
 ```
 
 ### 핵심 특징
@@ -28,11 +29,17 @@ Pergyra는 포인터 대신 **슬롯 기반 메모리 관리**를 채택한 시�
 ### 빌드 및 실행
 
 ```bash
-# 전체 빌드
+# LLVM 기본 백엔드 빌드
+make LLVM_ENABLED=1 all
+
+# 전체 빌드(C 폴백)
 make all
 
 # Hello World 실행
 ./bin/pgy examples/hello.pgy --run -v
+
+# LLVM IR 출력
+./bin/pgy examples/hello.pgy --emit-llvm -o hello.ll
 
 # 슬롯 데모 실행
 ./bin/pgy examples/slots.pgy --run -v
@@ -91,6 +98,12 @@ PergyraLang/
 ```bash
 # 전체 테스트
 make test-all
+
+# LLVM 백엔드 빌드 + 테스트
+make llvm-test-all
+
+# C/LLVM 결과 비교 회귀 테스트
+make llvm-test-backend-compare
 
 # 개별 테스트
 make test           # 렉서

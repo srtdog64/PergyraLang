@@ -232,7 +232,6 @@ hir_lower(ASTNode *annotated_ast, char **error_message)
         return NULL;
     }
 
-    hir->root_ast = annotated_ast;
     for (size_t i = 0; i < annotated_ast->data.program.count; i++) {
         if (!hir_classify_top_level(hir,
                                     annotated_ast->data.program.statements[i],

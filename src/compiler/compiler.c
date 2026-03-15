@@ -237,6 +237,40 @@ compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
 }
 
 CompilerResult *
+compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
+                              const char *module_name,
+                              const char *output_ir_path)
+{
+    if (!pgy_path_is_safe(output_ir_path))
+        return compiler_error("Unsafe characters in file path");
+
+    LLVMGenResult *gen = llvm_codegen(hir, module_name);
+    if (gen == NULL)
+        return compiler_error("Out of memory");
+
+    if (!gen->success) {
+        CompilerResult *result = compiler_error(gen->error_message != NULL
+            ? gen->error_message
+            : "LLVM codegen failed");
+        llvm_gen_result_destroy(gen);
+        return result;
+    }
+
+    FILE *out = fopen(output_ir_path, "w");
+    if (out == NULL) {
+        llvm_gen_result_destroy(gen);
+        return compiler_error("Cannot open LLVM IR output file");
+    }
+
+    if (gen->ir_text != NULL)
+        fputs(gen->ir_text, out);
+    fclose(out);
+
+    llvm_gen_result_destroy(gen);
+    return compiler_success(output_ir_path, NULL);
+}
+
+CompilerResult *
 compiler_build_native_llvm(const HIRProgram *hir,
                            const char *output_obj_path,
                            const char *output_binary_path,
@@ -267,6 +301,9 @@ compiler_build_native_llvm(const HIRProgram *hir,
 
     const char *link_argv[] = {
         "gcc", "-std=c11", "-O2", "-fopenmp",
+#ifndef _WIN32
+        "-no-pie",
+#endif
         "-DPGY_LLVM_ENABLED",
         "-I", "src",
         "-o", output_binary_path, output_obj_path,

@@ -1,0 +1,555 @@
+#include "parser_internal.h"
+
+/* =================================================================
+ * Systemic/World system parsing functions
+ * ================================================================= */
+
+/*
+ * systemic CombatSystem {
+ *     party slot team1: DungeonTeam
+ *     party slot team2: DungeonTeam
+ *     shared rules: CombatRules
+ *     func ScheduleMatches() -> Void { ... }
+ * }
+ */
+ASTNode* parse_systemic_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected systemic name");
+    ASTNode* sys = ast_create_systemic_declaration(name.text);
+    sys->line = name.line;
+    sys->column = name.column;
+
+    sys->data.systemic_decl.generic_params = parse_generic_params(parser);
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after systemic name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_PARTY)) {
+            /* party slot name: PartyType */
+            parser_consume(parser, TOKEN_SLOT,
+                "Expected 'slot' after 'party' in systemic");
+            Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected slot name");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after party slot name");
+            Token party_type = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected party type");
+
+            ASTNode* ps = ast_create_systemic_slot(slot_name.text, party_type.text);
+            ps->line = slot_name.line;
+            ps->column = slot_name.column;
+
+            sys->data.systemic_decl.party_count++;
+            sys->data.systemic_decl.party_slots = realloc(
+                sys->data.systemic_decl.party_slots,
+                sys->data.systemic_decl.party_count * sizeof(ASTNode*));
+            sys->data.systemic_decl.party_slots[
+                sys->data.systemic_decl.party_count - 1] = ps;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            /* shared field_name: Type = init */
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            sys->data.systemic_decl.shared_count++;
+            sys->data.systemic_decl.shared_fields = realloc(
+                sys->data.systemic_decl.shared_fields,
+                sys->data.systemic_decl.shared_count * sizeof(ASTNode*));
+            sys->data.systemic_decl.shared_fields[
+                sys->data.systemic_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            ASTNode* method = parse_function_declaration(parser);
+
+            sys->data.systemic_decl.method_count++;
+            sys->data.systemic_decl.methods = realloc(
+                sys->data.systemic_decl.methods,
+                sys->data.systemic_decl.method_count * sizeof(ASTNode*));
+            sys->data.systemic_decl.methods[
+                sys->data.systemic_decl.method_count - 1] = method;
+
+        } else {
+            parser_error(parser,
+                "Expected 'party slot', 'shared', or 'func' in systemic body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after systemic body");
+    return sys;
+}
+
+/*
+ * world GameWorld {
+ *     systemic combat: CombatSystem
+ *     systemic economy: EconomySystem
+ *     shared tick: Int = 0
+ *     func Update() -> Void { ... }
+ * }
+ */
+ASTNode* parse_world_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected world name");
+    ASTNode* world = ast_create_world_declaration(name.text);
+    world->line = name.line;
+    world->column = name.column;
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after world name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_SYSTEMIC)) {
+            /* systemic name: SystemicType */
+            Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected systemic name");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after systemic name");
+            Token sys_type = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected systemic type");
+
+            ASTNode* ws = ast_create_world_systemic(
+                slot_name.text, sys_type.text);
+            ws->line = slot_name.line;
+            ws->column = slot_name.column;
+
+            world->data.world_decl.systemic_count++;
+            world->data.world_decl.systemics = realloc(
+                world->data.world_decl.systemics,
+                world->data.world_decl.systemic_count * sizeof(ASTNode*));
+            world->data.world_decl.systemics[
+                world->data.world_decl.systemic_count - 1] = ws;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            world->data.world_decl.shared_count++;
+            world->data.world_decl.shared_fields = realloc(
+                world->data.world_decl.shared_fields,
+                world->data.world_decl.shared_count * sizeof(ASTNode*));
+            world->data.world_decl.shared_fields[
+                world->data.world_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            ASTNode* method = parse_function_declaration(parser);
+
+            world->data.world_decl.method_count++;
+            world->data.world_decl.methods = realloc(
+                world->data.world_decl.methods,
+                world->data.world_decl.method_count * sizeof(ASTNode*));
+            world->data.world_decl.methods[
+                world->data.world_decl.method_count - 1] = method;
+
+        } else {
+            parser_error(parser,
+                "Expected 'systemic', 'shared', or 'func' in world body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after world body");
+    return world;
+}
+
+/* =================================================================
+ * Party system parsing functions
+ * ================================================================= */
+
+/*
+ * party HolyPaladin extends BaseParty {
+ *     role slot tank: Damageable & Taunting
+ *     role slot healer: Healing
+ *     shared formation: String = "standard"
+ *     func Execute() -> Void { ... }
+ * }
+ */
+ASTNode* parse_party_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected party name");
+    ASTNode* party = ast_create_party_declaration(name.text);
+    party->line = name.line;
+    party->column = name.column;
+
+    /* Optional generic params */
+    party->data.party_decl.generic_params = parse_generic_params(parser);
+
+    /* Optional extends */
+    if (parser_match(parser, TOKEN_EXTENDS)) {
+        party->data.party_decl.extends = parse_type(parser);
+    }
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after party header");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        bool is_dyn = parser_match(parser, TOKEN_DYN);
+
+        if (is_dyn || parser_match(parser, TOKEN_ROLE)) {
+            if (is_dyn) {
+                parser_consume(parser, TOKEN_ROLE,
+                    "Expected 'role' after 'dyn'");
+            }
+            /* role slot name: AbilityType & AbilityType */
+            parser_consume(parser, TOKEN_SLOT,
+                "Expected 'slot' after 'role' in party");
+            Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected slot name");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after role slot name");
+
+            ASTNode* rs = ast_create_role_slot(slot_name.text);
+            rs->line = slot_name.line;
+            rs->column = slot_name.column;
+            rs->data.role_slot.is_dynamic = is_dyn;
+
+            /* Parse ability types separated by & */
+            do {
+                ASTNode* ability_type = parse_type(parser);
+                rs->data.role_slot.ability_count++;
+                rs->data.role_slot.required_abilities = realloc(
+                    rs->data.role_slot.required_abilities,
+                    rs->data.role_slot.ability_count * sizeof(ASTNode*));
+                rs->data.role_slot.required_abilities[
+                    rs->data.role_slot.ability_count - 1] = ability_type;
+            } while (parser_match(parser, TOKEN_AND));
+
+            party->data.party_decl.role_count++;
+            party->data.party_decl.role_slots = realloc(
+                party->data.party_decl.role_slots,
+                party->data.party_decl.role_count * sizeof(ASTNode*));
+            party->data.party_decl.role_slots[
+                party->data.party_decl.role_count - 1] = rs;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            /* shared field_name: Type = initializer */
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            party->data.party_decl.shared_count++;
+            party->data.party_decl.shared_fields = realloc(
+                party->data.party_decl.shared_fields,
+                party->data.party_decl.shared_count * sizeof(ASTNode*));
+            party->data.party_decl.shared_fields[
+                party->data.party_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            /* Party method */
+            ASTNode* method = parse_function_declaration(parser);
+
+            party->data.party_decl.method_count++;
+            party->data.party_decl.methods = realloc(
+                party->data.party_decl.methods,
+                party->data.party_decl.method_count * sizeof(ASTNode*));
+            party->data.party_decl.methods[
+                party->data.party_decl.method_count - 1] = method;
+
+        } else {
+            parser_error(parser,
+                "Expected 'role slot', 'shared', or 'func' in party body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after party body");
+    return party;
+}
+
+/* =================================================================
+ * Role/Ability system parsing functions
+ * ================================================================= */
+
+/*
+ * ability Damageable {
+ *     require health: Int
+ *     func TakeDamage(amount: Int) -> Void
+ *     func GetHealth() -> Int { return self.health; }
+ * }
+ */
+ASTNode* parse_ability_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected ability name");
+    ASTNode* ability = ast_create_ability_declaration(name.text);
+    ability->line = name.line;
+    ability->column = name.column;
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after ability name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_REQUIRE)) {
+            /* require field_name: Type */
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'require'");
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after require field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* req = ast_create_require_field(field_name.text);
+            req->data.require_field.type = field_type;
+            req->line = field_name.line;
+            req->column = field_name.column;
+
+            ability->data.ability_decl.require_count++;
+            ability->data.ability_decl.require_fields = realloc(
+                ability->data.ability_decl.require_fields,
+                ability->data.ability_decl.require_count * sizeof(ASTNode*));
+            ability->data.ability_decl.require_fields[
+                ability->data.ability_decl.require_count - 1] = req;
+
+            /* Optional semicolon */
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            /* Method declaration (may have body or be abstract) */
+            ASTNode* method = parse_function_declaration(parser);
+
+            ability->data.ability_decl.method_count++;
+            ability->data.ability_decl.methods = realloc(
+                ability->data.ability_decl.methods,
+                ability->data.ability_decl.method_count * sizeof(ASTNode*));
+            ability->data.ability_decl.methods[
+                ability->data.ability_decl.method_count - 1] = method;
+
+        } else {
+            parser_error(parser, "Expected 'require' or 'func' in ability body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after ability body");
+    return ability;
+}
+
+/*
+ * role PlayerDamageable for Player {
+ *     include role BuffableRole<Int>
+ *     impl ability Damageable {
+ *         func TakeDamage(amount: Int) -> Void { ... }
+ *     }
+ *     override func GetHealth() -> Int { super.GetHealth() + bonus; }
+ * }
+ */
+ASTNode* parse_role_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name");
+    ASTNode* role = ast_create_role_declaration(name.text);
+    role->line = name.line;
+    role->column = name.column;
+
+    /* Optional generic params */
+    role->data.role_decl.generic_params = parse_generic_params(parser);
+
+    /* 'for' TargetType (reuse TOKEN_FOR) */
+    if (parser_match(parser, TOKEN_FOR)) {
+        role->data.role_decl.for_type = parse_type(parser);
+    }
+
+    /* Optional where clause */
+    role->data.role_decl.where_clause = parse_where_clause(parser);
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after role header");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_INCLUDE)) {
+            /* include role RoleName<T> */
+            parser_match(parser, TOKEN_ROLE); /* optional 'role' keyword */
+            Token role_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected role name after 'include'");
+            ASTNode* inc = ast_create_include_statement(role_name.text);
+            inc->line = role_name.line;
+            inc->column = role_name.column;
+            /* Optional generic args */
+            inc->data.include_stmt.type_args = parse_generic_params(parser);
+
+            role->data.role_decl.include_count++;
+            role->data.role_decl.includes = realloc(
+                role->data.role_decl.includes,
+                role->data.role_decl.include_count * sizeof(ASTNode*));
+            role->data.role_decl.includes[
+                role->data.role_decl.include_count - 1] = inc;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+
+        } else if (parser_match(parser, TOKEN_IMPL)) {
+            /* impl ability AbilityName { ... } */
+            parser_match(parser, TOKEN_ABILITY); /* optional 'ability' keyword */
+            Token ability_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected ability name after 'impl'");
+            ASTNode* impl = ast_create_impl_ability(ability_name.text);
+            impl->line = ability_name.line;
+            impl->column = ability_name.column;
+
+            parser_consume(parser, TOKEN_LBRACE,
+                "Expected '{' after impl ability name");
+
+            while (!parser_check(parser, TOKEN_RBRACE)
+                   && !parser_is_at_end(parser)) {
+                if (parser_match(parser, TOKEN_FUNC)) {
+                    ASTNode* method = parse_function_declaration(parser);
+                    impl->data.impl_ability.method_count++;
+                    impl->data.impl_ability.methods = realloc(
+                        impl->data.impl_ability.methods,
+                        impl->data.impl_ability.method_count * sizeof(ASTNode*));
+                    impl->data.impl_ability.methods[
+                        impl->data.impl_ability.method_count - 1] = method;
+                } else {
+                    parser_error(parser,
+                        "Expected 'func' in impl ability body");
+                    parser_advance(parser);
+                }
+            }
+            parser_consume(parser, TOKEN_RBRACE,
+                "Expected '}' after impl ability body");
+
+            role->data.role_decl.impl_count++;
+            role->data.role_decl.impl_abilities = realloc(
+                role->data.role_decl.impl_abilities,
+                role->data.role_decl.impl_count * sizeof(ASTNode*));
+            role->data.role_decl.impl_abilities[
+                role->data.role_decl.impl_count - 1] = impl;
+
+        } else if (parser_match(parser, TOKEN_OVERRIDE)) {
+            /* override func FuncName(...) { ... } */
+            parser_consume(parser, TOKEN_FUNC,
+                "Expected 'func' after 'override'");
+            ASTNode* func = parse_function_declaration(parser);
+            ASTNode* ovr = ast_create_override_func(func);
+            ovr->line = func->line;
+            ovr->column = func->column;
+
+            /* Check if body contains 'super' calls — simple heuristic */
+            ovr->data.override_func.calls_super = false;
+
+            /* Add as an impl with special name "__override__" */
+            role->data.role_decl.impl_count++;
+            role->data.role_decl.impl_abilities = realloc(
+                role->data.role_decl.impl_abilities,
+                role->data.role_decl.impl_count * sizeof(ASTNode*));
+            role->data.role_decl.impl_abilities[
+                role->data.role_decl.impl_count - 1] = ovr;
+
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            /* Direct method in role (not in impl block) */
+            ASTNode* method = parse_function_declaration(parser);
+
+            /* Wrap as impl with no ability name (role's own method) */
+            ASTNode* impl = ast_create_impl_ability(NULL);
+            impl->data.impl_ability.method_count = 1;
+            impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode*));
+            impl->data.impl_ability.methods[0] = method;
+
+            role->data.role_decl.impl_count++;
+            role->data.role_decl.impl_abilities = realloc(
+                role->data.role_decl.impl_abilities,
+                role->data.role_decl.impl_count * sizeof(ASTNode*));
+            role->data.role_decl.impl_abilities[
+                role->data.role_decl.impl_count - 1] = impl;
+
+        } else {
+            parser_error(parser,
+                "Expected 'include', 'impl', 'override', or 'func' in role body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after role body");
+    return role;
+}
+
+/* =================================================================
+ * Event system parsing functions
+ * ================================================================= */
+
+// 이벤트 선언 파싱: event OnClick(sender: Object, args: EventArgs);
+ASTNode* parse_event_declaration(Parser* parser) {
+    // 이벤트 이름
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected event name");
+
+    ASTNode* event_decl = ast_create_event_declaration(name.text);
+
+    // 접근 제어자 (선택적)
+    if (parser_match(parser, TOKEN_PUBLIC)) {
+        event_decl->data.event_decl.access = ACCESS_PUBLIC;
+    } else if (parser_match(parser, TOKEN_PRIVATE)) {
+        event_decl->data.event_decl.access = ACCESS_PRIVATE;
+    }
+
+    // 파라미터 파싱
+    parser_consume(parser, TOKEN_LPAREN, "Expected '(' after event name");
+
+    while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+        // 파라미터 이름
+        Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
+        parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+
+        // 파라미터 타입
+        ASTNode* param_type = parse_type(parser);
+
+        // 파라미터 추가
+        event_decl->data.event_decl.param_count++;
+        event_decl->data.event_decl.params = realloc(
+            event_decl->data.event_decl.params,
+            event_decl->data.event_decl.param_count * sizeof(ASTNode*)
+        );
+
+        // 파라미터 노드 생성 (let decl 와 유사)
+        ASTNode* param = ast_create_let_declaration(param_name.text);
+        param->data.let_decl.type = param_type;
+        event_decl->data.event_decl.params[event_decl->data.event_decl.param_count - 1] = param;
+
+        if (!parser_match(parser, TOKEN_COMMA)) break;
+    }
+
+    parser_consume(parser, TOKEN_RPAREN, "Expected ')' after event parameters");
+
+    // 반환 타입 (선택적, 기본은 Void)
+    if (parser_match(parser, TOKEN_ARROW)) {
+        event_decl->data.event_decl.return_type = parse_type(parser);
+    }
+
+    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after event declaration");
+
+    return event_decl;
+}

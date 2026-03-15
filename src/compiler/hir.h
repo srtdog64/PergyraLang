@@ -31,7 +31,6 @@ typedef struct
 
 typedef struct
 {
-    ASTNode          *root_ast;
     HIRTopLevelItem  *items;
     size_t            item_count;
 

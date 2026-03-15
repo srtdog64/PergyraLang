@@ -853,14 +853,13 @@ test_ability_role_emit(void)
         derived_role.data.role_decl.includes = includes;
         derived_role.data.role_decl.include_count = 1;
 
-        ASTNode *program_stmts[2] = { &base_role, &derived_role };
-        ASTNode program; memset(&program, 0, sizeof(program));
-        program.type = AST_PROGRAM;
-        program.data.program.statements = program_stmts;
-        program.data.program.count = 2;
+        ASTNode *roles[2] = { &base_role, &derived_role };
+        HIRProgram hir; memset(&hir, 0, sizeof(hir));
+        hir.roles = roles;
+        hir.role_count = 2;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->program = &program;
+        ctx->hir = &hir;
         emit_role_decl(&derived_role, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "DerivedRole_Tick");

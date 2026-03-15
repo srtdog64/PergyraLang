@@ -223,11 +223,11 @@ lookup_typed_var(TranspilerCtx *ctx, const char *var_name)
 static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
-    if (ctx == NULL || ctx->program == NULL || ctx->program->type != AST_PROGRAM)
+    if (ctx == NULL || ctx->hir == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->program->data.program.count; i++) {
-        ASTNode *stmt = ctx->program->data.program.statements[i];
+    for (size_t i = 0; i < ctx->hir->role_count; i++) {
+        ASTNode *stmt = ctx->hir->roles[i];
         if (stmt->type == AST_ROLE_DECL
             && stmt->data.role_decl.name != NULL
             && strcmp(stmt->data.role_decl.name, role_name) == 0) {
@@ -241,11 +241,11 @@ find_role_decl(TranspilerCtx *ctx, const char *role_name)
 static ASTNode *
 find_function_decl(TranspilerCtx *ctx, const char *function_name)
 {
-    if (ctx == NULL || ctx->program == NULL || ctx->program->type != AST_PROGRAM)
+    if (ctx == NULL || ctx->hir == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->program->data.program.count; i++) {
-        ASTNode *stmt = ctx->program->data.program.statements[i];
+    for (size_t i = 0; i < ctx->hir->function_count; i++) {
+        ASTNode *stmt = ctx->hir->functions[i];
         if (stmt->type == AST_FUNC_DECL
             && stmt->data.func_decl.name != NULL
             && strcmp(stmt->data.func_decl.name, function_name) == 0) {
@@ -1823,6 +1823,8 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *alias = node->data.with_stmt.alias;
     bool is_secure    = node->data.with_stmt.is_secure;
+    int saved_slot_count = ctx->slot_var_count;
+    int saved_typed_count = ctx->typed_var_count;
 
     const char *inner = "Int";
     if (node->data.with_stmt.slot_type != NULL)
@@ -1867,6 +1869,9 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
+
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
 }
 
 /* -----------------------------------------------------------------
@@ -2276,8 +2281,12 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         return;
 
     if (node->type == AST_BLOCK) {
+        int saved_slot_count = ctx->slot_var_count;
+        int saved_typed_count = ctx->typed_var_count;
         for (size_t i = 0; i < node->data.block.count; i++)
             emit_statement(node->data.block.statements[i], ctx);
+        ctx->slot_var_count = saved_slot_count;
+        ctx->typed_var_count = saved_typed_count;
     } else {
         emit_statement(node, ctx);
     }
@@ -2290,16 +2299,10 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 {
-    ASTNode *node;
-
     if (hir == NULL)
         return;
 
-    node = hir->root_ast;
-    if (node == NULL || node->type != AST_PROGRAM)
-        return;
-
-    ctx->program = node;
+    ctx->hir = hir;
 
     /* File header */
     codebuf_write(ctx->out,

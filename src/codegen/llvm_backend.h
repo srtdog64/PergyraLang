@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM native backend — converts annotated Pergyra AST to LLVM IR,
+ * LLVM native backend — converts lowered Pergyra HIR to LLVM IR,
  * then compiles to native object code.
  *
  * Build: compile with -DPGY_LLVM_ENABLED and link against LLVM-C.
@@ -33,13 +33,13 @@ typedef struct
  * ----------------------------------------------------------------- */
 
 /*
- * Generate LLVM IR from an annotated AST and return it as text.
+ * Generate LLVM IR from lowered HIR and return it as text.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
 
 /*
- * Generate LLVM IR, optimize, and emit a native object file (.o).
+ * Generate LLVM IR from lowered HIR, optimize, and emit a native object file (.o).
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_to_object(const HIRProgram *hir,
