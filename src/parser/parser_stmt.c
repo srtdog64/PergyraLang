@@ -128,6 +128,21 @@ ASTNode* parse_if_statement(Parser* parser) {
     return if_stmt;
 }
 
+// unsafe 블록 파싱
+ASTNode* parse_unsafe_block(Parser* parser) {
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after unsafe");
+    ASTNode* body = parser_parse_block(parser);
+    return ast_create_unsafe_block(body);
+}
+
+// defer 문 파싱
+ASTNode* parse_defer_statement(Parser* parser) {
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after defer");
+    ASTNode* body = parser_parse_block(parser);
+    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after defer block");
+    return ast_create_defer_statement(body);
+}
+
 // return 문 파싱
 ASTNode* parse_return_statement(Parser* parser) {
     ASTNode* return_stmt = ast_create_return_statement();

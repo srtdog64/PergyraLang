@@ -98,6 +98,10 @@ typedef enum
     /* Module keywords */
     TOKEN_IMPORT,
 
+    /* Safety keywords */
+    TOKEN_UNSAFE,
+    TOKEN_DEFER,
+
     /* Event keywords */
     TOKEN_EVENT,
     TOKEN_SUBSCRIBE,    /* += */

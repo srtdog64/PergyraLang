@@ -140,7 +140,11 @@ typedef enum
     AST_LAMBDA_EXPR,
 
     /* Module system */
-    AST_IMPORT_DECL
+    AST_IMPORT_DECL,
+
+    /* Safety */
+    AST_UNSAFE_BLOCK,
+    AST_DEFER_STMT
 } ASTNodeType;
 
 /*
@@ -630,6 +634,16 @@ struct ASTNode
         struct {
             char* path;                /* Module path (string or identifier) */
         } import_decl;
+
+        /* unsafe { ... } */
+        struct {
+            ASTNode* body;           /* Block */
+        } unsafe_block;
+
+        /* defer { ... }; or defer <expr>; */
+        struct {
+            ASTNode* body;           /* Block or expression */
+        } defer_stmt;
     } data;
 };
 
@@ -715,5 +729,7 @@ ASTNode* ast_create_lambda_expression(void);
 
 /* Module system AST creation */
 ASTNode* ast_create_import_declaration(const char* path);
+ASTNode* ast_create_unsafe_block(ASTNode* body);
+ASTNode* ast_create_defer_statement(ASTNode* body);
 
 #endif /* PERGYRA_AST_H */

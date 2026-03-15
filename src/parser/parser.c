@@ -227,6 +227,16 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parse_return_statement(parser);
     }
 
+    // unsafe 블록
+    if (parser_match(parser, TOKEN_UNSAFE)) {
+        return parse_unsafe_block(parser);
+    }
+
+    // defer 문
+    if (parser_match(parser, TOKEN_DEFER)) {
+        return parse_defer_statement(parser);
+    }
+
     // systemic 선언
     if (parser_match(parser, TOKEN_SYSTEMIC)) {
         return parse_systemic_declaration(parser);

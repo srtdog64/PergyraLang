@@ -93,6 +93,9 @@ typedef struct
     bool  in_parallel_wrapper;
     int   par_capture_slot_end;    /* slot_vars[0..end) are captured  */
     int   par_capture_typed_end;   /* typed_vars[0..end) are captured */
+
+    /* Defer counter for unique defer IDs */
+    int   defer_counter;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

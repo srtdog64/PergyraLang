@@ -185,6 +185,12 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_IMPORT_DECL:
             /* Already resolved by driver — skip */
             break;
+        case AST_UNSAFE_BLOCK:
+        case AST_DEFER_STMT:
+            item.kind = HIR_TOPLEVEL_EXECUTABLE;
+            if (!append_ast(&hir->executables, &hir->executable_count, node))
+                goto oom;
+            break;
 
         default:
             if (error_message != NULL) {

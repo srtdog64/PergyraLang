@@ -469,14 +469,42 @@ run_pipeline(const DriverFlags *flags)
         compiler_result_destroy(result);
         free(output_c);
     } else {
-        char *output_c = replace_extension(flags->source_path, ".c");
+        /* Generate intermediate C in a temp directory (hidden from user).
+         * The .c file is deleted after successful compilation. */
+        char tmp_c[1024];
+        {
+            const char *tmpdir = getenv("TMPDIR");
+            if (tmpdir == NULL) tmpdir = getenv("TMP");
+            if (tmpdir == NULL) tmpdir = getenv("TEMP");
+#ifdef _WIN32
+            if (tmpdir == NULL) tmpdir = ".";
+#else
+            if (tmpdir == NULL) tmpdir = "/tmp";
+#endif
+            /* Extract base name from source path */
+            const char *base = flags->source_path;
+            const char *sep = strrchr(base, '/');
+            if (sep != NULL) base = sep + 1;
+#ifdef _WIN32
+            sep = strrchr(base, '\\');
+            if (sep != NULL) base = sep + 1;
+#endif
+            /* Strip extension */
+            const char *dot = strrchr(base, '.');
+            size_t blen = dot ? (size_t)(dot - base) : strlen(base);
+            char stem[256];
+            if (blen > sizeof(stem) - 1) blen = sizeof(stem) - 1;
+            memcpy(stem, base, blen);
+            stem[blen] = '\0';
+            snprintf(tmp_c, sizeof(tmp_c), "%s/_pgy_%s_%u.c",
+                     tmpdir, stem, (unsigned)getpid());
+        }
+
         char *bin_path = flags->output_path != NULL
             ? pergyra_strdup(flags->output_path)
             : default_binary_output_path(flags->source_path);
-        if (output_c == NULL || bin_path == NULL) {
+        if (bin_path == NULL) {
             fprintf(stderr, "pgy: out of memory\n");
-            free(bin_path);
-            free(output_c);
             hir_destroy(hir);
             semantic_result_destroy(sem);
             ast_destroy(ast);
@@ -487,18 +515,21 @@ run_pipeline(const DriverFlags *flags)
         }
 
         if (flags->verbose)
-            printf("pgy: generating C → %s\n", output_c);
+            printf("pgy: generating C → %s\n", tmp_c);
 
         CompilerResult *result = compiler_build_native(hir,
-                                                       output_c,
+                                                       tmp_c,
                                                        bin_path,
                                                        flags->verbose);
+
+        /* Clean up intermediate C file */
+        remove(tmp_c);
+
         if (result == NULL || !result->success) {
             fprintf(stderr, "pgy: compile failed: %s\n",
                     result != NULL ? result->error_message : "out of memory");
             compiler_result_destroy(result);
             free(bin_path);
-            free(output_c);
             hir_destroy(hir);
             semantic_result_destroy(sem);
             ast_destroy(ast);
@@ -517,7 +548,6 @@ run_pipeline(const DriverFlags *flags)
 
         compiler_result_destroy(result);
         free(bin_path);
-        free(output_c);
     }
 
     hir_destroy(hir);

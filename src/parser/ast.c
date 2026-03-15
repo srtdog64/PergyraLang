@@ -375,6 +375,18 @@ ASTNode* ast_create_import_declaration(const char* path) {
     return node;
 }
 
+ASTNode* ast_create_unsafe_block(ASTNode* body) {
+    ASTNode* node = ast_create_node(AST_UNSAFE_BLOCK);
+    node->data.unsafe_block.body = body;
+    return node;
+}
+
+ASTNode* ast_create_defer_statement(ASTNode* body) {
+    ASTNode* node = ast_create_node(AST_DEFER_STMT);
+    node->data.defer_stmt.body = body;
+    return node;
+}
+
 // if 문
 ASTNode* ast_create_if_statement(void) {
     ASTNode* node = ast_create_node(AST_IF_STMT);
@@ -1092,6 +1104,14 @@ void ast_destroy(ASTNode* node) {
 
         case AST_IMPORT_DECL:
             free(node->data.import_decl.path);
+            break;
+
+        case AST_UNSAFE_BLOCK:
+            ast_destroy(node->data.unsafe_block.body);
+            break;
+
+        case AST_DEFER_STMT:
+            ast_destroy(node->data.defer_stmt.body);
             break;
 
         default:

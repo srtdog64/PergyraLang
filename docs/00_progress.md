@@ -1,16 +1,17 @@
 # Pergyra -- 현재 진행 상황
 
-마지막 업데이트: 2026-03-13
+마지막 업데이트: 2026-03-16
 
 ## 구현 완료
 
 ### 컴파일러 파이프라인
 
-```
-.pgy --> Lexer --> Parser --> AST --> Semantic --> C Transpiler --> GCC --> Binary
+```text
+.pgy --> Lexer --> Parser --> AST --> Semantic --> HIR --> LLVM IR --> Native Binary (Default)
+                                                └> C Transpiler --> GCC (Fallback)
 ```
 
-전체 파이프라인이 동작하며, `.pgy` 파일에서 네이티브 바이너리까지 end-to-end 실행 확인됨.
+LLVM 백엔드가 기본 활성화되어 있으며, `.pgy` 파일에서 네이티브 바이너리까지 end-to-end 실행 확인됨.
 
 ### 렉서 (Lexer)
 - 키워드, 연산자, 리터럴, 식별자 인식
@@ -60,9 +61,14 @@
 - PGY_PANIC으로 안전성 보장 (use-after-release, double-release 감지)
 - OpenMP 기반 parallel 매크로
 
+### LLVM 네이티브 백엔드 (Phase 1)
+- `src/codegen/llvm_backend.c` 를 통한 네이티브 코드 생성기 구현 완료
+- 슬롯(Slot), 클래스, 채널(Channel), 스레드 풀 등에 대한 LLVM IR 생성 매핑 지원
+
 ### 컴파일러 드라이버
 - `src/pgy_driver.c`
-- 옵션: `--compile`, `--run`, `--tokens`, `--ast`, `-v`, `-o`
+- LLVM 백엔드 기본 탑재 (`--backend=llvm`)
+- 옵션: `--compile`, `--run`, `--tokens`, `--ast`, `--emit-llvm`, `-v`, `-o`
 - Windows/Linux 크로스 플랫폼
 
 ### 테스트
@@ -83,9 +89,8 @@
 ## 미구현 (TODO)
 
 - 어셈블리 최적화 런타임
-- 비동기 런타임 (Fiber, M:N 스케줄러, Channel)
+- 비동기 런타임 (Fiber, M:N 스케줄러, Channel) - LLVM IR 생성은 지원하나 런타임 라이브러리 연동 필요
 - Effect System
-- LLVM 백엔드
 - JVM 연동
 - 패턴 매칭 코드 생성
 - Role/Party/World 시스템 코드 생성

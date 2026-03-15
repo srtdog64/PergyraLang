@@ -1775,6 +1775,16 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_IMPORT_DECL:
         /* Already resolved by driver — skip */
         return true;
+    case AST_UNSAFE_BLOCK:
+        /* Type-check body normally; safety constraints relaxed at codegen */
+        if (node->data.unsafe_block.body != NULL)
+            type_check_block(node->data.unsafe_block.body, ctx);
+        return !ctx->has_error;
+    case AST_DEFER_STMT:
+        /* Type-check deferred body */
+        if (node->data.defer_stmt.body != NULL)
+            type_check_block(node->data.defer_stmt.body, ctx);
+        return !ctx->has_error;
     default:
         /* Expression statement */
         type_check_expression(node, ctx);
@@ -1803,14 +1813,41 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.func_decl.name;
 
+    /* If the function has generic parameters (<T, U, ...>),
+     * register them as opaque types in a temporary scope so that
+     * resolve_type_node("T") succeeds for params and return type. */
+    bool has_generics = (node->data.func_decl.generic_params != NULL
+                         && node->data.func_decl.generic_params->count > 0);
+    if (has_generics) {
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        GenericParams *gp = node->data.func_decl.generic_params;
+        for (size_t gi = 0; gi < gp->count; gi++) {
+            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+                continue;
+            Type *tp = calloc(1, sizeof(Type));
+            if (tp != NULL) {
+                tp->kind = TYPE_KIND_CLASS;
+                tp->name = pergyra_strdup(gp->params[gi]->name);
+            }
+            Symbol *s = symbol_create_variable(
+                gp->params[gi]->name,
+                tp != NULL ? tp : TYPE_UNKNOWN,
+                node->line, node->column);
+            s->kind = SYMBOL_CLASS;
+            scope_declare(ctx->scope, s);
+        }
+    }
+
     /* Build parameter types for the function type */
     size_t   param_count = node->data.func_decl.param_count;
     Type   **param_types = NULL;
 
     if (param_count > 0) {
         param_types = calloc(param_count, sizeof(Type *));
-        if (param_types == NULL)
+        if (param_types == NULL) {
+            if (has_generics) scope_exit(&ctx->scope);
             return false;
+        }
     }
 
     Type *return_type = TYPE_VOID;
@@ -1840,8 +1877,34 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
 
+    /* Close the temporary generic-params scope (if opened) before
+     * entering the real function scope — the function scope will
+     * re-register the generic params so they're visible in the body. */
+    if (has_generics)
+        scope_exit(&ctx->scope);
+
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
+
+    /* Re-register generic type params inside the function scope */
+    if (has_generics) {
+        GenericParams *gp = node->data.func_decl.generic_params;
+        for (size_t gi = 0; gi < gp->count; gi++) {
+            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+                continue;
+            Type *tp = calloc(1, sizeof(Type));
+            if (tp != NULL) {
+                tp->kind = TYPE_KIND_CLASS;
+                tp->name = pergyra_strdup(gp->params[gi]->name);
+            }
+            Symbol *s = symbol_create_variable(
+                gp->params[gi]->name,
+                tp != NULL ? tp : TYPE_UNKNOWN,
+                node->line, node->column);
+            s->kind = SYMBOL_CLASS;
+            scope_declare(ctx->scope, s);
+        }
+    }
 
     Type *prev_return  = ctx->current_return;
     ctx->current_return = return_type;
@@ -1923,7 +1986,37 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         if (stmt->type == AST_FUNC_DECL) {
             const char *fname = stmt->data.func_decl.name;
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
-                Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
+                /* Forward-declare with correct param count so that
+                 * call-site arity checks pass before Pass 2. */
+                size_t fpc = stmt->data.func_decl.param_count;
+                /* Exclude implicit 'self' param from count */
+                size_t real_pc = 0;
+                for (size_t j = 0; j < fpc; j++) {
+                    FuncParam *p = stmt->data.func_decl.params[j];
+                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                        continue;
+                    real_pc++;
+                }
+                Type **ptypes = calloc(real_pc > 0 ? real_pc : 1,
+                                         sizeof(Type *));
+                for (size_t j = 0; j < real_pc; j++)
+                    ptypes[j] = TYPE_UNKNOWN;
+                Type *ret = TYPE_VOID;
+                if (stmt->data.func_decl.return_type != NULL) {
+                    /* Try to resolve return type; use TYPE_UNKNOWN on failure
+                     * (e.g., generic return type 'T' not in scope yet). */
+                    size_t saved_diag = ctx->diagnostic_count;
+                    bool saved_err = ctx->has_error;
+                    ret = resolve_type_node(stmt->data.func_decl.return_type, ctx);
+                    if (ctx->diagnostic_count > saved_diag) {
+                        /* Roll back the diagnostic — Pass 2 will re-check */
+                        ctx->diagnostic_count = saved_diag;
+                        ctx->has_error = saved_err;
+                        ret = TYPE_UNKNOWN;
+                    }
+                }
+                Type *placeholder = type_create_function(ptypes, real_pc, ret);
+                free(ptypes);
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
                 scope_declare(ctx->scope, s);
