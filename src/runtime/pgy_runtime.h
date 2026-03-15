@@ -925,6 +925,16 @@ static inline void pgy_log_string(char* v)   { printf("%s\n", v ? v : "(null)");
 )(x)
 
 /* =================================================================
+ * Standard Library Helpers
+ * ================================================================= */
+
+static inline char* pgy_int_to_string(int32_t val) {
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "%d", val);
+    return buf;
+}
+
+/* =================================================================
  * Parallel Support (OpenMP or Sequential Fallback)
  * ================================================================= */
 
@@ -1038,7 +1048,24 @@ pgy_result_unwrap_err_##SuffixName(PgyResult_##SuffixName* r) \
 typedef const char* PgyError;
 
 PGY_RESULT_DEFINE(Int, int32_t, PgyError)
+PGY_RESULT_DEFINE(Bool, bool, PgyError)
 PGY_RESULT_DEFINE(String, char*, PgyError)
+
+/* Convenience wrappers for Pergyra language syntax:
+ *   Ok(val), Err(msg), IsOk(r), IsErr(r), Unwrap(r), UnwrapOr(r, fallback) */
+#define Ok_Int(v)           pgy_result_ok_Int(v)
+#define Err_Int(m)          pgy_result_err_Int(m)
+#define IsOk_Int(r)         ((r).tag == PgyResultOk)
+#define IsErr_Int(r)        ((r).tag == PgyResultErr)
+#define Unwrap_Int(r)       pgy_result_unwrap_Int(&(PgyResult_Int){(r).tag, {.ok=(r).ok}})
+#define UnwrapOr_Int(r, f)  ((r).tag == PgyResultOk ? (r).ok : (f))
+
+#define Ok_Bool(v)          pgy_result_ok_Bool(v)
+#define Err_Bool(m)         pgy_result_err_Bool(m)
+#define IsOk_Bool(r)        ((r).tag == PgyResultOk)
+#define IsErr_Bool(r)       ((r).tag == PgyResultErr)
+#define Unwrap_Bool(r)      pgy_result_unwrap_Bool(&(PgyResult_Bool){(r).tag, {.ok=(r).ok}})
+#define UnwrapOr_Bool(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
 
 /* Result helper macros (similar to Rust's ? operator) */
 #define PGY_RESULT_TRY(result_expr, ok_var, err_handler) \

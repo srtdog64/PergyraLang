@@ -120,4 +120,5 @@ docs/
   16_security_implementation_report.md
   17_development_status.md
   18_language_status.md
+  intrinsic_templates/      -- AI 친화 intrinsic template 설계 문서
 ```

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "patterns": [
+    {
+      "id": "handle-async",
+      "name": "handle-async",
+      "category": "core-concepts/concurrency",
+      "status": "planned",
+      "summary": "Domain-independent async input/output handler pattern.",
+      "generic_signature": "AsyncHandler<TInput, TOutput, TError>",
+      "files": [
+        "vault/patterns/handle-async/handle-async.md"
+      ],
+      "languages": [
+        "pgy"
+      ],
+      "tags": [
+        "async",
+        "handler",
+        "generic-to-domain-injection"
+      ]
+    }
+  ]
+}

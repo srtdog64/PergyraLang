@@ -2,7 +2,7 @@
 #define PERGYRA_COMPILER_H
 
 #include <stdbool.h>
-#include "../parser/ast.h"
+#include "hir.h"
 
 typedef struct
 {
@@ -13,8 +13,8 @@ typedef struct
     char *binary_path;
 } CompilerResult;
 
-CompilerResult *compiler_emit_c(ASTNode *ast, const char *output_c_path);
-CompilerResult *compiler_build_native(ASTNode *ast,
+CompilerResult *compiler_emit_c(const HIRProgram *hir, const char *output_c_path);
+CompilerResult *compiler_build_native(const HIRProgram *hir,
                                       const char *output_c_path,
                                       const char *output_binary_path,
                                       bool verbose);
@@ -25,7 +25,7 @@ void            compiler_result_destroy(CompilerResult *result);
 /*
  * LLVM backend: AST → LLVM IR → object → link with GCC.
  */
-CompilerResult *compiler_build_native_llvm(ASTNode *ast,
+CompilerResult *compiler_build_native_llvm(const HIRProgram *hir,
                                             const char *output_obj_path,
                                             const char *output_binary_path,
                                             bool verbose);
@@ -33,7 +33,7 @@ CompilerResult *compiler_build_native_llvm(ASTNode *ast,
 /*
  * Emit LLVM IR text to stdout (--emit-llvm mode).
  */
-CompilerResult *compiler_emit_llvm_ir(ASTNode *ast, const char *module_name);
+CompilerResult *compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name);
 #endif
 
 #endif

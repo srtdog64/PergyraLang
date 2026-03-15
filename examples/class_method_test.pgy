@@ -1,0 +1,15 @@
+class Vec2 {
+    let x: Int;
+    let y: Int;
+
+    func Length(self) -> Int {
+        return self.x + self.y;
+    }
+}
+
+func Main() -> Void {
+    let v: Vec2 = Vec2();
+    v.x = 3;
+    v.y = 7;
+    Log(Vec2_Length(v));
+}

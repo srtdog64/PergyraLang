@@ -43,9 +43,9 @@ compiler_success(const char *output_c_path, const char *output_binary_path)
 }
 
 static int
-invoke_c_backend(ASTNode *ast, const char *output_c_path, char **error_message)
+invoke_c_backend(const HIRProgram *hir, const char *output_c_path, char **error_message)
 {
-    TranspileResult *transpile_result = transpile(ast, output_c_path);
+    TranspileResult *transpile_result = transpile(hir, output_c_path);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;
@@ -64,10 +64,10 @@ invoke_c_backend(ASTNode *ast, const char *output_c_path, char **error_message)
 }
 
 CompilerResult *
-compiler_emit_c(ASTNode *ast, const char *output_c_path)
+compiler_emit_c(const HIRProgram *hir, const char *output_c_path)
 {
     char *error_message = NULL;
-    int rc = invoke_c_backend(ast, output_c_path, &error_message);
+    int rc = invoke_c_backend(hir, output_c_path, &error_message);
     if (rc != 0) {
         CompilerResult *result = compiler_error(error_message != NULL
             ? error_message
@@ -80,13 +80,13 @@ compiler_emit_c(ASTNode *ast, const char *output_c_path)
 }
 
 CompilerResult *
-compiler_build_native(ASTNode *ast,
+compiler_build_native(const HIRProgram *hir,
                       const char *output_c_path,
                       const char *output_binary_path,
                       bool verbose)
 {
     char *error_message = NULL;
-    int rc = invoke_c_backend(ast, output_c_path, &error_message);
+    int rc = invoke_c_backend(hir, output_c_path, &error_message);
     if (rc != 0) {
         CompilerResult *result = compiler_error(error_message != NULL
             ? error_message
@@ -151,9 +151,9 @@ compiler_run_binary(const char *binary_path, bool verbose)
 #ifdef PGY_LLVM_ENABLED
 
 CompilerResult *
-compiler_emit_llvm_ir(ASTNode *ast, const char *module_name)
+compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
 {
-    LLVMGenResult *gen = llvm_codegen(ast, module_name);
+    LLVMGenResult *gen = llvm_codegen(hir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -174,7 +174,7 @@ compiler_emit_llvm_ir(ASTNode *ast, const char *module_name)
 }
 
 CompilerResult *
-compiler_build_native_llvm(ASTNode *ast,
+compiler_build_native_llvm(const HIRProgram *hir,
                            const char *output_obj_path,
                            const char *output_binary_path,
                            bool verbose)
@@ -182,7 +182,7 @@ compiler_build_native_llvm(ASTNode *ast,
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
-    LLVMGenResult *gen = llvm_codegen_to_object(ast, "pergyra_module",
+    LLVMGenResult *gen = llvm_codegen_to_object(hir, "pergyra_module",
                                                  output_obj_path);
     if (gen == NULL)
         return compiler_error("Out of memory");

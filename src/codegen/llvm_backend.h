@@ -15,7 +15,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include "../parser/ast.h"
+#include "../compiler/hir.h"
 
 /* -----------------------------------------------------------------
  * Result type for LLVM code generation
@@ -36,13 +36,13 @@ typedef struct
  * Generate LLVM IR from an annotated AST and return it as text.
  * Caller must free with llvm_gen_result_destroy().
  */
-LLVMGenResult *llvm_codegen(ASTNode *ast, const char *module_name);
+LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
 
 /*
  * Generate LLVM IR, optimize, and emit a native object file (.o).
  * Caller must free with llvm_gen_result_destroy().
  */
-LLVMGenResult *llvm_codegen_to_object(ASTNode *ast,
+LLVMGenResult *llvm_codegen_to_object(const HIRProgram *hir,
                                        const char *module_name,
                                        const char *output_path);
 

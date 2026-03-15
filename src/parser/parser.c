@@ -308,6 +308,18 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parse_function_declaration(parser);
     }
 
+    // import 선언
+    if (parser_match(parser, TOKEN_IMPORT)) {
+        Token path = parser_consume(parser, TOKEN_STRING,
+            "Expected string path after 'import'");
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after import");
+        /* Strip quotes from string literal */
+        char *raw = pergyra_strndup(path.text + 1, path.length - 2);
+        ASTNode *imp = ast_create_import_declaration(raw);
+        free(raw);
+        return imp;
+    }
+
     // extern 블록
     if (parser_match(parser, TOKEN_EXTERN)) {
         return parse_extern_block(parser);

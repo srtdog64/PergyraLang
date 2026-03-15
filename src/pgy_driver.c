@@ -9,6 +9,7 @@
  *     → Lexer
  *     → Parser   → AST
  *     → Semantic → annotated AST  (errors abort here)
+ *     → HIR      → lowered program buckets
  *     → C backend → .c file
  *     → GCC       → native binary
  *
@@ -30,6 +31,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "compiler/hir.h"
 #include "compiler/compiler.h"
 #include "common/string_compat.h"
 
@@ -48,7 +50,9 @@ typedef struct
     bool        do_run;
     bool        dump_tokens;
     bool        dump_ast;
+    bool        dump_hir;
     bool        verbose;
+    bool        repl;
     BackendKind backend;
 } DriverFlags;
 
@@ -169,6 +173,104 @@ run_pipeline(const DriverFlags *flags)
         return 1;
     }
 
+    /* ---- Resolve imports: inline imported file ASTs ---- */
+    {
+        /* Compute base directory from source_path */
+        const char *last_sep = strrchr(flags->source_path, '/');
+        const char *last_bsep = strrchr(flags->source_path, '\\');
+        if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
+            last_sep = last_bsep;
+
+        char base_dir[512] = ".";
+        if (last_sep != NULL) {
+            size_t dir_len = (size_t)(last_sep - flags->source_path);
+            if (dir_len >= sizeof(base_dir)) dir_len = sizeof(base_dir) - 1;
+            memcpy(base_dir, flags->source_path, dir_len);
+            base_dir[dir_len] = '\0';
+        }
+
+        /* Scan for AST_IMPORT_DECL, parse imported files, merge statements */
+        for (size_t i = 0; i < ast->data.program.count; i++) {
+            ASTNode *stmt = ast->data.program.statements[i];
+            if (stmt == NULL || stmt->type != AST_IMPORT_DECL)
+                continue;
+
+            const char *import_path = stmt->data.import_decl.path;
+            char full_path[1024];
+            snprintf(full_path, sizeof(full_path), "%s/%s", base_dir, import_path);
+
+            char *imp_source = read_file(full_path);
+            if (imp_source == NULL) {
+                fprintf(stderr, "pgy: cannot resolve import '%s'\n", import_path);
+                ast_destroy(ast);
+                parser_destroy(parser);
+                lexer_destroy(lexer);
+                free(source);
+                return 1;
+            }
+
+            Lexer *imp_lexer = lexer_create(imp_source);
+            Parser *imp_parser = parser_create(imp_lexer);
+            ASTNode *imp_ast = parser_parse_program(imp_parser);
+            bool imp_err = parser_has_error(imp_parser);
+
+            if (imp_err) {
+                fprintf(stderr, "pgy: parse error in import '%s': %s\n",
+                        import_path, parser_get_error(imp_parser));
+                ast_destroy(imp_ast);
+                parser_destroy(imp_parser);
+                lexer_destroy(imp_lexer);
+                free(imp_source);
+                ast_destroy(ast);
+                parser_destroy(parser);
+                lexer_destroy(lexer);
+                free(source);
+                return 1;
+            }
+
+            /* Replace AST_IMPORT_DECL with imported statements */
+            size_t imp_count = imp_ast->data.program.count;
+            if (imp_count > 0) {
+                size_t old_count = ast->data.program.count;
+                size_t new_count = old_count - 1 + imp_count;
+                ASTNode **new_stmts = malloc(new_count * sizeof(ASTNode*));
+                /* Copy statements before import */
+                for (size_t j = 0; j < i; j++)
+                    new_stmts[j] = ast->data.program.statements[j];
+                /* Copy imported statements */
+                for (size_t j = 0; j < imp_count; j++)
+                    new_stmts[i + j] = imp_ast->data.program.statements[j];
+                /* Copy statements after import */
+                for (size_t j = i + 1; j < old_count; j++)
+                    new_stmts[j - 1 + imp_count] = ast->data.program.statements[j];
+
+                ast_destroy(ast->data.program.statements[i]); /* free import node */
+                free(ast->data.program.statements);
+                ast->data.program.statements = new_stmts;
+                ast->data.program.count = new_count;
+
+                /* Detach imported statements from imp_ast so they aren't freed */
+                imp_ast->data.program.statements = NULL;
+                imp_ast->data.program.count = 0;
+
+                /* Adjust index to skip newly inserted statements */
+                i += imp_count - 1;
+            } else {
+                /* Empty import — just remove the import node */
+                ast_destroy(ast->data.program.statements[i]);
+                for (size_t j = i; j + 1 < ast->data.program.count; j++)
+                    ast->data.program.statements[j] = ast->data.program.statements[j + 1];
+                ast->data.program.count--;
+                i--;
+            }
+
+            ast_destroy(imp_ast);
+            parser_destroy(imp_parser);
+            lexer_destroy(imp_lexer);
+            free(imp_source);
+        }
+    }
+
     if (flags->dump_ast) {
         ast_print(ast, 0);
         ast_destroy(ast);
@@ -202,11 +304,38 @@ run_pipeline(const DriverFlags *flags)
         return 1;
     }
 
+    char *hir_error = NULL;
+    HIRProgram *hir = hir_lower(sem->annotated_ast, &hir_error);
+    if (hir == NULL) {
+        fprintf(stderr, "pgy: HIR lowering failed: %s\n",
+                hir_error != NULL ? hir_error : "out of memory");
+        free(hir_error);
+        semantic_result_destroy(sem);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        free(source);
+        return 1;
+    }
+    free(hir_error);
+
+    if (flags->dump_hir) {
+        hir_dump(hir, stdout);
+        hir_destroy(hir);
+        semantic_result_destroy(sem);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        free(source);
+        return 0;
+    }
+
     char *output_c = flags->output_c != NULL
         ? pergyra_strdup(flags->output_c)
         : replace_extension(flags->source_path, ".c");
     if (output_c == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
+        hir_destroy(hir);
         semantic_result_destroy(sem);
         ast_destroy(ast);
         parser_destroy(parser);
@@ -224,13 +353,14 @@ run_pipeline(const DriverFlags *flags)
             if (flags->verbose)
                 printf("pgy: emitting LLVM IR\n");
 
-            CompilerResult *result = compiler_emit_llvm_ir(sem->annotated_ast,
+            CompilerResult *result = compiler_emit_llvm_ir(hir,
                                                             "pergyra_module");
             if (result == NULL || !result->success) {
                 fprintf(stderr, "pgy: LLVM IR generation failed: %s\n",
                         result != NULL ? result->error_message : "out of memory");
                 compiler_result_destroy(result);
                 free(output_c);
+                hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
                 parser_destroy(parser);
@@ -251,6 +381,7 @@ run_pipeline(const DriverFlags *flags)
                 free(obj_path);
                 free(bin_path);
                 free(output_c);
+                hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
                 parser_destroy(parser);
@@ -260,7 +391,7 @@ run_pipeline(const DriverFlags *flags)
             }
 
             CompilerResult *result = compiler_build_native_llvm(
-                sem->annotated_ast, obj_path, bin_path, flags->verbose);
+                hir, obj_path, bin_path, flags->verbose);
             if (result == NULL || !result->success) {
                 fprintf(stderr, "pgy: LLVM compile failed: %s\n",
                         result != NULL ? result->error_message : "out of memory");
@@ -268,6 +399,7 @@ run_pipeline(const DriverFlags *flags)
                 free(obj_path);
                 free(bin_path);
                 free(output_c);
+                hir_destroy(hir);
                 semantic_result_destroy(sem);
                 ast_destroy(ast);
                 parser_destroy(parser);
@@ -296,12 +428,13 @@ run_pipeline(const DriverFlags *flags)
         if (flags->verbose)
             printf("pgy: generating C → %s\n", output_c);
 
-        CompilerResult *result = compiler_emit_c(sem->annotated_ast, output_c);
+        CompilerResult *result = compiler_emit_c(hir, output_c);
         if (result == NULL || !result->success) {
             fprintf(stderr, "pgy: C generation failed: %s\n",
                     result != NULL ? result->error_message : "out of memory");
             compiler_result_destroy(result);
             free(output_c);
+            hir_destroy(hir);
             semantic_result_destroy(sem);
             ast_destroy(ast);
             parser_destroy(parser);
@@ -324,6 +457,7 @@ run_pipeline(const DriverFlags *flags)
         if (bin_path == NULL) {
             fprintf(stderr, "pgy: out of memory\n");
             free(output_c);
+            hir_destroy(hir);
             semantic_result_destroy(sem);
             ast_destroy(ast);
             parser_destroy(parser);
@@ -332,7 +466,7 @@ run_pipeline(const DriverFlags *flags)
             return 1;
         }
 
-        CompilerResult *result = compiler_build_native(sem->annotated_ast,
+        CompilerResult *result = compiler_build_native(hir,
                                                        output_c,
                                                        bin_path,
                                                        flags->verbose);
@@ -342,6 +476,7 @@ run_pipeline(const DriverFlags *flags)
             compiler_result_destroy(result);
             free(bin_path);
             free(output_c);
+            hir_destroy(hir);
             semantic_result_destroy(sem);
             ast_destroy(ast);
             parser_destroy(parser);
@@ -362,6 +497,7 @@ run_pipeline(const DriverFlags *flags)
     }
 
     free(output_c);
+    hir_destroy(hir);
     semantic_result_destroy(sem);
     ast_destroy(ast);
     parser_destroy(parser);
@@ -381,10 +517,12 @@ print_usage(void)
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump AST\n"
+        "  pgy --hir    <source.pgy>     dump lowered HIR summary\n"
 #ifdef PGY_LLVM_ENABLED
         "  pgy <source.pgy> --backend=llvm   use LLVM native backend\n"
         "  pgy <source.pgy> --emit-llvm      emit LLVM IR text\n"
 #endif
+        "  pgy --repl                    interactive REPL\n"
         "  pgy --help\n");
 }
 
@@ -415,6 +553,10 @@ parse_args(int argc, char *argv[])
             f.dump_tokens = true;
         } else if (strcmp(argv[i], "--ast") == 0) {
             f.dump_ast = true;
+        } else if (strcmp(argv[i], "--repl") == 0) {
+            f.repl = true;
+        } else if (strcmp(argv[i], "--hir") == 0) {
+            f.dump_hir = true;
         } else if (strcmp(argv[i], "-v") == 0
                 || strcmp(argv[i], "--verbose") == 0) {
             f.verbose = true;
@@ -432,7 +574,7 @@ parse_args(int argc, char *argv[])
         }
     }
 
-    if (f.source_path == NULL) {
+    if (f.source_path == NULL && !f.repl) {
         print_usage();
         exit(1);
     }
@@ -440,9 +582,103 @@ parse_args(int argc, char *argv[])
     return f;
 }
 
+static int
+run_repl(void)
+{
+    printf("Pergyra REPL v0.1 — type 'exit' to quit\n");
+
+    /* Accumulate top-level declarations (func, struct, etc.) */
+    char decls[16384] = "";
+    char line[2048];
+
+    while (1) {
+        printf("pgy> ");
+        fflush(stdout);
+        if (fgets(line, sizeof(line), stdin) == NULL)
+            break;
+
+        /* Strip trailing newline */
+        size_t len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n')
+            line[--len] = '\0';
+        if (len > 0 && line[len - 1] == '\r')
+            line[--len] = '\0';
+
+        if (len == 0)
+            continue;
+        if (strcmp(line, "exit") == 0 || strcmp(line, "quit") == 0)
+            break;
+
+        /* If line starts with func/struct/class/ability/role, accumulate */
+        bool is_decl = (strncmp(line, "func ", 5) == 0
+                     || strncmp(line, "struct ", 7) == 0
+                     || strncmp(line, "class ", 6) == 0);
+
+        if (is_decl) {
+            /* Read until closing brace by counting {} */
+            char block[4096];
+            snprintf(block, sizeof(block), "%s\n", line);
+            int depth = 0;
+            for (const char *p = line; *p; p++) {
+                if (*p == '{') depth++;
+                else if (*p == '}') depth--;
+            }
+            while (depth > 0) {
+                printf("...  ");
+                fflush(stdout);
+                if (fgets(line, sizeof(line), stdin) == NULL)
+                    break;
+                size_t l = strlen(line);
+                if (l > 0 && line[l - 1] == '\n') line[--l] = '\0';
+                strncat(block, line, sizeof(block) - strlen(block) - 2);
+                strcat(block, "\n");
+                for (const char *p = line; *p; p++) {
+                    if (*p == '{') depth++;
+                    else if (*p == '}') depth--;
+                }
+            }
+            strncat(decls, block, sizeof(decls) - strlen(decls) - 1);
+            printf("  (defined)\n");
+            continue;
+        }
+
+        /* Build temp source: decls + func Main() { <line> } */
+        char tmp_source[32768];
+        snprintf(tmp_source, sizeof(tmp_source),
+            "%s\nfunc Main() -> Void {\n    %s\n}\n", decls, line);
+
+        /* Write to temp file */
+        const char *tmp_path = "_pgy_repl_tmp.pgy";
+        FILE *f = fopen(tmp_path, "w");
+        if (f == NULL) {
+            fprintf(stderr, "  error: cannot create temp file\n");
+            continue;
+        }
+        fputs(tmp_source, f);
+        fclose(f);
+
+        /* Use this driver itself to compile+run */
+        DriverFlags rf;
+        memset(&rf, 0, sizeof(rf));
+        rf.source_path = tmp_path;
+        rf.do_run = true;
+        run_pipeline(&rf);
+
+        /* Cleanup temp files */
+        remove("_pgy_repl_tmp.pgy");
+        remove("_pgy_repl_tmp.c");
+        remove("_pgy_repl_tmp.exe");
+    }
+
+    printf("Bye!\n");
+    return 0;
+}
+
 int
 main(int argc, char *argv[])
 {
     DriverFlags flags = parse_args(argc, argv);
+    if (flags.repl)
+        return run_repl();
     return run_pipeline(&flags);
 }

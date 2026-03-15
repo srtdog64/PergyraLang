@@ -49,6 +49,7 @@ static const KeywordEntry keywords[] = {
     {"spawn",    TOKEN_SPAWN},
     {"event",    TOKEN_EVENT},
     {"match",    TOKEN_MATCH},
+    {"import",   TOKEN_IMPORT},
     {"ability",  TOKEN_ABILITY},
     {"role",     TOKEN_ROLE},
     {"include",  TOKEN_INCLUDE},
@@ -442,6 +443,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_DEFAULT: return "DEFAULT";
         case TOKEN_SPAWN: return "SPAWN";
         case TOKEN_EVENT: return "EVENT";
+        case TOKEN_IMPORT: return "IMPORT";
         case TOKEN_SUBSCRIBE: return "+=";
         case TOKEN_UNSUBSCRIBE: return "-=";
         case TOKEN_LAMBDA: return "=>";

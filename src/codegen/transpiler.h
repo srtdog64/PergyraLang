@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../parser/ast.h"
+#include "../compiler/hir.h"
 #include "../semantic/type_system.h"
 #include "../semantic/semantic.h"
 
@@ -102,7 +103,8 @@ void           transpiler_ctx_destroy(TranspilerCtx *ctx);
  *
  * Usage:
  *   SemanticResult *sem = semantic_analyze(ast);
- *   TranspileResult *res = transpile(sem->annotated_ast, "out.c");
+ *   HIRProgram *hir = hir_lower(sem->annotated_ast, NULL);
+ *   TranspileResult *res = transpile(hir, "out.c");
  * ----------------------------------------------------------------- */
 
 typedef struct
@@ -111,14 +113,14 @@ typedef struct
     char *error_message;  /* NULL on success */
 } TranspileResult;
 
-TranspileResult *transpile(ASTNode *ast, const char *output_path);
+TranspileResult *transpile(const HIRProgram *hir, const char *output_path);
 void             transpile_result_destroy(TranspileResult *res);
 
 /* -----------------------------------------------------------------
  * Per-node emitters (public for testing)
  * ----------------------------------------------------------------- */
 
-void emit_program(ASTNode *node, TranspilerCtx *ctx);
+void emit_program(const HIRProgram *hir, TranspilerCtx *ctx);
 void emit_statement(ASTNode *node, TranspilerCtx *ctx);
 void emit_block(ASTNode *node, TranspilerCtx *ctx);
 

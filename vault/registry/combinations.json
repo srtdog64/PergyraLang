@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "combinations": [
+    {
+      "id": "resilient-client",
+      "status": "planned",
+      "summary": "Planned combination of async handling, retry, caching, and health monitoring.",
+      "patterns": [
+        "handle-async",
+        "retry-operations",
+        "cache-data",
+        "monitor-health"
+      ]
+    }
+  ]
+}

@@ -137,7 +137,10 @@ typedef enum
     AST_EVENT_UNSUBSCRIBE,
     AST_EVENT_INVOKE,
     AST_EVENT_HANDLER_TYPE,
-    AST_LAMBDA_EXPR
+    AST_LAMBDA_EXPR,
+
+    /* Module system */
+    AST_IMPORT_DECL
 } ASTNodeType;
 
 /*
@@ -621,6 +624,11 @@ struct ASTNode
             ASTNode* return_type;      /* Optional return type */
             bool is_async;             /* async lambda */
         } lambda_expr;
+
+        /* Import declaration */
+        struct {
+            char* path;                /* Module path (string or identifier) */
+        } import_decl;
     } data;
 };
 
@@ -703,5 +711,8 @@ ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler);
 ASTNode* ast_create_event_invoke(ASTNode* event);
 ASTNode* ast_create_event_handler_type(void);
 ASTNode* ast_create_lambda_expression(void);
+
+/* Module system AST creation */
+ASTNode* ast_create_import_declaration(const char* path);
 
 #endif /* PERGYRA_AST_H */

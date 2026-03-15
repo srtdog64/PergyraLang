@@ -79,7 +79,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
-COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c
+COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
+                   $(COMPILER_DIR)/hir.c
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifdef LLVM_ENABLED
@@ -101,7 +102,9 @@ TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
 TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
 TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
 TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
+TEST_HIR_SRC            = $(SRC_DIR)/test_hir.c
 DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
+LSP_SRC                 = $(SRC_DIR)/lsp/pgy_lsp.c
 
 # -----------------------------------------------------------------
 # Object files
@@ -126,7 +129,9 @@ TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
 TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
 TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
 TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
+TEST_HIR_OBJ           = $(BUILD_DIR)/test_hir.o
 DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
+LSP_OBJ                = $(BUILD_DIR)/lsp/pgy_lsp.o
 
 # Common frontend objects used by many targets
 FRONTEND_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
@@ -144,12 +149,14 @@ SEMANTIC_TEST       = $(BIN_DIR)/test_semantic
 TRANSPILE_TEST      = $(BIN_DIR)/test_transpile
 MEMORY_TEST         = $(BIN_DIR)/test_memory_layout
 CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency
+HIR_TEST            = $(BIN_DIR)/test_hir
 PGY                 = $(BIN_DIR)/pgy
+PGY_LSP             = $(BIN_DIR)/pgy-lsp
 
 # -----------------------------------------------------------------
 # Default target — build the driver and all tests
 # -----------------------------------------------------------------
-all: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST)
+all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
 pgy: $(PGY)
 
@@ -195,6 +202,14 @@ $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
+# HIR lowering test
+$(HIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# LSP server
+$(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
 # -----------------------------------------------------------------
 # Compilation rules
 # -----------------------------------------------------------------
@@ -220,7 +235,8 @@ $(BUILD_DIR):
 		$(BUILD_DIR)/codegen \
 		$(BUILD_DIR)/compiler \
 		$(BUILD_DIR)/runtime \
-		$(BUILD_DIR)/runtime/async
+		$(BUILD_DIR)/runtime/async \
+		$(BUILD_DIR)/lsp
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -256,7 +272,11 @@ test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
 	./$(CONCURRENCY_TEST)
 
-test-all: test test-parser test-semantic test-transpile test-memory test-concurrency
+test-hir: $(HIR_TEST)
+	@echo "=== HIR Test ==="
+	./$(HIR_TEST)
+
+test-all: test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
 	@echo "=== All Frontend Tests Completed ==="
 
 # -----------------------------------------------------------------
@@ -296,6 +316,8 @@ format:
 memcheck: debug
 	valgrind --leak-check=full --show-leak-kinds=all ./$(TRANSPILE_TEST)
 
+lsp: $(PGY_LSP)
+
 .PHONY: all clean clean-objects debug release analyze format memcheck \
-        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-all \
-        example-hello example-slots
+        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
+        example-hello example-slots lsp

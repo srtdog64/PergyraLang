@@ -1,0 +1,11 @@
+struct Point {
+    x: Int;
+    y: Int;
+}
+
+func Main() -> Void {
+    let p: Point = Point();
+    p.x = 10;
+    p.y = 32;
+    Log(p.x + p.y);
+}

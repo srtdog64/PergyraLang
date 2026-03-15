@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let sum: Int = 0;
+    for i in 0..5 {
+        let cur: Int = sum;
+        sum = cur + i;
+    }
+    Log(sum);
+}

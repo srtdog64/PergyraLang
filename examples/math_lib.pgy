@@ -1,0 +1,7 @@
+func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+func Mul(a: Int, b: Int) -> Int {
+    return a * b;
+}

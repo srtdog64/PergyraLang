@@ -143,6 +143,19 @@ make_program(ASTNode **stmts, size_t count)
     return n;
 }
 
+static HIRProgram *
+lower_program(ASTNode *program)
+{
+    char *error = NULL;
+    HIRProgram *hir = hir_lower(program, &error);
+    if (hir == NULL) {
+        fprintf(stderr, "HIR lowering failed in test: %s\n",
+                error != NULL ? error : "out of memory");
+    }
+    free(error);
+    return hir;
+}
+
 static ASTNode *
 make_generic_type(const char *name, const char *arg_name)
 {
@@ -534,10 +547,12 @@ test_program_emit(void)
     {
         ASTNode *stmts[0];
         ASTNode *prog = make_program(stmts, 0);
+        HIRProgram *hir = lower_program(prog);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_program(prog, ctx);
+        emit_program(hir, ctx);
         EXPECT_STR_CONTAINS(ctx->out->data, "#include \"pgy_runtime.h\"");
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
     }
 
     TEST("function emitted at top level with correct signature");
@@ -558,12 +573,14 @@ test_program_emit(void)
 
         ASTNode *stmts[1] = { fn };
         ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_program(prog, ctx);
+        emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t\nAdd(int32_t a, int32_t b)");
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
     }
 
     TEST("parallel block emits pgy_spawn / pgy_await per task");
@@ -579,14 +596,16 @@ test_program_emit(void)
 
         ASTNode *stmts[1] = { par };
         ASTNode *prog     = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_program(prog, ctx);
+        emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_spawn");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_await");
         EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_par_");
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
     }
 
     TEST("struct emits typedef struct and method function");
@@ -621,17 +640,19 @@ test_program_emit(void)
 
         ASTNode *stmts[1] = { st };
         ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_program(prog, ctx);
+        emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Vec3");
         EXPECT_STR_CONTAINS(ctx->out->data, "float x;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float y;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float z;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 self)");
 
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
     }
 
     TEST("extern block emits C prototypes");
@@ -667,15 +688,57 @@ test_program_emit(void)
 
         ASTNode *stmts[1] = { &ext };
         ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_program(prog, ctx);
+        emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "extern \"C\"");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t SDL_Init(int32_t flags);");
         EXPECT_STR_CONTAINS(ctx->out->data, "void SDL_Quit();");
 
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("event declaration stays at file scope");
+    {
+        ASTNode event_node;
+        ASTNode param_node;
+        ASTNode *params[1] = { &param_node };
+        ASTNode *stmts[2];
+        ASTNode *prog;
+        HIRProgram *hir;
+        TranspilerCtx *ctx;
+        const char *event_pos;
+        const char *main_pos;
+
+        memset(&event_node, 0, sizeof(event_node));
+        memset(&param_node, 0, sizeof(param_node));
+
+        event_node.type = AST_EVENT_DECL;
+        event_node.data.event_decl.name = "OnHit";
+        event_node.data.event_decl.params = params;
+        event_node.data.event_decl.param_count = 1;
+        event_node.data.event_decl.return_type = make_type_node("Void");
+
+        param_node.type = AST_LET_DECL;
+        param_node.data.let_decl.name = "damage";
+        param_node.data.let_decl.type = make_type_node("Int");
+
+        stmts[0] = &event_node;
+        stmts[1] = make_let("boot", make_type_node("Int"), make_number(1, 1), 1);
+        prog = make_program(stmts, 2);
+        hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        event_pos = strstr(ctx->out->data, "typedef void (*OnHit_Handler)");
+        main_pos = strstr(ctx->out->data, "\nint\nmain(void)\n");
+        EXPECT(event_pos != NULL && main_pos != NULL && event_pos < main_pos);
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
     }
 }
 

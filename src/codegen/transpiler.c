@@ -408,6 +408,12 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
         return buf;
     }
+    if (strncmp(name, "Result<", 7) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
+        return buf;
+    }
     return pergyra_primitive_to_c(name);
 }
 
@@ -941,6 +947,97 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_allocator(call, bk, ctx);
     default:
         break;
+    }
+
+    /* Result<T> built-in functions: Ok, Err, IsOk, IsErr, Unwrap, UnwrapOr */
+    if (callee->type == AST_IDENTIFIER) {
+        const char *fn = callee->data.identifier.name;
+        if (strcmp(fn, "Ok") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("Ok_Int(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Err") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("Err_Int(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "IsOk") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("IsOk_Int(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "IsErr") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("IsErr_Int(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Unwrap") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("Unwrap_Int(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "UnwrapOr") == 0 && call->data.call.arg_count == 2) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *fallback = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("UnwrapOr_Int(%s, %s)", arg, fallback);
+            free(arg);
+            free(fallback);
+            return result;
+        }
+    }
+
+    /* Standard library built-in functions */
+    if (callee->type == AST_IDENTIFIER) {
+        const char *fn = callee->data.identifier.name;
+
+        /* Math functions */
+        if (strcmp(fn, "Abs") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("((%s) < 0 ? -(%s) : (%s))", arg, arg, arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Min") == 0 && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("((%s) < (%s) ? (%s) : (%s))", a, b, a, b);
+            free(a); free(b);
+            return result;
+        }
+        if (strcmp(fn, "Max") == 0 && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("((%s) > (%s) ? (%s) : (%s))", a, b, a, b);
+            free(a); free(b);
+            return result;
+        }
+        /* String functions */
+        if (strcmp(fn, "StringLength") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("((int32_t)strlen(%s))", arg);
+            free(arg);
+            return result;
+        }
+        /* Print (no newline) vs Log (with newline) */
+        if (strcmp(fn, "Print") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("printf(\"%%s\", %s)", arg);
+            free(arg);
+            return result;
+        }
+        /* ToString */
+        if (strcmp(fn, "ToString") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("pgy_int_to_string(%s)", arg);
+            free(arg);
+            return result;
+        }
     }
 
     /* Method-call style slot operations: slot.Write(val), slot.Read(), slot.Release() */
@@ -1534,6 +1631,19 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
+    /* Struct/class constructor: let p: Point = Point() → Point p = {0}; */
+    if (init != NULL && init->type == AST_CALL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && ann_type_name != NULL
+        && strcmp(init->data.call.callee->data.identifier.name, ann_type_name) == 0
+        && init->data.call.arg_count == 0) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
+        register_typed_var(ctx, name, ann_type_name);
+        free(ann_type_name);
+        return;
+    }
+
     write_indent(ctx);
     if (init != NULL) {
         char *init_expr = emit_expression(init, ctx);
@@ -1670,7 +1780,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
-    /* Methods become free functions: RetType ClassName_MethodName(...) */
+    /* Methods become free functions: RetType ClassName_MethodName(T self, ...) */
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
         if (method->type != AST_FUNC_DECL)
@@ -1681,11 +1791,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
+        codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
                       ret_type, name, method_name, name);
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -2176,8 +2288,14 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
  * ----------------------------------------------------------------- */
 
 void
-emit_program(ASTNode *node, TranspilerCtx *ctx)
+emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 {
+    ASTNode *node;
+
+    if (hir == NULL)
+        return;
+
+    node = hir->root_ast;
     if (node == NULL || node->type != AST_PROGRAM)
         return;
 
@@ -2207,66 +2325,42 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
      */
 
     /* Pass 1: abilities (vtable typedefs) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_ABILITY_DECL)
-            emit_ability_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->ability_count; i++)
+        emit_ability_decl(hir->abilities[i], ctx);
 
     /* Pass 2: classes */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_CLASS_DECL)
-            emit_class_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->type_count; i++)
+        emit_class_decl(hir->types[i], ctx);
 
     /* Pass 2.5: extern declarations */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_EXTERN_BLOCK)
-            emit_extern_block(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->extern_count; i++)
+        emit_extern_block(hir->externs[i], ctx);
 
     /* Pass 3: roles (vtable instances + free functions) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_ROLE_DECL)
-            emit_role_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->role_count; i++)
+        emit_role_decl(hir->roles[i], ctx);
 
     /* Pass 3.5: parties (struct + methods) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_PARTY_DECL)
-            emit_party_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->party_count; i++)
+        emit_party_decl(hir->parties[i], ctx);
 
     /* Pass 3.7: systemics (struct + methods) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_SYSTEMIC_DECL)
-            emit_systemic_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->systemic_count; i++)
+        emit_systemic_decl(hir->systemics[i], ctx);
 
     /* Pass 3.9: worlds (struct + methods) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_WORLD_DECL)
-            emit_world_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->world_count; i++)
+        emit_world_decl(hir->worlds[i], ctx);
 
     /* Pass 3.95: actors (struct + methods) */
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_ACTOR_DECL)
-            emit_actor_decl(stmt, ctx);
-    }
+    for (size_t i = 0; i < hir->actor_count; i++)
+        emit_actor_decl(hir->actors[i], ctx);
 
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_FUNC_DECL)
-            emit_func_forward_decl(stmt, ctx->decls);
-    }
+    for (size_t i = 0; i < hir->event_count; i++)
+        emit_event_decl(hir->events[i], ctx);
+
+    for (size_t i = 0; i < hir->function_count; i++)
+        emit_func_forward_decl(hir->functions[i], ctx->decls);
     if (ctx->decls->len > 0) {
         codebuf_write(ctx->out, "\n");
         codebuf_write_raw(ctx->out, ctx->decls->data, ctx->decls->len);
@@ -2280,11 +2374,8 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
         CodeBuf *func_buf = codebuf_create();
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
-        for (size_t i = 0; i < node->data.program.count; i++) {
-            ASTNode *stmt = node->data.program.statements[i];
-            if (stmt->type == AST_FUNC_DECL)
-                emit_func_decl(stmt, ctx);
-        }
+        for (size_t i = 0; i < hir->function_count; i++)
+            emit_func_decl(hir->functions[i], ctx);
         ctx->out = saved_out;
 
         /* Emit helpers (parallel context structs + wrappers) first */
@@ -2301,34 +2392,8 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
     }
 
     /* Check if a Main() function exists */
-    bool has_main_func = false;
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type == AST_FUNC_DECL
-            && strcmp(stmt->data.func_decl.name, "Main") == 0) {
-            has_main_func = true;
-            break;
-        }
-    }
-
-    /* Collect top-level statements (non-class, non-func) */
-    bool has_toplevel = false;
-    for (size_t i = 0; i < node->data.program.count; i++) {
-        ASTNode *stmt = node->data.program.statements[i];
-        if (stmt->type != AST_CLASS_DECL && stmt->type != AST_FUNC_DECL
-                && stmt->type != AST_EXTERN_BLOCK
-                && stmt->type != AST_ABILITY_DECL && stmt->type != AST_ROLE_DECL
-                && stmt->type != AST_PARTY_DECL
-                && stmt->type != AST_SYSTEMIC_DECL
-                && stmt->type != AST_WORLD_DECL
-                && stmt->type != AST_ACTOR_DECL) {
-            has_toplevel = true;
-            break;
-        }
-    }
-
     /* Generate int main(void) { ... } */
-    if (has_toplevel || has_main_func) {
+    if (hir->executable_count > 0 || hir->has_main_function) {
         codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
         ctx->indent++;
 
@@ -2337,20 +2402,11 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "pgy_pool_init(0);\n\n");
 
         /* Emit top-level statements inside main() */
-        for (size_t i = 0; i < node->data.program.count; i++) {
-            ASTNode *stmt = node->data.program.statements[i];
-            if (stmt->type != AST_CLASS_DECL && stmt->type != AST_FUNC_DECL
-                && stmt->type != AST_EXTERN_BLOCK
-                && stmt->type != AST_ABILITY_DECL && stmt->type != AST_ROLE_DECL
-                && stmt->type != AST_PARTY_DECL
-                && stmt->type != AST_SYSTEMIC_DECL
-                && stmt->type != AST_WORLD_DECL
-                && stmt->type != AST_ACTOR_DECL)
-                emit_statement(stmt, ctx);
-        }
+        for (size_t i = 0; i < hir->executable_count; i++)
+            emit_statement(hir->executables[i], ctx);
 
         /* If Main() exists and no top-level statements, call it */
-        if (has_main_func) {
+        if (hir->has_main_function) {
             write_indent(ctx);
             codebuf_write(ctx->out, "Main();\n");
         }
@@ -2371,7 +2427,7 @@ emit_program(ASTNode *node, TranspilerCtx *ctx)
  * ----------------------------------------------------------------- */
 
 TranspileResult *
-transpile(ASTNode *ast, const char *output_path)
+transpile(const HIRProgram *hir, const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     if (result == NULL)
@@ -2384,7 +2440,7 @@ transpile(ASTNode *ast, const char *output_path)
         return result;
     }
 
-    emit_program(ast, ctx);
+    emit_program(hir, ctx);
 
     if (output_path != NULL) {
         if (!codebuf_dump_file(ctx->out, output_path)) {

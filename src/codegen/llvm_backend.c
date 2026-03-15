@@ -2270,6 +2270,16 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_parallel_block(node, ctx);
         break;
 
+    case AST_SELECT_STMT:
+        /* MVP: emit cases sequentially (first match wins) */
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+            if (node->data.select_stmt.cases[i] != NULL)
+                llvm_emit_statement(node->data.select_stmt.cases[i], ctx);
+        }
+        if (node->data.select_stmt.default_case != NULL)
+            llvm_emit_statement(node->data.select_stmt.default_case, ctx);
+        break;
+
     case AST_FUNC_DECL:
     case AST_CLASS_DECL:
     case AST_ACTOR_DECL:
@@ -3685,13 +3695,13 @@ llvm_run_optimization(LLVMGenCtx *ctx)
  * ================================================================= */
 
 LLVMGenResult *
-llvm_codegen(ASTNode *ast, const char *module_name)
+llvm_codegen(const HIRProgram *hir, const char *module_name)
 {
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(ast, ctx);
+    llvm_emit_program(hir != NULL ? hir->root_ast : NULL, ctx);
 
     if (ctx->has_error) {
         LLVMGenResult *res = llvm_result_error(ctx->error_msg);
@@ -3723,14 +3733,14 @@ llvm_codegen(ASTNode *ast, const char *module_name)
 }
 
 LLVMGenResult *
-llvm_codegen_to_object(ASTNode *ast, const char *module_name,
+llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
                        const char *output_path)
 {
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(ast, ctx);
+    llvm_emit_program(hir != NULL ? hir->root_ast : NULL, ctx);
 
     if (ctx->has_error) {
         LLVMGenResult *res = llvm_result_error(ctx->error_msg);

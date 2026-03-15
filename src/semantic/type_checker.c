@@ -222,7 +222,7 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
         || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
-        || strcmp(name, "Future") == 0) {
+        || strcmp(name, "Future") == 0 || strcmp(name, "Result") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
             semantic_error(ctx, node,
@@ -240,6 +240,7 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "Weak") == 0) constructor = TYPE_WEAK;
         else if (strcmp(name, "Channel") == 0) constructor = TYPE_CHANNEL;
         else if (strcmp(name, "Future") == 0) constructor = TYPE_FUTURE;
+        else if (strcmp(name, "Result") == 0) constructor = TYPE_UNKNOWN;
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
     }
@@ -894,6 +895,18 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
          * type is resolved from the annotation in emit_let_decl. */
         if (strcmp(name, "Channel") == 0)
             return TYPE_UNKNOWN;  /* type inferred from let annotation */
+
+        /* Result built-in functions */
+        if (strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0
+            || strcmp(name, "IsOk") == 0 || strcmp(name, "IsErr") == 0
+            || strcmp(name, "Unwrap") == 0 || strcmp(name, "UnwrapOr") == 0)
+            return TYPE_UNKNOWN;
+
+        /* Standard library built-in functions */
+        if (strcmp(name, "Abs") == 0 || strcmp(name, "Min") == 0
+            || strcmp(name, "Max") == 0 || strcmp(name, "StringLength") == 0
+            || strcmp(name, "Print") == 0 || strcmp(name, "ToString") == 0)
+            return TYPE_UNKNOWN;
 
         Symbol *sym = scope_lookup(ctx->scope, name);
         if (sym == NULL) {
@@ -1750,6 +1763,9 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_select_stmt(node, ctx);
     case AST_BLOCK:
         return type_check_block(node, ctx);
+    case AST_IMPORT_DECL:
+        /* Already resolved by driver — skip */
+        return true;
     default:
         /* Expression statement */
         type_check_expression(node, ctx);

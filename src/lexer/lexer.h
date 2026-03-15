@@ -94,6 +94,9 @@ typedef enum
     TOKEN_SPAWN,
     TOKEN_MATCH,
 
+    /* Module keywords */
+    TOKEN_IMPORT,
+
     /* Event keywords */
     TOKEN_EVENT,
     TOKEN_SUBSCRIBE,    /* += */

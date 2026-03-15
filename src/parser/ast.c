@@ -369,6 +369,12 @@ ASTNode* ast_create_lambda_expression(void) {
     return node;
 }
 
+ASTNode* ast_create_import_declaration(const char* path) {
+    ASTNode* node = ast_create_node(AST_IMPORT_DECL);
+    node->data.import_decl.path = pergyra_strdup(path);
+    return node;
+}
+
 // if 문
 ASTNode* ast_create_if_statement(void) {
     ASTNode* node = ast_create_node(AST_IF_STMT);
@@ -1084,10 +1090,14 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.lambda_expr.return_type);
             break;
 
+        case AST_IMPORT_DECL:
+            free(node->data.import_decl.path);
+            break;
+
         default:
             break;
     }
-    
+
     free(node);
 }
 
@@ -1120,6 +1130,381 @@ static const char* ast_operator_to_string(TokenType type) {
     }
 }
 
+static void ast_print_inline(ASTNode* node);
+static void print_generic_params_inline(GenericParams* params);
+static void print_where_clause_inline(WhereClause* clause);
+
+static void
+ast_print_compact(ASTNode* node)
+{
+    if (node == NULL) {
+        printf("(null)");
+        return;
+    }
+
+    switch (node->type) {
+        case AST_IDENTIFIER:
+            printf("%s", node->data.identifier.name);
+            break;
+
+        case AST_NUMBER:
+            printf("%g", node->data.number.value);
+            break;
+
+        case AST_STRING:
+            printf("\"%s\"", node->data.string.value);
+            break;
+
+        case AST_BOOLEAN:
+            printf("%s", node->data.boolean.value ? "true" : "false");
+            break;
+
+        case AST_TYPE:
+            printf("%s", node->data.type.name);
+            if (node->data.type.generic_args)
+                print_generic_params_inline(node->data.type.generic_args);
+            break;
+
+        case AST_CHANNEL_TYPE:
+            printf("Channel<");
+            ast_print_compact(node->data.channel_type.element_type);
+            printf(">");
+            if (node->data.channel_type.capacity != NULL) {
+                printf("[");
+                ast_print_compact(node->data.channel_type.capacity);
+                printf("]");
+            }
+            break;
+
+        case AST_FUTURE_TYPE:
+            printf("Future<");
+            ast_print_compact(node->data.future_type.value_type);
+            printf(">");
+            break;
+
+        case AST_CALL:
+            ast_print_compact(node->data.call.callee);
+            printf("(");
+            for (size_t i = 0; i < node->data.call.arg_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.call.arguments[i]);
+            }
+            printf(")");
+            break;
+
+        case AST_BINARY:
+            printf("(");
+            ast_print_compact(node->data.binary.left);
+            printf(" %s ", ast_operator_to_string(node->data.binary.op.type));
+            ast_print_compact(node->data.binary.right);
+            printf(")");
+            break;
+
+        case AST_UNARY:
+            printf("(%s", ast_operator_to_string(node->data.unary.op.type));
+            ast_print_compact(node->data.unary.operand);
+            printf(")");
+            break;
+
+        case AST_MEMBER_ACCESS:
+            ast_print_compact(node->data.member.object);
+            printf(".%s", node->data.member.name);
+            break;
+
+        case AST_ARRAY_ACCESS:
+            ast_print_compact(node->data.array_access.array);
+            printf("[");
+            ast_print_compact(node->data.array_access.index);
+            printf("]");
+            break;
+
+        case AST_ASSIGNMENT:
+            ast_print_compact(node->data.assignment.target);
+            printf(" = ");
+            ast_print_compact(node->data.assignment.value);
+            break;
+
+        case AST_AWAIT_EXPR:
+            printf("await ");
+            ast_print_compact(node->data.await_expr.expression);
+            break;
+
+        case AST_CHANNEL_SEND:
+            ast_print_compact(node->data.channel_send.channel);
+            printf(" <- ");
+            ast_print_compact(node->data.channel_send.value);
+            break;
+
+        case AST_CHANNEL_RECV:
+            printf("<-");
+            ast_print_compact(node->data.channel_recv.channel);
+            break;
+
+        case AST_SPAWN_EXPR:
+            printf("spawn ");
+            ast_print_compact(node->data.spawn_expr.function);
+            break;
+
+        case AST_CONTEXT_ACCESS:
+            printf("%s(%s",
+                   node->data.context_access.method_name,
+                   node->data.context_access.role_slot_name);
+            if (node->data.context_access.ability_type != NULL) {
+                printf(", ");
+                ast_print_compact(node->data.context_access.ability_type);
+            }
+            printf(")");
+            break;
+
+        case AST_EVENT_INVOKE:
+            ast_print_compact(node->data.event_invoke.event);
+            printf("(");
+            for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.event_invoke.arguments[i]);
+            }
+            printf(")");
+            break;
+
+        case AST_EVENT_HANDLER_TYPE:
+            printf("EventHandler(");
+            for (size_t i = 0; i < node->data.event_handler_type.param_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.event_handler_type.param_types[i]);
+            }
+            printf(")");
+            if (node->data.event_handler_type.return_type != NULL) {
+                printf(" -> ");
+                ast_print_compact(node->data.event_handler_type.return_type);
+            }
+            break;
+
+        case AST_REQUIRE_FIELD:
+            printf("%s", node->data.require_field.name);
+            if (node->data.require_field.type != NULL) {
+                printf(": ");
+                ast_print_compact(node->data.require_field.type);
+            }
+            break;
+
+        case AST_ROLE_SLOT:
+            printf("%s", node->data.role_slot.slot_name);
+            if (node->data.role_slot.is_array)
+                printf("[]");
+            break;
+
+        case AST_PARTY_SHARED:
+            printf("%s", node->data.party_shared.name);
+            if (node->data.party_shared.type != NULL) {
+                printf(": ");
+                ast_print_compact(node->data.party_shared.type);
+            }
+            if (node->data.party_shared.initializer != NULL) {
+                printf(" = ");
+                ast_print_compact(node->data.party_shared.initializer);
+            }
+            break;
+
+        case AST_LET_DECL:
+            printf("let %s", node->data.let_decl.name);
+            if (node->data.let_decl.type != NULL) {
+                printf(": ");
+                ast_print_compact(node->data.let_decl.type);
+            }
+            if (node->data.let_decl.initializer != NULL) {
+                printf(" = ");
+                ast_print_compact(node->data.let_decl.initializer);
+            }
+            break;
+
+        case AST_RETURN:
+            printf("return");
+            if (node->data.return_stmt.value != NULL) {
+                printf(" ");
+                ast_print_compact(node->data.return_stmt.value);
+            }
+            break;
+
+        case AST_BLOCK:
+            printf("{...}");
+            break;
+
+        case AST_PARALLEL_BLOCK:
+            printf("parallel {...}");
+            break;
+
+        case AST_MATCH_CASE:
+            printf("case ");
+            ast_print_compact(node->data.match_case.pattern);
+            if (node->data.match_case.guard != NULL) {
+                printf(" if ");
+                ast_print_compact(node->data.match_case.guard);
+            }
+            break;
+
+        case AST_MATCH_STMT:
+            printf("match ");
+            ast_print_compact(node->data.match_stmt.subject);
+            printf(" {...}");
+            break;
+
+        case AST_FOR_LOOP:
+            printf("for %s in ", node->data.for_loop.variable);
+            ast_print_compact(node->data.for_loop.range_start);
+            printf("..");
+            ast_print_compact(node->data.for_loop.range_end);
+            break;
+
+        case AST_WHILE_LOOP:
+            printf("while ");
+            ast_print_compact(node->data.while_loop.condition);
+            break;
+
+        case AST_IF_STMT:
+            printf("if ");
+            ast_print_compact(node->data.if_stmt.condition);
+            break;
+
+        case AST_PARTY_INSTANCE:
+            printf("%s{...}", node->data.party_instance.party_type);
+            break;
+
+        case AST_LAMBDA_EXPR:
+            printf("%slambda(", node->data.lambda_expr.is_async ? "async " : "");
+            for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.lambda_expr.params[i]);
+            }
+            printf(")");
+            if (node->data.lambda_expr.return_type != NULL) {
+                printf(" -> ");
+                ast_print_compact(node->data.lambda_expr.return_type);
+            }
+            break;
+
+        default:
+            printf("<node:%d>", node->type);
+            break;
+    }
+}
+
+static void
+ast_print_inline(ASTNode* node)
+{
+    ast_print_compact(node);
+}
+
+static void
+print_generic_params_inline(GenericParams* params)
+{
+    if (params == NULL || params->count == 0) {
+        return;
+    }
+
+    printf("<");
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam* param = params->params[i];
+        if (i > 0)
+            printf(", ");
+        if (param == NULL) {
+            printf("?");
+            continue;
+        }
+        printf("%s", param->name != NULL ? param->name : "?");
+        if (param->constraint != NULL) {
+            printf(": ");
+            ast_print_inline(param->constraint);
+        }
+        if (param->default_type != NULL) {
+            printf(" = ");
+            ast_print_inline(param->default_type);
+        }
+    }
+    printf(">");
+}
+
+static void
+print_where_clause_inline(WhereClause* clause)
+{
+    if (clause == NULL || clause->count == 0)
+        return;
+
+    printf(" where ");
+    for (size_t i = 0; i < clause->count; i++) {
+        TypeConstraint* constraint = clause->constraints[i];
+        if (i > 0)
+            printf(", ");
+        if (constraint == NULL) {
+            printf("?");
+            continue;
+        }
+
+        printf("%s", constraint->type_param != NULL ? constraint->type_param : "?");
+        if (constraint->bound_count > 0) {
+            printf(": ");
+            for (size_t j = 0; j < constraint->bound_count; j++) {
+                if (j > 0)
+                    printf(" + ");
+                ast_print_inline(constraint->bounds[j]);
+            }
+        }
+    }
+}
+
+static void
+print_func_params(FuncParam** params, size_t count, int indent)
+{
+    print_indent(indent);
+    printf("Parameters:\n");
+    for (size_t i = 0; i < count; i++) {
+        FuncParam* param = params[i];
+        print_indent(indent + 1);
+        if (param == NULL) {
+            printf("?\n");
+            continue;
+        }
+        printf("%s", param->name != NULL ? param->name : "?");
+        if (param->type != NULL) {
+            printf(": ");
+            ast_print_inline(param->type);
+        }
+        if (param->default_value != NULL) {
+            printf(" = ");
+            ast_print_inline(param->default_value);
+        }
+        printf("\n");
+    }
+}
+
+static bool
+ast_print_needs_trailing_newline(ASTNodeType type)
+{
+    switch (type) {
+        case AST_IDENTIFIER:
+        case AST_NUMBER:
+        case AST_STRING:
+        case AST_BOOLEAN:
+        case AST_TYPE:
+        case AST_CHANNEL_TYPE:
+        case AST_FUTURE_TYPE:
+        case AST_CALL:
+        case AST_BINARY:
+        case AST_UNARY:
+        case AST_MEMBER_ACCESS:
+        case AST_ARRAY_ACCESS:
+        case AST_AWAIT_EXPR:
+        case AST_SPAWN_EXPR:
+        case AST_EVENT_HANDLER_TYPE:
+            return true;
+        default:
+            return false;
+    }
+}
+
 void ast_print(ASTNode* node, int indent) {
     if (!node) {
         print_indent(indent);
@@ -1141,19 +1526,24 @@ void ast_print(ASTNode* node, int indent) {
             printf("Function: %s\n", node->data.func_decl.name);
             if (node->data.func_decl.generic_params) {
                 print_indent(indent + 1);
-                printf("Generic params: <...>\n");
+                printf("Generic params: ");
+                print_generic_params_inline(node->data.func_decl.generic_params);
+                printf("\n");
             }
-            print_indent(indent + 1);
-            printf("Parameters:\n");
-            for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-                print_indent(indent + 2);
-                printf("%s: ", node->data.func_decl.params[i]->name);
-                ast_print(node->data.func_decl.params[i]->type, 0);
+            if (node->data.func_decl.where_clause) {
+                print_indent(indent + 1);
+                printf("Constraints:");
+                print_where_clause_inline(node->data.func_decl.where_clause);
+                printf("\n");
             }
+            print_func_params(node->data.func_decl.params,
+                              node->data.func_decl.param_count,
+                              indent + 1);
             if (node->data.func_decl.return_type) {
                 print_indent(indent + 1);
                 printf("Returns: ");
-                ast_print(node->data.func_decl.return_type, 0);
+                ast_print_inline(node->data.func_decl.return_type);
+                printf("\n");
             }
             if (node->data.func_decl.body) {
                 print_indent(indent + 1);
@@ -1166,13 +1556,26 @@ void ast_print(ASTNode* node, int indent) {
             printf("%s: %s\n",
                 node->data.class_decl.is_struct ? "Struct" : "Class",
                 node->data.class_decl.name);
+            if (node->data.class_decl.generic_params) {
+                print_indent(indent + 1);
+                printf("Generic params: ");
+                print_generic_params_inline(node->data.class_decl.generic_params);
+                printf("\n");
+            }
+            if (node->data.class_decl.where_clause) {
+                print_indent(indent + 1);
+                printf("Constraints:");
+                print_where_clause_inline(node->data.class_decl.where_clause);
+                printf("\n");
+            }
             if (node->data.class_decl.field_count > 0) {
                 print_indent(indent + 1);
                 printf("Fields:\n");
                 for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
                     print_indent(indent + 2);
                     printf("%s: ", node->data.class_decl.fields[i]->name);
-                    ast_print(node->data.class_decl.fields[i]->type, 0);
+                    ast_print_inline(node->data.class_decl.fields[i]->type);
+                    printf("\n");
                 }
             }
             if (node->data.class_decl.method_count > 0) {
@@ -1195,16 +1598,21 @@ void ast_print(ASTNode* node, int indent) {
             printf("Let: %s", node->data.let_decl.name);
             if (node->data.let_decl.type) {
                 printf(" : ");
-                ast_print(node->data.let_decl.type, 0);
+                ast_print_inline(node->data.let_decl.type);
             }
             printf(" = ");
-            ast_print(node->data.let_decl.initializer, 0);
+            ast_print_inline(node->data.let_decl.initializer);
+            printf("\n");
             break;
             
         case AST_WITH_STMT:
             printf("With %s<", node->data.with_stmt.is_secure ? "SecureSlot" : "slot");
-            ast_print(node->data.with_stmt.slot_type, 0);
-            printf("> as %s\n", node->data.with_stmt.alias);
+            ast_print_inline(node->data.with_stmt.slot_type);
+            printf("> as %s", node->data.with_stmt.alias);
+            if (node->data.with_stmt.security_level != NULL) {
+                printf(" [security=%s]", node->data.with_stmt.security_level);
+            }
+            printf("\n");
             ast_print(node->data.with_stmt.body, indent + 1);
             break;
             
@@ -1234,26 +1642,458 @@ void ast_print(ASTNode* node, int indent) {
         case AST_TYPE:
             printf("%s", node->data.type.name);
             if (node->data.type.generic_args) {
-                printf("<...>");
+                print_generic_params_inline(node->data.type.generic_args);
             }
             break;
-            
+
         case AST_CALL:
-            ast_print(node->data.call.callee, 0);
+            ast_print_inline(node->data.call.callee);
             printf("(");
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 if (i > 0) printf(", ");
-                ast_print(node->data.call.arguments[i], 0);
+                ast_print_inline(node->data.call.arguments[i]);
             }
             printf(")");
             break;
             
         case AST_BINARY:
             printf("(");
-            ast_print(node->data.binary.left, 0);
+            ast_print_inline(node->data.binary.left);
             printf(" %s ", ast_operator_to_string(node->data.binary.op.type));
-            ast_print(node->data.binary.right, 0);
+            ast_print_inline(node->data.binary.right);
             printf(")");
+            break;
+
+        case AST_BLOCK:
+            printf("Block:\n");
+            for (size_t i = 0; i < node->data.block.count; i++) {
+                ast_print(node->data.block.statements[i], indent + 1);
+            }
+            break;
+
+        case AST_FOR_LOOP:
+            printf("For: %s in ", node->data.for_loop.variable);
+            ast_print_inline(node->data.for_loop.range_start);
+            printf("..");
+            ast_print_inline(node->data.for_loop.range_end);
+            printf("\n");
+            ast_print(node->data.for_loop.body, indent + 1);
+            break;
+
+        case AST_WHILE_LOOP:
+            printf("While: ");
+            ast_print_inline(node->data.while_loop.condition);
+            printf("\n");
+            ast_print(node->data.while_loop.body, indent + 1);
+            break;
+
+        case AST_IF_STMT:
+            printf("If: ");
+            ast_print_inline(node->data.if_stmt.condition);
+            printf("\n");
+            print_indent(indent + 1);
+            printf("Then:\n");
+            ast_print(node->data.if_stmt.then_branch, indent + 2);
+            if (node->data.if_stmt.else_branch != NULL) {
+                print_indent(indent + 1);
+                printf("Else:\n");
+                ast_print(node->data.if_stmt.else_branch, indent + 2);
+            }
+            break;
+
+        case AST_RETURN:
+            printf("Return");
+            if (node->data.return_stmt.value != NULL) {
+                printf(": ");
+                ast_print_inline(node->data.return_stmt.value);
+            }
+            printf("\n");
+            break;
+
+        case AST_UNARY:
+            printf("(%s", ast_operator_to_string(node->data.unary.op.type));
+            ast_print_inline(node->data.unary.operand);
+            printf(")");
+            break;
+
+        case AST_MEMBER_ACCESS:
+            ast_print_inline(node->data.member.object);
+            printf(".%s", node->data.member.name);
+            break;
+
+        case AST_ARRAY_ACCESS:
+            ast_print_inline(node->data.array_access.array);
+            printf("[");
+            ast_print_inline(node->data.array_access.index);
+            printf("]");
+            break;
+
+        case AST_ASSIGNMENT:
+            printf("Assign: ");
+            ast_print_inline(node->data.assignment.target);
+            printf(" = ");
+            ast_print_inline(node->data.assignment.value);
+            printf("\n");
+            break;
+
+        case AST_AWAIT_EXPR:
+            printf("await ");
+            ast_print_inline(node->data.await_expr.expression);
+            break;
+
+        case AST_CHANNEL_SEND:
+            printf("ChannelSend: ");
+            ast_print_inline(node->data.channel_send.channel);
+            printf(" <- ");
+            ast_print_inline(node->data.channel_send.value);
+            printf("\n");
+            break;
+
+        case AST_CHANNEL_RECV:
+            printf("ChannelRecv: ");
+            ast_print_inline(node->data.channel_recv.channel);
+            printf("\n");
+            break;
+
+        case AST_SELECT_STMT:
+            printf("Select:\n");
+            for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+                ast_print(node->data.select_stmt.cases[i], indent + 1);
+            }
+            if (node->data.select_stmt.default_case != NULL) {
+                print_indent(indent + 1);
+                printf("Default:\n");
+                ast_print(node->data.select_stmt.default_case, indent + 2);
+            }
+            break;
+
+        case AST_MATCH_STMT:
+            printf("Match: ");
+            ast_print_inline(node->data.match_stmt.subject);
+            printf("\n");
+            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+                ast_print(node->data.match_stmt.cases[i], indent + 1);
+            }
+            if (node->data.match_stmt.default_body != NULL) {
+                print_indent(indent + 1);
+                printf("Default:\n");
+                ast_print(node->data.match_stmt.default_body, indent + 2);
+            }
+            break;
+
+        case AST_MATCH_CASE:
+            printf("Case: ");
+            ast_print_inline(node->data.match_case.pattern);
+            if (node->data.match_case.guard != NULL) {
+                printf(" if ");
+                ast_print_inline(node->data.match_case.guard);
+            }
+            printf("\n");
+            ast_print(node->data.match_case.body, indent + 1);
+            break;
+
+        case AST_CHANNEL_TYPE:
+            printf("Channel<");
+            ast_print_inline(node->data.channel_type.element_type);
+            printf(">");
+            if (node->data.channel_type.capacity != NULL) {
+                printf("[");
+                ast_print_inline(node->data.channel_type.capacity);
+                printf("]");
+            }
+            break;
+
+        case AST_FUTURE_TYPE:
+            printf("Future<");
+            ast_print_inline(node->data.future_type.value_type);
+            printf(">");
+            break;
+
+        case AST_ASYNC_BLOCK:
+            printf("AsyncBlock:\n");
+            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+                ast_print(node->data.async_block.statements[i], indent + 1);
+            }
+            break;
+
+        case AST_SPAWN_EXPR:
+            printf("spawn ");
+            ast_print_inline(node->data.spawn_expr.function);
+            break;
+
+        case AST_TASK_GROUP:
+            printf("TaskGroup (%s):\n", node->data.task_group.wait_all ? "all" : "any");
+            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
+                ast_print(node->data.task_group.tasks[i], indent + 1);
+            }
+            break;
+
+        case AST_ABILITY_DECL:
+            printf("Ability: %s\n", node->data.ability_decl.name);
+            for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
+                ast_print(node->data.ability_decl.require_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
+                ast_print(node->data.ability_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_ROLE_DECL:
+            printf("Role: %s", node->data.role_decl.name);
+            if (node->data.role_decl.for_type != NULL) {
+                printf(" for ");
+                ast_print_inline(node->data.role_decl.for_type);
+            }
+            print_generic_params_inline(node->data.role_decl.generic_params);
+            print_where_clause_inline(node->data.role_decl.where_clause);
+            printf("\n");
+            for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
+                ast_print(node->data.role_decl.includes[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
+                ast_print(node->data.role_decl.impl_abilities[i], indent + 1);
+            }
+            if (node->data.role_decl.parallel_block != NULL) {
+                print_indent(indent + 1);
+                printf("Parallel On:\n");
+                ast_print(node->data.role_decl.parallel_block, indent + 2);
+            }
+            break;
+
+        case AST_INCLUDE_STMT:
+            printf("Include role %s", node->data.include_stmt.role_name);
+            print_generic_params_inline(node->data.include_stmt.type_args);
+            printf("\n");
+            break;
+
+        case AST_REQUIRE_FIELD:
+            printf("Require: %s", node->data.require_field.name);
+            if (node->data.require_field.type != NULL) {
+                printf(": ");
+                ast_print_inline(node->data.require_field.type);
+            }
+            printf("\n");
+            break;
+
+        case AST_IMPL_ABILITY:
+            printf("Impl ability: %s\n", node->data.impl_ability.ability_name);
+            for (size_t i = 0; i < node->data.impl_ability.method_count; i++) {
+                ast_print(node->data.impl_ability.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_OVERRIDE_FUNC:
+            printf("Override%s\n",
+                   node->data.override_func.calls_super ? " (calls super)" : "");
+            ast_print(node->data.override_func.func_decl, indent + 1);
+            break;
+
+        case AST_PARTY_DECL:
+            printf("Party: %s", node->data.party_decl.name);
+            if (node->data.party_decl.extends != NULL) {
+                printf(" extends ");
+                ast_print_inline(node->data.party_decl.extends);
+            }
+            print_generic_params_inline(node->data.party_decl.generic_params);
+            printf("\n");
+            for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
+                ast_print(node->data.party_decl.role_slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
+                ast_print(node->data.party_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+                ast_print(node->data.party_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_ROLE_SLOT:
+            printf("RoleSlot: %s", node->data.role_slot.slot_name);
+            if (node->data.role_slot.is_array)
+                printf("[]");
+            if (node->data.role_slot.ability_count > 0) {
+                printf(" requires ");
+                for (size_t i = 0; i < node->data.role_slot.ability_count; i++) {
+                    if (i > 0)
+                        printf(", ");
+                    ast_print_inline(node->data.role_slot.required_abilities[i]);
+                }
+            }
+            printf("\n");
+            break;
+
+        case AST_PARTY_SHARED:
+            printf("Shared: %s", node->data.party_shared.name);
+            if (node->data.party_shared.type != NULL) {
+                printf(": ");
+                ast_print_inline(node->data.party_shared.type);
+            }
+            if (node->data.party_shared.initializer != NULL) {
+                printf(" = ");
+                ast_print_inline(node->data.party_shared.initializer);
+            }
+            printf("\n");
+            break;
+
+        case AST_CONTEXT_ACCESS:
+            printf("ContextAccess: %s(%s",
+                   node->data.context_access.method_name,
+                   node->data.context_access.role_slot_name);
+            if (node->data.context_access.ability_type != NULL) {
+                printf(", ");
+                ast_print_inline(node->data.context_access.ability_type);
+            }
+            printf(")\n");
+            break;
+
+        case AST_PARTY_INSTANCE:
+            printf("PartyInstance: %s\n", node->data.party_instance.party_type);
+            for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
+                print_indent(indent + 1);
+                printf("%s = ",
+                       node->data.party_instance.assignments[i].slot_name);
+                ast_print_inline(node->data.party_instance.assignments[i].value);
+                printf("\n");
+            }
+            break;
+
+        case AST_SYSTEMIC_DECL:
+            printf("Systemic: %s", node->data.systemic_decl.name);
+            print_generic_params_inline(node->data.systemic_decl.generic_params);
+            printf("\n");
+            for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
+                ast_print(node->data.systemic_decl.party_slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++) {
+                ast_print(node->data.systemic_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
+                ast_print(node->data.systemic_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_SYSTEMIC_SLOT:
+            printf("SystemicSlot: %s: %s", node->data.systemic_slot.slot_name,
+                   node->data.systemic_slot.party_type);
+            if (node->data.systemic_slot.is_array)
+                printf("[]");
+            printf("\n");
+            break;
+
+        case AST_WORLD_DECL:
+            printf("World: %s\n", node->data.world_decl.name);
+            for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
+                ast_print(node->data.world_decl.systemics[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
+                ast_print(node->data.world_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+                ast_print(node->data.world_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_WORLD_SYSTEMIC:
+            printf("WorldSystemic: %s: %s",
+                   node->data.world_systemic.slot_name,
+                   node->data.world_systemic.systemic_type);
+            if (node->data.world_systemic.initializer != NULL) {
+                printf(" = ");
+                ast_print_inline(node->data.world_systemic.initializer);
+            }
+            printf("\n");
+            break;
+
+        case AST_ACTOR_DECL:
+            printf("Actor: %s\n", node->data.actor_decl.name);
+            if (node->data.actor_decl.field_count > 0) {
+                print_indent(indent + 1);
+                printf("Fields:\n");
+                for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
+                    print_indent(indent + 2);
+                    printf("%s: ", node->data.actor_decl.fields[i]->name);
+                    ast_print_inline(node->data.actor_decl.fields[i]->type);
+                    printf("\n");
+                }
+            }
+            for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
+                ast_print(node->data.actor_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_EVENT_DECL:
+            printf("Event: %s\n", node->data.event_decl.name);
+            if (node->data.event_decl.param_count > 0) {
+                print_indent(indent + 1);
+                printf("Parameters:\n");
+                for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
+                    ast_print(node->data.event_decl.params[i], indent + 2);
+                }
+            }
+            if (node->data.event_decl.return_type != NULL) {
+                print_indent(indent + 1);
+                printf("Returns: ");
+                ast_print_inline(node->data.event_decl.return_type);
+                printf("\n");
+            }
+            break;
+
+        case AST_EVENT_SUBSCRIBE:
+            printf("EventSubscribe: ");
+            ast_print_inline(node->data.event_op.event);
+            printf(" += ");
+            ast_print_inline(node->data.event_op.handler);
+            printf("\n");
+            break;
+
+        case AST_EVENT_UNSUBSCRIBE:
+            printf("EventUnsubscribe: ");
+            ast_print_inline(node->data.event_op.event);
+            printf(" -= ");
+            ast_print_inline(node->data.event_op.handler);
+            printf("\n");
+            break;
+
+        case AST_EVENT_INVOKE:
+            printf("EventInvoke: ");
+            ast_print_inline(node->data.event_invoke.event);
+            printf("(");
+            for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_inline(node->data.event_invoke.arguments[i]);
+            }
+            printf(")\n");
+            break;
+
+        case AST_EVENT_HANDLER_TYPE:
+            printf("EventHandler(");
+            for (size_t i = 0; i < node->data.event_handler_type.param_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_inline(node->data.event_handler_type.param_types[i]);
+            }
+            printf(")");
+            if (node->data.event_handler_type.return_type != NULL) {
+                printf(" -> ");
+                ast_print_inline(node->data.event_handler_type.return_type);
+            }
+            break;
+
+        case AST_LAMBDA_EXPR:
+            printf("%slambda(", node->data.lambda_expr.is_async ? "async " : "");
+            for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_inline(node->data.lambda_expr.params[i]);
+            }
+            printf(")");
+            if (node->data.lambda_expr.return_type != NULL) {
+                printf(" -> ");
+                ast_print_inline(node->data.lambda_expr.return_type);
+            }
+            printf("\n");
+            ast_print(node->data.lambda_expr.body, indent + 1);
             break;
             
         default:
@@ -1261,6 +2101,7 @@ void ast_print(ASTNode* node, int indent) {
             break;
     }
     
-    if (indent == 0) printf("\n");
+    if (indent == 0 || ast_print_needs_trailing_newline(node->type))
+        printf("\n");
 }
 

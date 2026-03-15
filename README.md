@@ -147,6 +147,7 @@ make test-memory    # 메모리 레이아웃
 - [제네릭 설계](docs/04_generic_design.md)
 - [비동기/동시성 설계](docs/05_async_concurrency.md)
 - [개발 현황](docs/17_development_status.md)
+- [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
 
 ## 라이센스
 
