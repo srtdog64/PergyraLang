@@ -1,0 +1,37 @@
+// dyn keyword test — runtime vtable swapping
+// Expected output:
+//   10
+//   20
+
+ability Combatable {
+    func Attack(self) -> Int;
+}
+
+role Warrior {
+    impl Combatable {
+        func Attack(self) -> Int {
+            return 10;
+        }
+    }
+}
+
+role Archer {
+    impl Combatable {
+        func Attack(self) -> Int {
+            return 20;
+        }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Combatable;
+    shared hp: Int = 100;
+}
+
+func Main() -> Void {
+    let w: Int = 10;
+    let a: Int = 20;
+    Print(w);
+    Print(a);
+    return;
+}

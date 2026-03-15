@@ -27,6 +27,14 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include <process.h>   /* _getpid */
+#define getpid _getpid
+#else
+#include <unistd.h>    /* getpid */
+#endif
 
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -582,6 +590,26 @@ parse_args(int argc, char *argv[])
     return f;
 }
 
+/* Generate a unique temp file path in TMPDIR (or /tmp fallback) */
+static void
+repl_tmp_path(char *out, size_t out_size, const char *ext)
+{
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL) tmpdir = getenv("TMP");
+    if (tmpdir == NULL) tmpdir = getenv("TEMP");
+#ifdef _WIN32
+    if (tmpdir == NULL) tmpdir = ".";
+#else
+    if (tmpdir == NULL) tmpdir = "/tmp";
+#endif
+    static unsigned repl_salt = 0;
+    if (repl_salt == 0) {
+        repl_salt = (unsigned)time(NULL) ^ (unsigned)getpid();
+    }
+    snprintf(out, out_size, "%s/pgy_repl_%u_%x%s",
+             tmpdir, (unsigned)getpid(), repl_salt, ext);
+}
+
 static int
 run_repl(void)
 {
@@ -647,9 +675,13 @@ run_repl(void)
         snprintf(tmp_source, sizeof(tmp_source),
             "%s\nfunc Main() -> Void {\n    %s\n}\n", decls, line);
 
-        /* Write to temp file */
-        const char *tmp_path = "_pgy_repl_tmp.pgy";
-        FILE *f = fopen(tmp_path, "w");
+        /* Write to unique temp file */
+        char tmp_pgy[512], tmp_c[512], tmp_exe[512];
+        repl_tmp_path(tmp_pgy, sizeof(tmp_pgy), ".pgy");
+        repl_tmp_path(tmp_c,   sizeof(tmp_c),   ".c");
+        repl_tmp_path(tmp_exe, sizeof(tmp_exe),  ".exe");
+
+        FILE *f = fopen(tmp_pgy, "w");
         if (f == NULL) {
             fprintf(stderr, "  error: cannot create temp file\n");
             continue;
@@ -660,14 +692,14 @@ run_repl(void)
         /* Use this driver itself to compile+run */
         DriverFlags rf;
         memset(&rf, 0, sizeof(rf));
-        rf.source_path = tmp_path;
+        rf.source_path = tmp_pgy;
         rf.do_run = true;
         run_pipeline(&rf);
 
         /* Cleanup temp files */
-        remove("_pgy_repl_tmp.pgy");
-        remove("_pgy_repl_tmp.c");
-        remove("_pgy_repl_tmp.exe");
+        remove(tmp_pgy);
+        remove(tmp_c);
+        remove(tmp_exe);
     }
 
     printf("Bye!\n");

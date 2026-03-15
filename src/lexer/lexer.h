@@ -78,6 +78,7 @@ typedef enum
     TOKEN_SHARED,
     TOKEN_CONTEXT,
     TOKEN_EXTENDS,
+    TOKEN_DYN,
     
     /* Systemic and World keywords */
     TOKEN_SYSTEMIC,

@@ -69,8 +69,8 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t  encryptedToken[48];   /* AES-256 encrypted token + IV */
-    uint8_t  authTag[16];          /* AEAD authentication tag */
+    uint8_t  encryptedToken[52];   /* 12 bytes IV + 40 bytes AES-256 ciphertext */
+    uint8_t  authTag[16];          /* HMAC-SHA256 authentication tag (128-bit) */
     uint32_t keyVersion;           /* Encryption key version */
 } EncryptedToken;
 
@@ -181,14 +181,18 @@ SecurityError SecureMemoryUnlock(void *addr, size_t size);
 void          SecureMemoryWipe(void *addr, size_t size);
 
 /*
- * AES-256 encryption functions
+ * AES-256-CTR encryption with HMAC-SHA256 authentication.
+ *
+ * Implementation: FIPS 197 AES-256 block cipher in CTR mode.
+ * Auth tag: HMAC-SHA256(key, iv || ciphertext) truncated to 128 bits (RFC 2104).
+ * No external dependencies — self-contained AES, HMAC uses OpenSSL EVP SHA-256.
  */
 SecurityError AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
-                           const uint8_t *plaintext, size_t plaintextSize,
-                           uint8_t *ciphertext, uint8_t authTag[16]);
+                            const uint8_t *plaintext, size_t plaintextSize,
+                            uint8_t *ciphertext, uint8_t authTag[16]);
 SecurityError AES256Decrypt(const uint8_t key[32], const uint8_t iv[16],
-                           const uint8_t *ciphertext, size_t ciphertextSize,
-                           const uint8_t authTag[16], uint8_t *plaintext);
+                            const uint8_t *ciphertext, size_t ciphertextSize,
+                            const uint8_t authTag[16], uint8_t *plaintext);
 
 /*
  * Security audit and logging

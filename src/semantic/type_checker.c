@@ -1430,6 +1430,15 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     /* Check role slot ability references */
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
         ASTNode *rs = node->data.party_decl.role_slots[i];
+
+        /* dyn slots require at least one ability for vtable dispatch */
+        if (rs->data.role_slot.is_dynamic &&
+            rs->data.role_slot.ability_count == 0) {
+            semantic_error(ctx, rs,
+                "Dynamic role slot '%s' requires at least one ability type",
+                rs->data.role_slot.slot_name);
+        }
+
         for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
             ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
             if (ab_type != NULL && ab_type->data.type.name != NULL) {

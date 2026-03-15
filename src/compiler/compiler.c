@@ -2,6 +2,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <process.h>   /* _spawnvp */
+#else
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 #include "../codegen/transpiler.h"
 #include "../common/string_compat.h"
@@ -9,6 +18,59 @@
 #ifdef PGY_LLVM_ENABLED
 #include "../codegen/llvm_backend.h"
 #endif
+
+/* -----------------------------------------------------------------
+ * Safe process execution (no shell — immune to command injection)
+ *
+ * argv must be NULL-terminated.
+ * Returns process exit code, or -1 on failure.
+ * ----------------------------------------------------------------- */
+static int
+pgy_exec_argv(const char *const argv[], bool verbose)
+{
+    if (verbose) {
+        printf("pgy:");
+        for (const char *const *p = argv; *p; p++)
+            printf(" %s", *p);
+        printf("\n");
+    }
+
+#ifdef _WIN32
+    intptr_t rc = _spawnvp(_P_WAIT, argv[0], argv);
+    return (int)rc;
+#else
+    pid_t pid = fork();
+    if (pid < 0)
+        return -1;
+    if (pid == 0) {
+        execvp(argv[0], (char *const *)argv);
+        _exit(127);
+    }
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status);
+    return -1;
+#endif
+}
+
+/* Validate a path contains no shell metacharacters */
+static bool
+pgy_path_is_safe(const char *path)
+{
+    for (const char *p = path; *p; p++) {
+        switch (*p) {
+        case ';': case '&': case '|': case '`':
+        case '$': case '(': case ')': case '{':
+        case '}': case '<': case '>': case '!':
+        case '\n': case '\r':
+            return false;
+        default:
+            break;
+        }
+    }
+    return true;
+}
 
 static CompilerResult *
 compiler_result_create(void)
@@ -95,21 +157,23 @@ compiler_build_native(const HIRProgram *hir,
         return result;
     }
 
-    char command[1024];
-    snprintf(command, sizeof(command),
-             "gcc -std=c11 -Wall -O2 "
-             "-fopenmp "
-             "-I src "
-             "-I src/runtime "
-             "%s "
-             "-o %s "
-             "-lpthread",
-             output_c_path, output_binary_path);
+    if (!pgy_path_is_safe(output_c_path) ||
+        !pgy_path_is_safe(output_binary_path)) {
+        return compiler_error("Unsafe characters in file path");
+    }
 
-    if (verbose)
-        printf("pgy: %s\n", command);
+    const char *gcc_argv[] = {
+        "gcc", "-std=c11", "-Wall", "-O2",
+        "-fopenmp",
+        "-I", "src",
+        "-I", "src/runtime",
+        output_c_path,
+        "-o", output_binary_path,
+        "-lpthread",
+        NULL
+    };
 
-    rc = system(command);
+    rc = pgy_exec_argv(gcc_argv, verbose);
     if (rc != 0) {
         CompilerResult *result = compiler_error("Native compilation failed");
         if (result != NULL) {
@@ -126,24 +190,23 @@ compiler_build_native(const HIRProgram *hir,
 int
 compiler_run_binary(const char *binary_path, bool verbose)
 {
-    char run_command[512];
+    if (!pgy_path_is_safe(binary_path))
+        return -1;
 
+    char safe_path[512];
 #ifdef _WIN32
-    snprintf(run_command, sizeof(run_command), "%s", binary_path);
-    for (char *p = run_command; *p; p++) {
-        if (*p == '/') {
-            *p = '\\';
-        }
+    snprintf(safe_path, sizeof(safe_path), "%s", binary_path);
+    for (char *p = safe_path; *p; p++) {
+        if (*p == '/') *p = '\\';
     }
 #else
-    snprintf(run_command, sizeof(run_command), "./%s", binary_path);
+    snprintf(safe_path, sizeof(safe_path), "./%s", binary_path);
 #endif
 
-    if (verbose)
-        printf("pgy: running %s\n", binary_path);
+    const char *run_argv[] = { safe_path, NULL };
 
     printf("--- output ---\n");
-    int rc = system(run_command);
+    int rc = pgy_exec_argv(run_argv, verbose);
     printf("--- end ---\n");
     return rc;
 }
@@ -197,20 +260,22 @@ compiler_build_native_llvm(const HIRProgram *hir,
     llvm_gen_result_destroy(gen);
 
     /* Link object file with GCC + runtime library */
-    char command[2048];
-    snprintf(command, sizeof(command),
-             "gcc -std=c11 -O2 -fopenmp "
-             "-DPGY_LLVM_ENABLED "
-             "-I src "
-             "-o %s %s "
-             "src/runtime/pgy_runtime_lib.c "
-             "-lpthread",
-             output_binary_path, output_obj_path);
+    if (!pgy_path_is_safe(output_binary_path) ||
+        !pgy_path_is_safe(output_obj_path)) {
+        return compiler_error("Unsafe characters in file path");
+    }
 
-    if (verbose)
-        printf("pgy: %s\n", command);
+    const char *link_argv[] = {
+        "gcc", "-std=c11", "-O2", "-fopenmp",
+        "-DPGY_LLVM_ENABLED",
+        "-I", "src",
+        "-o", output_binary_path, output_obj_path,
+        "src/runtime/pgy_runtime_lib.c",
+        "-lpthread",
+        NULL
+    };
 
-    int rc = system(command);
+    int rc = pgy_exec_argv(link_argv, verbose);
     if (rc != 0) {
         CompilerResult *result = compiler_error("LLVM link failed");
         if (result != NULL) {

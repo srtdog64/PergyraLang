@@ -521,6 +521,7 @@ struct ASTNode
             ASTNode** required_abilities;  /* Ability requirements */
             size_t ability_count;
             bool is_array;                 /* Array<T> slot */
+            bool is_dynamic;               /* dyn modifier — runtime vtable swap */
         } role_slot;
         
         /* Party shared field */

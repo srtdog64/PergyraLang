@@ -2483,6 +2483,8 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
 
     for (size_t k = 0; k < method->data.func_decl.param_count; k++) {
         FuncParam *p = method->data.func_decl.params[k];
+        if (strcmp(p->name, "self") == 0 && p->type == NULL)
+            continue;
         const char *pt = "int32_t";
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
@@ -2586,6 +2588,8 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (strcmp(p->name, "self") == 0 && p->type == NULL)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -2641,6 +2645,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 
             for (size_t k = 0; k < func->data.func_decl.param_count; k++) {
                 FuncParam *p = func->data.func_decl.params[k];
+                if (strcmp(p->name, "self") == 0 && p->type == NULL)
+                    continue;
                 const char *pt = "int32_t";
                 if (p->type != NULL)
                     pt = pergyra_ast_type_to_c(p->type);
@@ -2678,14 +2684,21 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
         ASTNode *rs = node->data.party_decl.role_slots[i];
         const char *slot_name = rs->data.role_slot.slot_name;
+        bool is_dyn = rs->data.role_slot.is_dynamic;
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
-        /* Emit vtable pointers for each required ability */
         for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
             ASTNode *ab = rs->data.role_slot.required_abilities[j];
             if (ab != NULL && ab->data.type.name != NULL) {
-                codebuf_write(ctx->out,
-                    "    const %s_vtable *%s_%s_vt;\n",
-                    ab->data.type.name, slot_name, ab->data.type.name);
+                if (is_dyn) {
+                    /* dyn: mutable vtable pointer — swappable at runtime */
+                    codebuf_write(ctx->out,
+                        "    const %s_vtable *%s_%s_vt; /* dyn */\n",
+                        ab->data.type.name, slot_name, ab->data.type.name);
+                } else {
+                    codebuf_write(ctx->out,
+                        "    const %s_vtable *%s_%s_vt;\n",
+                        ab->data.type.name, slot_name, ab->data.type.name);
+                }
             }
         }
     }
@@ -2730,6 +2743,30 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx->indent--;
 
         codebuf_write(ctx->out, "}\n");
+    }
+
+    /* Emit bind helpers for dyn role slots */
+    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
+        ASTNode *rs = node->data.party_decl.role_slots[i];
+        if (!rs->data.role_slot.is_dynamic)
+            continue;
+        const char *slot_name = rs->data.role_slot.slot_name;
+        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
+            ASTNode *ab = rs->data.role_slot.required_abilities[j];
+            if (ab == NULL || ab->data.type.name == NULL)
+                continue;
+            const char *ab_name = ab->data.type.name;
+            codebuf_write(ctx->out,
+                "\nstatic inline void\n"
+                "%s_bind_%s(%s *self, void *impl, const %s_vtable *vt)\n"
+                "{\n"
+                "    self->%s = impl;\n"
+                "    self->%s_%s_vt = vt;\n"
+                "}\n",
+                name, slot_name, name, ab_name,
+                slot_name,
+                slot_name, ab_name);
+        }
     }
 }
 

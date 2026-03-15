@@ -1067,14 +1067,16 @@ PGY_RESULT_DEFINE(String, char*, PgyError)
 #define Unwrap_Bool(r)      pgy_result_unwrap_Bool(&(PgyResult_Bool){(r).tag, {.ok=(r).ok}})
 #define UnwrapOr_Bool(r, f) ((r).tag == PgyResultOk ? (r).ok : (f))
 
-/* Result helper macros (similar to Rust's ? operator) */
-#define PGY_RESULT_TRY(result_expr, ok_var, err_handler) \
+/* Result helper macros (similar to Rust's ? operator)
+ * ResultType: the concrete result struct type (e.g. PgyResult_Int)
+ */
+#define PGY_RESULT_TRY(ResultType, result_expr, ok_var, err_handler) \
     do { \
-        auto __tmp = (result_expr); \
-        if (__tmp.tag != PgyResultOk) { \
-            err_handler(__tmp.err); \
+        ResultType pgy__try_tmp_ = (result_expr); \
+        if (pgy__try_tmp_.tag != PgyResultOk) { \
+            err_handler(pgy__try_tmp_.err); \
         } \
-        (ok_var) = __tmp.ok; \
+        (ok_var) = pgy__try_tmp_.ok; \
     } while (0)
 
 /* =================================================================

@@ -1334,7 +1334,13 @@ static ASTNode* parse_party_declaration(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after party header");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
-        if (parser_match(parser, TOKEN_ROLE)) {
+        bool is_dyn = parser_match(parser, TOKEN_DYN);
+
+        if (is_dyn || parser_match(parser, TOKEN_ROLE)) {
+            if (is_dyn) {
+                parser_consume(parser, TOKEN_ROLE,
+                    "Expected 'role' after 'dyn'");
+            }
             /* role slot name: AbilityType & AbilityType */
             parser_consume(parser, TOKEN_SLOT,
                 "Expected 'slot' after 'role' in party");
@@ -1346,6 +1352,7 @@ static ASTNode* parse_party_declaration(Parser* parser) {
             ASTNode* rs = ast_create_role_slot(slot_name.text);
             rs->line = slot_name.line;
             rs->column = slot_name.column;
+            rs->data.role_slot.is_dynamic = is_dyn;
 
             /* Parse ability types separated by & */
             do {

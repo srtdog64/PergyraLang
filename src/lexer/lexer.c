@@ -62,6 +62,7 @@ static const KeywordEntry keywords[] = {
     {"shared",   TOKEN_SHARED},
     {"context",  TOKEN_CONTEXT},
     {"extends",  TOKEN_EXTENDS},
+    {"dyn",      TOKEN_DYN},
     {"systemic", TOKEN_SYSTEMIC},
     {"world",    TOKEN_WORLD},
     {NULL,       TOKEN_EOF}
@@ -444,6 +445,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_SPAWN: return "SPAWN";
         case TOKEN_EVENT: return "EVENT";
         case TOKEN_IMPORT: return "IMPORT";
+        case TOKEN_DYN: return "DYN";
         case TOKEN_SUBSCRIBE: return "+=";
         case TOKEN_UNSUBSCRIBE: return "-=";
         case TOKEN_LAMBDA: return "=>";
