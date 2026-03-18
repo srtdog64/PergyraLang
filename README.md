@@ -139,7 +139,7 @@ make test-memory    # 메모리 레이아웃
 - [ ] 어셈블리 최적화 런타임 (x86-64 슬롯 연산)
 - [ ] 비동기 런타임 (Fiber, M:N 스케줄러, Channel)
 - [ ] Effect System (I/O, Timer 등 부작용 타입화)
-- [ ] LLVM 백엔드
+- [ ] LLVM 백엔드 안정화 및 최적화
 - [ ] JVM 연동 (JNI 브릿지)
 - [ ] 패턴 매칭 코드 생성
 - [ ] Role/Party/World 시스템 코드 생성
@@ -151,6 +151,7 @@ make test-memory    # 메모리 레이아웃
 
 ## 문서
 
+- [컴파일러 파이프라인 가이드](docs/20_compiler_pipeline_guide.md)
 - [현재 진행 상황](docs/00_progress.md)
 - [구문 레퍼런스](docs/grammar/01_syntax.md)
 - [문법 정의](docs/grammar/02_grammar.md)

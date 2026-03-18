@@ -387,6 +387,14 @@ ASTNode* ast_create_defer_statement(ASTNode* body) {
     return node;
 }
 
+ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name) {
+    ASTNode* node = ast_create_node(AST_BIND_STMT);
+    node->data.bind_stmt.party_var = pergyra_strdup(party_var);
+    node->data.bind_stmt.slot_name = pergyra_strdup(slot_name);
+    node->data.bind_stmt.role_name = pergyra_strdup(role_name);
+    return node;
+}
+
 // if 문
 ASTNode* ast_create_if_statement(void) {
     ASTNode* node = ast_create_node(AST_IF_STMT);
@@ -1112,6 +1120,12 @@ void ast_destroy(ASTNode* node) {
 
         case AST_DEFER_STMT:
             ast_destroy(node->data.defer_stmt.body);
+            break;
+
+        case AST_BIND_STMT:
+            free(node->data.bind_stmt.party_var);
+            free(node->data.bind_stmt.slot_name);
+            free(node->data.bind_stmt.role_name);
             break;
 
         default:

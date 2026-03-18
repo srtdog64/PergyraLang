@@ -157,6 +157,33 @@ typedef struct LLVMGenCtx
     /* Unique temp counter */
     int             tmp_counter;
 
+    /* =================================================================
+     * Generic monomorphization
+     * ================================================================= */
+#define MAX_GENERIC_FUNCS   64
+#define MAX_MONO_INSTANCES 256
+
+    /* Template storage: generic functions deferred from Pass 1 */
+    struct {
+        const char *name;
+        ASTNode    *ast;
+    } generic_templates[MAX_GENERIC_FUNCS];
+    int generic_template_count;
+
+    /* Monomorphized instances already emitted */
+    struct {
+        char name[256];
+    } mono_instances[MAX_MONO_INSTANCES];
+    int mono_count;
+
+    /* Active type substitution map (T → concrete LLVM type) */
+    struct {
+        const char  *param_name;  /* "T" */
+        LLVMTypeRef  llvm_type;   /* i32 */
+        const char  *type_name;   /* "Int" */
+    } type_subst[8];
+    int type_subst_count;
+
     /* Error state */
     bool            has_error;
     char            error_msg[512];
@@ -474,11 +501,41 @@ llvm_result_success(char *ir_text)
  * Pergyra type → LLVM type mapping
  * ================================================================= */
 
+/* Resolve inner type for generic containers: "Result<Int>" → i32 */
+static LLVMTypeRef
+llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
+{
+    /* Find the inner type name between < and > */
+    const char *lt = strchr(type_name, '<');
+    const char *gt = strrchr(type_name, '>');
+    if (lt == NULL || gt == NULL || gt <= lt)
+        return ctx->type_i32;
+    char inner[128];
+    size_t len = (size_t)(gt - lt - 1);
+    if (len >= sizeof(inner)) len = sizeof(inner) - 1;
+    memcpy(inner, lt + 1, len);
+    inner[len] = '\0';
+
+    if (strcmp(inner, "Int") == 0)    return ctx->type_i32;
+    if (strcmp(inner, "Long") == 0)   return ctx->type_i64;
+    if (strcmp(inner, "Float") == 0)  return ctx->type_f32;
+    if (strcmp(inner, "Double") == 0) return ctx->type_f64;
+    if (strcmp(inner, "Bool") == 0)   return ctx->type_i1;
+    if (strcmp(inner, "String") == 0) return ctx->type_i8ptr;
+    return ctx->type_i32;
+}
+
 static LLVMTypeRef
 pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
 {
     if (type_name == NULL)
         return ctx->type_void;
+
+    /* Check active type substitution (monomorphization) */
+    for (int i = 0; i < ctx->type_subst_count; i++) {
+        if (strcmp(type_name, ctx->type_subst[i].param_name) == 0)
+            return ctx->type_subst[i].llvm_type;
+    }
 
     if (strcmp(type_name, "Int") == 0)    return ctx->type_i32;
     if (strcmp(type_name, "Long") == 0)   return ctx->type_i64;
@@ -487,6 +544,32 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (strcmp(type_name, "Bool") == 0)   return ctx->type_i1;
     if (strcmp(type_name, "String") == 0) return ctx->type_i8ptr;
     if (strcmp(type_name, "Void") == 0)   return ctx->type_void;
+
+    /* Generic container types */
+    if (strncmp(type_name, "Result<", 7) == 0) {
+        /* Result<T> → { T value, i1 ok } */
+        LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
+        LLVMTypeRef fields[] = { inner, ctx->type_i1 };
+        return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
+    }
+    if (strncmp(type_name, "Slot<", 5) == 0
+        || strncmp(type_name, "SecureSlot<", 11) == 0) {
+        const char *inner_name = strchr(type_name, '<') + 1;
+        char buf[64]; size_t l = strcspn(inner_name, ">");
+        if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+        memcpy(buf, inner_name, l); buf[l] = '\0';
+        return llvm_slot_struct_type(ctx, buf);
+    }
+    if (strncmp(type_name, "Channel<", 8) == 0
+        || strncmp(type_name, "Future<", 7) == 0
+        || strncmp(type_name, "Box<", 4) == 0
+        || strncmp(type_name, "Rc<", 3) == 0
+        || strncmp(type_name, "Weak<", 5) == 0
+        || strncmp(type_name, "Array<", 6) == 0
+        || strncmp(type_name, "Slice<", 6) == 0) {
+        /* Opaque pointer for all container types */
+        return ctx->type_i8ptr;
+    }
 
     /* Check if it's a registered class type */
     LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_name);
@@ -502,8 +585,24 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
     if (type_node == NULL)
         return ctx->type_void;
 
-    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL)
-        return pergyra_type_to_llvm(ctx, type_node->data.type.name);
+    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
+        const char *name = type_node->data.type.name;
+
+        /* If the AST type has generic_args, build the full name
+         * (e.g., "Result" + "<Int>" → "Result<Int>") */
+        if (type_node->data.type.generic_args != NULL
+            && type_node->data.type.generic_args->count > 0) {
+            GenericParam *gp = type_node->data.type.generic_args->params[0];
+            if (gp != NULL && gp->name != NULL) {
+                static char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s<%s>",
+                         name, gp->name);
+                return pergyra_type_to_llvm(ctx, full_name);
+            }
+        }
+
+        return pergyra_type_to_llvm(ctx, name);
+    }
 
     return ctx->type_i32;
 }
@@ -519,6 +618,56 @@ llvm_tmp_name(LLVMGenCtx *ctx)
     snprintf(buf, sizeof(buf), "t%d", ctx->tmp_counter++);
     return buf;
 }
+
+/* =================================================================
+ * Generic monomorphization helpers
+ * ================================================================= */
+
+static ASTNode *
+llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name)
+{
+    for (int i = 0; i < ctx->generic_template_count; i++) {
+        if (strcmp(ctx->generic_templates[i].name, name) == 0)
+            return ctx->generic_templates[i].ast;
+    }
+    return NULL;
+}
+
+static bool
+llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled)
+{
+    for (int i = 0; i < ctx->mono_count; i++) {
+        if (strcmp(ctx->mono_instances[i].name, mangled) == 0)
+            return true;
+    }
+    return false;
+}
+
+static void
+llvm_register_mono(LLVMGenCtx *ctx, const char *mangled)
+{
+    if (ctx->mono_count < MAX_MONO_INSTANCES) {
+        snprintf(ctx->mono_instances[ctx->mono_count].name,
+                 sizeof(ctx->mono_instances[0].name), "%s", mangled);
+        ctx->mono_count++;
+    }
+}
+
+/* Map LLVM type to Pergyra type name suffix */
+static const char *
+llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty)
+{
+    if (ty == ctx->type_i32)    return "Int";
+    if (ty == ctx->type_i64)    return "Long";
+    if (ty == ctx->type_f32)    return "Float";
+    if (ty == ctx->type_f64)    return "Double";
+    if (ty == ctx->type_i1)     return "Bool";
+    if (ty == ctx->type_i8ptr)  return "String";
+    return "Unknown";
+}
+
+/* Forward declarations for recursive emit */
+static void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
 
 /* =================================================================
  * Utility: create alloca at function entry
@@ -749,22 +898,22 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
      * ================================================================= */
     for (size_t si = 0; si < sizeof(slot_types) / sizeof(slot_types[0]); si++) {
         const char *suf = slot_types[si].suffix;
-        LLVMTypeRef vt  = *slot_types[si].type;
+        LLVMTypeRef sty = slot_types[si].slot_ty;
+        LLVMTypeRef vt  = slot_types[si].val_ty;
         char fname[128];
 
         /* PgySecureSlot_T pgy_claim_secure_T() */
         {
-            LLVMTypeRef ft = LLVMFunctionType(ctx->slot_types[si], NULL, 0, 0);
+            LLVMTypeRef ft = LLVMFunctionType(sty, NULL, 0, 0);
             snprintf(fname, sizeof(fname), "pgy_claim_secure_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
-            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
-                                    ctx->slot_types[si]);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, sty);
         }
 
         /* void pgy_write_secure_T(PgySecureSlot_T*, val_type, i64 token) */
         {
             LLVMTypeRef params[] = {
-                LLVMPointerType(ctx->slot_types[si], 0), vt, ctx->type_i64
+                LLVMPointerType(sty, 0), vt, ctx->type_i64
             };
             LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
             snprintf(fname, sizeof(fname), "pgy_write_secure_%s", suf);
@@ -776,7 +925,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         /* val_type pgy_read_secure_T(PgySecureSlot_T*, i64 token) */
         {
             LLVMTypeRef params[] = {
-                LLVMPointerType(ctx->slot_types[si], 0), ctx->type_i64
+                LLVMPointerType(sty, 0), ctx->type_i64
             };
             LLVMTypeRef ft = LLVMFunctionType(vt, params, 2, 0);
             snprintf(fname, sizeof(fname), "pgy_read_secure_%s", suf);
@@ -1028,15 +1177,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         size_t argc = node->data.call.arg_count;
                         LLVMValueRef *args = calloc(argc + 1,
                                                      sizeof(LLVMValueRef));
-                        /* Get object pointer for self */
-                        LLVMValueRef self_ptr = var->alloca;
-                        if (var->type == LLVMPointerType(
-                                cls->struct_type, 0)) {
-                            self_ptr = LLVMBuildLoad2(ctx->builder,
-                                var->type, var->alloca,
-                                llvm_tmp_name(ctx));
-                        }
-                        args[0] = self_ptr;
+                        /* Self is always passed as i8* (opaque ptr).
+                         * var->alloca is ptr-to-struct, which is ptr. */
+                        args[0] = var->alloca;
                         for (size_t i = 0; i < argc; i++) {
                             args[i + 1] = llvm_emit_expression(
                                 node->data.call.arguments[i], ctx);
@@ -1229,10 +1372,251 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    /* Built-in: Abs(x) → select(x < 0, -x, x) */
+    if (strcmp(callee_name, "Abs") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef x = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef zero = LLVMConstInt(ctx->type_i32, 0, 0);
+        LLVMValueRef neg = LLVMBuildNeg(ctx->builder, x, llvm_tmp_name(ctx));
+        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, x, zero,
+                                          llvm_tmp_name(ctx));
+        return LLVMBuildSelect(ctx->builder, cmp, neg, x, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: Min(a, b) → select(a < b, a, b) */
+    if (strcmp(callee_name, "Min") == 0 && node->data.call.arg_count == 2) {
+        LLVMValueRef a = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef b = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, a, b,
+                                          llvm_tmp_name(ctx));
+        return LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: Max(a, b) → select(a > b, a, b) */
+    if (strcmp(callee_name, "Max") == 0 && node->data.call.arg_count == 2) {
+        LLVMValueRef a = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef b = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, a, b,
+                                          llvm_tmp_name(ctx));
+        return LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: StringLength(s) → call strlen */
+    if (strcmp(callee_name, "StringLength") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef s = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        /* Declare strlen if not already */
+        LLVMFuncEntry *strlen_fn = llvm_lookup_function(ctx, "strlen");
+        if (strlen_fn == NULL) {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i64, params, 1, 0);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, "strlen", ft);
+            llvm_register_function(ctx, "strlen", fn, ft, ctx->type_i64);
+            strlen_fn = llvm_lookup_function(ctx, "strlen");
+        }
+        LLVMValueRef args[] = { s };
+        LLVMValueRef len = LLVMBuildCall2(ctx->builder, strlen_fn->fn_type,
+            strlen_fn->fn, args, 1, llvm_tmp_name(ctx));
+        return LLVMBuildTrunc(ctx->builder, len, ctx->type_i32, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: Print(s) → printf("%s", s) */
+    if (strcmp(callee_name, "Print") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMTypeRef vt = LLVMTypeOf(val);
+        LLVMFuncEntry *pf = llvm_lookup_function(ctx, "printf");
+        if (pf != NULL) {
+            if (vt == ctx->type_i8ptr) {
+                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                    "%s", ".fmt_s");
+                LLVMValueRef args[] = { fmt, val };
+                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
+            } else {
+                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                    "%d", ".fmt_d");
+                LLVMValueRef args[] = { fmt, val };
+                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
+            }
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    /* Built-in: Ok(value) → { .ok=true, .value=value } */
+    if (strcmp(callee_name, "Ok") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        /* Result struct: { i32 value, i1 ok } — simplified for Int */
+        LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context,
+            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i1 }, 2, 0);
+        LLVMValueRef r = LLVMGetUndef(result_ty);
+        r = LLVMBuildInsertValue(ctx->builder, r, val, 0, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstInt(ctx->type_i1, 1, 0), 1, llvm_tmp_name(ctx));
+        return r;
+    }
+
+    /* Built-in: Err(value) → { .ok=false, .value=value } */
+    if (strcmp(callee_name, "Err") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context,
+            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i1 }, 2, 0);
+        LLVMValueRef r = LLVMGetUndef(result_ty);
+        r = LLVMBuildInsertValue(ctx->builder, r, val, 0, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstInt(ctx->type_i1, 0, 0), 1, llvm_tmp_name(ctx));
+        return r;
+    }
+
+    /* Built-in: IsOk(result) → extract ok field */
+    if (strcmp(callee_name, "IsOk") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        return LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: IsErr(result) → !ok */
+    if (strcmp(callee_name, "IsErr") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef ok = LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
+        return LLVMBuildNot(ctx->builder, ok, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: Unwrap(result) → extract value field */
+    if (strcmp(callee_name, "Unwrap") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        return LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: UnwrapOr(result, default) → ok ? value : default */
+    if (strcmp(callee_name, "UnwrapOr") == 0 && node->data.call.arg_count == 2) {
+        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef def = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef ok = LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
+        LLVMValueRef val = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
+    }
+
+    /* Check if callee is a generic template — if so, monomorphize */
+    ASTNode *generic_ast = llvm_lookup_generic_template(ctx, callee_name);
+    if (generic_ast != NULL) {
+        /* Evaluate arguments first to determine concrete types */
+        size_t argc = node->data.call.arg_count;
+        LLVMValueRef *args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
+        for (size_t i = 0; i < argc; i++)
+            args[i] = llvm_emit_expression(node->data.call.arguments[i], ctx);
+
+        /* Build mangled name from argument types: Identity_Int */
+        char mangled[256];
+        snprintf(mangled, sizeof(mangled), "%s", callee_name);
+        for (size_t i = 0; i < argc; i++) {
+            LLVMTypeRef at = (args[i] != NULL) ? LLVMTypeOf(args[i]) : ctx->type_i32;
+            const char *suf = llvm_type_to_suffix(ctx, at);
+            char tmp[256];
+            snprintf(tmp, sizeof(tmp), "%s_%s", mangled, suf);
+            snprintf(mangled, sizeof(mangled), "%s", tmp);
+        }
+
+        /* Instantiate if not already emitted */
+        if (!llvm_mono_already_emitted(ctx, mangled)) {
+            llvm_register_mono(ctx, mangled);
+
+            /* Set type substitution map */
+            GenericParams *gp = generic_ast->data.func_decl.generic_params;
+            int saved_subst = ctx->type_subst_count;
+            ctx->type_subst_count = 0;
+            for (size_t gi = 0; gi < gp->count && gi < 8; gi++) {
+                /* Map T → type of corresponding argument */
+                LLVMTypeRef concrete = (gi < argc && args[gi] != NULL)
+                    ? LLVMTypeOf(args[gi]) : ctx->type_i32;
+                ctx->type_subst[ctx->type_subst_count].param_name = gp->params[gi]->name;
+                ctx->type_subst[ctx->type_subst_count].llvm_type = concrete;
+                ctx->type_subst[ctx->type_subst_count].type_name = llvm_type_to_suffix(ctx, concrete);
+                ctx->type_subst_count++;
+            }
+
+            /* Save builder state */
+            LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+            LLVMValueRef saved_fn = ctx->current_function;
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+
+            /* Forward-declare the monomorphized function */
+            LLVMTypeRef ret = ctx->type_void;
+            if (generic_ast->data.func_decl.return_type != NULL)
+                ret = ast_type_to_llvm(ctx, generic_ast->data.func_decl.return_type);
+
+            size_t pc = generic_ast->data.func_decl.param_count;
+            LLVMTypeRef *ptypes = calloc(pc > 0 ? pc : 1, sizeof(LLVMTypeRef));
+            size_t real_pc = 0;
+            for (size_t k = 0; k < pc; k++) {
+                FuncParam *p = generic_ast->data.func_decl.params[k];
+                if (p->type == NULL && strcmp(p->name, "self") == 0) continue;
+                ptypes[real_pc++] = (p->type != NULL)
+                    ? ast_type_to_llvm(ctx, p->type) : ctx->type_i32;
+            }
+            LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)real_pc, 0);
+            LLVMValueRef mono_fn = LLVMAddFunction(ctx->module, mangled, ft);
+            llvm_register_function(ctx, mangled, mono_fn, ft, ret);
+            free(ptypes);
+
+            /* Emit function body */
+            ctx->current_function = mono_fn;
+            ctx->current_ret_type = ret;
+            LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
+                ctx->context, mono_fn, "entry");
+            LLVMPositionBuilderAtEnd(ctx->builder, entry);
+            llvm_scope_push(ctx);
+
+            real_pc = 0;
+            for (size_t k = 0; k < pc; k++) {
+                FuncParam *p = generic_ast->data.func_decl.params[k];
+                if (p->type == NULL && strcmp(p->name, "self") == 0) continue;
+                LLVMTypeRef pt = (p->type != NULL)
+                    ? ast_type_to_llvm(ctx, p->type) : ctx->type_i32;
+                LLVMValueRef alloca = llvm_create_entry_alloca(ctx, pt, p->name);
+                LLVMBuildStore(ctx->builder, LLVMGetParam(mono_fn, (unsigned)real_pc), alloca);
+                llvm_scope_declare(ctx, p->name, alloca, pt);
+                real_pc++;
+            }
+
+            if (generic_ast->data.func_decl.body != NULL)
+                llvm_emit_block(generic_ast->data.func_decl.body, ctx);
+
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+                if (ret == ctx->type_void)
+                    LLVMBuildRetVoid(ctx->builder);
+                else
+                    LLVMBuildRet(ctx->builder, LLVMConstInt(ret, 0, 0));
+            }
+
+            llvm_scope_pop(ctx);
+
+            /* Restore state */
+            ctx->type_subst_count = saved_subst;
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+        }
+
+        /* Call the monomorphized function */
+        LLVMFuncEntry *mono_entry = llvm_lookup_function(ctx, mangled);
+        LLVMValueRef result;
+        if (mono_entry != NULL) {
+            if (mono_entry->ret_type == ctx->type_void) {
+                LLVMBuildCall2(ctx->builder, mono_entry->fn_type,
+                    mono_entry->fn, args, (unsigned)argc, "");
+                result = LLVMConstInt(ctx->type_i32, 0, 0);
+            } else {
+                result = LLVMBuildCall2(ctx->builder, mono_entry->fn_type,
+                    mono_entry->fn, args, (unsigned)argc, llvm_tmp_name(ctx));
+            }
+        } else {
+            result = LLVMConstInt(ctx->type_i32, 0, 0);
+        }
+        free(args);
+        return result;
+    }
+
     /* Look up user function */
     LLVMFuncEntry *func = llvm_lookup_function(ctx, callee_name);
     if (func == NULL) {
-        /* Unknown function — return 0 */
+        fprintf(stderr, "[llvm] warning: unknown function '%s'\n", callee_name);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -1242,7 +1626,25 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (argc > 0) {
         args = calloc(argc, sizeof(LLVMValueRef));
         for (size_t i = 0; i < argc; i++) {
-            args[i] = llvm_emit_expression(node->data.call.arguments[i], ctx);
+            ASTNode *arg_node = node->data.call.arguments[i];
+            /* If the function parameter expects ptr (self) and the
+             * argument is an identifier holding a struct, pass the
+             * alloca pointer directly instead of loading the value. */
+            unsigned param_count = LLVMCountParams(func->fn);
+            LLVMTypeRef param_ty = (i < param_count)
+                ? LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i))
+                : NULL;
+            if (param_ty != NULL
+                && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind
+                && arg_node->type == AST_IDENTIFIER) {
+                LLVMVarEntry *v = llvm_scope_lookup(ctx,
+                    arg_node->data.identifier.name);
+                if (v != NULL) {
+                    args[i] = v->alloca; /* pass pointer, not loaded value */
+                    continue;
+                }
+            }
+            args[i] = llvm_emit_expression(arg_node, ctx);
         }
     }
 
@@ -1770,15 +2172,16 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
 
-            /* Call pgy_claim_T() and store result */
-            char fn_name[64];
-            snprintf(fn_name, sizeof(fn_name), "pgy_claim_%s", inner);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-            if (fn != NULL) {
-                LLVMValueRef claimed = LLVMBuildCall2(ctx->builder,
-                    fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, claimed, alloca_val);
-            }
+            /* Inline ClaimSlot: zero-init the struct and set claimed=true.
+             * Avoids struct-return-by-value ABI mismatch between LLVM and C. */
+            LLVMValueRef zero = LLVMConstNull(slot_ty);
+            LLVMBuildStore(ctx->builder, zero, alloca_val);
+            /* Set the 'claimed' field (index 1) to true */
+            LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
+                slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                claimed_ptr);
 
             llvm_scope_declare(ctx, name, alloca_val, slot_ty);
             llvm_register_slot_var(ctx, name, inner);
@@ -2149,18 +2552,15 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
     LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, alias);
 
-    /* Call pgy_claim_T() or pgy_claim_secure_T() and store */
+    /* Inline claim: zero-init + set claimed=true (avoids ABI mismatch) */
     char fn_name[64];
-    if (is_secure)
-        snprintf(fn_name, sizeof(fn_name), "pgy_claim_secure_%s", inner);
-    else
-        snprintf(fn_name, sizeof(fn_name), "pgy_claim_%s", inner);
-    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-    if (fn != NULL) {
-        LLVMValueRef claimed = LLVMBuildCall2(ctx->builder,
-            fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, claimed, alloca_val);
-    }
+    (void)is_secure; /* both secure and normal get same init pattern */
+    LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
+    LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
+        slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder,
+        LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+        claimed_ptr);
 
     /* Push scope, register slot variable */
     llvm_scope_push(ctx);
@@ -3301,8 +3701,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 0f: Emit extern "C" declarations as LLVM function prototypes */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < hir->item_count; i++) {
+        ASTNode *stmt = hir->items[i].ast;
         if (stmt == NULL || stmt->type != AST_EXTERN_BLOCK)
             continue;
 
@@ -3336,17 +3736,33 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
-    /* Pass 1: Forward-declare all user functions */
+    /* Pass 1: Forward-declare all user functions.
+     * Generic functions (with generic_params) are stored as templates
+     * for lazy monomorphization — NOT forward-declared as LLVM functions. */
     for (size_t i = 0; i < hir->function_count; i++) {
         ASTNode *stmt = hir->functions[i];
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL)
+        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
+            continue;
+        if (stmt->data.func_decl.generic_params != NULL
+            && stmt->data.func_decl.generic_params->count > 0) {
+            /* Store as template for lazy instantiation */
+            if (ctx->generic_template_count < MAX_GENERIC_FUNCS) {
+                ctx->generic_templates[ctx->generic_template_count].name =
+                    stmt->data.func_decl.name;
+                ctx->generic_templates[ctx->generic_template_count].ast = stmt;
+                ctx->generic_template_count++;
+            }
+        } else {
             llvm_forward_declare_func(stmt, ctx);
+        }
     }
 
-    /* Pass 2: Emit function bodies (standalone + class methods) */
+    /* Pass 2: Emit function bodies (standalone + class methods).
+     * Skip generic templates — they are instantiated lazily. */
     for (size_t i = 0; i < hir->item_count; i++) {
         ASTNode *stmt = hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL)
+        if (stmt != NULL && stmt->type == AST_FUNC_DECL
+            && llvm_lookup_generic_template(ctx, stmt->data.func_decl.name) == NULL)
             llvm_emit_func_decl(stmt, ctx);
         else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             /* Emit method bodies */

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev
+
+      - name: Build (C backend only)
+        run: make LLVM_ENABLED=0
+
+      - name: Run semantic tests
+        run: ./bin/test_semantic
+
+      - name: Run transpiler tests
+        run: ./bin/test_transpile
+
+      - name: Run memory layout tests
+        run: ./bin/test_memory_layout
+
+      - name: Run HIR tests
+        run: ./bin/test_hir
+
+      - name: E2E smoke test
+        run: |
+          echo 'func Main() -> Void { Log(42); }' > /tmp/smoke.pgy
+          ./bin/pgy /tmp/smoke.pgy --backend=c --run
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+
+      - name: Build (C backend only)
+        run: mingw32-make LLVM_ENABLED=0
+
+      - name: Run semantic tests
+        run: bin\test_semantic.exe
+
+      - name: Run transpiler tests
+        run: bin\test_transpile.exe

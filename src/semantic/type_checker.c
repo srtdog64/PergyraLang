@@ -914,8 +914,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 "Undefined function '%s'", name);
             return TYPE_UNKNOWN;
         }
-        /* Allow class constructors: ClassName() */
-        if (sym->kind == SYMBOL_CLASS) {
+        /* Allow class/party/systemic/world constructors: TypeName() */
+        if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY) {
             sym->is_used = true;
             return sym->type;
         }
@@ -1420,12 +1420,17 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
+    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
+        /* Forward-declared in Pass 1 — update kind */
+        existing->kind = SYMBOL_PARTY;
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of party '%s'", name);
         symbol_destroy(sym);
         return false;
+    } else {
+        scope_declare(ctx->scope, sym);
     }
-    scope_declare(ctx->scope, sym);
 
     /* Check role slot ability references */
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
@@ -1785,6 +1790,9 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         if (node->data.defer_stmt.body != NULL)
             type_check_block(node->data.defer_stmt.body, ctx);
         return !ctx->has_error;
+    case AST_BIND_STMT:
+        /* bind party.slot = Role; — validated at codegen level */
+        return true;
     default:
         /* Expression statement */
         type_check_expression(node, ctx);
@@ -2051,6 +2059,29 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                                                         decl->line, decl->column);
                     scope_declare(ctx->scope, s);
                 }
+            }
+        } else if (stmt->type == AST_PARTY_DECL
+                   || stmt->type == AST_SYSTEMIC_DECL
+                   || stmt->type == AST_WORLD_DECL) {
+            /* Register party/systemic/world as class-like symbols
+             * so that PartyName() constructor syntax works */
+            const char *dname = NULL;
+            if (stmt->type == AST_PARTY_DECL)
+                dname = stmt->data.party_decl.name;
+            else if (stmt->type == AST_SYSTEMIC_DECL)
+                dname = stmt->data.systemic_decl.name;
+            else
+                dname = stmt->data.world_decl.name;
+            if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
+                Type *t = calloc(1, sizeof(Type));
+                if (t != NULL) {
+                    t->kind = TYPE_KIND_CLASS;
+                    t->name = pergyra_strdup(dname);
+                }
+                Symbol *s = symbol_create_function(dname,
+                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                s->kind = SYMBOL_CLASS;
+                scope_declare(ctx->scope, s);
             }
         }
     }

@@ -187,6 +187,7 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             break;
         case AST_UNSAFE_BLOCK:
         case AST_DEFER_STMT:
+        case AST_BIND_STMT:
             item.kind = HIR_TOPLEVEL_EXECUTABLE;
             if (!append_ast(&hir->executables, &hir->executable_count, node))
                 goto oom;

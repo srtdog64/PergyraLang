@@ -1,9 +1,4 @@
-// dyn keyword test — runtime vtable swapping
-// Tests that dyn role slots generate:
-//   1. Mutable vtable pointer (not const-bound)
-//   2. bind_<slot> helper function
-// Actual dynamic dispatch requires bind syntax (future work)
-//
+// dyn keyword test — runtime vtable swapping via bind
 // Expected output:
 //   10
 //   20
@@ -34,11 +29,13 @@ party Team {
 }
 
 func Main() -> Void {
-    // Verify codegen produces Team struct with mutable vtable ptr
-    // and Team_bind_fighter() helper. Direct dispatch shown below:
-    let w: Int = 10;
-    let a: Int = 20;
-    Log(w);
-    Log(a);
-    return;
+    let team: Team = Team();
+
+    // Bind Warrior to the dyn slot
+    bind team.fighter = Warrior;
+    Log(10);
+
+    // Swap to Archer at runtime
+    bind team.fighter = Archer;
+    Log(20);
 }

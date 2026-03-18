@@ -101,6 +101,7 @@ typedef enum
     /* Safety keywords */
     TOKEN_UNSAFE,
     TOKEN_DEFER,
+    TOKEN_BIND,
 
     /* Event keywords */
     TOKEN_EVENT,

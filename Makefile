@@ -42,14 +42,15 @@ LLVM_SYSTEM_LIB_DIR := $(dir $(LLVM_SYSTEM_LIB))
 LLVM_SYSTEM_SONAME_DIR := $(dir $(LLVM_SYSTEM_SONAME))
 
 # -----------------------------------------------------------------
-# LLVM backend (optional)
-#   make LLVM_ENABLED=1          — build with LLVM native backend
-#   make                         — build without LLVM (C transpiler only)
+# LLVM backend (enabled by default)
+#   make                         — build with LLVM native backend (default)
+#   make LLVM_ENABLED=0          — build without LLVM (C transpiler only)
 # -----------------------------------------------------------------
 LLVM_DIR     = third_party
 LLVM_INSTALL = C:/Program Files/LLVM
+LLVM_ENABLED ?= 1
 
-ifdef LLVM_ENABLED
+ifneq ($(LLVM_ENABLED),0)
   ifneq ($(LLVM_CONFIG),)
     LLVM_INCLUDEDIR := $(shell $(LLVM_CONFIG) --includedir)
     LLVM_LIBDIR     := $(shell $(LLVM_CONFIG) --libdir)

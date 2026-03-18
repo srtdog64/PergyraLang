@@ -8,11 +8,17 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/epoll.h>
 #include <errno.h>
 #include <assert.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/epoll.h>
+#endif
+
 #include "scheduler.h"
 #include "fiber.h"
 #include "concurrent_queue.h"
@@ -102,15 +108,16 @@ static void* WorkerThreadMain(void* arg)
     return NULL;
 }
 
-/* I/O worker thread */
+#ifndef _WIN32
+/* I/O worker thread (POSIX/Linux only — uses epoll) */
 static void* IoWorkerMain(void* arg)
 {
     Scheduler* scheduler = (Scheduler*)arg;
     struct epoll_event events[128];
-    
+
     while (atomic_load(&scheduler->isRunning)) {
         int nEvents = epoll_wait(scheduler->epollFd, events, 128, 100); /* 100ms timeout */
-        
+
         if (nEvents < 0) {
             if (errno == EINTR) {
                 continue;
@@ -131,6 +138,7 @@ static void* IoWorkerMain(void* arg)
     
     return NULL;
 }
+#endif /* !_WIN32 */
 
 Scheduler* SchedulerCreate(const SchedulerConfig* config)
 {
@@ -144,7 +152,15 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
         scheduler->config = *config;
     } else {
         /* Default configuration */
+#ifdef _WIN32
+        {
+            SYSTEM_INFO si;
+            GetSystemInfo(&si);
+            scheduler->config.numWorkers = si.dwNumberOfProcessors;
+        }
+#else
         scheduler->config.numWorkers = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
         scheduler->config.isDeterministic = false;
         scheduler->config.enableWorkStealing = true;
         scheduler->config.stackSizeHint = FIBER_STACK_SIZE;
@@ -164,13 +180,15 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
         return NULL;
     }
     
-    /* Initialize epoll for I/O */
+#ifndef _WIN32
+    /* Initialize epoll for I/O (Linux only) */
     scheduler->epollFd = epoll_create1(EPOLL_CLOEXEC);
     if (scheduler->epollFd < 0) {
         ConcurrentQueueDestroy(scheduler->globalRunQueue);
         free(scheduler);
         return NULL;
     }
+#endif
     
     /* Initialize parking */
     pthread_mutex_init(&scheduler->parkMutex, NULL);
@@ -179,7 +197,9 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     /* Allocate workers */
     scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread));
     if (scheduler->workers == NULL) {
+#ifndef _WIN32
         close(scheduler->epollFd);
+#endif
         ConcurrentQueueDestroy(scheduler->globalRunQueue);
         pthread_mutex_destroy(&scheduler->parkMutex);
         pthread_cond_destroy(&scheduler->parkCondition);
@@ -229,8 +249,10 @@ void SchedulerDestroy(Scheduler* scheduler)
     /* Free workers */
     free(scheduler->workers);
     
+#ifndef _WIN32
     /* Close epoll */
     close(scheduler->epollFd);
+#endif
     
     /* Destroy global queue */
     ConcurrentQueueDestroy(scheduler->globalRunQueue);

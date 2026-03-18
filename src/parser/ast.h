@@ -144,7 +144,10 @@ typedef enum
 
     /* Safety */
     AST_UNSAFE_BLOCK,
-    AST_DEFER_STMT
+    AST_DEFER_STMT,
+
+    /* Dynamic role binding */
+    AST_BIND_STMT
 } ASTNodeType;
 
 /*
@@ -644,6 +647,13 @@ struct ASTNode
         struct {
             ASTNode* body;           /* Block or expression */
         } defer_stmt;
+
+        /* bind party.slot = RoleName; */
+        struct {
+            char* party_var;         /* "team" */
+            char* slot_name;         /* "fighter" */
+            char* role_name;         /* "Warrior" */
+        } bind_stmt;
     } data;
 };
 
@@ -731,5 +741,6 @@ ASTNode* ast_create_lambda_expression(void);
 ASTNode* ast_create_import_declaration(const char* path);
 ASTNode* ast_create_unsafe_block(ASTNode* body);
 ASTNode* ast_create_defer_statement(ASTNode* body);
+ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name);
 
 #endif /* PERGYRA_AST_H */

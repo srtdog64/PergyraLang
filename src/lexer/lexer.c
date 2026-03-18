@@ -52,6 +52,7 @@ static const KeywordEntry keywords[] = {
     {"import",   TOKEN_IMPORT},
     {"unsafe",   TOKEN_UNSAFE},
     {"defer",    TOKEN_DEFER},
+    {"bind",     TOKEN_BIND},
     {"ability",  TOKEN_ABILITY},
     {"role",     TOKEN_ROLE},
     {"include",  TOKEN_INCLUDE},
@@ -449,6 +450,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_IMPORT: return "IMPORT";
         case TOKEN_UNSAFE: return "UNSAFE";
         case TOKEN_DEFER: return "DEFER";
+        case TOKEN_BIND: return "BIND";
         case TOKEN_DYN: return "DYN";
         case TOKEN_SUBSCRIBE: return "+=";
         case TOKEN_UNSUBSCRIBE: return "-=";

@@ -58,8 +58,10 @@ typedef struct Scheduler {
     ConcurrentQueue* globalRunQueue;
     
     /* I/O and timer handling */
+#ifndef _WIN32
     int epollFd;              /* Linux epoll */
     pthread_t ioWorker;       /* Dedicated I/O thread */
+#endif
     
     /* Scheduler state */
     atomic_bool isRunning;

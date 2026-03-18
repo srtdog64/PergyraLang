@@ -312,6 +312,9 @@ pergyra_primitive_to_c(const char *name)
     if (strcmp(name, "Bool")   == 0) return "bool";
     if (strcmp(name, "String") == 0) return "char*";
     if (strcmp(name, "Void")   == 0) return "void";
+    /* Single uppercase letter = generic type parameter → void* (type erasure) */
+    if (name[0] >= 'A' && name[0] <= 'Z' && name[1] == '\0')
+        return "void*";
     return name; /* user-defined type — pass through */
 }
 
@@ -1780,6 +1783,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
+    /* Auto-generate Slot and Result container types for this struct.
+     * This allows Slot<MyStruct>, Result<MyStruct> in user code. */
+    codebuf_write(ctx->out,
+        "\n/* Auto-generated container types for %s */\n"
+        "PGY_SLOT_DEFINE(%s, %s)\n",
+        name, name, name);
+
     /* Methods become free functions: RetType ClassName_MethodName(T self, ...) */
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
@@ -2100,29 +2110,82 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 }
 
+/* Check if a match-case pattern is a destructor like Ok(x) or Err(x) */
+static bool
+is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
+{
+    if (pat == NULL || pat->type != AST_CALL)
+        return false;
+    if (pat->data.call.callee == NULL || pat->data.call.callee->type != AST_IDENTIFIER)
+        return false;
+    const char *name = pat->data.call.callee->data.identifier.name;
+    if (strcmp(name, "Ok") != 0 && strcmp(name, "Err") != 0)
+        return false;
+    *kind = name;
+    if (pat->data.call.arg_count > 0
+        && pat->data.call.arguments[0] != NULL
+        && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
+        *binding = pat->data.call.arguments[0]->data.identifier.name;
+    } else {
+        *binding = NULL;
+    }
+    return true;
+}
+
 void
 emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     char *subj = emit_expression(node->data.match_stmt.subject, ctx);
     int tmp_id = ctx->tmp_counter++;
 
+    /* Detect if any case uses Ok()/Err() destructuring */
+    bool is_result_match = false;
+    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+        const char *k, *b;
+        if (is_result_destructor(node->data.match_stmt.cases[i]->data.match_case.pattern, &k, &b)) {
+            is_result_match = true;
+            break;
+        }
+    }
+
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
-    write_indent(ctx);
-    codebuf_write(ctx->out, "int32_t __match_%d = %s;\n", tmp_id, subj);
+
+    if (is_result_match) {
+        /* Result match: store subject as-is (struct), check .ok field */
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__typeof__(%s) __match_%d = %s;\n", subj, tmp_id, subj);
+    } else {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "int32_t __match_%d = %s;\n", tmp_id, subj);
+    }
     free(subj);
 
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *mc = node->data.match_stmt.cases[i];
-        char *pat = emit_expression(mc->data.match_case.pattern, ctx);
+        const char *kind = NULL, *binding = NULL;
 
         write_indent(ctx);
-        if (i == 0)
-            codebuf_write(ctx->out, "if (__match_%d == %s", tmp_id, pat);
-        else
-            codebuf_write(ctx->out, "else if (__match_%d == %s", tmp_id, pat);
-        free(pat);
+
+        if (is_result_destructor(mc->data.match_case.pattern, &kind, &binding)) {
+            /* case Ok(x): → if (__match_N.tag == PGY_RESULT_OK) { ... } */
+            const char *tag_val = (strcmp(kind, "Ok") == 0)
+                ? "PgyResultOk" : "PgyResultErr";
+            if (i == 0)
+                codebuf_write(ctx->out, "if (__match_%d.tag == %s",
+                    tmp_id, tag_val);
+            else
+                codebuf_write(ctx->out, "else if (__match_%d.tag == %s",
+                    tmp_id, tag_val);
+        } else {
+            char *pat = emit_expression(mc->data.match_case.pattern, ctx);
+            if (i == 0)
+                codebuf_write(ctx->out, "if (__match_%d == %s", tmp_id, pat);
+            else
+                codebuf_write(ctx->out, "else if (__match_%d == %s", tmp_id, pat);
+            free(pat);
+        }
 
         if (mc->data.match_case.guard != NULL) {
             char *guard = emit_expression(mc->data.match_case.guard, ctx);
@@ -2134,6 +2197,18 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
+
+        /* Emit binding variable if destructuring */
+        if (binding != NULL && kind != NULL) {
+            write_indent(ctx);
+            if (strcmp(kind, "Ok") == 0)
+                codebuf_write(ctx->out, "int32_t %s = __match_%d.ok;\n",
+                    binding, tmp_id);
+            else
+                codebuf_write(ctx->out, "PgyError %s = __match_%d.err;\n",
+                    binding, tmp_id);
+        }
+
         emit_block(mc->data.match_case.body, ctx);
         ctx->indent--;
         write_indent(ctx);
@@ -2207,17 +2282,78 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     case AST_DEFER_STMT: {
         /* defer { body } → GCC __attribute__((cleanup)) pattern.
-         * Generates a static cleanup function + a scoped sentinel variable.
-         * The cleanup function runs when the sentinel goes out of scope. */
+         * 1. Emit a static cleanup function into the helpers buffer.
+         * 2. Declare a sentinel variable with cleanup attribute.
+         * When the sentinel goes out of scope, GCC calls the cleanup. */
         int defer_id = ctx->defer_counter++;
+
+        /* Generate cleanup function in helpers buffer */
+        codebuf_write(ctx->helpers,
+            "\nstatic void _pgy_defer_%d(int *_pgy_unused) {\n"
+            "    (void)_pgy_unused;\n", defer_id);
+
+        /* Save current output, redirect to helpers for the body */
+        CodeBuf *saved_out = ctx->out;
+        int saved_indent = ctx->indent;
+        ctx->out = ctx->helpers;
+        ctx->indent = 1;
+        if (node->data.defer_stmt.body != NULL)
+            emit_block(node->data.defer_stmt.body, ctx);
+        ctx->out = saved_out;
+        ctx->indent = saved_indent;
+
+        codebuf_write(ctx->helpers, "}\n");
+
+        /* Emit sentinel with cleanup attribute */
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "/* defer_%d — runs at scope exit */\n", defer_id);
-        /* For simplicity: emit the deferred body in a nested block
-         * that the compiler will inline. True scope-exit semantics
-         * require goto-cleanup or setjmp, deferred to future work. */
+            "int _pgy_defer_sentinel_%d "
+            "__attribute__((cleanup(_pgy_defer_%d))) = 0;\n",
+            defer_id, defer_id);
+        break;
+    }
+    case AST_BIND_STMT: {
+        /* bind party.slot = Role;
+         * → lookup party's typed_var to get PartyType,
+         *   then emit PartyType_bind_slot(&party, NULL, &Role_Ability_vtable_instance)
+         * For now: use the typed_var mapping to find the party type. */
+        const char *pvar = node->data.bind_stmt.party_var;
+        const char *slot = node->data.bind_stmt.slot_name;
+        const char *role = node->data.bind_stmt.role_name;
+        const char *party_type = NULL;
+        for (int ti = 0; ti < ctx->typed_var_count; ti++) {
+            if (strcmp(ctx->typed_vars[ti].name, pvar) == 0) {
+                party_type = ctx->typed_vars[ti].type_name;
+                break;
+            }
+        }
+        if (party_type == NULL) party_type = "UnknownParty";
+
+        /* Find the ability name by scanning the HIR for the party declaration.
+         * The dyn role slot records the required ability. */
+        const char *ability_name = slot; /* fallback: use slot name */
+        if (ctx->hir != NULL) {
+            for (size_t hi = 0; hi < ctx->hir->item_count; hi++) {
+                ASTNode *it = ctx->hir->items[hi].ast;
+                if (it == NULL || it->type != AST_PARTY_DECL)
+                    continue;
+                if (strcmp(it->data.party_decl.name, party_type) != 0)
+                    continue;
+                for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
+                    ASTNode *rs = it->data.party_decl.role_slots[ri];
+                    if (strcmp(rs->data.role_slot.slot_name, slot) == 0
+                        && rs->data.role_slot.ability_count > 0
+                        && rs->data.role_slot.required_abilities[0] != NULL) {
+                        ability_name = rs->data.role_slot.required_abilities[0]->data.type.name;
+                    }
+                }
+            }
+        }
         write_indent(ctx);
-        codebuf_write(ctx->out, "/* [deferred block_%d] */\n", defer_id);
+        codebuf_write(ctx->out,
+            "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
+            party_type, slot, pvar,
+            role, ability_name);
         break;
     }
     case AST_ABILITY_DECL:

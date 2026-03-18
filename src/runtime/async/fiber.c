@@ -10,7 +10,13 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/mman.h>
+#endif
+
 #include "fiber.h"
 #include "scheduler.h"
 
@@ -66,15 +72,24 @@ Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
     
     /* Allocate stack */
     fiber->stackSize = FIBER_STACK_SIZE;
+#ifdef _WIN32
+    fiber->stackBase = VirtualAlloc(NULL, fiber->stackSize,
+                                     MEM_COMMIT | MEM_RESERVE,
+                                     PAGE_READWRITE);
+    if (fiber->stackBase == NULL) {
+        free(fiber);
+        return NULL;
+    }
+#else
     fiber->stackBase = mmap(NULL, fiber->stackSize,
                            PROT_READ | PROT_WRITE,
                            MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK,
                            -1, 0);
-    
     if (fiber->stackBase == MAP_FAILED) {
         free(fiber);
         return NULL;
     }
+#endif
     
     /* Initialize stack pointer to top of stack (stacks grow down) */
     fiber->context.stackPointer = (char*)fiber->stackBase + fiber->stackSize;
@@ -119,7 +134,11 @@ void FiberDestroy(Fiber* fiber)
     
     /* Free stack */
     if (fiber->stackBase != NULL) {
+#ifdef _WIN32
+        VirtualFree(fiber->stackBase, 0, MEM_RELEASE);
+#else
         munmap(fiber->stackBase, fiber->stackSize);
+#endif
     }
     
     /* Free error message */

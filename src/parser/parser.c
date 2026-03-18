@@ -237,6 +237,17 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parse_defer_statement(parser);
     }
 
+    // bind party.slot = Role;
+    if (parser_match(parser, TOKEN_BIND)) {
+        Token party_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected party variable after 'bind'");
+        parser_consume(parser, TOKEN_DOT, "Expected '.' after party variable");
+        Token slot_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected slot name after '.'");
+        parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after slot name");
+        Token role_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name after '='");
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after bind statement");
+        return ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text);
+    }
+
     // systemic 선언
     if (parser_match(parser, TOKEN_SYSTEMIC)) {
         return parse_systemic_declaration(parser);
