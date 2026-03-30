@@ -1245,6 +1245,146 @@ test_async_emit(void)
 }
 
 /* -----------------------------------------------------------------
+ * Slot sugar tests
+ * ----------------------------------------------------------------- */
+
+static void
+test_slot_sugar(void)
+{
+    printf("\n[slot_sugar]\n");
+
+    TranspilerCtx *ctx;
+
+    TEST("let x: Slot<Int> = 42 → claim + write");
+    {
+        ASTNode *node = make_let("x", make_type_node("Slot<Int>"),
+                                  make_number(42, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT(strstr(out, "pgy_claim_Int()") != NULL);
+        EXPECT(strstr(out, "pgy_write_Int(&x, 42)") != NULL);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("slot sugar: identifier auto-read via Log");
+    {
+        /* Build: func Main() -> Void { let x: Slot<Int> = 42; Log(x); } */
+        ASTNode *let_node = make_let("x", make_type_node("Slot<Int>"),
+                                      make_number(42, 1), 1);
+
+        ASTNode *x_ident = calloc(1, sizeof(ASTNode));
+        x_ident->type = AST_IDENTIFIER; x_ident->line = 2;
+        x_ident->data.identifier.name = pergyra_strdup("x");
+
+        ASTNode *log_call = calloc(1, sizeof(ASTNode));
+        log_call->type = AST_CALL; log_call->line = 2;
+        ASTNode *log_id = calloc(1, sizeof(ASTNode));
+        log_id->type = AST_IDENTIFIER; log_id->data.identifier.name = pergyra_strdup("Log");
+        log_call->data.call.callee = log_id;
+        log_call->data.call.arguments = malloc(sizeof(ASTNode*));
+        log_call->data.call.arguments[0] = x_ident;
+        log_call->data.call.arg_count = 1;
+
+        ASTNode *fn_body = ast_create_block();
+        ast_add_statement(fn_body, let_node);
+        ast_add_statement(fn_body, log_call);
+
+        ASTNode *fn = calloc(1, sizeof(ASTNode));
+        fn->type = AST_FUNC_DECL;
+        fn->data.func_decl.name = "Main";
+        fn->data.func_decl.return_type = make_type_node("Void");
+        fn->data.func_decl.body = fn_body;
+        fn->data.func_decl.param_count = 0;
+
+        ASTNode *stmts[1] = { fn };
+        ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT(strstr(ctx->out->data, "pgy_read_Int(&x)") != NULL);
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("slot sugar: x = 5 auto-write");
+    {
+        ASTNode *let_node = make_let("x", make_type_node("Slot<Int>"),
+                                      make_number(42, 1), 1);
+
+        ASTNode *assign = calloc(1, sizeof(ASTNode));
+        assign->type = AST_ASSIGNMENT; assign->line = 2;
+        ASTNode *tgt = calloc(1, sizeof(ASTNode));
+        tgt->type = AST_IDENTIFIER; tgt->data.identifier.name = pergyra_strdup("x");
+        assign->data.assignment.target = tgt;
+        assign->data.assignment.value  = make_number(5, 2);
+
+        ASTNode *fn_body = ast_create_block();
+        ast_add_statement(fn_body, let_node);
+        ast_add_statement(fn_body, assign);
+
+        ASTNode *fn = calloc(1, sizeof(ASTNode));
+        fn->type = AST_FUNC_DECL;
+        fn->data.func_decl.name = "Main";
+        fn->data.func_decl.return_type = make_type_node("Void");
+        fn->data.func_decl.body = fn_body;
+        fn->data.func_decl.param_count = 0;
+
+        ASTNode *stmts[1] = { fn };
+        ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT(strstr(ctx->out->data, "pgy_write_Int(&x, 5)") != NULL);
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("explicit Release prevents double release");
+    {
+        /* let a: Slot<Int> = ClaimSlot<Int>(); Write(a,10); Release(a); */
+        ASTNode *args0[0];
+        ASTNode *init = make_call("ClaimSlot", args0, 0, 1);
+        ASTNode *let_node = make_let("a", make_type_node("Slot<Int>"), init, 1);
+
+        ASTNode *a_id = calloc(1, sizeof(ASTNode));
+        a_id->type = AST_IDENTIFIER; a_id->data.identifier.name = pergyra_strdup("a");
+        ASTNode *w_args[] = { a_id, make_number(10, 2) };
+        ASTNode *write_call = make_call("Write", w_args, 2, 2);
+
+        ASTNode *a_id2 = calloc(1, sizeof(ASTNode));
+        a_id2->type = AST_IDENTIFIER; a_id2->data.identifier.name = pergyra_strdup("a");
+        ASTNode *r_args[] = { a_id2 };
+        ASTNode *rel_call = make_call("Release", r_args, 1, 3);
+
+        ASTNode *fn_body = ast_create_block();
+        ast_add_statement(fn_body, let_node);
+        ast_add_statement(fn_body, write_call);
+        ast_add_statement(fn_body, rel_call);
+
+        ASTNode *fn = calloc(1, sizeof(ASTNode));
+        fn->type = AST_FUNC_DECL;
+        fn->data.func_decl.name = "Main";
+        fn->data.func_decl.return_type = make_type_node("Void");
+        fn->data.func_decl.body = fn_body;
+        fn->data.func_decl.param_count = 0;
+
+        ASTNode *stmts[1] = { fn };
+        ASTNode *prog = make_program(stmts, 1);
+        HIRProgram *hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        int count = 0;
+        const char *p = ctx->out->data;
+        while ((p = strstr(p, "pgy_release_Int")) != NULL) { count++; p++; }
+        EXPECT(count == 1);
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+}
+
+/* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
 
@@ -1264,6 +1404,7 @@ main(void)
     test_party_emit();
     test_systemic_world_emit();
     test_async_emit();
+    test_slot_sugar();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

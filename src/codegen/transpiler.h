@@ -55,6 +55,7 @@ typedef struct
     char name[64];         /* variable name, e.g. "msg"     */
     char inner_type[32];   /* Pergyra type, e.g. "String"   */
     bool is_secure;        /* SecureSlot?                    */
+    bool released;         /* explicit Release() was called  */
 } SlotVarEntry;
 
 typedef struct
@@ -93,6 +94,9 @@ typedef struct
     bool  in_parallel_wrapper;
     int   par_capture_slot_end;    /* slot_vars[0..end) are captured  */
     int   par_capture_typed_end;   /* typed_vars[0..end) are captured */
+
+    /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
+    bool  suppress_slot_auto_read;
 
     /* Defer counter for unique defer IDs */
     int   defer_counter;

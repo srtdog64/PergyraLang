@@ -255,6 +255,11 @@ require_assignable(Type *from, Type *to,
     if (type_is_assignable(from, to))
         return true;
 
+    /* Slot sugar: allow assigning T to Slot<T> (auto Claim+Write) */
+    if (to->kind == TYPE_KIND_SLOT && to->data.slot.inner_type != NULL
+        && type_is_assignable(from, to->data.slot.inner_type))
+        return true;
+
     semantic_error(ctx, site,
         "Type mismatch: cannot assign '%s' to '%s'",
         from->name, to->name);

@@ -48,6 +48,7 @@ typedef struct
 {
     const char *var_name;
     const char *inner_type;   /* "Int", "Long", "Float", "Double", "Bool", "String" */
+    bool        released;     /* explicit Release() was called */
 } LLVMSlotVarEntry;
 
 /* Class type tracking (class name → struct type + field info) */
@@ -183,6 +184,9 @@ typedef struct LLVMGenCtx
         const char  *type_name;   /* "Int" */
     } type_subst[8];
     int type_subst_count;
+
+    /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
+    bool            suppress_slot_auto_read;
 
     /* Error state */
     bool            has_error;
@@ -1018,6 +1022,24 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *name = node->data.identifier.name;
 
+    /* Slot sugar: auto-Read — call pgy_read_T(&slot) instead of loading struct */
+    if (!ctx->suppress_slot_auto_read) {
+        const char *inner = llvm_lookup_slot_inner(ctx, name);
+        if (inner != NULL) {
+            LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+            if (var != NULL) {
+                char fn_name[64];
+                snprintf(fn_name, sizeof(fn_name), "pgy_read_%s", inner);
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+                if (fn != NULL) {
+                    LLVMValueRef args[] = { var->alloca };
+                    return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                         args, 1, llvm_tmp_name(ctx));
+                }
+            }
+        }
+    }
+
     /* Look up in scope */
     LLVMVarEntry *entry = llvm_scope_lookup(ctx, name);
     if (entry != NULL)
@@ -1342,6 +1364,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMValueRef args[] = { slot_var->alloca };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+
+        /* Mark slot as explicitly released */
+        if (slot_arg->type == AST_IDENTIFIER) {
+            const char *sname = slot_arg->data.identifier.name;
+            for (int ri = 0; ri < ctx->slot_var_count; ri++) {
+                if (strcmp(ctx->slot_vars[ri].var_name, sname) == 0) {
+                    ctx->slot_vars[ri].released = true;
+                    break;
+                }
+            }
+        }
+
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -1720,6 +1754,22 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
     LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
     if (var == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    /* Slot sugar: x = 5 → pgy_write_T(&x, 5) */
+    const char *slot_inner = llvm_lookup_slot_inner(ctx, name);
+    if (slot_inner != NULL) {
+        LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+        if (val == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        char fn_name[64];
+        snprintf(fn_name, sizeof(fn_name), "pgy_write_%s", slot_inner);
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        if (fn != NULL) {
+            LLVMValueRef args[] = { var->alloca, val };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        }
+        return val;
+    }
 
     LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
     if (val == NULL)
@@ -2189,6 +2239,49 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    /* Slot sugar: let x: Slot<Int> = 42 → auto Claim + Write */
+    if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL) {
+        const char *ann_name = type_ann->data.type.name;
+        bool is_slot_sugar = (strcmp(ann_name, "Slot") == 0
+                           || strncmp(ann_name, "Slot<", 5) == 0);
+        if (is_slot_sugar) {
+            const char *inner = "Int";
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 0)
+                inner = type_ann->data.type.generic_args->params[0]->name;
+
+            LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+
+            /* Inline Claim: zero-init + set claimed=true */
+            LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
+            LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
+                slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                claimed_ptr);
+
+            llvm_scope_declare(ctx, name, alloca_val, slot_ty);
+            llvm_register_slot_var(ctx, name, inner);
+
+            /* Auto Write the initializer value */
+            if (init != NULL) {
+                LLVMValueRef val = llvm_emit_expression(init, ctx);
+                if (val != NULL) {
+                    char fn_name[64];
+                    snprintf(fn_name, sizeof(fn_name), "pgy_write_%s", inner);
+                    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+                    if (fn != NULL) {
+                        LLVMValueRef args[] = { alloca_val, val };
+                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    }
+                }
+            }
+            return;
+        }
+    }
+
     /* Detect class constructor: let v = ClassName(args...) */
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee != NULL
@@ -2594,6 +2687,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
     if (node->type != AST_BLOCK)
         return;
 
+    int saved_slot_count = ctx->slot_var_count;
     llvm_scope_push(ctx);
     for (size_t i = 0; i < node->data.block.count; i++) {
         llvm_emit_statement(node->data.block.statements[i], ctx);
@@ -2602,6 +2696,26 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMGetInsertBlock(ctx->builder)) != NULL)
             break;
     }
+
+    /* Slot sugar: auto-release slot vars declared in this scope (LIFO).
+     * Skip slots already explicitly released by the user. */
+    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        for (int i = ctx->slot_var_count - 1; i >= saved_slot_count; i--) {
+            if (ctx->slot_vars[i].released) continue;
+            const char *inner = ctx->slot_vars[i].inner_type;
+            const char *vname = ctx->slot_vars[i].var_name;
+            char fn_name[64];
+            snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", inner);
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            LLVMVarEntry *var = llvm_scope_lookup(ctx, vname);
+            if (fn != NULL && var != NULL) {
+                LLVMValueRef args[] = { var->alloca };
+                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+            }
+        }
+    }
+
+    ctx->slot_var_count = saved_slot_count;
     llvm_scope_pop(ctx);
 }
 
