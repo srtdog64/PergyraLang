@@ -108,7 +108,11 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifdef LLVM_ENABLED
-  LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c
+  LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
+                         $(CODEGEN_DIR)/llvm_expr.c \
+                         $(CODEGEN_DIR)/llvm_stmt.c \
+                         $(CODEGEN_DIR)/llvm_decl.c \
+                         $(CODEGEN_DIR)/llvm_domain.c
   RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
   LLVM_BACKEND_OBJECTS = $(LLVM_BACKEND_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
   RUNTIME_LIB_OBJECTS  = $(RUNTIME_LIB_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
