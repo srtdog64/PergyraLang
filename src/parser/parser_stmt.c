@@ -79,6 +79,9 @@ ASTNode* parse_match_statement(Parser* parser) {
                    !parser_is_at_end(parser)) {
                 ASTNode* stmt = parser_parse_statement(parser);
                 if (stmt) ast_add_statement(body, stmt);
+                if (parser->has_error) {
+                    parser_synchronize(parser);
+                }
             }
             mc->data.match_case.body = body;
 
@@ -96,6 +99,9 @@ ASTNode* parse_match_statement(Parser* parser) {
             while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
                 ASTNode* stmt = parser_parse_statement(parser);
                 if (stmt) ast_add_statement(body, stmt);
+                if (parser->has_error) {
+                    parser_synchronize(parser);
+                }
             }
             match->data.match_stmt.default_body = body;
         } else {

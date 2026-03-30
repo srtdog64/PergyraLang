@@ -2861,6 +2861,24 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         /* extern "C" { func ...; } — handled in program pass (Pass 0) */
         break;
 
+    case AST_UNSAFE_BLOCK:
+        /* unsafe { ... } — emit body directly, no safety wrappers */
+        if (node->data.unsafe_block.body != NULL)
+            llvm_emit_block(node->data.unsafe_block.body, ctx);
+        break;
+
+    case AST_DEFER_STMT:
+        /* defer { ... } — emit at end of current scope
+         * For now: emit inline (proper scope-exit requires goto-cleanup) */
+        if (node->data.defer_stmt.body != NULL)
+            llvm_emit_statement(node->data.defer_stmt.body, ctx);
+        break;
+
+    case AST_BIND_STMT:
+        /* bind party.slot = Role; — runtime vtable swap
+         * Minimal stub: emits nothing (vtable binding is compile-time) */
+        break;
+
     /* Expression statements */
     case AST_CALL:
     case AST_ASSIGNMENT:

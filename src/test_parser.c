@@ -316,6 +316,15 @@ main(void)
             "    }\n"
             "}",
             1
+        },
+        {
+            "Event Lambda Subscription",
+            "event OnHit(damage: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnHit += (d: Int) => { Log(d); };\n"
+            "    OnHit(77);\n"
+            "}",
+            1
         }
     };
 

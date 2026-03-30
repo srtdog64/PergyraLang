@@ -6,6 +6,9 @@ bin/
 
 # Generated C files from transpiler
 examples/*.c
+examples/*
+!examples/*.pgy
+!examples/
 
 # Editor / OS
 *.backup

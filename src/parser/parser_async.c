@@ -286,15 +286,15 @@ ASTNode* parser_parse_select_statement(Parser* parser)
 
             // Parse case body and attach to the case node
             ASTNode* body = parser_parse_statement(parser);
+            if (parser->has_error) {
+                parser_synchronize(parser);
+            }
 
             // Wrap case_node + body in a block so both are preserved
             if (body != NULL && case_node != NULL) {
-                ASTNode* block = calloc(1, sizeof(ASTNode));
-                block->type = AST_BLOCK;
-                block->data.block.statements = calloc(2, sizeof(ASTNode*));
-                block->data.block.statements[0] = case_node;
-                block->data.block.statements[1] = body;
-                block->data.block.count = 2;
+                ASTNode* block = ast_create_block();
+                ast_add_statement(block, case_node);
+                ast_add_statement(block, body);
                 case_node = block;
             }
             
@@ -310,6 +310,9 @@ ASTNode* parser_parse_select_statement(Parser* parser)
             // Default case
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'default'");
             select_stmt->data.select_stmt.default_case = parser_parse_statement(parser);
+            if (parser->has_error) {
+                parser_synchronize(parser);
+            }
         } else {
             parser_error(parser, "Expected 'case' or 'default' in select statement");
             parser_advance(parser);

@@ -362,6 +362,9 @@ ASTNode* parser_parse_parallel_block(Parser* parser) {
         if (stmt) {
             ast_add_parallel_task(parallel, stmt);
         }
+        if (parser->has_error) {
+            parser_synchronize(parser);
+        }
     }
     parser->in_parallel_block = false;
 
@@ -380,6 +383,9 @@ ASTNode* parser_parse_block(Parser* parser) {
         ASTNode* stmt = parser_parse_statement(parser);
         if (stmt) {
             ast_add_statement(block, stmt);
+        }
+        if (parser->has_error) {
+            parser_synchronize(parser);
         }
     }
 

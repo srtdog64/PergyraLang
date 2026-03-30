@@ -79,6 +79,23 @@ test_hir_lowering(void)
         free(error);
         ast_destroy(number);
     }
+
+    TEST("event lambda subscription lowers through HIR");
+    {
+        const char *src =
+            "event OnHit(damage: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnHit += (d: Int) => { Log(d); };\n"
+            "    OnHit(77);\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        EXPECT(hir != NULL
+               && hir->event_count == 1
+               && hir->function_count == 1
+               && hir->executable_count == 0
+               && hir->has_main_function);
+        hir_destroy(hir);
+    }
 }
 
 int

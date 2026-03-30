@@ -11,7 +11,7 @@ func DemoParallel() -> Void {
     let a: Slot<Int> = ClaimSlot<Int>();
     let b: Slot<Int> = ClaimSlot<Int>();
 
-    Parallel {
+    parallel {
         Write(a, 10);
         Write(b, 20);
     }

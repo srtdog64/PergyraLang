@@ -1,5 +1,51 @@
 #include "parser_internal.h"
 
+static void
+free_lookahead_token(Token *token, bool owned)
+{
+    if (owned && token != NULL) {
+        free(token->text);
+        token->text = NULL;
+    }
+}
+
+static bool
+parser_is_lambda_start(Parser *parser)
+{
+    Lexer lookahead;
+    Token token;
+    bool token_owned = false;
+    int paren_depth = 0;
+
+    if (!parser_check(parser, TOKEN_LPAREN))
+        return false;
+
+    lookahead = *parser->lexer;
+    token = parser->current_token;
+
+    while (true) {
+        if (token.type == TOKEN_LPAREN) {
+            paren_depth++;
+        } else if (token.type == TOKEN_RPAREN) {
+            paren_depth--;
+            if (paren_depth == 0) {
+                Token next = lexer_next_token(&lookahead);
+                bool is_lambda = next.type == TOKEN_LAMBDA;
+                free(next.text);
+                free_lookahead_token(&token, token_owned);
+                return is_lambda;
+            }
+        } else if (token.type == TOKEN_EOF) {
+            free_lookahead_token(&token, token_owned);
+            return false;
+        }
+
+        free_lookahead_token(&token, token_owned);
+        token = lexer_next_token(&lookahead);
+        token_owned = true;
+    }
+}
+
 // 표현식 파싱 (우선순위 기반)
 ASTNode* parser_parse_expression(Parser* parser) {
     return parser_parse_assignment(parser);
@@ -246,6 +292,11 @@ ASTNode* parser_parse_primary(Parser* parser) {
         }
 
         return ident;
+    }
+
+    // 람다식: (x: Int) => { ... }
+    if (parser_is_lambda_start(parser)) {
+        return parse_lambda_expression(parser);
     }
 
     // 괄호 표현식
