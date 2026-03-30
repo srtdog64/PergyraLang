@@ -212,6 +212,15 @@ typedef enum
     BUILTIN_BOX,
     BUILTIN_BOX_ARRAY,
     BUILTIN_PARALLEL,
+    /* I/O built-ins */
+    BUILTIN_FILE_OPEN,
+    BUILTIN_FILE_READ,
+    BUILTIN_FILE_WRITE,
+    BUILTIN_FILE_CLOSE,
+    BUILTIN_READ_FILE,
+    BUILTIN_WRITE_FILE,
+    BUILTIN_INPUT,
+    BUILTIN_PRINT,
     BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
 } BuiltinKind;
 

@@ -292,6 +292,15 @@ builtin_resolve(const char *name)
     if (strcmp(name, "AllocatorPool")   == 0) return BUILTIN_ALLOCATOR_POOL;
     if (strcmp(name, "Box")             == 0) return BUILTIN_BOX;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
+    /* I/O built-ins */
+    if (strcmp(name, "FileOpen")        == 0) return BUILTIN_FILE_OPEN;
+    if (strcmp(name, "FileRead")        == 0) return BUILTIN_FILE_READ;
+    if (strcmp(name, "FileWrite")       == 0) return BUILTIN_FILE_WRITE;
+    if (strcmp(name, "FileClose")       == 0) return BUILTIN_FILE_CLOSE;
+    if (strcmp(name, "ReadFile")        == 0) return BUILTIN_READ_FILE;
+    if (strcmp(name, "WriteFile")       == 0) return BUILTIN_WRITE_FILE;
+    if (strcmp(name, "Input")           == 0) return BUILTIN_INPUT;
+    if (strcmp(name, "Print")           == 0) return BUILTIN_PRINT;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -728,6 +737,16 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind,
     case BUILTIN_PARALLEL:
         /* Handled separately by type_check_parallel_block */
         return TYPE_VOID;
+
+    /* I/O built-ins */
+    case BUILTIN_FILE_OPEN:   return TYPE_INT;     /* returns fd (Int) */
+    case BUILTIN_FILE_READ:   return TYPE_STRING;   /* returns line (String) */
+    case BUILTIN_FILE_WRITE:  return TYPE_VOID;
+    case BUILTIN_FILE_CLOSE:  return TYPE_VOID;
+    case BUILTIN_READ_FILE:   return TYPE_STRING;   /* returns entire file */
+    case BUILTIN_WRITE_FILE:  return TYPE_VOID;
+    case BUILTIN_INPUT:       return TYPE_STRING;   /* returns user input */
+    case BUILTIN_PRINT:       return TYPE_VOID;
 
     default:
         return TYPE_UNKNOWN;

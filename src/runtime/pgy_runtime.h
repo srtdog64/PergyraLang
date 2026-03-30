@@ -1272,4 +1272,125 @@ pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
 PGY_CHANNEL_DEFINE(Int, int32_t)
 PGY_CHANNEL_DEFINE(String, char*)
 
+/* =================================================================
+ * I/O Built-ins (platform-independent via C stdio)
+ *
+ * File handles use an internal table mapping Int fd → FILE*.
+ * fd 0/1/2 are reserved for stdin/stdout/stderr.
+ * ================================================================= */
+
+#define PGY_MAX_OPEN_FILES 256
+
+static FILE *_pgy_ftable[PGY_MAX_OPEN_FILES];
+static int   _pgy_ftable_next = 3; /* 0=stdin,1=stdout,2=stderr */
+
+static inline void
+_pgy_io_init(void)
+{
+    _pgy_ftable[0] = stdin;
+    _pgy_ftable[1] = stdout;
+    _pgy_ftable[2] = stderr;
+}
+
+/* FileOpen(path, mode) → fd (-1 on error) */
+static inline int32_t
+pgy_file_open(const char *path, const char *mode)
+{
+    if (_pgy_ftable[0] == NULL) _pgy_io_init();
+    FILE *fp = fopen(path, mode);
+    if (fp == NULL) return -1;
+    if (_pgy_ftable_next >= PGY_MAX_OPEN_FILES) { fclose(fp); return -1; }
+    int fd = _pgy_ftable_next++;
+    _pgy_ftable[fd] = fp;
+    return (int32_t)fd;
+}
+
+/* FileRead(fd) → read one line (heap-allocated copy) */
+static inline char *
+pgy_file_read(int32_t fd)
+{
+    char tmp[4096];
+    tmp[0] = '\0';
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL)
+        return strdup("");
+    if (fgets(tmp, sizeof(tmp), _pgy_ftable[fd]) == NULL)
+        return strdup("");
+    size_t len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '\n')
+        tmp[len - 1] = '\0';
+    return strdup(tmp);
+}
+
+/* FileWrite(fd, data) */
+static inline void
+pgy_file_write(int32_t fd, const char *data)
+{
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) return;
+    if (data != NULL)
+        fwrite(data, 1, strlen(data), _pgy_ftable[fd]);
+}
+
+/* FileClose(fd) */
+static inline void
+pgy_file_close(int32_t fd)
+{
+    if (fd < 3 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) return;
+    fclose(_pgy_ftable[fd]);
+    _pgy_ftable[fd] = NULL;
+}
+
+/* ReadFile(path) → entire file as heap-allocated string */
+static inline char *
+pgy_read_file(const char *path)
+{
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) return "";
+    fseek(fp, 0, SEEK_END);
+    long len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if (len < 0) { fclose(fp); return ""; }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) { fclose(fp); return ""; }
+    fread(buf, 1, (size_t)len, fp);
+    buf[len] = '\0';
+    fclose(fp);
+    return buf;
+}
+
+/* WriteFile(path, data) → write entire string to file */
+static inline void
+pgy_write_file(const char *path, const char *data)
+{
+    FILE *fp = fopen(path, "wb");
+    if (fp == NULL) return;
+    if (data != NULL)
+        fwrite(data, 1, strlen(data), fp);
+    fclose(fp);
+}
+
+/* Input(prompt) → read line from stdin */
+static inline char *
+pgy_input(const char *prompt)
+{
+    if (prompt != NULL && prompt[0] != '\0')
+        printf("%s", prompt);
+    fflush(stdout);
+    static char _pgy_input_buf[4096];
+    _pgy_input_buf[0] = '\0';
+    if (fgets(_pgy_input_buf, sizeof(_pgy_input_buf), stdin) == NULL)
+        return _pgy_input_buf;
+    size_t len = strlen(_pgy_input_buf);
+    if (len > 0 && _pgy_input_buf[len - 1] == '\n')
+        _pgy_input_buf[len - 1] = '\0';
+    return _pgy_input_buf;
+}
+
+/* Print(msg) → stdout without newline */
+static inline void
+pgy_print(const char *msg)
+{
+    if (msg != NULL) printf("%s", msg);
+    fflush(stdout);
+}
+
 #endif /* PGY_RUNTIME_H */

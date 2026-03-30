@@ -9,6 +9,27 @@
 
 #include "llvm_internal.h"
 
+static void
+llvm_append_mangled_suffix(char *buf, size_t buf_size, const char *suffix)
+{
+    if (buf == NULL || buf_size == 0 || suffix == NULL)
+        return;
+
+    size_t len = strlen(buf);
+    if (len >= buf_size - 1)
+        return;
+
+    buf[len++] = '_';
+
+    size_t remaining = buf_size - len - 1;
+    size_t suffix_len = strlen(suffix);
+    if (suffix_len > remaining)
+        suffix_len = remaining;
+
+    memcpy(buf + len, suffix, suffix_len);
+    buf[len + suffix_len] = '\0';
+}
+
 static LLVMValueRef
 llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -566,9 +587,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < argc; i++) {
             LLVMTypeRef at = (args[i] != NULL) ? LLVMTypeOf(args[i]) : ctx->type_i32;
             const char *suf = llvm_type_to_suffix(ctx, at);
-            char tmp[256];
-            snprintf(tmp, sizeof(tmp), "%s_%s", mangled, suf);
-            snprintf(mangled, sizeof(mangled), "%s", tmp);
+            llvm_append_mangled_suffix(mangled, sizeof(mangled), suf);
         }
 
         /* Instantiate if not already emitted */

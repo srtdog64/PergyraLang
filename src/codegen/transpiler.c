@@ -978,6 +978,82 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_ALLOCATOR_DEBUG:
     case BUILTIN_ALLOCATOR_POOL:
         return emit_builtin_allocator(call, bk, ctx);
+    /* I/O built-ins */
+    case BUILTIN_FILE_OPEN: {
+        /* FileOpen(path, mode) → pgy_file_open(path, mode) */
+        if (call->data.call.arg_count < 2)
+            return pergyra_strdup("/* FileOpen: need path, mode */");
+        char *path = emit_expression(call->data.call.arguments[0], ctx);
+        char *mode = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_file_open(%s, %s)", path, mode);
+        free(path); free(mode);
+        return result;
+    }
+    case BUILTIN_FILE_READ: {
+        /* FileRead(fd) → pgy_file_read(fd) */
+        if (call->data.call.arg_count < 1)
+            return pergyra_strdup("/* FileRead: need fd */");
+        char *fd = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_file_read(%s)", fd);
+        free(fd);
+        return result;
+    }
+    case BUILTIN_FILE_WRITE: {
+        /* FileWrite(fd, data) → pgy_file_write(fd, data) */
+        if (call->data.call.arg_count < 2)
+            return pergyra_strdup("/* FileWrite: need fd, data */");
+        char *fd   = emit_expression(call->data.call.arguments[0], ctx);
+        char *data = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_file_write(%s, %s)", fd, data);
+        free(fd); free(data);
+        return result;
+    }
+    case BUILTIN_FILE_CLOSE: {
+        /* FileClose(fd) → pgy_file_close(fd) */
+        if (call->data.call.arg_count < 1)
+            return pergyra_strdup("/* FileClose: need fd */");
+        char *fd = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_file_close(%s)", fd);
+        free(fd);
+        return result;
+    }
+    case BUILTIN_READ_FILE: {
+        /* ReadFile(path) → pgy_read_file(path) */
+        if (call->data.call.arg_count < 1)
+            return pergyra_strdup("/* ReadFile: need path */");
+        char *path = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_read_file(%s)", path);
+        free(path);
+        return result;
+    }
+    case BUILTIN_WRITE_FILE: {
+        /* WriteFile(path, data) → pgy_write_file(path, data) */
+        if (call->data.call.arg_count < 2)
+            return pergyra_strdup("/* WriteFile: need path, data */");
+        char *path = emit_expression(call->data.call.arguments[0], ctx);
+        char *data = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_write_file(%s, %s)", path, data);
+        free(path); free(data);
+        return result;
+    }
+    case BUILTIN_INPUT: {
+        /* Input(prompt) → pgy_input(prompt) */
+        char *prompt = (call->data.call.arg_count >= 1)
+            ? emit_expression(call->data.call.arguments[0], ctx)
+            : pergyra_strdup("\"\"");
+        char *result = strdup_fmt("pgy_input(%s)", prompt);
+        free(prompt);
+        return result;
+    }
+    case BUILTIN_PRINT: {
+        /* Print(msg) → pgy_print(msg) */
+        if (call->data.call.arg_count < 1)
+            return pergyra_strdup("/* Print: need msg */");
+        char *msg = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_print(%s)", msg);
+        free(msg);
+        return result;
+    }
     default:
         break;
     }
