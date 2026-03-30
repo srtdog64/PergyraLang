@@ -159,6 +159,7 @@ make test-memory    # 메모리 레이아웃
 - [언어 상태 평가](docs/18_language_status.md)
 - [보안 모드 설계](docs/03_security_mode_design.md)
 - [제네릭 설계](docs/04_generic_design.md)
+- [언어 비전](docs/00_vision.md)
 - [비동기/동시성 설계](docs/05_async_concurrency.md)
 - [개발 현황](docs/17_development_status.md)
 - [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
