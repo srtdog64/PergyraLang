@@ -58,6 +58,7 @@ struct Symbol
     uint32_t   decl_line;
     uint32_t   decl_col;
     bool       is_used;
+    bool       is_consumed;
 
     /* Slot-specific metadata */
     struct

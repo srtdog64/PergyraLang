@@ -1,0 +1,35 @@
+// 양자 자원 시뮬레이션 — Slot 모델이 큐비트 시맨틱을 표현할 수 있음을 증명
+//
+// 1. 복제 불가: QubitSlot은 ClaimQubit()으로만 만들고 복사는 금지
+// 2. 측정 붕괴: Measure() 호출 시 상태가 확정되고 재측정 시 같은 값
+// 3. 얽힘 전파: Entangle(a, b) 후 Measure(a) → b도 같은 값으로 붕괴
+//    현재 구현은 same-value pair 상관관계 모델이다.
+
+func Main() -> Void {
+    // --- 1. 기본 큐비트: 측정 ---
+    let q: QubitSlot = ClaimQubit();
+    Log(QubitState(q));           // 2 (superposition)
+
+    let result: Int = Measure(q);
+    Log(result);                  // 0 or 1 (random)
+    Log(QubitState(q));           // same as result (collapsed)
+
+    // 재측정 — 같은 값
+    let again: Int = Measure(q);
+    Log(again);                   // same as result
+    ReleaseQubit(q);
+
+    // --- 2. 얽힘: 두 큐비트 ---
+    let a: QubitSlot = ClaimQubit();
+    let b: QubitSlot = ClaimQubit();
+    Entangle(a, b);
+
+    // a를 측정하면 b도 같은 값으로 붕괴
+    let ra: Int = Measure(a);
+    let rb: Int = Measure(b);
+    Log(ra);                      // 0 or 1
+    Log(rb);                      // same as ra (entangled)
+
+    ReleaseQubit(a);
+    ReleaseQubit(b);
+}

@@ -32,7 +32,7 @@ OPENMP_FLAGS = -fopenmp
 TMPDIR ?= /tmp
 export TMPDIR
 CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
-DEPFLAGS = -MMD -MP
+DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null)
@@ -105,7 +105,15 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
-                   $(COMPILER_DIR)/hir.c
+                   $(COMPILER_DIR)/hir.c \
+                   $(COMPILER_DIR)/module_loader.c \
+                   $(COMPILER_DIR)/module_normalizer.c \
+                   $(COMPILER_DIR)/import_resolver.c \
+                   $(COMPILER_DIR)/driver_app.c \
+                   $(COMPILER_DIR)/path_utils.c \
+                   $(COMPILER_DIR)/llvm_runner.c \
+                   $(COMPILER_DIR)/c_runner.c \
+                   $(COMPILER_DIR)/repl.c
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifdef LLVM_ENABLED
@@ -248,7 +256,8 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -c -o $@ $<
+	@sed -i 's#\([A-Za-z]\):/#\1\\:/#g' $(@:.o=.d)
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
@@ -393,4 +402,6 @@ lsp: $(PGY_LSP)
         llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all \
         example-hello example-slots llvm emit-llvm-% lsp
 
+ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
 -include $(shell find $(BUILD_DIR) -name "*.d" 2>/dev/null)
+endif

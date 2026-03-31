@@ -164,6 +164,62 @@ make test-memory    # 메모리 레이아웃
 - [개발 현황](docs/17_development_status.md)
 - [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
 
+## 양자 컴퓨팅 대응 설계
+
+Pergyra의 Slot 모델은 클래식 메모리 관리를 넘어, 양자 자원 제어의 기반으로 설계되었습니다.
+
+### 1. 복제 불가 정리(No-Cloning Theorem)와 Slot
+
+고전 컴퓨터에서는 포인터로 메모리를 무한정 복사(`copy = *ptr`)할 수 있지만,
+양자 역학의 복제 불가 정리에 의해 임의의 큐비트 상태는 완벽하게 복사할 수 없습니다.
+
+Pergyra가 메모리 주소를 숨기고 자원을 Slot 단위로 추상화하여,
+복사 대신 점유(Claim)하고 반환(Release)하도록 강제한 구조는
+양자 정보 이론의 선형 논리(Linear Logic)와 일치합니다.
+큐비트는 변수처럼 대입되는 것이 아니라, Slot처럼 물리적 흐름으로 전달되어야 합니다.
+
+### 2. 관측에 의한 붕괴(Measurement Collapse)와 권한 제어
+
+큐비트는 관측(Read)하는 순간 중첩 상태가 붕괴되어 0 또는 1로 확정됩니다.
+"누가 언제 자원을 읽느냐"가 데이터의 상태를 영구적으로 파괴하는 물리적 행위가 됩니다.
+
+SecureSlot과 Party 시스템이 자원 접근을 토큰과 권한 기반으로 통제하는 것은,
+큐비트의 관측 시점을 컴파일 타임에 엄격하게 제어하고
+의도치 않은 상태 붕괴를 막기 위한 방어 메커니즘으로 발전할 수 있습니다.
+
+### 3. 양자 얽힘(Entanglement)과 댕글링 문제
+
+두 큐비트가 얽혀 있으면, A에 대한 측정이 B의 상태를 즉각 변화시킵니다.
+이것은 고전 컴퓨팅의 댕글링 포인터와 구조적으로 동일한 문제입니다:
+
+| 고전 (포인터) | 양자 (큐비트) |
+|--------------|--------------|
+| `free(a)` 후 `*b`가 댕글링 | `Measure(a)` 후 `b`가 붕괴됨을 모르는 상태 |
+| 해결: Slot의 Release 추적 | 해결: 얽힘 관계 그래프 + Measure 전파 추적 |
+
+Pergyra의 Party 시스템이 이 문제를 풀 수 있는 구조를 가지고 있습니다:
+
+```pergyra
+// 미래 — 얽힘 = Party 관계로 추적
+party EntangledPair {
+    role qubitA: QubitSlot;
+    role qubitB: QubitSlot;
+}
+
+let pair: EntangledPair = Entangle(ClaimQubit(), ClaimQubit());
+let resultA: Bool = Measure(pair.qubitA);
+// pair.qubitB는 이제 COLLAPSED — 게이트 연산 불가
+// 컴파일러가 Measure 전파를 추적하여 댕글링 얽힘을 방지
+```
+
+### 4. 한계와 도전 과제
+
+- **얽힘 상태 추적**: `slot_analyzer`가 독립 자원의 생명주기는 추적하지만, 얽힌 자원 간 상태 전파 모델링이 필요
+- **가역 연산**: 관측 외의 모든 양자 게이트는 유니터리(가역적)여야 함 — 파괴적 대입 연산은 양자에서 불가능
+- **선형 타입 시스템**: Slot의 단일 소유권을 Linear/Affine 타입으로 정식화해야 컴파일 타임 검증이 완전해짐
+
+자세한 내용은 [설계 비전 문서](docs/00_vision.md)를 참조하세요.
+
 ## 라이센스
 
 BSD 3-Clause License. [LICENSE](LICENSE) 참조.

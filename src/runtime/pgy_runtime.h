@@ -1519,4 +1519,110 @@ StringConcat(const char *a, const char *b)
     return buf;
 }
 
+/* =================================================================
+ * QubitSlot — Quantum Resource Simulation
+ *
+ * Demonstrates that Pergyra's Slot model can express quantum
+ * resource semantics: no-cloning, measurement collapse, entanglement.
+ *
+ * States: 0 = |0>, 1 = |1>, 2 = superposition, -1 = collapsed
+ * ================================================================= */
+
+#define PGY_QUBIT_MAX 64
+
+typedef struct {
+    int32_t state;       /* 0=|0>, 1=|1>, 2=superposition, -1=collapsed */
+    int32_t partner;     /* entangled partner id, -1 if none */
+    bool    measured;
+} PgyQubit;
+
+static PgyQubit _pgy_qubits[PGY_QUBIT_MAX];
+static int32_t  _pgy_qubit_next = 0;
+static bool     _pgy_qubit_rng_init = false;
+
+/* ClaimQubit() → allocate a qubit in superposition */
+static inline int32_t
+ClaimQubit(void)
+{
+    if (!_pgy_qubit_rng_init) {
+        srand((unsigned)time(NULL));
+        _pgy_qubit_rng_init = true;
+    }
+    if (_pgy_qubit_next >= PGY_QUBIT_MAX) return -1;
+    int32_t id = _pgy_qubit_next++;
+    _pgy_qubits[id].state    = 2; /* superposition */
+    _pgy_qubits[id].partner  = -1;
+    _pgy_qubits[id].measured = false;
+    return id;
+}
+
+/* Measure(qubit) → collapse superposition, return 0 or 1 */
+static inline int32_t
+Measure(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX) return -1;
+    PgyQubit *q = &_pgy_qubits[id];
+
+    if (q->measured) {
+        /* Already collapsed — return cached result */
+        return q->state;
+    }
+
+    /* Collapse superposition */
+    if (q->state == 2) {
+        q->state = rand() % 2;  /* random 0 or 1 */
+    }
+    q->measured = true;
+
+    /* Propagate to entangled partner */
+    if (q->partner >= 0) {
+        PgyQubit *p = &_pgy_qubits[q->partner];
+        if (!p->measured) {
+            p->state = q->state;  /* correlated collapse */
+            p->measured = true;
+        }
+    }
+
+    return q->state;
+}
+
+/* Entangle(a, b) → link two qubits */
+static inline void
+Entangle(int32_t a, int32_t b)
+{
+    if (a < 0 || a >= PGY_QUBIT_MAX || b < 0 || b >= PGY_QUBIT_MAX) return;
+    _pgy_qubits[a].partner = b;
+    _pgy_qubits[b].partner = a;
+}
+
+/* QubitState(q) → 0=|0>, 1=|1>, 2=superposition */
+static inline int32_t
+QubitState(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX) return -1;
+    return _pgy_qubits[id].state;
+}
+
+/* IsCollapsed(q) → true if already measured */
+static inline bool
+IsCollapsed(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX) return true;
+    return _pgy_qubits[id].measured;
+}
+
+/* ReleaseQubit(q) → release quantum resource */
+static inline void
+ReleaseQubit(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX) return;
+    _pgy_qubits[id].state = -1;
+    _pgy_qubits[id].measured = true;
+    /* Release partner's entanglement link */
+    int32_t p = _pgy_qubits[id].partner;
+    if (p >= 0 && p < PGY_QUBIT_MAX)
+        _pgy_qubits[p].partner = -1;
+    _pgy_qubits[id].partner = -1;
+}
+
 #endif /* PGY_RUNTIME_H */

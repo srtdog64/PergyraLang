@@ -609,6 +609,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (strcmp(type_name, "Double") == 0) return ctx->type_f64;
     if (strcmp(type_name, "Bool") == 0)   return ctx->type_i1;
     if (strcmp(type_name, "String") == 0) return ctx->type_i8ptr;
+    if (strcmp(type_name, "QubitSlot") == 0) return ctx->type_i32;
     if (strcmp(type_name, "Void") == 0)   return ctx->type_void;
 
     /* Generic container types */
@@ -822,6 +823,18 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             { "pgy_file_write", ctx->type_void,
               { ctx->type_i32, ctx->type_i8ptr }, 2 },
             { "pgy_file_close", ctx->type_void,
+              { ctx->type_i32 }, 1 },
+            { "ClaimQubit", ctx->type_i32,
+              { 0 }, 0 },
+            { "Measure", ctx->type_i32,
+              { ctx->type_i32 }, 1 },
+            { "Entangle", ctx->type_void,
+              { ctx->type_i32, ctx->type_i32 }, 2 },
+            { "QubitState", ctx->type_i32,
+              { ctx->type_i32 }, 1 },
+            { "IsCollapsed", ctx->type_i1,
+              { ctx->type_i32 }, 1 },
+            { "ReleaseQubit", ctx->type_void,
               { ctx->type_i32 }, 1 },
         };
 

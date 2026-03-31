@@ -21,6 +21,7 @@ Type *TYPE_FLOAT  = NULL;
 Type *TYPE_DOUBLE = NULL;
 Type *TYPE_BOOL   = NULL;
 Type *TYPE_STRING = NULL;
+Type *TYPE_QUBIT = NULL;
 Type *TYPE_VOID   = NULL;
 Type *TYPE_UNKNOWN = NULL; /* Sentinel for error recovery */
 Type *TYPE_ARRAY  = NULL;
@@ -44,6 +45,7 @@ type_system_init(void)
     TYPE_DOUBLE = type_create_primitive("Double", 8, false);
     TYPE_BOOL   = type_create_primitive("Bool",   1, false);
     TYPE_STRING = type_create_primitive("String", 0, false);
+    TYPE_QUBIT  = type_create_primitive("QubitSlot", 4, false);
     TYPE_VOID   = type_create_primitive("Void",   0, false);
     TYPE_UNKNOWN = type_create_primitive("<unknown>", 0, false);
     TYPE_ARRAY  = type_create_primitive("Array",  0, false);
@@ -65,6 +67,7 @@ type_system_cleanup(void)
     free(TYPE_DOUBLE->name); free(TYPE_DOUBLE);
     free(TYPE_BOOL->name);   free(TYPE_BOOL);
     free(TYPE_STRING->name); free(TYPE_STRING);
+    free(TYPE_QUBIT->name);  free(TYPE_QUBIT);
     free(TYPE_VOID->name);   free(TYPE_VOID);
     free(TYPE_UNKNOWN->name);free(TYPE_UNKNOWN);
     free(TYPE_ARRAY->name);  free(TYPE_ARRAY);
@@ -77,7 +80,7 @@ type_system_cleanup(void)
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
-    TYPE_BOOL = TYPE_STRING = TYPE_VOID = TYPE_UNKNOWN =
+    TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
     TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_ALLOCATOR = NULL;
 }

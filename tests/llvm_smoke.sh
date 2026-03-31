@@ -121,3 +121,27 @@ func Main() -> Void {
 }
 EOF
 run_case "role_operator_overload" "$TMPDIR/role_operator_overload.pgy" "123"
+
+cat > "$TMPDIR/qubit_slot.pgy" <<'EOF'
+func Main() -> Void {
+    let q: QubitSlot = ClaimQubit();
+    Log(QubitState(q));
+    let first: Int = Measure(q);
+    let second: Int = Measure(q);
+    Log(first);
+    Log(second);
+
+    let a: QubitSlot = ClaimQubit();
+    let b: QubitSlot = ClaimQubit();
+    Entangle(a, b);
+    let ra: Int = Measure(a);
+    let rb: Int = Measure(b);
+    Log(ra);
+    Log(rb);
+
+    ReleaseQubit(q);
+    ReleaseQubit(a);
+    ReleaseQubit(b);
+}
+EOF
+run_case "qubit_slot" "$TMPDIR/qubit_slot.pgy" "2"

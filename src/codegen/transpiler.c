@@ -482,6 +482,7 @@ pergyra_primitive_to_c(const char *name)
     if (strcmp(name, "Double") == 0) return "double";
     if (strcmp(name, "Bool")   == 0) return "bool";
     if (strcmp(name, "String") == 0) return "char*";
+    if (strcmp(name, "QubitSlot") == 0) return "int32_t";
     if (strcmp(name, "Void")   == 0) return "void";
     /* Single uppercase letter = generic type parameter → void* (type erasure) */
     if (name[0] >= 'A' && name[0] <= 'Z' && name[1] == '\0')
@@ -707,6 +708,19 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         return "Int";
     }
+    case AST_CALL:
+        if (expr->data.call.callee != NULL
+            && expr->data.call.callee->type == AST_IDENTIFIER
+            && expr->data.call.callee->data.identifier.name != NULL) {
+            const char *name = expr->data.call.callee->data.identifier.name;
+            if (strcmp(name, "ClaimQubit") == 0)
+                return "QubitSlot";
+            if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
+                return "Int";
+            if (strcmp(name, "IsCollapsed") == 0)
+                return "Bool";
+        }
+        return "Int";
     default:
         return "Int";
     }

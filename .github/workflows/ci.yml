@@ -42,16 +42,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup MinGW
-        uses: egor-tensin/setup-mingw@v2
+      - name: Setup MSYS2 MinGW
+        uses: msys2/setup-msys2@v2
         with:
-          platform: x64
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
 
       - name: Build (C backend only)
-        run: mingw32-make LLVM_ENABLED=0
+        shell: msys2 {0}
+        run: make LLVM_ENABLED=0
 
       - name: Run semantic tests
-        run: bin\test_semantic.exe
+        shell: msys2 {0}
+        run: ./bin/test_semantic.exe
 
       - name: Run transpiler tests
-        run: bin\test_transpile.exe
+        shell: msys2 {0}
+        run: ./bin/test_transpile.exe

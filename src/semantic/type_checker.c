@@ -66,6 +66,23 @@ static void
 emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
                  const ASTNode *node, const char *fmt, va_list ap)
 {
+    char buf[512];
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+
+    for (size_t i = 0; i < ctx->diagnostic_count; i++) {
+        Diagnostic *existing = ctx->diagnostics[i];
+        if (existing == NULL)
+            continue;
+        if (existing->level != level)
+            continue;
+        if (existing->line != (node ? node->line : 0)
+            || existing->col != (node ? node->column : 0)) {
+            continue;
+        }
+        if (existing->message != NULL && strcmp(existing->message, buf) == 0)
+            return;
+    }
+
     if (ctx->diagnostic_count >= ctx->diagnostic_capacity) {
         size_t new_cap = ctx->diagnostic_capacity * 2;
         Diagnostic **grown = realloc(ctx->diagnostics,
@@ -83,9 +100,6 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
     d->level = level;
     d->line  = node ? node->line   : 0;
     d->col   = node ? node->column : 0;
-
-    char buf[512];
-    vsnprintf(buf, sizeof(buf), fmt, ap);
     d->message = pergyra_strdup(buf);
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
@@ -138,6 +152,7 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "Double") == 0) return TYPE_DOUBLE;
     if (strcmp(name, "Bool")   == 0) return TYPE_BOOL;
     if (strcmp(name, "String") == 0) return TYPE_STRING;
+    if (strcmp(name, "QubitSlot") == 0) return TYPE_QUBIT;
     if (strcmp(name, "Void")   == 0) return TYPE_VOID;
     if (strcmp(name, "Array")  == 0) return TYPE_ARRAY;
     if (strcmp(name, "Slice")  == 0) return TYPE_SLICE;
@@ -172,6 +187,310 @@ type_is_constructed_named(const Type *type, const char *name)
         && type->kind == TYPE_KIND_CONSTRUCTED
         && type->data.constructed.constructor != NULL
         && strcmp(type->data.constructed.constructor->name, name) == 0;
+}
+
+static bool
+type_is_qubit(const Type *type)
+{
+    if (type == NULL)
+        return false;
+    if (TYPE_QUBIT != NULL && type_equals(type, TYPE_QUBIT))
+        return true;
+    return type->name != NULL && strcmp(type->name, "QubitSlot") == 0;
+}
+
+static bool
+expr_is_qubit_claim(const ASTNode *expr)
+{
+    return expr != NULL
+        && expr->type == AST_CALL
+        && expr->data.call.callee != NULL
+        && expr->data.call.callee->type == AST_IDENTIFIER
+        && expr->data.call.callee->data.identifier.name != NULL
+        && strcmp(expr->data.call.callee->data.identifier.name, "ClaimQubit") == 0;
+}
+
+typedef struct
+{
+    Symbol **symbols;
+    bool    *states;
+    size_t   count;
+} QubitConsumeSnapshot;
+
+typedef enum
+{
+    FLOW_NONE        = 0,
+    FLOW_FALLTHROUGH = 1 << 0,
+    FLOW_BREAK       = 1 << 1,
+    FLOW_CONTINUE    = 1 << 2,
+    FLOW_RETURN      = 1 << 3
+} FlowFlags;
+
+typedef struct
+{
+    QubitConsumeSnapshot break_states;
+    QubitConsumeSnapshot continue_states;
+    bool                 has_break_states;
+    bool                 has_continue_states;
+} LoopFlowState;
+
+static FlowFlags type_check_statement_flow(ASTNode *node,
+                                           SemanticContext *ctx,
+                                           LoopFlowState *loop_flow);
+static FlowFlags type_check_block_flow(ASTNode *node,
+                                       SemanticContext *ctx,
+                                       LoopFlowState *loop_flow);
+static FlowFlags type_check_if_stmt_flow(ASTNode *node,
+                                         SemanticContext *ctx,
+                                         LoopFlowState *loop_flow);
+static FlowFlags type_check_match_stmt_flow(ASTNode *node,
+                                            SemanticContext *ctx,
+                                            LoopFlowState *loop_flow);
+static FlowFlags type_check_with_stmt_flow(ASTNode *node,
+                                           SemanticContext *ctx,
+                                           LoopFlowState *loop_flow);
+
+static QubitConsumeSnapshot
+snapshot_qubit_states(SemanticContext *ctx)
+{
+    QubitConsumeSnapshot snap = {0};
+    Scope *scope = ctx != NULL ? ctx->scope : NULL;
+
+    while (scope != NULL) {
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *sym = scope->symbols[i];
+            if (sym == NULL || !type_is_qubit(sym->type))
+                continue;
+
+            Symbol **new_symbols = realloc(snap.symbols,
+                (snap.count + 1) * sizeof(Symbol *));
+            bool *new_states = realloc(snap.states,
+                (snap.count + 1) * sizeof(bool));
+            if (new_symbols == NULL || new_states == NULL) {
+                free(new_symbols);
+                free(new_states);
+                free(snap.symbols);
+                free(snap.states);
+                snap.symbols = NULL;
+                snap.states = NULL;
+                snap.count = 0;
+                return snap;
+            }
+
+            snap.symbols = new_symbols;
+            snap.states = new_states;
+            snap.symbols[snap.count] = sym;
+            snap.states[snap.count] = sym->is_consumed;
+            snap.count++;
+        }
+        scope = scope->parent;
+    }
+
+    return snap;
+}
+
+static void
+restore_qubit_states(const QubitConsumeSnapshot *snap)
+{
+    if (snap == NULL)
+        return;
+    for (size_t i = 0; i < snap->count; i++) {
+        if (snap->symbols[i] != NULL)
+            snap->symbols[i]->is_consumed = snap->states[i];
+    }
+}
+
+static void
+merge_qubit_states_or(QubitConsumeSnapshot *dst,
+                      const QubitConsumeSnapshot *src)
+{
+    if (dst == NULL || src == NULL)
+        return;
+    size_t count = dst->count < src->count ? dst->count : src->count;
+    for (size_t i = 0; i < count; i++)
+        dst->states[i] = dst->states[i] || src->states[i];
+}
+
+static void
+destroy_qubit_snapshot(QubitConsumeSnapshot *snap)
+{
+    if (snap == NULL)
+        return;
+    free(snap->symbols);
+    free(snap->states);
+    snap->symbols = NULL;
+    snap->states = NULL;
+    snap->count = 0;
+}
+
+static bool
+qubit_snapshots_equal(const QubitConsumeSnapshot *a,
+                      const QubitConsumeSnapshot *b)
+{
+    if (a == NULL || b == NULL)
+        return a == b;
+    if (a->count != b->count)
+        return false;
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->symbols[i] != b->symbols[i])
+            return false;
+        if (a->states[i] != b->states[i])
+            return false;
+    }
+    return true;
+}
+
+static size_t
+for_loop_known_iteration_cap(const ASTNode *node, bool *known)
+{
+    if (known != NULL)
+        *known = false;
+    if (node == NULL
+        || node->data.for_loop.range_start == NULL
+        || node->data.for_loop.range_end == NULL) {
+        return 0;
+    }
+    if (node->data.for_loop.range_start->type != AST_NUMBER
+        || node->data.for_loop.range_end->type != AST_NUMBER) {
+        return 0;
+    }
+
+    double start = node->data.for_loop.range_start->data.number.value;
+    double end = node->data.for_loop.range_end->data.number.value;
+    if (known != NULL)
+        *known = true;
+    if (end <= start)
+        return 0;
+    if ((end - start) <= 1.0)
+        return 1;
+    return 2;
+}
+
+static QubitConsumeSnapshot
+copy_qubit_snapshot(const QubitConsumeSnapshot *src)
+{
+    QubitConsumeSnapshot dst = {0};
+    if (src == NULL || src->count == 0)
+        return dst;
+
+    dst.symbols = calloc(src->count, sizeof(Symbol *));
+    dst.states = calloc(src->count, sizeof(bool));
+    if (dst.symbols == NULL || dst.states == NULL) {
+        free(dst.symbols);
+        free(dst.states);
+        dst.symbols = NULL;
+        dst.states = NULL;
+        return dst;
+    }
+
+    memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
+    memcpy(dst.states, src->states, src->count * sizeof(bool));
+    dst.count = src->count;
+    return dst;
+}
+
+static void
+merge_qubit_snapshots_or(QubitConsumeSnapshot *dst,
+                         bool *dst_initialized,
+                         const QubitConsumeSnapshot *src)
+{
+    if (dst == NULL || dst_initialized == NULL || src == NULL)
+        return;
+
+    if (!*dst_initialized) {
+        *dst = copy_qubit_snapshot(src);
+        *dst_initialized = true;
+        return;
+    }
+
+    merge_qubit_states_or(dst, src);
+}
+
+static void
+loop_flow_record(LoopFlowState *loop_flow,
+                 bool is_break,
+                 const QubitConsumeSnapshot *state)
+{
+    if (loop_flow == NULL || state == NULL)
+        return;
+
+    if (is_break) {
+        merge_qubit_snapshots_or(&loop_flow->break_states,
+                                 &loop_flow->has_break_states,
+                                 state);
+        return;
+    }
+
+    merge_qubit_snapshots_or(&loop_flow->continue_states,
+                             &loop_flow->has_continue_states,
+                             state);
+}
+
+static void
+destroy_loop_flow_state(LoopFlowState *loop_flow)
+{
+    if (loop_flow == NULL)
+        return;
+    destroy_qubit_snapshot(&loop_flow->break_states);
+    destroy_qubit_snapshot(&loop_flow->continue_states);
+    loop_flow->has_break_states = false;
+    loop_flow->has_continue_states = false;
+}
+
+static Symbol *
+lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx)
+{
+    if (expr == NULL || expr->type != AST_IDENTIFIER
+        || expr->data.identifier.name == NULL) {
+        return NULL;
+    }
+    return scope_lookup(ctx->scope, expr->data.identifier.name);
+}
+
+static bool
+consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_qubit(sym->type))
+        return false;
+
+    if (sym->is_consumed) {
+        return false;
+    }
+
+    sym->is_consumed = true;
+    sym->is_used = true;
+    (void)action;
+    return true;
+}
+
+static Type *
+type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
+{
+    if (expr != NULL && expr->type == AST_IDENTIFIER) {
+        Symbol *sym = lookup_identifier_symbol(expr, ctx);
+        if (sym == NULL) {
+            semantic_error(ctx, expr,
+                "Undefined symbol '%s'",
+                expr->data.identifier.name);
+            return TYPE_UNKNOWN;
+        }
+        if (!type_is_qubit(sym->type)) {
+            semantic_error(ctx, expr,
+                "Expected QubitSlot, got '%s'", sym->type->name);
+            return TYPE_UNKNOWN;
+        }
+        if (sym->is_consumed) {
+            semantic_error(ctx, expr,
+                "QubitSlot '%s' was moved or released and cannot be used again",
+                expr->data.identifier.name);
+            return TYPE_UNKNOWN;
+        }
+        sym->is_used = true;
+        return sym->type;
+    }
+
+    return type_check_expression(expr, ctx);
 }
 
 static Type *
@@ -303,6 +622,13 @@ builtin_resolve(const char *name)
     if (strcmp(name, "ToUpper")         == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "ToLower")         == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringConcat")    == 0) return BUILTIN_NOT_BUILTIN;
+    /* Quantum simulation builtins */
+    if (strcmp(name, "ClaimQubit")      == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "Measure")         == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "Entangle")        == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "QubitState")      == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "IsCollapsed")     == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "ReleaseQubit")    == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "FileOpen")        == 0) return BUILTIN_FILE_OPEN;
     if (strcmp(name, "FileRead")        == 0) return BUILTIN_FILE_READ;
     if (strcmp(name, "FileWrite")       == 0) return BUILTIN_FILE_WRITE;
@@ -859,6 +1185,51 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_VOID;
     }
 
+    /* Quantum resource builtins */
+    if (strcmp(name, "ClaimQubit") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        return TYPE_QUBIT;
+    }
+    if (strcmp(name, "Measure") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "Entangle") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[1], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[1], ctx);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "QubitState") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "IsCollapsed") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "ReleaseQubit") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
+        return TYPE_VOID;
+    }
+
     return NULL;
 }
 
@@ -1171,6 +1542,12 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 expr->data.identifier.name);
             return TYPE_UNKNOWN;
         }
+        if (type_is_qubit(sym->type) && sym->is_consumed) {
+            semantic_error(ctx, expr,
+                "QubitSlot '%s' was moved or released and cannot be used again",
+                expr->data.identifier.name);
+            return TYPE_UNKNOWN;
+        }
         sym->is_used = true;
         return sym->type;
     }
@@ -1362,10 +1739,25 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
         /* Argument type check */
         for (size_t i = 0; i < provided; i++) {
-            Type *arg_type = type_check_expression(
-                expr->data.call.arguments[i], ctx);
             Type *param_type =
                 sym->type->data.function.param_types[i];
+            Type *arg_type = type_is_qubit(param_type)
+                ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
+                : type_check_expression(expr->data.call.arguments[i], ctx);
+            if (type_is_qubit(arg_type) || type_is_qubit(param_type)) {
+                if (!type_is_qubit(arg_type) || !type_is_qubit(param_type)) {
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "QubitSlot argument type mismatch");
+                    continue;
+                }
+                if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                    semantic_error(ctx, expr->data.call.arguments[i],
+                        "QubitSlot arguments must be moved from a named variable");
+                    continue;
+                }
+                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+                continue;
+            }
             require_assignable(arg_type, param_type,
                                expr->data.call.arguments[i], ctx);
         }
@@ -1459,6 +1851,12 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
     Type *value_type  = type_check_expression(expr->data.assignment.value,  ctx);
     Type *target_type = type_check_expression(expr->data.assignment.target, ctx);
+
+    if (type_is_qubit(target_type) || type_is_qubit(value_type)) {
+        semantic_error(ctx, expr,
+            "QubitSlot assignment is not allowed; quantum handles cannot be copied or rebound");
+        return target_type;
+    }
 
     require_assignable(value_type, target_type, expr, ctx);
     return target_type;
@@ -1560,6 +1958,26 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = TYPE_UNKNOWN;
     }
 
+    if (type_is_qubit(decl_type)) {
+        bool valid_qubit_init = false;
+        if (init_type == TYPE_UNKNOWN) {
+            valid_qubit_init = true;
+        } else if (expr_is_qubit_claim(init)) {
+            valid_qubit_init = true;
+        } else if (init != NULL && init_type != NULL && type_is_qubit(init_type)) {
+            if (init->type == AST_IDENTIFIER) {
+                valid_qubit_init = true;
+                consume_qubit_value(init, ctx, "moved");
+            } else if (init->type == AST_CALL) {
+                valid_qubit_init = true;
+            }
+        }
+        if (!valid_qubit_init) {
+            semantic_error(ctx, node,
+                "QubitSlot values must come from ClaimQubit() or a moved QubitSlot value");
+        }
+    }
+
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
         Symbol *sym = symbol_create_slot(name, decl_type,
             decl_type->data.slot.is_secure, NULL, node->line, node->column);
@@ -1586,28 +2004,255 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
+    if (node->data.return_stmt.value != NULL
+        && type_is_qubit(ret_type)
+        && node->data.return_stmt.value->type == AST_IDENTIFIER) {
+        consume_qubit_value(node->data.return_stmt.value, ctx, "returned");
+    }
+
     return !ctx->has_error;
 }
 
-bool
-type_check_if_stmt(ASTNode *node, SemanticContext *ctx)
+static FlowFlags
+type_check_block_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
+{
+    if (node == NULL)
+        return FLOW_FALLTHROUGH;
+
+    if (node->type != AST_BLOCK)
+        return type_check_statement_flow(node, ctx, loop_flow);
+
+    FlowFlags flags = FLOW_FALLTHROUGH;
+    for (size_t i = 0; i < node->data.block.count; i++) {
+        if ((flags & FLOW_FALLTHROUGH) == 0)
+            break;
+
+        FlowFlags stmt_flags =
+            type_check_statement_flow(node->data.block.statements[i], ctx, loop_flow);
+
+        flags &= ~FLOW_FALLTHROUGH;
+        flags |= (stmt_flags & (FLOW_FALLTHROUGH
+                              | FLOW_BREAK
+                              | FLOW_CONTINUE
+                              | FLOW_RETURN));
+    }
+
+    return flags;
+}
+
+static FlowFlags
+type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
 {
     Type *cond = type_check_expression(node->data.if_stmt.condition, ctx);
+    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
+    QubitConsumeSnapshot fallthrough = {0};
+    bool has_fallthrough = false;
+    FlowFlags flags = FLOW_NONE;
+    FlowFlags then_flags = FLOW_NONE;
+
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error(ctx, node,
             "If condition must be Bool, got '%s'", cond->name);
     }
 
+    restore_qubit_states(&base);
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    type_check_block(node->data.if_stmt.then_branch, ctx);
+    then_flags = type_check_block_flow(node->data.if_stmt.then_branch, ctx, loop_flow);
     scope_exit(&ctx->scope);
-
-    if (node->data.if_stmt.else_branch != NULL) {
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        type_check_statement(node->data.if_stmt.else_branch, ctx);
-        scope_exit(&ctx->scope);
+    flags |= (then_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
+    if (then_flags & FLOW_FALLTHROUGH) {
+        QubitConsumeSnapshot then_snap = snapshot_qubit_states(ctx);
+        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
+        destroy_qubit_snapshot(&then_snap);
+        flags |= FLOW_FALLTHROUGH;
     }
 
+    if (node->data.if_stmt.else_branch != NULL) {
+        FlowFlags else_flags = FLOW_NONE;
+        restore_qubit_states(&base);
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        else_flags =
+            type_check_statement_flow(node->data.if_stmt.else_branch, ctx, loop_flow);
+        scope_exit(&ctx->scope);
+        flags |= (else_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
+        if (else_flags & FLOW_FALLTHROUGH) {
+            QubitConsumeSnapshot else_snap = snapshot_qubit_states(ctx);
+            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
+            destroy_qubit_snapshot(&else_snap);
+            flags |= FLOW_FALLTHROUGH;
+        }
+    } else {
+        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &base);
+        flags |= FLOW_FALLTHROUGH;
+    }
+
+    if (has_fallthrough)
+        restore_qubit_states(&fallthrough);
+    else
+        restore_qubit_states(&base);
+
+    destroy_qubit_snapshot(&base);
+    destroy_qubit_snapshot(&fallthrough);
+    return flags;
+}
+
+static FlowFlags
+type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
+{
+    Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
+    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
+    QubitConsumeSnapshot fallthrough = {0};
+    bool has_fallthrough = false;
+    FlowFlags flags = FLOW_NONE;
+
+    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+        ASTNode *mc = node->data.match_stmt.cases[i];
+
+        restore_qubit_states(&base);
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+
+        if (mc->data.match_case.pattern != NULL) {
+            Type *pat_type = type_check_expression(mc->data.match_case.pattern, ctx);
+            if (!type_is_assignable(pat_type, subj_type) &&
+                !type_is_assignable(subj_type, pat_type)) {
+                semantic_error(ctx, mc->data.match_case.pattern,
+                    "Case pattern type '%s' incompatible with match subject '%s'",
+                    pat_type->name, subj_type->name);
+            }
+        }
+
+        if (mc->data.match_case.guard != NULL) {
+            Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
+            if (!type_equals(guard_type, TYPE_BOOL)) {
+                semantic_error(ctx, mc->data.match_case.guard,
+                    "Case guard must be Bool, got '%s'", guard_type->name);
+            }
+        }
+
+        FlowFlags case_flags =
+            type_check_block_flow(mc->data.match_case.body, ctx, loop_flow);
+        scope_exit(&ctx->scope);
+        flags |= (case_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
+        if (case_flags & FLOW_FALLTHROUGH) {
+            QubitConsumeSnapshot case_snap = snapshot_qubit_states(ctx);
+            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &case_snap);
+            destroy_qubit_snapshot(&case_snap);
+            flags |= FLOW_FALLTHROUGH;
+        }
+    }
+
+    if (node->data.match_stmt.default_body != NULL) {
+        FlowFlags default_flags = FLOW_NONE;
+        restore_qubit_states(&base);
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        default_flags =
+            type_check_block_flow(node->data.match_stmt.default_body, ctx, loop_flow);
+        scope_exit(&ctx->scope);
+        flags |= (default_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
+        if (default_flags & FLOW_FALLTHROUGH) {
+            QubitConsumeSnapshot default_snap = snapshot_qubit_states(ctx);
+            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &default_snap);
+            destroy_qubit_snapshot(&default_snap);
+            flags |= FLOW_FALLTHROUGH;
+        }
+    } else {
+        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &base);
+        flags |= FLOW_FALLTHROUGH;
+    }
+
+    if (has_fallthrough)
+        restore_qubit_states(&fallthrough);
+    else
+        restore_qubit_states(&base);
+
+    destroy_qubit_snapshot(&base);
+    destroy_qubit_snapshot(&fallthrough);
+    return flags;
+}
+
+static FlowFlags
+type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
+{
+    scope_enter(&ctx->scope, SCOPE_WITH);
+
+    ASTNode *slot_type_node = node->data.with_stmt.slot_type;
+    const char *alias       = node->data.with_stmt.alias;
+    bool is_secure          = node->data.with_stmt.is_secure;
+
+    Type *inner = resolve_type_node(slot_type_node, ctx);
+    Type *slot_type = type_create_slot(inner, is_secure);
+
+    Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,
+                                     node->line, node->column);
+    scope_declare(ctx->scope, sym);
+    scope_register_slot(ctx->scope, sym);
+
+    FlowFlags flags =
+        type_check_block_flow(node->data.with_stmt.body, ctx, loop_flow);
+
+    scope_auto_release_slots(ctx->scope);
+    scope_exit(&ctx->scope);
+    return flags;
+}
+
+static FlowFlags
+type_check_statement_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
+{
+    if (node == NULL)
+        return FLOW_FALLTHROUGH;
+
+    switch (node->type) {
+    case AST_BLOCK:
+        return type_check_block_flow(node, ctx, loop_flow);
+    case AST_IF_STMT:
+        return type_check_if_stmt_flow(node, ctx, loop_flow);
+    case AST_MATCH_STMT:
+        return type_check_match_stmt_flow(node, ctx, loop_flow);
+    case AST_WITH_STMT:
+        return type_check_with_stmt_flow(node, ctx, loop_flow);
+    case AST_UNSAFE_BLOCK:
+        if (node->data.unsafe_block.body != NULL)
+            return type_check_block_flow(node->data.unsafe_block.body, ctx, loop_flow);
+        return FLOW_FALLTHROUGH;
+    case AST_DEFER_STMT:
+        if (node->data.defer_stmt.body != NULL)
+            return type_check_block_flow(node->data.defer_stmt.body, ctx, loop_flow);
+        return FLOW_FALLTHROUGH;
+    case AST_RETURN:
+        type_check_return_stmt(node, ctx);
+        return FLOW_RETURN;
+    case AST_BREAK:
+        if (ctx->loop_depth <= 0) {
+            semantic_error(ctx, node, "'break' used outside of loop");
+            return FLOW_NONE;
+        }
+        {
+            QubitConsumeSnapshot snap = snapshot_qubit_states(ctx);
+            loop_flow_record(loop_flow, true, &snap);
+            destroy_qubit_snapshot(&snap);
+        }
+        return FLOW_BREAK;
+    case AST_CONTINUE:
+        if (ctx->loop_depth <= 0) {
+            semantic_error(ctx, node, "'continue' used outside of loop");
+            return FLOW_NONE;
+        }
+        {
+            QubitConsumeSnapshot snap = snapshot_qubit_states(ctx);
+            loop_flow_record(loop_flow, false, &snap);
+            destroy_qubit_snapshot(&snap);
+        }
+        return FLOW_CONTINUE;
+    default:
+        type_check_statement(node, ctx);
+        return FLOW_FALLTHROUGH;
+    }
+}
+
+bool
+type_check_if_stmt(ASTNode *node, SemanticContext *ctx)
+{
+    (void)type_check_if_stmt_flow(node, ctx, NULL);
     return !ctx->has_error;
 }
 
@@ -1632,96 +2277,151 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
         require_assignable(t, TYPE_INT, node->data.for_loop.range_end, ctx);
     }
 
-    type_check_block(node->data.for_loop.body, ctx);
+    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
+    QubitConsumeSnapshot merged = copy_qubit_snapshot(&base);
+    QubitConsumeSnapshot entry = copy_qubit_snapshot(&base);
+    bool known_iterations = false;
+    size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
+    size_t max_iterations = (known_iterations && known_cap <= 1)
+        ? 1
+        : (base.count + 1);
+    if (max_iterations == 0)
+        max_iterations = 1;
+
+    for (size_t iter = 0; iter < max_iterations; iter++) {
+        LoopFlowState loop_flow = {0};
+        QubitConsumeSnapshot backedge = {0};
+        bool has_backedge = false;
+
+        restore_qubit_states(&entry);
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        {
+            FlowFlags body_flags =
+                type_check_block_flow(node->data.for_loop.body, ctx, &loop_flow);
+            if (body_flags & FLOW_FALLTHROUGH) {
+                QubitConsumeSnapshot body_snap = snapshot_qubit_states(ctx);
+                merge_qubit_states_or(&merged, &body_snap);
+                merge_qubit_snapshots_or(&backedge, &has_backedge, &body_snap);
+                destroy_qubit_snapshot(&body_snap);
+            }
+        }
+        scope_exit(&ctx->scope);
+
+        if (loop_flow.has_continue_states)
+            merge_qubit_snapshots_or(&backedge, &has_backedge,
+                                     &loop_flow.continue_states);
+        if (loop_flow.has_break_states)
+            merge_qubit_states_or(&merged, &loop_flow.break_states);
+
+        destroy_loop_flow_state(&loop_flow);
+
+        if (!has_backedge) {
+            destroy_qubit_snapshot(&backedge);
+            break;
+        }
+
+        if (qubit_snapshots_equal(&entry, &backedge)) {
+            destroy_qubit_snapshot(&entry);
+            entry = backedge;
+            break;
+        }
+
+        destroy_qubit_snapshot(&entry);
+        entry = backedge;
+    }
+
     ctx->loop_depth--;
     scope_exit(&ctx->scope);
+
+    restore_qubit_states(&merged);
+    destroy_qubit_snapshot(&base);
+    destroy_qubit_snapshot(&merged);
+    destroy_qubit_snapshot(&entry);
     return !ctx->has_error;
 }
 
 bool
 type_check_while_loop(ASTNode *node, SemanticContext *ctx)
 {
-    Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
-    if (!type_equals(cond, TYPE_BOOL)) {
-        semantic_error(ctx, node,
-            "While condition must be Bool, got '%s'", cond->name);
-    }
-
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     ctx->loop_depth++;
-    type_check_block(node->data.while_loop.body, ctx);
+
+    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
+    QubitConsumeSnapshot merged = copy_qubit_snapshot(&base);
+    QubitConsumeSnapshot entry = copy_qubit_snapshot(&base);
+    size_t max_iterations = base.count + 1;
+    if (max_iterations == 0)
+        max_iterations = 1;
+
+    for (size_t iter = 0; iter < max_iterations; iter++) {
+        LoopFlowState loop_flow = {0};
+        QubitConsumeSnapshot backedge = {0};
+        bool has_backedge = false;
+
+        restore_qubit_states(&entry);
+        Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
+        if (!type_equals(cond, TYPE_BOOL)) {
+            semantic_error(ctx, node,
+                "While condition must be Bool, got '%s'", cond->name);
+        }
+
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        {
+            FlowFlags body_flags =
+                type_check_block_flow(node->data.while_loop.body, ctx, &loop_flow);
+            if (body_flags & FLOW_FALLTHROUGH) {
+                QubitConsumeSnapshot body_snap = snapshot_qubit_states(ctx);
+                merge_qubit_states_or(&merged, &body_snap);
+                merge_qubit_snapshots_or(&backedge, &has_backedge, &body_snap);
+                destroy_qubit_snapshot(&body_snap);
+            }
+        }
+        scope_exit(&ctx->scope);
+
+        if (loop_flow.has_continue_states)
+            merge_qubit_snapshots_or(&backedge, &has_backedge,
+                                     &loop_flow.continue_states);
+        if (loop_flow.has_break_states)
+            merge_qubit_states_or(&merged, &loop_flow.break_states);
+
+        destroy_loop_flow_state(&loop_flow);
+
+        if (!has_backedge) {
+            destroy_qubit_snapshot(&backedge);
+            break;
+        }
+
+        if (qubit_snapshots_equal(&entry, &backedge)) {
+            destroy_qubit_snapshot(&entry);
+            entry = backedge;
+            break;
+        }
+
+        destroy_qubit_snapshot(&entry);
+        entry = backedge;
+    }
+
     ctx->loop_depth--;
     scope_exit(&ctx->scope);
 
+    restore_qubit_states(&merged);
+    destroy_qubit_snapshot(&base);
+    destroy_qubit_snapshot(&merged);
+    destroy_qubit_snapshot(&entry);
     return !ctx->has_error;
 }
 
 bool
 type_check_match_stmt(ASTNode *node, SemanticContext *ctx)
 {
-    Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
-
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
-
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-
-        /* Check pattern type compatibility */
-        if (mc->data.match_case.pattern != NULL) {
-            Type *pat_type = type_check_expression(mc->data.match_case.pattern, ctx);
-            if (!type_is_assignable(pat_type, subj_type) &&
-                !type_is_assignable(subj_type, pat_type)) {
-                semantic_error(ctx, mc->data.match_case.pattern,
-                    "Case pattern type '%s' incompatible with match subject '%s'",
-                    pat_type->name, subj_type->name);
-            }
-        }
-
-        /* Guard must be Bool */
-        if (mc->data.match_case.guard != NULL) {
-            Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
-            if (!type_equals(guard_type, TYPE_BOOL)) {
-                semantic_error(ctx, mc->data.match_case.guard,
-                    "Case guard must be Bool, got '%s'", guard_type->name);
-            }
-        }
-
-        type_check_block(mc->data.match_case.body, ctx);
-        scope_exit(&ctx->scope);
-    }
-
-    /* Check default body */
-    if (node->data.match_stmt.default_body != NULL) {
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        type_check_block(node->data.match_stmt.default_body, ctx);
-        scope_exit(&ctx->scope);
-    }
-
+    (void)type_check_match_stmt_flow(node, ctx, NULL);
     return !ctx->has_error;
 }
 
 bool
 type_check_with_stmt(ASTNode *node, SemanticContext *ctx)
 {
-    scope_enter(&ctx->scope, SCOPE_WITH);
-
-    ASTNode *slot_type_node = node->data.with_stmt.slot_type;
-    const char *alias       = node->data.with_stmt.alias;
-    bool is_secure          = node->data.with_stmt.is_secure;
-
-    Type *inner = resolve_type_node(slot_type_node, ctx);
-    Type *slot_type = type_create_slot(inner, is_secure);
-
-    Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,
-                                      node->line, node->column);
-    scope_declare(ctx->scope, sym);
-    scope_register_slot(ctx->scope, sym);
-
-    type_check_block(node->data.with_stmt.body, ctx);
-
-    /* Auto-release all slots registered in this with-scope */
-    scope_auto_release_slots(ctx->scope);
-    scope_exit(&ctx->scope);
+    (void)type_check_with_stmt_flow(node, ctx, NULL);
     return !ctx->has_error;
 }
 
@@ -2272,13 +2972,7 @@ type_check_block(ASTNode *node, SemanticContext *ctx)
     if (node == NULL)
         return true;
 
-    if (node->type == AST_BLOCK) {
-        for (size_t i = 0; i < node->data.block.count; i++)
-            type_check_statement(node->data.block.statements[i], ctx);
-    } else {
-        type_check_statement(node, ctx);
-    }
-
+    (void)type_check_block_flow(node, ctx, NULL);
     return !ctx->has_error;
 }
 

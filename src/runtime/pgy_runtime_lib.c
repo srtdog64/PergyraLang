@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* =================================================================
  * Log functions
@@ -616,6 +617,102 @@ int32_t pgy_channel_recv_val_Int(PgyChannel_Int_RT *ch)
     int32_t out = 0;
     pgy_channel_recv_Int(ch, &out);
     return out;
+}
+
+/* =================================================================
+ * QubitSlot runtime
+ *
+ * This intentionally models only a same-value correlated pair.
+ * It demonstrates resource-style collapse and entanglement flow,
+ * not a full quantum simulator.
+ * ================================================================= */
+
+#define PGY_QUBIT_MAX 64
+
+typedef struct {
+    int32_t state;
+    int32_t partner;
+    bool    measured;
+} PgyQubit_RT;
+
+static PgyQubit_RT pgy_qubits_rt[PGY_QUBIT_MAX];
+static int32_t pgy_qubit_next_rt = 0;
+static bool pgy_qubit_rng_init_rt = false;
+
+int32_t ClaimQubit(void)
+{
+    if (!pgy_qubit_rng_init_rt) {
+        srand((unsigned)time(NULL));
+        pgy_qubit_rng_init_rt = true;
+    }
+    if (pgy_qubit_next_rt >= PGY_QUBIT_MAX)
+        return -1;
+
+    int32_t id = pgy_qubit_next_rt++;
+    pgy_qubits_rt[id].state = 2;
+    pgy_qubits_rt[id].partner = -1;
+    pgy_qubits_rt[id].measured = false;
+    return id;
+}
+
+int32_t Measure(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX)
+        return -1;
+
+    PgyQubit_RT *q = &pgy_qubits_rt[id];
+    if (q->measured)
+        return q->state;
+
+    if (q->state == 2)
+        q->state = rand() % 2;
+    q->measured = true;
+
+    if (q->partner >= 0 && q->partner < PGY_QUBIT_MAX) {
+        PgyQubit_RT *partner = &pgy_qubits_rt[q->partner];
+        if (!partner->measured) {
+            partner->state = q->state;
+            partner->measured = true;
+        }
+    }
+
+    return q->state;
+}
+
+void Entangle(int32_t a, int32_t b)
+{
+    if (a < 0 || a >= PGY_QUBIT_MAX || b < 0 || b >= PGY_QUBIT_MAX)
+        return;
+    pgy_qubits_rt[a].partner = b;
+    pgy_qubits_rt[b].partner = a;
+}
+
+int32_t QubitState(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX)
+        return -1;
+    return pgy_qubits_rt[id].state;
+}
+
+bool IsCollapsed(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX)
+        return true;
+    return pgy_qubits_rt[id].measured;
+}
+
+void ReleaseQubit(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_MAX)
+        return;
+
+    int32_t partner = pgy_qubits_rt[id].partner;
+    pgy_qubits_rt[id].state = -1;
+    pgy_qubits_rt[id].measured = true;
+    pgy_qubits_rt[id].partner = -1;
+
+    if (partner >= 0 && partner < PGY_QUBIT_MAX)
+        pgy_qubits_rt[partner].partner = -1;
 }
 
 /* =================================================================
