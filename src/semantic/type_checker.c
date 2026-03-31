@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "../common/string_compat.h"
-#include "type_checker.h"
+#include "type_checker_internal.h"
 
 #define INITIAL_DIAG_CAPACITY 16
 
@@ -180,7 +180,7 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
     return resolve_named_type(gp->name, ctx, site);
 }
 
-static bool
+bool
 type_is_constructed_named(const Type *type, const char *name)
 {
     return type != NULL
@@ -189,7 +189,7 @@ type_is_constructed_named(const Type *type, const char *name)
         && strcmp(type->data.constructed.constructor->name, name) == 0;
 }
 
-static bool
+bool
 type_is_qubit(const Type *type)
 {
     if (type == NULL)
@@ -197,6 +197,36 @@ type_is_qubit(const Type *type)
     if (TYPE_QUBIT != NULL && type_equals(type, TYPE_QUBIT))
         return true;
     return type->name != NULL && strcmp(type->name, "QubitSlot") == 0;
+}
+
+bool
+type_is_slot_handle(const Type *type)
+{
+    return type != NULL && type->kind == TYPE_KIND_SLOT;
+}
+
+bool
+type_is_resource_handle(const Type *type)
+{
+    return type_is_qubit(type) || type_is_slot_handle(type);
+}
+
+static bool
+type_is_movable_resource_handle(const Type *type)
+{
+    return type_is_qubit(type);
+}
+
+static const char *
+resource_handle_display_name(const Type *type)
+{
+    if (type == NULL)
+        return "resource";
+    if (type_is_qubit(type))
+        return "QubitSlot";
+    if (type_is_slot_handle(type))
+        return type->data.slot.is_secure ? "SecureSlot" : "Slot";
+    return type->name != NULL ? type->name : "resource";
 }
 
 static bool
@@ -210,231 +240,131 @@ expr_is_qubit_claim(const ASTNode *expr)
         && strcmp(expr->data.call.callee->data.identifier.name, "ClaimQubit") == 0;
 }
 
-typedef struct
-{
-    Symbol **symbols;
-    bool    *states;
-    size_t   count;
-} QubitConsumeSnapshot;
-
-typedef enum
-{
-    FLOW_NONE        = 0,
-    FLOW_FALLTHROUGH = 1 << 0,
-    FLOW_BREAK       = 1 << 1,
-    FLOW_CONTINUE    = 1 << 2,
-    FLOW_RETURN      = 1 << 3
-} FlowFlags;
-
-typedef struct
-{
-    QubitConsumeSnapshot break_states;
-    QubitConsumeSnapshot continue_states;
-    bool                 has_break_states;
-    bool                 has_continue_states;
-} LoopFlowState;
-
-static FlowFlags type_check_statement_flow(ASTNode *node,
-                                           SemanticContext *ctx,
-                                           LoopFlowState *loop_flow);
-static FlowFlags type_check_block_flow(ASTNode *node,
-                                       SemanticContext *ctx,
-                                       LoopFlowState *loop_flow);
-static FlowFlags type_check_if_stmt_flow(ASTNode *node,
-                                         SemanticContext *ctx,
-                                         LoopFlowState *loop_flow);
-static FlowFlags type_check_match_stmt_flow(ASTNode *node,
-                                            SemanticContext *ctx,
-                                            LoopFlowState *loop_flow);
-static FlowFlags type_check_with_stmt_flow(ASTNode *node,
-                                           SemanticContext *ctx,
-                                           LoopFlowState *loop_flow);
-
-static QubitConsumeSnapshot
-snapshot_qubit_states(SemanticContext *ctx)
-{
-    QubitConsumeSnapshot snap = {0};
-    Scope *scope = ctx != NULL ? ctx->scope : NULL;
-
-    while (scope != NULL) {
-        for (size_t i = 0; i < scope->symbol_count; i++) {
-            Symbol *sym = scope->symbols[i];
-            if (sym == NULL || !type_is_qubit(sym->type))
-                continue;
-
-            Symbol **new_symbols = realloc(snap.symbols,
-                (snap.count + 1) * sizeof(Symbol *));
-            bool *new_states = realloc(snap.states,
-                (snap.count + 1) * sizeof(bool));
-            if (new_symbols == NULL || new_states == NULL) {
-                free(new_symbols);
-                free(new_states);
-                free(snap.symbols);
-                free(snap.states);
-                snap.symbols = NULL;
-                snap.states = NULL;
-                snap.count = 0;
-                return snap;
-            }
-
-            snap.symbols = new_symbols;
-            snap.states = new_states;
-            snap.symbols[snap.count] = sym;
-            snap.states[snap.count] = sym->is_consumed;
-            snap.count++;
-        }
-        scope = scope->parent;
-    }
-
-    return snap;
-}
-
-static void
-restore_qubit_states(const QubitConsumeSnapshot *snap)
-{
-    if (snap == NULL)
-        return;
-    for (size_t i = 0; i < snap->count; i++) {
-        if (snap->symbols[i] != NULL)
-            snap->symbols[i]->is_consumed = snap->states[i];
-    }
-}
-
-static void
-merge_qubit_states_or(QubitConsumeSnapshot *dst,
-                      const QubitConsumeSnapshot *src)
-{
-    if (dst == NULL || src == NULL)
-        return;
-    size_t count = dst->count < src->count ? dst->count : src->count;
-    for (size_t i = 0; i < count; i++)
-        dst->states[i] = dst->states[i] || src->states[i];
-}
-
-static void
-destroy_qubit_snapshot(QubitConsumeSnapshot *snap)
-{
-    if (snap == NULL)
-        return;
-    free(snap->symbols);
-    free(snap->states);
-    snap->symbols = NULL;
-    snap->states = NULL;
-    snap->count = 0;
-}
-
 static bool
-qubit_snapshots_equal(const QubitConsumeSnapshot *a,
-                      const QubitConsumeSnapshot *b)
+expr_is_static_member_access(const ASTNode *expr)
 {
-    if (a == NULL || b == NULL)
-        return a == b;
-    if (a->count != b->count)
+    if (expr == NULL || expr->type != AST_MEMBER_ACCESS
+        || expr->data.member.object == NULL) {
         return false;
-    for (size_t i = 0; i < a->count; i++) {
-        if (a->symbols[i] != b->symbols[i])
-            return false;
-        if (a->states[i] != b->states[i])
-            return false;
     }
-    return true;
+
+    if (expr->data.member.object->type == AST_IDENTIFIER) {
+        const char *name = expr->data.member.object->data.identifier.name;
+        return name != NULL && name[0] >= 'A' && name[0] <= 'Z';
+    }
+
+    return expr_is_static_member_access(expr->data.member.object);
 }
 
-static size_t
-for_loop_known_iteration_cap(const ASTNode *node, bool *known)
+static char *
+flatten_static_member_access(const ASTNode *expr, char separator)
 {
-    if (known != NULL)
-        *known = false;
-    if (node == NULL
-        || node->data.for_loop.range_start == NULL
-        || node->data.for_loop.range_end == NULL) {
-        return 0;
-    }
-    if (node->data.for_loop.range_start->type != AST_NUMBER
-        || node->data.for_loop.range_end->type != AST_NUMBER) {
-        return 0;
+    if (expr == NULL)
+        return NULL;
+
+    if (expr->type == AST_IDENTIFIER)
+        return expr->data.identifier.name != NULL
+            ? pergyra_strdup(expr->data.identifier.name) : NULL;
+
+    if (expr->type != AST_MEMBER_ACCESS
+        || expr->data.member.object == NULL
+        || expr->data.member.name == NULL) {
+        return NULL;
     }
 
-    double start = node->data.for_loop.range_start->data.number.value;
-    double end = node->data.for_loop.range_end->data.number.value;
-    if (known != NULL)
-        *known = true;
-    if (end <= start)
-        return 0;
-    if ((end - start) <= 1.0)
-        return 1;
-    return 2;
+    char *lhs = flatten_static_member_access(expr->data.member.object, separator);
+    if (lhs == NULL)
+        return NULL;
+
+    size_t lhs_len = strlen(lhs);
+    size_t rhs_len = strlen(expr->data.member.name);
+    char *result = malloc(lhs_len + rhs_len + 2);
+    if (result == NULL) {
+        free(lhs);
+        return NULL;
+    }
+
+    memcpy(result, lhs, lhs_len);
+    result[lhs_len] = separator;
+    memcpy(result + lhs_len + 1, expr->data.member.name, rhs_len);
+    result[lhs_len + rhs_len + 1] = '\0';
+    free(lhs);
+    return result;
 }
 
-static QubitConsumeSnapshot
-copy_qubit_snapshot(const QubitConsumeSnapshot *src)
+static Type *
+type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
+                                const char *display_name,
+                                SemanticContext *ctx)
 {
-    QubitConsumeSnapshot dst = {0};
-    if (src == NULL || src->count == 0)
-        return dst;
-
-    dst.symbols = calloc(src->count, sizeof(Symbol *));
-    dst.states = calloc(src->count, sizeof(bool));
-    if (dst.symbols == NULL || dst.states == NULL) {
-        free(dst.symbols);
-        free(dst.states);
-        dst.symbols = NULL;
-        dst.states = NULL;
-        return dst;
+    if (sym == NULL) {
+        semantic_error(ctx, expr, "Undefined function '%s'", display_name);
+        return TYPE_UNKNOWN;
     }
 
-    memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
-    memcpy(dst.states, src->states, src->count * sizeof(bool));
-    dst.count = src->count;
-    return dst;
-}
-
-static void
-merge_qubit_snapshots_or(QubitConsumeSnapshot *dst,
-                         bool *dst_initialized,
-                         const QubitConsumeSnapshot *src)
-{
-    if (dst == NULL || dst_initialized == NULL || src == NULL)
-        return;
-
-    if (!*dst_initialized) {
-        *dst = copy_qubit_snapshot(src);
-        *dst_initialized = true;
-        return;
+    if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY) {
+        sym->is_used = true;
+        return sym->type;
     }
 
-    merge_qubit_states_or(dst, src);
-}
+    if (sym->type->kind != TYPE_KIND_FUNCTION) {
+        semantic_error(ctx, expr, "'%s' is not a function", display_name);
+        return TYPE_UNKNOWN;
+    }
+    sym->is_used = true;
 
-static void
-loop_flow_record(LoopFlowState *loop_flow,
-                 bool is_break,
-                 const QubitConsumeSnapshot *state)
-{
-    if (loop_flow == NULL || state == NULL)
-        return;
-
-    if (is_break) {
-        merge_qubit_snapshots_or(&loop_flow->break_states,
-                                 &loop_flow->has_break_states,
-                                 state);
-        return;
+    size_t expected = sym->type->data.function.param_count;
+    size_t provided = expr->data.call.arg_count;
+    if (provided != expected) {
+        semantic_error(ctx, expr,
+            "'%s' expects %zu argument(s), got %zu",
+            display_name, expected, provided);
+        return sym->type->data.function.return_type;
     }
 
-    merge_qubit_snapshots_or(&loop_flow->continue_states,
-                             &loop_flow->has_continue_states,
-                             state);
-}
+    for (size_t i = 0; i < provided; i++) {
+        Type *param_type = sym->type->data.function.param_types[i];
+        Type *arg_type = type_is_movable_resource_handle(param_type)
+            ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
+            : type_check_expression(expr->data.call.arguments[i], ctx);
 
-static void
-destroy_loop_flow_state(LoopFlowState *loop_flow)
-{
-    if (loop_flow == NULL)
-        return;
-    destroy_qubit_snapshot(&loop_flow->break_states);
-    destroy_qubit_snapshot(&loop_flow->continue_states);
-    loop_flow->has_break_states = false;
-    loop_flow->has_continue_states = false;
+        if (type_is_movable_resource_handle(arg_type)
+            || type_is_movable_resource_handle(param_type)) {
+            if (!type_is_movable_resource_handle(arg_type)
+                || !type_is_movable_resource_handle(param_type)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Movable resource argument type mismatch: expected '%s', got '%s'",
+                    resource_handle_display_name(param_type),
+                    resource_handle_display_name(arg_type));
+                continue;
+            }
+            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "%s arguments must be moved from a named variable",
+                    resource_handle_display_name(param_type));
+                continue;
+            }
+            consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+            continue;
+        }
+
+        if (type_is_slot_handle(arg_type) || type_is_slot_handle(param_type)) {
+            if (!type_is_slot_handle(arg_type) || !type_is_slot_handle(param_type)) {
+                semantic_error(ctx, expr->data.call.arguments[i],
+                    "Resource handle argument type mismatch: expected '%s', got '%s'",
+                    resource_handle_display_name(param_type),
+                    resource_handle_display_name(arg_type));
+                continue;
+            }
+            semantic_error(ctx, expr->data.call.arguments[i],
+                "Slot/SecureSlot handles cannot cross function boundaries yet");
+            continue;
+        }
+
+        require_assignable(arg_type, param_type, expr->data.call.arguments[i], ctx);
+    }
+
+    return sym->type->data.function.return_type;
 }
 
 static Symbol *
@@ -447,7 +377,7 @@ lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx)
     return scope_lookup(ctx->scope, expr->data.identifier.name);
 }
 
-static bool
+bool
 consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
 {
     Symbol *sym = lookup_identifier_symbol(expr, ctx);
@@ -464,7 +394,7 @@ consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
     return true;
 }
 
-static Type *
+Type *
 type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr != NULL && expr->type == AST_IDENTIFIER) {
@@ -477,12 +407,14 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         }
         if (!type_is_qubit(sym->type)) {
             semantic_error(ctx, expr,
-                "Expected QubitSlot, got '%s'", sym->type->name);
+                "Expected movable resource handle QubitSlot, got '%s'",
+                sym->type->name);
             return TYPE_UNKNOWN;
         }
         if (sym->is_consumed) {
             semantic_error(ctx, expr,
-                "QubitSlot '%s' was moved or released and cannot be used again",
+                "%s '%s' was moved or released and cannot be used again",
+                resource_handle_display_name(sym->type),
                 expr->data.identifier.name);
             return TYPE_UNKNOWN;
         }
@@ -493,7 +425,7 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
     return type_check_expression(expr, ctx);
 }
 
-static Type *
+Type *
 type_get_constructed_arg(const Type *type, size_t index)
 {
     if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
@@ -585,272 +517,7 @@ require_assignable(Type *from, Type *to,
     return false;
 }
 
-/* -----------------------------------------------------------------
- * Built-in dispatch
- * ----------------------------------------------------------------- */
-
-BuiltinKind
-builtin_resolve(const char *name)
-{
-    if (strcmp(name, "ClaimSlot")       == 0) return BUILTIN_CLAIM_SLOT;
-    if (strcmp(name, "ClaimSecureSlot") == 0) return BUILTIN_CLAIM_SECURE_SLOT;
-    if (strcmp(name, "Write")           == 0) return BUILTIN_WRITE;
-    if (strcmp(name, "Read")            == 0) return BUILTIN_READ;
-    if (strcmp(name, "Release")         == 0) return BUILTIN_RELEASE;
-    if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
-    if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
-    if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
-    if (strcmp(name, "RcDrop")          == 0) return BUILTIN_RC_DROP;
-    if (strcmp(name, "RcDowngrade")     == 0) return BUILTIN_RC_DOWNGRADE;
-    if (strcmp(name, "RcGet")           == 0) return BUILTIN_RC_GET;
-    if (strcmp(name, "WeakUpgrade")     == 0) return BUILTIN_WEAK_UPGRADE;
-    if (strcmp(name, "WeakDrop")        == 0) return BUILTIN_WEAK_DROP;
-    if (strcmp(name, "AllocatorSystem") == 0) return BUILTIN_ALLOCATOR_SYSTEM;
-    if (strcmp(name, "AllocatorTracing")== 0) return BUILTIN_ALLOCATOR_TRACING;
-    if (strcmp(name, "AllocatorDebug")  == 0) return BUILTIN_ALLOCATOR_DEBUG;
-    if (strcmp(name, "AllocatorPool")   == 0) return BUILTIN_ALLOCATOR_POOL;
-    if (strcmp(name, "Box")             == 0) return BUILTIN_BOX;
-    if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
-    /* I/O built-ins */
-    /* String builtins — bypass as user functions (resolved in transpiler) */
-    if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "StringReplace")   == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "Substring")       == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "StringTrim")      == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "ToUpper")         == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "ToLower")         == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "StringConcat")    == 0) return BUILTIN_NOT_BUILTIN;
-    /* Quantum simulation builtins */
-    if (strcmp(name, "ClaimQubit")      == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "Measure")         == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "Entangle")        == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "QubitState")      == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "IsCollapsed")     == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "ReleaseQubit")    == 0) return BUILTIN_NOT_BUILTIN;
-    if (strcmp(name, "FileOpen")        == 0) return BUILTIN_FILE_OPEN;
-    if (strcmp(name, "FileRead")        == 0) return BUILTIN_FILE_READ;
-    if (strcmp(name, "FileWrite")       == 0) return BUILTIN_FILE_WRITE;
-    if (strcmp(name, "FileClose")       == 0) return BUILTIN_FILE_CLOSE;
-    if (strcmp(name, "ReadFile")        == 0) return BUILTIN_READ_FILE;
-    if (strcmp(name, "WriteFile")       == 0) return BUILTIN_WRITE_FILE;
-    if (strcmp(name, "Input")           == 0) return BUILTIN_INPUT;
-    if (strcmp(name, "Print")           == 0) return BUILTIN_PRINT;
-    return BUILTIN_NOT_BUILTIN;
-}
-
-/* -----------------------------------------------------------------
- * Slot built-in checkers
- * ----------------------------------------------------------------- */
-
 Type *
-type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
-{
-    /*
-     * ClaimSlot<T>() → registers a Slot<T> symbol when used in let decl.
-     * Here we just return the type; symbol registration happens in
-     * type_check_let_decl.
-     */
-    if (call->data.call.arg_count != 0) {
-        semantic_error(ctx, call, "ClaimSlot takes no arguments");
-        return TYPE_UNKNOWN;
-    }
-
-    /* Generic args come through the callee's type annotation */
-    ASTNode *callee = call->data.call.callee;
-    if (callee->type == AST_IDENTIFIER
-        && callee->data.identifier.name != NULL) {
-        /* Type arg must be resolved from the let-decl annotation */
-        return TYPE_UNKNOWN; /* Resolved in type_check_let_decl */
-    }
-
-    return TYPE_UNKNOWN;
-}
-
-bool
-type_check_write_slot(ASTNode *call, SemanticContext *ctx)
-{
-    size_t arg_count = call->data.call.arg_count;
-
-    if (arg_count < 2) {
-        semantic_error(ctx, call,
-            "Write requires at least 2 arguments: Write(slot, value)");
-        return false;
-    }
-
-    /* Resolve slot argument */
-    ASTNode *slot_arg = call->data.call.arguments[0];
-    Type    *slot_type = type_check_expression(slot_arg, ctx);
-
-    if (slot_type->kind != TYPE_KIND_SLOT) {
-        semantic_error(ctx, slot_arg,
-            "First argument to Write must be a Slot, got '%s'",
-            slot_type->name);
-        return false;
-    }
-
-    /* Rule R4: slot must be CLAIMED */
-    if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope,
-                                    slot_arg->data.identifier.name);
-        if (sym != NULL && sym->kind == SYMBOL_SLOT) {
-            if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error(ctx, slot_arg,
-                    "Cannot write to released slot '%s'",
-                    sym->name);
-                return false;
-            }
-
-            /* Rule R2: SecureSlot requires token */
-            if (sym->slot_info.is_secure) {
-                if (arg_count < 3) {
-                    semantic_error(ctx, call,
-                        "Write to SecureSlot '%s' requires a token argument",
-                        sym->name);
-                    return false;
-                }
-
-                /* Rule R3: token must be paired with this slot */
-                ASTNode *token_arg = call->data.call.arguments[2];
-                if (token_arg->type == AST_IDENTIFIER) {
-                    const char *token_name =
-                        token_arg->data.identifier.name;
-                    if (sym->slot_info.paired_token_name == NULL
-                        || strcmp(sym->slot_info.paired_token_name,
-                                  token_name) != 0) {
-                        semantic_error(ctx, token_arg,
-                            "Token '%s' is not paired with slot '%s'",
-                            token_name, sym->name);
-                        return false;
-                    }
-                }
-            } else if (arg_count > 2) {
-                semantic_warning(ctx, call,
-                    "Write to plain Slot '%s' ignores extra token argument",
-                    sym->name);
-            }
-        }
-    }
-
-    /* Rule R1: value type must match Slot inner type */
-    ASTNode *value_arg  = call->data.call.arguments[1];
-    Type    *value_type = type_check_expression(value_arg, ctx);
-    Type    *inner_type = slot_type->data.slot.inner_type;
-
-    if (!type_is_assignable(value_type, inner_type)) {
-        semantic_error(ctx, value_arg,
-            "Cannot write '%s' to %s (expected '%s')",
-            value_type->name, slot_type->name, inner_type->name);
-        return false;
-    }
-
-    return true;
-}
-
-Type *
-type_check_read_slot(ASTNode *call, SemanticContext *ctx)
-{
-    size_t arg_count = call->data.call.arg_count;
-
-    if (arg_count < 1) {
-        semantic_error(ctx, call,
-            "Read requires at least 1 argument: Read(slot)");
-        return TYPE_UNKNOWN;
-    }
-
-    ASTNode *slot_arg  = call->data.call.arguments[0];
-    Type    *slot_type = type_check_expression(slot_arg, ctx);
-
-    if (slot_type->kind != TYPE_KIND_SLOT) {
-        semantic_error(ctx, slot_arg,
-            "First argument to Read must be a Slot, got '%s'",
-            slot_type->name);
-        return TYPE_UNKNOWN;
-    }
-
-    if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope,
-                                    slot_arg->data.identifier.name);
-        if (sym != NULL && sym->kind == SYMBOL_SLOT) {
-            if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error(ctx, slot_arg,
-                    "Cannot read from released slot '%s'", sym->name);
-                return TYPE_UNKNOWN;
-            }
-
-            if (sym->slot_info.is_secure) {
-                if (arg_count < 2) {
-                    semantic_error(ctx, call,
-                        "Read from SecureSlot '%s' requires a token argument",
-                        sym->name);
-                    return TYPE_UNKNOWN;
-                }
-                ASTNode *token_arg = call->data.call.arguments[1];
-                if (token_arg->type == AST_IDENTIFIER) {
-                    const char *token_name =
-                        token_arg->data.identifier.name;
-                    if (sym->slot_info.paired_token_name == NULL
-                        || strcmp(sym->slot_info.paired_token_name,
-                                  token_name) != 0) {
-                        semantic_error(ctx, token_arg,
-                            "Token '%s' is not paired with slot '%s'",
-                            token_name, sym->name);
-                        return TYPE_UNKNOWN;
-                    }
-                }
-            }
-        }
-    }
-
-    return slot_type->data.slot.inner_type;
-}
-
-bool
-type_check_release_slot(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count < 1) {
-        semantic_error(ctx, call,
-            "Release requires at least 1 argument: Release(slot)");
-        return false;
-    }
-
-    ASTNode *slot_arg = call->data.call.arguments[0];
-
-    if (slot_arg->type != AST_IDENTIFIER) {
-        semantic_error(ctx, slot_arg,
-            "Argument to Release must be a slot identifier");
-        return false;
-    }
-
-    const char *slot_name = slot_arg->data.identifier.name;
-    Symbol     *sym       = scope_lookup(ctx->scope, slot_name);
-
-    if (sym == NULL || sym->kind != SYMBOL_SLOT) {
-        semantic_error(ctx, slot_arg,
-            "'%s' is not a slot", slot_name);
-        return false;
-    }
-
-    if (sym->slot_info.state == SLOT_STATE_RELEASED) {
-        semantic_error(ctx, slot_arg,
-            "Slot '%s' has already been released", slot_name);
-        return false;
-    }
-
-    if (sym->slot_info.is_secure
-        && call->data.call.arg_count < 2) {
-        semantic_error(ctx, call,
-            "Release of SecureSlot '%s' requires a token argument",
-            slot_name);
-        return false;
-    }
-
-    scope_release_slot(ctx->scope, slot_name);
-    return true;
-}
-
-static Type *
 wrap_constructed(Type *constructor, Type *inner)
 {
     Type *args[1] = { inner };
@@ -1076,443 +743,6 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
     return wrap_constructed(TYPE_ARRAY, elem_type);
 }
 
-static bool
-check_call_arity(ASTNode *expr, size_t expected, const char *name,
-                 SemanticContext *ctx)
-{
-    if (expr->data.call.arg_count != expected) {
-        semantic_error(ctx, expr,
-            "'%s' expects %zu argument(s), got %zu",
-            name, expected, expr->data.call.arg_count);
-        return false;
-    }
-    return true;
-}
-
-static Type *
-type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
-{
-    if (strcmp(name, "Abs") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        return type_check_expression(expr->data.call.arguments[0], ctx);
-    }
-    if (strcmp(name, "Min") == 0 || strcmp(name, "Max") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *a = type_check_expression(expr->data.call.arguments[0], ctx);
-        Type *b = type_check_expression(expr->data.call.arguments[1], ctx);
-        require_assignable(b, a, expr->data.call.arguments[1], ctx);
-        return a;
-    }
-    if (strcmp(name, "StringLength") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(
-            type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "Contains") == 0 || strcmp(name, "StringContains") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "Replace") == 0 || strcmp(name, "StringReplace") == 0) {
-        if (!check_call_arity(expr, 3, name, ctx))
-            return TYPE_UNKNOWN;
-        for (size_t i = 0; i < 3; i++) {
-            require_assignable(type_check_expression(expr->data.call.arguments[i], ctx),
-                TYPE_STRING, expr->data.call.arguments[i], ctx);
-        }
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Substring") == 0) {
-        if (!check_call_arity(expr, 3, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_INT, expr->data.call.arguments[1], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
-            TYPE_INT, expr->data.call.arguments[2], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Trim") == 0 || strcmp(name, "StringTrim") == 0
-        || strcmp(name, "Upper") == 0 || strcmp(name, "ToUpper") == 0
-        || strcmp(name, "Lower") == 0 || strcmp(name, "ToLower") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Concat") == 0 || strcmp(name, "StringConcat") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "ArrayLength") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *arg = type_check_expression(expr->data.call.arguments[0], ctx);
-        if (!type_is_constructed_named(arg, "Array")
-            && !type_is_constructed_named(arg, "Slice")) {
-            semantic_error(ctx, expr->data.call.arguments[0],
-                "ArrayLength requires Array<T> or Slice<T>, got '%s'", arg->name);
-        }
-        return TYPE_INT;
-    }
-    if (strcmp(name, "ToString") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Print") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_VOID;
-    }
-
-    /* Quantum resource builtins */
-    if (strcmp(name, "ClaimQubit") == 0) {
-        if (!check_call_arity(expr, 0, name, ctx))
-            return TYPE_UNKNOWN;
-        return TYPE_QUBIT;
-    }
-    if (strcmp(name, "Measure") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "Entangle") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[1], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[1], ctx);
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "QubitState") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "IsCollapsed") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "ReleaseQubit") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
-        return TYPE_VOID;
-    }
-
-    return NULL;
-}
-
-static Type *
-type_check_rc_new(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "RcNew requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *inner = type_check_expression(call->data.call.arguments[0], ctx);
-    return wrap_constructed(TYPE_RC, inner);
-}
-
-static Type *
-type_check_rc_clone(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "RcClone requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error(ctx, call, "RcClone requires Rc<T>, got '%s'", rc_type->name);
-        return TYPE_UNKNOWN;
-    }
-    return rc_type;
-}
-
-static Type *
-type_check_rc_get(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "RcGet requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error(ctx, call, "RcGet requires Rc<T>, got '%s'", rc_type->name);
-        return TYPE_UNKNOWN;
-    }
-    return type_get_constructed_arg(rc_type, 0);
-}
-
-static Type *
-type_check_rc_downgrade(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "RcDowngrade requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *rc_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_is_constructed_named(rc_type, "Rc")) {
-        semantic_error(ctx, call, "RcDowngrade requires Rc<T>, got '%s'", rc_type->name);
-        return TYPE_UNKNOWN;
-    }
-    return wrap_constructed(TYPE_WEAK, type_get_constructed_arg(rc_type, 0));
-}
-
-static Type *
-type_check_weak_upgrade(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "WeakUpgrade requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_is_constructed_named(weak_type, "Weak")) {
-        semantic_error(ctx, call, "WeakUpgrade requires Weak<T>, got '%s'", weak_type->name);
-        return TYPE_UNKNOWN;
-    }
-    return wrap_constructed(TYPE_RC, type_get_constructed_arg(weak_type, 0));
-}
-
-static Type *
-type_check_weak_drop(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "WeakDrop requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *weak_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_is_constructed_named(weak_type, "Weak")) {
-        semantic_error(ctx, call, "WeakDrop requires Weak<T>, got '%s'", weak_type->name);
-        return TYPE_UNKNOWN;
-    }
-    return TYPE_VOID;
-}
-
-static Type *
-type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx, bool requires_capacity)
-{
-    if ((!requires_capacity && call->data.call.arg_count != 0)
-        || (requires_capacity && call->data.call.arg_count != 1)) {
-        semantic_error(ctx, call,
-            requires_capacity
-                ? "AllocatorPool requires exactly 1 capacity argument"
-                : "Allocator constructor takes no arguments");
-        return TYPE_UNKNOWN;
-    }
-
-    if (requires_capacity) {
-        Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
-        if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
-            semantic_error(ctx, call->data.call.arguments[0],
-                "AllocatorPool capacity must be Int or Long, got '%s'",
-                cap_type->name);
-            return TYPE_UNKNOWN;
-        }
-    }
-
-    return TYPE_ALLOCATOR;
-}
-
-static Type *
-type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count != 1) {
-        semantic_error(ctx, call, "Box requires exactly 1 argument");
-        return TYPE_UNKNOWN;
-    }
-    Type *inner = type_check_expression(call->data.call.arguments[0], ctx);
-    return wrap_constructed(TYPE_BOX, inner);
-}
-
-static Type *
-type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
-{
-    if (call->data.call.arg_count < 1 || call->data.call.arg_count > 2) {
-        semantic_error(ctx, call,
-            "BoxArray requires capacity and optional allocator");
-        return TYPE_UNKNOWN;
-    }
-
-    Type *cap_type = type_check_expression(call->data.call.arguments[0], ctx);
-    if (!type_equals(cap_type, TYPE_INT) && !type_equals(cap_type, TYPE_LONG)) {
-        semantic_error(ctx, call->data.call.arguments[0],
-            "BoxArray capacity must be Int or Long, got '%s'", cap_type->name);
-        return TYPE_UNKNOWN;
-    }
-
-    if (call->data.call.arg_count == 2) {
-        Type *alloc_type = type_check_expression(call->data.call.arguments[1], ctx);
-        if (!type_equals(alloc_type, TYPE_ALLOCATOR)) {
-            semantic_error(ctx, call->data.call.arguments[1],
-                "BoxArray allocator must be Allocator, got '%s'", alloc_type->name);
-            return TYPE_UNKNOWN;
-        }
-    }
-
-    return TYPE_UNKNOWN;
-}
-
-/* -----------------------------------------------------------------
- * Built-in call dispatcher
- * ----------------------------------------------------------------- */
-
-Type *
-type_check_builtin_call(ASTNode *call, BuiltinKind kind,
-                         SemanticContext *ctx)
-{
-    switch (kind) {
-    case BUILTIN_CLAIM_SLOT:
-        return type_check_claim_slot(call, ctx);
-
-    case BUILTIN_WRITE:
-        type_check_write_slot(call, ctx);
-        return TYPE_VOID;
-
-    case BUILTIN_READ:
-        return type_check_read_slot(call, ctx);
-
-    case BUILTIN_RELEASE:
-        type_check_release_slot(call, ctx);
-        return TYPE_VOID;
-
-    case BUILTIN_LOG:
-        /* Log accepts any argument count and types */
-        return TYPE_VOID;
-
-    case BUILTIN_RC_NEW:
-        return type_check_rc_new(call, ctx);
-
-    case BUILTIN_RC_CLONE:
-        return type_check_rc_clone(call, ctx);
-
-    case BUILTIN_RC_DROP:
-        (void)type_check_rc_clone(call, ctx);
-        return TYPE_VOID;
-
-    case BUILTIN_RC_DOWNGRADE:
-        return type_check_rc_downgrade(call, ctx);
-
-    case BUILTIN_RC_GET:
-        return type_check_rc_get(call, ctx);
-
-    case BUILTIN_WEAK_UPGRADE:
-        return type_check_weak_upgrade(call, ctx);
-
-    case BUILTIN_WEAK_DROP:
-        return type_check_weak_drop(call, ctx);
-
-    case BUILTIN_ALLOCATOR_SYSTEM:
-    case BUILTIN_ALLOCATOR_TRACING:
-    case BUILTIN_ALLOCATOR_DEBUG:
-        return type_check_allocator_builtin(call, ctx, false);
-
-    case BUILTIN_ALLOCATOR_POOL:
-        return type_check_allocator_builtin(call, ctx, true);
-
-    case BUILTIN_BOX:
-        return type_check_box_builtin(call, ctx);
-
-    case BUILTIN_BOX_ARRAY:
-        return type_check_box_array_builtin(call, ctx);
-
-    case BUILTIN_PARALLEL:
-        /* Handled separately by type_check_parallel_block */
-        return TYPE_VOID;
-
-    /* I/O built-ins */
-    case BUILTIN_FILE_OPEN:
-        if (check_call_arity(call, 2, "FileOpen", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_STRING, call->data.call.arguments[0], ctx);
-            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
-                TYPE_STRING, call->data.call.arguments[1], ctx);
-        }
-        return TYPE_INT;
-    case BUILTIN_FILE_READ:
-        if (check_call_arity(call, 1, "FileRead", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_INT, call->data.call.arguments[0], ctx);
-        }
-        return TYPE_STRING;
-    case BUILTIN_FILE_WRITE:
-        if (check_call_arity(call, 2, "FileWrite", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_INT, call->data.call.arguments[0], ctx);
-            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
-                TYPE_STRING, call->data.call.arguments[1], ctx);
-        }
-        return TYPE_VOID;
-    case BUILTIN_FILE_CLOSE:
-        if (check_call_arity(call, 1, "FileClose", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_INT, call->data.call.arguments[0], ctx);
-        }
-        return TYPE_VOID;
-    case BUILTIN_READ_FILE:
-        if (check_call_arity(call, 1, "ReadFile", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_STRING, call->data.call.arguments[0], ctx);
-        }
-        return TYPE_STRING;
-    case BUILTIN_WRITE_FILE:
-        if (check_call_arity(call, 2, "WriteFile", ctx)) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_STRING, call->data.call.arguments[0], ctx);
-            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
-                TYPE_STRING, call->data.call.arguments[1], ctx);
-        }
-        return TYPE_VOID;
-    case BUILTIN_INPUT:
-        if (call->data.call.arg_count > 1) {
-            semantic_error(ctx, call,
-                "'Input' expects at most 1 argument, got %zu",
-                call->data.call.arg_count);
-            return TYPE_STRING;
-        }
-        if (call->data.call.arg_count == 1) {
-            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
-                TYPE_STRING, call->data.call.arguments[0], ctx);
-        }
-        return TYPE_STRING;
-    case BUILTIN_PRINT:
-        return type_check_stdlib_call(call, "Print", ctx);
-
-    default:
-        return TYPE_UNKNOWN;
-    }
-}
-
 /* -----------------------------------------------------------------
  * Expression type checker
  * ----------------------------------------------------------------- */
@@ -1544,7 +774,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         }
         if (type_is_qubit(sym->type) && sym->is_consumed) {
             semantic_error(ctx, expr,
-                "QubitSlot '%s' was moved or released and cannot be used again",
+                "%s '%s' was moved or released and cannot be used again",
+                resource_handle_display_name(sym->type),
                 expr->data.identifier.name);
             return TYPE_UNKNOWN;
         }
@@ -1709,64 +940,27 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         }
 
         Symbol *sym = scope_lookup(ctx->scope, name);
-        if (sym == NULL) {
-            semantic_error(ctx, expr,
-                "Undefined function '%s'", name);
-            return TYPE_UNKNOWN;
-        }
-        /* Allow class/party/systemic/world constructors: TypeName() */
-        if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY) {
-            sym->is_used = true;
-            return sym->type;
-        }
-
-        if (sym->type->kind != TYPE_KIND_FUNCTION) {
-            semantic_error(ctx, expr,
-                "'%s' is not a function", name);
-            return TYPE_UNKNOWN;
-        }
-        sym->is_used = true;
-
-        /* Argument count check */
-        size_t expected = sym->type->data.function.param_count;
-        size_t provided  = expr->data.call.arg_count;
-        if (provided != expected) {
-            semantic_error(ctx, expr,
-                "'%s' expects %zu argument(s), got %zu",
-                name, expected, provided);
-            return sym->type->data.function.return_type;
-        }
-
-        /* Argument type check */
-        for (size_t i = 0; i < provided; i++) {
-            Type *param_type =
-                sym->type->data.function.param_types[i];
-            Type *arg_type = type_is_qubit(param_type)
-                ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
-                : type_check_expression(expr->data.call.arguments[i], ctx);
-            if (type_is_qubit(arg_type) || type_is_qubit(param_type)) {
-                if (!type_is_qubit(arg_type) || !type_is_qubit(param_type)) {
-                    semantic_error(ctx, expr->data.call.arguments[i],
-                        "QubitSlot argument type mismatch");
-                    continue;
-                }
-                if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
-                    semantic_error(ctx, expr->data.call.arguments[i],
-                        "QubitSlot arguments must be moved from a named variable");
-                    continue;
-                }
-                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
-                continue;
-            }
-            require_assignable(arg_type, param_type,
-                               expr->data.call.arguments[i], ctx);
-        }
-
-        return sym->type->data.function.return_type;
+        return type_check_function_symbol_call(expr, sym, name, ctx);
     }
 
     /* Callee is a member access (method call) */
     if (callee->type == AST_MEMBER_ACCESS) {
+        if (expr_is_static_member_access(callee)) {
+            char *flat_name = flatten_static_member_access(callee, '_');
+            char *display_name = flatten_static_member_access(callee, '.');
+            Symbol *sym = flat_name != NULL
+                ? scope_lookup(ctx->scope, flat_name)
+                : NULL;
+            if (sym == NULL && callee->data.member.name != NULL) {
+                sym = scope_lookup(ctx->scope, callee->data.member.name);
+            }
+            Type *result = type_check_function_symbol_call(
+                expr, sym, display_name != NULL ? display_name : "<member>", ctx);
+            free(flat_name);
+            free(display_name);
+            return result;
+        }
+
         if (!(callee->data.member.object != NULL
               && callee->data.member.object->type == AST_IDENTIFIER
               && callee->data.member.object->data.identifier.name != NULL
@@ -1785,13 +979,22 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 {
-    if (expr->data.member.object != NULL
-        && expr->data.member.object->type == AST_IDENTIFIER
-        && expr->data.member.object->data.identifier.name != NULL
-        && expr->data.member.object->data.identifier.name[0] >= 'A'
-        && expr->data.member.object->data.identifier.name[0] <= 'Z') {
-        /* Namespace / enum / static-style access such as Math.Add or Color.Red.
-         * These are lowered later by the driver/codegen into flat symbols. */
+    if (expr_is_static_member_access(expr)) {
+        char *flat_name = flatten_static_member_access(expr, '_');
+        char *display_name = flatten_static_member_access(expr, '.');
+        Symbol *sym = flat_name != NULL ? scope_lookup(ctx->scope, flat_name) : NULL;
+        if (sym == NULL && expr->data.member.name != NULL)
+            sym = scope_lookup(ctx->scope, expr->data.member.name);
+        if (sym != NULL) {
+            sym->is_used = true;
+            free(flat_name);
+            free(display_name);
+            return sym->type;
+        }
+        semantic_error(ctx, expr, "Undefined symbol '%s'",
+            display_name != NULL ? display_name : "<member>");
+        free(flat_name);
+        free(display_name);
         return TYPE_UNKNOWN;
     }
 
@@ -1852,9 +1055,16 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     Type *value_type  = type_check_expression(expr->data.assignment.value,  ctx);
     Type *target_type = type_check_expression(expr->data.assignment.target, ctx);
 
-    if (type_is_qubit(target_type) || type_is_qubit(value_type)) {
+    if (type_is_slot_handle(target_type)
+        && target_type->data.slot.inner_type != NULL
+        && !type_is_resource_handle(value_type)
+        && type_is_assignable(value_type, target_type->data.slot.inner_type)) {
+        return target_type;
+    }
+
+    if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
         semantic_error(ctx, expr,
-            "QubitSlot assignment is not allowed; quantum handles cannot be copied or rebound");
+            "Resource handle assignment is not allowed; Slot/SecureSlot/QubitSlot handles cannot be copied or rebound");
         return target_type;
     }
 
@@ -1979,6 +1189,10 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
+        if (init_type != NULL && type_is_slot_handle(init_type)) {
+            semantic_error(ctx, node,
+                "Slot handles cannot be copied into a new binding; use ClaimSlot/ClaimSecureSlot or initialize from an inner value");
+        }
         Symbol *sym = symbol_create_slot(name, decl_type,
             decl_type->data.slot.is_secure, NULL, node->line, node->column);
         scope_declare(ctx->scope, sym);
@@ -2004,424 +1218,17 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
+    if (type_is_slot_handle(ret_type)) {
+        semantic_error(ctx, node,
+            "Returning Slot/SecureSlot handles is not supported yet; return the inner value instead");
+    }
+
     if (node->data.return_stmt.value != NULL
         && type_is_qubit(ret_type)
         && node->data.return_stmt.value->type == AST_IDENTIFIER) {
         consume_qubit_value(node->data.return_stmt.value, ctx, "returned");
     }
 
-    return !ctx->has_error;
-}
-
-static FlowFlags
-type_check_block_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
-{
-    if (node == NULL)
-        return FLOW_FALLTHROUGH;
-
-    if (node->type != AST_BLOCK)
-        return type_check_statement_flow(node, ctx, loop_flow);
-
-    FlowFlags flags = FLOW_FALLTHROUGH;
-    for (size_t i = 0; i < node->data.block.count; i++) {
-        if ((flags & FLOW_FALLTHROUGH) == 0)
-            break;
-
-        FlowFlags stmt_flags =
-            type_check_statement_flow(node->data.block.statements[i], ctx, loop_flow);
-
-        flags &= ~FLOW_FALLTHROUGH;
-        flags |= (stmt_flags & (FLOW_FALLTHROUGH
-                              | FLOW_BREAK
-                              | FLOW_CONTINUE
-                              | FLOW_RETURN));
-    }
-
-    return flags;
-}
-
-static FlowFlags
-type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
-{
-    Type *cond = type_check_expression(node->data.if_stmt.condition, ctx);
-    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
-    QubitConsumeSnapshot fallthrough = {0};
-    bool has_fallthrough = false;
-    FlowFlags flags = FLOW_NONE;
-    FlowFlags then_flags = FLOW_NONE;
-
-    if (!type_equals(cond, TYPE_BOOL)) {
-        semantic_error(ctx, node,
-            "If condition must be Bool, got '%s'", cond->name);
-    }
-
-    restore_qubit_states(&base);
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    then_flags = type_check_block_flow(node->data.if_stmt.then_branch, ctx, loop_flow);
-    scope_exit(&ctx->scope);
-    flags |= (then_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-    if (then_flags & FLOW_FALLTHROUGH) {
-        QubitConsumeSnapshot then_snap = snapshot_qubit_states(ctx);
-        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
-        destroy_qubit_snapshot(&then_snap);
-        flags |= FLOW_FALLTHROUGH;
-    }
-
-    if (node->data.if_stmt.else_branch != NULL) {
-        FlowFlags else_flags = FLOW_NONE;
-        restore_qubit_states(&base);
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        else_flags =
-            type_check_statement_flow(node->data.if_stmt.else_branch, ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        flags |= (else_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (else_flags & FLOW_FALLTHROUGH) {
-            QubitConsumeSnapshot else_snap = snapshot_qubit_states(ctx);
-            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
-            destroy_qubit_snapshot(&else_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    } else {
-        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &base);
-        flags |= FLOW_FALLTHROUGH;
-    }
-
-    if (has_fallthrough)
-        restore_qubit_states(&fallthrough);
-    else
-        restore_qubit_states(&base);
-
-    destroy_qubit_snapshot(&base);
-    destroy_qubit_snapshot(&fallthrough);
-    return flags;
-}
-
-static FlowFlags
-type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
-{
-    Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
-    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
-    QubitConsumeSnapshot fallthrough = {0};
-    bool has_fallthrough = false;
-    FlowFlags flags = FLOW_NONE;
-
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
-
-        restore_qubit_states(&base);
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-
-        if (mc->data.match_case.pattern != NULL) {
-            Type *pat_type = type_check_expression(mc->data.match_case.pattern, ctx);
-            if (!type_is_assignable(pat_type, subj_type) &&
-                !type_is_assignable(subj_type, pat_type)) {
-                semantic_error(ctx, mc->data.match_case.pattern,
-                    "Case pattern type '%s' incompatible with match subject '%s'",
-                    pat_type->name, subj_type->name);
-            }
-        }
-
-        if (mc->data.match_case.guard != NULL) {
-            Type *guard_type = type_check_expression(mc->data.match_case.guard, ctx);
-            if (!type_equals(guard_type, TYPE_BOOL)) {
-                semantic_error(ctx, mc->data.match_case.guard,
-                    "Case guard must be Bool, got '%s'", guard_type->name);
-            }
-        }
-
-        FlowFlags case_flags =
-            type_check_block_flow(mc->data.match_case.body, ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        flags |= (case_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (case_flags & FLOW_FALLTHROUGH) {
-            QubitConsumeSnapshot case_snap = snapshot_qubit_states(ctx);
-            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &case_snap);
-            destroy_qubit_snapshot(&case_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    }
-
-    if (node->data.match_stmt.default_body != NULL) {
-        FlowFlags default_flags = FLOW_NONE;
-        restore_qubit_states(&base);
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        default_flags =
-            type_check_block_flow(node->data.match_stmt.default_body, ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        flags |= (default_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
-        if (default_flags & FLOW_FALLTHROUGH) {
-            QubitConsumeSnapshot default_snap = snapshot_qubit_states(ctx);
-            merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &default_snap);
-            destroy_qubit_snapshot(&default_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    } else {
-        merge_qubit_snapshots_or(&fallthrough, &has_fallthrough, &base);
-        flags |= FLOW_FALLTHROUGH;
-    }
-
-    if (has_fallthrough)
-        restore_qubit_states(&fallthrough);
-    else
-        restore_qubit_states(&base);
-
-    destroy_qubit_snapshot(&base);
-    destroy_qubit_snapshot(&fallthrough);
-    return flags;
-}
-
-static FlowFlags
-type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
-{
-    scope_enter(&ctx->scope, SCOPE_WITH);
-
-    ASTNode *slot_type_node = node->data.with_stmt.slot_type;
-    const char *alias       = node->data.with_stmt.alias;
-    bool is_secure          = node->data.with_stmt.is_secure;
-
-    Type *inner = resolve_type_node(slot_type_node, ctx);
-    Type *slot_type = type_create_slot(inner, is_secure);
-
-    Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,
-                                     node->line, node->column);
-    scope_declare(ctx->scope, sym);
-    scope_register_slot(ctx->scope, sym);
-
-    FlowFlags flags =
-        type_check_block_flow(node->data.with_stmt.body, ctx, loop_flow);
-
-    scope_auto_release_slots(ctx->scope);
-    scope_exit(&ctx->scope);
-    return flags;
-}
-
-static FlowFlags
-type_check_statement_flow(ASTNode *node, SemanticContext *ctx, LoopFlowState *loop_flow)
-{
-    if (node == NULL)
-        return FLOW_FALLTHROUGH;
-
-    switch (node->type) {
-    case AST_BLOCK:
-        return type_check_block_flow(node, ctx, loop_flow);
-    case AST_IF_STMT:
-        return type_check_if_stmt_flow(node, ctx, loop_flow);
-    case AST_MATCH_STMT:
-        return type_check_match_stmt_flow(node, ctx, loop_flow);
-    case AST_WITH_STMT:
-        return type_check_with_stmt_flow(node, ctx, loop_flow);
-    case AST_UNSAFE_BLOCK:
-        if (node->data.unsafe_block.body != NULL)
-            return type_check_block_flow(node->data.unsafe_block.body, ctx, loop_flow);
-        return FLOW_FALLTHROUGH;
-    case AST_DEFER_STMT:
-        if (node->data.defer_stmt.body != NULL)
-            return type_check_block_flow(node->data.defer_stmt.body, ctx, loop_flow);
-        return FLOW_FALLTHROUGH;
-    case AST_RETURN:
-        type_check_return_stmt(node, ctx);
-        return FLOW_RETURN;
-    case AST_BREAK:
-        if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'break' used outside of loop");
-            return FLOW_NONE;
-        }
-        {
-            QubitConsumeSnapshot snap = snapshot_qubit_states(ctx);
-            loop_flow_record(loop_flow, true, &snap);
-            destroy_qubit_snapshot(&snap);
-        }
-        return FLOW_BREAK;
-    case AST_CONTINUE:
-        if (ctx->loop_depth <= 0) {
-            semantic_error(ctx, node, "'continue' used outside of loop");
-            return FLOW_NONE;
-        }
-        {
-            QubitConsumeSnapshot snap = snapshot_qubit_states(ctx);
-            loop_flow_record(loop_flow, false, &snap);
-            destroy_qubit_snapshot(&snap);
-        }
-        return FLOW_CONTINUE;
-    default:
-        type_check_statement(node, ctx);
-        return FLOW_FALLTHROUGH;
-    }
-}
-
-bool
-type_check_if_stmt(ASTNode *node, SemanticContext *ctx)
-{
-    (void)type_check_if_stmt_flow(node, ctx, NULL);
-    return !ctx->has_error;
-}
-
-bool
-type_check_for_loop(ASTNode *node, SemanticContext *ctx)
-{
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    ctx->loop_depth++;
-
-    /* Register loop variable as Int */
-    Symbol *loop_var = symbol_create_variable(
-        node->data.for_loop.variable, TYPE_INT,
-        node->line, node->column);
-    scope_declare(ctx->scope, loop_var);
-
-    if (node->data.for_loop.range_start != NULL) {
-        Type *t = type_check_expression(node->data.for_loop.range_start, ctx);
-        require_assignable(t, TYPE_INT, node->data.for_loop.range_start, ctx);
-    }
-    if (node->data.for_loop.range_end != NULL) {
-        Type *t = type_check_expression(node->data.for_loop.range_end, ctx);
-        require_assignable(t, TYPE_INT, node->data.for_loop.range_end, ctx);
-    }
-
-    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
-    QubitConsumeSnapshot merged = copy_qubit_snapshot(&base);
-    QubitConsumeSnapshot entry = copy_qubit_snapshot(&base);
-    bool known_iterations = false;
-    size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
-    size_t max_iterations = (known_iterations && known_cap <= 1)
-        ? 1
-        : (base.count + 1);
-    if (max_iterations == 0)
-        max_iterations = 1;
-
-    for (size_t iter = 0; iter < max_iterations; iter++) {
-        LoopFlowState loop_flow = {0};
-        QubitConsumeSnapshot backedge = {0};
-        bool has_backedge = false;
-
-        restore_qubit_states(&entry);
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        {
-            FlowFlags body_flags =
-                type_check_block_flow(node->data.for_loop.body, ctx, &loop_flow);
-            if (body_flags & FLOW_FALLTHROUGH) {
-                QubitConsumeSnapshot body_snap = snapshot_qubit_states(ctx);
-                merge_qubit_states_or(&merged, &body_snap);
-                merge_qubit_snapshots_or(&backedge, &has_backedge, &body_snap);
-                destroy_qubit_snapshot(&body_snap);
-            }
-        }
-        scope_exit(&ctx->scope);
-
-        if (loop_flow.has_continue_states)
-            merge_qubit_snapshots_or(&backedge, &has_backedge,
-                                     &loop_flow.continue_states);
-        if (loop_flow.has_break_states)
-            merge_qubit_states_or(&merged, &loop_flow.break_states);
-
-        destroy_loop_flow_state(&loop_flow);
-
-        if (!has_backedge) {
-            destroy_qubit_snapshot(&backedge);
-            break;
-        }
-
-        if (qubit_snapshots_equal(&entry, &backedge)) {
-            destroy_qubit_snapshot(&entry);
-            entry = backedge;
-            break;
-        }
-
-        destroy_qubit_snapshot(&entry);
-        entry = backedge;
-    }
-
-    ctx->loop_depth--;
-    scope_exit(&ctx->scope);
-
-    restore_qubit_states(&merged);
-    destroy_qubit_snapshot(&base);
-    destroy_qubit_snapshot(&merged);
-    destroy_qubit_snapshot(&entry);
-    return !ctx->has_error;
-}
-
-bool
-type_check_while_loop(ASTNode *node, SemanticContext *ctx)
-{
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    ctx->loop_depth++;
-
-    QubitConsumeSnapshot base = snapshot_qubit_states(ctx);
-    QubitConsumeSnapshot merged = copy_qubit_snapshot(&base);
-    QubitConsumeSnapshot entry = copy_qubit_snapshot(&base);
-    size_t max_iterations = base.count + 1;
-    if (max_iterations == 0)
-        max_iterations = 1;
-
-    for (size_t iter = 0; iter < max_iterations; iter++) {
-        LoopFlowState loop_flow = {0};
-        QubitConsumeSnapshot backedge = {0};
-        bool has_backedge = false;
-
-        restore_qubit_states(&entry);
-        Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
-        if (!type_equals(cond, TYPE_BOOL)) {
-            semantic_error(ctx, node,
-                "While condition must be Bool, got '%s'", cond->name);
-        }
-
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        {
-            FlowFlags body_flags =
-                type_check_block_flow(node->data.while_loop.body, ctx, &loop_flow);
-            if (body_flags & FLOW_FALLTHROUGH) {
-                QubitConsumeSnapshot body_snap = snapshot_qubit_states(ctx);
-                merge_qubit_states_or(&merged, &body_snap);
-                merge_qubit_snapshots_or(&backedge, &has_backedge, &body_snap);
-                destroy_qubit_snapshot(&body_snap);
-            }
-        }
-        scope_exit(&ctx->scope);
-
-        if (loop_flow.has_continue_states)
-            merge_qubit_snapshots_or(&backedge, &has_backedge,
-                                     &loop_flow.continue_states);
-        if (loop_flow.has_break_states)
-            merge_qubit_states_or(&merged, &loop_flow.break_states);
-
-        destroy_loop_flow_state(&loop_flow);
-
-        if (!has_backedge) {
-            destroy_qubit_snapshot(&backedge);
-            break;
-        }
-
-        if (qubit_snapshots_equal(&entry, &backedge)) {
-            destroy_qubit_snapshot(&entry);
-            entry = backedge;
-            break;
-        }
-
-        destroy_qubit_snapshot(&entry);
-        entry = backedge;
-    }
-
-    ctx->loop_depth--;
-    scope_exit(&ctx->scope);
-
-    restore_qubit_states(&merged);
-    destroy_qubit_snapshot(&base);
-    destroy_qubit_snapshot(&merged);
-    destroy_qubit_snapshot(&entry);
-    return !ctx->has_error;
-}
-
-bool
-type_check_match_stmt(ASTNode *node, SemanticContext *ctx)
-{
-    (void)type_check_match_stmt_flow(node, ctx, NULL);
-    return !ctx->has_error;
-}
-
-bool
-type_check_with_stmt(ASTNode *node, SemanticContext *ctx)
-{
-    (void)type_check_with_stmt_flow(node, ctx, NULL);
     return !ctx->has_error;
 }
 
@@ -2967,16 +1774,6 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
-type_check_block(ASTNode *node, SemanticContext *ctx)
-{
-    if (node == NULL)
-        return true;
-
-    (void)type_check_block_flow(node, ctx, NULL);
-    return !ctx->has_error;
-}
-
-bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.func_decl.name;
@@ -3021,10 +1818,18 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     Type *return_type = TYPE_VOID;
     if (node->data.func_decl.return_type != NULL)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
+    if (type_is_slot_handle(return_type)) {
+        semantic_error(ctx, node->data.func_decl.return_type,
+            "Slot/SecureSlot return types are not supported yet");
+    }
 
     for (size_t i = 0; i < param_count; i++) {
         param_types[i] = resolve_type_node(
             node->data.func_decl.params[i]->type, ctx);
+        if (type_is_slot_handle(param_types[i])) {
+            semantic_error(ctx, node->data.func_decl.params[i]->type,
+                "Slot/SecureSlot parameters are not supported yet");
+        }
     }
 
     Type *func_type = type_create_function(param_types, param_count,

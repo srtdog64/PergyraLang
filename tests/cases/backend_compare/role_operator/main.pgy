@@ -1,0 +1,17 @@
+ability Arithmetic {
+    func Add(other: Int) -> Int;
+}
+
+role IntMath for Int {
+    impl ability Arithmetic {
+        func Add(other: Int) -> Int {
+            return 123;
+        }
+    }
+}
+
+func Main() -> Void {
+    let a: Int = 1;
+    let b: Int = 2;
+    Log(a + b);
+}

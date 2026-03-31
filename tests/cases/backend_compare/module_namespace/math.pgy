@@ -1,0 +1,4 @@
+namespace Math {
+    func HiddenAdd(a: Int, b: Int) -> Int { return a + b; }
+    export func Add(a: Int, b: Int) -> Int { return HiddenAdd(a, b); }
+}

@@ -15,27 +15,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc make llvm-dev
+          sudo apt-get install -y gcc make llvm-dev llvm
 
-      - name: Build (C backend only)
-        run: make LLVM_ENABLED=0
-
-      - name: Run semantic tests
-        run: ./bin/test_semantic
-
-      - name: Run transpiler tests
-        run: ./bin/test_transpile
-
-      - name: Run memory layout tests
-        run: ./bin/test_memory_layout
-
-      - name: Run HIR tests
-        run: ./bin/test_hir
-
-      - name: E2E smoke test
-        run: |
-          echo 'func Main() -> Void { Log(42); }' > /tmp/smoke.pgy
-          ./bin/pgy /tmp/smoke.pgy --backend=c --run
+      - name: Run Linux CI target
+        run: make ci-linux
 
   build-windows:
     runs-on: windows-latest
@@ -51,14 +34,6 @@ jobs:
             make
             mingw-w64-ucrt-x86_64-gcc
 
-      - name: Build (C backend only)
+      - name: Run Windows CI target
         shell: msys2 {0}
-        run: make LLVM_ENABLED=0
-
-      - name: Run semantic tests
-        shell: msys2 {0}
-        run: ./bin/test_semantic.exe
-
-      - name: Run transpiler tests
-        shell: msys2 {0}
-        run: ./bin/test_transpile.exe
+        run: make ci-windows

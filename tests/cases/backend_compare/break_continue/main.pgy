@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let sum: Int = 0;
+    for i in 0..6 {
+        if i == 2 { continue; }
+        if i == 5 { break; }
+        sum = sum + i;
+    }
+    Log(sum);
+}

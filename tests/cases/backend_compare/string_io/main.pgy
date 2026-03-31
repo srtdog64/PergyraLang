@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let s: String = Concat(Upper(Trim("  hi")), Lower(" THERE"));
+    Log(StringLength(s));
+    Log(Contains(s, "HI"));
+    WriteFile("io.txt", Replace(s, "HI", "BYE"));
+    let out: String = ReadFile("io.txt");
+    Log(out);
+}

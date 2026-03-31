@@ -118,6 +118,7 @@ transpiler_ctx_create(void)
     TranspilerCtx *ctx = calloc(1, sizeof(TranspilerCtx));
     if (ctx == NULL)
         return NULL;
+    pgy_arena_init(&ctx->arena, 0);
     ctx->out   = codebuf_create();
     ctx->decls = codebuf_create();
     ctx->helpers = codebuf_create();
@@ -125,6 +126,7 @@ transpiler_ctx_create(void)
         codebuf_destroy(ctx->out);
         codebuf_destroy(ctx->decls);
         codebuf_destroy(ctx->helpers);
+        pgy_arena_destroy(&ctx->arena);
         free(ctx);
         return NULL;
     }
@@ -139,6 +141,7 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
     codebuf_destroy(ctx->out);
     codebuf_destroy(ctx->decls);
     codebuf_destroy(ctx->helpers);
+    pgy_arena_destroy(&ctx->arena);
     free(ctx);
 }
 

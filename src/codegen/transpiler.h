@@ -26,6 +26,7 @@
 #include "../compiler/hir.h"
 #include "../semantic/type_system.h"
 #include "../semantic/semantic.h"
+#include "../common/arena.h"
 
 /* -----------------------------------------------------------------
  * Output buffer — grows dynamically
@@ -100,6 +101,10 @@ typedef struct
 
     /* Defer counter for unique defer IDs */
     int   defer_counter;
+
+    /* Memory arena for expression string allocation.
+     * Strings allocated here are freed in bulk at context destruction. */
+    PgyArena arena;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

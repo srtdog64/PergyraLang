@@ -13,6 +13,7 @@
 #include "llvm_internal.h"
 #include "../common/string_compat.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -195,6 +196,87 @@ typedef struct LLVMGenCtx
 #endif /* --- end removed block --- */
 
 /* =================================================================
+ * Type classification
+ * ================================================================= */
+
+PgyTypeKind
+pgy_classify_type(const char *type_name)
+{
+    if (type_name == NULL)
+        return PGY_TK_VOID;
+
+    /* Primitives — exact match */
+    switch (type_name[0]) {
+    case 'I': if (strcmp(type_name, "Int") == 0)        return PGY_TK_INT;        break;
+    case 'L': if (strcmp(type_name, "Long") == 0)       return PGY_TK_LONG;       break;
+    case 'F':
+        if (strcmp(type_name, "Float") == 0)            return PGY_TK_FLOAT;
+        if (strncmp(type_name, "Future<", 7) == 0)     return PGY_TK_FUTURE;
+        break;
+    case 'D': if (strcmp(type_name, "Double") == 0)     return PGY_TK_DOUBLE;     break;
+    case 'B':
+        if (strcmp(type_name, "Bool") == 0)             return PGY_TK_BOOL;
+        if (strncmp(type_name, "Box<", 4) == 0)        return PGY_TK_BOX;
+        break;
+    case 'S':
+        if (strcmp(type_name, "String") == 0)           return PGY_TK_STRING;
+        if (strncmp(type_name, "Slot<", 5) == 0)       return PGY_TK_SLOT;
+        if (strcmp(type_name, "Slot") == 0)             return PGY_TK_SLOT;
+        if (strncmp(type_name, "SecureSlot<", 11) == 0) return PGY_TK_SECURE_SLOT;
+        if (strncmp(type_name, "Slice<", 6) == 0)      return PGY_TK_SLICE;
+        break;
+    case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
+    case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
+    case 'R':
+        if (strncmp(type_name, "Result<", 7) == 0)     return PGY_TK_RESULT;
+        if (strncmp(type_name, "Rc<", 3) == 0)         return PGY_TK_RC;
+        break;
+    case 'C':
+        if (strncmp(type_name, "Channel<", 8) == 0)    return PGY_TK_CHANNEL;
+        break;
+    case 'W':
+        if (strncmp(type_name, "Weak<", 5) == 0)       return PGY_TK_WEAK;
+        break;
+    case 'A':
+        if (strncmp(type_name, "Array<", 6) == 0)      return PGY_TK_ARRAY;
+        break;
+    default:
+        break;
+    }
+    return PGY_TK_UNKNOWN;
+}
+
+LLVMTypeRef
+pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind)
+{
+    switch (kind) {
+    case PGY_TK_INT:        return ctx->type_i32;
+    case PGY_TK_LONG:       return ctx->type_i64;
+    case PGY_TK_FLOAT:      return ctx->type_f32;
+    case PGY_TK_DOUBLE:     return ctx->type_f64;
+    case PGY_TK_BOOL:       return ctx->type_i1;
+    case PGY_TK_STRING:     return ctx->type_i8ptr;
+    case PGY_TK_QUBIT_SLOT: return ctx->type_i32;
+    case PGY_TK_VOID:       return ctx->type_void;
+    default:                 return NULL;
+    }
+}
+
+const char *
+pgy_kind_to_suffix(PgyTypeKind kind)
+{
+    switch (kind) {
+    case PGY_TK_INT:    return "Int";
+    case PGY_TK_LONG:   return "Long";
+    case PGY_TK_FLOAT:  return "Float";
+    case PGY_TK_DOUBLE: return "Double";
+    case PGY_TK_BOOL:   return "Bool";
+    case PGY_TK_STRING: return "String";
+    default:            return NULL;
+    }
+}
+
+/* =================================================================
  * Context lifecycle
  * ================================================================= */
 
@@ -273,6 +355,21 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     if (ctx->context != NULL)
         LLVMContextDispose(ctx->context);
 
+    /* Free dynamic arrays */
+    free(ctx->functions);
+    free(ctx->slot_vars);
+    free(ctx->class_types);
+    free(ctx->var_classes);
+    free(ctx->array_vars);
+    free(ctx->event_types);
+    free(ctx->enum_variants);
+    free(ctx->generic_templates);
+
+    /* Free heap-allocated mono instance names */
+    for (int i = 0; i < ctx->mono_count; i++)
+        free(ctx->mono_instances[i].name);
+    free(ctx->mono_instances);
+
     free(ctx);
 }
 
@@ -284,9 +381,7 @@ void
 llvm_scope_push(LLVMGenCtx *ctx)
 {
     if (ctx->scope_depth >= MAX_SCOPE_DEPTH) {
-        ctx->has_error = true;
-        snprintf(ctx->error_msg, sizeof(ctx->error_msg),
-                 "Scope depth overflow (max %d)", MAX_SCOPE_DEPTH);
+        llvm_set_error(ctx, "Scope depth overflow (max %d)", MAX_SCOPE_DEPTH);
         return;
     }
     ctx->scopes[ctx->scope_depth].count = 0;
@@ -309,9 +404,7 @@ llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
 
     LLVMScopeFrame *frame = &ctx->scopes[ctx->scope_depth - 1];
     if (frame->count >= MAX_SCOPE_VARS) {
-        ctx->has_error = true;
-        snprintf(ctx->error_msg, sizeof(ctx->error_msg),
-                 "Too many variables in scope (max %d)", MAX_SCOPE_VARS);
+        llvm_set_error(ctx, "Too many variables in scope (max %d)", MAX_SCOPE_VARS);
         return;
     }
 
@@ -343,8 +436,8 @@ llvm_register_function(LLVMGenCtx *ctx, const char *name,
                        LLVMValueRef fn, LLVMTypeRef fn_type,
                        LLVMTypeRef ret_type)
 {
-    if (ctx->func_count >= MAX_FUNCTIONS)
-        return;
+    PGY_DYNARR_ENSURE(ctx->functions, ctx->func_count,
+                       ctx->func_capacity, LLVMFuncEntry);
 
     ctx->functions[ctx->func_count].name     = name;
     ctx->functions[ctx->func_count].fn       = fn;
@@ -374,11 +467,12 @@ void
 llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
                        const char *inner_type)
 {
-    if (ctx->slot_var_count >= MAX_SLOT_VARS)
-        return;
+    PGY_DYNARR_ENSURE(ctx->slot_vars, ctx->slot_var_count,
+                       ctx->slot_var_capacity, LLVMSlotVarEntry);
 
     ctx->slot_vars[ctx->slot_var_count].var_name   = var_name;
     ctx->slot_vars[ctx->slot_var_count].inner_type = inner_type;
+    ctx->slot_vars[ctx->slot_var_count].released   = false;
     ctx->slot_var_count++;
 }
 
@@ -395,13 +489,15 @@ llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name)
 LLVMTypeRef
 llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
-    if (strcmp(inner, "Int") == 0)    return ctx->slot_type_Int;
-    if (strcmp(inner, "Long") == 0)   return ctx->slot_type_Long;
-    if (strcmp(inner, "Float") == 0)  return ctx->slot_type_Float;
-    if (strcmp(inner, "Double") == 0) return ctx->slot_type_Double;
-    if (strcmp(inner, "Bool") == 0)   return ctx->slot_type_Bool;
-    if (strcmp(inner, "String") == 0) return ctx->slot_type_String;
-    return ctx->slot_type_Int;
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->slot_type_Int;
+    case PGY_TK_LONG:   return ctx->slot_type_Long;
+    case PGY_TK_FLOAT:  return ctx->slot_type_Float;
+    case PGY_TK_DOUBLE: return ctx->slot_type_Double;
+    case PGY_TK_BOOL:   return ctx->slot_type_Bool;
+    case PGY_TK_STRING: return ctx->slot_type_String;
+    default:            return ctx->slot_type_Int;
+    }
 }
 
 /* =================================================================
@@ -412,8 +508,8 @@ LLVMClassTypeEntry *
 llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
                     LLVMTypeRef struct_type)
 {
-    if (ctx->class_type_count >= MAX_CLASS_TYPES)
-        return NULL;
+    PGY_DYNARR_ENSURE_RET(ctx->class_types, ctx->class_type_count,
+                            ctx->class_type_capacity, LLVMClassTypeEntry);
 
     LLVMClassTypeEntry *entry = &ctx->class_types[ctx->class_type_count++];
     entry->class_name  = class_name;
@@ -459,8 +555,8 @@ void
 llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
                         const char *class_name)
 {
-    if (ctx->var_class_count >= MAX_SCOPE_VARS)
-        return;
+    PGY_DYNARR_ENSURE(ctx->var_classes, ctx->var_class_count,
+                       ctx->var_class_capacity, LLVMVarClassEntry);
 
     ctx->var_classes[ctx->var_class_count].var_name   = var_name;
     ctx->var_classes[ctx->var_class_count].class_name = class_name;
@@ -481,8 +577,8 @@ void
 llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
                         LLVMTypeRef elem_type, int64_t length)
 {
-    if (ctx->array_var_count >= MAX_ARRAY_VARS)
-        return;
+    PGY_DYNARR_ENSURE(ctx->array_vars, ctx->array_var_count,
+                       ctx->array_var_capacity, LLVMArrayVarEntry);
 
     ctx->array_vars[ctx->array_var_count].var_name = var_name;
     ctx->array_vars[ctx->array_var_count].elem_type = elem_type;
@@ -504,8 +600,8 @@ void
 llvm_register_enum_variant(LLVMGenCtx *ctx, const char *enum_name,
                            const char *variant_name, int value)
 {
-    if (ctx->enum_variant_count >= MAX_ENUM_VARIANTS)
-        return;
+    PGY_DYNARR_ENSURE(ctx->enum_variants, ctx->enum_variant_count,
+                       ctx->enum_variant_capacity, LLVMEnumVariantEntry);
 
     ctx->enum_variants[ctx->enum_variant_count].enum_name = enum_name;
     ctx->enum_variants[ctx->enum_variant_count].variant_name = variant_name;
@@ -533,6 +629,40 @@ llvm_lookup_enum_variant_qualified(LLVMGenCtx *ctx, const char *enum_name,
             return &ctx->enum_variants[i];
     }
     return NULL;
+}
+
+/* =================================================================
+ * Error reporting helpers
+ * ================================================================= */
+
+void
+llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;  /* preserve first error */
+    ctx->has_error = true;
+    ctx->error_line = 0;
+    ctx->error_column = 0;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
+void
+llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = (node != NULL) ? node->line : 0;
+    ctx->error_column = (node != NULL) ? node->column : 0;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
 }
 
 /* =================================================================
@@ -576,19 +706,15 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
     const char *gt = strrchr(type_name, '>');
     if (lt == NULL || gt == NULL || gt <= lt)
         return ctx->type_i32;
+
     char inner[128];
     size_t len = (size_t)(gt - lt - 1);
     if (len >= sizeof(inner)) len = sizeof(inner) - 1;
     memcpy(inner, lt + 1, len);
     inner[len] = '\0';
 
-    if (strcmp(inner, "Int") == 0)    return ctx->type_i32;
-    if (strcmp(inner, "Long") == 0)   return ctx->type_i64;
-    if (strcmp(inner, "Float") == 0)  return ctx->type_f32;
-    if (strcmp(inner, "Double") == 0) return ctx->type_f64;
-    if (strcmp(inner, "Bool") == 0)   return ctx->type_i1;
-    if (strcmp(inner, "String") == 0) return ctx->type_i8ptr;
-    return ctx->type_i32;
+    LLVMTypeRef resolved = pgy_kind_to_llvm(ctx, pgy_classify_type(inner));
+    return resolved != NULL ? resolved : ctx->type_i32;
 }
 
 LLVMTypeRef
@@ -597,45 +723,52 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (type_name == NULL)
         return ctx->type_void;
 
-    /* Check active type substitution (monomorphization) */
+    /* Check active type substitution (monomorphization) first */
     for (int i = 0; i < ctx->type_subst_count; i++) {
         if (strcmp(type_name, ctx->type_subst[i].param_name) == 0)
             return ctx->type_subst[i].llvm_type;
     }
 
-    if (strcmp(type_name, "Int") == 0)    return ctx->type_i32;
-    if (strcmp(type_name, "Long") == 0)   return ctx->type_i64;
-    if (strcmp(type_name, "Float") == 0)  return ctx->type_f32;
-    if (strcmp(type_name, "Double") == 0) return ctx->type_f64;
-    if (strcmp(type_name, "Bool") == 0)   return ctx->type_i1;
-    if (strcmp(type_name, "String") == 0) return ctx->type_i8ptr;
-    if (strcmp(type_name, "QubitSlot") == 0) return ctx->type_i32;
-    if (strcmp(type_name, "Void") == 0)   return ctx->type_void;
+    PgyTypeKind kind = pgy_classify_type(type_name);
+
+    /* Primitive types — direct mapping */
+    LLVMTypeRef primitive = pgy_kind_to_llvm(ctx, kind);
+    if (primitive != NULL)
+        return primitive;
 
     /* Generic container types */
-    if (strncmp(type_name, "Result<", 7) == 0) {
-        /* Result<T> → { T value, i1 ok } */
+    switch (kind) {
+    case PGY_TK_RESULT: {
         LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
         LLVMTypeRef fields[] = { inner, ctx->type_i1 };
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
-    if (strncmp(type_name, "Slot<", 5) == 0
-        || strncmp(type_name, "SecureSlot<", 11) == 0) {
-        const char *inner_name = strchr(type_name, '<') + 1;
-        char buf[64]; size_t l = strcspn(inner_name, ">");
-        if (l >= sizeof(buf)) l = sizeof(buf) - 1;
-        memcpy(buf, inner_name, l); buf[l] = '\0';
-        return llvm_slot_struct_type(ctx, buf);
+    case PGY_TK_SLOT:
+    case PGY_TK_SECURE_SLOT: {
+        const char *inner_name = strchr(type_name, '<');
+        if (inner_name != NULL) {
+            inner_name++;
+            char buf[64]; size_t l = strcspn(inner_name, ">");
+            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+            memcpy(buf, inner_name, l); buf[l] = '\0';
+            return llvm_slot_struct_type(ctx, buf);
+        }
+        return llvm_slot_struct_type(ctx, "Int");
     }
-    if (strncmp(type_name, "Channel<", 8) == 0
-        || strncmp(type_name, "Future<", 7) == 0
-        || strncmp(type_name, "Box<", 4) == 0
-        || strncmp(type_name, "Rc<", 3) == 0
-        || strncmp(type_name, "Weak<", 5) == 0
-        || strncmp(type_name, "Array<", 6) == 0
-        || strncmp(type_name, "Slice<", 6) == 0) {
-        /* Opaque pointer for all container types */
+    case PGY_TK_CHANNEL:
+    case PGY_TK_FUTURE:
+    case PGY_TK_BOX:
+    case PGY_TK_RC:
+    case PGY_TK_WEAK:
+    case PGY_TK_ARRAY:
+    case PGY_TK_SLICE:
         return ctx->type_i8ptr;
+
+    case PGY_TK_UNKNOWN:
+    case PGY_TK_CLASS:
+        break;
+    default:
+        break;
     }
 
     /* Check if it's a registered class type */
@@ -713,14 +846,15 @@ llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled)
 void
 llvm_register_mono(LLVMGenCtx *ctx, const char *mangled)
 {
-    if (ctx->mono_count < MAX_MONO_INSTANCES) {
-        snprintf(ctx->mono_instances[ctx->mono_count].name,
-                 sizeof(ctx->mono_instances[0].name), "%s", mangled);
-        ctx->mono_count++;
-    }
+    PGY_DYNARR_ENSURE(ctx->mono_instances, ctx->mono_count,
+                       ctx->mono_capacity, LLVMMonoInstance);
+
+    ctx->mono_instances[ctx->mono_count].name = pergyra_strdup(mangled);
+    ctx->mono_count++;
 }
 
-/* Map LLVM type to Pergyra type name suffix */
+/* Map LLVM type to Pergyra type name suffix.
+ * Note: this uses pointer identity (not enum) since LLVMTypeRef is opaque. */
 const char *
 llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty)
 {
@@ -1080,13 +1214,14 @@ llvm_register_event(LLVMGenCtx *ctx, const char *name,
                     LLVMTypeRef struct_type,
                     int param_count, LLVMTypeRef *param_types)
 {
-    if (ctx->event_type_count >= MAX_EVENT_TYPES)
-        return NULL;
+    PGY_DYNARR_ENSURE_RET(ctx->event_types, ctx->event_type_count,
+                            ctx->event_type_capacity, LLVMEventTypeEntry);
+
     LLVMEventTypeEntry *e = &ctx->event_types[ctx->event_type_count++];
     e->event_name  = name;
     e->struct_type = struct_type;
     e->param_count = param_count;
-    for (int i = 0; i < param_count && i < 8; i++)
+    for (int i = 0; i < param_count && i < MAX_EVENT_PARAMS; i++)
         e->param_types[i] = param_types[i];
     return e;
 }
@@ -1099,9 +1234,7 @@ static void
 llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
     if (hir == NULL) {
-        ctx->has_error = true;
-        snprintf(ctx->error_msg, sizeof(ctx->error_msg),
-                 "Expected lowered HIR program");
+        llvm_set_error(ctx, "Expected lowered HIR program");
         return;
     }
 
@@ -1327,12 +1460,14 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         if (stmt->data.func_decl.generic_params != NULL
             && stmt->data.func_decl.generic_params->count > 0) {
             /* Store as template for lazy instantiation */
-            if (ctx->generic_template_count < MAX_GENERIC_FUNCS) {
-                ctx->generic_templates[ctx->generic_template_count].name =
-                    stmt->data.func_decl.name;
-                ctx->generic_templates[ctx->generic_template_count].ast = stmt;
-                ctx->generic_template_count++;
-            }
+            PGY_DYNARR_ENSURE(ctx->generic_templates,
+                               ctx->generic_template_count,
+                               ctx->generic_template_capacity,
+                               LLVMGenericTemplate);
+            ctx->generic_templates[ctx->generic_template_count].name =
+                stmt->data.func_decl.name;
+            ctx->generic_templates[ctx->generic_template_count].ast = stmt;
+            ctx->generic_template_count++;
         } else {
             llvm_forward_declare_func(stmt, ctx);
         }
@@ -1670,7 +1805,14 @@ llvm_codegen(const HIRProgram *hir, const char *module_name)
     llvm_emit_program(hir, ctx);
 
     if (ctx->has_error) {
-        LLVMGenResult *res = llvm_result_error(ctx->error_msg);
+        char msg[1024];
+        if (ctx->error_line > 0) {
+            snprintf(msg, sizeof(msg), "line %u:%u: %s",
+                     ctx->error_line, ctx->error_column, ctx->error_msg);
+        } else {
+            snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
+        }
+        LLVMGenResult *res = llvm_result_error(msg);
         llvm_ctx_destroy(ctx);
         return res;
     }
@@ -1709,7 +1851,14 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
     llvm_emit_program(hir, ctx);
 
     if (ctx->has_error) {
-        LLVMGenResult *res = llvm_result_error(ctx->error_msg);
+        char msg[1024];
+        if (ctx->error_line > 0) {
+            snprintf(msg, sizeof(msg), "line %u:%u: %s",
+                     ctx->error_line, ctx->error_column, ctx->error_msg);
+        } else {
+            snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
+        }
+        LLVMGenResult *res = llvm_result_error(msg);
         llvm_ctx_destroy(ctx);
         return res;
     }

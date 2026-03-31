@@ -30,18 +30,102 @@
  * Constants
  * ================================================================= */
 
-#define MAX_SCOPE_DEPTH 64
-#define MAX_SCOPE_VARS  256
-#define MAX_FUNCTIONS   256
-#define MAX_SLOT_VARS   128
-#define MAX_CLASS_TYPES 64
-#define MAX_CLASS_FIELDS 64
-#define MAX_EVENT_TYPES 32
+/* Fixed limits — bounded by nesting depth, reasonable for any program */
+#define MAX_SCOPE_DEPTH     64
+#define MAX_SCOPE_VARS      256
+#define MAX_CLASS_FIELDS    64
+#define MAX_EVENT_PARAMS    8
 #define PGY_EVENT_MAX_HANDLERS 16
-#define MAX_GENERIC_FUNCS   64
-#define MAX_MONO_INSTANCES 256
-#define MAX_ENUM_VARIANTS 256
-#define MAX_ARRAY_VARS 128
+#define MAX_TYPE_SUBST      8
+
+/* =================================================================
+ * Dynamic array growth macro — eliminates static array overflow
+ *
+ * Usage:  PGY_DYNARR_ENSURE(ptr, count, capacity, Type)
+ *   Before inserting at ptr[count], call this to guarantee capacity.
+ *   On allocation failure, sets ctx->has_error and returns/continues.
+ * ================================================================= */
+#define PGY_DYNARR_ENSURE(arr, cnt, cap, T)                          \
+    do {                                                              \
+        if ((cnt) >= (cap)) {                                         \
+            int _new_cap = (cap) == 0 ? 16 : (cap) * 2;              \
+            T *_new = realloc((arr), (size_t)_new_cap * sizeof(T));   \
+            if (_new == NULL) {                                       \
+                llvm_set_error(ctx, "out of memory growing " #arr);   \
+                return;                                               \
+            }                                                         \
+            memset(_new + (cap), 0,                                   \
+                   (size_t)(_new_cap - (cap)) * sizeof(T));           \
+            (arr) = _new;                                             \
+            (cap) = _new_cap;                                         \
+        }                                                             \
+    } while (0)
+
+/* Variant that returns NULL instead of void (for functions returning pointers) */
+#define PGY_DYNARR_ENSURE_RET(arr, cnt, cap, T)                     \
+    do {                                                              \
+        if ((cnt) >= (cap)) {                                         \
+            int _new_cap = (cap) == 0 ? 16 : (cap) * 2;              \
+            T *_new = realloc((arr), (size_t)_new_cap * sizeof(T));   \
+            if (_new == NULL) {                                       \
+                llvm_set_error(ctx, "out of memory growing " #arr);   \
+                return NULL;                                          \
+            }                                                         \
+            memset(_new + (cap), 0,                                   \
+                   (size_t)(_new_cap - (cap)) * sizeof(T));           \
+            (arr) = _new;                                             \
+            (cap) = _new_cap;                                         \
+        }                                                             \
+    } while (0)
+
+/* =================================================================
+ * Pergyra type classification — eliminates repeated strcmp dispatch
+ *
+ * Call pgy_classify_type() once on a type name string, then use
+ * switch() everywhere else for exhaustive, typo-proof dispatch.
+ * ================================================================= */
+
+typedef enum
+{
+    PGY_TK_INT,
+    PGY_TK_LONG,
+    PGY_TK_FLOAT,
+    PGY_TK_DOUBLE,
+    PGY_TK_BOOL,
+    PGY_TK_STRING,
+    PGY_TK_VOID,
+    PGY_TK_QUBIT_SLOT,
+
+    /* Generic container types — inner type parsed separately */
+    PGY_TK_SLOT,
+    PGY_TK_SECURE_SLOT,
+    PGY_TK_RESULT,
+    PGY_TK_CHANNEL,
+    PGY_TK_FUTURE,
+    PGY_TK_BOX,
+    PGY_TK_RC,
+    PGY_TK_WEAK,
+    PGY_TK_ARRAY,
+    PGY_TK_SLICE,
+
+    PGY_TK_CLASS,        /* user-defined class (not matched by classifier) */
+    PGY_TK_UNKNOWN       /* type param, unresolved, or unrecognized */
+} PgyTypeKind;
+
+typedef struct LLVMGenCtx LLVMGenCtx;
+
+/* Classify a Pergyra type name string into its kind.
+ * Handles both primitive ("Int") and generic ("Slot<Int>") forms.
+ * Returns PGY_TK_UNKNOWN for unrecognized names. */
+PgyTypeKind pgy_classify_type(const char *type_name);
+
+/* Map a PgyTypeKind (primitive only) to its LLVM type in the context.
+ * Returns NULL for non-primitive kinds. */
+LLVMTypeRef pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind);
+
+/* Map a PgyTypeKind (primitive only) to its Pergyra name suffix.
+ * Returns NULL for non-primitive kinds. */
+const char *pgy_kind_to_suffix(PgyTypeKind kind);
 
 /* =================================================================
  * Type definitions
@@ -101,7 +185,7 @@ typedef struct
     const char  *event_name;
     LLVMTypeRef  struct_type;
     int          param_count;
-    LLVMTypeRef  param_types[8];
+    LLVMTypeRef  param_types[MAX_EVENT_PARAMS];
 } LLVMEventTypeEntry;
 
 typedef struct
@@ -118,21 +202,47 @@ typedef struct
     LLVMTypeRef   ret_type;
 } LLVMFuncEntry;
 
+/* Generic template entry (for lazy monomorphization) */
+typedef struct
+{
+    const char *name;
+    ASTNode    *ast;
+} LLVMGenericTemplate;
+
+/* Monomorphized instance tracking */
+typedef struct
+{
+    char *name;   /* heap-allocated, freed in ctx_destroy */
+} LLVMMonoInstance;
+
+/* Type substitution entry (T → concrete LLVM type) */
+typedef struct
+{
+    const char  *param_name;  /* "T" */
+    LLVMTypeRef  llvm_type;   /* i32 */
+    const char  *type_name;   /* "Int" */
+} LLVMTypeSubst;
+
 typedef struct LLVMGenCtx
 {
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
 
+    /* Scope stack — fixed depth (nesting rarely exceeds 64) */
     LLVMScopeFrame  scopes[MAX_SCOPE_DEPTH];
     int             scope_depth;
 
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
 
-    LLVMFuncEntry   functions[MAX_FUNCTIONS];
-    int             func_count;
+    /* --- Dynamic arrays: pointer + count + capacity --- */
 
+    LLVMFuncEntry        *functions;
+    int                   func_count;
+    int                   func_capacity;
+
+    /* Cached primitive types (set once in ctx_create) */
     LLVMTypeRef     type_i32;
     LLVMTypeRef     type_i64;
     LLVMTypeRef     type_f32;
@@ -151,24 +261,31 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     slot_type_Bool;
     LLVMTypeRef     slot_type_String;
 
-    LLVMSlotVarEntry slot_vars[MAX_SLOT_VARS];
-    int              slot_var_count;
+    LLVMSlotVarEntry     *slot_vars;
+    int                   slot_var_count;
+    int                   slot_var_capacity;
 
-    LLVMClassTypeEntry class_types[MAX_CLASS_TYPES];
-    int                class_type_count;
+    LLVMClassTypeEntry   *class_types;
+    int                   class_type_count;
+    int                   class_type_capacity;
 
-    LLVMVarClassEntry  var_classes[MAX_SCOPE_VARS];
-    int                var_class_count;
+    LLVMVarClassEntry    *var_classes;
+    int                   var_class_count;
+    int                   var_class_capacity;
 
-    LLVMArrayVarEntry  array_vars[MAX_ARRAY_VARS];
-    int                array_var_count;
+    LLVMArrayVarEntry    *array_vars;
+    int                   array_var_count;
+    int                   array_var_capacity;
 
-    LLVMEventTypeEntry event_types[MAX_EVENT_TYPES];
-    int                event_type_count;
+    LLVMEventTypeEntry   *event_types;
+    int                   event_type_count;
+    int                   event_type_capacity;
 
-    LLVMEnumVariantEntry enum_variants[MAX_ENUM_VARIANTS];
-    int                  enum_variant_count;
+    LLVMEnumVariantEntry *enum_variants;
+    int                   enum_variant_count;
+    int                   enum_variant_capacity;
 
+    /* Loop tracking — fixed depth (bounded by scope depth) */
     LLVMBasicBlockRef loop_continue_blocks[MAX_SCOPE_DEPTH];
     LLVMBasicBlockRef loop_break_blocks[MAX_SCOPE_DEPTH];
     int              loop_depth;
@@ -176,28 +293,27 @@ typedef struct LLVMGenCtx
     int             lambda_counter;
     int             tmp_counter;
 
-    struct {
-        const char *name;
-        ASTNode    *ast;
-    } generic_templates[MAX_GENERIC_FUNCS];
-    int generic_template_count;
+    /* Generic monomorphization — dynamic */
+    LLVMGenericTemplate  *generic_templates;
+    int                   generic_template_count;
+    int                   generic_template_capacity;
 
-    struct {
-        char name[256];
-    } mono_instances[MAX_MONO_INSTANCES];
-    int mono_count;
+    LLVMMonoInstance     *mono_instances;
+    int                   mono_count;
+    int                   mono_capacity;
 
-    struct {
-        const char  *param_name;
-        LLVMTypeRef  llvm_type;
-        const char  *type_name;
-    } type_subst[8];
-    int type_subst_count;
+    /* Active type substitution map — small fixed size */
+    LLVMTypeSubst   type_subst[MAX_TYPE_SUBST];
+    int             type_subst_count;
 
+    /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool            suppress_slot_auto_read;
 
+    /* Error state — structured with optional source location */
     bool            has_error;
     char            error_msg[512];
+    uint32_t        error_line;    /* 0 = no location info */
+    uint32_t        error_column;
 } LLVMGenCtx;
 
 /* =================================================================
@@ -283,6 +399,15 @@ ASTNode    *llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name);
 bool        llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled);
 void        llvm_register_mono(LLVMGenCtx *ctx, const char *mangled);
 const char *llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty);
+
+/* =================================================================
+ * Error reporting helpers (llvm_backend.c)
+ *
+ * llvm_set_error    — internal error (no source location)
+ * llvm_set_error_at — error with source location from AST node
+ * ================================================================= */
+void llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...);
+void llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)

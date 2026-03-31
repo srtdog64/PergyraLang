@@ -50,6 +50,7 @@ LLVM_SYSTEM_SONAME_DIR := $(dir $(LLVM_SYSTEM_SONAME))
 LLVM_DIR     = third_party
 LLVM_INSTALL = C:/Program Files/LLVM
 LLVM_ENABLED ?= 1
+CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED).stamp
 
 ifneq ($(LLVM_ENABLED),0)
   ifneq ($(LLVM_CONFIG),)
@@ -82,10 +83,12 @@ ASYNC_DIR    = $(RUNTIME_DIR)/async
 SEMANTIC_DIR = $(SRC_DIR)/semantic
 CODEGEN_DIR  = $(SRC_DIR)/codegen
 COMPILER_DIR = $(SRC_DIR)/compiler
+COMMON_DIR   = $(SRC_DIR)/common
 
 # -----------------------------------------------------------------
 # Source groups
 # -----------------------------------------------------------------
+COMMON_SOURCES   = $(COMMON_DIR)/arena.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser.c \
@@ -101,6 +104,8 @@ RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins.c \
+                   $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
@@ -116,7 +121,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/repl.c
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
-ifdef LLVM_ENABLED
+ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
                          $(CODEGEN_DIR)/llvm_expr.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
@@ -146,6 +151,7 @@ LSP_SRC                 = $(SRC_DIR)/lsp/pgy_lsp.c
 # -----------------------------------------------------------------
 # Object files
 # -----------------------------------------------------------------
+COMMON_OBJECTS   = $(COMMON_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 LEXER_OBJECTS    = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 PARSER_OBJECTS   = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 RUNTIME_OBJECTS  = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -171,7 +177,7 @@ DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
 LSP_OBJ                = $(BUILD_DIR)/lsp/pgy_lsp.o
 
 # Common frontend objects used by many targets
-FRONTEND_OBJECTS = $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
+FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
                    $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS) $(COMPILER_OBJECTS) \
                    $(LLVM_BACKEND_OBJECTS) $(RUNTIME_LIB_OBJECTS)
 
@@ -205,48 +211,59 @@ llvm:
 
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser test
 $(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Data structures test
 $(DATASTRUCTURES_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                          $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # Security test
 $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread -lssl -lcrypto
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Concurrency runtime test
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # HIR lowering test
 $(HIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # LSP server
 $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # -----------------------------------------------------------------
@@ -254,10 +271,10 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 # -----------------------------------------------------------------
 
 # C sources
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -c -o $@ $<
-	@sed -i 's#\([A-Za-z]\):/#\1\\:/#g' $(@:.o=.d)
+	@[ -f $(@:.o=.d) ] && sed -i 's#\([A-Za-z]\):/#\1\\:/#g' $(@:.o=.d) || true
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
@@ -269,6 +286,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
 # -----------------------------------------------------------------
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR) \
+		$(BUILD_DIR)/common \
 		$(BUILD_DIR)/lexer \
 		$(BUILD_DIR)/parser \
 		$(BUILD_DIR)/semantic \
@@ -277,9 +295,15 @@ $(BUILD_DIR):
 		$(BUILD_DIR)/runtime \
 		$(BUILD_DIR)/runtime/async \
 		$(BUILD_DIR)/lsp
+	touch $(BUILD_DIR)
+
+$(CONFIG_STAMP): | $(BUILD_DIR)
+	rm -f $(BUILD_DIR)/.config_llvm_*.stamp
+	printf "LLVM_ENABLED=%s\n" "$(LLVM_ENABLED)" > $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
+	touch $(BIN_DIR)
 
 # -----------------------------------------------------------------
 # Test execution targets
@@ -344,6 +368,10 @@ llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	bash tests/llvm_smoke.sh
 
+module-test-smoke:
+	$(MAKE) $(PGY)
+	bash tests/module_smoke.sh
+
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	bash tests/compare_backends.sh
@@ -352,6 +380,21 @@ llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
 	bash tests/llvm_smoke.sh
 	bash tests/compare_backends.sh
+
+ci-linux:
+	$(MAKE) clean
+	$(MAKE) test-all
+	$(MAKE) llvm-test-smoke
+	$(MAKE) module-test-smoke
+	$(MAKE) llvm-test-backend-compare
+	$(MAKE) clean
+	$(MAKE) test-all
+
+ci-windows:
+	$(MAKE) clean
+	$(MAKE) LLVM_ENABLED=0 test-all
+	$(MAKE) clean
+	$(MAKE) LLVM_ENABLED=0 test-all
 
 # -----------------------------------------------------------------
 # pgy driver convenience targets
@@ -399,7 +442,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke module-test-smoke ci-linux ci-windows \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

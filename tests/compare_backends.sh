@@ -17,8 +17,10 @@ if [[ ! -x "$PGY_BIN" ]]; then
 fi
 
 run_case() {
-    local source_rel="$1"
+    local case_ref="$1"
     local case_name
+    local case_src_dir=""
+    local source_rel=""
     local source_copy
     local c_bin
     local llvm_bin
@@ -31,8 +33,20 @@ run_case() {
     local c_rc=0
     local llvm_rc=0
 
-    case_name="$(basename "$source_rel" .pgy)"
-    source_copy="$WORK_DIR/${case_name}.pgy"
+    if [[ -d "$ROOT_DIR/$case_ref" ]]; then
+        case_name="$(basename "$case_ref")"
+        case_src_dir="$ROOT_DIR/$case_ref"
+        source_rel="$case_ref/main.pgy"
+        mkdir -p "$WORK_DIR/$case_name"
+        cp -R "$case_src_dir"/. "$WORK_DIR/$case_name/"
+        source_copy="$WORK_DIR/$case_name/main.pgy"
+    else
+        source_rel="$case_ref"
+        case_name="$(basename "$source_rel" .pgy)"
+        source_copy="$WORK_DIR/${case_name}.pgy"
+        cp "$ROOT_DIR/$source_rel" "$source_copy"
+    fi
+
     c_bin="$WORK_DIR/${case_name}_c"
     llvm_bin="$WORK_DIR/${case_name}_llvm"
     c_compile_log="$WORK_DIR/${case_name}_c.compile.log"
@@ -41,8 +55,6 @@ run_case() {
     llvm_out="$WORK_DIR/${case_name}_llvm.stdout"
     c_err="$WORK_DIR/${case_name}_c.stderr"
     llvm_err="$WORK_DIR/${case_name}_llvm.stderr"
-
-    cp "$ROOT_DIR/$source_rel" "$source_copy"
 
     if ! "$PGY_BIN" "$source_copy" --backend=c -o "$c_bin" \
         >"$c_compile_log" 2>&1; then
@@ -58,10 +70,14 @@ run_case() {
         return 1
     fi
 
-    if ! "$c_bin" >"$c_out" 2>"$c_err"; then
+    if (cd "$(dirname "$source_copy")" && "$c_bin" >"$c_out" 2>"$c_err"); then
+        c_rc=0
+    else
         c_rc=$?
     fi
-    if ! "$llvm_bin" >"$llvm_out" 2>"$llvm_err"; then
+    if (cd "$(dirname "$source_copy")" && "$llvm_bin" >"$llvm_out" 2>"$llvm_err"); then
+        llvm_rc=0
+    else
         llvm_rc=$?
     fi
 
@@ -87,9 +103,13 @@ run_case() {
 
 main() {
     local cases=(
-        "examples/hello.pgy"
-        "examples/minimal.pgy"
-        "examples/slots.pgy"
+        "tests/cases/backend_compare/basic"
+        "tests/cases/backend_compare/slot_sugar"
+        "tests/cases/backend_compare/break_continue"
+        "tests/cases/backend_compare/array_enum"
+        "tests/cases/backend_compare/string_io"
+        "tests/cases/backend_compare/module_namespace"
+        "tests/cases/backend_compare/role_operator"
     )
 
     if [[ "$#" -gt 0 ]]; then

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let x: Slot<Int> = 42;
+    Log(x);
+    x = 7;
+    Log(x);
+}

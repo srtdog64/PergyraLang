@@ -63,6 +63,32 @@ make_boolean(bool v, uint32_t line)
 }
 
 static ASTNode *
+make_member_access(ASTNode *object, const char *member, uint32_t line)
+{
+    ASTNode *n = calloc(1, sizeof(ASTNode));
+    n->type = AST_MEMBER_ACCESS;
+    n->line = line;
+    n->data.member.object = object;
+    n->data.member.name = pergyra_strdup(member);
+    return n;
+}
+
+static ASTNode *
+make_call_expr(ASTNode *callee, ASTNode **args, size_t arg_count, uint32_t line)
+{
+    ASTNode *n = calloc(1, sizeof(ASTNode));
+    n->type = AST_CALL;
+    n->line = line;
+    n->data.call.callee = callee;
+    if (arg_count > 0) {
+        n->data.call.arguments = calloc(arg_count, sizeof(ASTNode *));
+        memcpy(n->data.call.arguments, args, arg_count * sizeof(ASTNode *));
+    }
+    n->data.call.arg_count = arg_count;
+    return n;
+}
+
+static ASTNode *
 make_call(const char *callee_name, ASTNode **args, size_t arg_count,
            uint32_t line)
 {
@@ -480,6 +506,31 @@ test_undefined_symbol(void)
         EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
         semantic_context_destroy(ctx);
     }
+
+    TEST("Private namespace function access inside Log → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *param_types[2] = { TYPE_INT, TYPE_INT };
+        Type *math_add = type_create_function(param_types, 2, TYPE_INT);
+        scope_declare(ctx->scope,
+            symbol_create_function("Math_Add", math_add, 1, 1));
+
+        ASTNode *hidden_args[2] = {
+            make_number(2, 2),
+            make_number(5, 2)
+        };
+        ASTNode *hidden_call = make_call_expr(
+            make_member_access(make_identifier("Math", 2), "HiddenAdd", 2),
+            hidden_args, 2, 2);
+        ASTNode *log_args[1] = { hidden_call };
+        ASTNode *log_call = make_call("Log", log_args, 1, 2);
+
+        type_check_expression(log_call, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(log_call);
+    }
 }
 
 static void
@@ -763,6 +814,78 @@ test_stdlib_and_io(void)
         EXPECT(!ctx->has_error && sym != NULL && sym->kind == SYMBOL_SLOT);
         semantic_context_destroy(ctx);
         ast_destroy(decl);
+    }
+
+    TEST("slot handle alias in let declaration is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+        scope_register_slot(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("t");
+        decl->data.let_decl.type = make_generic_type("Slot", "Int");
+        decl->data.let_decl.initializer = make_identifier("s", 2);
+        type_check_let_decl(decl, ctx);
+
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("secure slot handle alias in let declaration is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "ss", type_create_slot(TYPE_INT, true), true, "tok", 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+        scope_register_slot(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("copy");
+        decl->data.let_decl.type = make_generic_type("SecureSlot", "Int");
+        decl->data.let_decl.initializer = make_identifier("ss", 2);
+        type_check_let_decl(decl, ctx);
+
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("slot sugar assignment from inner value remains valid");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+        scope_register_slot(ctx->scope, slot_sym);
+
+        ASTNode *assign = ast_create_assignment(make_identifier("s", 2), make_number(7, 2));
+        Type *t = type_check_expression(assign, ctx);
+
+        EXPECT(!ctx->has_error && t != NULL && t->kind == TYPE_KIND_SLOT);
+        semantic_context_destroy(ctx);
+        ast_destroy(assign);
+    }
+
+    TEST("slot handle assignment from another slot is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_a = symbol_create_slot(
+            "a", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        Symbol *slot_b = symbol_create_slot(
+            "b", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_a);
+        scope_register_slot(ctx->scope, slot_a);
+        scope_declare(ctx->scope, slot_b);
+        scope_register_slot(ctx->scope, slot_b);
+
+        ASTNode *assign = ast_create_assignment(make_identifier("a", 2), make_identifier("b", 2));
+        type_check_expression(assign, ctx);
+
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(assign);
     }
 }
 
@@ -1205,6 +1328,104 @@ test_qubit_slot_semantics(void)
 
         type_check_func_decl(func, ctx);
         EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("QubitSlot function argument moves from named variable");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("UseQubit");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("q");
+        param->type = ast_create_type("QubitSlot");
+        func->data.func_decl.params[0] = param;
+        type_check_func_decl(func, ctx);
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *call_args[1] = { make_identifier("q", 3) };
+        ASTNode *call = make_call("UseQubit", call_args, 1, 3);
+        type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 4) };
+        ASTNode *state_call = make_call("QubitState", state_args, 1, 4);
+        type_check_expression(state_call, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+        ast_destroy(decl);
+        ast_destroy(call);
+        ast_destroy(state_call);
+    }
+
+    TEST("QubitSlot function argument rejects anonymous temporary");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("UseQubit");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("q");
+        param->type = ast_create_type("QubitSlot");
+        func->data.func_decl.params[0] = param;
+        type_check_func_decl(func, ctx);
+
+        ASTNode *temp_args[1] = { make_call("ClaimQubit", NULL, 0, 2) };
+        ASTNode *call = make_call("UseQubit", temp_args, 1, 2);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+        ast_destroy(call);
+    }
+
+    TEST("Slot parameter types are rejected for now");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("UseSlot");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        FuncParam *param = calloc(1, sizeof(FuncParam));
+        param->name = pergyra_strdup("s");
+        param->type = make_generic_type("Slot", "Int");
+        func->data.func_decl.params[0] = param;
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("Slot return types are rejected for now");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("MakeSlot");
+        func->data.func_decl.return_type = make_generic_type("Slot", "Int");
+        func->data.func_decl.body = ast_create_block();
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
