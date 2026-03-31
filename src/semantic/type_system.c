@@ -485,6 +485,14 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
                 || strcmp(callee, "AllocatorPool") == 0) {
                 return TYPE_ALLOCATOR;
             }
+            if (strcmp(callee, "ClaimQubit") == 0)
+                return TYPE_QUBIT;
+            if (strcmp(callee, "Measure") == 0
+                || strcmp(callee, "QubitState") == 0)
+                return TYPE_INT;
+            if (strcmp(callee, "IsCollapsed") == 0
+                || strcmp(callee, "IntoClassical") == 0)
+                return TYPE_BOOL;
         }
 
         return TYPE_UNKNOWN;

@@ -147,7 +147,10 @@ Type* type_check_array_access(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
 
 /* -----------------------------------------------------------------
- * Slot-specific checkers (Pergyra core rules)
+ * Resource-handle checkers (Pergyra core rules)
+ *
+ * Today the first concrete anchored resource family is Slot<T>/SecureSlot<T>.
+ * Additional resource families can grow on top of the same ownership model.
  * ----------------------------------------------------------------- */
 
 /*

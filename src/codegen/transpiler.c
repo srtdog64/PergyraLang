@@ -720,8 +720,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "QubitSlot";
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
-            if (strcmp(name, "IsCollapsed") == 0)
+            if (strcmp(name, "IsCollapsed") == 0
+                || strcmp(name, "IntoClassical") == 0)
                 return "Bool";
+            if (strcmp(name, "H") == 0)
+                return "Void";
         }
         return "Int";
     default:

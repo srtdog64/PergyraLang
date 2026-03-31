@@ -11,4 +11,8 @@
 - `beta-readiness-checklist.md`
 - `beta-priority-roadmap.md`
 - `resource-semantics-contract.md`
+- `resource-orchestration-roadmap.md`
+- `channel-orchestration-contract.md`
 - `module-model-contract.md`
+- `stdlib-beta-contract.md`
+- `diagnostics-contract.md`

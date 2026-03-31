@@ -626,6 +626,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
     }
 
+    /* Built-in: ArrayLength(arr) → tracked array literal length */
+    if (strcmp(callee_name, "ArrayLength") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *arg = node->data.call.arguments[0];
+        if (arg != NULL && arg->type == AST_IDENTIFIER) {
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+                ctx, arg->data.identifier.name);
+            if (entry != NULL) {
+                return LLVMConstInt(ctx->type_i32,
+                    (unsigned long long)entry->length, 0);
+            }
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     /* Built-in: StringLength(s) → call strlen */
     if (strcmp(callee_name, "StringLength") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef s = llvm_emit_expression(node->data.call.arguments[0], ctx);

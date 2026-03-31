@@ -1,0 +1,10 @@
+// Beta representative example: stable resource model with Slot sugar.
+func Main() -> Void {
+    let counter: Slot<Int> = 41;
+    counter = counter + 1;
+    Log(counter);
+
+    let values: Array<Int> = [4, 7, 9];
+    Log(values[1]);
+    Log(ArrayLength(values));
+}

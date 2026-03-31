@@ -180,6 +180,12 @@ resolve_generic_type_arg(GenericParam *gp, SemanticContext *ctx,
     return resolve_named_type(gp->name, ctx, site);
 }
 
+static bool
+name_looks_qualified(const char *name)
+{
+    return name != NULL && strchr(name, '.') != NULL;
+}
+
 bool
 type_is_constructed_named(const Type *type, const char *name)
 {
@@ -211,7 +217,13 @@ type_is_resource_handle(const Type *type)
     return type_is_qubit(type) || type_is_slot_handle(type);
 }
 
-static bool
+bool
+type_is_anchored_resource_handle(const Type *type)
+{
+    return type_is_slot_handle(type);
+}
+
+bool
 type_is_movable_resource_handle(const Type *type)
 {
     return type_is_qubit(type);
@@ -298,7 +310,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 SemanticContext *ctx)
 {
     if (sym == NULL) {
-        semantic_error(ctx, expr, "Undefined function '%s'", display_name);
+        if (name_looks_qualified(display_name)) {
+            semantic_error(ctx, expr,
+                "Undefined function '%s' (check namespace spelling or export visibility)",
+                display_name);
+        } else {
+            semantic_error(ctx, expr, "Undefined function '%s'", display_name);
+        }
         return TYPE_UNKNOWN;
     }
 
@@ -340,7 +358,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (expr->data.call.arguments[i]->type != AST_IDENTIFIER) {
                 semantic_error(ctx, expr->data.call.arguments[i],
-                    "%s arguments must be moved from a named variable",
+                    "%s arguments must be moved from a named variable; bind the value first, then pass that variable",
                     resource_handle_display_name(param_type));
                 continue;
             }
@@ -357,7 +375,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 continue;
             }
             semantic_error(ctx, expr->data.call.arguments[i],
-                "Slot/SecureSlot handles cannot cross function boundaries yet");
+                "Anchored resource handles (Slot/SecureSlot) cannot cross function boundaries yet; pass the inner value with Read(...) or redesign the API to avoid handle transfer");
             continue;
         }
 
@@ -394,26 +412,65 @@ consume_qubit_value(ASTNode *expr, SemanticContext *ctx, const char *action)
     return true;
 }
 
+const char *
+qubit_state_name(QubitSemanticState state)
+{
+    switch (state) {
+    case QUBIT_STATE_NONE:           return "NONE";
+    case QUBIT_STATE_SUPERPOSITION:  return "SUPERPOSITION";
+    case QUBIT_STATE_ENTANGLED:      return "ENTANGLED";
+    case QUBIT_STATE_COLLAPSED:      return "COLLAPSED";
+    case QUBIT_STATE_CLASSICAL:      return "CLASSICAL";
+    default:                         return "UNKNOWN";
+    }
+}
+
+QubitSemanticState
+get_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_qubit(sym->type))
+        return QUBIT_STATE_NONE;
+    return sym->qubit_info.semantic_state;
+}
+
+bool
+set_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx,
+                         QubitSemanticState new_state)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_qubit(sym->type))
+        return false;
+    sym->qubit_info.semantic_state = new_state;
+    return true;
+}
+
 Type *
 type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr != NULL && expr->type == AST_IDENTIFIER) {
         Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
-            semantic_error(ctx, expr,
-                "Undefined symbol '%s'",
-                expr->data.identifier.name);
+            if (name_looks_qualified(expr->data.identifier.name)) {
+                semantic_error(ctx, expr,
+                    "Undefined symbol '%s' (check namespace spelling or export visibility)",
+                    expr->data.identifier.name);
+            } else {
+                semantic_error(ctx, expr,
+                    "Undefined symbol '%s'",
+                    expr->data.identifier.name);
+            }
             return TYPE_UNKNOWN;
         }
         if (!type_is_qubit(sym->type)) {
             semantic_error(ctx, expr,
-                "Expected movable resource handle QubitSlot, got '%s'",
+                "Expected a movable resource handle (currently QubitSlot), got '%s'",
                 sym->type->name);
             return TYPE_UNKNOWN;
         }
         if (sym->is_consumed) {
             semantic_error(ctx, expr,
-                "%s '%s' was moved or released and cannot be used again",
+                "%s '%s' was moved or released and cannot be used again; create a fresh value or keep ownership in one binding",
                 resource_handle_display_name(sym->type),
                 expr->data.identifier.name);
             return TYPE_UNKNOWN;
@@ -767,14 +824,20 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         Symbol *sym = scope_lookup(ctx->scope,
                                     expr->data.identifier.name);
         if (sym == NULL) {
-            semantic_error(ctx, expr,
-                "Undefined symbol '%s'",
-                expr->data.identifier.name);
+            if (name_looks_qualified(expr->data.identifier.name)) {
+                semantic_error(ctx, expr,
+                    "Undefined symbol '%s' (check namespace spelling or export visibility)",
+                    expr->data.identifier.name);
+            } else {
+                semantic_error(ctx, expr,
+                    "Undefined symbol '%s'",
+                    expr->data.identifier.name);
+            }
             return TYPE_UNKNOWN;
         }
         if (type_is_qubit(sym->type) && sym->is_consumed) {
             semantic_error(ctx, expr,
-                "%s '%s' was moved or released and cannot be used again",
+                "%s '%s' was moved or released and cannot be used again; create a fresh value or keep ownership in one binding",
                 resource_handle_display_name(sym->type),
                 expr->data.identifier.name);
             return TYPE_UNKNOWN;
@@ -841,6 +904,11 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *left  = type_check_expression(expr->data.binary.left,  ctx);
     Type *right = type_check_expression(expr->data.binary.right, ctx);
+
+    if (type_is_slot_handle(left) && left->data.slot.inner_type != NULL)
+        left = left->data.slot.inner_type;
+    if (type_is_slot_handle(right) && right->data.slot.inner_type != NULL)
+        right = right->data.slot.inner_type;
 
     Type *overloaded = type_check_operator_overload(expr, ctx, left, right);
     if (overloaded == NULL)
@@ -991,7 +1059,8 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             free(display_name);
             return sym->type;
         }
-        semantic_error(ctx, expr, "Undefined symbol '%s'",
+        semantic_error(ctx, expr,
+            "Undefined symbol '%s' (check namespace spelling or export visibility)",
             display_name != NULL ? display_name : "<member>");
         free(flat_name);
         free(display_name);
@@ -1064,7 +1133,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
         semantic_error(ctx, expr,
-            "Resource handle assignment is not allowed; Slot/SecureSlot/QubitSlot handles cannot be copied or rebound");
+            "Resource handle assignment is not allowed; anchored handles (Slot/SecureSlot) cannot be copied or rebound with '=', and movable handles must be transferred through a new binding. Use Read/Write for Slot<T>, move a QubitSlot into a new binding, or Claim... to create a fresh handle");
         return target_type;
     }
 
@@ -1184,14 +1253,14 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
         if (!valid_qubit_init) {
             semantic_error(ctx, node,
-                "QubitSlot values must come from ClaimQubit() or a moved QubitSlot value");
+                "QubitSlot is a movable resource handle; it must come from ClaimQubit() or a moved QubitSlot value. Plain copying is not allowed");
         }
     }
 
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
         if (init_type != NULL && type_is_slot_handle(init_type)) {
             semantic_error(ctx, node,
-                "Slot handles cannot be copied into a new binding; use ClaimSlot/ClaimSecureSlot or initialize from an inner value");
+                "Anchored resource handles (Slot/SecureSlot) cannot be copied into a new binding; use ClaimSlot/ClaimSecureSlot for a fresh handle or initialize from an inner value");
         }
         Symbol *sym = symbol_create_slot(name, decl_type,
             decl_type->data.slot.is_secure, NULL, node->line, node->column);
@@ -1202,6 +1271,24 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 
     Symbol *sym = symbol_create_variable(name, decl_type,
                                           node->line, node->column);
+
+    /* Set qubit semantic state for QubitSlot variables */
+    if (type_is_qubit(decl_type)) {
+        if (expr_is_qubit_claim(init)) {
+            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        } else if (init != NULL && init->type == AST_IDENTIFIER) {
+            /* Move: copy source qubit's semantic state */
+            Symbol *src = lookup_identifier_symbol(init, ctx);
+            if (src != NULL)
+                sym->qubit_info.semantic_state = src->qubit_info.semantic_state;
+            else
+                sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        } else if (init != NULL && init->type == AST_CALL) {
+            /* Function returning QubitSlot */
+            sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        }
+    }
+
     if (!is_slot_decl)
         scope_declare(ctx->scope, sym);
 
@@ -1668,8 +1755,36 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             channel_type != NULL ? channel_type->name : "<null>");
         return TYPE_VOID;
     }
-    require_assignable(value_type, channel_type->data.constructed.args[0],
-        expr->data.channel_send.value, ctx);
+
+    Type *element_type = channel_type->data.constructed.args[0];
+
+    if (type_is_anchored_resource_handle(element_type)
+        || type_is_anchored_resource_handle(value_type)) {
+        semantic_error(ctx, expr->data.channel_send.value,
+            "Channels cannot transport anchored resource handles (Slot/SecureSlot) yet; send the inner value with Read(...) or keep the handle local");
+        return TYPE_VOID;
+    }
+
+    if (type_is_movable_resource_handle(element_type)
+        || type_is_movable_resource_handle(value_type)) {
+        if (!type_is_movable_resource_handle(element_type)
+            || !type_is_movable_resource_handle(value_type)) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Channel send movable-resource mismatch: expected '%s', got '%s'",
+                resource_handle_display_name(element_type),
+                resource_handle_display_name(value_type));
+            return TYPE_VOID;
+        }
+        if (expr->data.channel_send.value->type != AST_IDENTIFIER) {
+            semantic_error(ctx, expr->data.channel_send.value,
+                "Movable resource channel sends must transfer from a named variable; bind the value first, then send that variable");
+            return TYPE_VOID;
+        }
+        consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
+        return TYPE_VOID;
+    }
+
+    require_assignable(value_type, element_type, expr->data.channel_send.value, ctx);
     return TYPE_VOID;
 }
 
@@ -1686,6 +1801,13 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             channel_type != NULL ? channel_type->name : "<null>");
         return TYPE_UNKNOWN;
     }
+
+    if (type_is_anchored_resource_handle(channel_type->data.constructed.args[0])) {
+        semantic_error(ctx, expr->data.channel_recv.channel,
+            "Channels cannot yield anchored resource handles (Slot/SecureSlot) yet; receive a plain value instead");
+        return TYPE_UNKNOWN;
+    }
+
     return channel_type->data.constructed.args[0];
 }
 

@@ -1,0 +1,24 @@
+// Experimental representative example: movable quantum-style resource handle.
+// Entangle currently models a same-value correlated pair, not general quantum entanglement.
+func Main() -> Void {
+    let q: QubitSlot = ClaimQubit();
+    Log(QubitState(q));
+
+    let first: Int = Measure(q);
+    let second: Int = Measure(q);
+    Log(first);
+    Log(second);
+    ReleaseQubit(q);
+
+    let a: QubitSlot = ClaimQubit();
+    let b: QubitSlot = ClaimQubit();
+    Entangle(a, b);
+
+    let ra: Int = Measure(a);
+    let rb: Int = Measure(b);
+    Log(ra);
+    Log(rb);
+
+    ReleaseQubit(a);
+    ReleaseQubit(b);
+}

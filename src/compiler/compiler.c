@@ -15,6 +15,18 @@
 #include "../codegen/transpiler.h"
 #include "../common/string_compat.h"
 
+#ifndef PGY_SRC_DIR
+#define PGY_SRC_DIR "src"
+#endif
+
+#ifndef PGY_RUNTIME_DIR
+#define PGY_RUNTIME_DIR "src/runtime"
+#endif
+
+#ifndef PGY_RUNTIME_LIB_C
+#define PGY_RUNTIME_LIB_C "src/runtime/pgy_runtime_lib.c"
+#endif
+
 #ifdef PGY_LLVM_ENABLED
 #include "../codegen/llvm_backend.h"
 #endif
@@ -165,8 +177,8 @@ compiler_build_native(const HIRProgram *hir,
     const char *gcc_argv[] = {
         "gcc", "-std=c11", "-Wall", "-O2",
         "-fopenmp",
-        "-I", "src",
-        "-I", "src/runtime",
+        "-I", PGY_SRC_DIR,
+        "-I", PGY_RUNTIME_DIR,
         output_c_path,
         "-o", output_binary_path,
         "-lpthread",
@@ -309,9 +321,9 @@ compiler_build_native_llvm(const HIRProgram *hir,
         "-no-pie",
 #endif
         "-DPGY_LLVM_ENABLED",
-        "-I", "src",
+        "-I", PGY_SRC_DIR,
         "-o", output_binary_path, output_obj_path,
-        "src/runtime/pgy_runtime_lib.c",
+        PGY_RUNTIME_LIB_C,
         "-lpthread",
         NULL
     };
@@ -330,6 +342,42 @@ compiler_build_native_llvm(const HIRProgram *hir,
 }
 
 #endif /* PGY_LLVM_ENABLED */
+
+#ifndef PGY_LLVM_ENABLED
+
+CompilerResult *
+compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
+{
+    (void)hir;
+    (void)module_name;
+    return compiler_error("LLVM backend not available in this build");
+}
+
+CompilerResult *
+compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
+                              const char *module_name,
+                              const char *output_ir_path)
+{
+    (void)hir;
+    (void)module_name;
+    (void)output_ir_path;
+    return compiler_error("LLVM backend not available in this build");
+}
+
+CompilerResult *
+compiler_build_native_llvm(const HIRProgram *hir,
+                           const char *output_obj_path,
+                           const char *output_binary_path,
+                           bool verbose)
+{
+    (void)hir;
+    (void)output_obj_path;
+    (void)output_binary_path;
+    (void)verbose;
+    return compiler_error("LLVM backend not available in this build");
+}
+
+#endif /* !PGY_LLVM_ENABLED */
 
 void
 compiler_result_destroy(CompilerResult *result)

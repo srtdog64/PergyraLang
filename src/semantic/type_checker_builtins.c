@@ -359,6 +359,17 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        /* State validation: CLASSICAL qubits cannot be measured */
+        {
+            QubitSemanticState qs = get_qubit_semantic_state(
+                expr->data.call.arguments[0], ctx);
+            if (qs == QUBIT_STATE_CLASSICAL)
+                semantic_error(ctx, expr,
+                    "Cannot Measure() a qubit in CLASSICAL state "
+                    "(already converted via IntoClassical)");
+        }
+        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+                                 QUBIT_STATE_COLLAPSED);
         return TYPE_INT;
     }
     if (strcmp(name, "Entangle") == 0) {
@@ -368,6 +379,25 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         require_assignable(type_check_qubit_use(expr->data.call.arguments[1], ctx),
             TYPE_QUBIT, expr->data.call.arguments[1], ctx);
+        /* State validation: only SUPERPOSITION/NONE qubits can be entangled */
+        {
+            QubitSemanticState sa = get_qubit_semantic_state(
+                expr->data.call.arguments[0], ctx);
+            QubitSemanticState sb = get_qubit_semantic_state(
+                expr->data.call.arguments[1], ctx);
+            if (sa == QUBIT_STATE_COLLAPSED || sa == QUBIT_STATE_CLASSICAL)
+                semantic_error(ctx, expr,
+                    "Cannot Entangle() a qubit in %s state",
+                    qubit_state_name(sa));
+            if (sb == QUBIT_STATE_COLLAPSED || sb == QUBIT_STATE_CLASSICAL)
+                semantic_error(ctx, expr,
+                    "Cannot Entangle() a qubit in %s state",
+                    qubit_state_name(sb));
+        }
+        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+                                 QUBIT_STATE_ENTANGLED);
+        set_qubit_semantic_state(expr->data.call.arguments[1], ctx,
+                                 QUBIT_STATE_ENTANGLED);
         return TYPE_VOID;
     }
     if (strcmp(name, "QubitState") == 0) {
@@ -391,6 +421,35 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
         return TYPE_VOID;
+    }
+    if (strcmp(name, "H") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+                                 QUBIT_STATE_SUPERPOSITION);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "IntoClassical") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
+            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        /* State validation: only COLLAPSED/NONE qubits can be converted */
+        {
+            QubitSemanticState qs = get_qubit_semantic_state(
+                expr->data.call.arguments[0], ctx);
+            if (qs != QUBIT_STATE_COLLAPSED && qs != QUBIT_STATE_NONE)
+                semantic_error(ctx, expr,
+                    "IntoClassical() requires a COLLAPSED qubit (after Measure), "
+                    "got %s", qubit_state_name(qs));
+        }
+        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+                                 QUBIT_STATE_CLASSICAL);
+        consume_qubit_value(expr->data.call.arguments[0], ctx,
+                            "converted to classical");
+        return TYPE_BOOL;
     }
 
     return NULL;

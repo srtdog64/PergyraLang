@@ -21,7 +21,6 @@ CompilerResult *compiler_build_native(const HIRProgram *hir,
 int             compiler_run_binary(const char *binary_path, bool verbose);
 void            compiler_result_destroy(CompilerResult *result);
 
-#ifdef PGY_LLVM_ENABLED
 /*
  * LLVM backend: HIR → LLVM IR → object → link with GCC.
  */
@@ -41,6 +40,5 @@ CompilerResult *compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_
 CompilerResult *compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
                                               const char *module_name,
                                               const char *output_ir_path);
-#endif
 
 #endif

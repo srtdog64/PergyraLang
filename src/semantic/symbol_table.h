@@ -48,6 +48,24 @@ typedef enum
 } SlotState;
 
 /*
+ * Movable-resource compile-time state machine
+ * Current concrete user: QubitSlot
+ *   NONE          — not a qubit variable (default, backward compat)
+ *   SUPERPOSITION — after ClaimQubit() or H()
+ *   ENTANGLED     — after Entangle()
+ *   COLLAPSED     — after Measure()
+ *   CLASSICAL     — after IntoClassical(), qubit consumed
+ */
+typedef enum
+{
+    QUBIT_STATE_NONE,
+    QUBIT_STATE_SUPERPOSITION,
+    QUBIT_STATE_ENTANGLED,
+    QUBIT_STATE_COLLAPSED,
+    QUBIT_STATE_CLASSICAL
+} QubitSemanticState;
+
+/*
  * Symbol — one entry in the symbol table
  */
 struct Symbol
@@ -69,6 +87,12 @@ struct Symbol
         char*     paired_slot_name;   /* Token: name of its slot       */
         uint32_t  scope_depth;
     } slot_info;
+
+    /* QubitSlot compile-time state tracking */
+    struct
+    {
+        QubitSemanticState semantic_state;
+    } qubit_info;
 };
 
 /*

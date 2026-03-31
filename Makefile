@@ -36,6 +36,11 @@ DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null)
+PROJECT_ROOT := $(CURDIR)
+CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
+CFLAGS  += -DPGY_SRC_DIR=\"$(PROJECT_ROOT)/src\"
+CFLAGS  += -DPGY_RUNTIME_DIR=\"$(PROJECT_ROOT)/src/runtime\"
+CFLAGS  += -DPGY_RUNTIME_LIB_C=\"$(PROJECT_ROOT)/src/runtime/pgy_runtime_lib.c\"
 LLVM_SYSTEM_SONAME := $(firstword $(wildcard /usr/lib/llvm-*/lib/libLLVM.so.1))
 LLVM_SYSTEM_LIB := $(firstword $(wildcard /usr/lib/x86_64-linux-gnu/libLLVM-*.so))
 LLVM_SYSTEM_LIB_NAME := $(patsubst lib%.so,%,$(notdir $(LLVM_SYSTEM_LIB)))
@@ -50,7 +55,9 @@ LLVM_SYSTEM_SONAME_DIR := $(dir $(LLVM_SYSTEM_SONAME))
 LLVM_DIR     = third_party
 LLVM_INSTALL = C:/Program Files/LLVM
 LLVM_ENABLED ?= 1
-CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED).stamp
+CC_MACHINE   := $(shell $(CC) -dumpmachine 2>/dev/null || echo unknown)
+CC_TAG       := $(shell printf '%s' "$(CC_MACHINE)" | tr -c 'A-Za-z0-9_.-' '_')
+CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED)_$(CC_TAG).stamp
 
 ifneq ($(LLVM_ENABLED),0)
   ifneq ($(LLVM_CONFIG),)
@@ -299,7 +306,9 @@ $(BUILD_DIR):
 
 $(CONFIG_STAMP): | $(BUILD_DIR)
 	rm -f $(BUILD_DIR)/.config_llvm_*.stamp
-	printf "LLVM_ENABLED=%s\n" "$(LLVM_ENABLED)" > $@
+	find $(BUILD_DIR) -type f \( -name '*.o' -o -name '*.d' \) -delete
+	printf "LLVM_ENABLED=%s\nCC=%s\nCC_MACHINE=%s\n" \
+		"$(LLVM_ENABLED)" "$(CC)" "$(CC_MACHINE)" > $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -368,6 +377,10 @@ llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	bash tests/llvm_smoke.sh
 
+stdlib-test-smoke:
+	$(MAKE) $(PGY)
+	bash tests/stdlib_surface_smoke.sh
+
 module-test-smoke:
 	$(MAKE) $(PGY)
 	bash tests/module_smoke.sh
@@ -375,6 +388,10 @@ module-test-smoke:
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	bash tests/compare_backends.sh
+
+example-test-smoke:
+	$(MAKE) $(PGY)
+	bash tests/example_contract_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
@@ -385,14 +402,31 @@ ci-linux:
 	$(MAKE) clean
 	$(MAKE) test-all
 	$(MAKE) llvm-test-smoke
+	$(MAKE) stdlib-test-smoke
 	$(MAKE) module-test-smoke
+	$(MAKE) example-test-smoke
 	$(MAKE) llvm-test-backend-compare
 	$(MAKE) clean
 	$(MAKE) test-all
 
+check-windows-toolchain:
+	@cc_machine="$$( $(CC) -dumpmachine 2>/dev/null || true )"; \
+	if [ -n "$${MSYSTEM:-}" ] || echo "$$cc_machine" | grep -qi 'mingw'; then \
+		exit 0; \
+	fi; \
+	echo "ci-windows requires an MSYS2/MinGW toolchain." >&2; \
+	echo "current CC: $(CC)" >&2; \
+	echo "detected target: $${cc_machine:-unknown}" >&2; \
+	echo "hint: run under GitHub Actions windows-latest with msys2/setup-msys2," >&2; \
+	echo "      or use a MinGW cross-compiler such as x86_64-w64-mingw32-gcc." >&2; \
+	exit 1
+
 ci-windows:
+	$(MAKE) check-windows-toolchain
 	$(MAKE) clean
 	$(MAKE) LLVM_ENABLED=0 test-all
+	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 stdlib-test-smoke
+	PGY_EXAMPLE_BACKENDS=c $(MAKE) LLVM_ENABLED=0 example-test-smoke
 	$(MAKE) clean
 	$(MAKE) LLVM_ENABLED=0 test-all
 
@@ -442,7 +476,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke module-test-smoke ci-linux ci-windows \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

@@ -163,6 +163,23 @@ static int g_fail = 0;
         else       { printf("✗  (line %d)\n", __LINE__); g_fail++; } \
     } while(0)
 
+static bool
+ctx_has_diagnostic_substring(const SemanticContext *ctx, const char *needle)
+{
+    if (ctx == NULL || needle == NULL)
+        return false;
+
+    for (size_t i = 0; i < ctx->diagnostic_count; i++) {
+        Diagnostic *diag = ctx->diagnostics[i];
+        if (diag != NULL && diag->message != NULL
+            && strstr(diag->message, needle) != NULL) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /* -----------------------------------------------------------------
  * Test groups
  * ----------------------------------------------------------------- */
@@ -526,7 +543,8 @@ test_undefined_symbol(void)
         ASTNode *log_call = make_call("Log", log_args, 1, 2);
 
         type_check_expression(log_call, ctx);
-        EXPECT(ctx->has_error);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "export visibility"));
 
         semantic_context_destroy(ctx);
         ast_destroy(log_call);
@@ -868,6 +886,23 @@ test_stdlib_and_io(void)
         ast_destroy(assign);
     }
 
+    TEST("slot sugar binary expression auto-reads inner value");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+        scope_register_slot(ctx->scope, slot_sym);
+
+        ASTNode *expr = ast_create_binary(make_identifier("s", 2),
+            (Token){ .type = TOKEN_PLUS }, make_number(1, 2));
+        Type *t = type_check_expression(expr, ctx);
+
+        EXPECT(!ctx->has_error && t != NULL && type_equals(t, TYPE_INT));
+        semantic_context_destroy(ctx);
+        ast_destroy(expr);
+    }
+
     TEST("slot handle assignment from another slot is rejected");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -883,7 +918,8 @@ test_stdlib_and_io(void)
         ASTNode *assign = ast_create_assignment(make_identifier("a", 2), make_identifier("b", 2));
         type_check_expression(assign, ctx);
 
-        EXPECT(ctx->has_error);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "cannot be copied or rebound with '='"));
         semantic_context_destroy(ctx);
         ast_destroy(assign);
     }
@@ -1388,7 +1424,8 @@ test_qubit_slot_semantics(void)
         ASTNode *temp_args[1] = { make_call("ClaimQubit", NULL, 0, 2) };
         ASTNode *call = make_call("UseQubit", temp_args, 1, 2);
         type_check_expression(call, ctx);
-        EXPECT(ctx->has_error);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "bind the value first"));
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
@@ -1427,6 +1464,155 @@ test_qubit_slot_semantics(void)
         type_check_func_decl(func, ctx);
         EXPECT(ctx->has_error);
 
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+}
+
+static void
+test_quantum_extensions(void)
+{
+    printf("\n[quantum_extensions]\n");
+
+    TEST("IntoClassical on COLLAPSED qubit returns Bool");
+    {
+        /* func F() -> Void { let q = ClaimQubit(); Measure(q); IntoClassical(q); } */
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("F");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        ASTNode *marg = ast_create_identifier("q");
+        ASTNode *meas = make_call("Measure", &marg, 1, 2);
+        ast_add_statement(func->data.func_decl.body, meas);
+
+        ASTNode *carg = ast_create_identifier("q");
+        ASTNode *into = make_call("IntoClassical", &carg, 1, 3);
+        ASTNode *let_c = ast_create_let_declaration("c");
+        let_c->data.let_decl.type = ast_create_type("Bool");
+        let_c->data.let_decl.initializer = into;
+        ast_add_statement(func->data.func_decl.body, let_c);
+
+        type_check_func_decl(func, ctx);
+        EXPECT(!ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("IntoClassical on unmeasured qubit triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("F");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        /* IntoClassical without Measure first */
+        ASTNode *carg = ast_create_identifier("q");
+        ASTNode *into = make_call("IntoClassical", &carg, 1, 2);
+        ast_add_statement(func->data.func_decl.body, into);
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("IntoClassical consumes qubit — further use triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("F");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        ASTNode *marg = ast_create_identifier("q");
+        ast_add_statement(func->data.func_decl.body,
+            make_call("Measure", &marg, 1, 2));
+
+        ASTNode *carg = ast_create_identifier("q");
+        ast_add_statement(func->data.func_decl.body,
+            make_call("IntoClassical", &carg, 1, 3));
+
+        /* Use after IntoClassical should fail */
+        ASTNode *qarg = ast_create_identifier("q");
+        ast_add_statement(func->data.func_decl.body,
+            make_call("QubitState", &qarg, 1, 4));
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("Entangle after Measure triggers error (COLLAPSED state)");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("F");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *da = ast_create_let_declaration("a");
+        da->data.let_decl.type = ast_create_type("QubitSlot");
+        da->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        ast_add_statement(func->data.func_decl.body, da);
+
+        ASTNode *db = ast_create_let_declaration("b");
+        db->data.let_decl.type = ast_create_type("QubitSlot");
+        db->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        ast_add_statement(func->data.func_decl.body, db);
+
+        /* Measure a first */
+        ASTNode *marg = ast_create_identifier("a");
+        ast_add_statement(func->data.func_decl.body,
+            make_call("Measure", &marg, 1, 3));
+
+        /* Entangle(a, b) should fail — a is COLLAPSED */
+        ASTNode *eargs[2] = { ast_create_identifier("a"), ast_create_identifier("b") };
+        ast_add_statement(func->data.func_decl.body,
+            make_call("Entangle", eargs, 2, 4));
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("H() builtin resolves without error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("F");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        ASTNode *harg = ast_create_identifier("q");
+        ast_add_statement(func->data.func_decl.body,
+            make_call("H", &harg, 1, 2));
+
+        ASTNode *rel_arg = ast_create_identifier("q");
+        ASTNode *rel = make_call("ReleaseQubit", &rel_arg, 1, 3);
+        ast_add_statement(func->data.func_decl.body, rel);
+
+        type_check_func_decl(func, ctx);
+        EXPECT(!ctx->has_error);
         semantic_context_destroy(ctx);
         ast_destroy(func);
     }
@@ -2094,6 +2280,106 @@ test_async_system(void)
         semantic_context_destroy(ctx);
         ast_destroy(spawn);
     }
+
+    TEST("channel send accepts plain value payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_number(42, 1));
+        send->line = 1; send->column = 1;
+
+        Type *t = type_check_expression(send, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_VOID));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+    }
+
+    TEST("channel send rejects anchored Slot handle payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *slot_type = type_create_slot(TYPE_INT, false);
+        Type *args[1] = { slot_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_slot("slot", slot_type, false, NULL, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_identifier("slot", 1));
+        send->line = 1; send->column = 1;
+
+        type_check_expression(send, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "anchored resource handles"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+    }
+
+    TEST("channel send moves QubitSlot from named binding");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 2), make_identifier("q", 2));
+        send->line = 2; send->column = 1;
+        type_check_expression(send, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 3) };
+        ASTNode *state = make_call("QubitState", state_args, 1, 3);
+        type_check_expression(state, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(send);
+        ast_destroy(state);
+    }
+
+    TEST("channel send rejects anonymous movable resource payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_call("ClaimQubit", NULL, 0, 1));
+        send->line = 1; send->column = 1;
+
+        type_check_expression(send, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "bind the value first"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -2115,6 +2401,7 @@ main(void)
     test_arrays_and_enums();
     test_stdlib_and_io();
     test_qubit_slot_semantics();
+    test_quantum_extensions();
     test_match_stmt();
     test_ability_decl();
     test_role_decl();

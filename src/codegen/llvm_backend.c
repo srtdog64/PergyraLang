@@ -970,6 +970,10 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i32 }, 1 },
             { "ReleaseQubit", ctx->type_void,
               { ctx->type_i32 }, 1 },
+            { "H", ctx->type_void,
+              { ctx->type_i32 }, 1 },
+            { "IntoClassical", ctx->type_i1,
+              { ctx->type_i32 }, 1 },
         };
 
         for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
