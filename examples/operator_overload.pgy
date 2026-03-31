@@ -1,0 +1,18 @@
+// 연산자 오버로딩 (ability/role 기반)
+ability Arithmetic {
+    func Add(self, rhs: Int) -> Int;
+}
+
+role IntMath for Int {
+    impl Arithmetic {
+        func Add(self, rhs: Int) -> Int {
+            return 123;
+        }
+    }
+}
+
+func Main() -> Void {
+    let a: Int = 1;
+    let b: Int = 2;
+    Log(a + b);  // 123 (IntMath.Add가 호출됨)
+}

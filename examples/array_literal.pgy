@@ -1,0 +1,7 @@
+// 배열 리터럴 + 인덱싱
+func Main() -> Void {
+    let primes = [2, 3, 5, 7, 11];
+    Log(primes[0]);  // 2
+    Log(primes[2]);  // 5
+    Log(primes[4]);  // 11
+}

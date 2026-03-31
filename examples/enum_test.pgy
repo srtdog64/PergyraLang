@@ -1,0 +1,20 @@
+// enum 타입
+enum Direction {
+    North,
+    East,
+    South,
+    West
+}
+
+func Main() -> Void {
+    let d: Int = Direction.South;
+    Log(d);  // 2
+
+    match d {
+        case 0: Log(100);
+        case 1: Log(200);
+        case 2: Log(300);
+        case 3: Log(400);
+    }
+    // 300
+}

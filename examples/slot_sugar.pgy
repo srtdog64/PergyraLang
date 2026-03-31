@@ -1,0 +1,8 @@
+// Slot 문법 설탕 — 보일러플레이트 없이 자원 관리
+func Main() -> Void {
+    let x: Slot<Int> = 42;   // auto Claim + Write
+    Log(x);                   // auto Read → 42
+    x = 99;                   // auto Write
+    Log(x);                   // auto Read → 99
+    // 스코프 끝: auto Release
+}

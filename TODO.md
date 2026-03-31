@@ -14,6 +14,11 @@
 - [ ] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
 - [ ] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
 
+## P1.5 — 언어/컴파일러 보강
+
+- [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
+- [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
+
 ## P2 — 배포 시작 시
 
 - [ ] **문서-구현 동기화** — 테스트 수/기능 범위 일치, "지원/비지원" 명문화
