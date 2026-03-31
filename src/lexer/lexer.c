@@ -31,6 +31,10 @@ static const KeywordEntry keywords[] = {
     {"else",     TOKEN_ELSE},
     {"while",    TOKEN_WHILE},
     {"return",   TOKEN_RETURN},
+    {"break",    TOKEN_BREAK},
+    {"continue", TOKEN_CONTINUE},
+    {"enum",     TOKEN_ENUM},
+    {"export",   TOKEN_EXPORT},
     {"true",     TOKEN_TRUE},
     {"false",    TOKEN_FALSE},
     {"public",   TOKEN_PUBLIC},
@@ -433,6 +437,10 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_ELSE: return "ELSE";
         case TOKEN_WHILE: return "WHILE";
         case TOKEN_RETURN: return "RETURN";
+        case TOKEN_BREAK: return "BREAK";
+        case TOKEN_CONTINUE: return "CONTINUE";
+        case TOKEN_ENUM: return "ENUM";
+        case TOKEN_EXPORT: return "EXPORT";
         case TOKEN_TRUE: return "TRUE";
         case TOKEN_FALSE: return "FALSE";
         case TOKEN_PUBLIC: return "PUBLIC";

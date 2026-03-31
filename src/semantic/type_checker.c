@@ -293,6 +293,16 @@ builtin_resolve(const char *name)
     if (strcmp(name, "Box")             == 0) return BUILTIN_BOX;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     /* I/O built-ins */
+    /* String builtins — bypass as user functions (resolved in transpiler) */
+    if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "StringReplace")   == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "Substring")       == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "StringTrim")      == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "ToUpper")         == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "ToLower")         == 0) return BUILTIN_NOT_BUILTIN;
+    if (strcmp(name, "StringConcat")    == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "FileOpen")        == 0) return BUILTIN_FILE_OPEN;
     if (strcmp(name, "FileRead")        == 0) return BUILTIN_FILE_READ;
     if (strcmp(name, "FileWrite")       == 0) return BUILTIN_FILE_WRITE;
@@ -801,6 +811,14 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_ARRAY_ACCESS:
         return type_check_array_access(expr, ctx);
 
+    case AST_ARRAY_LITERAL:
+        /* Array literal — type check elements, return Int array for now */
+        for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+            if (expr->data.array_literal.elements[i] != NULL)
+                type_check_expression(expr->data.array_literal.elements[i], ctx);
+        }
+        return TYPE_INT; /* simplified — should return Array<T> */
+
     case AST_ASSIGNMENT:
         return type_check_assignment(expr, ctx);
 
@@ -929,7 +947,15 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         /* Standard library built-in functions */
         if (strcmp(name, "Abs") == 0 || strcmp(name, "Min") == 0
             || strcmp(name, "Max") == 0 || strcmp(name, "StringLength") == 0
-            || strcmp(name, "Print") == 0 || strcmp(name, "ToString") == 0)
+            || strcmp(name, "Print") == 0 || strcmp(name, "ToString") == 0
+            || strcmp(name, "StringContains") == 0
+            || strcmp(name, "StringReplace") == 0
+            || strcmp(name, "Substring") == 0
+            || strcmp(name, "StringTrim") == 0
+            || strcmp(name, "ToUpper") == 0
+            || strcmp(name, "ToLower") == 0
+            || strcmp(name, "StringConcat") == 0
+            || strcmp(name, "ArrayLength") == 0)
             return TYPE_UNKNOWN;
 
         Symbol *sym = scope_lookup(ctx->scope, name);
@@ -1779,6 +1805,21 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_match_stmt(node, ctx);
     case AST_RETURN:
         return type_check_return_stmt(node, ctx);
+    case AST_BREAK:
+    case AST_CONTINUE:
+        return true;
+    case AST_ENUM_DECL: {
+        /* Register enum name as a class-like symbol */
+        Symbol *sym = calloc(1, sizeof(Symbol));
+        sym->name = strdup(node->data.enum_decl.name);
+        sym->kind = SYMBOL_CLASS;
+        Type *t = calloc(1, sizeof(Type));
+        t->kind = TYPE_KIND_CLASS;
+        t->name = strdup(node->data.enum_decl.name);
+        sym->type = t;
+        scope_declare(ctx->scope, sym);
+        return true;
+    }
     case AST_WITH_STMT:
         return type_check_with_stmt(node, ctx);
     case AST_PARALLEL_BLOCK:

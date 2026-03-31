@@ -249,6 +249,31 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ast_create_boolean(false);
     }
 
+    // 배열 리터럴 [1, 2, 3]
+    if (parser_match(parser, TOKEN_LBRACKET)) {
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = parser->previous_token.line;
+        arr->data.array_literal.elements = NULL;
+        arr->data.array_literal.count = 0;
+        size_t capacity = 0;
+
+        if (!parser_check(parser, TOKEN_RBRACKET)) {
+            do {
+                ASTNode *elem = parser_parse_expression(parser);
+                if (arr->data.array_literal.count >= capacity) {
+                    capacity = capacity == 0 ? 4 : capacity * 2;
+                    arr->data.array_literal.elements = realloc(
+                        arr->data.array_literal.elements,
+                        capacity * sizeof(ASTNode*));
+                }
+                arr->data.array_literal.elements[arr->data.array_literal.count++] = elem;
+            } while (parser_match(parser, TOKEN_COMMA));
+        }
+        parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after array literal");
+        return arr;
+    }
+
     // 숫자
     if (parser_match(parser, TOKEN_NUMBER)) {
         return ast_create_number(parser->previous_token.text);

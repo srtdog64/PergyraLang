@@ -1393,4 +1393,115 @@ pgy_print(const char *msg)
     fflush(stdout);
 }
 
+/* =================================================================
+ * String Built-ins
+ * ================================================================= */
+
+/* StringContains(haystack, needle) → Bool */
+static inline bool
+StringContains(const char *haystack, const char *needle)
+{
+    if (haystack == NULL || needle == NULL) return false;
+    return strstr(haystack, needle) != NULL;
+}
+
+/* StringLength is already defined as pgy_string_length or similar */
+
+/* Substring(s, start, len) → new string */
+static inline char *
+Substring(const char *s, int32_t start, int32_t len)
+{
+    if (s == NULL) return strdup("");
+    int32_t slen = (int32_t)strlen(s);
+    if (start < 0 || start >= slen || len <= 0) return strdup("");
+    if (start + len > slen) len = slen - start;
+    char *buf = (char *)malloc((size_t)len + 1);
+    memcpy(buf, s + start, (size_t)len);
+    buf[len] = '\0';
+    return buf;
+}
+
+/* StringReplace(s, old, new) → new string with all occurrences replaced */
+static inline char *
+StringReplace(const char *s, const char *old_str, const char *new_str)
+{
+    if (s == NULL || old_str == NULL || new_str == NULL) return strdup(s ? s : "");
+    size_t old_len = strlen(old_str);
+    size_t new_len = strlen(new_str);
+    if (old_len == 0) return strdup(s);
+
+    /* Count occurrences */
+    int count = 0;
+    const char *p = s;
+    while ((p = strstr(p, old_str)) != NULL) { count++; p += old_len; }
+
+    size_t result_len = strlen(s) + (size_t)count * (new_len - old_len);
+    char *result = (char *)malloc(result_len + 1);
+    char *dst = result;
+    p = s;
+    while (*p) {
+        if (strncmp(p, old_str, old_len) == 0) {
+            memcpy(dst, new_str, new_len);
+            dst += new_len;
+            p += old_len;
+        } else {
+            *dst++ = *p++;
+        }
+    }
+    *dst = '\0';
+    return result;
+}
+
+/* StringTrim(s) → new string with leading/trailing whitespace removed */
+static inline char *
+StringTrim(const char *s)
+{
+    if (s == NULL) return strdup("");
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    size_t len = strlen(s);
+    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\t' || s[len-1] == '\n' || s[len-1] == '\r'))
+        len--;
+    char *buf = (char *)malloc(len + 1);
+    memcpy(buf, s, len);
+    buf[len] = '\0';
+    return buf;
+}
+
+/* ToUpper(s) → new uppercase string */
+static inline char *
+ToUpper(const char *s)
+{
+    if (s == NULL) return strdup("");
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    for (size_t i = 0; i <= len; i++)
+        buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
+    return buf;
+}
+
+/* ToLower(s) → new lowercase string */
+static inline char *
+ToLower(const char *s)
+{
+    if (s == NULL) return strdup("");
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    for (size_t i = 0; i <= len; i++)
+        buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
+    return buf;
+}
+
+/* StringConcat(a, b) → new concatenated string */
+static inline char *
+StringConcat(const char *a, const char *b)
+{
+    if (a == NULL) a = "";
+    if (b == NULL) b = "";
+    size_t la = strlen(a), lb = strlen(b);
+    char *buf = (char *)malloc(la + lb + 1);
+    memcpy(buf, a, la);
+    memcpy(buf + la, b, lb + 1);
+    return buf;
+}
+
 #endif /* PGY_RUNTIME_H */

@@ -54,6 +54,8 @@ typedef enum
     TOKEN_ELSE,
     TOKEN_WHILE,
     TOKEN_RETURN,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
     TOKEN_TRUE,
     TOKEN_FALSE,
     TOKEN_PUBLIC,
@@ -63,6 +65,12 @@ typedef enum
     TOKEN_TRAIT,
     TOKEN_IMPL,
     
+    /* Enum */
+    TOKEN_ENUM,
+
+    /* Module keywords */
+    TOKEN_EXPORT,
+
     /* Role/Ability keywords */
     TOKEN_ABILITY,
     TOKEN_ROLE,

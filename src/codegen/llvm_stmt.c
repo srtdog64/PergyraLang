@@ -729,6 +729,16 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_return_stmt(node, ctx);
         break;
 
+    case AST_BREAK:
+        /* TODO: LLVM break requires loop exit block tracking */
+        break;
+    case AST_ENUM_DECL:
+        /* Enums are compile-time only — no IR needed */
+        break;
+    case AST_CONTINUE:
+        /* TODO: LLVM continue requires loop header block tracking */
+        break;
+
     case AST_IF_STMT:
         llvm_emit_if_stmt(node, ctx);
         break;

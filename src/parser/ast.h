@@ -78,6 +78,9 @@ typedef enum
     AST_WHILE_LOOP,
     AST_IF_STMT,
     AST_RETURN,
+    AST_BREAK,
+    AST_CONTINUE,
+    AST_ENUM_DECL,
     AST_SELECT_STMT,
     AST_MATCH_STMT,
     AST_MATCH_CASE,
@@ -88,6 +91,7 @@ typedef enum
     AST_CALL,
     AST_MEMBER_ACCESS,
     AST_ARRAY_ACCESS,
+    AST_ARRAY_LITERAL,
     AST_ASSIGNMENT,
     AST_AWAIT_EXPR,
     AST_CHANNEL_SEND,
@@ -335,7 +339,20 @@ struct ASTNode
             ASTNode* array;
             ASTNode* index;
         } array_access;
-        
+
+        /* Array literal [1, 2, 3] */
+        struct {
+            ASTNode** elements;
+            size_t    count;
+        } array_literal;
+
+        /* enum Color { Red, Green, Blue } */
+        struct {
+            char*   name;
+            char**  variants;
+            size_t  variant_count;
+        } enum_decl;
+
         /* Assignment */
         struct {
             ASTNode* target;

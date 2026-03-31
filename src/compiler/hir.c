@@ -98,6 +98,7 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
                 goto oom;
             break;
         case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
             item.kind = HIR_TOPLEVEL_TYPE;
             if (!append_ast(&hir->types, &hir->type_count, node))
                 goto oom;
@@ -154,6 +155,8 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_WHILE_LOOP:
         case AST_IF_STMT:
         case AST_RETURN:
+        case AST_BREAK:
+        case AST_CONTINUE:
         case AST_SELECT_STMT:
         case AST_MATCH_STMT:
         case AST_BINARY:

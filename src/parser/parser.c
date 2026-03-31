@@ -94,6 +94,8 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_IF:
             case TOKEN_WHILE:
             case TOKEN_RETURN:
+            case TOKEN_BREAK:
+            case TOKEN_CONTINUE:
                 return;
             default:
                 break;
@@ -153,6 +155,12 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // select 문
     if (parser_match(parser, TOKEN_SELECT)) {
         return parser_parse_select_statement(parser);
+    }
+
+    // export 수식어 — 다음 선언에 적용 (현재는 파싱만 하고 무시)
+    if (parser_match(parser, TOKEN_EXPORT)) {
+        /* Parse the following declaration normally */
+        return parser_parse_statement(parser);
     }
 
     // 함수 선언
@@ -225,6 +233,52 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // return 문
     if (parser_match(parser, TOKEN_RETURN)) {
         return parse_return_statement(parser);
+    }
+
+    // break
+    if (parser_match(parser, TOKEN_BREAK)) {
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after break");
+        ASTNode *node = calloc(1, sizeof(ASTNode));
+        node->type = AST_BREAK;
+        node->line = parser->previous_token.line;
+        return node;
+    }
+
+    // continue
+    if (parser_match(parser, TOKEN_CONTINUE)) {
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after continue");
+        ASTNode *node = calloc(1, sizeof(ASTNode));
+        node->type = AST_CONTINUE;
+        node->line = parser->previous_token.line;
+        return node;
+    }
+
+    // enum 선언
+    if (parser_match(parser, TOKEN_ENUM)) {
+        Token name_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected enum name");
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after enum name");
+
+        ASTNode *node = calloc(1, sizeof(ASTNode));
+        node->type = AST_ENUM_DECL;
+        node->line = name_tok.line;
+        node->data.enum_decl.name = pergyra_strndup(name_tok.text, name_tok.length);
+        node->data.enum_decl.variants = NULL;
+        node->data.enum_decl.variant_count = 0;
+        size_t cap = 0;
+
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            Token var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
+            if (node->data.enum_decl.variant_count >= cap) {
+                cap = cap == 0 ? 4 : cap * 2;
+                node->data.enum_decl.variants = realloc(
+                    node->data.enum_decl.variants, cap * sizeof(char*));
+            }
+            node->data.enum_decl.variants[node->data.enum_decl.variant_count++] =
+                pergyra_strndup(var_tok.text, var_tok.length);
+            if (!parser_match(parser, TOKEN_COMMA)) break;
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
+        return node;
     }
 
     // unsafe 블록

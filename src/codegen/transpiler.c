@@ -924,6 +924,26 @@ binary_op_to_c(TokenType op)
 char *
 emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 {
+    /* String concatenation: "a" + "b" → StringConcat(a, b) */
+    if (expr->data.binary.op.type == TOKEN_PLUS) {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        /* Also detect chained string concat: (str + str) + str */
+        bool is_string = (lt != NULL && strcmp(lt, "String") == 0);
+        if (!is_string && expr->data.binary.left->type == AST_BINARY
+            && expr->data.binary.left->data.binary.op.type == TOKEN_PLUS) {
+            const char *lt2 = infer_expression_type_name(ctx, expr->data.binary.left->data.binary.left);
+            if (lt2 != NULL && strcmp(lt2, "String") == 0)
+                is_string = true;
+        }
+        if (is_string) {
+            char *left  = emit_expression(expr->data.binary.left,  ctx);
+            char *right = emit_expression(expr->data.binary.right, ctx);
+            char *result = strdup_fmt("StringConcat(%s, %s)", left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
     char *left  = emit_expression(expr->data.binary.left,  ctx);
     char *right = emit_expression(expr->data.binary.right, ctx);
     const char *op = binary_op_to_c(expr->data.binary.op.type);
@@ -1465,6 +1485,14 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_MEMBER_ACCESS: {
         char *obj = emit_expression(node->data.member.object, ctx);
+        /* Enum variant access: Color.Red → Color_Red */
+        if (node->data.member.object->type == AST_IDENTIFIER
+            && node->data.member.object->data.identifier.name[0] >= 'A'
+            && node->data.member.object->data.identifier.name[0] <= 'Z') {
+            char *result = strdup_fmt("%s_%s", obj, node->data.member.name);
+            free(obj);
+            return result;
+        }
         char *result = strdup_fmt("%s.%s", obj, node->data.member.name);
         free(obj);
         return result;
@@ -1476,6 +1504,22 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         char *result = strdup_fmt("%s[%s]", array, index);
         free(array);
         free(index);
+        return result;
+    }
+
+    case AST_ARRAY_LITERAL: {
+        /* [1, 2, 3] → (int32_t[]){1, 2, 3} — compound literal */
+        CodeBuf *buf = codebuf_create();
+        codebuf_write(buf, "(int32_t[]){");
+        for (size_t i = 0; i < node->data.array_literal.count; i++) {
+            if (i > 0) codebuf_write(buf, ", ");
+            char *elem = emit_expression(node->data.array_literal.elements[i], ctx);
+            codebuf_write(buf, "%s", elem);
+            free(elem);
+        }
+        codebuf_write(buf, "}");
+        char *result = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
         return result;
     }
 
@@ -1823,6 +1867,18 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
+    /* Array literal: let arr = [1, 2, 3] → int32_t *arr = (int32_t[]){1, 2, 3}; */
+    if (init != NULL && init->type == AST_ARRAY_LITERAL) {
+        char *init_expr = emit_expression(init, ctx);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "int32_t *%s = %s;\n", name, init_expr);
+        free(init_expr);
+        if (ann_type_name != NULL)
+            register_typed_var(ctx, name, ann_type_name);
+        free(ann_type_name);
+        return;
+    }
+
     /* Normal variable with type inference */
     const char *c_type = "int32_t"; /* fallback */
     if (ann != NULL) {
@@ -1839,6 +1895,9 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         else if (init->type == AST_CALL) {
             /* Infer from call return type - default to int for now */
             c_type = "int32_t";
+        }
+        else if (init->type == AST_ARRAY_LITERAL) {
+            c_type = "int32_t*";
         }
     }
 
@@ -2603,6 +2662,28 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_RETURN:
         emit_return_stmt(node, ctx);
         break;
+    case AST_BREAK:
+        write_indent(ctx);
+        codebuf_write(ctx->out, "break;\n");
+        break;
+    case AST_ENUM_DECL: {
+        /* enum Color { Red, Green, Blue } → typedef enum { Color_Red=0, ... } Color; */
+        const char *ename = node->data.enum_decl.name;
+        codebuf_write(ctx->out, "typedef enum {\n");
+        for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+            codebuf_write(ctx->out, "    %s_%s = %zu",
+                ename, node->data.enum_decl.variants[i], i);
+            if (i + 1 < node->data.enum_decl.variant_count)
+                codebuf_write(ctx->out, ",");
+            codebuf_write(ctx->out, "\n");
+        }
+        codebuf_write(ctx->out, "} %s;\n\n", ename);
+        break;
+    }
+    case AST_CONTINUE:
+        write_indent(ctx);
+        codebuf_write(ctx->out, "continue;\n");
+        break;
     case AST_WITH_STMT:
         emit_with_stmt(node, ctx);
         break;
@@ -2720,9 +2801,17 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     for (size_t i = 0; i < hir->ability_count; i++)
         emit_ability_decl(hir->abilities[i], ctx);
 
+    /* Pass 1.5: enums */
+    for (size_t i = 0; i < hir->type_count; i++) {
+        if (hir->types[i] != NULL && hir->types[i]->type == AST_ENUM_DECL)
+            emit_statement(hir->types[i], ctx);
+    }
+
     /* Pass 2: classes */
-    for (size_t i = 0; i < hir->type_count; i++)
-        emit_class_decl(hir->types[i], ctx);
+    for (size_t i = 0; i < hir->type_count; i++) {
+        if (hir->types[i] != NULL && hir->types[i]->type != AST_ENUM_DECL)
+            emit_class_decl(hir->types[i], ctx);
+    }
 
     /* Pass 2.5: extern declarations */
     for (size_t i = 0; i < hir->extern_count; i++)
