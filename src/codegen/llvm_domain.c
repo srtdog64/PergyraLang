@@ -11,6 +11,121 @@
 
 #include "llvm_internal.h"
 
+static const char *
+llvm_operator_suffix(TokenType op)
+{
+    switch (op) {
+    case TOKEN_PLUS: return "add";
+    case TOKEN_MINUS: return "sub";
+    case TOKEN_STAR: return "mul";
+    case TOKEN_SLASH: return "div";
+    case TOKEN_PERCENT: return "mod";
+    case TOKEN_EQUAL: return "eq";
+    case TOKEN_NOT_EQUAL: return "ne";
+    case TOKEN_LESS: return "lt";
+    case TOKEN_LESS_EQUAL: return "le";
+    case TOKEN_GREATER: return "gt";
+    case TOKEN_GREATER_EQUAL: return "ge";
+    default: return NULL;
+    }
+}
+
+static bool
+llvm_operator_method_name_matches(TokenType op, const char *name)
+{
+    static const struct {
+        TokenType op;
+        const char *names[10];
+    } aliases[] = {
+        { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
+        { TOKEN_MINUS, { "Sub", "sub", "Subtract", "subtract",
+                         "OperatorSub", "operator_sub", NULL } },
+        { TOKEN_STAR, { "Mul", "mul", "Multiply", "multiply",
+                        "OperatorMul", "operator_mul", NULL } },
+        { TOKEN_SLASH, { "Div", "div", "Divide", "divide",
+                         "OperatorDiv", "operator_div", NULL } },
+        { TOKEN_PERCENT, { "Mod", "mod", "Modulo", "modulo",
+                           "OperatorMod", "operator_mod", NULL } },
+        { TOKEN_EQUAL, { "Eq", "eq", "Equal", "equal", "Equals", "equals",
+                         "OperatorEq", "operator_eq", NULL } },
+        { TOKEN_NOT_EQUAL, { "Ne", "ne", "NotEqual", "notEqual",
+                             "NotEquals", "notEquals",
+                             "OperatorNe", "operator_ne", NULL } },
+        { TOKEN_LESS, { "Lt", "lt", "LessThan", "lessThan",
+                        "OperatorLt", "operator_lt", NULL } },
+        { TOKEN_LESS_EQUAL, { "Le", "le", "LessEqual", "lessEqual",
+                              "LessThanOrEqual", "lessThanOrEqual",
+                              "OperatorLe", "operator_le", NULL } },
+        { TOKEN_GREATER, { "Gt", "gt", "GreaterThan", "greaterThan",
+                           "OperatorGt", "operator_gt", NULL } },
+        { TOKEN_GREATER_EQUAL, { "Ge", "ge", "GreaterEqual", "greaterEqual",
+                                 "GreaterThanOrEqual", "greaterThanOrEqual",
+                                 "OperatorGe", "operator_ge", NULL } },
+    };
+
+    if (name == NULL)
+        return false;
+
+    for (size_t i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
+        if (aliases[i].op != op)
+            continue;
+        for (size_t j = 0; aliases[i].names[j] != NULL; j++) {
+            if (strcmp(aliases[i].names[j], name) == 0)
+                return true;
+        }
+        break;
+    }
+    return false;
+}
+
+static ASTNode *
+llvm_find_role_decl(const HIRProgram *hir, const char *role_name)
+{
+    if (hir == NULL || role_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < hir->role_count; i++) {
+        ASTNode *stmt = hir->roles[i];
+        if (stmt != NULL && stmt->type == AST_ROLE_DECL
+            && stmt->data.role_decl.name != NULL
+            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
+            return stmt;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_role_operator_method(const HIRProgram *hir, ASTNode *role,
+                               TokenType op, int depth)
+{
+    if (hir == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
+        return NULL;
+
+    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+            ASTNode *method = impl->data.impl_ability.methods[j];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && llvm_operator_method_name_matches(op, method->data.func_decl.name)) {
+                return method;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
+        ASTNode *inc = role->data.role_decl.includes[i];
+        ASTNode *included = llvm_find_role_decl(hir, inc->data.include_stmt.role_name);
+        ASTNode *method = llvm_find_role_operator_method(hir, included, op, depth + 1);
+        if (method != NULL)
+            return method;
+    }
+
+    return NULL;
+}
+
 void
 llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
@@ -247,6 +362,56 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_register_function(ctx, LLVMGetValueName(fn),
                                         fn, ft, ret);
                 free(ptypes);
+            }
+        }
+
+        {
+            TokenType ops[] = {
+                TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
+                TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
+                TOKEN_GREATER, TOKEN_GREATER_EQUAL
+            };
+            const char *for_type_name = NULL;
+            if (stmt->data.role_decl.for_type != NULL
+                && stmt->data.role_decl.for_type->type == AST_TYPE) {
+                for_type_name = stmt->data.role_decl.for_type->data.type.name;
+            }
+
+            for (size_t oi = 0; for_type_name != NULL
+                   && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
+                const char *suffix = llvm_operator_suffix(ops[oi]);
+                ASTNode *method = llvm_find_role_operator_method(hir, stmt, ops[oi], 0);
+                if (suffix == NULL || method == NULL)
+                    continue;
+
+                char opname[256];
+                snprintf(opname, sizeof(opname), "operator_%s_%s",
+                         suffix, for_type_name);
+                if (llvm_lookup_function(ctx, opname) != NULL)
+                    continue;
+
+                FuncParam *rhs_param = NULL;
+                size_t rhs_param_count = 0;
+                for (size_t pj = 0; pj < method->data.func_decl.param_count; pj++) {
+                    FuncParam *p = method->data.func_decl.params[pj];
+                    if (p != NULL && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
+                        rhs_param = p;
+                        rhs_param_count++;
+                    }
+                }
+                if (rhs_param_count != 1)
+                    continue;
+
+                LLVMTypeRef lhs_type = ast_type_to_llvm(ctx, stmt->data.role_decl.for_type);
+                LLVMTypeRef rhs_type = (rhs_param != NULL && rhs_param->type != NULL)
+                    ? ast_type_to_llvm(ctx, rhs_param->type) : ctx->type_i32;
+                LLVMTypeRef ret = method->data.func_decl.return_type != NULL
+                    ? ast_type_to_llvm(ctx, method->data.func_decl.return_type)
+                    : ctx->type_void;
+                LLVMTypeRef params[] = { lhs_type, rhs_type };
+                LLVMTypeRef ft = LLVMFunctionType(ret, params, 2, 0);
+                LLVMValueRef fn = LLVMAddFunction(ctx->module, opname, ft);
+                llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
             }
         }
     }
@@ -630,6 +795,79 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                         LLVMGetLastBasicBlock(saved_fn);
                     if (last != NULL)
                         LLVMPositionBuilderAtEnd(ctx->builder, last);
+                }
+            }
+
+            {
+                TokenType ops[] = {
+                    TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
+                    TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
+                    TOKEN_GREATER, TOKEN_GREATER_EQUAL
+                };
+                const char *for_type_name = NULL;
+                if (stmt->data.role_decl.for_type != NULL
+                    && stmt->data.role_decl.for_type->type == AST_TYPE) {
+                    for_type_name = stmt->data.role_decl.for_type->data.type.name;
+                }
+
+                for (size_t oi = 0; for_type_name != NULL
+                       && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
+                    const char *suffix = llvm_operator_suffix(ops[oi]);
+                    ASTNode *method = llvm_find_role_operator_method(hir, stmt, ops[oi], 0);
+                    if (suffix == NULL || method == NULL)
+                        continue;
+
+                    char opname[256];
+                    char mname[256];
+                    snprintf(opname, sizeof(opname), "operator_%s_%s",
+                             suffix, for_type_name);
+                    snprintf(mname, sizeof(mname), "%s_%s",
+                             role_name, method->data.func_decl.name);
+
+                    LLVMFuncEntry *op_entry = llvm_lookup_function(ctx, opname);
+                    LLVMFuncEntry *method_entry = llvm_lookup_function(ctx, mname);
+                    if (op_entry == NULL || method_entry == NULL)
+                        continue;
+                    if (LLVMCountBasicBlocks(op_entry->fn) > 0)
+                        continue;
+
+                    LLVMValueRef saved_fn = ctx->current_function;
+                    LLVMTypeRef saved_ret = ctx->current_ret_type;
+                    ctx->current_function = op_entry->fn;
+                    ctx->current_ret_type = op_entry->ret_type;
+
+                    LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
+                        ctx->context, op_entry->fn, "entry");
+                    LLVMPositionBuilderAtEnd(ctx->builder, bb);
+
+                    LLVMTypeRef lhs_type = LLVMTypeOf(LLVMGetParam(op_entry->fn, 0));
+                    LLVMValueRef lhs_alloca = llvm_create_entry_alloca(
+                        ctx, lhs_type, "lhs.addr");
+                    LLVMBuildStore(ctx->builder, LLVMGetParam(op_entry->fn, 0), lhs_alloca);
+
+                    LLVMValueRef lhs_self = LLVMBuildBitCast(ctx->builder,
+                        lhs_alloca, ctx->type_i8ptr, llvm_tmp_name(ctx));
+                    LLVMValueRef rhs_arg = LLVMGetParam(op_entry->fn, 1);
+                    LLVMValueRef args[] = { lhs_self, rhs_arg };
+
+                    if (op_entry->ret_type == ctx->type_void) {
+                        LLVMBuildCall2(ctx->builder, method_entry->fn_type,
+                            method_entry->fn, args, 2, "");
+                        LLVMBuildRetVoid(ctx->builder);
+                    } else {
+                        LLVMValueRef result = LLVMBuildCall2(ctx->builder,
+                            method_entry->fn_type, method_entry->fn,
+                            args, 2, llvm_tmp_name(ctx));
+                        LLVMBuildRet(ctx->builder, result);
+                    }
+
+                    ctx->current_function = saved_fn;
+                    ctx->current_ret_type = saved_ret;
+                    if (saved_fn != NULL) {
+                        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+                        if (last != NULL)
+                            LLVMPositionBuilderAtEnd(ctx->builder, last);
+                    }
                 }
             }
 

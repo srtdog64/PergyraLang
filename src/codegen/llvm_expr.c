@@ -30,6 +30,105 @@ llvm_append_mangled_suffix(char *buf, size_t buf_size, const char *suffix)
     buf[len + suffix_len] = '\0';
 }
 
+static bool
+llvm_is_upper_ident(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_IDENTIFIER
+        || node->data.identifier.name == NULL
+        || node->data.identifier.name[0] == '\0')
+        return false;
+
+    return node->data.identifier.name[0] >= 'A'
+        && node->data.identifier.name[0] <= 'Z';
+}
+
+static LLVMValueRef
+llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
+                             ASTNode **arg_nodes, size_t argc)
+{
+    LLVMValueRef *args = NULL;
+
+    if (argc > 0) {
+        args = calloc(argc, sizeof(LLVMValueRef));
+        for (size_t i = 0; i < argc; i++)
+            args[i] = llvm_emit_expression(arg_nodes[i], ctx);
+    }
+
+    LLVMValueRef result;
+    if (func->ret_type == ctx->type_void) {
+        LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
+                       args, (unsigned)argc, "");
+        result = LLVMConstInt(ctx->type_i32, 0, 0);
+    } else {
+        result = LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
+                                args, (unsigned)argc, llvm_tmp_name(ctx));
+    }
+
+    free(args);
+    return result;
+}
+
+static const char *
+llvm_operator_overload_suffix(TokenType op)
+{
+    switch (op) {
+    case TOKEN_PLUS: return "add";
+    case TOKEN_MINUS: return "sub";
+    case TOKEN_STAR: return "mul";
+    case TOKEN_SLASH: return "div";
+    case TOKEN_PERCENT: return "mod";
+    case TOKEN_EQUAL: return "eq";
+    case TOKEN_NOT_EQUAL: return "ne";
+    case TOKEN_LESS: return "lt";
+    case TOKEN_LESS_EQUAL: return "le";
+    case TOKEN_GREATER: return "gt";
+    case TOKEN_GREATER_EQUAL: return "ge";
+    default: return NULL;
+    }
+}
+
+static const char *
+llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+    case AST_IDENTIFIER: {
+        const char *name = node->data.identifier.name;
+        const char *class_name = llvm_lookup_var_class(ctx, name);
+        if (class_name != NULL)
+            return class_name;
+        {
+            LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
+            if (variant != NULL)
+                return variant->enum_name;
+        }
+        return NULL;
+    }
+    case AST_MEMBER_ACCESS:
+        if (llvm_is_upper_ident(node->data.member.object)) {
+            LLVMEnumVariantEntry *variant =
+                llvm_lookup_enum_variant_qualified(ctx,
+                    node->data.member.object->data.identifier.name,
+                    node->data.member.name);
+            if (variant != NULL)
+                return variant->enum_name;
+        }
+        return NULL;
+    case AST_CALL:
+        if (node->data.call.callee != NULL
+            && node->data.call.callee->type == AST_IDENTIFIER) {
+            const char *callee = node->data.call.callee->data.identifier.name;
+            if (llvm_lookup_class(ctx, callee) != NULL)
+                return callee;
+        }
+        return NULL;
+    default:
+        return NULL;
+    }
+}
+
 static LLVMValueRef
 llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -97,6 +196,13 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
     if (fn != NULL)
         return fn->fn;
 
+    /* Bare enum variant identifier */
+    {
+        LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
+        if (variant != NULL)
+            return LLVMConstInt(ctx->type_i32, (unsigned long long)variant->value, 0);
+    }
+
     /* Unknown — default to 0 */
     return LLVMConstInt(ctx->type_i32, 0, 0);
 }
@@ -111,6 +217,35 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMTypeRef left_type  = LLVMTypeOf(left);
     LLVMTypeRef right_type = LLVMTypeOf(right);
+    {
+        const char *suffix = llvm_operator_overload_suffix(
+            node->data.binary.op.type);
+        const char *type_name = llvm_expr_custom_type_name(
+            node->data.binary.left, ctx);
+
+        if (type_name == NULL && left_type == right_type) {
+            const char *primitive_suffix = llvm_type_to_suffix(ctx, left_type);
+            if (primitive_suffix != NULL
+                && strcmp(primitive_suffix, "Unknown") != 0) {
+                type_name = primitive_suffix;
+            }
+        }
+
+        if (type_name != NULL && suffix != NULL) {
+            char fn_name[256];
+            snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, type_name);
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            if (fn != NULL) {
+                LLVMValueRef args[] = { left, right };
+                if (fn->ret_type == ctx->type_void) {
+                    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                }
+                return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                      args, 2, llvm_tmp_name(ctx));
+            }
+        }
+    }
 
     /* Promote: if one side is double, convert the other */
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
@@ -229,6 +364,17 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
             && method_name != NULL) {
+            if (llvm_is_upper_ident(obj_node)) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                         obj_node->data.identifier.name, method_name);
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                if (fn != NULL) {
+                    return llvm_emit_function_call_args(ctx, fn,
+                        node->data.call.arguments, node->data.call.arg_count);
+                }
+            }
+
             const char *var_name = obj_node->data.identifier.name;
             const char *class_name = llvm_lookup_var_class(ctx, var_name);
             LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
@@ -498,6 +644,124 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildTrunc(ctx->builder, len, ctx->type_i32, llvm_tmp_name(ctx));
     }
 
+    if ((strcmp(callee_name, "Contains") == 0
+         || strcmp(callee_name, "StringContains") == 0)
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringContains");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if ((strcmp(callee_name, "Replace") == 0
+         || strcmp(callee_name, "StringReplace") == 0)
+        && node->data.call.arg_count == 3) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringReplace");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 3);
+    }
+
+    if (strcmp(callee_name, "Substring") == 0
+        && node->data.call.arg_count == 3) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "Substring");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 3);
+    }
+
+    if ((strcmp(callee_name, "Trim") == 0
+         || strcmp(callee_name, "StringTrim") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringTrim");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Upper") == 0
+         || strcmp(callee_name, "ToUpper") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToUpper");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Lower") == 0
+         || strcmp(callee_name, "ToLower") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToLower");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if ((strcmp(callee_name, "Concat") == 0
+         || strcmp(callee_name, "StringConcat") == 0)
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringConcat");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "ReadFile") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_read_file");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "WriteFile") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_write_file");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "Input") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_input");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "FileOpen") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_open");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "FileRead") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_read");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "FileWrite") == 0
+        && node->data.call.arg_count == 2) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_write");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 2);
+    }
+
+    if (strcmp(callee_name, "FileClose") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_file_close");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
     /* Built-in: Print(s) → printf("%s", s) */
     if (strcmp(callee_name, "Print") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
@@ -649,6 +913,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef alloca = llvm_create_entry_alloca(ctx, pt, p->name);
                 LLVMBuildStore(ctx->builder, LLVMGetParam(mono_fn, (unsigned)real_pc), alloca);
                 llvm_scope_declare(ctx, p->name, alloca, pt);
+                if (p->type != NULL && p->type->type == AST_TYPE
+                    && p->type->data.type.name != NULL
+                    && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
+                    llvm_register_var_class(ctx, p->name, p->type->data.type.name);
+                }
                 real_pc++;
             }
 
@@ -832,11 +1101,18 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
     if (obj_node == NULL || field_name == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
-    /* Resolve object variable */
     if (obj_node->type != AST_IDENTIFIER)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     const char *var_name = obj_node->data.identifier.name;
+    if (llvm_is_upper_ident(obj_node)) {
+        LLVMEnumVariantEntry *variant =
+            llvm_lookup_enum_variant_qualified(ctx, var_name, field_name);
+        if (variant != NULL)
+            return LLVMConstInt(ctx->type_i32,
+                (unsigned long long)variant->value, 0);
+    }
+
     LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
     if (var == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
@@ -892,18 +1168,26 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_ARRAY_ACCESS: {
         /* arr[idx] → GEP + load */
-        LLVMValueRef arr = llvm_emit_expression(
-            node->data.array_access.array, ctx);
+        ASTNode *array_node = node->data.array_access.array;
+        LLVMValueRef arr = llvm_emit_expression(array_node, ctx);
         LLVMValueRef idx = llvm_emit_expression(
             node->data.array_access.index, ctx);
         if (arr == NULL || idx == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
-        /* If arr is a pointer (i8* string or typed array pointer),
-         * do a GEP + load */
         LLVMTypeRef arr_ty = LLVMTypeOf(arr);
-        if (LLVMGetTypeKind(arr_ty) == LLVMPointerTypeKind) {
-            /* String indexing: i8* → GEP i8 */
+        if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+                ctx, array_node->data.identifier.name);
+            if (entry != NULL) {
+                LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
+                    entry->elem_type, arr, &idx, 1, llvm_tmp_name(ctx));
+                return LLVMBuildLoad2(ctx->builder, entry->elem_type,
+                    gep, llvm_tmp_name(ctx));
+            }
+        }
+
+        if (arr_ty == ctx->type_i8ptr) {
             LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
                 LLVMInt8TypeInContext(ctx->context),
                 arr, &idx, 1, llvm_tmp_name(ctx));
@@ -911,7 +1195,17 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMInt8TypeInContext(ctx->context),
                 gep, llvm_tmp_name(ctx));
         }
-        /* Array struct: get data pointer field (index 0), then GEP */
+
+        if (LLVMGetTypeKind(arr_ty) == LLVMPointerTypeKind) {
+            LLVMTypeRef elem_ty = LLVMGetElementType(arr_ty);
+            if (elem_ty != NULL) {
+                LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
+                    elem_ty, arr, &idx, 1, llvm_tmp_name(ctx));
+                return LLVMBuildLoad2(ctx->builder, elem_ty,
+                    gep, llvm_tmp_name(ctx));
+            }
+        }
+
         if (LLVMGetTypeKind(arr_ty) == LLVMStructTypeKind) {
             LLVMValueRef data_ptr = LLVMBuildExtractValue(ctx->builder,
                 arr, 0, llvm_tmp_name(ctx));

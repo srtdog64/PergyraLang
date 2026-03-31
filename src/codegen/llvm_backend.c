@@ -225,6 +225,9 @@ llvm_ctx_create(const char *module_name)
     ctx->event_type_count = 0;
     ctx->lambda_counter = 0;
     ctx->var_class_count = 0;
+    ctx->array_var_count = 0;
+    ctx->enum_variant_count = 0;
+    ctx->loop_depth = 0;
     ctx->current_ret_type = ctx->type_i32;
 
     /* Slot struct types: { value_type, i1 (occupied) } */
@@ -470,6 +473,64 @@ llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name)
     for (int i = ctx->var_class_count - 1; i >= 0; i--) {
         if (strcmp(ctx->var_classes[i].var_name, var_name) == 0)
             return ctx->var_classes[i].class_name;
+    }
+    return NULL;
+}
+
+void
+llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
+                        LLVMTypeRef elem_type, int64_t length)
+{
+    if (ctx->array_var_count >= MAX_ARRAY_VARS)
+        return;
+
+    ctx->array_vars[ctx->array_var_count].var_name = var_name;
+    ctx->array_vars[ctx->array_var_count].elem_type = elem_type;
+    ctx->array_vars[ctx->array_var_count].length = length;
+    ctx->array_var_count++;
+}
+
+LLVMArrayVarEntry *
+llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->array_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->array_vars[i].var_name, var_name) == 0)
+            return &ctx->array_vars[i];
+    }
+    return NULL;
+}
+
+void
+llvm_register_enum_variant(LLVMGenCtx *ctx, const char *enum_name,
+                           const char *variant_name, int value)
+{
+    if (ctx->enum_variant_count >= MAX_ENUM_VARIANTS)
+        return;
+
+    ctx->enum_variants[ctx->enum_variant_count].enum_name = enum_name;
+    ctx->enum_variants[ctx->enum_variant_count].variant_name = variant_name;
+    ctx->enum_variants[ctx->enum_variant_count].value = value;
+    ctx->enum_variant_count++;
+}
+
+LLVMEnumVariantEntry *
+llvm_lookup_enum_variant(LLVMGenCtx *ctx, const char *variant_name)
+{
+    for (int i = ctx->enum_variant_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->enum_variants[i].variant_name, variant_name) == 0)
+            return &ctx->enum_variants[i];
+    }
+    return NULL;
+}
+
+LLVMEnumVariantEntry *
+llvm_lookup_enum_variant_qualified(LLVMGenCtx *ctx, const char *enum_name,
+                                   const char *variant_name)
+{
+    for (int i = ctx->enum_variant_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->enum_variants[i].enum_name, enum_name) == 0
+            && strcmp(ctx->enum_variants[i].variant_name, variant_name) == 0)
+            return &ctx->enum_variants[i];
     }
     return NULL;
 }
@@ -724,6 +785,53 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 1);
         LLVMValueRef fn = LLVMAddFunction(ctx->module, "printf", ft);
         llvm_register_function(ctx, "printf", fn, ft, ctx->type_i32);
+    }
+
+    /* String helpers and file I/O helpers */
+    {
+        struct {
+            const char *name;
+            LLVMTypeRef ret;
+            LLVMTypeRef params[3];
+            unsigned param_count;
+        } builtins[] = {
+            { "StringContains", ctx->type_i1,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "StringReplace", ctx->type_i8ptr,
+              { ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 3 },
+            { "Substring", ctx->type_i8ptr,
+              { ctx->type_i8ptr, ctx->type_i32, ctx->type_i32 }, 3 },
+            { "StringTrim", ctx->type_i8ptr,
+              { ctx->type_i8ptr }, 1 },
+            { "ToUpper", ctx->type_i8ptr,
+              { ctx->type_i8ptr }, 1 },
+            { "ToLower", ctx->type_i8ptr,
+              { ctx->type_i8ptr }, 1 },
+            { "StringConcat", ctx->type_i8ptr,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_read_file", ctx->type_i8ptr,
+              { ctx->type_i8ptr }, 1 },
+            { "pgy_write_file", ctx->type_void,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_input", ctx->type_i8ptr,
+              { ctx->type_i8ptr }, 1 },
+            { "pgy_file_open", ctx->type_i32,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_file_read", ctx->type_i8ptr,
+              { ctx->type_i32 }, 1 },
+            { "pgy_file_write", ctx->type_void,
+              { ctx->type_i32, ctx->type_i8ptr }, 2 },
+            { "pgy_file_close", ctx->type_void,
+              { ctx->type_i32 }, 1 },
+        };
+
+        for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
+            LLVMTypeRef ft = LLVMFunctionType(
+                builtins[i].ret, builtins[i].params,
+                builtins[i].param_count, 0);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, builtins[i].name, ft);
+            llvm_register_function(ctx, builtins[i].name, fn, ft, builtins[i].ret);
+        }
     }
 
     /* Slot runtime functions for each type */
@@ -990,6 +1098,14 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
     /* Pass 0: Register class/struct types */
     for (size_t i = 0; i < hir->type_count; i++) {
         ASTNode *stmt = hir->types[i];
+        if (stmt != NULL && stmt->type == AST_ENUM_DECL) {
+            const char *enum_name = stmt->data.enum_decl.name;
+            for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
+                llvm_register_enum_variant(ctx, enum_name,
+                    stmt->data.enum_decl.variants[j], (int)j);
+            }
+            continue;
+        }
         if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             const char *cls_name = stmt->data.class_decl.name;
             size_t fc = stmt->data.class_decl.field_count;
@@ -1209,6 +1325,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
+    /* Domain passes: ability, role, party, systemic, world, event.
+     * Runs before regular function bodies so synthesized operator wrappers
+     * are available during later expression lowering. */
+    llvm_emit_domain_passes(hir, ctx);
+
     /* Pass 2: Emit function bodies (standalone + class methods).
      * Skip generic templates — they are instantiated lazily. */
     for (size_t i = 0; i < hir->item_count; i++) {
@@ -1271,6 +1392,12 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                     LLVMBuildStore(ctx->builder,
                         LLVMGetParam(fn, llvm_pidx++), alloca);
                     llvm_scope_declare(ctx, p->name, alloca, pt);
+                    if (p->type != NULL && p->type->type == AST_TYPE
+                        && p->type->data.type.name != NULL
+                        && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
+                        llvm_register_var_class(ctx, p->name,
+                                                p->type->data.type.name);
+                    }
                 }
 
                 if (method->data.func_decl.body != NULL)
@@ -1362,6 +1489,12 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMBuildStore(ctx->builder,
                     LLVMGetParam(fn, lpidx++), a);
                 llvm_scope_declare(ctx, p->name, a, pt);
+                if (p->type != NULL && p->type->type == AST_TYPE
+                    && p->type->data.type.name != NULL
+                    && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
+                    llvm_register_var_class(ctx, p->name,
+                                            p->type->data.type.name);
+                }
             }
 
             if (method->data.func_decl.body != NULL)
@@ -1388,9 +1521,6 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             }
         }
     }
-
-    /* Domain passes: ability, role, party, systemic, world, event */
-    llvm_emit_domain_passes(hir, ctx);
 
     /* Pass 3: Collect non-function/non-class top-level into main() */
     bool has_top_level = hir->executable_count > 0;

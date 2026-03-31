@@ -311,6 +311,10 @@ operator_overload_suffix(TokenType op)
 }
 
 static ASTNode *
+find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
+                               TokenType op, int depth);
+
+static ASTNode *
 find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, TokenType op)
 {
     const char *suffix = operator_overload_suffix(op);
@@ -320,7 +324,107 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, TokenType
         return NULL;
 
     snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, type_name);
-    return find_function_decl(ctx, fn_name);
+    ASTNode *fn = find_function_decl(ctx, fn_name);
+    if (fn != NULL)
+        return fn;
+
+    if (ctx != NULL && ctx->hir != NULL && type_name != NULL) {
+        for (size_t i = 0; i < ctx->hir->role_count; i++) {
+            ASTNode *role = ctx->hir->roles[i];
+            if (role == NULL || role->type != AST_ROLE_DECL
+                || role->data.role_decl.for_type == NULL
+                || role->data.role_decl.for_type->type != AST_TYPE
+                || role->data.role_decl.for_type->data.type.name == NULL
+                || strcmp(role->data.role_decl.for_type->data.type.name, type_name) != 0) {
+                continue;
+            }
+            if (find_role_operator_method_decl(ctx, role, op, 0) != NULL)
+                return role;
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+operator_method_name_matches(TokenType op, const char *name)
+{
+    static const struct {
+        TokenType op;
+        const char *names[10];
+    } aliases[] = {
+        { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
+        { TOKEN_MINUS, { "Sub", "sub", "Subtract", "subtract",
+                         "OperatorSub", "operator_sub", NULL } },
+        { TOKEN_STAR, { "Mul", "mul", "Multiply", "multiply",
+                        "OperatorMul", "operator_mul", NULL } },
+        { TOKEN_SLASH, { "Div", "div", "Divide", "divide",
+                         "OperatorDiv", "operator_div", NULL } },
+        { TOKEN_PERCENT, { "Mod", "mod", "Modulo", "modulo",
+                           "OperatorMod", "operator_mod", NULL } },
+        { TOKEN_EQUAL, { "Eq", "eq", "Equal", "equal", "Equals", "equals",
+                         "OperatorEq", "operator_eq", NULL } },
+        { TOKEN_NOT_EQUAL, { "Ne", "ne", "NotEqual", "notEqual",
+                             "NotEquals", "notEquals",
+                             "OperatorNe", "operator_ne", NULL } },
+        { TOKEN_LESS, { "Lt", "lt", "LessThan", "lessThan",
+                        "OperatorLt", "operator_lt", NULL } },
+        { TOKEN_LESS_EQUAL, { "Le", "le", "LessEqual", "lessEqual",
+                              "LessThanOrEqual", "lessThanOrEqual",
+                              "OperatorLe", "operator_le", NULL } },
+        { TOKEN_GREATER, { "Gt", "gt", "GreaterThan", "greaterThan",
+                           "OperatorGt", "operator_gt", NULL } },
+        { TOKEN_GREATER_EQUAL, { "Ge", "ge", "GreaterEqual", "greaterEqual",
+                                 "GreaterThanOrEqual", "greaterThanOrEqual",
+                                 "OperatorGe", "operator_ge", NULL } },
+    };
+
+    if (name == NULL)
+        return false;
+
+    for (size_t i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
+        if (aliases[i].op != op)
+            continue;
+        for (size_t j = 0; aliases[i].names[j] != NULL; j++) {
+            if (strcmp(aliases[i].names[j], name) == 0)
+                return true;
+        }
+        break;
+    }
+    return false;
+}
+
+static ASTNode *
+find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
+                               TokenType op, int depth)
+{
+    if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
+        return NULL;
+
+    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+
+        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+            ASTNode *method = impl->data.impl_ability.methods[j];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && operator_method_name_matches(op, method->data.func_decl.name)) {
+                return method;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
+        ASTNode *include_stmt = role->data.role_decl.includes[i];
+        ASTNode *included_role = find_role_decl(ctx,
+            include_stmt->data.include_stmt.role_name);
+        ASTNode *method = find_role_operator_method_decl(ctx, included_role, op, depth + 1);
+        if (method != NULL)
+            return method;
+    }
+
+    return NULL;
 }
 
 static bool
@@ -3199,6 +3303,79 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
 }
 
 static void
+emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
+{
+    const char *role_name;
+    const char *for_type;
+    TokenType ops[] = {
+        TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
+        TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
+        TOKEN_GREATER, TOKEN_GREATER_EQUAL
+    };
+
+    if (role == NULL || role->type != AST_ROLE_DECL
+        || role->data.role_decl.name == NULL
+        || role->data.role_decl.for_type == NULL
+        || role->data.role_decl.for_type->type != AST_TYPE
+        || role->data.role_decl.for_type->data.type.name == NULL) {
+        return;
+    }
+
+    role_name = role->data.role_decl.name;
+    for_type = role->data.role_decl.for_type->data.type.name;
+
+    for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+        TokenType op = ops[i];
+        const char *suffix = operator_overload_suffix(op);
+        ASTNode *method = find_role_operator_method_decl(ctx, role, op, 0);
+        char fn_name[256];
+        if (suffix == NULL || method == NULL
+            ) {
+            continue;
+        }
+        snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, for_type);
+        if (find_function_decl(ctx, fn_name) != NULL)
+            continue;
+
+        FuncParam *rhs_param = NULL;
+        size_t rhs_param_count = 0;
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
+                rhs_param = p;
+                rhs_param_count++;
+            }
+        }
+        if (rhs_param_count != 1)
+            continue;
+
+        const char *ret_type = "void";
+        const char *lhs_type = pergyra_ast_type_to_c(role->data.role_decl.for_type);
+        const char *rhs_type = "int32_t";
+        const char *rhs_name = (rhs_param != NULL && rhs_param->name != NULL)
+            ? rhs_param->name : "rhs";
+
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+        if (rhs_param != NULL && rhs_param->type != NULL)
+            rhs_type = pergyra_ast_type_to_c(rhs_param->type);
+
+        codebuf_write(ctx->out,
+            "\nstatic %s\noperator_%s_%s(%s lhs, %s %s)\n{\n",
+            ret_type, suffix, for_type, lhs_type, rhs_type, rhs_name);
+        codebuf_write(ctx->out, "    %s lhs_copy = lhs;\n", lhs_type);
+        if (strcmp(ret_type, "void") == 0) {
+            codebuf_write(ctx->out, "    %s_%s(&lhs_copy, %s);\n",
+                role_name, method->data.func_decl.name, rhs_name);
+        } else {
+            codebuf_write(ctx->out, "    return %s_%s(&lhs_copy, %s);\n",
+                role_name, method->data.func_decl.name, rhs_name);
+        }
+        codebuf_write(ctx->out, "}\n");
+    }
+}
+
+static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
     for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
@@ -3337,6 +3514,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "}\n");
         }
     }
+
+    emit_role_operator_aliases(node, ctx);
 }
 
 /* =================================================================

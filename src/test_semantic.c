@@ -861,6 +861,80 @@ test_role_decl(void)
         semantic_context_destroy(ctx);
         ast_destroy(role);
     }
+
+    TEST("role ability Add enables operator overload on target type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        FuncParam *rhs = calloc(1, sizeof(FuncParam));
+        rhs->name = pergyra_strdup("other");
+        rhs->type = ast_create_type("Int");
+
+        ASTNode *method = calloc(1, sizeof(ASTNode));
+        method->type = AST_FUNC_DECL;
+        method->data.func_decl.name = pergyra_strdup("Add");
+        method->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        method->data.func_decl.params[0] = rhs;
+        method->data.func_decl.param_count = 1;
+        method->data.func_decl.return_type = ast_create_type("Int");
+        ASTNode *method_ret = calloc(1, sizeof(ASTNode));
+        method_ret->type = AST_RETURN;
+        method_ret->data.return_stmt.value = make_number(123, 3);
+        ASTNode *method_body = calloc(1, sizeof(ASTNode));
+        method_body->type = AST_BLOCK;
+        method_body->data.block.statements = calloc(1, sizeof(ASTNode *));
+        method_body->data.block.statements[0] = method_ret;
+        method_body->data.block.count = 1;
+        method->data.func_decl.body = method_body;
+
+        ASTNode *impl = ast_create_impl_ability("Arithmetic");
+        impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode *));
+        impl->data.impl_ability.methods[0] = method;
+        impl->data.impl_ability.method_count = 1;
+
+        ASTNode *role = ast_create_role_declaration("IntMath");
+        role->data.role_decl.for_type = ast_create_type("Int");
+        role->data.role_decl.impl_abilities = calloc(1, sizeof(ASTNode *));
+        role->data.role_decl.impl_abilities[0] = impl;
+        role->data.role_decl.impl_count = 1;
+
+        FuncParam *a = calloc(1, sizeof(FuncParam));
+        FuncParam *b = calloc(1, sizeof(FuncParam));
+        a->name = pergyra_strdup("a");
+        b->name = pergyra_strdup("b");
+        a->type = ast_create_type("Int");
+        b->type = ast_create_type("Int");
+
+        ASTNode *binary = ast_create_binary(make_identifier("a", 8),
+            (Token){ .type = TOKEN_PLUS }, make_identifier("b", 8));
+        ASTNode *ret = calloc(1, sizeof(ASTNode));
+        ret->type = AST_RETURN;
+        ret->data.return_stmt.value = binary;
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.statements = calloc(1, sizeof(ASTNode *));
+        body->data.block.statements[0] = ret;
+        body->data.block.count = 1;
+
+        ASTNode *main_fn = calloc(1, sizeof(ASTNode));
+        main_fn->type = AST_FUNC_DECL;
+        main_fn->data.func_decl.name = pergyra_strdup("Main");
+        main_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
+        main_fn->data.func_decl.params[0] = a;
+        main_fn->data.func_decl.params[1] = b;
+        main_fn->data.func_decl.param_count = 2;
+        main_fn->data.func_decl.return_type = ast_create_type("Int");
+        main_fn->data.func_decl.body = body;
+
+        ASTNode *stmts[2] = { role, main_fn };
+        ASTNode *program = make_program(stmts, 2);
+
+        EXPECT(type_check_program(program, ctx));
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+    }
 }
 
 /* -----------------------------------------------------------------

@@ -32,6 +32,7 @@ OPENMP_FLAGS = -fopenmp
 TMPDIR ?= /tmp
 export TMPDIR
 CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
+DEPFLAGS = -MMD -MP
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null)
@@ -247,7 +248,7 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
@@ -330,12 +331,17 @@ llvm-test-concurrency:
 llvm-test-hir:
 	$(MAKE) LLVM_ENABLED=1 test-hir
 
+llvm-test-smoke:
+	$(MAKE) LLVM_ENABLED=1 $(PGY)
+	bash tests/llvm_smoke.sh
+
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	bash tests/compare_backends.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
+	bash tests/llvm_smoke.sh
 	bash tests/compare_backends.sh
 
 # -----------------------------------------------------------------
@@ -386,3 +392,5 @@ lsp: $(PGY_LSP)
         test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
         llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all \
         example-hello example-slots llvm emit-llvm-% lsp
+
+-include $(shell find $(BUILD_DIR) -name "*.d" 2>/dev/null)

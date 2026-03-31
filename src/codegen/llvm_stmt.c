@@ -154,6 +154,89 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         return;
     }
 
+    /* Array literal: let values: Array<Int> = [1, 2, 3] */
+    if (init != NULL && init->type == AST_ARRAY_LITERAL) {
+        size_t count = init->data.array_literal.count;
+        LLVMTypeRef elem_type = ctx->type_i32;
+        bool has_explicit_array_type = false;
+
+        if (type_ann != NULL && type_ann->type == AST_TYPE
+            && type_ann->data.type.name != NULL
+            && (strcmp(type_ann->data.type.name, "Array") == 0
+                || strcmp(type_ann->data.type.name, "Slice") == 0)
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0) {
+            has_explicit_array_type = true;
+            elem_type = pergyra_type_to_llvm(
+                ctx, type_ann->data.type.generic_args->params[0]->name);
+        } else if (count > 0) {
+            LLVMValueRef first = llvm_emit_expression(
+                init->data.array_literal.elements[0], ctx);
+            if (first != NULL)
+                elem_type = LLVMTypeOf(first);
+        }
+
+        LLVMTypeRef array_storage_type = LLVMArrayType(elem_type, (unsigned)count);
+        LLVMValueRef array_alloca = llvm_create_entry_alloca(
+            ctx, array_storage_type, llvm_tmp_name(ctx));
+
+        for (size_t i = 0; i < count; i++) {
+            LLVMValueRef element = llvm_emit_expression(
+                init->data.array_literal.elements[i], ctx);
+            LLVMValueRef indices[] = {
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                LLVMConstInt(ctx->type_i32, (unsigned long long)i, 0)
+            };
+            LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder,
+                array_storage_type, array_alloca, indices, 2, llvm_tmp_name(ctx));
+            if (element != NULL && LLVMTypeOf(element) != elem_type) {
+                LLVMTypeRef element_type = LLVMTypeOf(element);
+                bool target_is_int = (elem_type == ctx->type_i32
+                                   || elem_type == ctx->type_i64);
+                bool target_is_fp = (elem_type == ctx->type_f32
+                                  || elem_type == ctx->type_f64);
+                bool source_is_int = (element_type == ctx->type_i32
+                                   || element_type == ctx->type_i64);
+                bool source_is_fp = (element_type == ctx->type_f32
+                                  || element_type == ctx->type_f64);
+
+                if (target_is_int && source_is_fp)
+                    element = LLVMBuildFPToSI(ctx->builder, element, elem_type,
+                                              llvm_tmp_name(ctx));
+                else if (target_is_fp && source_is_int)
+                    element = LLVMBuildSIToFP(ctx->builder, element, elem_type,
+                                              llvm_tmp_name(ctx));
+            }
+            LLVMBuildStore(ctx->builder, element, elem_ptr);
+        }
+
+        LLVMTypeRef elem_ptr_type = LLVMPointerType(elem_type, 0);
+        LLVMValueRef first_ptr;
+        if (count > 0) {
+            LLVMValueRef indices[] = {
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                LLVMConstInt(ctx->type_i32, 0, 0)
+            };
+            first_ptr = LLVMBuildGEP2(ctx->builder, array_storage_type,
+                array_alloca, indices, 2, llvm_tmp_name(ctx));
+        } else {
+            first_ptr = LLVMConstNull(elem_ptr_type);
+        }
+
+        LLVMValueRef var_alloca = llvm_create_entry_alloca(
+            ctx, elem_ptr_type, name);
+        LLVMBuildStore(ctx->builder, first_ptr, var_alloca);
+        llvm_scope_declare(ctx, name, var_alloca, elem_ptr_type);
+        llvm_register_array_var(ctx, name, elem_type, (int64_t)count);
+
+        if (has_explicit_array_type && type_ann->data.type.name != NULL) {
+            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+            if (cls != NULL)
+                llvm_register_var_class(ctx, name, type_ann->data.type.name);
+        }
+        return;
+    }
+
     /* Determine type from annotation or initializer */
     LLVMTypeRef var_type = ctx->type_i32; /* default */
     if (type_ann != NULL)
@@ -321,8 +404,15 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+    if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+        ctx->loop_continue_blocks[ctx->loop_depth] = cond_bb;
+        ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+        ctx->loop_depth++;
+    }
     if (node->data.while_loop.body != NULL)
         llvm_emit_statement(node->data.while_loop.body, ctx);
+    if (ctx->loop_depth > 0)
+        ctx->loop_depth--;
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, cond_bb);
 
@@ -372,8 +462,15 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+    if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+        ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
+        ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+        ctx->loop_depth++;
+    }
     if (node->data.for_loop.body != NULL)
         llvm_emit_statement(node->data.for_loop.body, ctx);
+    if (ctx->loop_depth > 0)
+        ctx->loop_depth--;
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, incr_bb);
 
@@ -730,13 +827,19 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
 
     case AST_BREAK:
-        /* TODO: LLVM break requires loop exit block tracking */
+        if (ctx->loop_depth > 0) {
+            LLVMBuildBr(ctx->builder,
+                ctx->loop_break_blocks[ctx->loop_depth - 1]);
+        }
         break;
     case AST_ENUM_DECL:
         /* Enums are compile-time only — no IR needed */
         break;
     case AST_CONTINUE:
-        /* TODO: LLVM continue requires loop header block tracking */
+        if (ctx->loop_depth > 0) {
+            LLVMBuildBr(ctx->builder,
+                ctx->loop_continue_blocks[ctx->loop_depth - 1]);
+        }
         break;
 
     case AST_IF_STMT:
@@ -793,6 +896,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_WORLD_DECL:
     case AST_EVENT_DECL:
     case AST_IMPORT_DECL:
+    case AST_NAMESPACE_DECL:
         /* Handled in program pass or declaration-only — skip here */
         break;
 

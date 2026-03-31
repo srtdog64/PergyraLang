@@ -40,6 +40,8 @@
 #define PGY_EVENT_MAX_HANDLERS 16
 #define MAX_GENERIC_FUNCS   64
 #define MAX_MONO_INSTANCES 256
+#define MAX_ENUM_VARIANTS 256
+#define MAX_ARRAY_VARS 128
 
 /* =================================================================
  * Type definitions
@@ -79,6 +81,20 @@ typedef struct
     const char *var_name;
     const char *class_name;
 } LLVMVarClassEntry;
+
+typedef struct
+{
+    const char  *var_name;
+    LLVMTypeRef  elem_type;
+    int64_t      length;
+} LLVMArrayVarEntry;
+
+typedef struct
+{
+    const char *enum_name;
+    const char *variant_name;
+    int         value;
+} LLVMEnumVariantEntry;
 
 typedef struct
 {
@@ -144,8 +160,18 @@ typedef struct LLVMGenCtx
     LLVMVarClassEntry  var_classes[MAX_SCOPE_VARS];
     int                var_class_count;
 
+    LLVMArrayVarEntry  array_vars[MAX_ARRAY_VARS];
+    int                array_var_count;
+
     LLVMEventTypeEntry event_types[MAX_EVENT_TYPES];
     int                event_type_count;
+
+    LLVMEnumVariantEntry enum_variants[MAX_ENUM_VARIANTS];
+    int                  enum_variant_count;
+
+    LLVMBasicBlockRef loop_continue_blocks[MAX_SCOPE_DEPTH];
+    LLVMBasicBlockRef loop_break_blocks[MAX_SCOPE_DEPTH];
+    int              loop_depth;
 
     int             lambda_counter;
     int             tmp_counter;
@@ -219,6 +245,18 @@ int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
 void                llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
                                              const char *class_name);
 const char         *llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name);
+void                llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
+                                             LLVMTypeRef elem_type, int64_t length);
+LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);
+void                llvm_register_enum_variant(LLVMGenCtx *ctx,
+                                                const char *enum_name,
+                                                const char *variant_name,
+                                                int value);
+LLVMEnumVariantEntry *llvm_lookup_enum_variant(LLVMGenCtx *ctx,
+                                                const char *variant_name);
+LLVMEnumVariantEntry *llvm_lookup_enum_variant_qualified(LLVMGenCtx *ctx,
+                                                          const char *enum_name,
+                                                          const char *variant_name);
 
 /* =================================================================
  * Event type registry (llvm_backend.c)

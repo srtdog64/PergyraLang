@@ -43,6 +43,7 @@ struct Diagnostic
 struct SemanticContext
 {
     Scope*       scope;          /* Current scope                  */
+    ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     Type*        current_return; /* Expected return type of func   */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
