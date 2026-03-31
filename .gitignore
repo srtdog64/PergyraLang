@@ -20,6 +20,10 @@ examples/*
 .DS_Store
 Thumbs.db
 
+# Review notes (private — folder + README tracked, contents ignored)
+review/*
+!review/README.md
+
 # Debug
 *.dSYM/
 core
