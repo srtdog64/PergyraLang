@@ -531,6 +531,188 @@ wrap_constructed(Type *constructor, Type *inner)
     return type_create_constructed(constructor, args, 1);
 }
 
+static const char *
+operator_overload_suffix(TokenType op)
+{
+    switch (op) {
+    case TOKEN_PLUS:          return "add";
+    case TOKEN_MINUS:         return "sub";
+    case TOKEN_STAR:          return "mul";
+    case TOKEN_SLASH:         return "div";
+    case TOKEN_PERCENT:       return "mod";
+    case TOKEN_EQUAL:         return "eq";
+    case TOKEN_NOT_EQUAL:     return "ne";
+    case TOKEN_LESS:          return "lt";
+    case TOKEN_LESS_EQUAL:    return "le";
+    case TOKEN_GREATER:       return "gt";
+    case TOKEN_GREATER_EQUAL: return "ge";
+    default:                  return NULL;
+    }
+}
+
+static Type *
+type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
+                             Type *left, Type *right)
+{
+    const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
+    if (suffix == NULL || left == NULL || right == NULL || left->name == NULL)
+        return NULL;
+
+    char fn_name[256];
+    snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, left->name);
+
+    Symbol *sym = scope_lookup(ctx->scope, fn_name);
+    if (sym == NULL || sym->kind != SYMBOL_FUNCTION
+        || sym->type == NULL || sym->type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+
+    if (sym->type->data.function.param_count != 2)
+        return NULL;
+
+    Type *lhs = sym->type->data.function.param_types[0];
+    Type *rhs = sym->type->data.function.param_types[1];
+    if (!type_is_assignable(left, lhs) || !type_is_assignable(right, rhs))
+        return NULL;
+
+    sym->is_used = true;
+    return sym->type->data.function.return_type;
+}
+
+static Type *
+type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
+{
+    if (expr->data.array_literal.count == 0)
+        return wrap_constructed(TYPE_ARRAY, TYPE_INT);
+
+    Type *elem_type = type_check_expression(expr->data.array_literal.elements[0], ctx);
+    if (elem_type == NULL)
+        elem_type = TYPE_UNKNOWN;
+
+    for (size_t i = 1; i < expr->data.array_literal.count; i++) {
+        Type *next = type_check_expression(expr->data.array_literal.elements[i], ctx);
+        if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
+            semantic_error(ctx, expr->data.array_literal.elements[i],
+                "Array literal element type mismatch: expected '%s', got '%s'",
+                elem_type->name, next->name);
+            elem_type = TYPE_UNKNOWN;
+        }
+    }
+
+    return wrap_constructed(TYPE_ARRAY, elem_type);
+}
+
+static bool
+check_call_arity(ASTNode *expr, size_t expected, const char *name,
+                 SemanticContext *ctx)
+{
+    if (expr->data.call.arg_count != expected) {
+        semantic_error(ctx, expr,
+            "'%s' expects %zu argument(s), got %zu",
+            name, expected, expr->data.call.arg_count);
+        return false;
+    }
+    return true;
+}
+
+static Type *
+type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
+{
+    if (strcmp(name, "Abs") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        return type_check_expression(expr->data.call.arguments[0], ctx);
+    }
+    if (strcmp(name, "Min") == 0 || strcmp(name, "Max") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *a = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *b = type_check_expression(expr->data.call.arguments[1], ctx);
+        require_assignable(b, a, expr->data.call.arguments[1], ctx);
+        return a;
+    }
+    if (strcmp(name, "StringLength") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(
+            type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "Contains") == 0 || strcmp(name, "StringContains") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_STRING, expr->data.call.arguments[1], ctx);
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "Replace") == 0 || strcmp(name, "StringReplace") == 0) {
+        if (!check_call_arity(expr, 3, name, ctx))
+            return TYPE_UNKNOWN;
+        for (size_t i = 0; i < 3; i++) {
+            require_assignable(type_check_expression(expr->data.call.arguments[i], ctx),
+                TYPE_STRING, expr->data.call.arguments[i], ctx);
+        }
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "Substring") == 0) {
+        if (!check_call_arity(expr, 3, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_INT, expr->data.call.arguments[1], ctx);
+        require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
+            TYPE_INT, expr->data.call.arguments[2], ctx);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "Trim") == 0 || strcmp(name, "StringTrim") == 0
+        || strcmp(name, "Upper") == 0 || strcmp(name, "ToUpper") == 0
+        || strcmp(name, "Lower") == 0 || strcmp(name, "ToLower") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "Concat") == 0 || strcmp(name, "StringConcat") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_STRING, expr->data.call.arguments[1], ctx);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "ArrayLength") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arg = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arg, "Array")
+            && !type_is_constructed_named(arg, "Slice")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayLength requires Array<T> or Slice<T>, got '%s'", arg->name);
+        }
+        return TYPE_INT;
+    }
+    if (strcmp(name, "ToString") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "Print") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        return TYPE_VOID;
+    }
+
+    return NULL;
+}
+
 static Type *
 type_check_rc_new(ASTNode *call, SemanticContext *ctx)
 {
@@ -749,14 +931,62 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind,
         return TYPE_VOID;
 
     /* I/O built-ins */
-    case BUILTIN_FILE_OPEN:   return TYPE_INT;     /* returns fd (Int) */
-    case BUILTIN_FILE_READ:   return TYPE_STRING;   /* returns line (String) */
-    case BUILTIN_FILE_WRITE:  return TYPE_VOID;
-    case BUILTIN_FILE_CLOSE:  return TYPE_VOID;
-    case BUILTIN_READ_FILE:   return TYPE_STRING;   /* returns entire file */
-    case BUILTIN_WRITE_FILE:  return TYPE_VOID;
-    case BUILTIN_INPUT:       return TYPE_STRING;   /* returns user input */
-    case BUILTIN_PRINT:       return TYPE_VOID;
+    case BUILTIN_FILE_OPEN:
+        if (check_call_arity(call, 2, "FileOpen", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_STRING, call->data.call.arguments[0], ctx);
+            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
+                TYPE_STRING, call->data.call.arguments[1], ctx);
+        }
+        return TYPE_INT;
+    case BUILTIN_FILE_READ:
+        if (check_call_arity(call, 1, "FileRead", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_INT, call->data.call.arguments[0], ctx);
+        }
+        return TYPE_STRING;
+    case BUILTIN_FILE_WRITE:
+        if (check_call_arity(call, 2, "FileWrite", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_INT, call->data.call.arguments[0], ctx);
+            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
+                TYPE_STRING, call->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    case BUILTIN_FILE_CLOSE:
+        if (check_call_arity(call, 1, "FileClose", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_INT, call->data.call.arguments[0], ctx);
+        }
+        return TYPE_VOID;
+    case BUILTIN_READ_FILE:
+        if (check_call_arity(call, 1, "ReadFile", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_STRING, call->data.call.arguments[0], ctx);
+        }
+        return TYPE_STRING;
+    case BUILTIN_WRITE_FILE:
+        if (check_call_arity(call, 2, "WriteFile", ctx)) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_STRING, call->data.call.arguments[0], ctx);
+            require_assignable(type_check_expression(call->data.call.arguments[1], ctx),
+                TYPE_STRING, call->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    case BUILTIN_INPUT:
+        if (call->data.call.arg_count > 1) {
+            semantic_error(ctx, call,
+                "'Input' expects at most 1 argument, got %zu",
+                call->data.call.arg_count);
+            return TYPE_STRING;
+        }
+        if (call->data.call.arg_count == 1) {
+            require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                TYPE_STRING, call->data.call.arguments[0], ctx);
+        }
+        return TYPE_STRING;
+    case BUILTIN_PRINT:
+        return type_check_stdlib_call(call, "Print", ctx);
 
     default:
         return TYPE_UNKNOWN;
@@ -812,12 +1042,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return type_check_array_access(expr, ctx);
 
     case AST_ARRAY_LITERAL:
-        /* Array literal — type check elements, return Int array for now */
-        for (size_t i = 0; i < expr->data.array_literal.count; i++) {
-            if (expr->data.array_literal.elements[i] != NULL)
-                type_check_expression(expr->data.array_literal.elements[i], ctx);
-        }
-        return TYPE_INT; /* simplified — should return Array<T> */
+        return type_check_array_literal(expr, ctx);
 
     case AST_ASSIGNMENT:
         return type_check_assignment(expr, ctx);
@@ -859,6 +1084,10 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *left  = type_check_expression(expr->data.binary.left,  ctx);
     Type *right = type_check_expression(expr->data.binary.right, ctx);
+
+    Type *overloaded = type_check_operator_overload(expr, ctx, left, right);
+    if (overloaded != NULL)
+        return overloaded;
 
     /* If either operand is unknown, skip checks and propagate */
     if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN) {
@@ -945,18 +1174,11 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
 
         /* Standard library built-in functions */
-        if (strcmp(name, "Abs") == 0 || strcmp(name, "Min") == 0
-            || strcmp(name, "Max") == 0 || strcmp(name, "StringLength") == 0
-            || strcmp(name, "Print") == 0 || strcmp(name, "ToString") == 0
-            || strcmp(name, "StringContains") == 0
-            || strcmp(name, "StringReplace") == 0
-            || strcmp(name, "Substring") == 0
-            || strcmp(name, "StringTrim") == 0
-            || strcmp(name, "ToUpper") == 0
-            || strcmp(name, "ToLower") == 0
-            || strcmp(name, "StringConcat") == 0
-            || strcmp(name, "ArrayLength") == 0)
-            return TYPE_UNKNOWN;
+        {
+            Type *stdlib_type = type_check_stdlib_call(expr, name, ctx);
+            if (stdlib_type != NULL)
+                return stdlib_type;
+        }
 
         Symbol *sym = scope_lookup(ctx->scope, name);
         if (sym == NULL) {
@@ -1002,8 +1224,15 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
     /* Callee is a member access (method call) */
     if (callee->type == AST_MEMBER_ACCESS) {
-        /* Resolve object type; for now return UNKNOWN for method calls */
-        type_check_expression(callee->data.member.object, ctx);
+        if (!(callee->data.member.object != NULL
+              && callee->data.member.object->type == AST_IDENTIFIER
+              && callee->data.member.object->data.identifier.name != NULL
+              && callee->data.member.object->data.identifier.name[0] >= 'A'
+              && callee->data.member.object->data.identifier.name[0] <= 'Z')) {
+            /* Resolve object type for normal method calls.
+             * Namespace/static-style calls like Math.Add are lowered later. */
+            type_check_expression(callee->data.member.object, ctx);
+        }
         return TYPE_UNKNOWN;
     }
 
@@ -1013,6 +1242,16 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 {
+    if (expr->data.member.object != NULL
+        && expr->data.member.object->type == AST_IDENTIFIER
+        && expr->data.member.object->data.identifier.name != NULL
+        && expr->data.member.object->data.identifier.name[0] >= 'A'
+        && expr->data.member.object->data.identifier.name[0] <= 'Z') {
+        /* Namespace / enum / static-style access such as Math.Add or Color.Red.
+         * These are lowered later by the driver/codegen into flat symbols. */
+        return TYPE_UNKNOWN;
+    }
+
     Type *object_type = type_check_expression(expr->data.member.object, ctx);
 
     if ((type_is_constructed_named(object_type, "Array")
@@ -1170,6 +1409,14 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = TYPE_UNKNOWN;
     }
 
+    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
+        Symbol *sym = symbol_create_slot(name, decl_type,
+            decl_type->data.slot.is_secure, NULL, node->line, node->column);
+        scope_declare(ctx->scope, sym);
+        scope_register_slot(ctx->scope, sym);
+        return !ctx->has_error;
+    }
+
     Symbol *sym = symbol_create_variable(name, decl_type,
                                           node->line, node->column);
     if (!is_slot_decl)
@@ -1217,6 +1464,7 @@ bool
 type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 {
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    ctx->loop_depth++;
 
     /* Register loop variable as Int */
     Symbol *loop_var = symbol_create_variable(
@@ -1234,6 +1482,7 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     }
 
     type_check_block(node->data.for_loop.body, ctx);
+    ctx->loop_depth--;
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }
@@ -1248,7 +1497,9 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
     }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    ctx->loop_depth++;
     type_check_block(node->data.while_loop.body, ctx);
+    ctx->loop_depth--;
     scope_exit(&ctx->scope);
 
     return !ctx->has_error;
@@ -1806,20 +2057,19 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_RETURN:
         return type_check_return_stmt(node, ctx);
     case AST_BREAK:
+        if (ctx->loop_depth <= 0) {
+            semantic_error(ctx, node, "'break' used outside of loop");
+            return false;
+        }
+        return true;
     case AST_CONTINUE:
+        if (ctx->loop_depth <= 0) {
+            semantic_error(ctx, node, "'continue' used outside of loop");
+            return false;
+        }
         return true;
-    case AST_ENUM_DECL: {
-        /* Register enum name as a class-like symbol */
-        Symbol *sym = calloc(1, sizeof(Symbol));
-        sym->name = strdup(node->data.enum_decl.name);
-        sym->kind = SYMBOL_CLASS;
-        Type *t = calloc(1, sizeof(Type));
-        t->kind = TYPE_KIND_CLASS;
-        t->name = strdup(node->data.enum_decl.name);
-        sym->type = t;
-        scope_declare(ctx->scope, sym);
+    case AST_ENUM_DECL:
         return true;
-    }
     case AST_WITH_STMT:
         return type_check_with_stmt(node, ctx);
     case AST_PARALLEL_BLOCK:
@@ -2111,6 +2361,29 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 Symbol *s = symbol_create_function(ename, evt_ft,
                                                     stmt->line, stmt->column);
                 scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_ENUM_DECL) {
+            const char *ename = stmt->data.enum_decl.name;
+            if (ename != NULL && scope_lookup_current(ctx->scope, ename) == NULL) {
+                Type *t = calloc(1, sizeof(Type));
+                if (t != NULL) {
+                    t->kind = TYPE_KIND_CLASS;
+                    t->name = pergyra_strdup(ename);
+                }
+                Symbol *s = symbol_create_function(ename,
+                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                s->kind = SYMBOL_CLASS;
+                scope_declare(ctx->scope, s);
+            }
+            Symbol *enum_sym = scope_lookup_current(ctx->scope, ename);
+            for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
+                const char *vname = stmt->data.enum_decl.variants[j];
+                if (vname == NULL || scope_lookup_current(ctx->scope, vname) != NULL)
+                    continue;
+                Symbol *vs = symbol_create_variable(vname,
+                    enum_sym != NULL ? enum_sym->type : TYPE_UNKNOWN,
+                    stmt->line, stmt->column);
+                scope_declare(ctx->scope, vs);
             }
         } else if (stmt->type == AST_EXTERN_BLOCK) {
             for (size_t j = 0; j < stmt->data.extern_block.count; j++) {

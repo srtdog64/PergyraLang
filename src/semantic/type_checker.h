@@ -46,6 +46,7 @@ struct SemanticContext
     Type*        current_return; /* Expected return type of func   */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
+    int          loop_depth;     /* Inside loop nesting            */
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;

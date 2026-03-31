@@ -35,6 +35,7 @@ static const KeywordEntry keywords[] = {
     {"continue", TOKEN_CONTINUE},
     {"enum",     TOKEN_ENUM},
     {"export",   TOKEN_EXPORT},
+    {"namespace", TOKEN_NAMESPACE},
     {"true",     TOKEN_TRUE},
     {"false",    TOKEN_FALSE},
     {"public",   TOKEN_PUBLIC},
@@ -441,6 +442,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_CONTINUE: return "CONTINUE";
         case TOKEN_ENUM: return "ENUM";
         case TOKEN_EXPORT: return "EXPORT";
+        case TOKEN_NAMESPACE: return "NAMESPACE";
         case TOKEN_TRUE: return "TRUE";
         case TOKEN_FALSE: return "FALSE";
         case TOKEN_PUBLIC: return "PUBLIC";

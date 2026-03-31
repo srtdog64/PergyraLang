@@ -91,8 +91,31 @@ WhereClause* parse_where_clause(Parser* parser) {
 // 타입 파싱: Type<T, U>
 ASTNode* parse_type(Parser* parser) {
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
+    char *qualified_name = pergyra_strdup(type_name.text);
 
-    ASTNode* type_node = ast_create_type(type_name.text);
+    while (parser_check(parser, TOKEN_DOT)
+           && parser->current_token.length == 1
+           && strcmp(parser->current_token.text, ".") == 0) {
+        parser_advance(parser);
+        Token part = parser_consume(parser, TOKEN_IDENTIFIER,
+                                    "Expected type name after '.'");
+        size_t prefix_len = strlen(qualified_name);
+        size_t part_len = strlen(part.text);
+        char *next = malloc(prefix_len + 1 + part_len + 1);
+        if (next == NULL) {
+            free(qualified_name);
+            return ast_create_type(type_name.text);
+        }
+        memcpy(next, qualified_name, prefix_len);
+        next[prefix_len] = '_';
+        memcpy(next + prefix_len + 1, part.text, part_len);
+        next[prefix_len + 1 + part_len] = '\0';
+        free(qualified_name);
+        qualified_name = next;
+    }
+
+    ASTNode* type_node = ast_create_type(qualified_name);
+    free(qualified_name);
 
     // 제네릭 인자
     if (parser_check(parser, TOKEN_LESS)) {

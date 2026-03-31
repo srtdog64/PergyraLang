@@ -1384,6 +1384,118 @@ test_slot_sugar(void)
     }
 }
 
+static void
+test_stdlib_and_enum_emit(void)
+{
+    printf("\n[stdlib_enum]\n");
+
+    TranspilerCtx *ctx;
+
+    TEST("array literal let emits PgyArray_Int builder");
+    {
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 3;
+        arr->data.array_literal.elements = calloc(3, sizeof(ASTNode *));
+        arr->data.array_literal.elements[0] = make_number(1, 1);
+        arr->data.array_literal.elements[1] = make_number(2, 1);
+        arr->data.array_literal.elements[2] = make_number(3, 1);
+
+        ASTNode *node = make_let("values", make_generic_type("Array", "Int"), arr, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyArray_Int values = ({");
+        EXPECT_STR_CONTAINS(out, "pgy_array_push_Int");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("String built-ins map to runtime helpers");
+    {
+        ASTNode *args[2] = { make_string_lit("a", 1), make_string_lit("b", 1) };
+        ASTNode *call = make_call("Concat", args, 2, 1);
+        ASTNode *node = make_let("s", make_type_node("String"), call, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "StringConcat(\"a\", \"b\")");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("enum variant identifier emits qualified C enum constant");
+    {
+        ASTNode *enum_decl = calloc(1, sizeof(ASTNode));
+        enum_decl->type = AST_ENUM_DECL;
+        enum_decl->data.enum_decl.name = pergyra_strdup("Color");
+        enum_decl->data.enum_decl.variant_count = 2;
+        enum_decl->data.enum_decl.variants = calloc(2, sizeof(char *));
+        enum_decl->data.enum_decl.variants[0] = pergyra_strdup("Red");
+        enum_decl->data.enum_decl.variants[1] = pergyra_strdup("Blue");
+
+        ASTNode *fn_body = ast_create_block();
+        ast_add_statement(fn_body,
+            make_let("c", make_type_node("Color"),
+                make_identifier("Red", 2), 2));
+
+        ASTNode *fn = calloc(1, sizeof(ASTNode));
+        fn->type = AST_FUNC_DECL;
+        fn->data.func_decl.name = "Main";
+        fn->data.func_decl.return_type = make_type_node("Void");
+        fn->data.func_decl.body = fn_body;
+        fn->data.func_decl.param_count = 0;
+
+        ASTNode *stmts[2] = { enum_decl, fn };
+        ASTNode *prog = make_program(stmts, 2);
+        HIRProgram *hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Color_Red");
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("operator overload dispatch uses operator_add_Type");
+    {
+        FuncParam opa, opb, maina, mainb;
+        memset(&opa, 0, sizeof(opa)); opa.name = "a"; opa.type = make_type_node("Vec2");
+        memset(&opb, 0, sizeof(opb)); opb.name = "b"; opb.type = make_type_node("Vec2");
+        memset(&maina, 0, sizeof(maina)); maina.name = "a"; maina.type = make_type_node("Vec2");
+        memset(&mainb, 0, sizeof(mainb)); mainb.name = "b"; mainb.type = make_type_node("Vec2");
+        FuncParam *op_params[2] = { &opa, &opb };
+        FuncParam *main_params[2] = { &maina, &mainb };
+
+        ASTNode *op_fn = calloc(1, sizeof(ASTNode));
+        op_fn->type = AST_FUNC_DECL;
+        op_fn->data.func_decl.name = "operator_add_Vec2";
+        op_fn->data.func_decl.params = op_params;
+        op_fn->data.func_decl.param_count = 2;
+        op_fn->data.func_decl.return_type = make_type_node("Vec2");
+        ASTNode *op_body = ast_create_block();
+        ast_add_statement(op_body, make_return(make_identifier("a", 1), 1));
+        op_fn->data.func_decl.body = op_body;
+
+        ASTNode *main_fn = calloc(1, sizeof(ASTNode));
+        main_fn->type = AST_FUNC_DECL;
+        main_fn->data.func_decl.name = "Main";
+        main_fn->data.func_decl.params = main_params;
+        main_fn->data.func_decl.param_count = 2;
+        main_fn->data.func_decl.return_type = make_type_node("Vec2");
+        ASTNode *sum = ast_create_binary(make_identifier("a", 2),
+            (Token){ .type = TOKEN_PLUS }, make_identifier("b", 2));
+        ASTNode *main_body = ast_create_block();
+        ast_add_statement(main_body, make_return(sum, 2));
+        main_fn->data.func_decl.body = main_body;
+
+        ASTNode *stmts[2] = { op_fn, main_fn };
+        ASTNode *prog = make_program(stmts, 2);
+        HIRProgram *hir = lower_program(prog);
+        ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "return operator_add_Vec2(a, b);");
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+}
+
 /* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
@@ -1405,6 +1517,7 @@ main(void)
     test_systemic_world_emit();
     test_async_emit();
     test_slot_sugar();
+    test_stdlib_and_enum_emit();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

@@ -53,6 +53,16 @@ make_identifier(const char *name, uint32_t line)
 }
 
 static ASTNode *
+make_boolean(bool v, uint32_t line)
+{
+    ASTNode *n = calloc(1, sizeof(ASTNode));
+    n->type = AST_BOOLEAN;
+    n->line = line;
+    n->data.boolean.value = v;
+    return n;
+}
+
+static ASTNode *
 make_call(const char *callee_name, ASTNode **args, size_t arg_count,
            uint32_t line)
 {
@@ -520,6 +530,163 @@ test_while_loop(void)
         EXPECT(ctx->has_error);
         semantic_context_destroy(ctx);
         free(wh); free(cond); free(body);
+    }
+
+    TEST("break outside loop → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *br = calloc(1, sizeof(ASTNode));
+        br->type = AST_BREAK;
+        br->line = 1;
+        type_check_statement(br, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        free(br);
+    }
+
+    TEST("continue inside while loop → no error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *wh = calloc(1, sizeof(ASTNode));
+        wh->type = AST_WHILE_LOOP;
+        wh->line = 1;
+        wh->data.while_loop.condition = make_boolean(true, 1);
+        ASTNode *body = calloc(1, sizeof(ASTNode));
+        body->type = AST_BLOCK;
+        body->data.block.count = 1;
+        body->data.block.statements = calloc(1, sizeof(ASTNode *));
+        ASTNode *cont = calloc(1, sizeof(ASTNode));
+        cont->type = AST_CONTINUE;
+        cont->line = 2;
+        body->data.block.statements[0] = cont;
+        wh->data.while_loop.body = body;
+
+        type_check_while_loop(wh, ctx);
+        EXPECT(!ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(wh->data.while_loop.condition);
+        free(body->data.block.statements);
+        free(cont);
+        free(body);
+        free(wh);
+    }
+}
+
+static void
+test_arrays_and_enums(void)
+{
+    printf("\n[arrays_enums]\n");
+
+    TEST("array literal infers Array<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 3;
+        arr->data.array_literal.elements = calloc(3, sizeof(ASTNode *));
+        arr->data.array_literal.elements[0] = make_number(1, 1);
+        arr->data.array_literal.elements[1] = make_number(2, 1);
+        arr->data.array_literal.elements[2] = make_number(3, 1);
+
+        Type *t = type_check_expression(arr, ctx);
+        EXPECT(!ctx->has_error && t != NULL
+               && strcmp(t->name, "Array<Int>") == 0);
+        semantic_context_destroy(ctx);
+        ast_destroy(arr);
+    }
+
+    TEST("mixed array literal elements → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *arr = calloc(1, sizeof(ASTNode));
+        arr->type = AST_ARRAY_LITERAL;
+        arr->line = 1;
+        arr->data.array_literal.count = 2;
+        arr->data.array_literal.elements = calloc(2, sizeof(ASTNode *));
+        arr->data.array_literal.elements[0] = make_number(1, 1);
+        arr->data.array_literal.elements[1] = make_string("oops", 1);
+
+        type_check_expression(arr, ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+        ast_destroy(arr);
+    }
+
+    TEST("enum variants are visible as enum-typed identifiers");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *enum_decl = calloc(1, sizeof(ASTNode));
+        enum_decl->type = AST_ENUM_DECL;
+        enum_decl->line = 1;
+        enum_decl->data.enum_decl.name = pergyra_strdup("Color");
+        enum_decl->data.enum_decl.variant_count = 2;
+        enum_decl->data.enum_decl.variants = calloc(2, sizeof(char *));
+        enum_decl->data.enum_decl.variants[0] = pergyra_strdup("Red");
+        enum_decl->data.enum_decl.variants[1] = pergyra_strdup("Blue");
+        ASTNode *stmts[1] = { enum_decl };
+        ASTNode *prog = make_program(stmts, 1);
+
+        type_check_program(prog, ctx);
+        Type *t = type_check_expression(make_identifier("Red", 2), ctx);
+        EXPECT(!ctx->has_error && t != NULL && strcmp(t->name, "Color") == 0);
+        semantic_context_destroy(ctx);
+        ast_destroy(prog);
+    }
+}
+
+static void
+test_stdlib_and_io(void)
+{
+    printf("\n[stdlib_io]\n");
+
+    TEST("StringContains returns Bool with valid args");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[2] = { make_string("hello", 1), make_string("ell", 1) };
+        Type *t = type_check_expression(make_call("StringContains", args, 2, 1), ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("ArrayLength requires Array<T>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[1] = { make_number(42, 1) };
+        type_check_expression(make_call("ArrayLength", args, 1, 1), ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("ReadFile requires String path");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[1] = { make_number(1, 1) };
+        type_check_expression(make_call("ReadFile", args, 1, 1), ctx);
+        EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("WriteFile accepts String path and data");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[2] = { make_string("out.txt", 1), make_string("data", 1) };
+        Type *t = type_check_expression(make_call("WriteFile", args, 2, 1), ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_VOID));
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("slot sugar let declaration registers Slot symbol");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *decl = ast_create_let_declaration("s");
+        decl->data.let_decl.type = make_generic_type("Slot", "Int");
+        decl->data.let_decl.initializer = make_number(42, 1);
+        type_check_let_decl(decl, ctx);
+        Symbol *sym = scope_lookup(ctx->scope, "s");
+        EXPECT(!ctx->has_error && sym != NULL && sym->kind == SYMBOL_SLOT);
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
     }
 }
 
@@ -1129,6 +1296,8 @@ main(void)
     test_type_checker_slot_rules();
     test_undefined_symbol();
     test_while_loop();
+    test_arrays_and_enums();
+    test_stdlib_and_io();
     test_match_stmt();
     test_ability_decl();
     test_role_decl();

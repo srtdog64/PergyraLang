@@ -70,6 +70,7 @@ typedef enum
 
     /* Module keywords */
     TOKEN_EXPORT,
+    TOKEN_NAMESPACE,
 
     /* Role/Ability keywords */
     TOKEN_ABILITY,

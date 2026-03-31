@@ -20,6 +20,7 @@ static ASTNode* ast_create_node(ASTNodeType type) {
     ASTNode* node = calloc(1, sizeof(ASTNode));
     if (!node) return NULL;
     node->type = type;
+    node->is_exported = false;
     return node;
 }
 
@@ -375,6 +376,15 @@ ASTNode* ast_create_import_declaration(const char* path) {
     return node;
 }
 
+ASTNode* ast_create_namespace_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_NAMESPACE_DECL);
+    if (!node) return NULL;
+    node->data.namespace_decl.name = pergyra_strdup(name);
+    node->data.namespace_decl.statements = NULL;
+    node->data.namespace_decl.count = 0;
+    return node;
+}
+
 ASTNode* ast_create_unsafe_block(ASTNode* body) {
     ASTNode* node = ast_create_node(AST_UNSAFE_BLOCK);
     node->data.unsafe_block.body = body;
@@ -635,6 +645,13 @@ void ast_add_statement(ASTNode* parent, ASTNode* statement) {
             parent->data.extern_block.count * sizeof(ASTNode*)
         );
         parent->data.extern_block.declarations[parent->data.extern_block.count - 1] = statement;
+    } else if (parent->type == AST_NAMESPACE_DECL) {
+        parent->data.namespace_decl.count++;
+        parent->data.namespace_decl.statements = realloc(
+            parent->data.namespace_decl.statements,
+            parent->data.namespace_decl.count * sizeof(ASTNode*)
+        );
+        parent->data.namespace_decl.statements[parent->data.namespace_decl.count - 1] = statement;
     }
 }
 
@@ -1114,6 +1131,14 @@ void ast_destroy(ASTNode* node) {
             free(node->data.import_decl.path);
             break;
 
+        case AST_NAMESPACE_DECL:
+            free(node->data.namespace_decl.name);
+            for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+                ast_destroy(node->data.namespace_decl.statements[i]);
+            }
+            free(node->data.namespace_decl.statements);
+            break;
+
         case AST_UNSAFE_BLOCK:
             ast_destroy(node->data.unsafe_block.body);
             break;
@@ -1547,6 +1572,8 @@ void ast_print(ASTNode* node, int indent) {
     }
     
     print_indent(indent);
+    if (node->is_exported)
+        printf("[export] ");
     
     switch (node->type) {
         case AST_PROGRAM:
@@ -2128,6 +2155,17 @@ void ast_print(ASTNode* node, int indent) {
             }
             printf("\n");
             ast_print(node->data.lambda_expr.body, indent + 1);
+            break;
+
+        case AST_IMPORT_DECL:
+            printf("Import: \"%s\"\n", node->data.import_decl.path);
+            break;
+
+        case AST_NAMESPACE_DECL:
+            printf("Namespace: %s\n", node->data.namespace_decl.name);
+            for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+                ast_print(node->data.namespace_decl.statements[i], indent + 1);
+            }
             break;
             
         default:

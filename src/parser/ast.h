@@ -145,6 +145,7 @@ typedef enum
 
     /* Module system */
     AST_IMPORT_DECL,
+    AST_NAMESPACE_DECL,
 
     /* Safety */
     AST_UNSAFE_BLOCK,
@@ -207,6 +208,7 @@ struct ClassField {
 struct ASTNode
 {
     ASTNodeType type;
+    bool        is_exported;
     
     /* Line and column information */
     uint32_t line;
@@ -655,6 +657,13 @@ struct ASTNode
             char* path;                /* Module path (string or identifier) */
         } import_decl;
 
+        /* namespace Foo { ... } */
+        struct {
+            char*    name;
+            ASTNode** statements;
+            size_t   count;
+        } namespace_decl;
+
         /* unsafe { ... } */
         struct {
             ASTNode* body;           /* Block */
@@ -756,6 +765,7 @@ ASTNode* ast_create_lambda_expression(void);
 
 /* Module system AST creation */
 ASTNode* ast_create_import_declaration(const char* path);
+ASTNode* ast_create_namespace_declaration(const char* name);
 ASTNode* ast_create_unsafe_block(ASTNode* body);
 ASTNode* ast_create_defer_statement(ASTNode* body);
 ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name);

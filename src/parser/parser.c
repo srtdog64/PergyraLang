@@ -16,6 +16,7 @@ Parser* parser_create(Lexer* lexer) {
     parser->in_parallel_block = false;
     parser->in_with_statement = false;
     parser->in_extern_block = false;
+    parser->next_decl_exported = false;
 
     // 첫 번째 토큰 읽기
     parser->current_token = lexer_next_token(lexer);
@@ -89,6 +90,8 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
             case TOKEN_LET:
+            case TOKEN_NAMESPACE:
+            case TOKEN_EXPORT:
             case TOKEN_WITH:
             case TOKEN_FOR:
             case TOKEN_IF:
@@ -118,6 +121,47 @@ bool parser_has_error(const Parser* parser) {
 // 에러 메시지 가져오기
 const char* parser_get_error(const Parser* parser) {
     return parser->error_msg;
+}
+
+static bool
+parser_is_exportable_decl(ASTNode *node)
+{
+    if (node == NULL)
+        return false;
+
+    switch (node->type) {
+        case AST_FUNC_DECL:
+        case AST_CLASS_DECL:
+        case AST_EXTERN_BLOCK:
+        case AST_LET_DECL:
+        case AST_ACTOR_DECL:
+        case AST_ABILITY_DECL:
+        case AST_ROLE_DECL:
+        case AST_PARTY_DECL:
+        case AST_SYSTEMIC_DECL:
+        case AST_WORLD_DECL:
+        case AST_EVENT_DECL:
+        case AST_ENUM_DECL:
+        case AST_IMPORT_DECL:
+        case AST_NAMESPACE_DECL:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static ASTNode *
+parser_finish_statement(Parser *parser, ASTNode *node)
+{
+    if (node != NULL && parser->next_decl_exported) {
+        if (parser_is_exportable_decl(node)) {
+            node->is_exported = true;
+        } else {
+            parser_error(parser, "'export' can only apply to declarations");
+        }
+    }
+    parser->next_decl_exported = false;
+    return node;
 }
 
 // ============= 문장 파싱 =============
@@ -159,13 +203,13 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     // export 수식어 — 다음 선언에 적용 (현재는 파싱만 하고 무시)
     if (parser_match(parser, TOKEN_EXPORT)) {
-        /* Parse the following declaration normally */
-        return parser_parse_statement(parser);
+        parser->next_decl_exported = true;
+        return parser_finish_statement(parser, parser_parse_statement(parser));
     }
 
     // 함수 선언
     if (parser_match(parser, TOKEN_FUNC)) {
-        return parse_function_declaration(parser);
+        return parser_finish_statement(parser, parse_function_declaration(parser));
     }
 
     // import 선언
@@ -177,27 +221,43 @@ ASTNode* parser_parse_statement(Parser* parser) {
         char *raw = pergyra_strndup(path.text + 1, path.length - 2);
         ASTNode *imp = ast_create_import_declaration(raw);
         free(raw);
-        return imp;
+        return parser_finish_statement(parser, imp);
+    }
+
+    // namespace 선언
+    if (parser_match(parser, TOKEN_NAMESPACE)) {
+        Token name_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected namespace name");
+        ASTNode *ns = ast_create_namespace_declaration(name_tok.text);
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after namespace name");
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            ASTNode *stmt = parser_parse_statement(parser);
+            if (stmt != NULL)
+                ast_add_statement(ns, stmt);
+            if (parser->has_error)
+                parser_synchronize(parser);
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
+        return parser_finish_statement(parser, ns);
     }
 
     // extern 블록
     if (parser_match(parser, TOKEN_EXTERN)) {
-        return parse_extern_block(parser);
+        return parser_finish_statement(parser, parse_extern_block(parser));
     }
 
     // 클래스 선언
     if (parser_match(parser, TOKEN_CLASS)) {
-        return parse_class_declaration(parser);
+        return parser_finish_statement(parser, parse_class_declaration(parser));
     }
 
     // 구조체 선언
     if (parser_match(parser, TOKEN_STRUCT)) {
-        return parse_struct_declaration(parser);
+        return parser_finish_statement(parser, parse_struct_declaration(parser));
     }
 
     // let 선언
     if (parser_match(parser, TOKEN_LET)) {
-        return parser_parse_let_declaration(parser);
+        return parser_finish_statement(parser, parser_parse_let_declaration(parser));
     }
 
     // with 문
@@ -241,7 +301,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_BREAK;
         node->line = parser->previous_token.line;
-        return node;
+        return parser_finish_statement(parser, node);
     }
 
     // continue
@@ -250,7 +310,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_CONTINUE;
         node->line = parser->previous_token.line;
-        return node;
+        return parser_finish_statement(parser, node);
     }
 
     // enum 선언
@@ -278,17 +338,17 @@ ASTNode* parser_parse_statement(Parser* parser) {
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-        return node;
+        return parser_finish_statement(parser, node);
     }
 
     // unsafe 블록
     if (parser_match(parser, TOKEN_UNSAFE)) {
-        return parse_unsafe_block(parser);
+        return parser_finish_statement(parser, parse_unsafe_block(parser));
     }
 
     // defer 문
     if (parser_match(parser, TOKEN_DEFER)) {
-        return parse_defer_statement(parser);
+        return parser_finish_statement(parser, parse_defer_statement(parser));
     }
 
     // bind party.slot = Role;
@@ -299,41 +359,42 @@ ASTNode* parser_parse_statement(Parser* parser) {
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after slot name");
         Token role_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name after '='");
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after bind statement");
-        return ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text);
+        return parser_finish_statement(parser,
+            ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
     }
 
     // systemic 선언
     if (parser_match(parser, TOKEN_SYSTEMIC)) {
-        return parse_systemic_declaration(parser);
+        return parser_finish_statement(parser, parse_systemic_declaration(parser));
     }
 
     // world 선언
     if (parser_match(parser, TOKEN_WORLD)) {
-        return parse_world_declaration(parser);
+        return parser_finish_statement(parser, parse_world_declaration(parser));
     }
 
     // party 선언
     if (parser_match(parser, TOKEN_PARTY)) {
-        return parse_party_declaration(parser);
+        return parser_finish_statement(parser, parse_party_declaration(parser));
     }
 
     // ability 선언
     if (parser_match(parser, TOKEN_ABILITY)) {
-        return parse_ability_declaration(parser);
+        return parser_finish_statement(parser, parse_ability_declaration(parser));
     }
 
     // role 선언
     if (parser_match(parser, TOKEN_ROLE)) {
-        return parse_role_declaration(parser);
+        return parser_finish_statement(parser, parse_role_declaration(parser));
     }
 
     // event 선언
     if (parser_match(parser, TOKEN_EVENT)) {
-        return parse_event_declaration(parser);
+        return parser_finish_statement(parser, parse_event_declaration(parser));
     }
 
     // 표현식 문장
-    return parser_parse_expression_statement(parser);
+    return parser_finish_statement(parser, parser_parse_expression_statement(parser));
 }
 
 // let 선언 파싱

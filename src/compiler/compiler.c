@@ -200,7 +200,11 @@ compiler_run_binary(const char *binary_path, bool verbose)
         if (*p == '/') *p = '\\';
     }
 #else
-    snprintf(safe_path, sizeof(safe_path), "./%s", binary_path);
+    if (binary_path[0] == '/' || strncmp(binary_path, "./", 2) == 0) {
+        snprintf(safe_path, sizeof(safe_path), "%s", binary_path);
+    } else {
+        snprintf(safe_path, sizeof(safe_path), "./%s", binary_path);
+    }
 #endif
 
     const char *run_argv[] = { safe_path, NULL };

@@ -44,6 +44,21 @@
 #  define PGY_RELEASE_ONLY(x) x
 #endif
 
+static inline char *
+pgy_runtime_strdup(const char *src)
+{
+    if (src == NULL)
+        src = "";
+
+    size_t len = strlen(src);
+    char *copy = (char *)malloc(len + 1);
+    if (copy == NULL)
+        return NULL;
+
+    memcpy(copy, src, len + 1);
+    return copy;
+}
+
 #if defined(PGY_DEBUG) || defined(PGY_SAFE_SLOTS)
 #  define PGY_WITH_SLOT_CHECKS 1
 #else
@@ -1312,13 +1327,13 @@ pgy_file_read(int32_t fd)
     char tmp[4096];
     tmp[0] = '\0';
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL)
-        return strdup("");
+        return pgy_runtime_strdup("");
     if (fgets(tmp, sizeof(tmp), _pgy_ftable[fd]) == NULL)
-        return strdup("");
+        return pgy_runtime_strdup("");
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
-    return strdup(tmp);
+    return pgy_runtime_strdup(tmp);
 }
 
 /* FileWrite(fd, data) */
@@ -1344,15 +1359,15 @@ static inline char *
 pgy_read_file(const char *path)
 {
     FILE *fp = fopen(path, "rb");
-    if (fp == NULL) return "";
+    if (fp == NULL) return pgy_runtime_strdup("");
     fseek(fp, 0, SEEK_END);
     long len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    if (len < 0) { fclose(fp); return ""; }
+    if (len < 0) { fclose(fp); return pgy_runtime_strdup(""); }
     char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) { fclose(fp); return ""; }
-    fread(buf, 1, (size_t)len, fp);
-    buf[len] = '\0';
+    if (buf == NULL) { fclose(fp); return pgy_runtime_strdup(""); }
+    size_t read_len = fread(buf, 1, (size_t)len, fp);
+    buf[read_len] = '\0';
     fclose(fp);
     return buf;
 }
@@ -1411,9 +1426,9 @@ StringContains(const char *haystack, const char *needle)
 static inline char *
 Substring(const char *s, int32_t start, int32_t len)
 {
-    if (s == NULL) return strdup("");
+    if (s == NULL) return pgy_runtime_strdup("");
     int32_t slen = (int32_t)strlen(s);
-    if (start < 0 || start >= slen || len <= 0) return strdup("");
+    if (start < 0 || start >= slen || len <= 0) return pgy_runtime_strdup("");
     if (start + len > slen) len = slen - start;
     char *buf = (char *)malloc((size_t)len + 1);
     memcpy(buf, s + start, (size_t)len);
@@ -1425,10 +1440,10 @@ Substring(const char *s, int32_t start, int32_t len)
 static inline char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
 {
-    if (s == NULL || old_str == NULL || new_str == NULL) return strdup(s ? s : "");
+    if (s == NULL || old_str == NULL || new_str == NULL) return pgy_runtime_strdup(s ? s : "");
     size_t old_len = strlen(old_str);
     size_t new_len = strlen(new_str);
-    if (old_len == 0) return strdup(s);
+    if (old_len == 0) return pgy_runtime_strdup(s);
 
     /* Count occurrences */
     int count = 0;
@@ -1456,7 +1471,7 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
 static inline char *
 StringTrim(const char *s)
 {
-    if (s == NULL) return strdup("");
+    if (s == NULL) return pgy_runtime_strdup("");
     while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
     size_t len = strlen(s);
     while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\t' || s[len-1] == '\n' || s[len-1] == '\r'))
@@ -1471,7 +1486,7 @@ StringTrim(const char *s)
 static inline char *
 ToUpper(const char *s)
 {
-    if (s == NULL) return strdup("");
+    if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
     for (size_t i = 0; i <= len; i++)
@@ -1483,7 +1498,7 @@ ToUpper(const char *s)
 static inline char *
 ToLower(const char *s)
 {
-    if (s == NULL) return strdup("");
+    if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
     for (size_t i = 0; i <= len; i++)

@@ -266,6 +266,63 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
     return NULL;
 }
 
+static const char *
+lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
+{
+    static char qualified[128];
+
+    if (ctx == NULL || ctx->hir == NULL || variant_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt == NULL || stmt->type != AST_ENUM_DECL)
+            continue;
+        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
+            const char *candidate = stmt->data.enum_decl.variants[j];
+            if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
+                snprintf(qualified, sizeof(qualified), "%s_%s",
+                    stmt->data.enum_decl.name, candidate);
+                return qualified;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+operator_overload_suffix(TokenType op)
+{
+    switch (op) {
+    case TOKEN_PLUS:          return "add";
+    case TOKEN_MINUS:         return "sub";
+    case TOKEN_STAR:          return "mul";
+    case TOKEN_SLASH:         return "div";
+    case TOKEN_PERCENT:       return "mod";
+    case TOKEN_EQUAL:         return "eq";
+    case TOKEN_NOT_EQUAL:     return "ne";
+    case TOKEN_LESS:          return "lt";
+    case TOKEN_LESS_EQUAL:    return "le";
+    case TOKEN_GREATER:       return "gt";
+    case TOKEN_GREATER_EQUAL: return "ge";
+    default:                  return NULL;
+    }
+}
+
+static ASTNode *
+find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, TokenType op)
+{
+    const char *suffix = operator_overload_suffix(op);
+    char fn_name[256];
+
+    if (ctx == NULL || type_name == NULL || suffix == NULL)
+        return NULL;
+
+    snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, type_name);
+    return find_function_decl(ctx, fn_name);
+}
+
 static bool
 role_has_ability(ASTNode *role, const char *ability_name)
 {
@@ -504,9 +561,38 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "String";
     case AST_BOOLEAN:
         return "Bool";
+    case AST_ARRAY_LITERAL: {
+        const char *inner = "Int";
+        if (expr->data.array_literal.count > 0)
+            inner = infer_expression_type_name(ctx, expr->data.array_literal.elements[0]);
+        static char buf[128];
+        snprintf(buf, sizeof(buf), "Array<%s>", inner);
+        return buf;
+    }
+    case AST_ARRAY_ACCESS: {
+        const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
+        if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
+            return slot_inner_type_name(array_type);
+        return "Int";
+    }
     case AST_IDENTIFIER: {
         const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
-        return type_name != NULL ? type_name : "Int";
+        if (type_name != NULL)
+            return type_name;
+        {
+            const char *enum_variant = lookup_enum_variant_qualified_name(ctx,
+                expr->data.identifier.name);
+            if (enum_variant != NULL) {
+                size_t len = strcspn(enum_variant, "_");
+                static char enum_name[128];
+                if (len >= sizeof(enum_name))
+                    len = sizeof(enum_name) - 1;
+                memcpy(enum_name, enum_variant, len);
+                enum_name[len] = '\0';
+                return enum_name;
+            }
+        }
+        return "Int";
     }
     case AST_CHANNEL_RECV: {
         ASTNode *channel = expr->data.channel_recv.channel;
@@ -944,6 +1030,21 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
             return result;
         }
     }
+
+    {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        ASTNode *overload = find_operator_overload_decl(ctx, lt, expr->data.binary.op.type);
+        if (overload != NULL) {
+            char *left  = emit_expression(expr->data.binary.left, ctx);
+            char *right = emit_expression(expr->data.binary.right, ctx);
+            const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
+            char *result = strdup_fmt("operator_%s_%s(%s, %s)", suffix, lt, left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
+
     char *left  = emit_expression(expr->data.binary.left,  ctx);
     char *right = emit_expression(expr->data.binary.right, ctx);
     const char *op = binary_op_to_c(expr->data.binary.op.type);
@@ -1150,6 +1251,66 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         if (strcmp(fn, "StringLength") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("((int32_t)strlen(%s))", arg);
+            free(arg);
+            return result;
+        }
+        if ((strcmp(fn, "Contains") == 0 || strcmp(fn, "StringContains") == 0)
+            && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("StringContains(%s, %s)", a, b);
+            free(a); free(b);
+            return result;
+        }
+        if ((strcmp(fn, "Replace") == 0 || strcmp(fn, "StringReplace") == 0)
+            && call->data.call.arg_count == 3) {
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *old_s = emit_expression(call->data.call.arguments[1], ctx);
+            char *new_s = emit_expression(call->data.call.arguments[2], ctx);
+            char *result = strdup_fmt("StringReplace(%s, %s, %s)", s, old_s, new_s);
+            free(s); free(old_s); free(new_s);
+            return result;
+        }
+        if (strcmp(fn, "Substring") == 0 && call->data.call.arg_count == 3) {
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *start = emit_expression(call->data.call.arguments[1], ctx);
+            char *len = emit_expression(call->data.call.arguments[2], ctx);
+            char *result = strdup_fmt("Substring(%s, %s, %s)", s, start, len);
+            free(s); free(start); free(len);
+            return result;
+        }
+        if ((strcmp(fn, "Trim") == 0 || strcmp(fn, "StringTrim") == 0)
+            && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("StringTrim(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if ((strcmp(fn, "Upper") == 0 || strcmp(fn, "ToUpper") == 0)
+            && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("ToUpper(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if ((strcmp(fn, "Lower") == 0 || strcmp(fn, "ToLower") == 0)
+            && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("ToLower(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if ((strcmp(fn, "Concat") == 0 || strcmp(fn, "StringConcat") == 0)
+            && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("StringConcat(%s, %s)", a, b);
+            free(a); free(b);
+            return result;
+        }
+        if (strcmp(fn, "ArrayLength") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("((int32_t)(%s.length))", arg);
             free(arg);
             return result;
         }
@@ -1471,6 +1632,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return strdup_fmt("pgy_read_%s(&%s)", inner, id_name);
             }
         }
+        {
+            const char *enum_variant = lookup_enum_variant_qualified_name(ctx, id_name);
+            if (enum_variant != NULL)
+                return pergyra_strdup(enum_variant);
+        }
         return pergyra_strdup(id_name);
     }
 
@@ -1501,23 +1667,31 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_ARRAY_ACCESS: {
         char *array = emit_expression(node->data.array_access.array, ctx);
         char *index = emit_expression(node->data.array_access.index, ctx);
-        char *result = strdup_fmt("%s[%s]", array, index);
+        const char *array_type = infer_expression_type_name(ctx, node->data.array_access.array);
+        char *result;
+        if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
+            result = strdup_fmt("%s.data[%s]", array, index);
+        else
+            result = strdup_fmt("%s[%s]", array, index);
         free(array);
         free(index);
         return result;
     }
 
     case AST_ARRAY_LITERAL: {
-        /* [1, 2, 3] → (int32_t[]){1, 2, 3} — compound literal */
+        const char *array_type = infer_expression_type_name(ctx, node);
+        const char *inner = slot_inner_type_name(array_type);
+        int tmp_id = ++ctx->tmp_counter;
         CodeBuf *buf = codebuf_create();
-        codebuf_write(buf, "(int32_t[]){");
+        codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
+            inner, tmp_id, inner, node->data.array_literal.count);
         for (size_t i = 0; i < node->data.array_literal.count; i++) {
-            if (i > 0) codebuf_write(buf, ", ");
             char *elem = emit_expression(node->data.array_literal.elements[i], ctx);
-            codebuf_write(buf, "%s", elem);
+            codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
+                inner, tmp_id, elem);
             free(elem);
         }
-        codebuf_write(buf, "}");
+        codebuf_write(buf, "_pgy_arr_%d; })", tmp_id);
         char *result = pergyra_strdup(buf->data);
         codebuf_destroy(buf);
         return result;
@@ -1867,14 +2041,17 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    /* Array literal: let arr = [1, 2, 3] → int32_t *arr = (int32_t[]){1, 2, 3}; */
+    /* Array literal: let arr = [1, 2, 3] → PgyArray_Int arr = ({ ... }); */
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
+        const char *array_type_name = ann_type_name != NULL
+            ? ann_type_name
+            : infer_expression_type_name(ctx, init);
+        const char *array_c_type = pergyra_type_to_c(array_type_name);
         char *init_expr = emit_expression(init, ctx);
         write_indent(ctx);
-        codebuf_write(ctx->out, "int32_t *%s = %s;\n", name, init_expr);
+        codebuf_write(ctx->out, "%s %s = %s;\n", array_c_type, name, init_expr);
         free(init_expr);
-        if (ann_type_name != NULL)
-            register_typed_var(ctx, name, ann_type_name);
+        register_typed_var(ctx, name, array_type_name);
         free(ann_type_name);
         return;
     }
@@ -1896,9 +2073,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             /* Infer from call return type - default to int for now */
             c_type = "int32_t";
         }
-        else if (init->type == AST_ARRAY_LITERAL) {
-            c_type = "int32_t*";
-        }
+        else if (init->type == AST_ARRAY_LITERAL)
+            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
     }
 
     /* Struct/class constructor: let p: Point = Point() → Point p = {0}; */
@@ -1967,6 +2143,8 @@ void
 emit_func_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.func_decl.name;
+    int saved_slot_count = ctx->slot_var_count;
+    int saved_typed_count = ctx->typed_var_count;
 
     const char *ret_type = "void";
     if (node->data.func_decl.return_type != NULL) {
@@ -1986,9 +2164,25 @@ emit_func_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "{\n");
 
     ctx->indent++;
+    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
+        FuncParam *p = node->data.func_decl.params[i];
+        if (p == NULL || p->name == NULL || p->type == NULL)
+            continue;
+        char *type_name = render_type_name(p->type);
+        if (type_name != NULL) {
+            register_typed_var(ctx, p->name, type_name);
+            if (strncmp(type_name, "Slot<", 5) == 0)
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false);
+            else if (strncmp(type_name, "SecureSlot<", 11) == 0)
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true);
+            free(type_name);
+        }
+    }
     if (node->data.func_decl.body != NULL)
         emit_block(node->data.func_decl.body, ctx);
     ctx->indent--;
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
 
     codebuf_write(ctx->out, "}\n");
 }

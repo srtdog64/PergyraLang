@@ -198,6 +198,12 @@ main(void)
             1
         },
         {
+            "Array Literal",
+            "let values: Array<Int> = [1, 2, 3];\n"
+            "Log(values[1]);",
+            1
+        },
+        {
             "While Loop",
             "func Countdown(n: Int) -> Void {\n"
             "    let count: Int = n;\n"
@@ -314,6 +320,25 @@ main(void)
             "    func Increment() -> Void {\n"
             "        count = count + 1;\n"
             "    }\n"
+            "}",
+            1
+        },
+        {
+            "Break Continue",
+            "func Looping() -> Void {\n"
+            "    while true {\n"
+            "        if false { break; }\n"
+            "        continue;\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Enum Declaration",
+            "enum Color { Red, Green, Blue }\n"
+            "func Main() -> Void {\n"
+            "    let c: Color = Red;\n"
+            "    Log(1);\n"
             "}",
             1
         },
