@@ -35,17 +35,16 @@ CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
-LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null)
+LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
 CFLAGS  += -DPGY_SRC_DIR=\"$(PROJECT_ROOT)/src\"
 CFLAGS  += -DPGY_RUNTIME_DIR=\"$(PROJECT_ROOT)/src/runtime\"
 CFLAGS  += -DPGY_RUNTIME_LIB_C=\"$(PROJECT_ROOT)/src/runtime/pgy_runtime_lib.c\"
-LLVM_SYSTEM_SONAME := $(firstword $(wildcard /usr/lib/llvm-*/lib/libLLVM.so.1))
-LLVM_SYSTEM_LIB := $(firstword $(wildcard /usr/lib/x86_64-linux-gnu/libLLVM-*.so))
-LLVM_SYSTEM_LIB_NAME := $(patsubst lib%.so,%,$(notdir $(LLVM_SYSTEM_LIB)))
-LLVM_SYSTEM_LIB_DIR := $(dir $(LLVM_SYSTEM_LIB))
-LLVM_SYSTEM_SONAME_DIR := $(dir $(LLVM_SYSTEM_SONAME))
+LLVM_MONOLITHIC_SONAME := $(firstword $(wildcard /usr/lib/llvm-*/lib/libLLVM.so.1 /usr/lib/llvm-*/lib/libLLVM.so.* /usr/lib/x86_64-linux-gnu/libLLVM.so.* /usr/lib/x86_64-linux-gnu/libLLVM-*.so /lib/x86_64-linux-gnu/libLLVM.so.* /lib/x86_64-linux-gnu/libLLVM-*.so))
+LLVM_MONOLITHIC_DIR := $(dir $(LLVM_MONOLITHIC_SONAME))
+LLVM_MONOLITHIC_NAME := $(notdir $(LLVM_MONOLITHIC_SONAME))
+LLVM_INCLUDEDIR_FALLBACK := $(or $(shell for d in /usr/lib/llvm-*/include /usr/include third_party; do if [ -f "$$d/llvm-c/Core.h" ]; then echo "$$d"; break; fi; done),third_party)
 
 # -----------------------------------------------------------------
 # LLVM backend (enabled by default)
@@ -61,16 +60,14 @@ CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED)_$(CC_TAG).stamp
 
 ifneq ($(LLVM_ENABLED),0)
   ifneq ($(LLVM_CONFIG),)
-    LLVM_INCLUDEDIR := $(shell $(LLVM_CONFIG) --includedir)
-    LLVM_LIBDIR     := $(shell $(LLVM_CONFIG) --libdir)
+    LLVM_INCLUDEDIR := $(shell $(LLVM_CONFIG) --includedir 2>/dev/null)
+    LLVM_LIBDIR     := $(shell $(LLVM_CONFIG) --libdir 2>/dev/null)
+    LLVM_LIBS       := $(shell $(LLVM_CONFIG) --libs --system-libs 2>/dev/null)
     CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_INCLUDEDIR)
-    LDFLAGS_LLVM = -L$(LLVM_LIBDIR) -lLLVM-C
-  else ifneq ($(LLVM_SYSTEM_SONAME),)
-    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
-    LDFLAGS_LLVM = -L$(LLVM_SYSTEM_SONAME_DIR) -l:$(notdir $(LLVM_SYSTEM_SONAME))
-  else ifneq ($(LLVM_SYSTEM_LIB),)
-    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
-    LDFLAGS_LLVM = -L$(LLVM_SYSTEM_LIB_DIR) -l$(LLVM_SYSTEM_LIB_NAME)
+    LDFLAGS_LLVM = -L$(LLVM_LIBDIR) $(LLVM_LIBS)
+  else ifneq ($(LLVM_MONOLITHIC_SONAME),)
+    CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_INCLUDEDIR_FALLBACK)
+    LDFLAGS_LLVM = -L$(LLVM_MONOLITHIC_DIR) -l:$(LLVM_MONOLITHIC_NAME)
   else
     CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
     LDFLAGS_LLVM = -L"$(LLVM_INSTALL)/lib" -lLLVM-C
