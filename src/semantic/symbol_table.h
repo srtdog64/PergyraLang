@@ -92,6 +92,7 @@ struct Symbol
     struct
     {
         QubitSemanticState semantic_state;
+        int32_t           entangle_pool_id;  /* -1 = no pool */
     } qubit_info;
 };
 

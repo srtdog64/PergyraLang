@@ -14,6 +14,7 @@ typedef struct
     Symbol              **symbols;
     bool                 *states;      /* is_consumed flags */
     QubitSemanticState   *sem_states;  /* richer resource state; currently qubit-only */
+    int32_t              *pool_ids;    /* entangle pool IDs */
     size_t                count;
 } ResourceConsumeSnapshot;
 
@@ -68,16 +69,22 @@ snapshot_resource_states(SemanticContext *ctx)
                 (snap.count + 1) * sizeof(bool));
             QubitSemanticState *new_sem = realloc(snap.sem_states,
                 (snap.count + 1) * sizeof(QubitSemanticState));
-            if (new_symbols == NULL || new_states == NULL || new_sem == NULL) {
+            int32_t *new_pools = realloc(snap.pool_ids,
+                (snap.count + 1) * sizeof(int32_t));
+            if (new_symbols == NULL || new_states == NULL
+                || new_sem == NULL || new_pools == NULL) {
                 free(new_symbols);
                 free(new_states);
                 free(new_sem);
+                free(new_pools);
                 free(snap.symbols);
                 free(snap.states);
                 free(snap.sem_states);
+                free(snap.pool_ids);
                 snap.symbols = NULL;
                 snap.states = NULL;
                 snap.sem_states = NULL;
+                snap.pool_ids = NULL;
                 snap.count = 0;
                 return snap;
             }
@@ -85,9 +92,11 @@ snapshot_resource_states(SemanticContext *ctx)
             snap.symbols = new_symbols;
             snap.states = new_states;
             snap.sem_states = new_sem;
+            snap.pool_ids = new_pools;
             snap.symbols[snap.count] = sym;
             snap.states[snap.count] = sym->is_consumed;
             snap.sem_states[snap.count] = sym->qubit_info.semantic_state;
+            snap.pool_ids[snap.count] = sym->qubit_info.entangle_pool_id;
             snap.count++;
         }
         scope = scope->parent;
@@ -105,6 +114,7 @@ restore_resource_states(const ResourceConsumeSnapshot *snap)
         if (snap->symbols[i] != NULL) {
             snap->symbols[i]->is_consumed = snap->states[i];
             snap->symbols[i]->qubit_info.semantic_state = snap->sem_states[i];
+            snap->symbols[i]->qubit_info.entangle_pool_id = snap->pool_ids[i];
         }
     }
 }
@@ -121,6 +131,9 @@ merge_resource_states_or(ResourceConsumeSnapshot *dst,
         /* Merge semantic state: take the most advanced (conservative) */
         if (src->sem_states[i] > dst->sem_states[i])
             dst->sem_states[i] = src->sem_states[i];
+        /* Merge pool IDs: keep the one that exists, or dst if both exist */
+        if (dst->pool_ids[i] < 0)
+            dst->pool_ids[i] = src->pool_ids[i];
     }
 }
 
@@ -132,9 +145,11 @@ destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
     free(snap->symbols);
     free(snap->states);
     free(snap->sem_states);
+    free(snap->pool_ids);
     snap->symbols = NULL;
     snap->states = NULL;
     snap->sem_states = NULL;
+    snap->pool_ids = NULL;
     snap->count = 0;
 }
 
@@ -152,6 +167,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
         if (a->states[i] != b->states[i])
             return false;
         if (a->sem_states[i] != b->sem_states[i])
+            return false;
+        if (a->pool_ids[i] != b->pool_ids[i])
             return false;
     }
     return true;
@@ -193,19 +210,24 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     dst.symbols    = calloc(src->count, sizeof(Symbol *));
     dst.states     = calloc(src->count, sizeof(bool));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
-    if (dst.symbols == NULL || dst.states == NULL || dst.sem_states == NULL) {
+    dst.pool_ids   = calloc(src->count, sizeof(int32_t));
+    if (dst.symbols == NULL || dst.states == NULL
+        || dst.sem_states == NULL || dst.pool_ids == NULL) {
         free(dst.symbols);
         free(dst.states);
         free(dst.sem_states);
+        free(dst.pool_ids);
         dst.symbols = NULL;
         dst.states = NULL;
         dst.sem_states = NULL;
+        dst.pool_ids = NULL;
         return dst;
     }
 
     memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
     memcpy(dst.states, src->states, src->count * sizeof(bool));
     memcpy(dst.sem_states, src->sem_states, src->count * sizeof(QubitSemanticState));
+    memcpy(dst.pool_ids, src->pool_ids, src->count * sizeof(int32_t));
     dst.count = src->count;
     return dst;
 }

@@ -4,42 +4,7 @@
  * BSD Style + C# naming conventions
  */
 
-#include "parser.h"
-#include "ast.h"
-#include "../common/string_compat.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
-// Forward declarations
-static ASTNode* parse_type(Parser* parser);
-
-static ASTNode*
-parse_type(Parser* parser)
-{
-    Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
-    ASTNode* type = ast_create_type(type_name.text);
-
-    if (parser_match(parser, TOKEN_LESS)) {
-        ASTNode* element_type = parse_type(parser);
-        parser_consume(parser, TOKEN_GREATER, "Expected '>' after generic type");
-
-        if (strcmp(type_name.text, "Channel") == 0) {
-            return ast_create_channel_type(element_type);
-        }
-
-        if (strcmp(type_name.text, "Future") == 0) {
-            return ast_create_future_type(element_type);
-        }
-
-        type->data.type.generic_args = calloc(1, sizeof(GenericParams));
-        if (type->data.type.generic_args != NULL) {
-            type->data.type.generic_args->count = 1;
-        }
-    }
-
-    return type;
-}
+#include "parser_internal.h"
 
 // Parse async function declaration
 ASTNode* parser_parse_async_function(Parser* parser)
@@ -52,6 +17,8 @@ ASTNode* parser_parse_async_function(Parser* parser)
     
     // Create async function node
     ASTNode* func = ast_create_async_function(name.text, true);
+    parser->last_func_decl_async = true;
+    func->data.async_func_decl.doc_comment = parser_take_pending_doc_comment(parser);
     
     // Generic parameters (if any)
     if (parser_check(parser, TOKEN_LESS)) {
@@ -112,6 +79,7 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected actor name");
     
     ASTNode* actor = ast_create_actor(name.text);
+    actor->data.actor_decl.doc_comment = parser_take_pending_doc_comment(parser);
     
     // Generic parameters (if any)
     if (parser_check(parser, TOKEN_LESS)) {
@@ -122,6 +90,7 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
     
     // Parse actor body (fields and methods)
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
         AccessModifier access = ACCESS_PUBLIC;
         
         // Access modifiers
@@ -155,10 +124,11 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
             actor->data.actor_decl.fields[actor->data.actor_decl.field_count - 1] = field;
             
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
+            parser_discard_pending_doc_comment(parser);
             
         } else if (parser_check(parser, TOKEN_FUNC)) {
             // Method (implicitly async in actors)
-            ASTNode* method = parser_parse_async_function(parser);
+            ASTNode* method = parser_finalize_statement(parser, parser_parse_async_function(parser));
             
             // Add method
             actor->data.actor_decl.method_count++;
@@ -167,6 +137,10 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
                 actor->data.actor_decl.method_count * sizeof(ASTNode*)
             );
             actor->data.actor_decl.methods[actor->data.actor_decl.method_count - 1] = method;
+        } else {
+            parser_discard_pending_doc_comment(parser);
+            parser_error(parser, "Expected actor field or method declaration");
+            parser_advance(parser);
         }
     }
     

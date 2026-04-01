@@ -524,6 +524,8 @@ pergyra_type_to_c(const char *name)
 {
     if (strcmp(name, "Allocator") == 0)
         return "PgyAllocator";
+    if (strncmp(name, "RemoteFuture<", 13) == 0)
+        return "PgyTaskHandle";
     if (strncmp(name, "Future<", 7) == 0)
         return "PgyTaskHandle";
     if (strncmp(name, "Channel<", 8) == 0) {
@@ -578,6 +580,12 @@ pergyra_type_to_c(const char *name)
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
         snprintf(buf, sizeof(buf), "PgySecureSlot_%s", inner);
+        return buf;
+    }
+    if (strncmp(name, "DeviceSlot<", 11) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgyDeviceSlot_%s", inner);
         return buf;
     }
     if (strncmp(name, "Slot<", 5) == 0) {
@@ -718,8 +726,27 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             const char *name = expr->data.call.callee->data.identifier.name;
             if (strcmp(name, "ClaimQubit") == 0)
                 return "QubitSlot";
+            if (strcmp(name, "ClaimDeviceSlot") == 0)
+                return "DeviceSlot<Int>";
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
+            if (strcmp(name, "DeviceRead") == 0 && expr->data.call.arg_count >= 1) {
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (strncmp(slot_type, "DeviceSlot<", 11) == 0)
+                    return slot_inner_type_name(slot_type);
+            }
+            if (strcmp(name, "SubmitDeviceRead") == 0 && expr->data.call.arg_count >= 1) {
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                    static char device_future[128];
+                    snprintf(device_future, sizeof(device_future), "RemoteFuture<%s>",
+                        slot_inner_type_name(slot_type));
+                    return device_future;
+                }
+                return "RemoteFuture<Int>";
+            }
             if (strcmp(name, "IsCollapsed") == 0
                 || strcmp(name, "IntoClassical") == 0)
                 return "Bool";
@@ -772,6 +799,8 @@ lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
     if (expr->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Future<", 7) == 0)
+            return slot_inner_type_name(type_name);
+        if (type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0)
             return slot_inner_type_name(type_name);
     }
 
@@ -837,6 +866,14 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
     (void)call;
     (void)ctx;
     return pergyra_strdup("/* ClaimSlot */");
+}
+
+static char *
+emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
+{
+    (void)call;
+    (void)ctx;
+    return pergyra_strdup("pgy_claim_device_Int()");
 }
 
 char *
@@ -948,6 +985,96 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
+    free(slot_expr);
+    return result;
+}
+
+static char *
+emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
+{
+    const char *inner = "Int";
+    ASTNode *slot_arg = call->data.call.arguments[0];
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    ctx->suppress_slot_auto_read = true;
+    char *slot_expr = emit_expression(slot_arg, ctx);
+    ctx->suppress_slot_auto_read = saved_suppress;
+    char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
+    char *result;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    result = strdup_fmt("pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
+    free(slot_expr);
+    free(value_expr);
+    return result;
+}
+
+static char *
+emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
+{
+    const char *inner = "Int";
+    ASTNode *slot_arg = call->data.call.arguments[0];
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    ctx->suppress_slot_auto_read = true;
+    char *slot_expr = emit_expression(slot_arg, ctx);
+    ctx->suppress_slot_auto_read = saved_suppress;
+    char *result;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    result = strdup_fmt("pgy_device_read_%s(&%s)", inner, slot_expr);
+    free(slot_expr);
+    return result;
+}
+
+static char *
+emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
+{
+    const char *inner = "Int";
+    ASTNode *slot_arg = call->data.call.arguments[0];
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    ctx->suppress_slot_auto_read = true;
+    char *slot_expr = emit_expression(slot_arg, ctx);
+    ctx->suppress_slot_auto_read = saved_suppress;
+    char *result;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    result = strdup_fmt("pgy_release_device_%s(&%s)", inner, slot_expr);
+    free(slot_expr);
+    return result;
+}
+
+static char *
+emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
+{
+    const char *inner = "Int";
+    ASTNode *slot_arg = call->data.call.arguments[0];
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    ctx->suppress_slot_auto_read = true;
+    char *slot_expr = emit_expression(slot_arg, ctx);
+    ctx->suppress_slot_auto_read = saved_suppress;
+    char *result;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+            inner = slot_inner_type_name(type_name);
+    }
+
+    result = strdup_fmt("pgy_submit_device_read_%s(&%s)", inner, slot_expr);
     free(slot_expr);
     return result;
 }
@@ -1202,12 +1329,22 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_CLAIM_SLOT:
     case BUILTIN_CLAIM_SECURE_SLOT:
         return emit_builtin_claim_slot(call, ctx);
+    case BUILTIN_CLAIM_DEVICE_SLOT:
+        return emit_builtin_claim_device_slot(call, ctx);
     case BUILTIN_WRITE:
         return emit_builtin_write(call, ctx);
     case BUILTIN_READ:
         return emit_builtin_read(call, ctx);
     case BUILTIN_RELEASE:
         return emit_builtin_release(call, ctx);
+    case BUILTIN_DEVICE_WRITE:
+        return emit_builtin_device_write(call, ctx);
+    case BUILTIN_DEVICE_READ:
+        return emit_builtin_device_read(call, ctx);
+    case BUILTIN_RELEASE_DEVICE_SLOT:
+        return emit_builtin_release_device_slot(call, ctx);
+    case BUILTIN_SUBMIT_DEVICE_READ:
+        return emit_builtin_submit_device_read(call, ctx);
     case BUILTIN_LOG:
         return emit_builtin_log(call, ctx);
     case BUILTIN_RC_NEW:
@@ -1950,6 +2087,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Detect ClaimSlot / ClaimSecureSlot */
     bool is_slot        = false;
     bool is_secure_slot = false;
+    bool is_device_slot = false;
     const char *slot_inner = "Int"; /* default */
 
     if (init != NULL && init->type == AST_CALL
@@ -1960,6 +2098,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         } else if (strcmp(callee_name, "ClaimSecureSlot") == 0) {
             is_slot        = true;
             is_secure_slot = true;
+        } else if (strcmp(callee_name, "ClaimDeviceSlot") == 0) {
+            is_device_slot = true;
         }
     }
 
@@ -1994,6 +2134,31 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         if (ann_type_name != NULL)
             register_typed_var(ctx, name, ann_type_name);
+        free(ann_type_name);
+        return;
+    }
+
+    if (is_device_slot) {
+        if (ann != NULL) {
+            if (ann->data.type.generic_args != NULL
+                && ann->data.type.generic_args->count > 0) {
+                slot_inner = ann->data.type.generic_args->params[0]->name;
+            } else {
+                slot_inner = slot_inner_type_name(ann->data.type.name);
+            }
+        }
+
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "PgyDeviceSlot_%s %s = pgy_claim_device_%s();\n",
+            slot_inner, name, slot_inner);
+        if (ann_type_name != NULL)
+            register_typed_var(ctx, name, ann_type_name);
+        else {
+            char *device_type = strdup_fmt("DeviceSlot<%s>", slot_inner);
+            register_typed_var(ctx, name, device_type);
+            free(device_type);
+        }
         free(ann_type_name);
         return;
     }

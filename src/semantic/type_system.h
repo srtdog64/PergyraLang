@@ -24,6 +24,18 @@ typedef enum
     TYPE_KIND_ALIAS         /* Type aliases */
 } TypeKind;
 
+/* Inferred function/resource effects.
+ * "local" is the zero-effect default: a function with no non-local flags
+ * is treated as local-only today. */
+typedef enum
+{
+    EFFECT_NONE             = 0,
+    EFFECT_SECURE           = 1u << 0,
+    EFFECT_REMOTE           = 1u << 1,
+    EFFECT_NONDETERMINISTIC = 1u << 2,
+    EFFECT_COLLAPSE         = 1u << 3
+} EffectMask;
+
 /* Type structure */
 typedef struct Type Type;
 struct Type
@@ -62,6 +74,7 @@ struct Type
             Type** param_types;
             size_t param_count;
             Type* return_type;
+            uint32_t effect_mask;
         } function;
         
         /* Slot type */
@@ -106,6 +119,8 @@ Type* type_create_generic(const char* param_name);
 Type* type_create_constructed(Type* constructor, Type** args, size_t arg_count);
 Type* type_create_function(Type** params, size_t param_count, Type* return_type);
 Type* type_create_slot(Type* inner_type, bool is_secure);
+uint32_t type_function_effects(const Type* type);
+bool type_effect_mask_has(uint32_t mask, uint32_t effect);
 
 /* Type checking */
 bool type_equals(const Type* a, const Type* b);
@@ -144,6 +159,8 @@ extern Type* TYPE_RC;
 extern Type* TYPE_WEAK;
 extern Type* TYPE_CHANNEL;
 extern Type* TYPE_FUTURE;
+extern Type* TYPE_REMOTE_FUTURE;
+extern Type* TYPE_DEVICE_SLOT;
 extern Type* TYPE_ALLOCATOR;
 
 void type_system_init(void);

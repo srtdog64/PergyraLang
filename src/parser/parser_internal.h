@@ -25,6 +25,10 @@ ASTNode        *parse_type(Parser *parser);
 ASTNode        *parse_type_constraint(Parser *parser);
 void            skip_generic_arguments(Parser *parser);
 Token           consume_name_token(Parser *parser, const char *message);
+void            parser_collect_doc_comments(Parser *parser);
+void            parser_discard_pending_doc_comment(Parser *parser);
+StructuredComment *parser_take_pending_doc_comment(Parser *parser);
+ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
 
 /* --- Expressions (parser_expr.c) --- */
 ASTNode *parse_logical_or(Parser *parser);

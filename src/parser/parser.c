@@ -4,6 +4,7 @@
  */
 
 #include "parser_internal.h"
+#include <ctype.h>
 
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
@@ -17,6 +18,8 @@ Parser* parser_create(Lexer* lexer) {
     parser->in_with_statement = false;
     parser->in_extern_block = false;
     parser->next_decl_exported = false;
+    parser->last_func_decl_async = false;
+    parser->pending_doc_comment = NULL;
 
     // 첫 번째 토큰 읽기
     parser->current_token = lexer_next_token(lexer);
@@ -27,6 +30,7 @@ Parser* parser_create(Lexer* lexer) {
 // 파서 소멸
 void parser_destroy(Parser* parser) {
     if (parser) {
+        ast_destroy_structured_comment(parser->pending_doc_comment);
         free(parser);
     }
 }
@@ -123,6 +127,280 @@ const char* parser_get_error(const Parser* parser) {
     return parser->error_msg;
 }
 
+static char *
+parser_trimmed_copy(const char *text)
+{
+    const char *start = text;
+    const char *end;
+    size_t length;
+
+    if (text == NULL)
+        return pergyra_strdup("");
+
+    while (*start != '\0' && isspace((unsigned char)*start))
+        start++;
+
+    end = start + strlen(start);
+    while (end > start && isspace((unsigned char)end[-1]))
+        end--;
+
+    length = (size_t)(end - start);
+    return pergyra_strndup(start, length);
+}
+
+static bool
+parser_doc_tag_name_equals(const char *name, const char *expected)
+{
+    size_t i;
+
+    if (name == NULL || expected == NULL)
+        return false;
+
+    for (i = 0; name[i] != '\0' && expected[i] != '\0'; i++) {
+        if (tolower((unsigned char)name[i]) != tolower((unsigned char)expected[i]))
+            return false;
+    }
+
+    return name[i] == '\0' && expected[i] == '\0';
+}
+
+static bool
+parser_doc_tag_type_from_name(const char *name, DocTagType *out_type)
+{
+    if (parser_doc_tag_name_equals(name, "what")) {
+        *out_type = DOC_TAG_WHAT;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "why")) {
+        *out_type = DOC_TAG_WHY;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "alt")) {
+        *out_type = DOC_TAG_ALT;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "next")) {
+        *out_type = DOC_TAG_NEXT;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "effects")) {
+        *out_type = DOC_TAG_EFFECTS;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "params")) {
+        *out_type = DOC_TAG_PARAMS;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "returns")) {
+        *out_type = DOC_TAG_RETURNS;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "throws")) {
+        *out_type = DOC_TAG_THROWS;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "complexity")) {
+        *out_type = DOC_TAG_COMPLEXITY;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "invariants")) {
+        *out_type = DOC_TAG_INVARIANTS;
+        return true;
+    }
+    if (parser_doc_tag_name_equals(name, "example")) {
+        *out_type = DOC_TAG_EXAMPLE;
+        return true;
+    }
+
+    return false;
+}
+
+static StructuredComment *
+parser_ensure_pending_doc_comment(Parser *parser)
+{
+    if (parser->pending_doc_comment == NULL)
+        parser->pending_doc_comment = calloc(1, sizeof(StructuredComment));
+    return parser->pending_doc_comment;
+}
+
+static void
+parser_add_doc_tag(Parser *parser, DocTagType type, const char *content)
+{
+    StructuredComment *comment;
+    DocTag *tag;
+    DocTag **new_tags;
+
+    if (content == NULL)
+        return;
+
+    comment = parser_ensure_pending_doc_comment(parser);
+    if (comment == NULL)
+        return;
+
+    tag = calloc(1, sizeof(DocTag));
+    if (tag == NULL)
+        return;
+
+    tag->type = type;
+    tag->content = parser_trimmed_copy(content);
+
+    new_tags = realloc(comment->tags, (comment->tag_count + 1) * sizeof(DocTag *));
+    if (new_tags == NULL) {
+        free(tag->content);
+        free(tag);
+        return;
+    }
+
+    comment->tags = new_tags;
+    comment->tags[comment->tag_count++] = tag;
+}
+
+static void
+parser_parse_doc_comment_line(Parser *parser, const char *line)
+{
+    char *trimmed;
+    char *colon;
+
+    if (line == NULL)
+        return;
+
+    trimmed = parser_trimmed_copy(line);
+    if (trimmed == NULL || trimmed[0] == '\0') {
+        free(trimmed);
+        return;
+    }
+
+    if (trimmed[0] == '@') {
+        char *name_start = trimmed + 1;
+        char *cursor = name_start;
+        DocTagType type;
+
+        while (*cursor != '\0' && !isspace((unsigned char)*cursor) && *cursor != ':')
+            cursor++;
+
+        if (*cursor != '\0') {
+            *cursor++ = '\0';
+            while (*cursor != '\0' && (isspace((unsigned char)*cursor) || *cursor == ':'))
+                cursor++;
+        }
+
+        if (parser_doc_tag_type_from_name(name_start, &type))
+            parser_add_doc_tag(parser, type, cursor);
+
+        free(trimmed);
+        return;
+    }
+
+    if (trimmed[0] == '[') {
+        char *close = strchr(trimmed, ']');
+        DocTagType type;
+
+        if (close != NULL) {
+            char *content_start = close + 1;
+            *close = '\0';
+            while (*content_start != '\0' &&
+                   (isspace((unsigned char)*content_start) || *content_start == ':'))
+                content_start++;
+
+            if (parser_doc_tag_type_from_name(trimmed + 1, &type))
+                parser_add_doc_tag(parser, type, content_start);
+        }
+
+        free(trimmed);
+        return;
+    }
+
+    colon = strchr(trimmed, ':');
+    if (colon != NULL) {
+        DocTagType type;
+        *colon = '\0';
+        if (parser_doc_tag_type_from_name(trimmed, &type))
+            parser_add_doc_tag(parser, type, colon + 1);
+    }
+
+    free(trimmed);
+}
+
+void
+parser_collect_doc_comments(Parser *parser)
+{
+    while (parser_check(parser, TOKEN_DOC_COMMENT)) {
+        Token doc = parser_advance(parser);
+        parser_parse_doc_comment_line(parser, doc.text);
+    }
+}
+
+void
+parser_discard_pending_doc_comment(Parser *parser)
+{
+    if (parser == NULL)
+        return;
+
+    ast_destroy_structured_comment(parser->pending_doc_comment);
+    parser->pending_doc_comment = NULL;
+}
+
+StructuredComment *
+parser_take_pending_doc_comment(Parser *parser)
+{
+    StructuredComment *comment;
+
+    if (parser == NULL)
+        return NULL;
+
+    comment = parser->pending_doc_comment;
+    parser->pending_doc_comment = NULL;
+    return comment;
+}
+
+static bool
+parser_attach_pending_doc_comment(Parser *parser, ASTNode *node)
+{
+    if (parser == NULL || node == NULL || parser->pending_doc_comment == NULL)
+        return false;
+
+    switch (node->type) {
+        case AST_FUNC_DECL:
+            if (parser->last_func_decl_async) {
+                node->data.async_func_decl.doc_comment = parser->pending_doc_comment;
+            } else {
+                node->data.func_decl.doc_comment = parser->pending_doc_comment;
+            }
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_CLASS_DECL:
+            node->data.class_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_ACTOR_DECL:
+            node->data.actor_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_ABILITY_DECL:
+            node->data.ability_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_ROLE_DECL:
+            node->data.role_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_PARTY_DECL:
+            node->data.party_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_SYSTEMIC_DECL:
+            node->data.systemic_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_WORLD_DECL:
+            node->data.world_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        default:
+            return false;
+    }
+}
+
 static bool
 parser_is_exportable_decl(ASTNode *node)
 {
@@ -150,8 +428,8 @@ parser_is_exportable_decl(ASTNode *node)
     }
 }
 
-static ASTNode *
-parser_finish_statement(Parser *parser, ASTNode *node)
+ASTNode *
+parser_finalize_statement(Parser *parser, ASTNode *node)
 {
     if (node != NULL && parser->next_decl_exported) {
         if (parser_is_exportable_decl(node)) {
@@ -160,7 +438,10 @@ parser_finish_statement(Parser *parser, ASTNode *node)
             parser_error(parser, "'export' can only apply to declarations");
         }
     }
+    if (!parser_attach_pending_doc_comment(parser, node))
+        parser_discard_pending_doc_comment(parser);
     parser->next_decl_exported = false;
+    parser->last_func_decl_async = false;
     return node;
 }
 
@@ -186,30 +467,32 @@ ASTNode* parser_parse_program(Parser* parser) {
 
 // 문장 파싱
 ASTNode* parser_parse_statement(Parser* parser) {
+    parser_collect_doc_comments(parser);
+
     // async 함수 선언
     if (parser_match(parser, TOKEN_ASYNC)) {
-        return parser_parse_async_function(parser);
+        return parser_finalize_statement(parser, parser_parse_async_function(parser));
     }
 
     // actor 선언
     if (parser_match(parser, TOKEN_ACTOR)) {
-        return parser_parse_actor_declaration(parser);
+        return parser_finalize_statement(parser, parser_parse_actor_declaration(parser));
     }
 
     // select 문
     if (parser_match(parser, TOKEN_SELECT)) {
-        return parser_parse_select_statement(parser);
+        return parser_finalize_statement(parser, parser_parse_select_statement(parser));
     }
 
     // export 수식어 — 다음 선언에 적용 (현재는 파싱만 하고 무시)
     if (parser_match(parser, TOKEN_EXPORT)) {
         parser->next_decl_exported = true;
-        return parser_finish_statement(parser, parser_parse_statement(parser));
+        return parser_finalize_statement(parser, parser_parse_statement(parser));
     }
 
     // 함수 선언
     if (parser_match(parser, TOKEN_FUNC)) {
-        return parser_finish_statement(parser, parse_function_declaration(parser));
+        return parser_finalize_statement(parser, parse_function_declaration(parser));
     }
 
     // import 선언
@@ -221,7 +504,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         char *raw = pergyra_strndup(path.text + 1, path.length - 2);
         ASTNode *imp = ast_create_import_declaration(raw);
         free(raw);
-        return parser_finish_statement(parser, imp);
+        return parser_finalize_statement(parser, imp);
     }
 
     // namespace 선언
@@ -237,62 +520,62 @@ ASTNode* parser_parse_statement(Parser* parser) {
                 parser_synchronize(parser);
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
-        return parser_finish_statement(parser, ns);
+        return parser_finalize_statement(parser, ns);
     }
 
     // extern 블록
     if (parser_match(parser, TOKEN_EXTERN)) {
-        return parser_finish_statement(parser, parse_extern_block(parser));
+        return parser_finalize_statement(parser, parse_extern_block(parser));
     }
 
     // 클래스 선언
     if (parser_match(parser, TOKEN_CLASS)) {
-        return parser_finish_statement(parser, parse_class_declaration(parser));
+        return parser_finalize_statement(parser, parse_class_declaration(parser));
     }
 
     // 구조체 선언
     if (parser_match(parser, TOKEN_STRUCT)) {
-        return parser_finish_statement(parser, parse_struct_declaration(parser));
+        return parser_finalize_statement(parser, parse_struct_declaration(parser));
     }
 
     // let 선언
     if (parser_match(parser, TOKEN_LET)) {
-        return parser_finish_statement(parser, parser_parse_let_declaration(parser));
+        return parser_finalize_statement(parser, parser_parse_let_declaration(parser));
     }
 
     // with 문
     if (parser_match(parser, TOKEN_WITH)) {
-        return parser_parse_with_statement(parser);
+        return parser_finalize_statement(parser, parser_parse_with_statement(parser));
     }
 
     // parallel 블록
     if (parser_match(parser, TOKEN_PARALLEL)) {
-        return parser_parse_parallel_block(parser);
+        return parser_finalize_statement(parser, parser_parse_parallel_block(parser));
     }
 
     // for 루프
     if (parser_match(parser, TOKEN_FOR)) {
-        return parse_for_loop(parser);
+        return parser_finalize_statement(parser, parse_for_loop(parser));
     }
 
     // while 루프
     if (parser_match(parser, TOKEN_WHILE)) {
-        return parse_while_statement(parser);
+        return parser_finalize_statement(parser, parse_while_statement(parser));
     }
 
     // match 문
     if (parser_match(parser, TOKEN_MATCH)) {
-        return parse_match_statement(parser);
+        return parser_finalize_statement(parser, parse_match_statement(parser));
     }
 
     // if 문
     if (parser_match(parser, TOKEN_IF)) {
-        return parse_if_statement(parser);
+        return parser_finalize_statement(parser, parse_if_statement(parser));
     }
 
     // return 문
     if (parser_match(parser, TOKEN_RETURN)) {
-        return parse_return_statement(parser);
+        return parser_finalize_statement(parser, parse_return_statement(parser));
     }
 
     // break
@@ -301,7 +584,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_BREAK;
         node->line = parser->previous_token.line;
-        return parser_finish_statement(parser, node);
+        return parser_finalize_statement(parser, node);
     }
 
     // continue
@@ -310,7 +593,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_CONTINUE;
         node->line = parser->previous_token.line;
-        return parser_finish_statement(parser, node);
+        return parser_finalize_statement(parser, node);
     }
 
     // enum 선언
@@ -338,17 +621,17 @@ ASTNode* parser_parse_statement(Parser* parser) {
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-        return parser_finish_statement(parser, node);
+        return parser_finalize_statement(parser, node);
     }
 
     // unsafe 블록
     if (parser_match(parser, TOKEN_UNSAFE)) {
-        return parser_finish_statement(parser, parse_unsafe_block(parser));
+        return parser_finalize_statement(parser, parse_unsafe_block(parser));
     }
 
     // defer 문
     if (parser_match(parser, TOKEN_DEFER)) {
-        return parser_finish_statement(parser, parse_defer_statement(parser));
+        return parser_finalize_statement(parser, parse_defer_statement(parser));
     }
 
     // bind party.slot = Role;
@@ -359,42 +642,42 @@ ASTNode* parser_parse_statement(Parser* parser) {
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after slot name");
         Token role_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name after '='");
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after bind statement");
-        return parser_finish_statement(parser,
+        return parser_finalize_statement(parser,
             ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
     }
 
     // systemic 선언
     if (parser_match(parser, TOKEN_SYSTEMIC)) {
-        return parser_finish_statement(parser, parse_systemic_declaration(parser));
+        return parser_finalize_statement(parser, parse_systemic_declaration(parser));
     }
 
     // world 선언
     if (parser_match(parser, TOKEN_WORLD)) {
-        return parser_finish_statement(parser, parse_world_declaration(parser));
+        return parser_finalize_statement(parser, parse_world_declaration(parser));
     }
 
     // party 선언
     if (parser_match(parser, TOKEN_PARTY)) {
-        return parser_finish_statement(parser, parse_party_declaration(parser));
+        return parser_finalize_statement(parser, parse_party_declaration(parser));
     }
 
     // ability 선언
     if (parser_match(parser, TOKEN_ABILITY)) {
-        return parser_finish_statement(parser, parse_ability_declaration(parser));
+        return parser_finalize_statement(parser, parse_ability_declaration(parser));
     }
 
     // role 선언
     if (parser_match(parser, TOKEN_ROLE)) {
-        return parser_finish_statement(parser, parse_role_declaration(parser));
+        return parser_finalize_statement(parser, parse_role_declaration(parser));
     }
 
     // event 선언
     if (parser_match(parser, TOKEN_EVENT)) {
-        return parser_finish_statement(parser, parse_event_declaration(parser));
+        return parser_finalize_statement(parser, parse_event_declaration(parser));
     }
 
     // 표현식 문장
-    return parser_finish_statement(parser, parser_parse_expression_statement(parser));
+    return parser_finalize_statement(parser, parser_parse_expression_statement(parser));
 }
 
 // let 선언 파싱

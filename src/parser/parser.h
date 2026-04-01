@@ -51,7 +51,9 @@ typedef struct
     bool    in_select_statement;
     bool    in_extern_block;
     bool    next_decl_exported;
+    bool    last_func_decl_async;
     int     scope_depth;
+    StructuredComment *pending_doc_comment;
 } Parser;
 
 /*

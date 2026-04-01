@@ -13,6 +13,8 @@
 #include <assert.h>
 
 #include "common/string_compat.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 #include "semantic/type_system.h"
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"
@@ -145,6 +147,27 @@ make_generic_type_from_node(const char *name, ASTNode *arg_type)
     gp->constraint = arg_type;
     n->data.type.generic_args->params[0] = gp;
     return n;
+}
+
+static FuncParam *
+make_func_param(const char *name, ASTNode *type)
+{
+    FuncParam *param = calloc(1, sizeof(FuncParam));
+    param->name = pergyra_strdup(name);
+    param->type = type;
+    return param;
+}
+
+static StructuredComment *
+make_effect_doc_comment(const char *content)
+{
+    StructuredComment *comment = calloc(1, sizeof(StructuredComment));
+    comment->tag_count = 1;
+    comment->tags = calloc(1, sizeof(DocTag *));
+    comment->tags[0] = calloc(1, sizeof(DocTag));
+    comment->tags[0]->type = DOC_TAG_EFFECTS;
+    comment->tags[0]->content = pergyra_strdup(content);
+    return comment;
 }
 
 /* -----------------------------------------------------------------
@@ -818,6 +841,56 @@ test_stdlib_and_io(void)
         ASTNode *args[2] = { make_string("out.txt", 1), make_string("data", 1) };
         Type *t = type_check_expression(make_call("WriteFile", args, 2, 1), ctx);
         EXPECT(!ctx->has_error && type_equals(t, TYPE_VOID));
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("ClaimDeviceSlot infers DeviceSlot<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *t = type_check_expression(make_call("ClaimDeviceSlot", NULL, 0, 1), ctx);
+        EXPECT(!ctx->has_error
+            && t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && t->data.constructed.constructor == TYPE_DEVICE_SLOT
+            && t->data.constructed.arg_count == 1
+            && type_equals(t->data.constructed.args[0], TYPE_INT));
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("DeviceRead returns inner type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *device_type = type_create_constructed(TYPE_DEVICE_SLOT, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("dev", device_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("dev", 1) };
+        Type *t = type_check_expression(make_call("DeviceRead", call_args, 1, 1), ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("SubmitDeviceRead returns RemoteFuture<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *device_type = type_create_constructed(TYPE_DEVICE_SLOT, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("dev", device_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("dev", 1) };
+        Type *t = type_check_expression(make_call("SubmitDeviceRead", call_args, 1, 1), ctx);
+        EXPECT(!ctx->has_error
+            && t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && t->data.constructed.constructor == TYPE_REMOTE_FUTURE
+            && t->data.constructed.arg_count == 1
+            && type_equals(t->data.constructed.args[0], TYPE_INT));
         semantic_context_destroy(ctx);
     }
 
@@ -2246,6 +2319,103 @@ test_async_system(void)
         ast_destroy(await);
     }
 
+    TEST("await rejects Future<Slot<T>> anchored handle payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *slot_type = type_create_slot(TYPE_INT, false);
+        Type *args[1] = { slot_type };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending_slot", future_type, 1, 1));
+
+        ASTNode *await = ast_create_await_expression(make_identifier("pending_slot", 1));
+        await->line = 1; await->column = 1;
+
+        type_check_expression(await, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "anchored resource handles"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await);
+    }
+
+    TEST("await accepts RemoteFuture<QubitSlot> as remote transfer boundary");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("remote_qubit", future_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer =
+            ast_create_await_expression(make_identifier("remote_qubit", 1));
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("await may initialize a movable resource binding");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending_qubit", future_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer =
+            ast_create_await_expression(make_identifier("pending_qubit", 1));
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 2) };
+        ASTNode *state = make_call("QubitState", state_args, 1, 2);
+        type_check_expression(state, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(state);
+    }
+
+    TEST("await movable resource rejects inline use without binding");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending_qubit", future_type, 1, 1));
+
+        ASTNode *await = ast_create_await_expression(make_identifier("pending_qubit", 1));
+        await->line = 1; await->column = 1;
+        ASTNode *state_args[1] = { await };
+        ASTNode *state = make_call("QubitState", state_args, 1, 1);
+
+        type_check_expression(state, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "bound to a named variable"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(state);
+    }
+
     TEST("select statement with empty cases passes");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2380,6 +2550,274 @@ test_async_system(void)
         semantic_context_destroy(ctx);
         ast_destroy(send);
     }
+
+    TEST("channel recv may initialize a movable resource binding");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer =
+            ast_create_channel_recv(make_identifier("ch", 1));
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *state_args[1] = { make_identifier("q", 2) };
+        ASTNode *state = make_call("QubitState", state_args, 1, 2);
+        type_check_expression(state, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(state);
+    }
+}
+
+static void
+test_effect_inference(void)
+{
+    printf("\n[effect_inference]\n");
+
+    TEST("Measure infers nondeterministic + collapse on function");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("Observe");
+        func->data.func_decl.return_type = ast_create_type("Int");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        ASTNode *ret = ast_create_return_statement();
+        ASTNode *measure_args[1] = { make_identifier("q", 3) };
+        ret->data.return_stmt.value = make_call("Measure", measure_args, 1, 3);
+        ast_add_statement(func->data.func_decl.body, ret);
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "Observe");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_NONDETERMINISTIC)
+            && type_effect_mask_has(effects, EFFECT_COLLAPSE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("effectful calls propagate function effects to callers");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *observe = ast_create_function("Observe");
+        observe->data.func_decl.return_type = ast_create_type("Int");
+        observe->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 2);
+        ast_add_statement(observe->data.func_decl.body, decl);
+
+        ASTNode *measure_ret = ast_create_return_statement();
+        ASTNode *measure_args[1] = { make_identifier("q", 3) };
+        measure_ret->data.return_stmt.value =
+            make_call("Measure", measure_args, 1, 3);
+        ast_add_statement(observe->data.func_decl.body, measure_ret);
+        type_check_func_decl(observe, ctx);
+
+        ASTNode *wrapper = ast_create_function("WrapObserve");
+        wrapper->data.func_decl.return_type = ast_create_type("Int");
+        wrapper->data.func_decl.body = ast_create_block();
+
+        ASTNode *ret = ast_create_return_statement();
+        ret->data.return_stmt.value = make_call("Observe", NULL, 0, 6);
+        ast_add_statement(wrapper->data.func_decl.body, ret);
+        type_check_func_decl(wrapper, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "WrapObserve");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_NONDETERMINISTIC)
+            && type_effect_mask_has(effects, EFFECT_COLLAPSE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(observe);
+        ast_destroy(wrapper);
+    }
+
+    TEST("SecureSlot declarations infer secure effect on function");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("TouchSecure");
+        func->data.func_decl.return_type = ast_create_type("Int");
+        func->data.func_decl.body = ast_create_block();
+
+        ASTNode *decl = ast_create_let_declaration("secret");
+        decl->data.let_decl.type = make_generic_type("SecureSlot", "Int");
+        decl->data.let_decl.initializer = make_number(7, 2);
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        ASTNode *ret = ast_create_return_statement();
+        ret->data.return_stmt.value = make_number(1, 3);
+        ast_add_statement(func->data.func_decl.body, ret);
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "TouchSecure");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("DeviceSlot parameter types are rejected as anchored handles");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("UseDevice");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        func->data.func_decl.params[0] =
+            make_func_param("dev", make_generic_type("DeviceSlot", "Int"));
+
+        type_check_func_decl(func, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "Anchored resource handle parameters"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("DeviceSlot copy into new binding is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *dev_args[1] = { TYPE_INT };
+        Type *device_type = type_create_constructed(TYPE_DEVICE_SLOT, dev_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("dev", device_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("copy");
+        decl->data.let_decl.type = make_generic_type("DeviceSlot", "Int");
+        decl->data.let_decl.initializer = make_identifier("dev", 2);
+
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "Anchored resource handles"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("spawn and channel send infer remote effect on function");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("Dispatch");
+        func->data.func_decl.return_type = ast_create_type("Int");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        func->data.func_decl.params[0] =
+            make_func_param("ch", make_generic_type("Channel", "Int"));
+
+        ASTNode *pending = ast_create_let_declaration("pending");
+        pending->data.let_decl.initializer =
+            ast_create_spawn_expression(make_number(42, 2));
+        ast_add_statement(func->data.func_decl.body, pending);
+
+        ASTNode *send = ast_create_channel_send(make_identifier("ch", 3),
+                                                make_number(7, 3));
+        ast_add_statement(func->data.func_decl.body, send);
+
+        ASTNode *ret = ast_create_return_statement();
+        ret->data.return_stmt.value = make_number(1, 4);
+        ast_add_statement(func->data.func_decl.body, ret);
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "Dispatch");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_REMOTE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("structured comment @effects merges declared effect into function");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("PlanRemote");
+        func->data.func_decl.return_type = ast_create_type("Int");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.doc_comment =
+            make_effect_doc_comment("remote secure");
+
+        ASTNode *ret = ast_create_return_statement();
+        ret->data.return_stmt.value = make_number(1, 2);
+        ast_add_statement(func->data.func_decl.body, ret);
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "PlanRemote");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_REMOTE)
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("source-level /// @effects flows from parser into semantic effects");
+    {
+        const char *source =
+            "/// @effects remote secure\n"
+            "func PlanRemote() -> Int {\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+
+        EXPECT(!parser_has_error(parser));
+        type_check_program(program, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "PlanRemote");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_REMOTE)
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -2411,6 +2849,7 @@ main(void)
     test_engine_collections();
     test_shared_memory_features();
     test_async_system();
+    test_effect_inference();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

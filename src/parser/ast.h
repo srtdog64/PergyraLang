@@ -35,6 +35,7 @@ typedef enum {
     DOC_TAG_WHY,
     DOC_TAG_ALT,
     DOC_TAG_NEXT,
+    DOC_TAG_EFFECTS,
     DOC_TAG_PARAMS,
     DOC_TAG_RETURNS,
     DOC_TAG_THROWS,
@@ -209,6 +210,7 @@ struct ASTNode
 {
     ASTNodeType type;
     bool        is_exported;
+    bool        is_async_decl;
     
     /* Line and column information */
     uint32_t line;
@@ -731,6 +733,7 @@ void ast_add_argument(ASTNode* call, ASTNode* arg);
 
 /* AST utility functions */
 void ast_destroy(ASTNode* node);
+void ast_destroy_structured_comment(StructuredComment* comment);
 void ast_print(ASTNode* node, int indent);
 const char* token_type_to_string(TokenType type);
 

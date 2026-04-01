@@ -620,24 +620,86 @@ int32_t pgy_channel_recv_val_Int(PgyChannel_Int_RT *ch)
 }
 
 /* =================================================================
- * QubitSlot runtime
+ * QubitSlot runtime — N-qubit entanglement pool model
  *
- * This intentionally models only a same-value correlated pair.
- * It demonstrates resource-style collapse and entanglement flow,
- * not a full quantum simulator.
+ * Matches pgy_runtime.h's pool_id / PgyEntanglementPool design.
+ * Supports GHZ states via pool merge on Entangle().
  * ================================================================= */
 
-#define PGY_QUBIT_MAX 64
+#define PGY_QUBIT_RT_MAX 64
 
 typedef struct {
-    int32_t state;
-    int32_t partner;
+    int32_t state;       /* 0=|0>, 1=|1>, 2=superposition, -1=released */
+    int32_t pool_id;     /* entanglement pool id, -1 if none */
     bool    measured;
 } PgyQubit_RT;
 
-static PgyQubit_RT pgy_qubits_rt[PGY_QUBIT_MAX];
-static int32_t pgy_qubit_next_rt = 0;
-static bool pgy_qubit_rng_init_rt = false;
+typedef struct {
+    int32_t members[PGY_QUBIT_RT_MAX];
+    int32_t count;
+    bool    active;
+} PgyEntanglementPool_RT;
+
+static PgyQubit_RT              pgy_qubits_rt[PGY_QUBIT_RT_MAX];
+static int32_t                  pgy_qubit_next_rt = 0;
+static bool                     pgy_qubit_rng_init_rt = false;
+
+static PgyEntanglementPool_RT   pgy_qubit_pools_rt[PGY_QUBIT_RT_MAX];
+static int32_t                  pgy_qubit_pool_next_rt = 0;
+
+/* --- Pool helpers --- */
+
+static int32_t
+rt_alloc_pool(void)
+{
+    if (pgy_qubit_pool_next_rt >= PGY_QUBIT_RT_MAX) return -1;
+    int32_t id = pgy_qubit_pool_next_rt++;
+    pgy_qubit_pools_rt[id].count  = 0;
+    pgy_qubit_pools_rt[id].active = true;
+    return id;
+}
+
+static void
+rt_pool_add(int32_t pool_id, int32_t qubit_id)
+{
+    if (pool_id < 0 || pool_id >= PGY_QUBIT_RT_MAX) return;
+    PgyEntanglementPool_RT *pool = &pgy_qubit_pools_rt[pool_id];
+    if (pool->count >= PGY_QUBIT_RT_MAX) return;
+    for (int32_t i = 0; i < pool->count; i++)
+        if (pool->members[i] == qubit_id) return;
+    pool->members[pool->count++] = qubit_id;
+    pgy_qubits_rt[qubit_id].pool_id = pool_id;
+}
+
+static void
+rt_pool_remove(int32_t pool_id, int32_t qubit_id)
+{
+    if (pool_id < 0 || pool_id >= PGY_QUBIT_RT_MAX) return;
+    PgyEntanglementPool_RT *pool = &pgy_qubit_pools_rt[pool_id];
+    for (int32_t i = 0; i < pool->count; i++) {
+        if (pool->members[i] == qubit_id) {
+            pool->members[i] = pool->members[pool->count - 1];
+            pool->count--;
+            return;
+        }
+    }
+}
+
+static void
+rt_pool_merge(int32_t dst_pool, int32_t src_pool)
+{
+    if (dst_pool == src_pool) return;
+    if (dst_pool < 0 || src_pool < 0) return;
+    PgyEntanglementPool_RT *src = &pgy_qubit_pools_rt[src_pool];
+    for (int32_t i = 0; i < src->count; i++) {
+        int32_t qid = src->members[i];
+        rt_pool_add(dst_pool, qid);
+    }
+    src->count  = 0;
+    src->active = false;
+}
+
+/* --- Qubit operations --- */
 
 int32_t ClaimQubit(void)
 {
@@ -645,19 +707,19 @@ int32_t ClaimQubit(void)
         srand((unsigned)time(NULL));
         pgy_qubit_rng_init_rt = true;
     }
-    if (pgy_qubit_next_rt >= PGY_QUBIT_MAX)
+    if (pgy_qubit_next_rt >= PGY_QUBIT_RT_MAX)
         return -1;
 
     int32_t id = pgy_qubit_next_rt++;
-    pgy_qubits_rt[id].state = 2;
-    pgy_qubits_rt[id].partner = -1;
+    pgy_qubits_rt[id].state    = 2;
+    pgy_qubits_rt[id].pool_id  = -1;
     pgy_qubits_rt[id].measured = false;
     return id;
 }
 
 int32_t Measure(int32_t id)
 {
-    if (id < 0 || id >= PGY_QUBIT_MAX)
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return -1;
 
     PgyQubit_RT *q = &pgy_qubits_rt[id];
@@ -668,11 +730,15 @@ int32_t Measure(int32_t id)
         q->state = rand() % 2;
     q->measured = true;
 
-    if (q->partner >= 0 && q->partner < PGY_QUBIT_MAX) {
-        PgyQubit_RT *partner = &pgy_qubits_rt[q->partner];
-        if (!partner->measured) {
-            partner->state = q->state;
-            partner->measured = true;
+    /* Propagate collapse to entire entanglement pool */
+    if (q->pool_id >= 0) {
+        PgyEntanglementPool_RT *pool = &pgy_qubit_pools_rt[q->pool_id];
+        for (int32_t i = 0; i < pool->count; i++) {
+            int32_t mid = pool->members[i];
+            if (mid != id && !pgy_qubits_rt[mid].measured) {
+                pgy_qubits_rt[mid].state    = q->state;
+                pgy_qubits_rt[mid].measured = true;
+            }
         }
     }
 
@@ -681,38 +747,64 @@ int32_t Measure(int32_t id)
 
 void Entangle(int32_t a, int32_t b)
 {
-    if (a < 0 || a >= PGY_QUBIT_MAX || b < 0 || b >= PGY_QUBIT_MAX)
+    if (a < 0 || a >= PGY_QUBIT_RT_MAX || b < 0 || b >= PGY_QUBIT_RT_MAX)
         return;
-    pgy_qubits_rt[a].partner = b;
-    pgy_qubits_rt[b].partner = a;
+
+    int32_t pa = pgy_qubits_rt[a].pool_id;
+    int32_t pb = pgy_qubits_rt[b].pool_id;
+
+    if (pa >= 0 && pb >= 0) {
+        if (pa != pb)
+            rt_pool_merge(pa, pb);
+    } else if (pa >= 0) {
+        rt_pool_add(pa, b);
+    } else if (pb >= 0) {
+        rt_pool_add(pb, a);
+    } else {
+        int32_t new_pool = rt_alloc_pool();
+        if (new_pool >= 0) {
+            rt_pool_add(new_pool, a);
+            rt_pool_add(new_pool, b);
+        }
+    }
+}
+
+void H(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX) return;
+    pgy_qubits_rt[id].state    = 2;
+    pgy_qubits_rt[id].measured = false;
+}
+
+bool IntoClassical(int32_t id)
+{
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX) return false;
+    return pgy_qubits_rt[id].state == 1;
 }
 
 int32_t QubitState(int32_t id)
 {
-    if (id < 0 || id >= PGY_QUBIT_MAX)
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return -1;
     return pgy_qubits_rt[id].state;
 }
 
 bool IsCollapsed(int32_t id)
 {
-    if (id < 0 || id >= PGY_QUBIT_MAX)
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return true;
     return pgy_qubits_rt[id].measured;
 }
 
 void ReleaseQubit(int32_t id)
 {
-    if (id < 0 || id >= PGY_QUBIT_MAX)
+    if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return;
-
-    int32_t partner = pgy_qubits_rt[id].partner;
-    pgy_qubits_rt[id].state = -1;
+    if (pgy_qubits_rt[id].pool_id >= 0)
+        rt_pool_remove(pgy_qubits_rt[id].pool_id, id);
+    pgy_qubits_rt[id].state    = -1;
+    pgy_qubits_rt[id].pool_id  = -1;
     pgy_qubits_rt[id].measured = true;
-    pgy_qubits_rt[id].partner = -1;
-
-    if (partner >= 0 && partner < PGY_QUBIT_MAX)
-        pgy_qubits_rt[partner].partner = -1;
 }
 
 /* =================================================================

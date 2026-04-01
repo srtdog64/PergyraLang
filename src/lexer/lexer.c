@@ -132,6 +132,14 @@ static char peek_next(const Lexer* lexer) {
     return lexer->current[1];
 }
 
+/* Peek at character N positions ahead */
+static char peek_ahead(const Lexer* lexer, size_t offset) {
+    if (lexer == NULL || lexer->current[offset] == '\0') return '\0';
+    return lexer->current[offset];
+}
+
+static Token make_token(Lexer* lexer, TokenType type, const char* start, size_t length);
+
 /* Skip whitespace and comments */
 static void skip_whitespace(Lexer* lexer) {
     while (true) {
@@ -149,7 +157,7 @@ static void skip_whitespace(Lexer* lexer) {
                 break;
                 
             case '/':
-                if (peek_next(lexer) == '/') {
+                if (peek_next(lexer) == '/' && peek_ahead(lexer, 2) != '/') {
                     // Single-line comment
                     advance(lexer); // /
                     advance(lexer); // /
@@ -177,6 +185,24 @@ static void skip_whitespace(Lexer* lexer) {
                 return;
         }
     }
+}
+
+/* Scan structured doc comment line after first '/' is consumed. */
+static Token scan_doc_comment(Lexer* lexer, const char* line_start) {
+    advance(lexer); // second '/'
+    advance(lexer); // third '/'
+
+    while (peek(lexer) == ' ' || peek(lexer) == '\t') {
+        advance(lexer);
+    }
+
+    const char* start = lexer->current;
+    while (peek(lexer) != '\n' && !is_at_end(lexer)) {
+        advance(lexer);
+    }
+
+    (void)line_start;
+    return make_token(lexer, TOKEN_DOC_COMMENT, start, (size_t)(lexer->current - start));
 }
 
 /* Check if character is valid identifier start */
@@ -339,7 +365,11 @@ Token lexer_next_token(Lexer* lexer) {
             }
             return make_token(lexer, TOKEN_PLUS, start, 1);
         case '*': return make_token(lexer, TOKEN_STAR, start, 1);
-        case '/': return make_token(lexer, TOKEN_SLASH, start, 1);
+        case '/':
+            if (peek(lexer) == '/' && peek_next(lexer) == '/') {
+                return scan_doc_comment(lexer, start);
+            }
+            return make_token(lexer, TOKEN_SLASH, start, 1);
         case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
         case '"': return scan_string(lexer);
         
@@ -495,6 +525,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_IDENTIFIER: return "IDENTIFIER";
         case TOKEN_NUMBER: return "NUMBER";
         case TOKEN_STRING: return "STRING";
+        case TOKEN_DOC_COMMENT: return "DOC_COMMENT";
         case TOKEN_EOF: return "EOF";
         case TOKEN_ERROR: return "ERROR";
         default: return "UNKNOWN";

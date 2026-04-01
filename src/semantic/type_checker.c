@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 
@@ -159,6 +160,8 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "Box")    == 0) return TYPE_BOX;
     if (strcmp(name, "Rc")     == 0) return TYPE_RC;
     if (strcmp(name, "Weak")   == 0) return TYPE_WEAK;
+    if (strcmp(name, "RemoteFuture") == 0) return TYPE_REMOTE_FUTURE;
+    if (strcmp(name, "DeviceSlot") == 0) return TYPE_DEVICE_SLOT;
     if (strcmp(name, "Allocator") == 0) return TYPE_ALLOCATOR;
 
     Symbol *sym = scope_lookup(ctx->scope, name);
@@ -184,6 +187,68 @@ static bool
 name_looks_qualified(const char *name)
 {
     return name != NULL && strchr(name, '.') != NULL;
+}
+
+static uint32_t
+parse_effect_word(const char *word)
+{
+    if (word == NULL || *word == '\0')
+        return EFFECT_NONE;
+    if (strcmp(word, "secure") == 0)
+        return EFFECT_SECURE;
+    if (strcmp(word, "remote") == 0)
+        return EFFECT_REMOTE;
+    if (strcmp(word, "nondeterministic") == 0)
+        return EFFECT_NONDETERMINISTIC;
+    if (strcmp(word, "collapse") == 0)
+        return EFFECT_COLLAPSE;
+    if (strcmp(word, "local") == 0)
+        return EFFECT_NONE;
+    return UINT32_MAX;
+}
+
+static uint32_t
+effects_from_structured_comment(StructuredComment *comment,
+                                SemanticContext *ctx,
+                                const ASTNode *site)
+{
+    uint32_t mask = EFFECT_NONE;
+
+    for (StructuredComment *block = comment; block != NULL; block = block->next) {
+        for (size_t i = 0; i < block->tag_count; i++) {
+            DocTag *tag = block->tags[i];
+            if (tag == NULL || tag->type != DOC_TAG_EFFECTS || tag->content == NULL)
+                continue;
+
+            char *copy = pergyra_strdup(tag->content);
+            char *tok = copy != NULL ? strtok(copy, ", \t\r\n|") : NULL;
+            while (tok != NULL) {
+                for (char *p = tok; *p != '\0'; p++)
+                    *p = (char)tolower((unsigned char)*p);
+
+                uint32_t effect = parse_effect_word(tok);
+                if (effect == UINT32_MAX) {
+                    semantic_warning(ctx, site,
+                        "Unknown effect tag '%s' in structured comment; expected secure, remote, nondeterministic, collapse, or local",
+                        tok);
+                } else {
+                    mask |= effect;
+                }
+                tok = strtok(NULL, ", \t\r\n|");
+            }
+            free(copy);
+        }
+    }
+
+    return mask;
+}
+
+void
+semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
+{
+    if (ctx == NULL || !ctx->tracking_function_effects)
+        return;
+    ctx->current_function_effects |= effect_mask;
 }
 
 bool
@@ -214,13 +279,16 @@ type_is_slot_handle(const Type *type)
 bool
 type_is_resource_handle(const Type *type)
 {
-    return type_is_qubit(type) || type_is_slot_handle(type);
+    return type_is_qubit(type)
+        || type_is_slot_handle(type)
+        || type_is_constructed_named(type, "DeviceSlot");
 }
 
 bool
 type_is_anchored_resource_handle(const Type *type)
 {
-    return type_is_slot_handle(type);
+    return type_is_slot_handle(type)
+        || type_is_constructed_named(type, "DeviceSlot");
 }
 
 bool
@@ -238,6 +306,8 @@ resource_handle_display_name(const Type *type)
         return "QubitSlot";
     if (type_is_slot_handle(type))
         return type->data.slot.is_secure ? "SecureSlot" : "Slot";
+    if (type_is_constructed_named(type, "DeviceSlot"))
+        return "DeviceSlot";
     return type->name != NULL ? type->name : "resource";
 }
 
@@ -250,6 +320,42 @@ expr_is_qubit_claim(const ASTNode *expr)
         && expr->data.call.callee->type == AST_IDENTIFIER
         && expr->data.call.callee->data.identifier.name != NULL
         && strcmp(expr->data.call.callee->data.identifier.name, "ClaimQubit") == 0;
+}
+
+static bool
+expr_is_device_slot_claim(const ASTNode *expr)
+{
+    return expr != NULL
+        && expr->type == AST_CALL
+        && expr->data.call.callee != NULL
+        && expr->data.call.callee->type == AST_IDENTIFIER
+        && expr->data.call.callee->data.identifier.name != NULL
+        && strcmp(expr->data.call.callee->data.identifier.name, "ClaimDeviceSlot") == 0;
+}
+
+static bool
+expr_is_movable_resource_transfer_source(const ASTNode *expr)
+{
+    if (expr == NULL)
+        return false;
+
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+    case AST_CALL:
+    case AST_CHANNEL_RECV:
+    case AST_AWAIT_EXPR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
+expr_is_movable_resource_boundary(const ASTNode *expr)
+{
+    return expr != NULL
+        && (expr->type == AST_CHANNEL_RECV
+            || expr->type == AST_AWAIT_EXPR);
 }
 
 static bool
@@ -330,6 +436,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         return TYPE_UNKNOWN;
     }
     sym->is_used = true;
+    semantic_record_effect(ctx, type_function_effects(sym->type));
 
     size_t expected = sym->type->data.function.param_count;
     size_t provided = expr->data.call.arg_count;
@@ -366,8 +473,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             continue;
         }
 
-        if (type_is_slot_handle(arg_type) || type_is_slot_handle(param_type)) {
-            if (!type_is_slot_handle(arg_type) || !type_is_slot_handle(param_type)) {
+        if (type_is_anchored_resource_handle(arg_type)
+            || type_is_anchored_resource_handle(param_type)) {
+            if (!type_is_anchored_resource_handle(arg_type)
+                || !type_is_anchored_resource_handle(param_type)) {
                 semantic_error(ctx, expr->data.call.arguments[i],
                     "Resource handle argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
@@ -375,7 +484,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 continue;
             }
             semantic_error(ctx, expr->data.call.arguments[i],
-                "Anchored resource handles (Slot/SecureSlot) cannot cross function boundaries yet; pass the inner value with Read(...) or redesign the API to avoid handle transfer");
+                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot cross function boundaries yet; pass the inner value, await a future/result token, or redesign the API to avoid handle transfer");
             continue;
         }
 
@@ -445,6 +554,72 @@ set_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx,
     return true;
 }
 
+/* -----------------------------------------------------------------
+ * Compile-time entanglement pool tracking
+ * ----------------------------------------------------------------- */
+
+int32_t
+alloc_entangle_pool(SemanticContext *ctx)
+{
+    return ctx->next_entangle_pool++;
+}
+
+int32_t
+get_qubit_entangle_pool(ASTNode *expr, SemanticContext *ctx)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_qubit(sym->type))
+        return -1;
+    return sym->qubit_info.entangle_pool_id;
+}
+
+void
+set_qubit_entangle_pool(ASTNode *expr, SemanticContext *ctx,
+                        int32_t pool_id)
+{
+    Symbol *sym = lookup_identifier_symbol(expr, ctx);
+    if (sym == NULL || !type_is_qubit(sym->type))
+        return;
+    sym->qubit_info.entangle_pool_id = pool_id;
+}
+
+void
+merge_entangle_pools(SemanticContext *ctx,
+                     int32_t dst_pool, int32_t src_pool)
+{
+    if (dst_pool == src_pool || dst_pool < 0 || src_pool < 0)
+        return;
+    /* Walk the entire scope chain and re-assign src → dst */
+    for (Scope *s = ctx->scope; s != NULL; s = s->parent) {
+        for (size_t i = 0; i < s->symbol_count; i++) {
+            Symbol *sym = s->symbols[i];
+            if (sym != NULL && type_is_qubit(sym->type)
+                && sym->qubit_info.entangle_pool_id == src_pool) {
+                sym->qubit_info.entangle_pool_id = dst_pool;
+            }
+        }
+    }
+}
+
+void
+propagate_collapse_to_pool(SemanticContext *ctx, int32_t pool_id)
+{
+    if (pool_id < 0)
+        return;
+    /* Walk the entire scope chain and collapse all members of this pool */
+    for (Scope *s = ctx->scope; s != NULL; s = s->parent) {
+        for (size_t i = 0; i < s->symbol_count; i++) {
+            Symbol *sym = s->symbols[i];
+            if (sym != NULL && type_is_qubit(sym->type)
+                && sym->qubit_info.entangle_pool_id == pool_id
+                && sym->qubit_info.semantic_state != QUBIT_STATE_COLLAPSED
+                && sym->qubit_info.semantic_state != QUBIT_STATE_CLASSICAL) {
+                sym->qubit_info.semantic_state = QUBIT_STATE_COLLAPSED;
+            }
+        }
+    }
+}
+
 Type *
 type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
 {
@@ -477,6 +652,12 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
         }
         sym->is_used = true;
         return sym->type;
+    }
+
+    if (expr_is_movable_resource_boundary(expr)) {
+        semantic_error(ctx, expr,
+            "Movable resources from recv/await must first be bound to a named variable before use");
+        return TYPE_UNKNOWN;
     }
 
     return type_check_expression(expr, ctx);
@@ -530,7 +711,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
         || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
-        || strcmp(name, "Future") == 0 || strcmp(name, "Result") == 0) {
+        || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
+        || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
             semantic_error(ctx, node,
@@ -548,6 +730,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "Weak") == 0) constructor = TYPE_WEAK;
         else if (strcmp(name, "Channel") == 0) constructor = TYPE_CHANNEL;
         else if (strcmp(name, "Future") == 0) constructor = TYPE_FUTURE;
+        else if (strcmp(name, "RemoteFuture") == 0) constructor = TYPE_REMOTE_FUTURE;
+        else if (strcmp(name, "DeviceSlot") == 0) constructor = TYPE_DEVICE_SLOT;
         else if (strcmp(name, "Result") == 0) constructor = TYPE_UNKNOWN;
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
@@ -872,16 +1056,24 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             semantic_error(ctx, expr,
                 "'await' used outside of async function");
         }
+        semantic_record_effect(ctx, EFFECT_REMOTE);
         {
             Type *future_type = type_check_expression(expr->data.await_expr.expression, ctx);
             if (future_type != NULL
                 && future_type->kind == TYPE_KIND_CONSTRUCTED
-                && type_equals(future_type->data.constructed.constructor, TYPE_FUTURE)
+                && (type_equals(future_type->data.constructed.constructor, TYPE_FUTURE)
+                    || type_equals(future_type->data.constructed.constructor, TYPE_REMOTE_FUTURE))
                 && future_type->data.constructed.arg_count == 1) {
-                return future_type->data.constructed.args[0];
+                Type *inner = future_type->data.constructed.args[0];
+                if (type_is_anchored_resource_handle(inner)) {
+                    semantic_error(ctx, expr->data.await_expr.expression,
+                        "'await' cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; await a plain value or movable transfer result instead");
+                    return TYPE_UNKNOWN;
+                }
+                return inner;
             }
             semantic_error(ctx, expr->data.await_expr.expression,
-                "'await' requires Future<T>");
+                "'await' requires Future<T> or RemoteFuture<T>");
             return TYPE_UNKNOWN;
         }
 
@@ -1133,7 +1325,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
         semantic_error(ctx, expr,
-            "Resource handle assignment is not allowed; anchored handles (Slot/SecureSlot) cannot be copied or rebound with '=', and movable handles must be transferred through a new binding. Use Read/Write for Slot<T>, move a QubitSlot into a new binding, or Claim... to create a fresh handle");
+            "Resource handle assignment is not allowed; anchored handles (Slot/SecureSlot/DeviceSlot) cannot be copied or rebound with '=', and movable handles must be transferred through a new binding. Use Read/Write for Slot<T>, keep DeviceSlot local, move a QubitSlot into a new binding, or Claim... to create a fresh handle");
         return target_type;
     }
 
@@ -1173,6 +1365,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         if (bk == BUILTIN_CLAIM_SLOT || bk == BUILTIN_CLAIM_SECURE_SLOT) {
             is_slot_decl = true;
             bool is_secure = (bk == BUILTIN_CLAIM_SECURE_SLOT);
+            if (is_secure)
+                semantic_record_effect(ctx, EFFECT_SECURE);
 
             /* Resolve inner type from annotation if present.
              * If the annotation is already a Slot type (e.g. Slot<String>),
@@ -1247,26 +1441,37 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             if (init->type == AST_IDENTIFIER) {
                 valid_qubit_init = true;
                 consume_qubit_value(init, ctx, "moved");
-            } else if (init->type == AST_CALL) {
+            } else if (expr_is_movable_resource_transfer_source(init)) {
                 valid_qubit_init = true;
             }
         }
         if (!valid_qubit_init) {
             semantic_error(ctx, node,
-                "QubitSlot is a movable resource handle; it must come from ClaimQubit() or a moved QubitSlot value. Plain copying is not allowed");
+                "QubitSlot is a movable resource handle; it must come from ClaimQubit(), a moved QubitSlot value, or a transfer boundary such as recv/await. Plain copying is not allowed");
         }
     }
 
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
-        if (init_type != NULL && type_is_slot_handle(init_type)) {
+        if (decl_type->data.slot.is_secure)
+            semantic_record_effect(ctx, EFFECT_SECURE);
+        if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
             semantic_error(ctx, node,
-                "Anchored resource handles (Slot/SecureSlot) cannot be copied into a new binding; use ClaimSlot/ClaimSecureSlot for a fresh handle or initialize from an inner value");
+                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; use a fresh claim or initialize from an inner value instead");
         }
         Symbol *sym = symbol_create_slot(name, decl_type,
             decl_type->data.slot.is_secure, NULL, node->line, node->column);
         scope_declare(ctx->scope, sym);
         scope_register_slot(ctx->scope, sym);
         return !ctx->has_error;
+    }
+
+    if (type_is_anchored_resource_handle(decl_type)) {
+        bool is_fresh_claim = expr_is_device_slot_claim(init);
+        if (!is_fresh_claim && init_type != NULL && type_is_anchored_resource_handle(init_type)) {
+            semantic_error(ctx, node,
+                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; keep the handle in one binding or reacquire it from its owning system");
+        }
+        semantic_record_effect(ctx, EFFECT_REMOTE);
     }
 
     Symbol *sym = symbol_create_variable(name, decl_type,
@@ -1282,10 +1487,15 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             if (src != NULL)
                 sym->qubit_info.semantic_state = src->qubit_info.semantic_state;
             else
-                sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+                sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
         } else if (init != NULL && init->type == AST_CALL) {
             /* Function returning QubitSlot */
             sym->qubit_info.semantic_state = QUBIT_STATE_SUPERPOSITION;
+        } else if (init != NULL
+                   && (init->type == AST_CHANNEL_RECV
+                       || init->type == AST_AWAIT_EXPR)) {
+            /* Transfer from orchestration boundary; precise state is unknown. */
+            sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
         }
     }
 
@@ -1305,9 +1515,9 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
-    if (type_is_slot_handle(ret_type)) {
+    if (type_is_anchored_resource_handle(ret_type)) {
         semantic_error(ctx, node,
-            "Returning Slot/SecureSlot handles is not supported yet; return the inner value instead");
+            "Returning anchored resource handles (Slot/SecureSlot/DeviceSlot) is not supported yet; return the inner value or a future/result token instead");
     }
 
     if (node->data.return_stmt.value != NULL
@@ -1734,6 +1944,7 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
 Type *
 type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 {
+    semantic_record_effect(ctx, EFFECT_REMOTE);
     /* Type-check the spawned function/expression */
     Type *inner = type_check_expression(expr->data.spawn_expr.function, ctx);
     Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
@@ -1743,6 +1954,7 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
+    semantic_record_effect(ctx, EFFECT_REMOTE);
     /* Check channel and value types */
     Type *channel_type = type_check_expression(expr->data.channel_send.channel, ctx);
     Type *value_type = type_check_expression(expr->data.channel_send.value, ctx);
@@ -1761,7 +1973,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     if (type_is_anchored_resource_handle(element_type)
         || type_is_anchored_resource_handle(value_type)) {
         semantic_error(ctx, expr->data.channel_send.value,
-            "Channels cannot transport anchored resource handles (Slot/SecureSlot) yet; send the inner value with Read(...) or keep the handle local");
+            "Channels cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; send the inner value or keep the handle local");
         return TYPE_VOID;
     }
 
@@ -1791,6 +2003,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 {
+    semantic_record_effect(ctx, EFFECT_REMOTE);
     Type *channel_type = type_check_expression(expr->data.channel_recv.channel, ctx);
     if (channel_type == NULL
         || channel_type->kind != TYPE_KIND_CONSTRUCTED
@@ -1804,7 +2017,7 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_anchored_resource_handle(channel_type->data.constructed.args[0])) {
         semantic_error(ctx, expr->data.channel_recv.channel,
-            "Channels cannot yield anchored resource handles (Slot/SecureSlot) yet; receive a plain value instead");
+            "Channels cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; receive a plain value instead");
         return TYPE_UNKNOWN;
     }
 
@@ -1899,6 +2112,11 @@ bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.func_decl.name;
+    uint32_t prev_effects = ctx->current_function_effects;
+    bool prev_tracking = ctx->tracking_function_effects;
+    bool prev_async = ctx->in_async_func;
+    uint32_t declared_effects =
+        effects_from_structured_comment(node->data.func_decl.doc_comment, ctx, node);
 
     /* If the function has generic parameters (<T, U, ...>),
      * register them as opaque types in a temporary scope so that
@@ -1940,17 +2158,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     Type *return_type = TYPE_VOID;
     if (node->data.func_decl.return_type != NULL)
         return_type = resolve_type_node(node->data.func_decl.return_type, ctx);
-    if (type_is_slot_handle(return_type)) {
+    if (type_is_anchored_resource_handle(return_type)) {
         semantic_error(ctx, node->data.func_decl.return_type,
-            "Slot/SecureSlot return types are not supported yet");
+            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet");
     }
 
     for (size_t i = 0; i < param_count; i++) {
         param_types[i] = resolve_type_node(
             node->data.func_decl.params[i]->type, ctx);
-        if (type_is_slot_handle(param_types[i])) {
+        if (type_is_anchored_resource_handle(param_types[i])) {
             semantic_error(ctx, node->data.func_decl.params[i]->type,
-                "Slot/SecureSlot parameters are not supported yet");
+                "Anchored resource handle parameters (Slot/SecureSlot/DeviceSlot) are not supported yet");
         }
     }
 
@@ -2003,6 +2221,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Type *prev_return  = ctx->current_return;
     ctx->current_return = return_type;
+    ctx->current_function_effects = declared_effects;
+    ctx->tracking_function_effects = true;
+    ctx->in_async_func = prev_async || node->is_async_decl;
 
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {
@@ -2016,7 +2237,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL)
         type_check_block(node->data.func_decl.body, ctx);
 
+    func_type->data.function.effect_mask = ctx->current_function_effects;
+
     ctx->current_return = prev_return;
+    ctx->current_function_effects = prev_effects;
+    ctx->tracking_function_effects = prev_tracking;
+    ctx->in_async_func = prev_async;
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }

@@ -26,9 +26,14 @@ builtin_resolve(const char *name)
 {
     if (strcmp(name, "ClaimSlot")       == 0) return BUILTIN_CLAIM_SLOT;
     if (strcmp(name, "ClaimSecureSlot") == 0) return BUILTIN_CLAIM_SECURE_SLOT;
+    if (strcmp(name, "ClaimDeviceSlot") == 0) return BUILTIN_CLAIM_DEVICE_SLOT;
     if (strcmp(name, "Write")           == 0) return BUILTIN_WRITE;
     if (strcmp(name, "Read")            == 0) return BUILTIN_READ;
     if (strcmp(name, "Release")         == 0) return BUILTIN_RELEASE;
+    if (strcmp(name, "DeviceWrite")     == 0) return BUILTIN_DEVICE_WRITE;
+    if (strcmp(name, "DeviceRead")      == 0) return BUILTIN_DEVICE_READ;
+    if (strcmp(name, "ReleaseDeviceSlot") == 0) return BUILTIN_RELEASE_DEVICE_SLOT;
+    if (strcmp(name, "SubmitDeviceRead") == 0) return BUILTIN_SUBMIT_DEVICE_READ;
     if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
     if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
     if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
@@ -80,6 +85,15 @@ type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
     return TYPE_UNKNOWN;
 }
 
+static Type *
+type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
+{
+    if (!check_call_arity(call, 0, "ClaimDeviceSlot", ctx))
+        return TYPE_UNKNOWN;
+    semantic_record_effect(ctx, EFFECT_REMOTE);
+    return wrap_constructed(TYPE_DEVICE_SLOT, TYPE_INT);
+}
+
 bool
 type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 {
@@ -100,6 +114,9 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
             slot_type->name);
         return false;
     }
+
+    if (slot_type->data.slot.is_secure)
+        semantic_record_effect(ctx, EFFECT_SECURE);
 
     if (slot_arg->type == AST_IDENTIFIER) {
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
@@ -174,6 +191,9 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
+    if (slot_type->data.slot.is_secure)
+        semantic_record_effect(ctx, EFFECT_SECURE);
+
     if (slot_arg->type == AST_IDENTIFIER) {
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
@@ -236,6 +256,9 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
+    if (sym->slot_info.is_secure)
+        semantic_record_effect(ctx, EFFECT_SECURE);
+
     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
         semantic_error(ctx, slot_arg,
             "Slot '%s' has already been released", slot_name);
@@ -251,6 +274,27 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
     scope_release_slot(ctx->scope, slot_name);
     return true;
+}
+
+static Type *
+type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
+                             const char *builtin_name)
+{
+    Type *slot_type;
+
+    if (expr == NULL)
+        return TYPE_UNKNOWN;
+
+    slot_type = type_check_expression(expr, ctx);
+    if (!type_is_constructed_named(slot_type, "DeviceSlot")) {
+        semantic_error(ctx, expr,
+            "%s requires DeviceSlot<T>, got '%s'",
+            builtin_name, slot_type->name);
+        return TYPE_UNKNOWN;
+    }
+
+    semantic_record_effect(ctx, EFFECT_REMOTE);
+    return slot_type;
 }
 
 Type *
@@ -354,9 +398,43 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         return TYPE_QUBIT;
     }
+    if (strcmp(name, "ClaimDeviceSlot") == 0) {
+        return type_check_claim_device_slot(expr, ctx);
+    }
+    if (strcmp(name, "DeviceRead") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        return type_get_constructed_arg(
+            type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name), 0);
+    }
+    if (strcmp(name, "DeviceWrite") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *slot_type = type_check_device_handle_arg(
+            expr->data.call.arguments[0], ctx, name);
+        Type *inner = type_get_constructed_arg(slot_type, 0);
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            inner, expr->data.call.arguments[1], ctx);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ReleaseDeviceSlot") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        (void)type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "SubmitDeviceRead") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *slot_type = type_check_device_handle_arg(
+            expr->data.call.arguments[0], ctx, name);
+        return wrap_constructed(TYPE_REMOTE_FUTURE,
+            type_get_constructed_arg(slot_type, 0));
+    }
     if (strcmp(name, "Measure") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC | EFFECT_COLLAPSE);
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         /* State validation: CLASSICAL qubits cannot be measured */
@@ -370,6 +448,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         }
         set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
                                  QUBIT_STATE_COLLAPSED);
+        /* Propagate collapse to all qubits in the same entanglement pool */
+        {
+            int32_t pool = get_qubit_entangle_pool(
+                expr->data.call.arguments[0], ctx);
+            if (pool >= 0)
+                propagate_collapse_to_pool(ctx, pool);
+        }
         return TYPE_INT;
     }
     if (strcmp(name, "Entangle") == 0) {
@@ -398,6 +483,27 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                                  QUBIT_STATE_ENTANGLED);
         set_qubit_semantic_state(expr->data.call.arguments[1], ctx,
                                  QUBIT_STATE_ENTANGLED);
+        /* Compile-time entanglement pool: allocate / merge */
+        {
+            int32_t pa = get_qubit_entangle_pool(
+                expr->data.call.arguments[0], ctx);
+            int32_t pb = get_qubit_entangle_pool(
+                expr->data.call.arguments[1], ctx);
+            if (pa >= 0 && pb >= 0) {
+                if (pa != pb)
+                    merge_entangle_pools(ctx, pa, pb);
+            } else if (pa >= 0) {
+                set_qubit_entangle_pool(expr->data.call.arguments[1], ctx, pa);
+            } else if (pb >= 0) {
+                set_qubit_entangle_pool(expr->data.call.arguments[0], ctx, pb);
+            } else {
+                int32_t new_pool = alloc_entangle_pool(ctx);
+                set_qubit_entangle_pool(expr->data.call.arguments[0], ctx,
+                                        new_pool);
+                set_qubit_entangle_pool(expr->data.call.arguments[1], ctx,
+                                        new_pool);
+            }
+        }
         return TYPE_VOID;
     }
     if (strcmp(name, "QubitState") == 0) {
@@ -427,6 +533,15 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        /* State validation: CLASSICAL qubits cannot receive gate operations */
+        {
+            QubitSemanticState qs = get_qubit_semantic_state(
+                expr->data.call.arguments[0], ctx);
+            if (qs == QUBIT_STATE_CLASSICAL)
+                semantic_error(ctx, expr,
+                    "Cannot apply H() to a qubit in CLASSICAL state "
+                    "(already converted via IntoClassical)");
+        }
         set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
                                  QUBIT_STATE_SUPERPOSITION);
         return TYPE_VOID;
@@ -436,14 +551,15 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        /* State validation: only COLLAPSED/NONE qubits can be converted */
+        /* State validation: only COLLAPSED qubits can be converted.
+         * NONE is allowed for backward compat (unknown boundary state). */
         {
             QubitSemanticState qs = get_qubit_semantic_state(
                 expr->data.call.arguments[0], ctx);
             if (qs != QUBIT_STATE_COLLAPSED && qs != QUBIT_STATE_NONE)
                 semantic_error(ctx, expr,
-                    "IntoClassical() requires a COLLAPSED qubit (after Measure), "
-                    "got %s", qubit_state_name(qs));
+                    "IntoClassical() requires a COLLAPSED qubit (after Measure) "
+                    "or unknown boundary state, got %s", qubit_state_name(qs));
         }
         set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
                                  QUBIT_STATE_CLASSICAL);
@@ -613,6 +729,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     switch (kind) {
     case BUILTIN_CLAIM_SLOT:
         return type_check_claim_slot(call, ctx);
+    case BUILTIN_CLAIM_SECURE_SLOT:
+        semantic_record_effect(ctx, EFFECT_SECURE);
+        return type_check_claim_slot(call, ctx);
+    case BUILTIN_CLAIM_DEVICE_SLOT:
+        return type_check_claim_device_slot(call, ctx);
     case BUILTIN_WRITE:
         type_check_write_slot(call, ctx);
         return TYPE_VOID;
@@ -621,6 +742,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_RELEASE:
         type_check_release_slot(call, ctx);
         return TYPE_VOID;
+    case BUILTIN_DEVICE_WRITE:
+    case BUILTIN_DEVICE_READ:
+    case BUILTIN_RELEASE_DEVICE_SLOT:
+    case BUILTIN_SUBMIT_DEVICE_READ:
+        return type_check_stdlib_call(call, call->data.call.callee->data.identifier.name, ctx);
     case BUILTIN_LOG:
         for (size_t i = 0; i < call->data.call.arg_count; i++)
             type_check_expression(call->data.call.arguments[i], ctx);
@@ -695,6 +821,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         }
         return TYPE_VOID;
     case BUILTIN_INPUT:
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         if (call->data.call.arg_count > 1) {
             semantic_error(ctx, call,
                 "'Input' expects at most 1 argument, got %zu",

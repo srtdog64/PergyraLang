@@ -187,6 +187,7 @@ symbol_create_variable(const char *name, Type *type,
     sym->type      = type;
     sym->decl_line = line;
     sym->decl_col  = col;
+    sym->qubit_info.entangle_pool_id = -1;
     return sym;
 }
 

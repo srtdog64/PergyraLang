@@ -31,6 +31,8 @@ Type *TYPE_RC     = NULL;
 Type *TYPE_WEAK   = NULL;
 Type *TYPE_CHANNEL = NULL;
 Type *TYPE_FUTURE = NULL;
+Type *TYPE_REMOTE_FUTURE = NULL;
+Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
 
 void
@@ -55,6 +57,8 @@ type_system_init(void)
     TYPE_WEAK   = type_create_primitive("Weak",   0, false);
     TYPE_CHANNEL = type_create_primitive("Channel", 0, false);
     TYPE_FUTURE = type_create_primitive("Future", 0, false);
+    TYPE_REMOTE_FUTURE = type_create_primitive("RemoteFuture", 0, false);
+    TYPE_DEVICE_SLOT = type_create_primitive("DeviceSlot", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
 }
 
@@ -77,12 +81,15 @@ type_system_cleanup(void)
     free(TYPE_WEAK->name);   free(TYPE_WEAK);
     free(TYPE_CHANNEL->name); free(TYPE_CHANNEL);
     free(TYPE_FUTURE->name); free(TYPE_FUTURE);
+    free(TYPE_REMOTE_FUTURE->name); free(TYPE_REMOTE_FUTURE);
+    free(TYPE_DEVICE_SLOT->name); free(TYPE_DEVICE_SLOT);
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
     TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
-    TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_ALLOCATOR = NULL;
+    TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
+    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = NULL;
 }
 
 /* -----------------------------------------------------------------
@@ -193,6 +200,7 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
 
     t->data.function.return_type  = return_type;
     t->data.function.param_count  = param_count;
+    t->data.function.effect_mask  = EFFECT_NONE;
     t->data.function.param_types  = malloc(param_count * sizeof(Type *));
     if (t->data.function.param_types == NULL) {
         free(t->name);
@@ -202,6 +210,20 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
     memcpy(t->data.function.param_types, params,
            param_count * sizeof(Type *));
     return t;
+}
+
+uint32_t
+type_function_effects(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return EFFECT_NONE;
+    return type->data.function.effect_mask;
+}
+
+bool
+type_effect_mask_has(uint32_t mask, uint32_t effect)
+{
+    return (mask & effect) == effect;
 }
 
 Type *

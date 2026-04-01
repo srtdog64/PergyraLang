@@ -65,6 +65,93 @@ run_parser_test(const TestCase *test)
     return failed;
 }
 
+static int
+run_doc_comment_attachment_test(void)
+{
+    const char *code =
+        "/// @effects remote secure\n"
+        "func RemoteOp() -> Void {\n"
+        "    Log(1);\n"
+        "}\n"
+        "class Worker {\n"
+        "    /// [Effects]: secure\n"
+        "    func Run() -> Void {\n"
+        "        Log(2);\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *func = NULL;
+    ASTNode *klass = NULL;
+    ASTNode *method = NULL;
+
+    printf("\n=== Test: Structured Comment Attachment ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count < 2) {
+        printf("[FAIL] Expected program with at least two declarations\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    func = ast->data.program.statements[0];
+    klass = ast->data.program.statements[1];
+    if (func == NULL || func->type != AST_FUNC_DECL ||
+        func->data.func_decl.doc_comment == NULL ||
+        func->data.func_decl.doc_comment->tag_count != 1 ||
+        func->data.func_decl.doc_comment->tags[0]->type != DOC_TAG_EFFECTS ||
+        strcmp(func->data.func_decl.doc_comment->tags[0]->content, "remote secure") != 0) {
+        printf("[FAIL] Top-level function doc comment was not attached correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (klass == NULL || klass->type != AST_CLASS_DECL || klass->data.class_decl.method_count != 1) {
+        printf("[FAIL] Expected class with one method\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    method = klass->data.class_decl.methods[0];
+    if (method == NULL || method->type != AST_FUNC_DECL ||
+        method->data.func_decl.doc_comment == NULL ||
+        method->data.func_decl.doc_comment->tag_count != 1 ||
+        method->data.func_decl.doc_comment->tags[0]->type != DOC_TAG_EFFECTS ||
+        strcmp(method->data.func_decl.doc_comment->tags[0]->content, "secure") != 0) {
+        printf("[FAIL] Class method doc comment was not attached correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Structured comments attached successfully!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
 int
 main(void)
 {
@@ -362,6 +449,9 @@ main(void)
         failures += run_parser_test(&tests[i]);
         printf("\n");
     }
+
+    failures += run_doc_comment_attachment_test();
+    printf("\n");
 
     printf("\n=== All tests completed ===\n");
     if (failures > 0) {

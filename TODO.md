@@ -21,9 +21,14 @@
 
 ## P1.6 — 자원/오케스트레이션 방향 고정
 
+- [ ] **Slot Protocol 고정** — 모든 슬롯이 공유하는 불변 계약(`Claim / Access / Mutate / Transfer / Release`)을 정의하고, `Slot<T> / SecureSlot<T> / QubitSlot`이 어디까지 지원하는지 현재 구현과 목표 구현을 명시
 - [ ] **슬롯을 추상 자원 핸들로 일반화** — `Slot<T>`를 메모리 저장 상자보다 넓은 자원 핸들 개념으로 재정의. 장기적으로 `MemorySlot`, `DeviceSlot`, `SessionSlot`, `NetworkSlot`, `QubitSlot` 같은 자원 클래스로 확장 가능한 계약 정리
 - [ ] **채널 의미론 강화** — 컨테이너/디바이스/원격 작업 간 비동기 제출, 대기, 수거, 후처리 흐름을 표현할 수 있도록 채널, 작업 그래프, 메시지 패싱 규칙 보강
+- [ ] **`Future<T>`를 transfer boundary로 고정** — `await Future<QubitSlot>`을 채널 `recv`와 같은 ownership 경계로 취급하고, anchored handle 금지 / fresh binding 권장 / inline use 제한 규칙 정리
 - [ ] **effect/resource capability 표기 도입** — `local cpu`, `secure device`, `remote quantum backend`, `nondeterministic`, `collapse` 같은 제약을 타입 또는 효과 시스템으로 드러내는 설계 초안과 최소 구현
+  - 현재 1단계: 함수 타입 메타데이터에 inferred effect mask(`secure`, `nondeterministic`, `collapse`) 저장 및 call graph 전파
+  - 현재 1.5단계: `spawn/await/channel`에서 `remote`를 orchestration boundary effect로 추론, structured comment `@effects` metadata 병합, `RemoteFuture<T>`/`DeviceSlot<T>` semantic family 도입
+  - 다음 단계: `DeviceSlot`/원격 자원과 연결된 `remote` 정밀화, 선언적 annotation 문법, effect mismatch 진단
 - [ ] **성능 목표를 orchestration overhead 중심으로 재정의** — 산술 microbenchmark보다 `submit`, `serialize`, `transfer`, `sync`, `retry/recovery` 비용을 줄이는 방향으로 벤치마크와 언어 목표 재정렬
 
 ## P2 — 배포 시작 시

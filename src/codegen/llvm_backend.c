@@ -270,9 +270,10 @@ pgy_kind_to_suffix(PgyTypeKind kind)
     case PGY_TK_LONG:   return "Long";
     case PGY_TK_FLOAT:  return "Float";
     case PGY_TK_DOUBLE: return "Double";
-    case PGY_TK_BOOL:   return "Bool";
-    case PGY_TK_STRING: return "String";
-    default:            return NULL;
+    case PGY_TK_BOOL:       return "Bool";
+    case PGY_TK_STRING:     return "String";
+    case PGY_TK_QUBIT_SLOT: return "QubitSlot";
+    default:                return NULL;
     }
 }
 

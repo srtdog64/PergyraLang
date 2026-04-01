@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include "pgy_parallel.h"
 
 /* =================================================================
  * Build Mode Configuration
@@ -728,6 +729,83 @@ pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
 #endif
 
 /* =================================================================
+ * Device Slot (Anchored external resource cell)
+ *
+ * Same ownership surface as Slot<T>, but treated as a device/remote
+ * boundary and able to submit asynchronous reads.
+ * ================================================================= */
+
+#define PGY_DEVICE_SLOT_DEFINE(SuffixName, CType) \
+\
+typedef struct { \
+    CType   value; \
+    bool    claimed; \
+} PgyDeviceSlot_##SuffixName; \
+\
+typedef struct { \
+    PgyDeviceSlot_##SuffixName *slot; \
+} PgyDeviceReadTaskArg_##SuffixName; \
+\
+static inline PgyDeviceSlot_##SuffixName \
+pgy_claim_device_##SuffixName(void) \
+{ \
+    PgyDeviceSlot_##SuffixName s; \
+    memset(&s, 0, sizeof(s)); \
+    s.claimed = true; \
+    return s; \
+} \
+\
+static inline void \
+pgy_device_write_##SuffixName(PgyDeviceSlot_##SuffixName *s, CType v) \
+{ \
+    PGY_ASSERT(s != NULL && s->claimed, "Write to released device slot"); \
+    s->value = v; \
+} \
+\
+static inline CType \
+pgy_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
+{ \
+    PGY_ASSERT(s != NULL && s->claimed, "Read from released device slot"); \
+    return s->value; \
+} \
+\
+static inline void \
+pgy_release_device_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
+{ \
+    if (s == NULL) return; \
+    PGY_ASSERT(s->claimed, "Double release of device slot"); \
+    memset(&s->value, 0, sizeof(s->value)); \
+    s->claimed = false; \
+} \
+\
+static inline void * \
+pgy_device_read_task_##SuffixName(void *raw) \
+{ \
+    PgyDeviceReadTaskArg_##SuffixName *arg = (PgyDeviceReadTaskArg_##SuffixName *)raw; \
+    CType *result = (CType *)malloc(sizeof(CType)); \
+    if (result == NULL) { \
+        free(arg); \
+        return NULL; \
+    } \
+    *result = pgy_device_read_##SuffixName(arg->slot); \
+    free(arg); \
+    return result; \
+} \
+\
+static inline PgyTaskHandle \
+pgy_submit_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
+{ \
+    PgyDeviceReadTaskArg_##SuffixName *arg = \
+        (PgyDeviceReadTaskArg_##SuffixName *)malloc(sizeof(PgyDeviceReadTaskArg_##SuffixName)); \
+    if (arg == NULL) { \
+        PgyTaskHandle empty = {0}; \
+        return empty; \
+    } \
+    arg->slot = s; \
+    return pgy_spawn(pgy_device_read_task_##SuffixName, arg); \
+}
+
+/* =================================================================
  * Secure Slot (Token-based Access Control)
  *
  * Always includes checks (security feature), but can be disabled
@@ -875,6 +953,13 @@ PGY_SLOT_DEFINE(Float,  float)
 PGY_SLOT_DEFINE(Double, double)
 PGY_SLOT_DEFINE(Bool,   bool)
 PGY_SLOT_DEFINE(String, char*)
+
+PGY_DEVICE_SLOT_DEFINE(Int,    int32_t)
+PGY_DEVICE_SLOT_DEFINE(Long,   int64_t)
+PGY_DEVICE_SLOT_DEFINE(Float,  float)
+PGY_DEVICE_SLOT_DEFINE(Double, double)
+PGY_DEVICE_SLOT_DEFINE(Bool,   bool)
+PGY_DEVICE_SLOT_DEFINE(String, char*)
 
 PGY_SECURE_SLOT_DEFINE(Int,    int32_t)
 PGY_SECURE_SLOT_DEFINE(Long,   int64_t)

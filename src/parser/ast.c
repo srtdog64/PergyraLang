@@ -13,7 +13,7 @@
 
 static void ast_destroy_generic_params(GenericParams* params);
 static void ast_destroy_where_clause(WhereClause* clause);
-static void ast_destroy_structured_comment(StructuredComment* comment);
+void ast_destroy_structured_comment(StructuredComment* comment);
 
 // 기본 노드 생성
 static ASTNode* ast_create_node(ASTNodeType type) {
@@ -21,6 +21,7 @@ static ASTNode* ast_create_node(ASTNodeType type) {
     if (!node) return NULL;
     node->type = type;
     node->is_exported = false;
+    node->is_async_decl = false;
     return node;
 }
 
@@ -520,6 +521,7 @@ ASTNode* ast_create_type(const char* name) {
 ASTNode* ast_create_async_function(const char* name, bool is_async) {
     ASTNode* node = ast_create_node(AST_FUNC_DECL);
     if (!node) return NULL;
+    node->is_async_decl = is_async;
 
     node->data.async_func_decl.name = pergyra_strdup(name);
     node->data.async_func_decl.params = NULL;
@@ -717,7 +719,7 @@ ast_destroy_where_clause(WhereClause* clause) {
     free(clause);
 }
 
-static void
+void
 ast_destroy_structured_comment(StructuredComment* comment) {
     while (comment != NULL) {
         StructuredComment* next = comment->next;

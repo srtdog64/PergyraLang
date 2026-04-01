@@ -45,9 +45,12 @@ struct SemanticContext
     Scope*       scope;          /* Current scope                  */
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     Type*        current_return; /* Expected return type of func   */
+    uint32_t     current_function_effects; /* Inferred effect mask    */
+    bool         tracking_function_effects; /* Only inside function body */
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
     int          loop_depth;     /* Inside loop nesting            */
+    int32_t      next_entangle_pool; /* Compile-time entangle pool counter */
 
     Diagnostic** diagnostics;
     size_t       diagnostic_count;
@@ -199,9 +202,14 @@ typedef enum
 {
     BUILTIN_CLAIM_SLOT,
     BUILTIN_CLAIM_SECURE_SLOT,
+    BUILTIN_CLAIM_DEVICE_SLOT,
     BUILTIN_WRITE,
     BUILTIN_READ,
     BUILTIN_RELEASE,
+    BUILTIN_DEVICE_WRITE,
+    BUILTIN_DEVICE_READ,
+    BUILTIN_RELEASE_DEVICE_SLOT,
+    BUILTIN_SUBMIT_DEVICE_READ,
     BUILTIN_LOG,
     BUILTIN_RC_NEW,
     BUILTIN_RC_CLONE,

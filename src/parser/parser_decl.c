@@ -156,6 +156,8 @@ ASTNode* parse_function_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected function name");
 
     ASTNode* func = ast_create_function(name.text);
+    parser->last_func_decl_async = false;
+    func->data.func_decl.doc_comment = parser_take_pending_doc_comment(parser);
 
     // 제네릭 파라미터
     func->data.func_decl.generic_params = parse_generic_params(parser);
@@ -236,6 +238,7 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
 
     ASTNode* class_decl = is_struct ? ast_create_struct(name.text)
                                     : ast_create_class(name.text);
+    class_decl->data.class_decl.doc_comment = parser_take_pending_doc_comment(parser);
 
     // 제네릭 파라미터
     class_decl->data.class_decl.generic_params = parse_generic_params(parser);
@@ -247,6 +250,8 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
 
     // 클래스 멤버들
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
         // 접근 제어자
         AccessModifier access = is_struct ? ACCESS_PUBLIC : ACCESS_PRIVATE;
         if (parser_match(parser, TOKEN_PUBLIC)) {
@@ -283,9 +288,10 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
             class_decl->data.class_decl.fields[class_decl->data.class_decl.field_count - 1] = field;
 
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
+            parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
             // 메서드
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
             method->data.func_decl.access = access;
 
             // 메서드 추가
@@ -296,6 +302,7 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
             );
             class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count - 1] = method;
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser, "Expected %s member declaration",
                 is_struct ? "struct" : "class");
             return class_decl;
@@ -326,9 +333,10 @@ ASTNode* parse_extern_block(Parser* parser) {
     parser->in_extern_block = true;
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
         parser_consume(parser, TOKEN_FUNC,
             "Expected 'func' declaration inside extern block");
-        ASTNode* decl = parse_function_declaration(parser);
+        ASTNode* decl = parser_finalize_statement(parser, parse_function_declaration(parser));
         if (decl) {
             ast_add_statement(block, decl);
         }

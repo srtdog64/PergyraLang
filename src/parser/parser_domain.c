@@ -15,6 +15,7 @@
 ASTNode* parse_systemic_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected systemic name");
     ASTNode* sys = ast_create_systemic_declaration(name.text);
+    sys->data.systemic_decl.doc_comment = parser_take_pending_doc_comment(parser);
     sys->line = name.line;
     sys->column = name.column;
 
@@ -23,6 +24,8 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after systemic name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
         if (parser_match(parser, TOKEN_PARTY)) {
             /* party slot name: PartyType */
             parser_consume(parser, TOKEN_SLOT,
@@ -46,6 +49,7 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
                 sys->data.systemic_decl.party_count - 1] = ps;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_SHARED)) {
             /* shared field_name: Type = init */
@@ -73,9 +77,10 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
                 sys->data.systemic_decl.shared_count - 1] = shared;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             sys->data.systemic_decl.method_count++;
             sys->data.systemic_decl.methods = realloc(
@@ -85,6 +90,7 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
                 sys->data.systemic_decl.method_count - 1] = method;
 
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser,
                 "Expected 'party slot', 'shared', or 'func' in systemic body");
             parser_advance(parser);
@@ -106,12 +112,15 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
 ASTNode* parse_world_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected world name");
     ASTNode* world = ast_create_world_declaration(name.text);
+    world->data.world_decl.doc_comment = parser_take_pending_doc_comment(parser);
     world->line = name.line;
     world->column = name.column;
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after world name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
         if (parser_match(parser, TOKEN_SYSTEMIC)) {
             /* systemic name: SystemicType */
             Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
@@ -134,6 +143,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 world->data.world_decl.systemic_count - 1] = ws;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_SHARED)) {
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
@@ -160,9 +170,10 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 world->data.world_decl.shared_count - 1] = shared;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             world->data.world_decl.method_count++;
             world->data.world_decl.methods = realloc(
@@ -172,6 +183,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 world->data.world_decl.method_count - 1] = method;
 
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser,
                 "Expected 'systemic', 'shared', or 'func' in world body");
             parser_advance(parser);
@@ -197,6 +209,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
 ASTNode* parse_party_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected party name");
     ASTNode* party = ast_create_party_declaration(name.text);
+    party->data.party_decl.doc_comment = parser_take_pending_doc_comment(parser);
     party->line = name.line;
     party->column = name.column;
 
@@ -211,6 +224,7 @@ ASTNode* parse_party_declaration(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after party header");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
         bool is_dyn = parser_match(parser, TOKEN_DYN);
 
         if (is_dyn || parser_match(parser, TOKEN_ROLE)) {
@@ -250,6 +264,7 @@ ASTNode* parse_party_declaration(Parser* parser) {
                 party->data.party_decl.role_count - 1] = rs;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_SHARED)) {
             /* shared field_name: Type = initializer */
@@ -277,10 +292,11 @@ ASTNode* parse_party_declaration(Parser* parser) {
                 party->data.party_decl.shared_count - 1] = shared;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Party method */
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             party->data.party_decl.method_count++;
             party->data.party_decl.methods = realloc(
@@ -290,6 +306,7 @@ ASTNode* parse_party_declaration(Parser* parser) {
                 party->data.party_decl.method_count - 1] = method;
 
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser,
                 "Expected 'role slot', 'shared', or 'func' in party body");
             parser_advance(parser);
@@ -314,12 +331,14 @@ ASTNode* parse_party_declaration(Parser* parser) {
 ASTNode* parse_ability_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected ability name");
     ASTNode* ability = ast_create_ability_declaration(name.text);
+    ability->data.ability_decl.doc_comment = parser_take_pending_doc_comment(parser);
     ability->line = name.line;
     ability->column = name.column;
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after ability name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
         if (parser_match(parser, TOKEN_REQUIRE)) {
             /* require field_name: Type */
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
@@ -341,10 +360,11 @@ ASTNode* parse_ability_declaration(Parser* parser) {
 
             /* Optional semicolon */
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Method declaration (may have body or be abstract) */
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             ability->data.ability_decl.method_count++;
             ability->data.ability_decl.methods = realloc(
@@ -354,6 +374,7 @@ ASTNode* parse_ability_declaration(Parser* parser) {
                 ability->data.ability_decl.method_count - 1] = method;
 
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser, "Expected 'require' or 'func' in ability body");
             parser_advance(parser);
         }
@@ -375,6 +396,7 @@ ASTNode* parse_ability_declaration(Parser* parser) {
 ASTNode* parse_role_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name");
     ASTNode* role = ast_create_role_declaration(name.text);
+    role->data.role_decl.doc_comment = parser_take_pending_doc_comment(parser);
     role->line = name.line;
     role->column = name.column;
 
@@ -392,6 +414,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after role header");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
         if (parser_match(parser, TOKEN_INCLUDE)) {
             /* include role RoleName<T> */
             parser_match(parser, TOKEN_ROLE); /* optional 'role' keyword */
@@ -411,6 +434,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 role->data.role_decl.include_count - 1] = inc;
 
             parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
 
         } else if (parser_match(parser, TOKEN_IMPL)) {
             /* impl ability AbilityName { ... } */
@@ -426,8 +450,9 @@ ASTNode* parse_role_declaration(Parser* parser) {
 
             while (!parser_check(parser, TOKEN_RBRACE)
                    && !parser_is_at_end(parser)) {
+                parser_collect_doc_comments(parser);
                 if (parser_match(parser, TOKEN_FUNC)) {
-                    ASTNode* method = parse_function_declaration(parser);
+                    ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
                     impl->data.impl_ability.method_count++;
                     impl->data.impl_ability.methods = realloc(
                         impl->data.impl_ability.methods,
@@ -435,6 +460,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
                     impl->data.impl_ability.methods[
                         impl->data.impl_ability.method_count - 1] = method;
                 } else {
+                    parser_discard_pending_doc_comment(parser);
                     parser_error(parser,
                         "Expected 'func' in impl ability body");
                     parser_advance(parser);
@@ -454,7 +480,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
             /* override func FuncName(...) { ... } */
             parser_consume(parser, TOKEN_FUNC,
                 "Expected 'func' after 'override'");
-            ASTNode* func = parse_function_declaration(parser);
+            ASTNode* func = parser_finalize_statement(parser, parse_function_declaration(parser));
             ASTNode* ovr = ast_create_override_func(func);
             ovr->line = func->line;
             ovr->column = func->column;
@@ -472,7 +498,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Direct method in role (not in impl block) */
-            ASTNode* method = parse_function_declaration(parser);
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
             /* Wrap as impl with no ability name (role's own method) */
             ASTNode* impl = ast_create_impl_ability(NULL);
@@ -488,6 +514,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 role->data.role_decl.impl_count - 1] = impl;
 
         } else {
+            parser_discard_pending_doc_comment(parser);
             parser_error(parser,
                 "Expected 'include', 'impl', 'override', or 'func' in role body");
             parser_advance(parser);
