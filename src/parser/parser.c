@@ -428,6 +428,91 @@ parser_is_exportable_decl(ASTNode *node)
     }
 }
 
+static ASTNode *
+parser_parse_export_declaration(Parser *parser)
+{
+    ASTNode *node = NULL;
+
+    if (parser_match(parser, TOKEN_ASYNC))
+        node = parser_parse_async_function(parser);
+    else if (parser_match(parser, TOKEN_ACTOR))
+        node = parser_parse_actor_declaration(parser);
+    else if (parser_match(parser, TOKEN_FUNC))
+        node = parse_function_declaration(parser);
+    else if (parser_match(parser, TOKEN_IMPORT)) {
+        Token path = parser_consume(parser, TOKEN_STRING,
+            "Expected string path after 'import'");
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after import");
+        char *raw = pergyra_strndup(path.text + 1, path.length - 2);
+        node = ast_create_import_declaration(raw);
+        free(raw);
+    } else if (parser_match(parser, TOKEN_NAMESPACE)) {
+        Token name_tok = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected namespace name");
+        node = ast_create_namespace_declaration(name_tok.text);
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after namespace name");
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            ASTNode *stmt = parser_parse_statement(parser);
+            if (stmt != NULL)
+                ast_add_statement(node, stmt);
+            if (parser->has_error)
+                parser_synchronize(parser);
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
+    } else if (parser_match(parser, TOKEN_EXTERN))
+        node = parse_extern_block(parser);
+    else if (parser_match(parser, TOKEN_CLASS))
+        node = parse_class_declaration(parser);
+    else if (parser_match(parser, TOKEN_STRUCT))
+        node = parse_struct_declaration(parser);
+    else if (parser_match(parser, TOKEN_LET))
+        node = parser_parse_let_declaration(parser);
+    else if (parser_match(parser, TOKEN_ENUM)) {
+        Token name_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected enum name");
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after enum name");
+
+        node = calloc(1, sizeof(ASTNode));
+        node->type = AST_ENUM_DECL;
+        node->line = name_tok.line;
+        node->data.enum_decl.name = pergyra_strndup(name_tok.text, name_tok.length);
+        node->data.enum_decl.variants = NULL;
+        node->data.enum_decl.variant_count = 0;
+        size_t cap = 0;
+
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            Token var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
+            if (node->data.enum_decl.variant_count >= cap) {
+                cap = cap == 0 ? 4 : cap * 2;
+                node->data.enum_decl.variants = realloc(
+                    node->data.enum_decl.variants, cap * sizeof(char*));
+            }
+            node->data.enum_decl.variants[node->data.enum_decl.variant_count++] =
+                pergyra_strndup(var_tok.text, var_tok.length);
+            if (!parser_match(parser, TOKEN_COMMA)) break;
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
+    } else if (parser_match(parser, TOKEN_SYSTEMIC))
+        node = parse_systemic_declaration(parser);
+    else if (parser_match(parser, TOKEN_WORLD))
+        node = parse_world_declaration(parser);
+    else if (parser_match(parser, TOKEN_PARTY))
+        node = parse_party_declaration(parser);
+    else if (parser_match(parser, TOKEN_ABILITY))
+        node = parse_ability_declaration(parser);
+    else if (parser_match(parser, TOKEN_ROLE))
+        node = parse_role_declaration(parser);
+    else if (parser_match(parser, TOKEN_EVENT))
+        node = parse_event_declaration(parser);
+
+    if (node == NULL) {
+        parser_error(parser, "'export' can only apply to declarations");
+        return NULL;
+    }
+
+    node->is_exported = true;
+    return parser_finalize_statement(parser, node);
+}
+
 ASTNode *
 parser_finalize_statement(Parser *parser, ASTNode *node)
 {
@@ -484,10 +569,9 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parser_parse_select_statement(parser));
     }
 
-    // export 수식어 — 다음 선언에 적용 (현재는 파싱만 하고 무시)
+    // export 수식어 — declaration only
     if (parser_match(parser, TOKEN_EXPORT)) {
-        parser->next_decl_exported = true;
-        return parser_finalize_statement(parser, parser_parse_statement(parser));
+        return parser_parse_export_declaration(parser);
     }
 
     // 함수 선언

@@ -278,9 +278,11 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
 static Type *
 type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
-                             const char *builtin_name)
+                             const char *builtin_name,
+                             bool allow_released)
 {
     Type *slot_type;
+    Symbol *sym = NULL;
 
     if (expr == NULL)
         return TYPE_UNKNOWN;
@@ -291,6 +293,18 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
             "%s requires DeviceSlot<T>, got '%s'",
             builtin_name, slot_type->name);
         return TYPE_UNKNOWN;
+    }
+
+    if (expr->type == AST_IDENTIFIER) {
+        sym = scope_lookup(ctx->scope, expr->data.identifier.name);
+        if (!allow_released
+            && sym != NULL
+            && sym->slot_info.state == SLOT_STATE_RELEASED) {
+            semantic_error(ctx, expr,
+                "Cannot use released DeviceSlot '%s' in %s",
+                expr->data.identifier.name, builtin_name);
+            return TYPE_UNKNOWN;
+        }
     }
 
     semantic_record_effect(ctx, EFFECT_REMOTE);
@@ -405,13 +419,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         return type_get_constructed_arg(
-            type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name), 0);
+            type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name, false), 0);
     }
     if (strcmp(name, "DeviceWrite") == 0) {
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
         Type *slot_type = type_check_device_handle_arg(
-            expr->data.call.arguments[0], ctx, name);
+            expr->data.call.arguments[0], ctx, name, false);
         Type *inner = type_get_constructed_arg(slot_type, 0);
         require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
             inner, expr->data.call.arguments[1], ctx);
@@ -420,14 +434,32 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "ReleaseDeviceSlot") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        (void)type_check_device_handle_arg(expr->data.call.arguments[0], ctx, name);
+        ASTNode *slot_arg = expr->data.call.arguments[0];
+        Type *slot_type = type_check_device_handle_arg(slot_arg, ctx, name, true);
+        if (slot_type == TYPE_UNKNOWN)
+            return TYPE_UNKNOWN;
+        if (slot_arg->type != AST_IDENTIFIER) {
+            semantic_error(ctx, slot_arg,
+                "ReleaseDeviceSlot requires a DeviceSlot identifier");
+            return TYPE_UNKNOWN;
+        }
+        {
+            Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+            if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
+                semantic_error(ctx, slot_arg,
+                    "DeviceSlot '%s' has already been released",
+                    slot_arg->data.identifier.name);
+                return TYPE_UNKNOWN;
+            }
+        }
+        scope_release_slot(ctx->scope, slot_arg->data.identifier.name);
         return TYPE_VOID;
     }
     if (strcmp(name, "SubmitDeviceRead") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         Type *slot_type = type_check_device_handle_arg(
-            expr->data.call.arguments[0], ctx, name);
+            expr->data.call.arguments[0], ctx, name, false);
         return wrap_constructed(TYPE_REMOTE_FUTURE,
             type_get_constructed_arg(slot_type, 0));
     }

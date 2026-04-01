@@ -213,7 +213,10 @@ pgy_classify_type(const char *type_name)
         if (strcmp(type_name, "Float") == 0)            return PGY_TK_FLOAT;
         if (strncmp(type_name, "Future<", 7) == 0)     return PGY_TK_FUTURE;
         break;
-    case 'D': if (strcmp(type_name, "Double") == 0)     return PGY_TK_DOUBLE;     break;
+    case 'D':
+        if (strcmp(type_name, "Double") == 0)           return PGY_TK_DOUBLE;
+        if (strncmp(type_name, "DeviceSlot<", 11) == 0) return PGY_TK_DEVICE_SLOT;
+        break;
     case 'B':
         if (strcmp(type_name, "Bool") == 0)             return PGY_TK_BOOL;
         if (strncmp(type_name, "Box<", 4) == 0)        return PGY_TK_BOX;
@@ -228,6 +231,7 @@ pgy_classify_type(const char *type_name)
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
     case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
     case 'R':
+        if (strncmp(type_name, "RemoteFuture<", 13) == 0) return PGY_TK_REMOTE_FUTURE;
         if (strncmp(type_name, "Result<", 7) == 0)     return PGY_TK_RESULT;
         if (strncmp(type_name, "Rc<", 3) == 0)         return PGY_TK_RC;
         break;
@@ -257,6 +261,7 @@ pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind)
     case PGY_TK_BOOL:       return ctx->type_i1;
     case PGY_TK_STRING:     return ctx->type_i8ptr;
     case PGY_TK_QUBIT_SLOT: return ctx->type_i32;
+    case PGY_TK_REMOTE_FUTURE: return ctx->type_task_handle;
     case PGY_TK_VOID:       return ctx->type_void;
     default:                 return NULL;
     }
@@ -359,6 +364,8 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     /* Free dynamic arrays */
     free(ctx->functions);
     free(ctx->slot_vars);
+    free(ctx->device_slot_vars);
+    free(ctx->future_vars);
     free(ctx->class_types);
     free(ctx->var_classes);
     free(ctx->array_vars);
@@ -499,6 +506,62 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->slot_type_String;
     default:            return ctx->slot_type_Int;
     }
+}
+
+void
+llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
+                              const char *inner_type)
+{
+    PGY_DYNARR_ENSURE(ctx->device_slot_vars, ctx->device_slot_var_count,
+                      ctx->device_slot_var_capacity, LLVMDeviceSlotVarEntry);
+
+    ctx->device_slot_vars[ctx->device_slot_var_count].var_name = var_name;
+    ctx->device_slot_vars[ctx->device_slot_var_count].inner_type = inner_type;
+    ctx->device_slot_vars[ctx->device_slot_var_count].released = false;
+    ctx->device_slot_var_count++;
+}
+
+const char *
+llvm_lookup_device_slot_inner(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->device_slot_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->device_slot_vars[i].var_name, var_name) == 0)
+            return ctx->device_slot_vars[i].inner_type;
+    }
+    return NULL;
+}
+
+void
+llvm_mark_device_slot_released(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->device_slot_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->device_slot_vars[i].var_name, var_name) == 0) {
+            ctx->device_slot_vars[i].released = true;
+            return;
+        }
+    }
+}
+
+void
+llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
+                         const char *inner_type)
+{
+    PGY_DYNARR_ENSURE(ctx->future_vars, ctx->future_var_count,
+                      ctx->future_var_capacity, LLVMFutureVarEntry);
+
+    ctx->future_vars[ctx->future_var_count].var_name = var_name;
+    ctx->future_vars[ctx->future_var_count].inner_type = inner_type;
+    ctx->future_var_count++;
+}
+
+const char *
+llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->future_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->future_vars[i].var_name, var_name) == 0)
+            return ctx->future_vars[i].inner_type;
+    }
+    return NULL;
 }
 
 /* =================================================================
@@ -756,14 +819,28 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         }
         return llvm_slot_struct_type(ctx, "Int");
     }
+    case PGY_TK_DEVICE_SLOT: {
+        const char *inner_name = strchr(type_name, '<');
+        if (inner_name != NULL) {
+            inner_name++;
+            char buf[64]; size_t l = strcspn(inner_name, ">");
+            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+            memcpy(buf, inner_name, l); buf[l] = '\0';
+            return llvm_slot_struct_type(ctx, buf);
+        }
+        return llvm_slot_struct_type(ctx, "Int");
+    }
+    case PGY_TK_REMOTE_FUTURE:
+        return ctx->type_task_handle;
     case PGY_TK_CHANNEL:
-    case PGY_TK_FUTURE:
     case PGY_TK_BOX:
     case PGY_TK_RC:
     case PGY_TK_WEAK:
     case PGY_TK_ARRAY:
     case PGY_TK_SLICE:
         return ctx->type_i8ptr;
+    case PGY_TK_FUTURE:
+        return ctx->type_task_handle;
 
     case PGY_TK_UNKNOWN:
     case PGY_TK_CLASS:
@@ -908,6 +985,13 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         { "pgy_log_string", ctx->type_i8ptr },
     };
 
+    if (ctx->type_task_handle == NULL) {
+        LLVMTypeRef task_handle_fields[] = { ctx->type_i8ptr };
+        ctx->type_task_handle = LLVMStructCreateNamed(ctx->context,
+            "PgyTaskHandle");
+        LLVMStructSetBody(ctx->type_task_handle, task_handle_fields, 1, 0);
+    }
+
     for (size_t i = 0; i < sizeof(log_fns) / sizeof(log_fns[0]); i++) {
         LLVMTypeRef params[] = { log_fns[i].param };
         LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
@@ -1045,6 +1129,47 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             llvm_register_function(ctx,
                 LLVMGetValueName(fn), fn, ft, ctx->type_void);
         }
+
+        /* Device slot runtime mirrors Slot layout but lives on remote/device boundary */
+        {
+            LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_claim_device_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx,
+                LLVMGetValueName(fn), fn, ft, slot_ty);
+        }
+        {
+            LLVMTypeRef params[] = { ptr_ty, val_ty };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_device_write_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx,
+                LLVMGetValueName(fn), fn, ft, ctx->type_void);
+        }
+        {
+            LLVMTypeRef params[] = { ptr_ty };
+            LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_device_read_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx,
+                LLVMGetValueName(fn), fn, ft, val_ty);
+        }
+        {
+            LLVMTypeRef params[] = { ptr_ty };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_release_device_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx,
+                LLVMGetValueName(fn), fn, ft, ctx->type_void);
+        }
+        {
+            LLVMTypeRef params[] = { ptr_ty };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 1, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_submit_device_read_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx,
+                LLVMGetValueName(fn), fn, ft, ctx->type_task_handle);
+        }
     }
 
     /* =================================================================
@@ -1054,12 +1179,6 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
      * pgy_spawn_export(fn_ptr, i8*) → { i8* }  (PgyTaskHandle)
      * pgy_await_export({ i8* }) → i8*
      * ================================================================= */
-
-    /* PgyTaskHandle = { i8* } */
-    LLVMTypeRef task_handle_fields[] = { ctx->type_i8ptr };
-    ctx->type_task_handle = LLVMStructCreateNamed(ctx->context,
-                                                   "PgyTaskHandle");
-    LLVMStructSetBody(ctx->type_task_handle, task_handle_fields, 1, 0);
 
     /* void pgy_pool_init_export(i64) */
     {
@@ -1100,6 +1219,22 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
                                            "pgy_await_export", ft);
         llvm_register_function(ctx, "pgy_await_export",
                                 fn, ft, ctx->type_i8ptr);
+    }
+
+    /* i8* malloc(i64) */
+    {
+        LLVMTypeRef params[] = { ctx->type_i64 };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module, "malloc", ft);
+        llvm_register_function(ctx, "malloc", fn, ft, ctx->type_i8ptr);
+    }
+
+    /* void free(i8*) */
+    {
+        LLVMTypeRef params[] = { ctx->type_i8ptr };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module, "free", ft);
+        llvm_register_function(ctx, "free", fn, ft, ctx->type_void);
     }
 
     /* =================================================================
@@ -1242,6 +1377,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         llvm_set_error(ctx, "Expected lowered HIR program");
         return;
     }
+
+    ctx->hir = hir;
 
     /* Declare runtime functions */
     llvm_declare_runtime(ctx);

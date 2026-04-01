@@ -95,6 +95,8 @@ typedef enum
     PGY_TK_STRING,
     PGY_TK_VOID,
     PGY_TK_QUBIT_SLOT,
+    PGY_TK_REMOTE_FUTURE,
+    PGY_TK_DEVICE_SLOT,
 
     /* Generic container types — inner type parsed separately */
     PGY_TK_SLOT,
@@ -144,6 +146,19 @@ typedef struct
     const char *inner_type;
     bool        released;
 } LLVMSlotVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
+    bool        released;
+} LLVMDeviceSlotVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
+} LLVMFutureVarEntry;
 
 typedef struct
 {
@@ -225,6 +240,7 @@ typedef struct
 
 typedef struct LLVMGenCtx
 {
+    const HIRProgram *hir;
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
@@ -264,6 +280,14 @@ typedef struct LLVMGenCtx
     LLVMSlotVarEntry     *slot_vars;
     int                   slot_var_count;
     int                   slot_var_capacity;
+
+    LLVMDeviceSlotVarEntry *device_slot_vars;
+    int                     device_slot_var_count;
+    int                     device_slot_var_capacity;
+
+    LLVMFutureVarEntry    *future_vars;
+    int                    future_var_count;
+    int                    future_var_capacity;
 
     LLVMClassTypeEntry   *class_types;
     int                   class_type_count;
@@ -346,6 +370,15 @@ void          llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                       const char *inner_type);
 const char   *llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
+                                             const char *inner_type);
+const char   *llvm_lookup_device_slot_inner(LLVMGenCtx *ctx,
+                                             const char *var_name);
+void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
+                                              const char *var_name);
+void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
+                                        const char *inner_type);
+const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);
 
 /* =================================================================
  * Class type registry (llvm_backend.c)

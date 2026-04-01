@@ -50,6 +50,8 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
  * ----------------------------------------------------------------- */
 
 #define MAX_SLOT_VARS 256
+#define MAX_GENERIC_BINDINGS 32
+#define MAX_GENERIC_SPECIALIZATIONS 128
 
 typedef struct
 {
@@ -64,6 +66,19 @@ typedef struct
     char name[64];
     char type_name[128];
 } TypedVarEntry;
+
+typedef struct
+{
+    char name[32];
+    char concrete_type[128];
+} GenericBindingEntry;
+
+typedef struct
+{
+    const ASTNode *func_decl;
+    char           specialized_name[128];
+    bool           emitting;
+} GenericSpecializationEntry;
 
 /* -----------------------------------------------------------------
  * Transpiler context
@@ -105,6 +120,14 @@ typedef struct
     /* Memory arena for expression string allocation.
      * Strings allocated here are freed in bulk at context destruction. */
     PgyArena arena;
+
+    /* Active generic bindings while emitting a monomorphized function. */
+    GenericBindingEntry generic_bindings[MAX_GENERIC_BINDINGS];
+    int                 generic_binding_count;
+
+    /* Generic specializations emitted on demand. */
+    GenericSpecializationEntry generic_specializations[MAX_GENERIC_SPECIALIZATIONS];
+    int                        generic_specialization_count;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

@@ -437,6 +437,22 @@ main(void)
             "    OnHit(77);\n"
             "}",
             1
+        },
+        {
+            "Exported Function Declaration",
+            "export func Add(a: Int, b: Int) -> Int {\n"
+            "    return a + b;\n"
+            "}",
+            1
+        },
+        {
+            "Namespace Export Declaration",
+            "namespace Math {\n"
+            "    export func Add(a: Int, b: Int) -> Int {\n"
+            "        return a + b;\n"
+            "    }\n"
+            "}",
+            1
         }
     };
 

@@ -145,3 +145,77 @@ func Main() -> Void {
 }
 EOF
 run_case "qubit_slot" "$TMPDIR/qubit_slot.pgy" "2"
+
+cat > "$TMPDIR/device_slot_remote.pgy" <<'EOF'
+async func Fetch() -> Int {
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 11);
+    let pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
+    let value: Int = await pending;
+    ReleaseDeviceSlot(dev);
+    return value;
+}
+
+func Main() -> Void {
+    Log(Fetch());
+}
+EOF
+run_case "device_slot_remote" "$TMPDIR/device_slot_remote.pgy" "11"
+
+cat > "$TMPDIR/generic_call.pgy" <<'EOF'
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let a: Int = Identity(42);
+    Log(a);
+}
+EOF
+run_case "generic_call" "$TMPDIR/generic_call.pgy" "42"
+
+cat > "$TMPDIR/generic_spawn.pgy" <<'EOF'
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+async func Main() -> Void {
+    let task = spawn Identity(42);
+    let value: Int = await task;
+    Log(value);
+}
+EOF
+run_case "generic_spawn" "$TMPDIR/generic_spawn.pgy" "42"
+
+cat > "$TMPDIR/generic_spawn_multi.pgy" <<'EOF'
+func PickSecond<T>(left: T, right: T) -> T {
+    return right;
+}
+
+async func Main() -> Void {
+    let task = spawn PickSecond(10, 77);
+    let value: Int = await task;
+    Log(value);
+}
+EOF
+run_case "generic_spawn_multi" "$TMPDIR/generic_spawn_multi.pgy" "77"
+
+cat > "$TMPDIR/future_annotation.pgy" <<'EOF'
+func PairInt(x: Int, y: Int) -> Int { return y; }
+async func Main() -> Void {
+    let task: Future<Int> = spawn PairInt(10, 77);
+    let value: Int = await task;
+    Log(value);
+}
+EOF
+run_case "future_annotation" "$TMPDIR/future_annotation.pgy" "77"
+
+cat > "$TMPDIR/string_spawn.pgy" <<'EOF'
+func Echo<T>(x: T) -> T { return x; }
+async func Main() -> Void {
+    let task = spawn Echo("hi");
+    let value: String = await task;
+    Log(value);
+}
+EOF
+run_case "string_spawn" "$TMPDIR/string_spawn.pgy" "hi"

@@ -281,7 +281,7 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -c -o $@ $<
-	@[ -f $(@:.o=.d) ] && sed -i 's#\([A-Za-z]\):/#\1\\:/#g' $(@:.o=.d) || true
+	@[ -f $(@:.o=.d) ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) || true
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
@@ -302,7 +302,7 @@ $(BUILD_DIR):
 		$(BUILD_DIR)/runtime \
 		$(BUILD_DIR)/runtime/async \
 		$(BUILD_DIR)/lsp
-	touch $(BUILD_DIR)
+	touch -c -r Makefile $(BUILD_DIR)
 
 $(CONFIG_STAMP): | $(BUILD_DIR)
 	rm -f $(BUILD_DIR)/.config_llvm_*.stamp
@@ -312,7 +312,7 @@ $(CONFIG_STAMP): | $(BUILD_DIR)
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
-	touch $(BIN_DIR)
+	touch -c -r Makefile $(BIN_DIR)
 
 # -----------------------------------------------------------------
 # Test execution targets

@@ -14,6 +14,24 @@
 #define INITIAL_SYMBOL_CAPACITY 16
 #define INITIAL_SLOT_CAPACITY   8
 
+static bool
+symbol_tracks_slot_state(const Symbol *sym)
+{
+    if (sym == NULL || sym->type == NULL)
+        return false;
+
+    if (sym->kind == SYMBOL_SLOT)
+        return true;
+
+    if (sym->type->kind == TYPE_KIND_CONSTRUCTED
+        && sym->type->data.constructed.constructor != NULL
+        && sym->type->data.constructed.constructor->name != NULL
+        && strcmp(sym->type->data.constructed.constructor->name, "DeviceSlot") == 0)
+        return true;
+
+    return false;
+}
+
 /* -----------------------------------------------------------------
  * Scope
  * ----------------------------------------------------------------- */
@@ -152,7 +170,7 @@ scope_release_slot(Scope *scope, const char *slot_name)
     Scope *cur = scope;
     while (cur != NULL) {
         Symbol *sym = scope_lookup_current(cur, slot_name);
-        if (sym != NULL && (sym->kind == SYMBOL_SLOT)) {
+        if (symbol_tracks_slot_state(sym)) {
             sym->slot_info.state = SLOT_STATE_RELEASED;
             return;
         }

@@ -1477,6 +1477,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = symbol_create_variable(name, decl_type,
                                           node->line, node->column);
 
+    if (type_is_constructed_named(decl_type, "DeviceSlot"))
+        sym->slot_info.state = SLOT_STATE_CLAIMED;
+
     /* Set qubit semantic state for QubitSlot variables */
     if (type_is_qubit(decl_type)) {
         if (expr_is_qubit_claim(init)) {

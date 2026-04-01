@@ -186,6 +186,19 @@ make_generic_type_from_node(const char *name, ASTNode *arg_type)
     return n;
 }
 
+static GenericParams *
+make_generic_params1(const char *name)
+{
+    GenericParams *params = calloc(1, sizeof(GenericParams));
+    GenericParam *param = calloc(1, sizeof(GenericParam));
+
+    params->count = 1;
+    params->params = calloc(1, sizeof(GenericParam *));
+    param->name = pergyra_strdup(name);
+    params->params[0] = param;
+    return params;
+}
+
 /* -----------------------------------------------------------------
  * Helper: emit a single statement into a fresh context, return
  * the output string (caller does NOT free — points into ctx->out).
@@ -579,6 +592,98 @@ test_program_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t\nAdd(int32_t a, int32_t b)");
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("generic function call emits concrete specialization in C");
+    {
+        FuncParam px;
+        memset(&px, 0, sizeof(px));
+        px.name = "x";
+        px.type = make_type_node("T");
+        FuncParam *identity_params[1] = { &px };
+
+        ASTNode *identity_return_stmts[1] = { make_return(make_identifier("x", 1), 1) };
+        ASTNode *identity = calloc(1, sizeof(ASTNode));
+        identity->type = AST_FUNC_DECL;
+        identity->data.func_decl.name = "Identity";
+        identity->data.func_decl.params = identity_params;
+        identity->data.func_decl.param_count = 1;
+        identity->data.func_decl.return_type = make_type_node("T");
+        identity->data.func_decl.body = make_block(identity_return_stmts, 1);
+        identity->data.func_decl.generic_params = make_generic_params1("T");
+
+        ASTNode *sum = make_let("sum", make_type_node("Int"), make_number(7, 1), 1);
+        ASTNode *identity_args[1] = { make_identifier("sum", 1) };
+        ASTNode *echoed = make_let("echoed", make_type_node("Int"),
+                                   make_call("Identity", identity_args, 1, 1), 1);
+        ASTNode *log_args[1] = { make_identifier("echoed", 1) };
+        ASTNode *main_stmts[3] = { sum, echoed, make_call("Log", log_args, 1, 1) };
+
+        ASTNode *main = calloc(1, sizeof(ASTNode));
+        main->type = AST_FUNC_DECL;
+        main->data.func_decl.name = "Main";
+        main->data.func_decl.return_type = make_type_node("Void");
+        main->data.func_decl.body = make_block(main_stmts, 3);
+
+        ASTNode *stmts[2] = { identity, main };
+        ASTNode *prog = make_program(stmts, 2);
+        HIRProgram *hir = lower_program(prog);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Identity_Int(int32_t x);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t\nIdentity_Int(int32_t x)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t echoed = Identity_Int(sum);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+    }
+
+    TEST("spawn of generic function call uses concrete specialization");
+    {
+        FuncParam px;
+        memset(&px, 0, sizeof(px));
+        px.name = "x";
+        px.type = make_type_node("T");
+        FuncParam *identity_params[1] = { &px };
+
+        ASTNode *identity_return_stmts[1] = { make_return(make_identifier("x", 1), 1) };
+        ASTNode *identity = calloc(1, sizeof(ASTNode));
+        identity->type = AST_FUNC_DECL;
+        identity->data.func_decl.name = "Identity";
+        identity->data.func_decl.params = identity_params;
+        identity->data.func_decl.param_count = 1;
+        identity->data.func_decl.return_type = make_type_node("T");
+        identity->data.func_decl.body = make_block(identity_return_stmts, 1);
+        identity->data.func_decl.generic_params = make_generic_params1("T");
+
+        ASTNode *spawn_args[1] = { make_number(42, 1) };
+        ASTNode *call = make_call("Identity", spawn_args, 1, 1);
+        ASTNode *spawn = calloc(1, sizeof(ASTNode));
+        spawn->type = AST_SPAWN_EXPR;
+        spawn->data.spawn_expr.function = call;
+
+        ASTNode *task = make_let("task", NULL, spawn, 1);
+        ASTNode *main_stmts[1] = { task };
+        ASTNode *main = calloc(1, sizeof(ASTNode));
+        main->type = AST_FUNC_DECL;
+        main->data.func_decl.name = "Main";
+        main->data.func_decl.return_type = make_type_node("Void");
+        main->data.func_decl.body = make_block(main_stmts, 1);
+
+        ASTNode *stmts[2] = { identity, main };
+        ASTNode *prog = make_program(stmts, 2);
+        HIRProgram *hir = lower_program(prog);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Identity_Int(int32_t x);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "*result = Identity_Int(args->arg0);");
+
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
     }

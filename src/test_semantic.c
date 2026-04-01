@@ -2727,6 +2727,62 @@ test_effect_inference(void)
         ast_destroy(decl);
     }
 
+    TEST("DeviceSlot use-after-release is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *decl = ast_create_let_declaration("dev");
+        decl->data.let_decl.type = make_generic_type("DeviceSlot", "Int");
+        decl->data.let_decl.initializer = make_call("ClaimDeviceSlot", NULL, 0, 1);
+        EXPECT(type_check_let_decl(decl, ctx));
+
+        ASTNode *release_args[1] = { make_identifier("dev", 2) };
+        ASTNode *read_args[1] = { make_identifier("dev", 3) };
+        ASTNode *release = make_call("ReleaseDeviceSlot", release_args, 1, 2);
+        ASTNode *read = make_call("DeviceRead", read_args, 1, 3);
+
+        type_check_expression(release, ctx);
+        ctx->has_error = false;
+        type_check_expression(read, ctx);
+
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "released DeviceSlot"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(release);
+        ast_destroy(read);
+    }
+
+    TEST("DeviceSlot double release is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *decl = ast_create_let_declaration("dev");
+        decl->data.let_decl.type = make_generic_type("DeviceSlot", "Int");
+        decl->data.let_decl.initializer = make_call("ClaimDeviceSlot", NULL, 0, 1);
+        EXPECT(type_check_let_decl(decl, ctx));
+
+        ASTNode *release_a_args[1] = { make_identifier("dev", 2) };
+        ASTNode *release_b_args[1] = { make_identifier("dev", 3) };
+        ASTNode *release_a = make_call("ReleaseDeviceSlot", release_a_args, 1, 2);
+        ASTNode *release_b = make_call("ReleaseDeviceSlot", release_b_args, 1, 3);
+
+        type_check_expression(release_a, ctx);
+        ctx->has_error = false;
+        type_check_expression(release_b, ctx);
+
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "already been released"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(release_a);
+        ast_destroy(release_b);
+    }
+
     TEST("spawn and channel send infer remote effect on function");
     {
         SemanticContext *ctx = semantic_context_create();

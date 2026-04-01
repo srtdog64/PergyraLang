@@ -5,14 +5,92 @@
  * Statement emission
  * ================================================================= */
 
+static const char *
+llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
+{
+    if (expr == NULL)
+        return "Int";
+
+    switch (expr->type) {
+    case AST_NUMBER: return "Int";
+    case AST_STRING: return "String";
+    case AST_BOOLEAN: return "Bool";
+    case AST_IDENTIFIER: {
+        LLVMVarEntry *entry = llvm_scope_lookup(ctx, expr->data.identifier.name);
+        if (entry != NULL)
+            return llvm_type_to_suffix(ctx, entry->type);
+        return "Int";
+    }
+    default:
+        return "Int";
+    }
+}
+
+static const char *
+llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
+{
+    ASTNode *target = spawn_expr != NULL ? spawn_expr->data.spawn_expr.function : NULL;
+    ASTNode *call = NULL;
+    ASTNode *callee = target;
+    const char *callee_name = NULL;
+    static char buf[128];
+
+    if (target != NULL && target->type == AST_CALL) {
+        call = target;
+        callee = target->data.call.callee;
+    }
+    if (callee != NULL && callee->type == AST_IDENTIFIER)
+        callee_name = callee->data.identifier.name;
+    if (callee_name == NULL || ctx->hir == NULL)
+        return "Int";
+
+    ASTNode *decl = NULL;
+    for (size_t i = 0; i < ctx->hir->function_count; i++) {
+        ASTNode *fn = ctx->hir->functions[i];
+        if (fn != NULL && fn->type == AST_FUNC_DECL
+            && fn->data.func_decl.name != NULL
+            && strcmp(fn->data.func_decl.name, callee_name) == 0) {
+            decl = fn;
+            break;
+        }
+    }
+    if (decl == NULL || decl->data.func_decl.return_type == NULL
+        || decl->data.func_decl.return_type->type != AST_TYPE
+        || decl->data.func_decl.return_type->data.type.name == NULL) {
+        return "Int";
+    }
+
+    const char *ret_name = decl->data.func_decl.return_type->data.type.name;
+    if (!(ret_name[0] >= 'A' && ret_name[0] <= 'Z' && ret_name[1] == '\0'))
+        return ret_name;
+
+    if (call == NULL)
+        return "Int";
+
+    for (size_t i = 0; i < decl->data.func_decl.param_count && i < call->data.call.arg_count; i++) {
+        FuncParam *param = decl->data.func_decl.params[i];
+        if (param == NULL || param->type == NULL || param->type->type != AST_TYPE
+            || param->type->data.type.name == NULL)
+            continue;
+        if (strcmp(param->type->data.type.name, ret_name) == 0) {
+            snprintf(buf, sizeof(buf), "%s",
+                llvm_simple_expr_type_name(ctx, call->data.call.arguments[i]));
+            return buf;
+        }
+    }
+
+    return "Int";
+}
+
 static void
 llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *name = node->data.let_decl.name;
     ASTNode *type_ann = node->data.let_decl.type;
     ASTNode *init     = node->data.let_decl.initializer;
+    const char *spawn_future_inner = NULL;
 
-    /* Detect ClaimSlot / ClaimSecureSlot */
+    /* Detect ClaimSlot / ClaimSecureSlot / ClaimDeviceSlot */
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee != NULL
         && init->data.call.callee->type == AST_IDENTIFIER) {
@@ -50,6 +128,28 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
             llvm_scope_declare(ctx, name, alloca_val, slot_ty);
             llvm_register_slot_var(ctx, name, inner);
+            return;
+        }
+        if (strcmp(callee, "ClaimDeviceSlot") == 0) {
+            const char *inner = "Int";
+            if (type_ann != NULL && type_ann->type == AST_TYPE
+                && type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 0) {
+                inner = type_ann->data.type.generic_args->params[0]->name;
+            }
+
+            LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+
+            LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
+            LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
+                slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                claimed_ptr);
+
+            llvm_scope_declare(ctx, name, alloca_val, slot_ty);
+            llvm_register_device_slot_var(ctx, name, inner);
             return;
         }
     }
@@ -241,6 +341,10 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef var_type = ctx->type_i32; /* default */
     if (type_ann != NULL)
         var_type = ast_type_to_llvm(ctx, type_ann);
+    else if (init != NULL && init->type == AST_SPAWN_EXPR) {
+        var_type = ctx->type_task_handle;
+        spawn_future_inner = llvm_infer_spawn_future_inner(ctx, init);
+    }
 
     /* Create alloca at function entry */
     LLVMValueRef alloca = llvm_create_entry_alloca(ctx, var_type, name);
@@ -279,6 +383,35 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_declare(ctx, name, alloca, var_type);
+
+    if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && type_ann->data.type.generic_args != NULL
+        && type_ann->data.type.generic_args->count > 0) {
+        const char *ann_name = type_ann->data.type.name;
+        if (strcmp(ann_name, "Future") == 0
+            || strcmp(ann_name, "RemoteFuture") == 0) {
+            llvm_register_future_var(ctx, name,
+                type_ann->data.type.generic_args->params[0]->name);
+        }
+    } else if (init != NULL && init->type == AST_CALL
+               && init->data.call.callee != NULL
+               && init->data.call.callee->type == AST_IDENTIFIER
+               && strcmp(init->data.call.callee->data.identifier.name,
+                         "SubmitDeviceRead") == 0) {
+        const char *inner = "Int";
+        ASTNode *slot_arg = init->data.call.arguments[0];
+        if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+            const char *tracked = llvm_lookup_device_slot_inner(
+                ctx, slot_arg->data.identifier.name);
+            if (tracked != NULL)
+                inner = tracked;
+        }
+        llvm_register_future_var(ctx, name, inner);
+    } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
+        llvm_register_future_var(ctx, name,
+            spawn_future_inner != NULL ? spawn_future_inner : "Int");
+    }
 
     /* Track class type for member access */
     if (type_ann != NULL && type_ann->type == AST_TYPE
