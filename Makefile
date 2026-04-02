@@ -35,6 +35,9 @@ CFLAGS  = -Wall -Wextra -std=c11 -O2 -g $(OPENMP_FLAGS) -I$(SRC_DIR)
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
+CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>/dev/null),gcc)
+CI_LINUX_BUILD_DIR := $(TMPDIR)/pgy-ci-linux-build
+CI_LINUX_BIN_DIR   := $(TMPDIR)/pgy-ci-linux-bin
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
@@ -277,8 +280,15 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -c -o $@ $<
-	@[ -f $(@:.o=.d) ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) || true
+	@tmp_o=$$(mktemp "$${TMPDIR:-/tmp}/pgy_obj.XXXXXX.o") && \
+	tmp_d=$$(mktemp "$${TMPDIR:-/tmp}/pgy_dep.XXXXXX.d") && \
+	trap 'rm -f "$$tmp_o" "$$tmp_d"' EXIT && \
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$$tmp_d" -c -o "$$tmp_o" $< && \
+	rm -f $@ $(@:.o=.d) && \
+	cp -f "$$tmp_o" $@ && \
+	cp -f "$$tmp_d" $(@:.o=.d) && \
+	[ -f $(@:.o=.d) ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) || true && \
+	trap - EXIT
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
@@ -316,37 +326,44 @@ $(BIN_DIR):
 # -----------------------------------------------------------------
 test: $(LEXER_TEST)
 	@echo "=== Lexer Test ==="
-	./$(LEXER_TEST)
+	"$(LEXER_TEST)"
 
 test-parser: $(PARSER_TEST)
 	@echo "=== Parser Test ==="
-	./$(PARSER_TEST)
+	"$(PARSER_TEST)"
 
 test-security: $(SECURITY_TEST)
 	@echo "=== Security Test ==="
-	./$(SECURITY_TEST)
+	"$(SECURITY_TEST)"
 
 test-semantic: $(SEMANTIC_TEST)
 	@echo "=== Semantic Analyzer Test ==="
-	./$(SEMANTIC_TEST)
+	"$(SEMANTIC_TEST)"
 
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="
-	./$(TRANSPILE_TEST)
+	"$(TRANSPILE_TEST)"
 
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
-	./$(MEMORY_TEST)
+	"$(MEMORY_TEST)"
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
-	./$(CONCURRENCY_TEST)
+	"$(CONCURRENCY_TEST)"
 
 test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
-	./$(HIR_TEST)
+	"$(HIR_TEST)"
 
-test-all: test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
+test-all:
+	$(MAKE) test
+	$(MAKE) test-parser
+	$(MAKE) test-semantic
+	$(MAKE) test-transpile
+	$(MAKE) test-memory
+	$(MAKE) test-concurrency
+	$(MAKE) test-hir
 	@echo "=== All Frontend Tests Completed ==="
 
 llvm-test:
@@ -372,39 +389,55 @@ llvm-test-hir:
 
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	bash tests/llvm_smoke.sh
+	PGY_BIN="$(PGY)" bash tests/llvm_smoke.sh
 
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
-	bash tests/stdlib_surface_smoke.sh
+	PGY_BIN="$(PGY)" bash tests/stdlib_surface_smoke.sh
 
 module-test-smoke:
 	$(MAKE) $(PGY)
-	bash tests/module_smoke.sh
+	PGY_BIN="$(PGY)" bash tests/module_smoke.sh
 
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	bash tests/compare_backends.sh
+	PGY_BIN="$(PGY)" bash tests/compare_backends.sh
 
 example-test-smoke:
 	$(MAKE) $(PGY)
-	bash tests/example_contract_smoke.sh
+	PGY_BIN="$(PGY)" bash tests/example_contract_smoke.sh
 
 llvm-test-all:
-	$(MAKE) LLVM_ENABLED=1 test test-parser test-semantic test-transpile test-memory test-concurrency test-hir
-	bash tests/llvm_smoke.sh
-	bash tests/compare_backends.sh
+	$(MAKE) LLVM_ENABLED=1 test
+	$(MAKE) LLVM_ENABLED=1 test-parser
+	$(MAKE) LLVM_ENABLED=1 test-semantic
+	$(MAKE) LLVM_ENABLED=1 test-transpile
+	$(MAKE) LLVM_ENABLED=1 test-memory
+	$(MAKE) LLVM_ENABLED=1 test-concurrency
+	$(MAKE) LLVM_ENABLED=1 test-hir
+	PGY_BIN="$(PGY)" bash tests/llvm_smoke.sh
+	PGY_BIN="$(PGY)" bash tests/compare_backends.sh
+
+check-linux-toolchain:
+	@cc_machine="$$( $(CI_LINUX_CC) -dumpmachine 2>/dev/null || true )"; \
+	if echo "$$cc_machine" | grep -qi 'mingw'; then \
+		echo "ci-linux requires a native Linux toolchain." >&2; \
+		echo "current CC: $(CI_LINUX_CC)" >&2; \
+		echo "detected target: $${cc_machine:-unknown}" >&2; \
+		exit 1; \
+	fi
 
 ci-linux:
-	$(MAKE) clean
-	$(MAKE) test-all
-	$(MAKE) llvm-test-smoke
-	$(MAKE) stdlib-test-smoke
-	$(MAKE) module-test-smoke
-	$(MAKE) example-test-smoke
-	$(MAKE) llvm-test-backend-compare
-	$(MAKE) clean
-	$(MAKE) test-all
+	$(MAKE) check-linux-toolchain
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" stdlib-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" module-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" example-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-backend-compare
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 
 check-windows-toolchain:
 	@cc_machine="$$( $(CC) -dumpmachine 2>/dev/null || true )"; \
@@ -431,19 +464,19 @@ ci-windows:
 # pgy driver convenience targets
 # -----------------------------------------------------------------
 example-hello: $(PGY)
-	./$(PGY) examples/hello.pgy --run -v
+	"$(PGY)" examples/hello.pgy --run -v
 
 example-slots: $(PGY)
-	./$(PGY) examples/slots.pgy --run -v
+	"$(PGY)" examples/slots.pgy --run -v
 
 # Emit C only
 emit-c-%: $(PGY)
-	./$(PGY) examples/$*.pgy --emit-c -v
+	"$(PGY)" examples/$*.pgy --emit-c -v
 
 # Emit LLVM IR only
 emit-llvm-%:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	./$(PGY) examples/$*.pgy --emit-llvm -o $*.ll -v
+	"$(PGY)" examples/$*.pgy --emit-llvm -o $*.ll -v
 
 # -----------------------------------------------------------------
 # Maintenance
@@ -473,7 +506,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
         test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-windows-toolchain \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

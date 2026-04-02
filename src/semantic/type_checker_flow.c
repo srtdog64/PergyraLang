@@ -128,7 +128,12 @@ merge_resource_states_or(ResourceConsumeSnapshot *dst,
     size_t count = dst->count < src->count ? dst->count : src->count;
     for (size_t i = 0; i < count; i++) {
         dst->states[i] = dst->states[i] || src->states[i];
-        /* Merge semantic state: take the most advanced (conservative) */
+        /* Merge semantic state: take the most advanced (conservative).
+         * This correctly blocks gate operations on potentially-collapsed
+         * qubits, which is the primary safety property.  A known
+         * limitation: IntoClassical may pass at the join point even if
+         * one branch did not Measure — a full lattice join would solve
+         * this but is deferred for now. */
         if (src->sem_states[i] > dst->sem_states[i])
             dst->sem_states[i] = src->sem_states[i];
         /* Merge pool IDs: keep the one that exists, or dst if both exist */

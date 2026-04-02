@@ -1267,17 +1267,31 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         return TYPE_INT;
     }
 
-    /* Resolve class field types */
+    /* Resolve class field types by looking up the class declaration AST */
     if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS
-        && object_type->name != NULL) {
-        /* Look up the class declaration in scope */
-        Symbol *cls_sym = scope_lookup(ctx->scope, object_type->name);
-        if (cls_sym != NULL && cls_sym->kind == SYMBOL_CLASS) {
-            /* For now, return a generic type — full field resolution
-             * would require storing field info in the Type structure.
-             * Accept any field access on class types. */
-            return TYPE_UNKNOWN;
+        && object_type->name != NULL && ctx->program_root != NULL) {
+        const char *field_name = expr->data.member.name;
+        ASTNode *prog = ctx->program_root;
+        for (size_t si = 0; si < prog->data.program.count; si++) {
+            ASTNode *stmt = prog->data.program.statements[si];
+            if (stmt == NULL || stmt->type != AST_CLASS_DECL)
+                continue;
+            if (stmt->data.class_decl.name == NULL
+                || strcmp(stmt->data.class_decl.name, object_type->name) != 0)
+                continue;
+            /* Found the class — search its fields */
+            for (size_t fi = 0; fi < stmt->data.class_decl.field_count; fi++) {
+                ClassField *cf = stmt->data.class_decl.fields[fi];
+                if (cf == NULL || cf->name == NULL)
+                    continue;
+                if (strcmp(cf->name, field_name) == 0)
+                    return resolve_type_node(cf->type, ctx);
+            }
+            /* Field not found in this class — fall through to UNKNOWN */
+            break;
         }
+        /* Accept any remaining field access on class types */
+        return TYPE_UNKNOWN;
     }
 
     /* Unknown member access — allow without error for class/enum types */
