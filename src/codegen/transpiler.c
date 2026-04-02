@@ -1047,6 +1047,17 @@ infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
     return pergyra_strdup("Void");
 }
 
+static bool
+is_remote_future_expr(TranspilerCtx *ctx, ASTNode *expr)
+{
+    if (expr == NULL) return false;
+    if (expr->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        return type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0;
+    }
+    return false;
+}
+
 static const char *
 lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -1955,6 +1966,29 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     /* Tagged union variant constructors: Circle(42) → Shape_Circle(42) */
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
+        ASTNode *class_decl = find_class_decl(ctx, fn);
+        if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+            size_t argc = call->data.call.arg_count;
+            CodeBuf *fields = codebuf_create();
+            for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
+                ClassField *field = class_decl->data.class_decl.fields[i];
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                if (i > 0)
+                    codebuf_write(fields, ", ");
+                codebuf_write(fields, ".%s = %s",
+                    field != NULL && field->name != NULL ? field->name : "field",
+                    arg != NULL ? arg : "0");
+                free(arg);
+            }
+            char *result;
+            if (fields->len > 0)
+                result = strdup_fmt("(%s){ %s }", fn, fields->data);
+            else
+                result = strdup_fmt("(%s){0}", fn);
+            codebuf_destroy(fields);
+            return result;
+        }
+
         const char *qualified = lookup_enum_variant_qualified_name(ctx, fn);
         if (qualified != NULL) {
             /* Emit: EnumName_VariantName(args...) */
@@ -2770,9 +2804,15 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             char *expr = emit_expression(node->data.await_expr.expression, ctx);
             const char *inner = lookup_future_inner_type(ctx,
                 node->data.await_expr.expression);
+            bool is_remote = is_remote_future_expr(ctx,
+                node->data.await_expr.expression);
             char *result;
             if (strcmp(inner, "Void") == 0) {
                 result = strdup_fmt("pgy_await_void(%s)", expr);
+            } else if (is_remote) {
+                /* RemoteFuture<T> → Result<T>: wrap in PgyResult */
+                result = strdup_fmt("pgy_await_result_take(%s, %s, %s)",
+                    expr, inner, pergyra_type_to_c(inner));
             } else {
                 result = strdup_fmt("pgy_await_take(%s, %s)",
                     expr, pergyra_type_to_c(inner));
@@ -3270,14 +3310,39 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
     }
 
-    /* Struct/class constructor: let p: Point = Point() → Point p = {0}; */
+    /* Struct/class constructor: let p: Point = Point(...)
+     * Lower positional constructor args into field-order initialization.
+     * Missing fields stay zero-initialized. */
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER
         && ann_type_name != NULL
         && strcmp(init->data.call.callee->data.identifier.name, ann_type_name) == 0
-        && init->data.call.arg_count == 0) {
+        ) {
+        ASTNode *class_decl = find_class_decl(ctx, ann_type_name);
         write_indent(ctx);
-        codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
+        if (class_decl != NULL
+            && class_decl->type == AST_CLASS_DECL
+            && class_decl->data.class_decl.field_count > 0
+            && init->data.call.arg_count > 0) {
+            codebuf_write(ctx->out, "%s %s = { ", ann_type_name, name);
+            for (size_t i = 0; i < init->data.call.arg_count; i++) {
+                ClassField *field;
+                char *arg_expr;
+                if (i >= class_decl->data.class_decl.field_count)
+                    break;
+                field = class_decl->data.class_decl.fields[i];
+                if (field == NULL || field->name == NULL)
+                    continue;
+                arg_expr = emit_expression(init->data.call.arguments[i], ctx);
+                if (i > 0)
+                    codebuf_write(ctx->out, ", ");
+                codebuf_write(ctx->out, ".%s = %s", field->name, arg_expr);
+                free(arg_expr);
+            }
+            codebuf_write(ctx->out, " };\n");
+        } else {
+            codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
+        }
         register_typed_var(ctx, name, ann_type_name);
         free(ann_type_name);
         return;
@@ -3464,8 +3529,9 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
      * This allows Slot<MyStruct>, Result<MyStruct> in user code. */
     codebuf_write(ctx->out,
         "\n/* Auto-generated container types for %s */\n"
-        "PGY_SLOT_DEFINE(%s, %s)\n",
-        name, name, name);
+        "PGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_BOX_DEFINE(%s, %s)\n",
+        name, name, name, name, name);
 
     /* Methods become free functions over the object's self cell. */
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {

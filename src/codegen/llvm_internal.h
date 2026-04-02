@@ -170,6 +170,7 @@ typedef struct
 {
     const char *var_name;
     const char *inner_type;
+    bool        is_remote;
 } LLVMFutureVarEntry;
 
 typedef struct
@@ -448,8 +449,11 @@ void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
 LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
                                             const char *slot_name);
 void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
-                                        const char *inner_type);
+                                        const char *inner_type,
+                                        bool is_remote);
 const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);
+bool          llvm_lookup_future_is_remote(LLVMGenCtx *ctx,
+                                            const char *var_name);
 void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
 const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);

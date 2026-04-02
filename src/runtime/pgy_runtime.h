@@ -1179,6 +1179,25 @@ PGY_RESULT_DEFINE(String, char*, PgyError)
         (ok_var) = pgy__try_tmp_.ok; \
     } while (0)
 
+/* RemoteFuture<T> → Result<T>: wraps the raw await pointer in a
+ * PgyResult.  NULL result → Err("remote operation failed"),
+ * non-NULL  → Ok(value).  SuffixName must match PGY_RESULT_DEFINE
+ * (e.g. Int, Bool, String).  RawCType is the C storage type. */
+#define pgy_await_result_take(handle, SuffixName, RawCType) \
+    ({ \
+        void *_pgy_raw = pgy_await((handle)); \
+        PgyResult_##SuffixName _pgy_r; \
+        if (_pgy_raw != NULL) { \
+            _pgy_r.tag = PgyResultOk; \
+            _pgy_r.ok  = *(RawCType *)_pgy_raw; \
+            free(_pgy_raw); \
+        } else { \
+            _pgy_r.tag = PgyResultErr; \
+            _pgy_r.err = "remote operation failed"; \
+        } \
+        _pgy_r; \
+    })
+
 /* =================================================================
  * Option Type (Nullable Values)
  * ================================================================= */

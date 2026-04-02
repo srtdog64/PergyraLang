@@ -2547,7 +2547,7 @@ test_async_system(void)
         ast_destroy(await);
     }
 
-    TEST("await accepts RemoteFuture<QubitSlot> as remote transfer boundary");
+    TEST("await on RemoteFuture<QubitSlot> yields Result<QubitSlot>");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -2558,15 +2558,20 @@ test_async_system(void)
         scope_declare(ctx->scope,
             symbol_create_variable("remote_qubit", future_type, 1, 1));
 
-        ASTNode *decl = ast_create_let_declaration("q");
-        decl->data.let_decl.type = ast_create_type("QubitSlot");
-        decl->data.let_decl.initializer =
+        ASTNode *await_expr =
             ast_create_await_expression(make_identifier("remote_qubit", 1));
-        type_check_let_decl(decl, ctx);
+        Type *t = type_check_expression(await_expr, ctx);
         EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_RESULT));
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_QUBIT);
 
         semantic_context_destroy(ctx);
-        ast_destroy(decl);
+        ast_destroy(await_expr);
     }
 
     TEST("await may initialize a movable resource binding");
@@ -3204,6 +3209,84 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("class constructor positional arguments are type-checked");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vec2 = Vec2(3, \"bad\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "argument 2 initializes field 'y'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class constructor rejects too many positional arguments");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vec2 = Vec2(1, 2, 3);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "accepts at most 2 positional field argument"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Slot<class> is rejected until object handle model is fixed");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Slot<Vec2> = Vec2(3, 7);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Slot<class> is not supported yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("spawn and channel send infer remote effect on function");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -3386,6 +3469,115 @@ test_misc_grammar_edges(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(outer_if);
+    }
+
+    /* ---- RemoteFuture design: await returns Result, Claim/Read/Write/Release rejected ---- */
+
+    TEST("await on local Future<Int> returns Int (not Result)");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("local_future", future_type, 1, 1));
+
+        ASTNode *await_expr =
+            ast_create_await_expression(make_identifier("local_future", 1));
+        Type *t = type_check_expression(await_expr, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t == TYPE_INT);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await_expr);
+    }
+
+    TEST("await on RemoteFuture<Int> returns Result<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("remote_future", future_type, 1, 1));
+
+        ASTNode *await_expr =
+            ast_create_await_expression(make_identifier("remote_future", 1));
+        Type *t = type_check_expression(await_expr, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_RESULT));
+        EXPECT(t != NULL
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_INT);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await_expr);
+    }
+
+    TEST("Read on RemoteFuture is rejected with helpful error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("rf", future_type, 1, 1));
+
+        ASTNode *read_args[1] = { make_identifier("rf", 1) };
+        ASTNode *read_call = make_call("Read", read_args, 1, 1);
+        type_check_expression(read_call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "RemoteFuture does not support Read"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(read_call);
+    }
+
+    TEST("Write on RemoteFuture is rejected with helpful error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("rf", future_type, 1, 1));
+
+        ASTNode *write_args[2] = { make_identifier("rf", 1), make_number(42, 1) };
+        ASTNode *write_call = make_call("Write", write_args, 2, 1);
+        type_check_expression(write_call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "RemoteFuture does not support Write"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(write_call);
+    }
+
+    TEST("Release on RemoteFuture is rejected with helpful error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("rf", future_type, 1, 1));
+
+        ASTNode *release_args[1] = { make_identifier("rf", 1) };
+        ASTNode *release_call = make_call("Release", release_args, 1, 1);
+        type_check_expression(release_call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "RemoteFuture does not support Release"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(release_call);
     }
 }
 

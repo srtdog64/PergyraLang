@@ -345,6 +345,22 @@ pgy_coro_entry(uintptr_t raw_task)
     g_pgy_coro.current = NULL;
     setcontext(&g_pgy_coro.scheduler_ctx);
 }
+
+static inline bool
+pgy_coro_init_task_posix(PgyCoroTask *task)
+{
+    task->stack_size = PGY_CORO_STACK_SIZE;
+    task->stack = malloc(task->stack_size);
+    if (task->stack == NULL)
+        return false;
+
+    getcontext(&task->ctx);
+    task->ctx.uc_stack.ss_sp = task->stack;
+    task->ctx.uc_stack.ss_size = task->stack_size;
+    task->ctx.uc_link = &g_pgy_coro.scheduler_ctx;
+    makecontext(&task->ctx, (void (*)(void))pgy_coro_entry, 1, (uintptr_t)task);
+    return true;
+}
 #endif
 
 static inline PgyTaskHandle
@@ -369,18 +385,10 @@ pgy_async_spawn(void *(*fn)(void *), void *arg)
         return handle;
     }
 #else
-    task->stack_size = PGY_CORO_STACK_SIZE;
-    task->stack = malloc(task->stack_size);
-    if (task->stack == NULL) {
+    if (!pgy_coro_init_task_posix(task)) {
         free(task);
         return handle;
     }
-
-    getcontext(&task->ctx);
-    task->ctx.uc_stack.ss_sp = task->stack;
-    task->ctx.uc_stack.ss_size = task->stack_size;
-    task->ctx.uc_link = &g_pgy_coro.scheduler_ctx;
-    makecontext(&task->ctx, (void (*)(void))pgy_coro_entry, 1, (uintptr_t)task);
 #endif
 
     pgy_coro_enqueue(task);

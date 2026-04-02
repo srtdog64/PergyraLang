@@ -1,0 +1,71 @@
+// remote_future_result.pgy
+// RemoteFuture<T> → await → Result<T>
+//
+// 원격 자원은 실패할 수 있다. Pergyra는 이 사실을 타입 시스템에서 강제한다.
+// - Future<T>      → await → T       (로컬: 실패 없음)
+// - RemoteFuture<T> → await → Result<T> (원격: 실패 가능)
+//
+// RemoteFuture에는 Claim/Read/Write/Release를 쓸 수 없다.
+// 원격 자원의 동사는 Submit/Await 뿐이다.
+
+// --- 1. DeviceSlot에서 RemoteFuture 생성 ---
+let gpu: DeviceSlot<Int> = ClaimDeviceSlot()
+DeviceWrite(gpu, 42)
+
+// SubmitDeviceRead: DeviceSlot → RemoteFuture<Int>
+let pending: RemoteFuture<Int> = SubmitDeviceRead(gpu)
+
+// --- 2. await → Result<Int> (실패 가능) ---
+async func ProcessRemote() -> Void {
+    let result: Result<Int> = await pending
+
+    // 반드시 Result를 처리해야 한다
+    if IsOk(result) {
+        let value: Int = Unwrap(result)
+        Log(value)
+    } else {
+        Log("원격 작업 실패 — 네트워크 파티션?")
+    }
+
+    // 또는 ? 연산자로 간결하게:
+    // let value: Int = result?
+}
+
+// --- 3. 금지된 패턴들 (주석 해제하면 컴파일 에러) ---
+// Read(pending)     // 에러: RemoteFuture does not support Read()
+// Write(pending, 7) // 에러: RemoteFuture does not support Write()
+// Release(pending)  // 에러: RemoteFuture does not support Release()
+
+// --- 4. 로컬 Future는 그대로 T 반환 ---
+async func LocalWork() -> Int {
+    return 100
+}
+
+async func CompareLocalVsRemote() -> Void {
+    let local_future: Future<Int> = spawn LocalWork()
+    let local_val: Int = await local_future    // Future<T> → T (실패 없음)
+    Log(local_val)
+
+    // RemoteFuture는 항상 Result
+    let remote_result: Result<Int> = await pending
+    let remote_val: Int = UnwrapOr(remote_result, -1)
+    Log(remote_val)
+}
+
+// --- 5. Channel: 크로스 World 통신의 유일한 경로 ---
+let ch: Channel<Int> = Channel(8)
+
+async func Producer() -> Void {
+    // Channel은 Send/Recv — 상태 기반 Claim이 아닌 메시지 패싱
+    ch <- 1
+    ch <- 2
+    ch <- 3
+    ChannelClose(ch)
+}
+
+async func Consumer() -> Void {
+    let val: Int = <- ch
+    Log(val)
+}
+
+ReleaseDeviceSlot(gpu)

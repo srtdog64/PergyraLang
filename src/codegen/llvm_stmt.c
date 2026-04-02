@@ -349,6 +349,15 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     if (fn != NULL) {
                         LLVMValueRef args[] = { alloca_val, val };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    } else {
+                        LLVMValueRef value_ptr = LLVMBuildStructGEP2(ctx->builder,
+                            slot_ty, alloca_val, 0, llvm_tmp_name(ctx));
+                        LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
+                            slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
+                        LLVMBuildStore(ctx->builder, val, value_ptr);
+                        LLVMBuildStore(ctx->builder,
+                            LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                            occ_ptr);
                     }
                 }
             }
@@ -567,7 +576,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (strcmp(ann_name, "Future") == 0
             || strcmp(ann_name, "RemoteFuture") == 0) {
             llvm_register_future_var(ctx, name,
-                type_ann->data.type.generic_args->params[0]->name);
+                type_ann->data.type.generic_args->params[0]->name,
+                strcmp(ann_name, "RemoteFuture") == 0);
         }
     } else if (init != NULL && init->type == AST_CALL
                && init->data.call.callee != NULL
@@ -582,10 +592,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (tracked != NULL)
                 inner = tracked;
         }
-        llvm_register_future_var(ctx, name, inner);
+        llvm_register_future_var(ctx, name, inner, true);
     } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
         llvm_register_future_var(ctx, name,
-            spawn_future_inner != NULL ? spawn_future_inner : "Int");
+            spawn_future_inner != NULL ? spawn_future_inner : "Int",
+            false);
     }
 
     /* Track class type for member access */
@@ -987,6 +998,12 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef args[] = { var->alloca };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                 }
+            } else if (!is_secure && var != NULL) {
+                LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    var->type, var->alloca, 1, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
+                    occ_ptr);
             }
         }
     }

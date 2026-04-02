@@ -901,6 +901,7 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2_Length(&v)");
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 *self");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->x");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_BOX_DEFINE(Vec2, Vec2)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -929,6 +930,33 @@ test_program_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->count = (self->count + delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->count;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class constructor positional arguments lower to field initialization");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vec2 = Vec2(3, 7);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 v = { .x = 3, .y = 7 };");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

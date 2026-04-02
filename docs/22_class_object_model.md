@@ -150,12 +150,15 @@ Pergyra에서 class method는 개념적으로 항상 `self object cell` 위에�
 
 - 명시적 간접화 / escape / heap ownership
 - 저장 위치와 수명 제어를 드러냄
+- `Box<class>`가 class object를 장기 저장/간접 참조하는 기본 경로다
 
 ### Slot<T>
 
 - 자원 셀
 - 점유 / 접근 / 이동 / 해제 / 보호 규율
 - 메모리 박스가 아니라 규율 셀
+- 현재 단계에서는 `Slot<class>`를 허용하지 않는다
+- 이유는 class가 identity-bearing object이기 때문에, 이를 Slot에 값처럼 넣으면 object semantics와 resource-cell semantics가 섞이기 때문이다
 
 정리하면:
 
@@ -211,7 +214,26 @@ Pergyra에서 class method는 개념적으로 항상 `self object cell` 위에�
 - plain class copy와 `=` 재대입은 시맨틱에서 거부한다
 - class method는 C backend에서 `self*` 기반 객체 셀 호출로 lower된다
 - bare field name은 class method 안에서 `self` field로 해석된다
+- 클래스 생성자는 현재 "필드 순서 기반 positional initialization"으로 동작한다
 - role이 `struct` 값 타입에 바인딩되면 경고한다
+
+### 현재 닫힌 범위
+
+- 필드 선언
+- 메서드와 `self`
+- bare field access의 `self` 해석
+- direct copy 금지
+- `=` 재대입 금지
+- `Vec2(3, 7)` 형태의 positional constructor
+- `Box<class>`용 C helper 생성
+
+### 아직 닫히지 않은 범위
+
+- generic class codegen
+- class inheritance
+- `super`
+- 복잡한 object hierarchy
+- `Slot<class>`를 실제 object-handle cell로 승격할지 여부
 
 ## 9. transitional rule
 

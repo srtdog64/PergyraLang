@@ -528,6 +528,35 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY) {
+        if (sym->kind == SYMBOL_CLASS && ctx->program_root != NULL) {
+            ASTNode *decl = find_type_decl_by_name(ctx->program_root, display_name);
+            if (decl != NULL && decl->type == AST_CLASS_DECL) {
+                size_t field_count = decl->data.class_decl.field_count;
+                size_t provided = expr->data.call.arg_count;
+                if (provided > field_count) {
+                    semantic_error(ctx, expr,
+                        "Constructor '%s' accepts at most %zu positional field argument(s), got %zu",
+                        display_name, field_count, provided);
+                } else {
+                    for (size_t i = 0; i < provided; i++) {
+                        ClassField *field = decl->data.class_decl.fields[i];
+                        if (field == NULL || field->type == NULL)
+                            continue;
+                        Type *field_type = resolve_type_node(field->type, ctx);
+                        Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
+                        if (field_type != NULL && arg_type != NULL
+                            && !type_is_assignable(arg_type, field_type)) {
+                            semantic_error(ctx, expr->data.call.arguments[i],
+                                "Constructor '%s' argument %zu initializes field '%s' of type '%s', got '%s'",
+                                display_name, i + 1,
+                                field->name != NULL ? field->name : "<field>",
+                                field_type->name != NULL ? field_type->name : "<type>",
+                                arg_type->name != NULL ? arg_type->name : "<type>");
+                        }
+                    }
+                }
+            }
+        }
         sym->is_used = true;
         return sym->type;
     }
@@ -1219,6 +1248,13 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                         "'await' cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; await a plain value or movable transfer result instead");
                     return TYPE_UNKNOWN;
                 }
+                /* RemoteFuture<T> → Result<T>: remote operations can fail
+                 * (network partition, timeout, etc.) so the result must be
+                 * explicitly handled.  Local Future<T> → T as before. */
+                if (type_equals(future_type->data.constructed.constructor, TYPE_REMOTE_FUTURE)) {
+                    Type *result_args[1] = { inner };
+                    return type_create_constructed(TYPE_RESULT, result_args, 1);
+                }
                 return inner;
             }
             semantic_error(ctx, expr->data.await_expr.expression,
@@ -1647,6 +1683,14 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
         semantic_error(ctx, node,
             "Class objects cannot be copied into a new binding. Construct a fresh object or mutate the existing one");
+    }
+
+    if (decl_type != NULL
+        && decl_type->kind == TYPE_KIND_SLOT
+        && decl_type->data.slot.inner_type != NULL
+        && type_is_class_object_type(decl_type->data.slot.inner_type, ctx)) {
+        semantic_error(ctx, node,
+            "Slot<class> is not supported yet. class values are identity-bearing objects, so wrapping them in Slot<T> would blur object vs resource-cell semantics. Keep the object local or introduce an explicit Box<T>/handle layer first");
     }
 
     if (type_is_qubit(decl_type)) {

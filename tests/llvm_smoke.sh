@@ -180,17 +180,13 @@ EOF
 run_case "qubit_slot" "$TMPDIR/qubit_slot.pgy" "2"
 
 cat > "$TMPDIR/device_slot_remote.pgy" <<'EOF'
-async func Fetch() -> Int {
+async func Main() -> Void {
     let dev: DeviceSlot<Int> = ClaimDeviceSlot();
     DeviceWrite(dev, 11);
     let pending: RemoteFuture<Int> = SubmitDeviceRead(dev);
-    let value: Int = await pending;
+    let value: Int = (await pending)?;
     ReleaseDeviceSlot(dev);
-    return value;
-}
-
-func Main() -> Void {
-    Log(Fetch());
+    Log(value);
 }
 EOF
 run_case "device_slot_remote" "$TMPDIR/device_slot_remote.pgy" "11"

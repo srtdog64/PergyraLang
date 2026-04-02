@@ -63,7 +63,8 @@ llvm_array_length_i64(LLVMGenCtx *ctx, LLVMValueRef array_value)
 }
 
 static LLVMValueRef
-llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner)
+llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner,
+                       bool is_remote)
 {
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
     if (await_fn == NULL || task == NULL)
@@ -73,19 +74,48 @@ llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner)
     LLVMValueRef raw = LLVMBuildCall2(ctx->builder, await_fn->fn_type,
         await_fn->fn, args, 1, llvm_tmp_name(ctx));
 
-    if (inner == NULL || strcmp(inner, "Void") == 0)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-    if (strcmp(inner, "String") == 0) {
-        LLVMValueRef typed_ptr = LLVMBuildBitCast(ctx->builder, raw,
-            LLVMPointerType(ctx->type_i8ptr, 0), llvm_tmp_name(ctx));
-        return LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
-            typed_ptr, llvm_tmp_name(ctx));
+    if (inner == NULL || strcmp(inner, "Void") == 0) {
+        if (!is_remote)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context,
+            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i32, ctx->type_i8ptr }, 3, 0);
+        LLVMValueRef r = LLVMGetUndef(result_ty);
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstInt(ctx->type_i32, 0, 0), 1, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstNull(ctx->type_i8ptr), 2, llvm_tmp_name(ctx));
+        return r;
     }
 
     LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
-    LLVMValueRef typed_ptr = LLVMBuildBitCast(ctx->builder, raw,
-        LLVMPointerType(inner_ty, 0), llvm_tmp_name(ctx));
-    return LLVMBuildLoad2(ctx->builder, inner_ty, typed_ptr, llvm_tmp_name(ctx));
+    LLVMValueRef value;
+    if (strcmp(inner, "String") == 0) {
+        LLVMValueRef typed_ptr = LLVMBuildBitCast(ctx->builder, raw,
+            LLVMPointerType(ctx->type_i8ptr, 0), llvm_tmp_name(ctx));
+        value = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
+            typed_ptr, llvm_tmp_name(ctx));
+    } else {
+        LLVMValueRef typed_ptr = LLVMBuildBitCast(ctx->builder, raw,
+            LLVMPointerType(inner_ty, 0), llvm_tmp_name(ctx));
+        value = LLVMBuildLoad2(ctx->builder, inner_ty, typed_ptr, llvm_tmp_name(ctx));
+    }
+
+    if (!is_remote)
+        return value;
+
+    LLVMTypeRef result_fields[] = { ctx->type_i32, inner_ty, ctx->type_i8ptr };
+    LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context, result_fields, 3, 0);
+    LLVMValueRef result = LLVMGetUndef(result_ty);
+    result = LLVMBuildInsertValue(ctx->builder, result,
+        LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));
+    result = LLVMBuildInsertValue(ctx->builder, result,
+        value, 1, llvm_tmp_name(ctx));
+    result = LLVMBuildInsertValue(ctx->builder, result,
+        LLVMConstNull(ctx->type_i8ptr), 2, llvm_tmp_name(ctx));
+    return result;
 }
 
 static LLVMValueRef
@@ -506,6 +536,57 @@ llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
     return LLVMConstInt(ctx->type_i1, node->data.boolean.value ? 1 : 0, 0);
 }
 
+static LLVMValueRef
+llvm_direct_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                      const char *inner)
+{
+    LLVMTypeRef inner_ty;
+    LLVMValueRef value_ptr;
+
+    if (slot_var == NULL || inner == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    inner_ty = pergyra_type_to_llvm(ctx, inner);
+    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
+        slot_var->alloca, 0, llvm_tmp_name(ctx));
+    return LLVMBuildLoad2(ctx->builder, inner_ty, value_ptr, llvm_tmp_name(ctx));
+}
+
+static void
+llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                       LLVMValueRef value)
+{
+    LLVMValueRef value_ptr;
+    LLVMValueRef occupied_ptr;
+
+    if (slot_var == NULL || value == NULL)
+        return;
+
+    value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
+        slot_var->alloca, 0, llvm_tmp_name(ctx));
+    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
+        slot_var->alloca, 1, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder, value, value_ptr);
+    LLVMBuildStore(ctx->builder,
+        LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+        occupied_ptr);
+}
+
+static void
+llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
+{
+    LLVMValueRef occupied_ptr;
+
+    if (slot_var == NULL)
+        return;
+
+    occupied_ptr = LLVMBuildStructGEP2(ctx->builder, slot_var->type,
+        slot_var->alloca, 1, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder,
+        LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
+        occupied_ptr);
+}
+
 static LLVMVarEntry *
 llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
                          const char **inner_out,
@@ -587,6 +668,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                     return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                          args, 1, llvm_tmp_name(ctx));
                 }
+                return llvm_direct_slot_read(ctx, var, inner);
             }
         }
     }
@@ -1097,6 +1179,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    {
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee_name);
+        if (cls != NULL) {
+            LLVMValueRef object = LLVMGetUndef(cls->struct_type);
+            for (size_t i = 0; i < node->data.call.arg_count
+                 && i < (size_t)cls->field_count; i++) {
+                LLVMValueRef arg = llvm_emit_expression(
+                    node->data.call.arguments[i], ctx);
+                if (arg == NULL)
+                    continue;
+                object = LLVMBuildInsertValue(ctx->builder, object, arg,
+                    (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
+            }
+            return object;
+        }
+    }
+
     /* Built-in: Log */
     if (strcmp(callee_name, "Log") == 0) {
         if (node->data.call.arg_count < 1)
@@ -1208,8 +1307,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_write_%s" : "pgy_write_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-        if (fn == NULL)
+        if (fn == NULL) {
+            if (!is_secure) {
+                llvm_direct_slot_write(ctx, slot_var, val);
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            }
             return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
 
         if (is_secure) {
             LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
@@ -1242,8 +1346,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_read_%s" : "pgy_read_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-        if (fn == NULL)
+        if (fn == NULL) {
+            if (!is_secure)
+                return llvm_direct_slot_read(ctx, slot_var, inner);
             return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
 
         if (is_secure) {
             LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
@@ -1277,10 +1384,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_release_%s" : "pgy_release_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-        if (fn == NULL)
+        if (fn == NULL && is_secure)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
-        if (is_secure) {
+        if (fn == NULL) {
+            llvm_direct_slot_release(ctx, slot_var);
+        } else if (is_secure) {
             LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
             if (token_var == NULL)
                 return LLVMConstInt(ctx->type_i32, 0, 0);
@@ -1944,6 +2053,8 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         if (fn != NULL) {
             LLVMValueRef args[] = { var->alloca, val };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        } else {
+            llvm_direct_slot_write(ctx, var, val);
         }
         return val;
     }
@@ -2253,11 +2364,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         if (node->data.await_expr.expression != NULL) {
             ASTNode *inner_expr = node->data.await_expr.expression;
             const char *inner = NULL;
+            bool is_remote = false;
             if (inner_expr->type == AST_IDENTIFIER)
                 inner = llvm_lookup_future_inner(ctx, inner_expr->data.identifier.name);
+            if (inner_expr->type == AST_IDENTIFIER)
+                is_remote = llvm_lookup_future_is_remote(ctx, inner_expr->data.identifier.name);
             if (inner != NULL) {
                 LLVMValueRef task = llvm_emit_expression(inner_expr, ctx);
-                return llvm_await_task_handle(ctx, task, inner);
+                return llvm_await_task_handle(ctx, task, inner, is_remote);
             }
             return llvm_emit_expression(inner_expr, ctx);
         }

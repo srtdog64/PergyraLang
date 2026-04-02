@@ -642,7 +642,11 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_DOUBLE: return ctx->slot_type_Double;
     case PGY_TK_BOOL:   return ctx->slot_type_Bool;
     case PGY_TK_STRING: return ctx->slot_type_String;
-    default:            return ctx->slot_type_Int;
+    default: {
+        LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
+        LLVMTypeRef fields[] = { inner_ty, LLVMInt1TypeInContext(ctx->context) };
+        return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
+    }
     }
 }
 
@@ -760,13 +764,15 @@ llvm_lookup_secure_token_var(LLVMGenCtx *ctx, const char *slot_name)
 
 void
 llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
-                         const char *inner_type)
+                         const char *inner_type,
+                         bool is_remote)
 {
     PGY_DYNARR_ENSURE(ctx->future_vars, ctx->future_var_count,
                       ctx->future_var_capacity, LLVMFutureVarEntry);
 
     ctx->future_vars[ctx->future_var_count].var_name = var_name;
     ctx->future_vars[ctx->future_var_count].inner_type = inner_type;
+    ctx->future_vars[ctx->future_var_count].is_remote = is_remote;
     ctx->future_var_count++;
 }
 
@@ -778,6 +784,16 @@ llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name)
             return ctx->future_vars[i].inner_type;
     }
     return NULL;
+}
+
+bool
+llvm_lookup_future_is_remote(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->future_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->future_vars[i].var_name, var_name) == 0)
+            return ctx->future_vars[i].is_remote;
+    }
+    return false;
 }
 
 void

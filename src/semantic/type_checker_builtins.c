@@ -181,6 +181,12 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     ASTNode *slot_arg = call->data.call.arguments[0];
     Type *slot_type = type_check_expression(slot_arg, ctx);
 
+    if (type_is_constructed_named(slot_type, "RemoteFuture")) {
+        semantic_error(ctx, slot_arg,
+            "RemoteFuture does not support Write(); remote resources are "
+            "read-only via 'await'. Use Channel to send data to remote World");
+        return false;
+    }
     if (slot_type->kind != TYPE_KIND_SLOT) {
         semantic_error(ctx, slot_arg,
             "First argument to Write must be a Slot, got '%s'",
@@ -278,6 +284,12 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     ASTNode *slot_arg = call->data.call.arguments[0];
     Type *slot_type = type_check_expression(slot_arg, ctx);
 
+    if (type_is_constructed_named(slot_type, "RemoteFuture")) {
+        semantic_error(ctx, slot_arg,
+            "RemoteFuture does not support Read(); use 'await' to obtain "
+            "Result<T>, then Unwrap() or '?' to extract the value");
+        return TYPE_UNKNOWN;
+    }
     if (slot_type->kind != TYPE_KIND_SLOT) {
         semantic_error(ctx, slot_arg,
             "First argument to Read must be a Slot, got '%s'",
@@ -355,6 +367,18 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     }
 
     ASTNode *slot_arg = call->data.call.arguments[0];
+
+    /* RemoteFuture has no Release — it is consumed by await */
+    if (slot_arg->type == AST_IDENTIFIER) {
+        Symbol *rsym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        if (rsym != NULL && rsym->type != NULL
+            && type_is_constructed_named(rsym->type, "RemoteFuture")) {
+            semantic_error(ctx, slot_arg,
+                "RemoteFuture does not support Release(); it is consumed by "
+                "'await' and returns Result<T>");
+            return false;
+        }
+    }
 
     if (slot_arg->type != AST_IDENTIFIER) {
         semantic_error(ctx, slot_arg,

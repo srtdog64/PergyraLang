@@ -61,6 +61,12 @@ ability를 수행하는 객체 slot이다.
 즉 party는 struct 값을 담는 컨테이너가 아니라
 class 객체들의 협력 단위다.
 
+현재 구현은 이 철학을 향해 가는 중이지만, 아직 완전히 닫히진 않았다.
+- role slot은 ability 계약을 표현한다
+- role이 `struct` 값 타입에 바인딩되면 시맨틱 경고가 난다
+- 하지만 party instance에 실제 class object를 꽂는 경로를 강하게 검증하는 단계까지는 아직 아니다
+- 즉 현재 party는 "class collaboration model"을 향한 표면과 계약이 먼저 고정된 상태다
+
 ### Party 인스턴스 생성
 
 ```pergyra
