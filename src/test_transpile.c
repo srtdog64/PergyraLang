@@ -14,6 +14,8 @@
 
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
 
@@ -869,10 +871,70 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "float x;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float y;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float z;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 *self)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
+    }
+
+    TEST("class method call lowers to self-cell call");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    func Length(self) -> Int {\n"
+            "        return self.x;\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vec2 = Vec2();\n"
+            "    Log(v.Length());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Vec2_Length(&v)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 *self");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->x");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class method bare field access lowers through self cell");
+    {
+        const char *source =
+            "class Counter {\n"
+            "    let count: Int;\n"
+            "    func Tick(self, delta: Int) -> Int {\n"
+            "        count = count + delta;\n"
+            "        return count;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->count = (self->count + delta);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self->count;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("extern block emits C prototypes");

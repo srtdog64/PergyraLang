@@ -187,6 +187,7 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 - [언어 비전](docs/00_vision.md)
 - [비동기/동시성 설계](docs/05_async_concurrency.md)
 - [개발 현황](docs/17_development_status.md)
+- [Class 객체 모델](docs/22_class_object_model.md)
 - [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
 
 ## 양자 컴퓨팅 대응 설계

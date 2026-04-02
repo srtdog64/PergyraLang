@@ -187,10 +187,17 @@ struct WhereClause {
 /*
  * Function parameter
  */
+typedef enum {
+    PARAM_MODE_DEFAULT,   /* no qualifier — value type: copy, slot type: move */
+    PARAM_MODE_OWN,       /* own — take ownership (move) */
+    PARAM_MODE_REF        /* ref — borrow (ReadView, non-owning) */
+} ParamMode;
+
 struct FuncParam {
-    char*    name;
-    ASTNode* type;
-    ASTNode* default_value;  /* Optional */
+    char*      name;
+    ASTNode*   type;
+    ASTNode*   default_value;  /* Optional */
+    ParamMode  mode;           /* own / ref / default */
 };
 
 /*

@@ -3,6 +3,8 @@
 ## Overview
 
 Party 시스템의 컴파일 타임 처리 흐름을 정의합니다.
+여기서 Party는 단순 struct 묶음이 아니라,
+`role slot -> class object -> ability dispatch`를 코드로 고정하는 단계입니다.
 
 ## Compilation Pipeline
 
@@ -20,6 +22,8 @@ PartyTypeInfo extraction
 Role implementations scan
     ↓
 Ability verification
+    ↓
+Class/object slot verification
     ↓
 FiberMap generation planning
 ```
@@ -39,8 +43,8 @@ Dispatch wrapper generation
 ```c
 // For each role slot in party
 for (roleSlot in party.roleSlots) {
-    // Find matching role implementation
-    roleImpl = findRoleForType(roleSlot.slotType)
+    // Find class object + matching role implementation
+    roleImpl = findRoleForClass(roleSlot.boundClass)
     
     // Check for parallel block
     if (roleImpl.hasParallelBlock) {
@@ -250,6 +254,38 @@ DispatchResult DungeonParty_parallel(
     return DispatchParallel(map, context, strategy, NULL);
 }
 ```
+
+여기서 중요한 점은:
+
+- party slot은 class 객체 포인터/핸들을 담는다
+- ability 검증은 그 class에 바인딩된 role을 기준으로 한다
+- dispatch wrapper는 결국 "그 class 객체가 이 ability 메서드를 어떻게 수행하는가"를 연결한다
+
+즉 compiler 관점에서 party integration은
+`struct layout 생성`보다
+`class object + role binding + ability dispatch`를 고정하는 작업에 가깝다.
+
+## class가 들어오는 위치
+
+### 1. Binding Input
+- party slot에 들어가는 것은 기본적으로 class 객체다
+- struct는 shared field, 설정값, 스냅샷, 배열 원소로 많이 쓰인다
+
+### 2. Role Resolution
+- `role X for Player`에서 `Player`는 class다
+- compiler는 slot에 들어온 class가 요구 ability를 만족하는 role을 갖는지 본다
+
+### 3. Dispatch Lowering
+- `context.GetRole<Damageable>("tank")`
+- `team.fighter.Attack()`
+
+이런 호출은 결국
+`class object`를 receiver로 하는 ability dispatch로 lower된다
+
+### 4. Parallel Planning
+- parallel metadata도 role 자체에 붙지만
+- 실제 실행 주체는 class object instance다
+- 즉 fibermap entry는 "어떤 role이 어떤 class object에서 돌 것인가"를 고정한다
 
 ## Optimization Opportunities
 

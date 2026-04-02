@@ -73,6 +73,8 @@ static const KeywordEntry keywords[] = {
     {"dyn",      TOKEN_DYN},
     {"systemic", TOKEN_SYSTEMIC},
     {"world",    TOKEN_WORLD},
+    {"own",      TOKEN_OWN},
+    {"ref",      TOKEN_REF},
     {NULL,       TOKEN_EOF}
 };
 

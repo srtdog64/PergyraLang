@@ -43,6 +43,45 @@
   - 완료: C scope-exit cleanup, LLVM defer stack + return/break/continue/scope-exit 실행, smoke regression 추가
 - [ ] **`let` 타입 추론** — `let s: Slot<Int> = 42` → `let s = 42`로 축약
 
+### Slot 소유권 모델 결정 (P0 — 근본 설계 결정)
+- [ ] **`a = b` 의미론 확정** — move를 기본으로 할 것인가?
+  - 현재: struct 값 복사 (C 기본) → double free 가능, Slot 정체성 약화
+  - 제안: **move 기본** — `let b = a` 후 a 무효, 컴파일 에러
+  - QubitSlot은 이미 move 강제 (consume_qubit_value) — 이 패턴을 Slot 전체로 확장
+  - 명시적 복사: `let c = Clone(a)` — 새 Slot 할당 + 값 복사
+  - **미결정: 함수 인수의 기본 전달 방식**
+    - 안 A: 함수 인수도 move 기본 → Rust와 동일, 엄격하지만 명확
+    - 안 B: 함수 인수는 암묵적 borrow (ReadView) → 편리하지만 규칙 이중화
+    - 안 C: 함수 시그니처에 명시 — `func F(own s: Slot<Int>)` vs `func F(ref s: Slot<Int>)`
+  - **영향 범위 큼 — 기존 예제 50개 + 시맨틱 체커 + 양쪽 코드젠 전부 수정 필요**
+  - 결정 후 구현, 결정 전 구현 금지
+
+### Slot 표면 문법 개선 (P0 우선순위)
+- [ ] **암묵적 Read + 대입 기반 Write** — Slot의 기본 사용 표면을 일반 변수처럼
+  - 읽기: `Slot<T>`가 `T` 문맥에 오면 자동 `Read` (암묵적 역참조)
+  - 쓰기: `slot = expr` → 자동 `Write(slot, expr)` lowering
+  - 해제: `Release(slot)` 항상 명시적 유지
+  - `Read(slot)` / `Write(slot, v)`는 명시성 필요 시 직접 호출 가능 (의미론적 primitive)
+  - `.value`는 보조 표면으로만 (메인 표면 아님 — "상자 안의 값" 느낌이 정체성 약화)
+  - 구현: 시맨틱 체커에서 타입 자동 unwrap + 코드젠에서 Read/Write 호출 삽입
+
+### Slot 최적화 (P0 우선순위)
+- [ ] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
+  - 시맨틱 분석에서 escape 분석: "이 Slot이 함수를 벗어나는가?"
+  - 벗어나지 않으면 LLVM alloca로 내림 → 힙 할당 제거
+  - `with` 블록 내 Slot은 무조건 스택 후보
+
+### View 범위 부여 (리뷰 필요 — 미결정)
+- [ ] **View에 바이트/인덱스 범위 부여** — 실제 사용 사례 만들어보고 결정
+  - 안 A: Slice 기반 — `SliceOf(buf, 0, 1024)` → Slot의 "창문"
+    - 장점: 배열/버퍼에 자연스러움, 기존 Slice 인프라 재활용
+    - 단점: 바이트 수준 아님, 구조체 필드 접근에 안 맞음
+  - 안 B: View에 범위 부여 — `ViewRead(buf, offset, length)`
+    - 장점: View 의미론과 일관 (권한 + 범위), 네트워크/파일 I/O에 적합
+    - 단점: View가 복잡해짐, 타입 시스템 확장 필요
+  - 결정 기준: "상자의 일부를 본다" vs "상자에서 조각을 꺼낸다"
+  - **미결정 — 파일 I/O, 네트워크 버퍼, GPU 텍스처 사례를 만들어보고 결정**
+
 ### 병렬/채널
 - [x] **select 실체화** — 여러 채널 중 먼저 준비된 것을 처리 (런타임 `pgy_channel_ready` 활용)
   - 완료: C/LLVM readiness 기반 lowering, recv binding 지원, LLVM smoke 추가
@@ -89,6 +128,9 @@
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — `ReadView / WriteView / MoveToken` 다음 단계로 공유 읽기 vs 독점 쓰기, capability narrowing, 함수 경계의 view 규칙 정교화
 - [ ] **실제 자원군 확장** — `SessionSlot`, `ChannelSlot`, `RemoteJob/RemoteFuture`, `DeviceSlot` 고도화처럼 메모리 밖 자원군을 더 실제화해서 “의미 통일”을 증명
+- [~] **class/object model 구현 정렬** — 문서상 `class = ability를 수행하는 identity-bearing object type`으로 고정했으므로, 현재의 `struct-like lowering`에서 self-cell / copy / role-binding 의미론을 점진적으로 맞추기
+  - 완료: class direct copy 금지, C backend method `self*` lowering, `obj.Method()` → self-cell call, bare field access의 C/LLVM self-cell 해석, role이 `struct` 값 타입에 바인딩될 때 경고
+  - 남음: role/party가 class object semantics를 더 직접 사용하도록 정렬, plain function/class 전달 규칙의 장기 모델 확정, Box/class/Slot 저장 모델 명문화
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — `select` 공정성, timeout, cancellation, backpressure, submit/collect 규칙 등 병렬/비동기 제어를 언어 계약으로 더 고정
@@ -105,6 +147,17 @@
   - 이종 자원 파이프라인 예제
   - secure + device + channel 예제
   - slot/orchestration 철학이 드러나는 실제 프로그램
+
+## P1.8 — 멀티 타겟
+
+- [ ] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
+  - Slot → JS 객체 (WeakRef 활용 가능), Channel → async generator / MessageChannel
+  - parallel → Web Worker / Promise.all, defer → try-finally
+  - 1단계: emit_expression/emit_statement를 JS 문법으로 출력 (C 백엔드 구조 재사용)
+  - 2단계: Slot 런타임을 JS 클래스로 포팅 (ClaimSlot, Read, Write, Release)
+  - 3단계: Party vtable dispatch를 JS 프로토타입 체인 또는 객체 딕셔너리로 매핑
+  - 목표: "하나의 .pgy 파일이 네이티브 + 웹 양쪽에서 동작"
+- [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용, 브라우저에서 네이티브 성능
 
 ## P2 — 배포 시작 시
 

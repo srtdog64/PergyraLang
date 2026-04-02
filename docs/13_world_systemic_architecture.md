@@ -9,15 +9,26 @@
            ↓
         [PARTY] ← 실행 단위
            ↓
-        [ROLE] ← 기능 단위
+        [ROLE] ← class에 부착되는 기능 단위
            ↓
-      [ABILITY] ← 요구 조건 (데이터/슬롯)
+      [ABILITY] ← 객체 셀 위의 행위 계약
+
+class 는 ROLE의 실제 수행 주체이고,
+struct 는 이 계층 아래에서 쓰이는 값 타입이다.
 ```
 
 ## 📋 계층별 정의
 
+### 0. **STRUCT / CLASS** - 값과 객체의 분리
+
+- `struct`: 최소 값 타입. 복사/비교가 자연스러운 데이터
+- `class`: 상태와 identity를 가진 객체. ability의 수행 주체
+
+즉 이 계층도는 사실
+`class object` 위에 `ability`, `role`, `party`가 올라가는 구조다.
+
 ### 1. **ABILITY** - 요구 조건
-가장 기본적인 단위. 어떤 데이터와 동작이 필요한지 정의.
+가장 기본적인 행위 계약. 어떤 데이터/자원 셀과 동작이 필요한지 정의.
 
 ```pergyra
 ability Damageable {
@@ -28,7 +39,7 @@ ability Damageable {
 ```
 
 ### 2. **ROLE** - 기능 단위
-특정 struct가 ability를 어떻게 구현하는지 정의. 병렬 실행 로직 포함.
+특정 class가 ability를 어떻게 구현하는지 정의. 병렬 실행 로직 포함.
 
 ```pergyra
 role WarriorTank for Warrior {
@@ -42,7 +53,7 @@ role WarriorTank for Warrior {
 ```
 
 ### 3. **PARTY** - 실행 단위
-여러 role이 협력하는 실행 가능한 단위. 병렬 실행의 기본 단위.
+여러 class 객체가 role slot을 통해 협력하는 실행 가능한 단위. 병렬 실행의 기본 단위.
 
 ```pergyra
 party DungeonTeam {
@@ -123,6 +134,17 @@ world GameWorld {
 ```
 
 ## 🎯 실제 예제: MMORPG
+
+### 이 계층에서 class는 어디에 있나
+
+- ability는 class object가 수행하는 계약이다
+- role은 class에 ability를 붙인다
+- party는 role slot에 class object를 배치한다
+- systemic/world는 party 단위 협력을 조율한다
+
+즉 `world -> systemic -> party -> role -> ability` 계층은
+사실상 `class object`를 중심으로 돌아간다.
+반대로 `struct`는 이 계층의 leaf data로 쓰인다.
 
 ### Ability 레벨
 ```pergyra
@@ -273,6 +295,14 @@ world MMORPGWorld {
     }
 }
 ```
+
+## 정리
+
+- `struct`는 값이다
+- `class`는 ability를 수행하는 객체다
+- `role`은 class와 ability를 묶는다
+- `party`는 class 객체들의 협력 단위다
+- `systemic/world`는 그 협력을 더 큰 단위로 조율한다
 
 ## 🚀 장점
 

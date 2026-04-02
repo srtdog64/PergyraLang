@@ -1,18 +1,43 @@
 # Pergyra Role/Interface System Design
 
 ## Overview
-이 문서는 Pergyra의 역할 기반 조합 시스템 초안을 정리한다.
-`struct`, `ability`, `role`, `include`를 기준으로 데이터와 행위의 결합 방식을 설명한다.
+이 문서는 Pergyra의 역할 기반 조합 시스템을 정리한다.
+핵심은 다음 네 층이다.
+
+- `struct`: 최소 값 타입. 복사/비교가 자연스러운 데이터
+- `class`: ability를 수행하는 객체 타입. 상태와 identity를 가진다
+- `ability`: 객체가 수행할 수 있는 행위 계약
+- `role`: 특정 class가 ability를 어떻게 수행하는지 바인딩하는 계층
+
+즉 Pergyra에서 행위의 중심은 `class + ability + role` 조합이고,
+`struct`는 그 아래에서 쓰이는 값 타입이다.
 
 ## Core Concepts
 
-### 1. **struct** (데이터 컨테이너)
-- 순수하게 데이터만 정의
-- 메서드 없음
-- 객체의 '정체성' 표현
+### 1. **struct** (최소 값 타입)
+- 순수 데이터
+- 복사/비교 가능
+- identity 없음
+- 배열 원소, 설정값, 좌표, 상태 스냅샷 같은 값 표현에 적합
 
 ```pergyra
-struct Player
+struct Vec3
+{
+    x: Float
+    y: Float
+    z: Float
+}
+```
+
+### 2. **class** (객체 타입)
+- 상태를 가진 객체
+- identity를 가진다
+- plain value보다 "살아있는 객체"에 가깝다
+- ability의 실제 수행 주체가 된다
+- class의 행위는 항상 `self` 객체 셀 위에서 실행된다고 본다
+
+```pergyra
+class Player
 {
     _healthSlot: SecureSlot<Int>
     _token: Token
@@ -20,9 +45,11 @@ struct Player
 }
 ```
 
-### 2. **ability** (행위의 명세)
+### 3. **ability** (행위의 명세)
 - 객체가 무엇을 할 수 있는지 정의
-- `require` 키워드로 필요한 데이터 필드 명시
+- 단순 인터페이스보다 강하다
+- `self` 객체가 어떤 자원 셀과 규율 위에서 움직이는지 전제한다
+- `require` 키워드로 ability 수행에 필요한 자원/필드 명시
 - 기본 구현 제공 가능
 
 ```pergyra
@@ -49,9 +76,11 @@ ability Attackable
 }
 ```
 
-### 3. **role** (행위의 구체적 구현)
-- 특정 struct가 특정 ability를 어떻게 수행하는지 구현
-- 데이터와 행위를 연결하는 '접착제'
+### 4. **role** (행위의 구체적 구현)
+- 특정 class가 특정 ability를 어떻게 수행하는지 구현
+- class와 ability를 연결하는 접착 계층
+- 같은 class가 여러 role을 통해 다른 ability 조합을 가질 수 있다
+- role은 타입이 아니라 "그 class가 어떤 자격으로 행동하는가"를 나타낸다
 
 ```pergyra
 role PlayerDamageable for Player
@@ -73,7 +102,7 @@ role PlayerDamageable for Player
 }
 ```
 
-### 4. **include** (역할 조합)
+### 5. **include** (역할 조합)
 - 기존 역할을 재사용하고 확장
 - 다중 include 지원
 - override로 재정의 가능
@@ -92,8 +121,8 @@ role BasicDamageable<T> for T where T has _healthSlot: Slot<Int>
     }
 }
 
-// 몬스터 정의
-struct Monster
+// 몬스터 객체 정의
+class Monster
 {
     _healthSlot: Slot<Int>
     monsterType: String
@@ -125,6 +154,19 @@ role MonsterCombat for Monster
 ```
 
 ## Security Integration
+
+### class와 ability의 관계
+
+Pergyra에서 `ability`는 모든 타입에 무차별적으로 붙는 일반 인터페이스가 아니다.
+기본 방향은 다음과 같다.
+
+- `struct`는 값 타입이다
+- `class`는 ability를 수행하는 객체 타입이다
+- role은 class에 ability를 바인딩한다
+- ability의 `require`는 그 class 객체가 점유하거나 접근 가능한 자원 셀을 전제한다
+
+즉 `ability`는 "메서드 목록"보다
+"이 객체가 어떤 자원 상태와 규율 위에서 어떤 행위를 수행할 수 있는가"에 더 가깝다.
 
 ### 보안 레벨과 역할 통합
 
@@ -185,13 +227,21 @@ role ParallelPhysics<T> for T where T: Physics
     }
 }
 
-// 게임 오브젝트에 병렬 역할 조합
+// 게임 오브젝트 class에 병렬 역할 조합
 role GameObject for Entity
 {
     include role ParallelRenderer<Entity>
     include role ParallelPhysics<Entity>
 }
 ```
+
+## 요약
+
+- `struct`는 복사 가능한 값이다
+- `class`는 ability를 수행하는 객체다
+- `ability`는 객체 셀 위의 행위 계약이다
+- `role`은 class와 ability를 묶는 바인딩이다
+- `include`는 role 재사용 수단이다
 
 ## Implementation Plan
 

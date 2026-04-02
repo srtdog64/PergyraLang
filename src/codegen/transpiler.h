@@ -132,6 +132,9 @@ typedef struct
     /* Generic specializations emitted on demand. */
     GenericSpecializationEntry generic_specializations[MAX_GENERIC_SPECIALIZATIONS];
     int                        generic_specialization_count;
+
+    /* Current class method emission context for implicit self-field access. */
+    const char *current_class_name;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

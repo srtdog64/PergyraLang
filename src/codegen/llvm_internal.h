@@ -269,6 +269,7 @@ typedef struct LLVMGenCtx
 
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
+    const char     *current_class_name;
 
     /* --- Dynamic arrays: pointer + count + capacity --- */
 

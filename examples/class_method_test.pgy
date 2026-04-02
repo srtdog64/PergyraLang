@@ -11,5 +11,5 @@ func Main() -> Void {
     let v: Vec2 = Vec2();
     v.x = 3;
     v.y = 7;
-    Log(Vec2_Length(v));
+    Log(v.Length());
 }

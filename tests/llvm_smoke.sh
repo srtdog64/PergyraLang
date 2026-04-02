@@ -116,9 +116,9 @@ EOF
 run_case "namespace_export_import" "$TMPDIR/module_main.pgy" "7"
 
 cat > "$TMPDIR/operator_overload.pgy" <<'EOF'
-class Vec2 {
-    let x: Int;
-    let y: Int;
+struct Vec2 {
+    x: Int;
+    y: Int;
 }
 
 func operator_add_Vec2(a: Vec2, b: Vec2) -> Vec2 {

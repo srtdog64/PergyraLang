@@ -626,6 +626,17 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             type_get_constructed_arg(slot_type, 0));
     }
 
+    /* ---- Clone: explicit copy of Slot ---- */
+    if (strcmp(name, "Clone") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arg_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (arg_type == NULL)
+            return TYPE_UNKNOWN;
+        /* Clone returns the same type — a fresh independent copy */
+        return arg_type;
+    }
+
     /* ---- Result builtins ---- */
     if (strcmp(name, "IsOk") == 0 || strcmp(name, "IsErr") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))

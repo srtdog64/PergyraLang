@@ -166,11 +166,19 @@ ASTNode* parse_function_declaration(Parser* parser) {
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' after function name");
 
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+        // 소유권 수식자: own / ref
+        ParamMode mode = PARAM_MODE_DEFAULT;
+        if (parser_match(parser, TOKEN_OWN))
+            mode = PARAM_MODE_OWN;
+        else if (parser_match(parser, TOKEN_REF))
+            mode = PARAM_MODE_REF;
+
         // 파라미터 이름
         Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);
+        param->mode = mode;
 
         // self 파라미터: no type annotation needed
         if (strcmp(param_name.text, "self") == 0

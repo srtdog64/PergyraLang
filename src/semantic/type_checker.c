@@ -345,6 +345,56 @@ resource_handle_display_name(const Type *type)
     return type->name != NULL ? type->name : "resource";
 }
 
+static ASTNode *
+find_type_decl_by_name(ASTNode *program, const char *type_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_CLASS_DECL)
+            continue;
+        if (stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, type_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+type_is_class_object_type(const Type *type, SemanticContext *ctx)
+{
+    ASTNode *decl;
+
+    if (type == NULL || type->kind != TYPE_KIND_CLASS
+        || type->name == NULL || ctx == NULL)
+        return false;
+
+    decl = find_type_decl_by_name(ctx->program_root, type->name);
+    return decl != NULL && !decl->data.class_decl.is_struct;
+}
+
+static bool
+expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *decl;
+
+    if (expr == NULL || expr->type != AST_CALL
+        || expr->data.call.callee == NULL
+        || expr->data.call.callee->type != AST_IDENTIFIER
+        || expr->data.call.callee->data.identifier.name == NULL
+        || ctx == NULL) {
+        return false;
+    }
+
+    decl = find_type_decl_by_name(ctx->program_root,
+        expr->data.call.callee->data.identifier.name);
+    return decl != NULL && !decl->data.class_decl.is_struct;
+}
+
 static bool
 expr_is_qubit_claim(const ASTNode *expr)
 {
@@ -534,8 +584,45 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     resource_handle_display_name(arg_type));
                 continue;
             }
+            /* Check own/ref qualifier from function declaration AST */
+            {
+                ParamMode pmode = PARAM_MODE_DEFAULT;
+                if (ctx->program_root != NULL) {
+                    ASTNode *prog = ctx->program_root;
+                    for (size_t si = 0; si < prog->data.program.count; si++) {
+                        ASTNode *stmt = prog->data.program.statements[si];
+                        if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                            && stmt->data.func_decl.name != NULL
+                            && strcmp(stmt->data.func_decl.name, display_name) == 0
+                            && i < stmt->data.func_decl.param_count) {
+                            pmode = stmt->data.func_decl.params[i]->mode;
+                            break;
+                        }
+                    }
+                }
+                if (pmode == PARAM_MODE_OWN) {
+                    /* own: move — consume the source slot */
+                    if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                        const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                        Symbol *src_sym = scope_lookup(ctx->scope, src);
+                        if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
+                            if (src_sym->slot_info.state == SLOT_STATE_RELEASED)
+                                semantic_error(ctx, expr->data.call.arguments[i],
+                                    "Cannot move from released slot '%s'", src);
+                            else
+                                src_sym->slot_info.state = SLOT_STATE_RELEASED;
+                        }
+                    }
+                    continue;
+                } else if (pmode == PARAM_MODE_REF) {
+                    /* ref: borrow — source remains valid */
+                    continue;
+                }
+            }
             semantic_error(ctx, expr->data.call.arguments[i],
-                "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot cross function boundaries yet; pass the inner value, await a future/result token, or redesign the API to avoid handle transfer");
+                "Slot arguments require 'own' or 'ref' qualifier in function signature; "
+                "use 'func F(own s: Slot<T>)' to take ownership or "
+                "'func F(ref s: Slot<T>)' to borrow");
             continue;
         }
 
@@ -1278,6 +1365,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
     /* Callee is a member access (method call) */
     if (callee->type == AST_MEMBER_ACCESS) {
+        ASTNode *object = callee->data.member.object;
+        const char *method_name = callee->data.member.name;
+
         if (expr_is_static_member_access(callee)) {
             char *flat_name = flatten_static_member_access(callee, '_');
             char *display_name = flatten_static_member_access(callee, '.');
@@ -1294,14 +1384,36 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             return result;
         }
 
-        if (!(callee->data.member.object != NULL
-              && callee->data.member.object->type == AST_IDENTIFIER
-              && callee->data.member.object->data.identifier.name != NULL
-              && callee->data.member.object->data.identifier.name[0] >= 'A'
-              && callee->data.member.object->data.identifier.name[0] <= 'Z')) {
+        if (!(object != NULL
+              && object->type == AST_IDENTIFIER
+              && object->data.identifier.name != NULL
+              && object->data.identifier.name[0] >= 'A'
+              && object->data.identifier.name[0] <= 'Z')) {
             /* Resolve object type for normal method calls.
              * Namespace/static-style calls like Math.Add are lowered later. */
-            type_check_expression(callee->data.member.object, ctx);
+            Type *object_type = type_check_expression(object, ctx);
+            ASTNode *class_decl;
+
+            if (type_is_class_object_type(object_type, ctx)
+                && object_type->name != NULL
+                && method_name != NULL) {
+                class_decl = find_type_decl_by_name(ctx->program_root,
+                    object_type->name);
+                if (class_decl != NULL) {
+                    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
+                        ASTNode *method = class_decl->data.class_decl.methods[i];
+                        if (method == NULL || method->type != AST_FUNC_DECL
+                            || method->data.func_decl.name == NULL)
+                            continue;
+                        if (strcmp(method->data.func_decl.name, method_name) == 0) {
+                            if (method->data.func_decl.return_type != NULL)
+                                return resolve_type_node(
+                                    method->data.func_decl.return_type, ctx);
+                            return TYPE_VOID;
+                        }
+                    }
+                }
+            }
         }
         return TYPE_UNKNOWN;
     }
@@ -1418,6 +1530,13 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         return target_type;
     }
 
+    if (type_is_class_object_type(target_type, ctx)
+        || type_is_class_object_type(value_type, ctx)) {
+        semantic_error(ctx, expr,
+            "Class object assignment is not allowed; classes are identity-bearing objects. Mutate fields or methods on the existing object instead of rebinding it with '='");
+        return target_type;
+    }
+
     require_assignable(value_type, target_type, expr, ctx);
     return target_type;
 }
@@ -1521,6 +1640,15 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = TYPE_UNKNOWN;
     }
 
+    if (type_is_class_object_type(decl_type, ctx)
+        && init != NULL
+        && type_is_class_object_type(init_type, ctx)
+        && !expr_is_class_constructor_call(init, ctx)
+        && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
+        semantic_error(ctx, node,
+            "Class objects cannot be copied into a new binding. Construct a fresh object or mutate the existing one");
+    }
+
     if (type_is_qubit(decl_type)) {
         bool valid_qubit_init = false;
         if (init_type == TYPE_UNKNOWN) {
@@ -1538,6 +1666,26 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         if (!valid_qubit_init) {
             semantic_error(ctx, node,
                 "QubitSlot is a movable resource handle; it must come from ClaimQubit(), a moved QubitSlot value, or a transfer boundary such as recv/await. Plain copying is not allowed");
+        }
+    }
+
+    /* Slot<T> move semantics: when assigning from another Slot variable,
+     * consume (invalidate) the source.  ClaimSlot() creates fresh. */
+    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
+        && decl_type->data.slot.access_mode == SLOT_ACCESS_OWNED
+        && init != NULL && init->type == AST_IDENTIFIER
+        && init_type != NULL && init_type->kind == TYPE_KIND_SLOT
+        && init_type->data.slot.access_mode == SLOT_ACCESS_OWNED) {
+        /* Move: source Slot becomes invalid after this point */
+        const char *src_name = init->data.identifier.name;
+        Symbol *src_sym = scope_lookup(ctx->scope, src_name);
+        if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
+            if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
+                semantic_error(ctx, init,
+                    "Cannot move from released slot '%s'", src_name);
+            } else {
+                src_sym->slot_info.state = SLOT_STATE_RELEASED;
+            }
         }
     }
 
@@ -1741,7 +1889,21 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check for_type exists */
     if (node->data.role_decl.for_type != NULL) {
-        resolve_type_node(node->data.role_decl.for_type, ctx);
+        Type *bound_type = resolve_type_node(node->data.role_decl.for_type, ctx);
+        if (bound_type != NULL
+            && node->data.role_decl.for_type->type == AST_TYPE
+            && node->data.role_decl.for_type->data.type.name != NULL) {
+            ASTNode *type_decl = find_type_decl_by_name(
+                ctx->program_root, node->data.role_decl.for_type->data.type.name);
+            if (type_decl != NULL
+                && type_decl->type == AST_CLASS_DECL
+                && type_decl->data.class_decl.is_struct) {
+                semantic_warning(ctx, node->data.role_decl.for_type,
+                    "Role '%s' is bound to struct '%s'. Roles are intended for classes or primitive domains; binding them to value structs weakens object/ability semantics",
+                    name,
+                    node->data.role_decl.for_type->data.type.name);
+            }
+        }
     }
 
     /* Check includes reference existing roles */
@@ -2282,6 +2444,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     uint32_t prev_effects = ctx->current_function_effects;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
+    bool in_class_scope = (ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS);
     uint32_t declared_effects =
         effects_from_structured_comment(node->data.func_decl.doc_comment, ctx, node);
 
@@ -2329,6 +2492,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error(ctx, node->data.func_decl.return_type,
             "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet");
     }
+    if (type_is_class_object_type(return_type, ctx)) {
+        semantic_error(ctx, node->data.func_decl.return_type,
+            "Returning class objects by value is not supported yet; return a struct value, keep the object local, or use Box<T>/another handle layer explicitly");
+    }
 
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *param = node->data.func_decl.params[i];
@@ -2357,6 +2524,15 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (type_is_anchored_resource_handle(param_types[i])) {
             semantic_error(ctx, node,
                 "Anchored resource handle parameters (Slot/SecureSlot/DeviceSlot) are not supported yet");
+        }
+        if (type_is_class_object_type(param_types[i], ctx)) {
+            bool is_implicit_self = (param->name != NULL
+                && strcmp(param->name, "self") == 0
+                && in_class_scope);
+            if (!is_implicit_self) {
+                semantic_error(ctx, node,
+                    "Class object parameters are not supported as plain value parameters yet; keep object interaction on methods/self, or pass an explicit Box<T>/handle once the storage model is fixed");
+            }
         }
     }
 
@@ -2460,6 +2636,20 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
      * then register the mangled name (ClassName_MethodName) in the
      * parent scope so that callers can find it. */
     scope_enter(&ctx->scope, SCOPE_CLASS);
+    for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+        ClassField *field = node->data.class_decl.fields[i];
+        Type *field_type;
+        Symbol *field_sym;
+
+        if (field == NULL || field->name == NULL || field->type == NULL)
+            continue;
+
+        field_type = resolve_type_node(field->type, ctx);
+        field_sym = symbol_create_variable(field->name, field_type,
+            node->line, node->column);
+        if (field_sym != NULL)
+            scope_declare(ctx->scope, field_sym);
+    }
     for (size_t i = 0; i < node->data.class_decl.method_count; i++)
         type_check_func_decl(node->data.class_decl.methods[i], ctx);
 

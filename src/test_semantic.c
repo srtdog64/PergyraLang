@@ -203,6 +203,24 @@ ctx_has_diagnostic_substring(const SemanticContext *ctx, const char *needle)
     return false;
 }
 
+static bool
+ctx_has_diagnostic_substring_from_result(const SemanticResult *result,
+                                         const char *needle)
+{
+    if (result == NULL || needle == NULL)
+        return false;
+
+    for (size_t i = 0; i < result->diagnostic_count; i++) {
+        Diagnostic *diag = result->diagnostics[i];
+        if (diag != NULL && diag->message != NULL
+            && strstr(diag->message, needle) != NULL) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /* -----------------------------------------------------------------
  * Test groups
  * ----------------------------------------------------------------- */
@@ -2025,6 +2043,31 @@ test_role_decl(void)
         ast_destroy(role);
     }
 
+    TEST("role bound to struct produces warning");
+    {
+        const char *source =
+            "struct Vec2 {\n"
+            "    x: Int;\n"
+            "}\n"
+            "role ValueRole for Vec2 {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "bound to struct 'Vec2'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("role ability Add enables operator overload on target type");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -3035,6 +3078,130 @@ test_effect_inference(void)
         ast_destroy(decl);
         ast_destroy(release_a);
         ast_destroy(release_b);
+    }
+
+    TEST("class object copy into new binding is rejected");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a: Vec2 = Vec2();\n"
+            "    let b: Vec2 = a;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Class objects cannot be copied into a new binding"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("struct value copy into new binding is allowed");
+    {
+        const char *source =
+            "struct Vec2 {\n"
+            "    x: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a: Vec2 = Vec2();\n"
+            "    let b: Vec2 = a;\n"
+            "    b.x = 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("standalone class parameter by value is rejected");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "}\n"
+            "func Use(v: Vec2) -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Class object parameters are not supported as plain value parameters yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class return by value is rejected");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "}\n"
+            "func Make() -> Vec2 {\n"
+            "    return Vec2();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Returning class objects by value is not supported yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class method bare field names resolve in class scope");
+    {
+        const char *source =
+            "class Counter {\n"
+            "    let count: Int;\n"
+            "    func Tick(self, delta: Int) -> Int {\n"
+            "        count = count + delta;\n"
+            "        return count;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("spawn and channel send infer remote effect on function");

@@ -597,6 +597,24 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
                               llvm_tmp_name(ctx));
 
+    if (ctx->current_class_name != NULL && strcmp(name, "self") != 0) {
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
+        if (cls != NULL && self_var != NULL) {
+            int field_idx = llvm_class_field_index(cls, name);
+            if (field_idx >= 0) {
+                LLVMValueRef base_ptr = LLVMBuildLoad2(ctx->builder,
+                    self_var->type, self_var->alloca, llvm_tmp_name(ctx));
+                LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
+                    cls->struct_type, base_ptr, (unsigned)field_idx,
+                    llvm_tmp_name(ctx));
+                LLVMTypeRef field_type = cls->fields[field_idx].field_type;
+                return LLVMBuildLoad2(ctx->builder, field_type, gep,
+                    llvm_tmp_name(ctx));
+            }
+        }
+    }
+
     /* Look up as function (for passing as value) */
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, name);
     if (fn != NULL)
@@ -1891,6 +1909,26 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+    if (var == NULL && ctx->current_class_name != NULL) {
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
+        if (cls != NULL && self_var != NULL) {
+            int field_idx = llvm_class_field_index(cls, name);
+            if (field_idx >= 0) {
+                LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+                LLVMValueRef base_ptr;
+                LLVMValueRef gep;
+                if (val == NULL)
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                base_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
+                    self_var->alloca, llvm_tmp_name(ctx));
+                gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+                    (unsigned)field_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, val, gep);
+                return val;
+            }
+        }
+    }
     if (var == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 

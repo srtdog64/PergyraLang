@@ -320,6 +320,54 @@ find_party_decl(TranspilerCtx *ctx, const char *party_name)
 }
 
 static ASTNode *
+find_class_decl(TranspilerCtx *ctx, const char *class_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || class_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt != NULL && stmt->type == AST_CLASS_DECL
+            && stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, class_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+is_class_object_type_name(TranspilerCtx *ctx, const char *type_name)
+{
+    ASTNode *decl = find_class_decl(ctx, type_name);
+    return decl != NULL && !decl->data.class_decl.is_struct;
+}
+
+static bool
+current_class_has_field(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || ctx->current_class_name == NULL || field_name == NULL)
+        return false;
+
+    decl = find_class_decl(ctx, ctx->current_class_name);
+    if (decl == NULL)
+        return false;
+
+    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+        ClassField *field = decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static ASTNode *
 find_ability_decl(TranspilerCtx *ctx, const char *ability_name)
 {
     if (ctx == NULL || ctx->hir == NULL || ability_name == NULL)
@@ -2136,6 +2184,22 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(ch);
             return result;
         }
+        /* Clone: explicit copy of Slot */
+        if (strcmp(fn, "Clone") == 0 && call->data.call.arg_count == 1) {
+            char *src = emit_expression(call->data.call.arguments[0], ctx);
+            const char *tn = infer_expression_type_name(
+                ctx, call->data.call.arguments[0]);
+            if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
+                const char *inner = slot_inner_type_name(tn);
+                char *result = strdup_fmt(
+                    "({ PgySlot_%s _c = pgy_claim_%s(); "
+                    "pgy_write_%s(&_c, pgy_read_%s(&%s)); _c; })",
+                    inner, inner, inner, inner, src);
+                free(src);
+                return result;
+            }
+            return src;
+        }
         /* Print (no newline) vs Log (with newline) */
         if (strcmp(fn, "Print") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
@@ -2242,6 +2306,36 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         bool is_slot_method = (strcmp(method, "Write") == 0
                             || strcmp(method, "Read") == 0
                             || strcmp(method, "Release") == 0);
+
+        if (obj != NULL && obj->type == AST_IDENTIFIER && method != NULL) {
+            const char *var_name = obj->data.identifier.name;
+            const char *type_name = lookup_typed_var(ctx, var_name);
+            if (type_name != NULL && is_class_object_type_name(ctx, type_name)) {
+                CodeBuf *args_buf = codebuf_create();
+                const char *self_expr = strcmp(var_name, "self") == 0 ? "self" : NULL;
+
+                if (self_expr == NULL) {
+                    char *obj_expr = emit_expression(obj, ctx);
+                    codebuf_write(args_buf, "&%s", obj_expr);
+                    free(obj_expr);
+                } else {
+                    codebuf_write(args_buf, "%s", self_expr);
+                }
+
+                for (size_t i = 0; i < call->data.call.arg_count; i++) {
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    codebuf_write(args_buf, ", %s", arg);
+                    free(arg);
+                }
+
+                {
+                    char *result = strdup_fmt("%s_%s(%s)",
+                        type_name, method, args_buf->data);
+                    codebuf_destroy(args_buf);
+                    return result;
+                }
+            }
+        }
 
         if (is_slot_method && obj->type == AST_IDENTIFIER) {
             const char *inner = lookup_slot_type(ctx, obj->data.identifier.name);
@@ -2554,6 +2648,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
         }
+        if (ctx->current_class_name != NULL
+            && strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
+            && current_class_has_field(ctx, id_name)) {
+            return strdup_fmt("self->%s", id_name);
+        }
         /* Slot sugar: auto-Read — emit pgy_read_T(&x) instead of x */
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             const char *inner = lookup_slot_type(ctx, id_name);
@@ -2589,6 +2690,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && node->data.member.object->data.identifier.name[0] >= 'A'
             && node->data.member.object->data.identifier.name[0] <= 'Z') {
             char *result = strdup_fmt("%s_%s", obj, node->data.member.name);
+            free(obj);
+            return result;
+        }
+        if (node->data.member.object->type == AST_IDENTIFIER
+            && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
+            char *result = strdup_fmt("%s->%s", obj, node->data.member.name);
             free(obj);
             return result;
         }
@@ -3360,7 +3467,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         "PGY_SLOT_DEFINE(%s, %s)\n",
         name, name, name);
 
-    /* Methods become free functions: RetType ClassName_MethodName(T self, ...) */
+    /* Methods become free functions over the object's self cell. */
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
         if (method->type != AST_FUNC_DECL)
@@ -3371,7 +3478,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
+        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
                       ret_type, name, method_name, name);
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
@@ -3385,10 +3492,36 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
 
-        ctx->indent++;
-        if (method->data.func_decl.body != NULL)
-            emit_block(method->data.func_decl.body, ctx);
-        ctx->indent--;
+        {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
+            const char *saved_class_name = ctx->current_class_name;
+
+            ctx->current_class_name = name;
+            register_typed_var(ctx, "self", name);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *type_name;
+
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0
+                    || p->type == NULL)
+                    continue;
+
+                type_name = render_type_name(p->type);
+                if (type_name != NULL) {
+                    register_typed_var(ctx, p->name, type_name);
+                    free(type_name);
+                }
+            }
+            ctx->indent++;
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            ctx->indent--;
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
+            ctx->current_class_name = saved_class_name;
+        }
 
         codebuf_write(ctx->out, "}\n");
     }

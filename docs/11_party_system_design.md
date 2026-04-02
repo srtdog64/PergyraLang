@@ -6,12 +6,20 @@
 Party는 역할들의 협력적 실행 단위를 표현하기 위한 설계 요소다.
 이 문서는 role slot, context, 병렬 실행 모델을 한 단위로 다루는 방법을 정리한다.
 
+여기서 중요한 전제는 다음과 같다.
+
+- `struct`는 값 타입이다
+- `class`는 party에 참여하는 실제 객체 타입이다
+- `role`은 class가 특정 ability 묶음을 수행하도록 바인딩한다
+- `party`는 role slot에 class 객체를 꽂아 협력시키는 실행 단위다
+
 ## Party의 핵심 요소
 
 ### 1. **Role Slot (역할 슬롯)**
 - Party가 요구하는 역할의 명세
 - 컴파일 타임에 타입 안전성 보장
 - 다중 ability 요구사항 지원
+- 실제로는 "이 slot에 들어올 class 객체가 어떤 ability를 만족해야 하는가"를 뜻한다
 
 ### 2. **Context (컨텍스트)**
 - Party 내 역할 간 안전한 상호작용
@@ -48,13 +56,18 @@ party HolyPaladin
 }
 ```
 
+여기서 `tank`, `healer`, `dps`는 값 타입이 아니라
+ability를 수행하는 객체 slot이다.
+즉 party는 struct 값을 담는 컨테이너가 아니라
+class 객체들의 협력 단위다.
+
 ### Party 인스턴스 생성
 
 ```pergyra
 // 각 역할을 수행할 객체들
-let warrior = Warrior { ... }  // has Damageable & Taunting
-let priest = Priest { ... }    // has Healing & Cleansing
-let mage = Mage { ... }       // has DamageDealing
+let warrior = Warrior()  // class object, has Damageable & Taunting
+let priest = Priest()    // class object, has Healing & Cleansing
+let mage = Mage()        // class object, has DamageDealing
 
 // Party 구성
 let raid = HolyPaladin
@@ -91,6 +104,9 @@ role PriestHealer for Priest
     }
 }
 ```
+
+`context`는 값 타입 모음에 대한 접근이 아니라,
+현재 party 안에서 협력 중인 class 객체들에 대한 능력 기반 접근이다.
 
 ### Party 병렬 실행
 
@@ -168,6 +184,10 @@ let invalidParty = HolyPaladin
 }
 ```
 
+이 검증의 의미는 단순 "메서드가 있나?"가 아니다.
+`healer` slot에 들어갈 객체가 `Healing & Cleansing` role/ability 조합을
+실제로 수행할 수 있는 class인가를 보는 것이다.
+
 ### 2. **Context 접근 제어**
 ```pergyra
 // context는 role 구현 내부에서만 사용 가능
@@ -225,6 +245,9 @@ party FlexibleTeam
     }
 }
 ```
+
+이때도 교체 대상은 plain struct 값이 아니라
+새 role binding을 가진 class 객체다.
 
 ### 2. **Party Inheritance**
 ```pergyra

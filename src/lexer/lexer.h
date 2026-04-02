@@ -72,6 +72,10 @@ typedef enum
     TOKEN_EXPORT,
     TOKEN_NAMESPACE,
 
+    /* Ownership qualifiers */
+    TOKEN_OWN,          /* own — take ownership */
+    TOKEN_REF,          /* ref — borrow */
+
     /* Role/Ability keywords */
     TOKEN_ABILITY,
     TOKEN_ROLE,
