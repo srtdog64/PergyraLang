@@ -389,23 +389,23 @@ llvm-test-hir:
 
 llvm-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(PGY)" bash tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/llvm_smoke.sh
 
 stdlib-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(PGY)" bash tests/stdlib_surface_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/stdlib_surface_smoke.sh
 
 module-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(PGY)" bash tests/module_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/module_smoke.sh
 
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
-	PGY_BIN="$(PGY)" bash tests/compare_backends.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/compare_backends.sh
 
 example-test-smoke:
 	$(MAKE) $(PGY)
-	PGY_BIN="$(PGY)" bash tests/example_contract_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/example_contract_smoke.sh
 
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test
@@ -415,8 +415,8 @@ llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test-memory
 	$(MAKE) LLVM_ENABLED=1 test-concurrency
 	$(MAKE) LLVM_ENABLED=1 test-hir
-	PGY_BIN="$(PGY)" bash tests/llvm_smoke.sh
-	PGY_BIN="$(PGY)" bash tests/compare_backends.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/llvm_smoke.sh
+	PGY_BIN="$(abspath $(PGY))" bash tests/compare_backends.sh
 
 check-linux-toolchain:
 	@cc_machine="$$( $(CI_LINUX_CC) -dumpmachine 2>/dev/null || true )"; \
