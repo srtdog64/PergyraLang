@@ -176,6 +176,19 @@ func Main() -> Void {
 EOF
 run_case "device_slot_remote" "$TMPDIR/device_slot_remote.pgy" "11"
 
+cat > "$TMPDIR/secure_slot_view.pgy" <<'EOF'
+func Main() -> Void {
+    let ss: SecureSlot<Int> = ClaimSecureSlot();
+    let rv: ReadView<Int> = ViewRead(ss);
+    let wv: WriteView<Int> = ViewWrite(ss);
+    Write(wv, 5);
+    Log(Read(rv));
+    Write(wv, 9);
+    Log(Read(rv));
+}
+EOF
+run_case "secure_slot_view" "$TMPDIR/secure_slot_view.pgy" "5" "9"
+
 cat > "$TMPDIR/generic_call.pgy" <<'EOF'
 func Identity<T>(x: T) -> T {
     return x;

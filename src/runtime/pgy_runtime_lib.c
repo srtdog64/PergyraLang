@@ -250,6 +250,70 @@ void pgy_release_String(PgySlot_String *s)
 }
 
 /* =================================================================
+ * Secure slot operations — extern wrappers for LLVM linker
+ * ================================================================= */
+
+#define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \
+typedef struct {                                                               \
+    CType    value;                                                            \
+    bool     occupied;                                                         \
+    uint64_t token;                                                            \
+} PgySecureSlot_##Suffix;                                                      \
+                                                                               \
+typedef struct {                                                               \
+    uint64_t id;                                                               \
+    bool     can_write;                                                        \
+    bool     can_read;                                                         \
+} PgyToken_##Suffix;                                                           \
+                                                                               \
+PgySecureSlot_##Suffix pgy_claim_secure_##Suffix(PgyToken_##Suffix *out_token) \
+{                                                                              \
+    PgySecureSlot_##Suffix s;                                                  \
+    s.value = (ZeroExpr);                                                      \
+    s.occupied = true;                                                         \
+    s.token = 0;                                                               \
+    if (out_token != NULL) {                                                   \
+        out_token->id = 0;                                                     \
+        out_token->can_write = true;                                           \
+        out_token->can_read = true;                                            \
+    }                                                                          \
+    return s;                                                                  \
+}                                                                              \
+                                                                               \
+void pgy_secure_write_##Suffix(PgySecureSlot_##Suffix *s, CType v,             \
+                               const PgyToken_##Suffix *t)                     \
+{                                                                              \
+    if (s != NULL && t != NULL && s->occupied                                  \
+        && s->token == t->id && t->can_write)                                  \
+        s->value = v;                                                          \
+}                                                                              \
+                                                                               \
+CType pgy_secure_read_##Suffix(PgySecureSlot_##Suffix *s,                      \
+                               const PgyToken_##Suffix *t)                     \
+{                                                                              \
+    if (s != NULL && t != NULL && s->occupied                                  \
+        && s->token == t->id && t->can_read)                                   \
+        return s->value;                                                       \
+    return (ZeroExpr);                                                         \
+}                                                                              \
+                                                                               \
+void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
+                                 const PgyToken_##Suffix *t)                   \
+{                                                                              \
+    if (s != NULL && t != NULL && s->token == t->id) {                         \
+        s->occupied = false;                                                   \
+        s->token = 0;                                                          \
+    }                                                                          \
+}
+
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Int, int32_t, 0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Long, int64_t, 0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Float, float, 0.0f)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Double, double, 0.0)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(Bool, bool, false)
+PGY_DEFINE_SECURE_SLOT_EXPORTS(String, char *, NULL)
+
+/* =================================================================
  * Device Slot operations — extern wrappers for LLVM linker
  * ================================================================= */
 

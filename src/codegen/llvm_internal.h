@@ -147,6 +147,7 @@ typedef struct
     const char *var_name;
     const char *inner_type;
     bool        released;
+    bool        is_secure;
 } LLVMSlotVarEntry;
 
 typedef struct
@@ -287,6 +288,20 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     slot_type_Bool;
     LLVMTypeRef     slot_type_String;
 
+    LLVMTypeRef     secure_slot_type_Int;
+    LLVMTypeRef     secure_slot_type_Long;
+    LLVMTypeRef     secure_slot_type_Float;
+    LLVMTypeRef     secure_slot_type_Double;
+    LLVMTypeRef     secure_slot_type_Bool;
+    LLVMTypeRef     secure_slot_type_String;
+
+    LLVMTypeRef     secure_token_type_Int;
+    LLVMTypeRef     secure_token_type_Long;
+    LLVMTypeRef     secure_token_type_Float;
+    LLVMTypeRef     secure_token_type_Double;
+    LLVMTypeRef     secure_token_type_Bool;
+    LLVMTypeRef     secure_token_type_String;
+
     LLVMTypeRef     array_type_Int;
     LLVMTypeRef     array_type_Long;
     LLVMTypeRef     array_type_Float;
@@ -395,20 +410,26 @@ LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
  * Slot tracking (llvm_backend.c)
  * ================================================================= */
 void          llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
-                                     const char *inner_type);
+                                     const char *inner_type,
+                                     bool is_secure);
 const char   *llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name);
+bool          llvm_lookup_slot_is_secure(LLVMGenCtx *ctx, const char *var_name);
 void          llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
                                      const char *source_slot,
                                      const char *inner_type,
                                      bool is_move_token);
 LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef   llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner);
 void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                              const char *inner_type);
 const char   *llvm_lookup_device_slot_inner(LLVMGenCtx *ctx,
                                              const char *var_name);
 void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
                                               const char *var_name);
+LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
+                                            const char *slot_name);
 void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
 const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);

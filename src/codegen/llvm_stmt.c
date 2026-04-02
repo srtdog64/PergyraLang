@@ -99,6 +99,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             || strcmp(callee, "ClaimSecureSlot") == 0) {
             /* Resolve inner type from type annotation */
             const char *inner = "Int";
+            bool is_secure = (strcmp(callee, "ClaimSecureSlot") == 0);
             if (type_ann != NULL && type_ann->type == AST_TYPE) {
                 /* Check for generic args: Slot<Int> */
                 if (type_ann->data.type.generic_args != NULL
@@ -112,22 +113,58 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 }
             }
 
-            LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+            LLVMTypeRef slot_ty = is_secure
+                ? llvm_secure_slot_struct_type(ctx, inner)
+                : llvm_slot_struct_type(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
 
-            /* Inline ClaimSlot: zero-init the struct and set claimed=true.
-             * Avoids struct-return-by-value ABI mismatch between LLVM and C. */
-            LLVMValueRef zero = LLVMConstNull(slot_ty);
-            LLVMBuildStore(ctx->builder, zero, alloca_val);
-            /* Set the 'claimed' field (index 1) to true */
+            /* Inline Claim: initialize the concrete slot storage directly.
+             * SecureSlot also materializes a token bound to the owning alloca. */
+            LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
             LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
                 slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
                 claimed_ptr);
 
+            if (is_secure) {
+                LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
+                char token_name[256];
+                snprintf(token_name, sizeof(token_name), "%s_token", name);
+                LLVMValueRef token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+                LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
+
+                LLVMValueRef slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,
+                    alloca_val, ctx->type_i64, llvm_tmp_name(ctx));
+                LLVMValueRef token_id = LLVMBuildXor(ctx->builder, slot_ptr_i64,
+                    LLVMConstInt(ctx->type_i64, 0xDEADBEEFCAFEBABEULL, 0),
+                    llvm_tmp_name(ctx));
+
+                LLVMValueRef slot_token_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    slot_ty, alloca_val, 2, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, token_id, slot_token_ptr);
+
+                LLVMValueRef token_id_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    token_ty, token_alloca, 0, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, token_id, token_id_ptr);
+
+                LLVMValueRef token_write_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    token_ty, token_alloca, 1, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                    token_write_ptr);
+
+                LLVMValueRef token_read_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    token_ty, token_alloca, 2, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+                    token_read_ptr);
+
+                llvm_scope_declare(ctx, pergyra_strdup(token_name), token_alloca, token_ty);
+            }
+
             llvm_scope_declare(ctx, name, alloca_val, slot_ty);
-            llvm_register_slot_var(ctx, name, inner);
+            llvm_register_slot_var(ctx, name, inner, is_secure);
             return;
         }
         if (strcmp(callee, "ClaimDeviceSlot") == 0) {
@@ -178,24 +215,37 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 && type_ann->data.type.generic_args->count > 0)
                 inner = type_ann->data.type.generic_args->params[0]->name;
 
-            LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
             LLVMVarEntry *source = llvm_scope_lookup(ctx, source_name);
             if (source == NULL)
                 return;
-            LLVMValueRef moved = LLVMBuildLoad2(ctx->builder, source->type, source->alloca,
-                llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, moved, alloca_val);
-            llvm_scope_declare(ctx, name, alloca_val, slot_ty);
-            llvm_register_view_var(ctx, name, source_name, inner, strcmp(callee, "Move") == 0);
-            if (strcmp(callee, "Move") == 0) {
+
+            bool is_move = (strcmp(callee, "Move") == 0);
+
+            if (is_move) {
+                /* Move: structural copy — new alloca owns the data,
+                 * source is invalidated */
+                LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+                LLVMValueRef alloca_val = llvm_create_entry_alloca(
+                    ctx, slot_ty, name);
+                LLVMValueRef moved = LLVMBuildLoad2(ctx->builder,
+                    source->type, source->alloca, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, moved, alloca_val);
+                llvm_scope_declare(ctx, name, alloca_val, slot_ty);
+                /* Mark source as consumed */
                 for (int i = 0; i < ctx->slot_var_count; i++) {
                     if (strcmp(ctx->slot_vars[i].var_name, source_name) == 0) {
                         ctx->slot_vars[i].released = true;
                         break;
                     }
                 }
+            } else {
+                /* ReadView / WriteView: non-owning alias —
+                 * share the source slot's alloca directly.
+                 * No separate storage; reads/writes go through
+                 * the same address as the owning slot. */
+                llvm_scope_declare(ctx, name, source->alloca, source->type);
             }
+            llvm_register_view_var(ctx, name, source_name, inner, is_move);
             return;
         }
     }
@@ -225,7 +275,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                         llvm_tmp_name(ctx));
                     LLVMBuildStore(ctx->builder, moved, alloca_val);
                     llvm_scope_declare(ctx, name, alloca_val, slot_ty);
-                    llvm_register_slot_var(ctx, name, inner);
+                    llvm_register_slot_var(ctx, name, inner,
+                        llvm_lookup_slot_is_secure(ctx, move_entry->source_slot));
                     return;
                 }
             }
@@ -242,7 +293,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 claimed_ptr);
 
             llvm_scope_declare(ctx, name, alloca_val, slot_ty);
-            llvm_register_slot_var(ctx, name, inner);
+            llvm_register_slot_var(ctx, name, inner, false);
 
             /* Auto Write the initializer value */
             if (init != NULL) {
@@ -759,12 +810,13 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         && node->data.with_stmt.slot_type->data.type.name != NULL)
         inner = node->data.with_stmt.slot_type->data.type.name;
 
-    LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+    LLVMTypeRef slot_ty = is_secure
+        ? llvm_secure_slot_struct_type(ctx, inner)
+        : llvm_slot_struct_type(ctx, inner);
     LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, alias);
 
     /* Inline claim: zero-init + set claimed=true (avoids ABI mismatch) */
     char fn_name[64];
-    (void)is_secure; /* both secure and normal get same init pattern */
     LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
     LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
         slot_ty, alloca_val, 1, llvm_tmp_name(ctx));
@@ -774,8 +826,38 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Push scope, register slot variable */
     llvm_scope_push(ctx);
+    if (is_secure) {
+        LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
+        char token_name[256];
+        snprintf(token_name, sizeof(token_name), "%s_token", alias);
+        LLVMValueRef token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+        LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
+
+        LLVMValueRef slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,
+            alloca_val, ctx->type_i64, llvm_tmp_name(ctx));
+        LLVMValueRef token_id = LLVMBuildXor(ctx->builder, slot_ptr_i64,
+            LLVMConstInt(ctx->type_i64, 0xDEADBEEFCAFEBABEULL, 0),
+            llvm_tmp_name(ctx));
+        LLVMValueRef slot_token_ptr = LLVMBuildStructGEP2(ctx->builder,
+            slot_ty, alloca_val, 2, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, token_id, slot_token_ptr);
+        LLVMValueRef token_id_ptr = LLVMBuildStructGEP2(ctx->builder,
+            token_ty, token_alloca, 0, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, token_id, token_id_ptr);
+        LLVMValueRef token_write_ptr = LLVMBuildStructGEP2(ctx->builder,
+            token_ty, token_alloca, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+            token_write_ptr);
+        LLVMValueRef token_read_ptr = LLVMBuildStructGEP2(ctx->builder,
+            token_ty, token_alloca, 2, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
+            token_read_ptr);
+        llvm_scope_declare(ctx, pergyra_strdup(token_name), token_alloca, token_ty);
+    }
     llvm_scope_declare(ctx, alias, alloca_val, slot_ty);
-    llvm_register_slot_var(ctx, alias, inner);
+    llvm_register_slot_var(ctx, alias, inner, is_secure);
 
     /* Emit body */
     if (node->data.with_stmt.body != NULL)
@@ -783,12 +865,21 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Auto-release */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", inner);
+        snprintf(fn_name, sizeof(fn_name), is_secure ? "pgy_secure_release_%s" : "pgy_release_%s", inner);
         LLVMFuncEntry *release_fn = llvm_lookup_function(ctx, fn_name);
         if (release_fn != NULL) {
-            LLVMValueRef args[] = { alloca_val };
-            LLVMBuildCall2(ctx->builder, release_fn->fn_type,
-                           release_fn->fn, args, 1, "");
+            if (is_secure) {
+                LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, alias);
+                if (token_var != NULL) {
+                    LLVMValueRef args[] = { alloca_val, token_var->alloca };
+                    LLVMBuildCall2(ctx->builder, release_fn->fn_type,
+                                   release_fn->fn, args, 2, "");
+                }
+            } else {
+                LLVMValueRef args[] = { alloca_val };
+                LLVMBuildCall2(ctx->builder, release_fn->fn_type,
+                               release_fn->fn, args, 1, "");
+            }
         }
     }
 
@@ -822,12 +913,22 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
             const char *inner = ctx->slot_vars[i].inner_type;
             const char *vname = ctx->slot_vars[i].var_name;
             char fn_name[64];
-            snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", inner);
+            bool is_secure = ctx->slot_vars[i].is_secure;
+            snprintf(fn_name, sizeof(fn_name),
+                is_secure ? "pgy_secure_release_%s" : "pgy_release_%s", inner);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             LLVMVarEntry *var = llvm_scope_lookup(ctx, vname);
             if (fn != NULL && var != NULL) {
-                LLVMValueRef args[] = { var->alloca };
-                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+                if (is_secure) {
+                    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, vname);
+                    if (token_var != NULL) {
+                        LLVMValueRef args[] = { var->alloca, token_var->alloca };
+                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    }
+                } else {
+                    LLVMValueRef args[] = { var->alloca };
+                    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+                }
             }
         }
     }

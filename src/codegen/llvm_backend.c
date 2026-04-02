@@ -346,6 +346,44 @@ llvm_ctx_create(const char *module_name)
         ctx->slot_type_String = LLVMStructCreateNamed(ctx->context, "PgySlot_String");
         LLVMStructSetBody(ctx->slot_type_String, fields_str, 2, 0);
 
+        LLVMTypeRef secure_fields_int[] = { ctx->type_i32, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_Int = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Int");
+        LLVMStructSetBody(ctx->secure_slot_type_Int, secure_fields_int, 3, 0);
+
+        LLVMTypeRef secure_fields_long[] = { ctx->type_i64, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_Long = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Long");
+        LLVMStructSetBody(ctx->secure_slot_type_Long, secure_fields_long, 3, 0);
+
+        LLVMTypeRef secure_fields_float[] = { ctx->type_f32, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_Float = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Float");
+        LLVMStructSetBody(ctx->secure_slot_type_Float, secure_fields_float, 3, 0);
+
+        LLVMTypeRef secure_fields_double[] = { ctx->type_f64, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_Double = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Double");
+        LLVMStructSetBody(ctx->secure_slot_type_Double, secure_fields_double, 3, 0);
+
+        LLVMTypeRef secure_fields_bool[] = { ctx->type_i1, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_Bool = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_Bool");
+        LLVMStructSetBody(ctx->secure_slot_type_Bool, secure_fields_bool, 3, 0);
+
+        LLVMTypeRef secure_fields_str[] = { ctx->type_i8ptr, ctx->type_i1, ctx->type_i64 };
+        ctx->secure_slot_type_String = LLVMStructCreateNamed(ctx->context, "PgySecureSlot_String");
+        LLVMStructSetBody(ctx->secure_slot_type_String, secure_fields_str, 3, 0);
+
+        LLVMTypeRef token_fields[] = { ctx->type_i64, ctx->type_i1, ctx->type_i1 };
+        ctx->secure_token_type_Int = LLVMStructCreateNamed(ctx->context, "PgyToken_Int");
+        LLVMStructSetBody(ctx->secure_token_type_Int, token_fields, 3, 0);
+        ctx->secure_token_type_Long = LLVMStructCreateNamed(ctx->context, "PgyToken_Long");
+        LLVMStructSetBody(ctx->secure_token_type_Long, token_fields, 3, 0);
+        ctx->secure_token_type_Float = LLVMStructCreateNamed(ctx->context, "PgyToken_Float");
+        LLVMStructSetBody(ctx->secure_token_type_Float, token_fields, 3, 0);
+        ctx->secure_token_type_Double = LLVMStructCreateNamed(ctx->context, "PgyToken_Double");
+        LLVMStructSetBody(ctx->secure_token_type_Double, token_fields, 3, 0);
+        ctx->secure_token_type_Bool = LLVMStructCreateNamed(ctx->context, "PgyToken_Bool");
+        LLVMStructSetBody(ctx->secure_token_type_Bool, token_fields, 3, 0);
+        ctx->secure_token_type_String = LLVMStructCreateNamed(ctx->context, "PgyToken_String");
+        LLVMStructSetBody(ctx->secure_token_type_String, token_fields, 3, 0);
+
         LLVMTypeRef arr_fields_int[] = {
             LLVMPointerType(ctx->type_i32, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
         };
@@ -536,7 +574,8 @@ LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 
 void
 llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
-                       const char *inner_type)
+                       const char *inner_type,
+                       bool is_secure)
 {
     PGY_DYNARR_ENSURE(ctx->slot_vars, ctx->slot_var_count,
                        ctx->slot_var_capacity, LLVMSlotVarEntry);
@@ -544,6 +583,7 @@ llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
     ctx->slot_vars[ctx->slot_var_count].var_name   = var_name;
     ctx->slot_vars[ctx->slot_var_count].inner_type = inner_type;
     ctx->slot_vars[ctx->slot_var_count].released   = false;
+    ctx->slot_vars[ctx->slot_var_count].is_secure  = is_secure;
     ctx->slot_var_count++;
 }
 
@@ -582,6 +622,16 @@ llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name)
     return NULL;
 }
 
+bool
+llvm_lookup_slot_is_secure(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->slot_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->slot_vars[i].var_name, var_name) == 0)
+            return ctx->slot_vars[i].is_secure;
+    }
+    return false;
+}
+
 LLVMTypeRef
 llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
@@ -593,6 +643,34 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_BOOL:   return ctx->slot_type_Bool;
     case PGY_TK_STRING: return ctx->slot_type_String;
     default:            return ctx->slot_type_Int;
+    }
+}
+
+LLVMTypeRef
+llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->secure_slot_type_Int;
+    case PGY_TK_LONG:   return ctx->secure_slot_type_Long;
+    case PGY_TK_FLOAT:  return ctx->secure_slot_type_Float;
+    case PGY_TK_DOUBLE: return ctx->secure_slot_type_Double;
+    case PGY_TK_BOOL:   return ctx->secure_slot_type_Bool;
+    case PGY_TK_STRING: return ctx->secure_slot_type_String;
+    default:            return ctx->secure_slot_type_Int;
+    }
+}
+
+LLVMTypeRef
+llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->secure_token_type_Int;
+    case PGY_TK_LONG:   return ctx->secure_token_type_Long;
+    case PGY_TK_FLOAT:  return ctx->secure_token_type_Float;
+    case PGY_TK_DOUBLE: return ctx->secure_token_type_Double;
+    case PGY_TK_BOOL:   return ctx->secure_token_type_Bool;
+    case PGY_TK_STRING: return ctx->secure_token_type_String;
+    default:            return ctx->secure_token_type_Int;
     }
 }
 
@@ -668,6 +746,16 @@ llvm_mark_device_slot_released(LLVMGenCtx *ctx, const char *var_name)
             return;
         }
     }
+}
+
+LLVMVarEntry *
+llvm_lookup_secure_token_var(LLVMGenCtx *ctx, const char *slot_name)
+{
+    char token_name[256];
+    if (slot_name == NULL)
+        return NULL;
+    snprintf(token_name, sizeof(token_name), "%s_token", slot_name);
+    return llvm_scope_lookup(ctx, token_name);
 }
 
 void
@@ -935,8 +1023,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         LLVMTypeRef fields[] = { inner, ctx->type_i1 };
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
-    case PGY_TK_SLOT:
-    case PGY_TK_SECURE_SLOT: {
+    case PGY_TK_SLOT: {
         const char *inner_name = strchr(type_name, '<');
         if (inner_name != NULL) {
             inner_name++;
@@ -946,6 +1033,17 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
             return llvm_slot_struct_type(ctx, buf);
         }
         return llvm_slot_struct_type(ctx, "Int");
+    }
+    case PGY_TK_SECURE_SLOT: {
+        const char *inner_name = strchr(type_name, '<');
+        if (inner_name != NULL) {
+            inner_name++;
+            char buf[64]; size_t l = strcspn(inner_name, ">");
+            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+            memcpy(buf, inner_name, l); buf[l] = '\0';
+            return llvm_secure_slot_struct_type(ctx, buf);
+        }
+        return llvm_secure_slot_struct_type(ctx, "Int");
     }
     case PGY_TK_DEVICE_SLOT: {
         const char *inner_name = strchr(type_name, '<');
@@ -1469,39 +1567,53 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
      * ================================================================= */
     for (size_t si = 0; si < sizeof(slot_types) / sizeof(slot_types[0]); si++) {
         const char *suf = slot_types[si].suffix;
-        LLVMTypeRef sty = slot_types[si].slot_ty;
+        LLVMTypeRef sty = llvm_secure_slot_struct_type(ctx, suf);
+        LLVMTypeRef tty = llvm_secure_token_type(ctx, suf);
         LLVMTypeRef vt  = slot_types[si].val_ty;
         char fname[128];
 
-        /* PgySecureSlot_T pgy_claim_secure_T() */
+        /* PgySecureSlot_T pgy_claim_secure_T(PgyToken_T*) */
         {
-            LLVMTypeRef ft = LLVMFunctionType(sty, NULL, 0, 0);
+            LLVMTypeRef params[] = { LLVMPointerType(tty, 0) };
+            LLVMTypeRef ft = LLVMFunctionType(sty, params, 1, 0);
             snprintf(fname, sizeof(fname), "pgy_claim_secure_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, sty);
         }
 
-        /* void pgy_write_secure_T(PgySecureSlot_T*, val_type, i64 token) */
+        /* void pgy_secure_write_T(PgySecureSlot_T*, val_type, PgyToken_T*) */
         {
             LLVMTypeRef params[] = {
-                LLVMPointerType(sty, 0), vt, ctx->type_i64
+                LLVMPointerType(sty, 0), vt, LLVMPointerType(tty, 0)
             };
             LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
-            snprintf(fname, sizeof(fname), "pgy_write_secure_%s", suf);
+            snprintf(fname, sizeof(fname), "pgy_secure_write_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
                                     ctx->type_void);
         }
 
-        /* val_type pgy_read_secure_T(PgySecureSlot_T*, i64 token) */
+        /* val_type pgy_secure_read_T(PgySecureSlot_T*, PgyToken_T*) */
         {
             LLVMTypeRef params[] = {
-                LLVMPointerType(sty, 0), ctx->type_i64
+                LLVMPointerType(sty, 0), LLVMPointerType(tty, 0)
             };
             LLVMTypeRef ft = LLVMFunctionType(vt, params, 2, 0);
-            snprintf(fname, sizeof(fname), "pgy_read_secure_%s", suf);
+            snprintf(fname, sizeof(fname), "pgy_secure_read_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, vt);
+        }
+
+        /* void pgy_secure_release_T(PgySecureSlot_T*, PgyToken_T*) */
+        {
+            LLVMTypeRef params[] = {
+                LLVMPointerType(sty, 0), LLVMPointerType(tty, 0)
+            };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_secure_release_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_void);
         }
     }
 }

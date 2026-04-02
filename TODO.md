@@ -22,9 +22,10 @@
 ## P1.6 — 자원/오케스트레이션 방향 고정
 
 - [ ] **Slot Protocol 고정** — 모든 슬롯이 공유하는 불변 계약(`Claim / Access / Mutate / Transfer / Release`)을 정의하고, `Slot<T> / SecureSlot<T> / QubitSlot`이 어디까지 지원하는지 현재 구현과 목표 구현을 명시
-- [ ] **Slot/View 계층 마감** — `Slot<T>`를 최소 소유 셀로 고정하고 `ReadView<T> / WriteView<T> / MoveToken<T>`를 권한 축소/이전 계층으로 정리
-  - 현재 2단계: `ReadView<T>` / `WriteView<T>` semantic type, non-owning release 금지, read/write 제한, `SecureSlot` source tracking, `MoveToken<T>` 재바인딩 transfer semantics, C lowering 및 LLVM 최소 alias lowering
-  - 다음 단계: function/channel boundary에 view 규칙 연결, `MoveToken<T>` 재사용 진단 확대, LLVM secure-slot lowering 고도화
+- [x] **Slot/View 계층 마감** — `Slot<T>`를 최소 소유 셀로 고정하고 `ReadView<T> / WriteView<T> / MoveToken<T>`를 권한 축소/이전 계층으로 정리
+  - ~~현재 2단계~~: **완료** — `ReadView<T>` / `WriteView<T>` semantic type, non-owning release 금지, read/write 제한, `SecureSlot` source tracking, `MoveToken<T>` 재바인딩 transfer semantics, C lowering (pointer alias), LLVM lowering (pointer alias for view, structural copy for move)
+  - 검증: semantic 158 passed, transpile 127 passed, 47 examples passed
+  - 다음 단계: function/channel boundary에 view 규칙 연결, `MoveToken<T>` 재사용 진단 확대, LLVM secure-slot view 토큰 전파 (현재 시맨틱 레벨에서 차단됨)
 - [ ] **슬롯을 추상 자원 핸들로 일반화** — `Slot<T>`를 메모리 저장 상자보다 넓은 자원 핸들 개념으로 재정의. 장기적으로 `MemorySlot`, `DeviceSlot`, `SessionSlot`, `NetworkSlot`, `QubitSlot` 같은 자원 클래스로 확장 가능한 계약 정리
 - [ ] **채널 의미론 강화** — 컨테이너/디바이스/원격 작업 간 비동기 제출, 대기, 수거, 후처리 흐름을 표현할 수 있도록 채널, 작업 그래프, 메시지 패싱 규칙 보강
 - [ ] **`Future<T>`를 transfer boundary로 고정** — `await Future<QubitSlot>`을 채널 `recv`와 같은 ownership 경계로 취급하고, anchored handle 금지 / fresh binding 권장 / inline use 제한 규칙 정리
