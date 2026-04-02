@@ -1,0 +1,51 @@
+// queue.pgy — 배열 기반 Ring Buffer Queue
+//
+// 고정 버퍼를 스코프가 소유하고,
+// head / tail / count 인덱스로 enqueue / dequeue를 관리한다.
+
+func Main() -> Void {
+    let data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    let cap: Int = 8;
+    let head: Int = 0;
+    let tail: Int = 0;
+    let count: Int = 0;
+
+    // enqueue 10, 20, 30
+    ArraySet(data, tail, 10);
+    tail = (tail + 1) % cap;
+    count = count + 1;
+
+    ArraySet(data, tail, 20);
+    tail = (tail + 1) % cap;
+    count = count + 1;
+
+    ArraySet(data, tail, 30);
+    tail = (tail + 1) % cap;
+    count = count + 1;
+
+    // dequeue 2개
+    Log(data[head]);   // 10
+    head = (head + 1) % cap;
+    count = count - 1;
+
+    Log(data[head]);   // 20
+    head = (head + 1) % cap;
+    count = count - 1;
+
+    // wrap-around enqueue
+    ArraySet(data, tail, 40);
+    tail = (tail + 1) % cap;
+    count = count + 1;
+
+    ArraySet(data, tail, 50);
+    tail = (tail + 1) % cap;
+    count = count + 1;
+
+    // drain
+    while count > 0 {
+        Log(data[head]);
+        head = (head + 1) % cap;
+        count = count - 1;
+    }
+    // 기대 출력: 10, 20, 30, 40, 50
+}

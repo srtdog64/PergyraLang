@@ -183,6 +183,9 @@ Symbol* symbol_create_slot(const char* name, Type* slot_type,
 
 Symbol* symbol_create_token(const char* name, const char* paired_slot,
                              uint32_t line, uint32_t col);
+Symbol* symbol_create_view(const char* name, Type* view_type,
+                           const char* source_slot,
+                           uint32_t line, uint32_t col);
 
 void    symbol_destroy(Symbol* sym);
 

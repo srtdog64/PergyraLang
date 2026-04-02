@@ -152,6 +152,14 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    const char *source_slot;
+    const char *inner_type;
+    bool        is_move_token;
+} LLVMViewVarEntry;
+
+typedef struct
+{
+    const char *var_name;
     const char *inner_type;
     bool        released;
 } LLVMDeviceSlotVarEntry;
@@ -297,6 +305,10 @@ typedef struct LLVMGenCtx
     int                   slot_var_count;
     int                   slot_var_capacity;
 
+    LLVMViewVarEntry     *view_vars;
+    int                   view_var_count;
+    int                   view_var_capacity;
+
     LLVMDeviceSlotVarEntry *device_slot_vars;
     int                     device_slot_var_count;
     int                     device_slot_var_capacity;
@@ -383,8 +395,13 @@ LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
  * Slot tracking (llvm_backend.c)
  * ================================================================= */
 void          llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
-                                      const char *inner_type);
+                                     const char *inner_type);
 const char   *llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
+                                     const char *source_slot,
+                                     const char *inner_type,
+                                     bool is_move_token);
+LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                              const char *inner_type);

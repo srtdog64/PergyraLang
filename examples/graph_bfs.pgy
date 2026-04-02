@@ -1,0 +1,46 @@
+// graph_bfs.pgy — 배열 기반 BFS
+//
+// 인접행렬과 큐를 모두 배열로 소유한다.
+// 방문 상태도 값 배열로 유지한다.
+
+func Main() -> Void {
+    // 4-node graph
+    // 0 -> 1, 2
+    // 1 -> 3
+    // 2 -> 3
+    let adj: Array<Int> = [
+        0, 1, 1, 0,
+        0, 0, 0, 1,
+        0, 0, 0, 1,
+        0, 0, 0, 0
+    ];
+    let n: Int = 4;
+
+    let visited: Array<Int> = [0, 0, 0, 0];
+    let queue: Array<Int> = [0, 0, 0, 0];
+    let head: Int = 0;
+    let tail: Int = 0;
+
+    // enqueue start node 0
+    ArraySet(queue, tail, 0);
+    tail = tail + 1;
+    ArraySet(visited, 0, 1);
+
+    while head < tail {
+        let v: Int = queue[head];
+        head = head + 1;
+        Log(v);
+
+        let to: Int = 0;
+        while to < n {
+            let edge_index: Int = v * n + to;
+            if adj[edge_index] == 1 && visited[to] == 0 {
+                ArraySet(visited, to, 1);
+                ArraySet(queue, tail, to);
+                tail = tail + 1;
+            }
+            to = to + 1;
+        }
+    }
+    // 기대 출력: 0, 1, 2, 3
+}

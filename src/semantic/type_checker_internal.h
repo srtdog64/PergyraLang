@@ -6,6 +6,10 @@
 bool type_is_constructed_named(const Type *type, const char *name);
 bool type_is_qubit(const Type *type);
 bool type_is_slot_handle(const Type *type);
+bool type_is_owned_slot_handle(const Type *type);
+bool type_is_read_view(const Type *type);
+bool type_is_write_view(const Type *type);
+bool type_is_move_token(const Type *type);
 bool type_is_resource_handle(const Type *type);
 bool type_is_anchored_resource_handle(const Type *type);
 bool type_is_movable_resource_handle(const Type *type);

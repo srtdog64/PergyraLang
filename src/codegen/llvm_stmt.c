@@ -154,6 +154,52 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && init != NULL && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && init->data.call.arg_count >= 1
+        && init->data.call.arguments[0] != NULL
+        && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
+        const char *ann_name = type_ann->data.type.name;
+        const char *callee = init->data.call.callee->data.identifier.name;
+        const char *source_name = init->data.call.arguments[0]->data.identifier.name;
+        bool alias_decl =
+            ((strcmp(ann_name, "ReadView") == 0 || strncmp(ann_name, "ReadView<", 9) == 0)
+             && strcmp(callee, "ViewRead") == 0)
+            || ((strcmp(ann_name, "WriteView") == 0 || strncmp(ann_name, "WriteView<", 10) == 0)
+                && strcmp(callee, "ViewWrite") == 0)
+            || ((strcmp(ann_name, "MoveToken") == 0 || strncmp(ann_name, "MoveToken<", 10) == 0)
+                && strcmp(callee, "Move") == 0);
+        if (alias_decl) {
+            const char *inner = "Int";
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 0)
+                inner = type_ann->data.type.generic_args->params[0]->name;
+
+            LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+            LLVMVarEntry *source = llvm_scope_lookup(ctx, source_name);
+            if (source == NULL)
+                return;
+            LLVMValueRef moved = LLVMBuildLoad2(ctx->builder, source->type, source->alloca,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, moved, alloca_val);
+            llvm_scope_declare(ctx, name, alloca_val, slot_ty);
+            llvm_register_view_var(ctx, name, source_name, inner, strcmp(callee, "Move") == 0);
+            if (strcmp(callee, "Move") == 0) {
+                for (int i = 0; i < ctx->slot_var_count; i++) {
+                    if (strcmp(ctx->slot_vars[i].var_name, source_name) == 0) {
+                        ctx->slot_vars[i].released = true;
+                        break;
+                    }
+                }
+            }
+            return;
+        }
+    }
+
     /* Slot sugar: let x: Slot<Int> = 42 → auto Claim + Write */
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL) {
@@ -165,6 +211,24 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (type_ann->data.type.generic_args != NULL
                 && type_ann->data.type.generic_args->count > 0)
                 inner = type_ann->data.type.generic_args->params[0]->name;
+
+            if (init != NULL && init->type == AST_IDENTIFIER) {
+                LLVMViewVarEntry *move_entry = llvm_lookup_view_var(ctx,
+                    init->data.identifier.name);
+                if (move_entry != NULL && move_entry->is_move_token) {
+                    LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+                    LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+                    LLVMVarEntry *source = llvm_scope_lookup(ctx, init->data.identifier.name);
+                    if (source == NULL)
+                        return;
+                    LLVMValueRef moved = LLVMBuildLoad2(ctx->builder, source->type, source->alloca,
+                        llvm_tmp_name(ctx));
+                    LLVMBuildStore(ctx->builder, moved, alloca_val);
+                    llvm_scope_declare(ctx, name, alloca_val, slot_ty);
+                    llvm_register_slot_var(ctx, name, inner);
+                    return;
+                }
+            }
 
             LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);

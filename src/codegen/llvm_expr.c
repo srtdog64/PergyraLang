@@ -501,6 +501,47 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
     return LLVMConstInt(ctx->type_i32, 0, 0);
 }
 
+static LLVMVarEntry *
+llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg, const char **inner_out)
+{
+    const char *inner = "Int";
+    const char *source_name = NULL;
+
+    if (slot_arg == NULL)
+        return NULL;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, slot_arg->data.identifier.name);
+        if (view != NULL) {
+            source_name = view->source_slot;
+            inner = view->inner_type;
+        } else {
+            source_name = slot_arg->data.identifier.name;
+            inner = llvm_lookup_slot_inner(ctx, source_name);
+        }
+    } else if (slot_arg->type == AST_CALL
+               && slot_arg->data.call.callee != NULL
+               && slot_arg->data.call.callee->type == AST_IDENTIFIER
+               && slot_arg->data.call.arg_count >= 1
+               && slot_arg->data.call.arguments[0] != NULL
+               && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
+        const char *callee = slot_arg->data.call.callee->data.identifier.name;
+        if (callee != NULL
+            && (strcmp(callee, "ViewRead") == 0
+                || strcmp(callee, "ViewWrite") == 0
+                || strcmp(callee, "Move") == 0)) {
+            source_name = slot_arg->data.call.arguments[0]->data.identifier.name;
+            inner = llvm_lookup_slot_inner(ctx, source_name);
+        }
+    }
+
+    if (inner == NULL)
+        inner = "Int";
+    if (inner_out != NULL)
+        *inner_out = inner;
+    return source_name != NULL ? llvm_scope_lookup(ctx, source_name) : NULL;
+}
+
 static LLVMValueRef
 llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -790,14 +831,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         /* Resolve slot inner type */
         const char *inner = "Int";
         ASTNode *slot_arg = node->data.call.arguments[0];
-        if (slot_arg->type == AST_IDENTIFIER)
-            inner = llvm_lookup_slot_inner(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
-
-        /* Get slot alloca pointer */
-        LLVMVarEntry *slot_var = NULL;
-        if (slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
+        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner);
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -823,13 +857,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         const char *inner = "Int";
         ASTNode *slot_arg = node->data.call.arguments[0];
-        if (slot_arg->type == AST_IDENTIFIER)
-            inner = llvm_lookup_slot_inner(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
-
-        LLVMVarEntry *slot_var = NULL;
-        if (slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
+        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner);
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -851,13 +879,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         const char *inner = "Int";
         ASTNode *slot_arg = node->data.call.arguments[0];
-        if (slot_arg->type == AST_IDENTIFIER)
-            inner = llvm_lookup_slot_inner(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
-
-        LLVMVarEntry *slot_var = NULL;
-        if (slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
+        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner);
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -872,7 +894,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
         /* Mark slot as explicitly released */
         if (slot_arg->type == AST_IDENTIFIER) {
-            const char *sname = slot_arg->data.identifier.name;
+            LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, slot_arg->data.identifier.name);
+            const char *sname = view != NULL ? view->source_slot : slot_arg->data.identifier.name;
             for (int ri = 0; ri < ctx->slot_var_count; ri++) {
                 if (strcmp(ctx->slot_vars[ri].var_name, sname) == 0) {
                     ctx->slot_vars[ri].released = true;
@@ -1134,6 +1157,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         arr = LLVMBuildInsertValue(ctx->builder, arr, next_len, 1, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, arr, arr_var->alloca);
         return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if ((strcmp(callee_name, "ViewRead") == 0
+         || strcmp(callee_name, "ViewWrite") == 0
+         || strcmp(callee_name, "Move") == 0)
+        && node->data.call.arg_count == 1) {
+        return llvm_emit_expression(node->data.call.arguments[0], ctx);
     }
 
     /* Built-in: StringLength(s) → call strlen */

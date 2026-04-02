@@ -398,6 +398,36 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("ViewRead(slot) → slot");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("slot", 1) };
+        result = emit_expression(make_call("ViewRead", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "slot") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ViewWrite(slot) → slot");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("slot", 1) };
+        result = emit_expression(make_call("ViewWrite", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "slot") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Move(slot) → slot");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("slot", 1) };
+        result = emit_expression(make_call("Move", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "slot") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("array access → values[0]");
     {
         ctx = transpiler_ctx_create();
@@ -482,6 +512,59 @@ test_statement_emit(void)
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "PgyToken_Int ss_token;");
         EXPECT_STR_CONTAINS(out, "PgySecureSlot_Int ss = pgy_claim_secure_Int(");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let rv: ReadView<Int> = ViewRead(slot) → PgySlot_Int rv = slot;");
+    {
+        ASTNode *args[1] = { make_identifier("slot", 1) };
+        ASTNode *node = make_let("rv", make_type_node("ReadView<Int>"),
+                                 make_call("ViewRead", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgySlot_Int rv = slot;");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let wv: WriteView<Int> = ViewWrite(slot) → PgySlot_Int wv = slot;");
+    {
+        ASTNode *args[1] = { make_identifier("slot", 1) };
+        ASTNode *node = make_let("wv", make_type_node("WriteView<Int>"),
+                                 make_call("ViewWrite", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgySlot_Int wv = slot;");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let srv: ReadView<Int> = ViewRead(ss) on SecureSlot emits token alias");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *claim = make_call("ClaimSecureSlot", NULL, 0, 1);
+        ASTNode *secure = make_let("ss", make_type_node("SecureSlot<Int>"), claim, 1);
+        emit_statement(secure, ctx);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Int ss_token;");
+
+        ASTNode *args[1] = { make_identifier("ss", 2) };
+        ASTNode *node = make_let("srv", make_type_node("ReadView<Int>"),
+                                 make_call("ViewRead", args, 1, 2), 2);
+        emit_statement(node, ctx);
+        EXPECT_STR_CONTAINS(ctx->out->data, "srv = ss;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "srv_token = ss_token;");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let dst: Slot<Int> = mt materializes moved slot");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *move_args[1] = { make_identifier("slot", 1) };
+        ASTNode *mt = make_let("mt", make_type_node("MoveToken<Int>"),
+                               make_call("Move", move_args, 1, 1), 1);
+        emit_statement(mt, ctx);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySlot_Int mt = slot;");
+
+        ASTNode *dst = make_let("dst", make_type_node("Slot<Int>"),
+                                make_identifier("mt", 2), 2);
+        emit_statement(dst, ctx);
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySlot_Int dst = mt;");
         transpiler_ctx_destroy(ctx);
     }
 

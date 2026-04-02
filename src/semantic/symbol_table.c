@@ -267,6 +267,21 @@ symbol_create_token(const char *name, const char *paired_slot,
     return sym;
 }
 
+Symbol *
+symbol_create_view(const char *name, Type *view_type,
+                   const char *source_slot,
+                   uint32_t line, uint32_t col)
+{
+    Symbol *sym = symbol_create_variable(name, view_type, line, col);
+    if (sym == NULL)
+        return NULL;
+
+    sym->slot_info.paired_slot_name = source_slot != NULL
+        ? pergyra_strdup(source_slot)
+        : NULL;
+    return sym;
+}
+
 void
 symbol_destroy(Symbol *sym)
 {

@@ -1,0 +1,48 @@
+// deque.pgy — 배열 기반 원형 Deque
+//
+// front/back를 인덱스로 관리해서 push/pop 양쪽을 지원한다.
+
+func Main() -> Void {
+    let data: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    let cap: Int = 8;
+    let front: Int = 0;
+    let size: Int = 0;
+
+    // push_back 10
+    let back_index: Int = (front + size) % cap;
+    ArraySet(data, back_index, 10);
+    size = size + 1;
+
+    // push_back 20
+    let back_index2: Int = (front + size) % cap;
+    ArraySet(data, back_index2, 20);
+    size = size + 1;
+
+    // push_front 5
+    front = (front - 1 + cap) % cap;
+    ArraySet(data, front, 5);
+    size = size + 1;
+
+    // push_front 1
+    front = (front - 1 + cap) % cap;
+    ArraySet(data, front, 1);
+    size = size + 1;
+
+    // pop_front
+    Log(data[front]);   // 1
+    front = (front + 1) % cap;
+    size = size - 1;
+
+    // pop_back
+    let tail_index: Int = (front + size - 1) % cap;
+    Log(data[tail_index]); // 20
+    size = size - 1;
+
+    // remaining order
+    let i: Int = 0;
+    while i < size {
+        let idx: Int = (front + i) % cap;
+        Log(data[idx]); // 5, 10
+        i = i + 1;
+    }
+}

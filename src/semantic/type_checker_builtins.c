@@ -27,6 +27,9 @@ builtin_resolve(const char *name)
     if (strcmp(name, "ClaimSlot")       == 0) return BUILTIN_CLAIM_SLOT;
     if (strcmp(name, "ClaimSecureSlot") == 0) return BUILTIN_CLAIM_SECURE_SLOT;
     if (strcmp(name, "ClaimDeviceSlot") == 0) return BUILTIN_CLAIM_DEVICE_SLOT;
+    if (strcmp(name, "ViewRead")        == 0) return BUILTIN_VIEW_READ;
+    if (strcmp(name, "ViewWrite")       == 0) return BUILTIN_VIEW_WRITE;
+    if (strcmp(name, "Move")            == 0) return BUILTIN_MOVE;
     if (strcmp(name, "Write")           == 0) return BUILTIN_WRITE;
     if (strcmp(name, "Read")            == 0) return BUILTIN_READ;
     if (strcmp(name, "Release")         == 0) return BUILTIN_RELEASE;
@@ -94,6 +97,76 @@ type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx)
     return wrap_constructed(TYPE_DEVICE_SLOT, TYPE_INT);
 }
 
+static Type *
+type_check_view_read(ASTNode *call, SemanticContext *ctx)
+{
+    if (!check_call_arity(call, 1, "ViewRead", ctx))
+        return TYPE_UNKNOWN;
+
+    Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_owned_slot_handle(slot_type)) {
+        semantic_error(ctx, call->data.call.arguments[0],
+            "ViewRead requires owning Slot<T>, got '%s'",
+            slot_type != NULL ? slot_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return type_create_read_view(slot_type->data.slot.inner_type);
+}
+
+static Type *
+type_check_view_write(ASTNode *call, SemanticContext *ctx)
+{
+    if (!check_call_arity(call, 1, "ViewWrite", ctx))
+        return TYPE_UNKNOWN;
+
+    Type *slot_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_owned_slot_handle(slot_type)) {
+        semantic_error(ctx, call->data.call.arguments[0],
+            "ViewWrite requires owning Slot<T>, got '%s'",
+            slot_type != NULL ? slot_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return type_create_write_view(slot_type->data.slot.inner_type);
+}
+
+static Type *
+type_check_move_token(ASTNode *call, SemanticContext *ctx)
+{
+    if (!check_call_arity(call, 1, "Move", ctx))
+        return TYPE_UNKNOWN;
+
+    ASTNode *slot_arg = call->data.call.arguments[0];
+    if (slot_arg == NULL || slot_arg->type != AST_IDENTIFIER) {
+        semantic_error(ctx, call,
+            "Move requires a named owning Slot<T>/SecureSlot<T> binding");
+        return TYPE_UNKNOWN;
+    }
+
+    Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+    Type *slot_type = type_check_expression(slot_arg, ctx);
+    if (!type_is_owned_slot_handle(slot_type)) {
+        semantic_error(ctx, slot_arg,
+            "Move requires owning Slot<T>/SecureSlot<T>, got '%s'",
+            slot_type != NULL ? slot_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    if (sym == NULL || sym->kind != SYMBOL_SLOT) {
+        semantic_error(ctx, slot_arg,
+            "Move requires an owning slot binding");
+        return TYPE_UNKNOWN;
+    }
+    if (sym->slot_info.state == SLOT_STATE_RELEASED) {
+        semantic_error(ctx, slot_arg,
+            "Cannot move released slot '%s'",
+            sym->name);
+        return TYPE_UNKNOWN;
+    }
+
+    scope_release_slot(ctx->scope, sym->name);
+    return type_create_slot_access(slot_type->data.slot.inner_type,
+        slot_type->data.slot.is_secure, SLOT_ACCESS_MOVE_TOKEN);
+}
+
 bool
 type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 {
@@ -112,6 +185,16 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         semantic_error(ctx, slot_arg,
             "First argument to Write must be a Slot, got '%s'",
             slot_type->name);
+        return false;
+    }
+    if (type_is_read_view(slot_type)) {
+        semantic_error(ctx, slot_arg,
+            "Cannot write through ReadView<T>; create a WriteView(slot) or keep the owning Slot<T>");
+        return false;
+    }
+    if (type_is_move_token(slot_type)) {
+        semantic_error(ctx, slot_arg,
+            "Cannot write through MoveToken<T>");
         return false;
     }
 
@@ -153,6 +236,17 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                     "Write to plain Slot '%s' ignores extra token argument",
                     sym->name);
             }
+        } else if (sym != NULL && type_is_write_view(sym->type)
+                   && sym->slot_info.paired_slot_name != NULL) {
+            Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
+            if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
+                semantic_error(ctx, slot_arg,
+                    "Cannot write through WriteView '%s' because source slot '%s' was released",
+                    sym->name, owner->name);
+                return false;
+            }
+            if (owner != NULL && owner->slot_info.is_secure)
+                semantic_record_effect(ctx, EFFECT_SECURE);
         }
     }
 
@@ -190,6 +284,16 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
             slot_type->name);
         return TYPE_UNKNOWN;
     }
+    if (type_is_write_view(slot_type)) {
+        semantic_error(ctx, slot_arg,
+            "Cannot read through WriteView<T>; create a ReadView(slot) or keep the owning Slot<T>");
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_move_token(slot_type)) {
+        semantic_error(ctx, slot_arg,
+            "Cannot read through MoveToken<T>");
+        return TYPE_UNKNOWN;
+    }
 
     if (slot_type->data.slot.is_secure)
         semantic_record_effect(ctx, EFFECT_SECURE);
@@ -224,6 +328,17 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                     }
                 }
             }
+        } else if (sym != NULL && type_is_read_view(sym->type)
+                   && sym->slot_info.paired_slot_name != NULL) {
+            Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
+            if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
+                semantic_error(ctx, slot_arg,
+                    "Cannot read through ReadView '%s' because source slot '%s' was released",
+                    sym->name, owner->name);
+                return TYPE_UNKNOWN;
+            }
+            if (owner != NULL && owner->slot_info.is_secure)
+                semantic_record_effect(ctx, EFFECT_SECURE);
         }
     }
 
@@ -251,8 +366,13 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     Symbol *sym = scope_lookup(ctx->scope, slot_name);
 
     if (sym == NULL || sym->kind != SYMBOL_SLOT) {
-        semantic_error(ctx, slot_arg,
-            "'%s' is not a slot", slot_name);
+        if (sym != NULL && sym->type != NULL && sym->type->kind == TYPE_KIND_SLOT) {
+            semantic_error(ctx, slot_arg,
+                "Only owning Slot<T>/SecureSlot<T> values can be released; views are non-owning and move tokens are transfer-only");
+        } else {
+            semantic_error(ctx, slot_arg,
+                "'%s' is not a slot", slot_name);
+        }
         return false;
     }
 
@@ -808,6 +928,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_claim_slot(call, ctx);
     case BUILTIN_CLAIM_DEVICE_SLOT:
         return type_check_claim_device_slot(call, ctx);
+    case BUILTIN_VIEW_READ:
+        return type_check_view_read(call, ctx);
+    case BUILTIN_VIEW_WRITE:
+        return type_check_view_write(call, ctx);
+    case BUILTIN_MOVE:
+        return type_check_move_token(call, ctx);
     case BUILTIN_WRITE:
         type_check_write_slot(call, ctx);
         return TYPE_VOID;

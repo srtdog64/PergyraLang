@@ -37,6 +37,14 @@ typedef enum
     EFFECT_COLLAPSE         = 1u << 3
 } EffectMask;
 
+typedef enum
+{
+    SLOT_ACCESS_OWNED,
+    SLOT_ACCESS_READ_VIEW,
+    SLOT_ACCESS_WRITE_VIEW,
+    SLOT_ACCESS_MOVE_TOKEN
+} SlotAccessMode;
+
 /* Type structure */
 typedef struct Type Type;
 struct Type
@@ -84,6 +92,7 @@ struct Type
             Type* inner_type;
             bool is_secure;
             int security_level;
+            SlotAccessMode access_mode;
         } slot;
     } data;
 };
@@ -120,6 +129,9 @@ Type* type_create_generic(const char* param_name);
 Type* type_create_constructed(Type* constructor, Type** args, size_t arg_count);
 Type* type_create_function(Type** params, size_t param_count, Type* return_type);
 Type* type_create_slot(Type* inner_type, bool is_secure);
+Type* type_create_slot_access(Type* inner_type, bool is_secure, SlotAccessMode access_mode);
+Type* type_create_read_view(Type* inner_type);
+Type* type_create_write_view(Type* inner_type);
 uint32_t type_function_effects(const Type* type);
 bool type_effect_mask_has(uint32_t mask, uint32_t effect);
 

@@ -229,13 +229,27 @@ type_effect_mask_has(uint32_t mask, uint32_t effect)
 Type *
 type_create_slot(Type *inner_type, bool is_secure)
 {
+    return type_create_slot_access(inner_type, is_secure, SLOT_ACCESS_OWNED);
+}
+
+Type *
+type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_mode)
+{
     Type *t = calloc(1, sizeof(Type));
     if (t == NULL)
         return NULL;
 
     t->kind = TYPE_KIND_SLOT;
 
-    const char *prefix = is_secure ? "SecureSlot<" : "Slot<";
+    const char *prefix = "Slot<";
+    if (access_mode == SLOT_ACCESS_READ_VIEW)
+        prefix = "ReadView<";
+    else if (access_mode == SLOT_ACCESS_WRITE_VIEW)
+        prefix = "WriteView<";
+    else if (access_mode == SLOT_ACCESS_MOVE_TOKEN)
+        prefix = "MoveToken<";
+    else if (is_secure)
+        prefix = "SecureSlot<";
     size_t name_len = strlen(prefix) + strlen(inner_type->name) + 2;
     t->name = malloc(name_len);
     if (t->name == NULL) {
@@ -249,7 +263,20 @@ type_create_slot(Type *inner_type, bool is_secure)
     t->data.slot.inner_type    = inner_type;
     t->data.slot.is_secure     = is_secure;
     t->data.slot.security_level = 0;
+    t->data.slot.access_mode   = access_mode;
     return t;
+}
+
+Type *
+type_create_read_view(Type *inner_type)
+{
+    return type_create_slot_access(inner_type, false, SLOT_ACCESS_READ_VIEW);
+}
+
+Type *
+type_create_write_view(Type *inner_type)
+{
+    return type_create_slot_access(inner_type, false, SLOT_ACCESS_WRITE_VIEW);
 }
 
 /* -----------------------------------------------------------------
@@ -273,6 +300,7 @@ type_equals(const Type *a, const Type *b)
     /* Slot: compare inner type and security flag */
     if (a->kind == TYPE_KIND_SLOT) {
         return a->data.slot.is_secure == b->data.slot.is_secure
+            && a->data.slot.access_mode == b->data.slot.access_mode
             && type_equals(a->data.slot.inner_type,
                            b->data.slot.inner_type);
     }

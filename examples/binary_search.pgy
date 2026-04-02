@@ -1,0 +1,56 @@
+// binary_search.pgy — 정렬된 배열에서 이진 탐색
+//
+// 인덱스 범위와 길이는 값으로 다루고,
+// 배열은 소유 스코프 안에서 직접 읽는다.
+
+func Main() -> Void {
+    let values: Array<Int> = [3, 5, 8, 13, 21, 34, 55];
+
+    // search 21
+    let left: Int = 0;
+    let right: Int = ArrayLength(values) - 1;
+    let target: Int = 21;
+    let found: Int = -1;
+
+    while left <= right {
+        let mid: Int = (left + right) / 2;
+        let probe: Int = values[mid];
+
+        if probe == target {
+            found = mid;
+            break;
+        } else {
+            if probe < target {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+    }
+
+    Log(found);  // 4
+
+    // search 7
+    left = 0;
+    right = ArrayLength(values) - 1;
+    let missing_target: Int = 7;
+    let missing: Int = -1;
+
+    while left <= right {
+        let mid2: Int = (left + right) / 2;
+        let probe2: Int = values[mid2];
+
+        if probe2 == missing_target {
+            missing = mid2;
+            break;
+        } else {
+            if probe2 < missing_target {
+                left = mid2 + 1;
+            } else {
+                right = mid2 - 1;
+            }
+        }
+    }
+
+    Log(missing);  // -1
+}

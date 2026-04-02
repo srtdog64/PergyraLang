@@ -219,20 +219,50 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
     if (ctx->typed_var_count >= MAX_SLOT_VARS || name == NULL || type_name == NULL)
         return;
     TypedVarEntry *e = &ctx->typed_vars[ctx->typed_var_count++];
+    memset(e, 0, sizeof(*e));
     strncpy(e->name, name, sizeof(e->name) - 1);
     e->name[sizeof(e->name) - 1] = '\0';
     strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
     e->type_name[sizeof(e->type_name) - 1] = '\0';
 }
 
+static TypedVarEntry *
+lookup_typed_entry(TranspilerCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->typed_vars[i].name, var_name) == 0)
+            return &ctx->typed_vars[i];
+    }
+    return NULL;
+}
+
 static const char *
 lookup_typed_var(TranspilerCtx *ctx, const char *var_name)
 {
-    for (int i = 0; i < ctx->typed_var_count; i++) {
-        if (strcmp(ctx->typed_vars[i].name, var_name) == 0)
-            return ctx->typed_vars[i].type_name;
+    TypedVarEntry *entry = lookup_typed_entry(ctx, var_name);
+    return entry != NULL ? entry->type_name : NULL;
+}
+
+static void
+register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_name,
+                       const char *source_slot, bool source_secure,
+                       bool is_move_token)
+{
+    if (ctx->typed_var_count >= MAX_SLOT_VARS || name == NULL || type_name == NULL)
+        return;
+    TypedVarEntry *e = &ctx->typed_vars[ctx->typed_var_count++];
+    memset(e, 0, sizeof(*e));
+    strncpy(e->name, name, sizeof(e->name) - 1);
+    e->name[sizeof(e->name) - 1] = '\0';
+    strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
+    e->type_name[sizeof(e->type_name) - 1] = '\0';
+    if (source_slot != NULL) {
+        strncpy(e->source_slot, source_slot, sizeof(e->source_slot) - 1);
+        e->source_slot[sizeof(e->source_slot) - 1] = '\0';
     }
-    return NULL;
+    e->is_view = !is_move_token;
+    e->is_move_token = is_move_token;
+    e->source_secure = source_secure;
 }
 
 static ASTNode *
@@ -615,6 +645,18 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgySecureSlot_%s", inner);
         return buf;
     }
+    if (strncmp(name, "ReadView<", 9) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
+        return buf;
+    }
+    if (strncmp(name, "WriteView<", 10) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
+        return buf;
+    }
     if (strncmp(name, "DeviceSlot<", 11) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
@@ -672,6 +714,9 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
 }
 
 static char *strdup_fmt(const char *fmt, ...);
+static bool resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
+                                const char **inner_out, const char **slot_name_out,
+                                bool *secure_out);
 
 static char *
 render_type_name(ASTNode *type_node)
@@ -786,6 +831,22 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "QubitSlot";
             if (strcmp(name, "ClaimDeviceSlot") == 0)
                 return "DeviceSlot<Int>";
+            if (strcmp(name, "ViewRead") == 0 && expr->data.call.arg_count >= 1) {
+                static char read_view[128];
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                snprintf(read_view, sizeof(read_view), "ReadView<%s>",
+                    slot_inner_type_name(slot_type));
+                return read_view;
+            }
+            if (strcmp(name, "ViewWrite") == 0 && expr->data.call.arg_count >= 1) {
+                static char write_view[128];
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                snprintf(write_view, sizeof(write_view), "WriteView<%s>",
+                    slot_inner_type_name(slot_type));
+                return write_view;
+            }
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
             if (strcmp(name, "DeviceRead") == 0 && expr->data.call.arg_count >= 1) {
@@ -1130,9 +1191,10 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
+    const char *slot_name = NULL;
+    bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (slot_arg->type == AST_IDENTIFIER)
-        inner = lookup_slot_type(ctx, slot_arg->data.identifier.name);
+    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -1148,6 +1210,10 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             "pgy_secure_write_%s(&%s, %s, &%s)",
             inner, slot_expr, value_expr, token_expr);
         free(token_expr);
+    } else if (secure && slot_name != NULL) {
+        result = strdup_fmt(
+            "pgy_secure_write_%s(&%s, %s, &%s_token)",
+            inner, slot_expr, value_expr, slot_name);
     } else {
         /* Plain slot: Write(slot, value) */
         result = strdup_fmt(
@@ -1160,6 +1226,73 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     return result;
 }
 
+static char *
+emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
+{
+    if (call->data.call.arg_count < 1)
+        return pergyra_strdup("/* View: missing args */");
+
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    ctx->suppress_slot_auto_read = true;
+    char *slot_expr = emit_expression(call->data.call.arguments[0], ctx);
+    ctx->suppress_slot_auto_read = saved_suppress;
+    return slot_expr;
+}
+
+static bool
+resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
+                    const char **inner_out, const char **slot_name_out,
+                    bool *secure_out)
+{
+    const char *inner = "Int";
+    const char *slot_name = NULL;
+    bool secure = false;
+
+    if (slot_arg == NULL)
+        return false;
+
+    if (slot_arg->type == AST_IDENTIFIER) {
+        const char *id = slot_arg->data.identifier.name;
+        TypedVarEntry *entry = lookup_typed_entry(ctx, id);
+        if (entry != NULL && (entry->is_view || entry->is_move_token)
+            && entry->source_slot[0] != '\0') {
+            slot_name = entry->source_slot;
+            secure = entry->source_secure;
+            inner = slot_inner_type_name(entry->type_name);
+        } else {
+            slot_name = id;
+            inner = lookup_slot_type(ctx, id);
+            secure = lookup_slot_is_secure(ctx, id);
+        }
+    } else if (slot_arg->type == AST_CALL
+               && slot_arg->data.call.callee != NULL
+               && slot_arg->data.call.callee->type == AST_IDENTIFIER
+               && slot_arg->data.call.arg_count >= 1
+               && slot_arg->data.call.arguments[0] != NULL
+               && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
+        const char *callee = slot_arg->data.call.callee->data.identifier.name;
+        const char *src = slot_arg->data.call.arguments[0]->data.identifier.name;
+        if (callee != NULL
+            && (strcmp(callee, "ViewRead") == 0
+                || strcmp(callee, "ViewWrite") == 0
+                || strcmp(callee, "Move") == 0)) {
+            slot_name = src;
+            inner = lookup_slot_type(ctx, src);
+            secure = lookup_slot_is_secure(ctx, src);
+        }
+    }
+
+    if (inner == NULL)
+        inner = "Int";
+    if (inner_out != NULL)
+        *inner_out = inner;
+    if (slot_name_out != NULL)
+        *slot_name_out = slot_name;
+    if (secure_out != NULL)
+        *secure_out = secure;
+    return slot_name != NULL;
+}
+
 char *
 emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -1168,9 +1301,10 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
+    const char *slot_name = NULL;
+    bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (slot_arg->type == AST_IDENTIFIER)
-        inner = lookup_slot_type(ctx, slot_arg->data.identifier.name);
+    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -1184,6 +1318,9 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             "pgy_secure_read_%s(&%s, &%s)",
             inner, slot_expr, token_expr);
         free(token_expr);
+    } else if (secure && slot_name != NULL) {
+        result = strdup_fmt("pgy_secure_read_%s(&%s, &%s_token)",
+            inner, slot_expr, slot_name);
     } else {
         result = strdup_fmt("pgy_read_%s(&%s)", inner, slot_expr);
     }
@@ -1200,9 +1337,10 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
+    const char *slot_name = NULL;
+    bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (slot_arg->type == AST_IDENTIFIER)
-        inner = lookup_slot_type(ctx, slot_arg->data.identifier.name);
+    (void)resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure);
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -1216,13 +1354,16 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             "pgy_secure_release_%s(&%s, &%s)",
             inner, slot_expr, token_expr);
         free(token_expr);
+    } else if (secure && slot_name != NULL) {
+        result = strdup_fmt("pgy_secure_release_%s(&%s, &%s_token)",
+            inner, slot_expr, slot_name);
     } else {
         result = strdup_fmt("pgy_release_%s(&%s)", inner, slot_expr);
     }
 
     /* Mark slot as explicitly released — prevents auto-release at scope exit */
     if (slot_arg->type == AST_IDENTIFIER) {
-        const char *sname = slot_arg->data.identifier.name;
+        const char *sname = slot_name != NULL ? slot_name : slot_arg->data.identifier.name;
         for (int i = 0; i < ctx->slot_var_count; i++) {
             if (strcmp(ctx->slot_vars[i].name, sname) == 0) {
                 ctx->slot_vars[i].released = true;
@@ -1577,6 +1718,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_claim_slot(call, ctx);
     case BUILTIN_CLAIM_DEVICE_SLOT:
         return emit_builtin_claim_device_slot(call, ctx);
+    case BUILTIN_VIEW_READ:
+    case BUILTIN_VIEW_WRITE:
+    case BUILTIN_MOVE:
+        return emit_builtin_view(call, ctx);
     case BUILTIN_WRITE:
         return emit_builtin_write(call, ctx);
     case BUILTIN_READ:
@@ -2463,6 +2608,70 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
+    if (ann != NULL && ann->type == AST_TYPE && ann->data.type.name != NULL) {
+        const char *ann_name = ann->data.type.name;
+        if (ann_name != NULL && ann_name[0] != '\0'
+        && (strcmp(ann_name, "ReadView") == 0
+            || strncmp(ann_name, "ReadView<", 9) == 0
+            || strcmp(ann_name, "WriteView") == 0
+            || strncmp(ann_name, "WriteView<", 10) == 0
+            || strcmp(ann_name, "MoveToken") == 0
+            || strncmp(ann_name, "MoveToken<", 10) == 0)
+        && init != NULL && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && init->data.call.arg_count >= 1
+        && init->data.call.arguments[0] != NULL
+        && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
+        const char *callee_name = init->data.call.callee->data.identifier.name;
+        const char *source_name = init->data.call.arguments[0]->data.identifier.name;
+        bool is_view_decl = (strcmp(callee_name, "ViewRead") == 0
+                          || strcmp(callee_name, "ViewWrite") == 0);
+        bool is_move_decl = strcmp(callee_name, "Move") == 0;
+        if (is_view_decl || is_move_decl) {
+            const char *inner = "Int";
+            bool source_secure = lookup_slot_is_secure(ctx, source_name);
+            const char *ctype;
+            if (ann->data.type.generic_args != NULL
+                && ann->data.type.generic_args->count > 0) {
+                inner = ann->data.type.generic_args->params[0]->name;
+            } else {
+                inner = slot_inner_type_name(ann_name);
+            }
+            ctype = source_secure ? pergyra_type_to_c("SecureSlot<Int>") : pergyra_type_to_c("Slot<Int>");
+            if (source_secure) {
+                char secure_name[128];
+                snprintf(secure_name, sizeof(secure_name), "SecureSlot<%s>", inner);
+                ctype = pergyra_type_to_c(secure_name);
+            } else {
+                char slot_name_buf[128];
+                snprintf(slot_name_buf, sizeof(slot_name_buf), "Slot<%s>", inner);
+                ctype = pergyra_type_to_c(slot_name_buf);
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s %s = %s;\n", ctype, name, source_name);
+            if (source_secure) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "PgyToken_%s %s_token = %s_token;\n",
+                    inner, name, source_name);
+            }
+            register_view_like_var(ctx, name,
+                ann_type_name != NULL ? ann_type_name : ann_name,
+                source_name, source_secure, is_move_decl);
+            if (is_move_decl) {
+                for (int i = 0; i < ctx->slot_var_count; i++) {
+                    if (strcmp(ctx->slot_vars[i].name, source_name) == 0) {
+                        ctx->slot_vars[i].released = true;
+                        break;
+                    }
+                }
+            }
+            free(ann_type_name);
+            return;
+        }
+    }
+    }
+
     /* Slot sugar: let x: Slot<Int> = 42 → auto Claim + Write */
     if (!is_slot && ann != NULL && ann->type == AST_TYPE) {
         const char *ann_name = ann->data.type.name;
@@ -2483,6 +2692,28 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 sugar_inner = ann->data.type.generic_args->params[0]->name;
             } else {
                 sugar_inner = slot_inner_type_name(ann_name);
+            }
+
+            if (init != NULL && init->type == AST_IDENTIFIER) {
+                TypedVarEntry *move_entry = lookup_typed_entry(ctx, init->data.identifier.name);
+                if (move_entry != NULL && move_entry->is_move_token) {
+                    write_indent(ctx);
+                    if (sugar_secure) {
+                        codebuf_write(ctx->out, "PgySecureSlot_%s %s = %s;\n",
+                            sugar_inner, name, init->data.identifier.name);
+                        write_indent(ctx);
+                        codebuf_write(ctx->out, "PgyToken_%s %s_token = %s_token;\n",
+                            sugar_inner, name, init->data.identifier.name);
+                    } else {
+                        codebuf_write(ctx->out, "PgySlot_%s %s = %s;\n",
+                            sugar_inner, name, init->data.identifier.name);
+                    }
+                    register_slot_var(ctx, name, sugar_inner, sugar_secure);
+                    if (ann_type_name != NULL)
+                        register_typed_var(ctx, name, ann_type_name);
+                    free(ann_type_name);
+                    return;
+                }
             }
 
             register_slot_var(ctx, name, sugar_inner, sugar_secure);

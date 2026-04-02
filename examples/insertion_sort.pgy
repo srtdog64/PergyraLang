@@ -1,0 +1,30 @@
+// insertion_sort.pgy — 배열 제자리 정렬
+//
+// swap 대신 shift + ArraySet으로 정렬한다.
+// 배열을 소유한 스코프가 직접 mutation을 수행한다.
+
+func Main() -> Void {
+    let values: Array<Int> = [5, 1, 4, 2, 8];
+    let n: Int = ArrayLength(values);
+    let i: Int = 1;
+
+    while i < n {
+        let key: Int = values[i];
+        let j: Int = i - 1;
+
+        while j >= 0 && values[j] > key {
+            ArraySet(values, j + 1, values[j]);
+            j = j - 1;
+        }
+
+        ArraySet(values, j + 1, key);
+        i = i + 1;
+    }
+
+    let k: Int = 0;
+    while k < n {
+        Log(values[k]);
+        k = k + 1;
+    }
+    // 기대 출력: 1, 2, 4, 5, 8
+}

@@ -231,6 +231,7 @@ pgy_classify_type(const char *type_name)
     case 'V': if (strcmp(type_name, "Void") == 0)       return PGY_TK_VOID;       break;
     case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
     case 'R':
+        if (strncmp(type_name, "ReadView<", 9) == 0)  return PGY_TK_SLOT;
         if (strncmp(type_name, "RemoteFuture<", 13) == 0) return PGY_TK_REMOTE_FUTURE;
         if (strncmp(type_name, "Result<", 7) == 0)     return PGY_TK_RESULT;
         if (strncmp(type_name, "Rc<", 3) == 0)         return PGY_TK_RC;
@@ -239,6 +240,7 @@ pgy_classify_type(const char *type_name)
         if (strncmp(type_name, "Channel<", 8) == 0)    return PGY_TK_CHANNEL;
         break;
     case 'W':
+        if (strncmp(type_name, "WriteView<", 10) == 0) return PGY_TK_SLOT;
         if (strncmp(type_name, "Weak<", 5) == 0)       return PGY_TK_WEAK;
         break;
     case 'A':
@@ -424,6 +426,7 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     /* Free dynamic arrays */
     free(ctx->functions);
     free(ctx->slot_vars);
+    free(ctx->view_vars);
     free(ctx->device_slot_vars);
     free(ctx->future_vars);
     free(ctx->class_types);
@@ -542,6 +545,31 @@ llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
     ctx->slot_vars[ctx->slot_var_count].inner_type = inner_type;
     ctx->slot_vars[ctx->slot_var_count].released   = false;
     ctx->slot_var_count++;
+}
+
+void
+llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
+                       const char *source_slot, const char *inner_type,
+                       bool is_move_token)
+{
+    PGY_DYNARR_ENSURE(ctx->view_vars, ctx->view_var_count,
+                      ctx->view_var_capacity, LLVMViewVarEntry);
+
+    ctx->view_vars[ctx->view_var_count].var_name = var_name;
+    ctx->view_vars[ctx->view_var_count].source_slot = source_slot;
+    ctx->view_vars[ctx->view_var_count].inner_type = inner_type;
+    ctx->view_vars[ctx->view_var_count].is_move_token = is_move_token;
+    ctx->view_var_count++;
+}
+
+LLVMViewVarEntry *
+llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->view_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->view_vars[i].var_name, var_name) == 0)
+            return &ctx->view_vars[i];
+    }
+    return NULL;
 }
 
 const char *

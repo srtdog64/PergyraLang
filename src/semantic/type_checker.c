@@ -277,17 +277,45 @@ type_is_slot_handle(const Type *type)
 }
 
 bool
+type_is_owned_slot_handle(const Type *type)
+{
+    return type_is_slot_handle(type)
+        && type->data.slot.access_mode == SLOT_ACCESS_OWNED;
+}
+
+bool
+type_is_read_view(const Type *type)
+{
+    return type_is_slot_handle(type)
+        && type->data.slot.access_mode == SLOT_ACCESS_READ_VIEW;
+}
+
+bool
+type_is_write_view(const Type *type)
+{
+    return type_is_slot_handle(type)
+        && type->data.slot.access_mode == SLOT_ACCESS_WRITE_VIEW;
+}
+
+bool
+type_is_move_token(const Type *type)
+{
+    return type_is_slot_handle(type)
+        && type->data.slot.access_mode == SLOT_ACCESS_MOVE_TOKEN;
+}
+
+bool
 type_is_resource_handle(const Type *type)
 {
     return type_is_qubit(type)
-        || type_is_slot_handle(type)
+        || type_is_owned_slot_handle(type)
         || type_is_constructed_named(type, "DeviceSlot");
 }
 
 bool
 type_is_anchored_resource_handle(const Type *type)
 {
-    return type_is_slot_handle(type)
+    return type_is_owned_slot_handle(type)
         || type_is_constructed_named(type, "DeviceSlot");
 }
 
@@ -304,7 +332,13 @@ resource_handle_display_name(const Type *type)
         return "resource";
     if (type_is_qubit(type))
         return "QubitSlot";
-    if (type_is_slot_handle(type))
+    if (type_is_read_view(type))
+        return "ReadView";
+    if (type_is_write_view(type))
+        return "WriteView";
+    if (type_is_move_token(type))
+        return "MoveToken";
+    if (type_is_owned_slot_handle(type))
         return type->data.slot.is_secure ? "SecureSlot" : "Slot";
     if (type_is_constructed_named(type, "DeviceSlot"))
         return "DeviceSlot";
@@ -348,6 +382,23 @@ expr_is_movable_resource_transfer_source(const ASTNode *expr)
     default:
         return false;
     }
+}
+
+static bool
+slot_transfer_compatible(const Type *from, const Type *to)
+{
+    if (from == NULL || to == NULL)
+        return false;
+    if (from->kind != TYPE_KIND_SLOT || to->kind != TYPE_KIND_SLOT)
+        return false;
+    if (from->data.slot.access_mode != SLOT_ACCESS_MOVE_TOKEN)
+        return false;
+    if (to->data.slot.access_mode != SLOT_ACCESS_OWNED)
+        return false;
+    if (from->data.slot.is_secure != to->data.slot.is_secure)
+        return false;
+    return type_is_assignable(from->data.slot.inner_type, to->data.slot.inner_type)
+        && type_is_assignable(to->data.slot.inner_type, from->data.slot.inner_type);
 }
 
 static bool
@@ -696,7 +747,9 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
 
     const char *name = node->data.type.name;
 
-    if (strcmp(name, "Slot") == 0 || strcmp(name, "SecureSlot") == 0) {
+    if (strcmp(name, "Slot") == 0 || strcmp(name, "SecureSlot") == 0
+        || strcmp(name, "ReadView") == 0 || strcmp(name, "WriteView") == 0
+        || strcmp(name, "MoveToken") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
             semantic_error(ctx, node,
@@ -705,7 +758,15 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         }
         Type *inner = resolve_generic_type_arg(
             node->data.type.generic_args->params[0], ctx, node);
-        return type_create_slot(inner, strcmp(name, "SecureSlot") == 0);
+        if (strcmp(name, "SecureSlot") == 0)
+            return type_create_slot(inner, true);
+        if (strcmp(name, "ReadView") == 0)
+            return type_create_read_view(inner);
+        if (strcmp(name, "WriteView") == 0)
+            return type_create_write_view(inner);
+        if (strcmp(name, "MoveToken") == 0)
+            return type_create_slot_access(inner, false, SLOT_ACCESS_MOVE_TOKEN);
+        return type_create_slot(inner, false);
     }
 
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
@@ -1019,7 +1080,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             }
             return TYPE_UNKNOWN;
         }
-        if (type_is_qubit(sym->type) && sym->is_consumed) {
+        if ((type_is_qubit(sym->type) || type_is_move_token(sym->type))
+            && sym->is_consumed) {
             semantic_error(ctx, expr,
                 "%s '%s' was moved or released and cannot be used again; create a fresh value or keep ownership in one binding",
                 resource_handle_display_name(sym->type),
@@ -1426,7 +1488,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                           "BoxArray") == 0) {
                 init_type = decl_type;
             }
-            require_assignable(init_type, decl_type, init, ctx);
+            if (!slot_transfer_compatible(init_type, decl_type))
+                require_assignable(init_type, decl_type, init, ctx);
         }
     } else if (init != NULL) {
         /* Infer type from initializer */
@@ -1467,9 +1530,40 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
+        && decl_type->data.slot.access_mode != SLOT_ACCESS_OWNED) {
+        const char *source_slot = NULL;
+        if (init != NULL && init->type == AST_CALL
+            && init->data.call.callee != NULL
+            && init->data.call.callee->type == AST_IDENTIFIER
+            && init->data.call.arg_count >= 1
+            && init->data.call.arguments[0] != NULL
+            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            const char *callee_name = init->data.call.callee->data.identifier.name;
+            if (callee_name != NULL
+                && (strcmp(callee_name, "ViewRead") == 0
+                    || strcmp(callee_name, "ViewWrite") == 0
+                    || strcmp(callee_name, "Move") == 0)) {
+                source_slot = init->data.call.arguments[0]->data.identifier.name;
+            }
+        }
+
+        Symbol *sym = symbol_create_view(name, decl_type, source_slot,
+            node->line, node->column);
+        scope_declare(ctx->scope, sym);
+        return !ctx->has_error;
+    }
+
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT) {
         if (decl_type->data.slot.is_secure)
             semantic_record_effect(ctx, EFFECT_SECURE);
+        if (slot_transfer_compatible(init_type, decl_type)) {
+            if (init != NULL && init->type == AST_IDENTIFIER) {
+                Symbol *move_sym = scope_lookup(ctx->scope, init->data.identifier.name);
+                if (move_sym != NULL)
+                    move_sym->is_consumed = true;
+            }
+        }
         if (init_type != NULL && type_is_anchored_resource_handle(init_type)) {
             semantic_error(ctx, node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; use a fresh claim or initialize from an inner value instead");

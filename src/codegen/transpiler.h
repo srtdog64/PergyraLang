@@ -65,6 +65,10 @@ typedef struct
 {
     char name[64];
     char type_name[128];
+    char source_slot[64];
+    bool is_view;
+    bool is_move_token;
+    bool source_secure;
 } TypedVarEntry;
 
 typedef struct

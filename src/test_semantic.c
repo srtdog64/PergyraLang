@@ -520,6 +520,168 @@ test_type_checker_slot_rules(void)
 
         semantic_context_destroy(ctx);
     }
+
+    TEST("ReadView<T> reads but does not own");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("rv");
+        ASTNode *view_args[1] = { make_identifier("s", 1) };
+        decl->data.let_decl.type = make_generic_type("ReadView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewRead", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *read_args[1] = { make_identifier("rv", 2) };
+        ASTNode *read_call = make_call("Read", read_args, 1, 2);
+        Type *t = type_check_read_slot(read_call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(read_call);
+    }
+
+    TEST("Write through ReadView<T> → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("rv");
+        ASTNode *view_args[1] = { make_identifier("s", 1) };
+        decl->data.let_decl.type = make_generic_type("ReadView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewRead", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *write_args[2] = { make_identifier("rv", 2), make_number(42, 2) };
+        ASTNode *write_call = make_call("Write", write_args, 2, 2);
+        type_check_write_slot(write_call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "Cannot write through ReadView"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(write_call);
+    }
+
+    TEST("WriteView<T> writes but cannot be read");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("wv");
+        ASTNode *view_args[1] = { make_identifier("s", 1) };
+        decl->data.let_decl.type = make_generic_type("WriteView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewWrite", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *write_args[2] = { make_identifier("wv", 2), make_number(7, 2) };
+        ASTNode *write_call = make_call("Write", write_args, 2, 2);
+        type_check_write_slot(write_call, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *read_args[1] = { make_identifier("wv", 3) };
+        ASTNode *read_call = make_call("Read", read_args, 1, 3);
+        Type *t = type_check_read_slot(read_call, ctx);
+        EXPECT(ctx->has_error
+            && t == TYPE_UNKNOWN
+            && ctx_has_diagnostic_substring(ctx, "Cannot read through WriteView"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(write_call);
+        ast_destroy(read_call);
+    }
+
+    TEST("Release(ReadView<T>) → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("rv");
+        ASTNode *view_args[1] = { make_identifier("s", 1) };
+        decl->data.let_decl.type = make_generic_type("ReadView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewRead", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *release_args[1] = { make_identifier("rv", 2) };
+        ASTNode *release_call = make_call("Release", release_args, 1, 2);
+        type_check_release_slot(release_call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "views are non-owning"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(release_call);
+    }
+
+    TEST("ReadView on SecureSlot<T> reads with implicit capability");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "ss", type_create_slot(TYPE_INT, true), true, "ss_token", 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("srv");
+        ASTNode *view_args[1] = { make_identifier("ss", 1) };
+        decl->data.let_decl.type = make_generic_type("ReadView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewRead", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *read_args[1] = { make_identifier("srv", 2) };
+        ASTNode *read_call = make_call("Read", read_args, 1, 2);
+        Type *t = type_check_read_slot(read_call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(read_call);
+    }
+
+    TEST("MoveToken<T> materializes into a new owning Slot<T>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "s", type_create_slot(TYPE_INT, false), false, NULL, 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *move_decl = ast_create_let_declaration("mt");
+        ASTNode *move_args[1] = { make_identifier("s", 1) };
+        move_decl->data.let_decl.type = make_generic_type("MoveToken", "Int");
+        move_decl->data.let_decl.initializer = make_call("Move", move_args, 1, 1);
+        type_check_let_decl(move_decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *slot_decl = ast_create_let_declaration("dst");
+        slot_decl->data.let_decl.type = make_generic_type("Slot", "Int");
+        slot_decl->data.let_decl.initializer = make_identifier("mt", 2);
+        type_check_let_decl(slot_decl, ctx);
+        EXPECT(!ctx->has_error);
+
+        ASTNode *read_src_args[1] = { make_identifier("s", 3) };
+        ASTNode *read_src = make_call("Read", read_src_args, 1, 3);
+        type_check_read_slot(read_src, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "released slot"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(move_decl);
+        ast_destroy(slot_decl);
+        ast_destroy(read_src);
+    }
 }
 
 static void
