@@ -337,6 +337,11 @@ type_is_assignable(const Type *from, const Type *to)
             return true;
     }
 
+    /* Enum → Int implicit coercion (enums are integer-backed) */
+    if (from->kind == TYPE_KIND_ENUM && to->kind == TYPE_KIND_PRIMITIVE
+        && strcmp(to->name, "Int") == 0)
+        return true;
+
     return false;
 }
 

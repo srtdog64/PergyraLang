@@ -1280,8 +1280,10 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    /* Unknown member access — allow without error for class types */
-    if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS)
+    /* Unknown member access — allow without error for class/enum types */
+    if (object_type != NULL
+        && (object_type->kind == TYPE_KIND_CLASS
+            || object_type->kind == TYPE_KIND_ENUM))
         return TYPE_UNKNOWN;
 
     return TYPE_UNKNOWN;
@@ -2167,10 +2169,31 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     for (size_t i = 0; i < param_count; i++) {
-        param_types[i] = resolve_type_node(
-            node->data.func_decl.params[i]->type, ctx);
+        FuncParam *param = node->data.func_decl.params[i];
+        /* Implicit 'self' type: if a parameter named "self" has no
+         * type annotation and we're inside a class scope, infer the
+         * enclosing class type. */
+        if (param->type == NULL && param->name != NULL
+            && strcmp(param->name, "self") == 0
+            && ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS) {
+            /* Walk parent scope to find the class symbol */
+            Scope *parent = ctx->scope->parent;
+            if (parent != NULL) {
+                for (size_t s = parent->symbol_count; s > 0; s--) {
+                    Symbol *cs = parent->symbols[s - 1];
+                    if (cs != NULL && cs->kind == SYMBOL_CLASS) {
+                        param_types[i] = cs->type;
+                        break;
+                    }
+                }
+            }
+            if (param_types[i] == NULL)
+                param_types[i] = TYPE_UNKNOWN;
+        } else {
+            param_types[i] = resolve_type_node(param->type, ctx);
+        }
         if (type_is_anchored_resource_handle(param_types[i])) {
-            semantic_error(ctx, node->data.func_decl.params[i]->type,
+            semantic_error(ctx, node,
                 "Anchored resource handle parameters (Slot/SecureSlot/DeviceSlot) are not supported yet");
         }
     }
@@ -2271,10 +2294,49 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
 
-    /* Check methods */
+    /* Check methods — type-check each in a temporary class scope,
+     * then register the mangled name (ClassName_MethodName) in the
+     * parent scope so that callers can find it. */
     scope_enter(&ctx->scope, SCOPE_CLASS);
     for (size_t i = 0; i < node->data.class_decl.method_count; i++)
         type_check_func_decl(node->data.class_decl.methods[i], ctx);
+
+    /* Collect method signatures before the class scope is destroyed */
+    for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+        ASTNode *method = node->data.class_decl.methods[i];
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+        const char *mname = method->data.func_decl.name;
+        if (mname == NULL)
+            continue;
+        Symbol *msym = scope_lookup_current(ctx->scope, mname);
+        if (msym == NULL || msym->kind != SYMBOL_FUNCTION)
+            continue;
+
+        /* Build mangled name: ClassName_MethodName */
+        size_t len = strlen(name) + 1 + strlen(mname) + 1;
+        char *mangled = malloc(len);
+        if (mangled == NULL)
+            continue;
+        snprintf(mangled, len, "%s_%s", name, mname);
+
+        /* The method's func_type already includes 'self' as the first
+         * parameter (registered by type_check_func_decl), so reuse
+         * the original signature directly. */
+        Type *mangled_ft = msym->type;
+
+        /* Register in parent scope (outside class) */
+        Symbol *mangled_sym = symbol_create_function(
+            mangled, mangled_ft, method->line, method->column);
+        /* Temporarily step out to declare in parent */
+        Scope *class_scope = ctx->scope;
+        ctx->scope = class_scope->parent;
+        if (!scope_declare(ctx->scope, mangled_sym))
+            symbol_destroy(mangled_sym);
+        ctx->scope = class_scope;
+        free(mangled);
+    }
+
     scope_exit(&ctx->scope);
 
     return !ctx->has_error;
@@ -2370,7 +2432,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             if (ename != NULL && scope_lookup_current(ctx->scope, ename) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
                 if (t != NULL) {
-                    t->kind = TYPE_KIND_CLASS;
+                    t->kind = TYPE_KIND_ENUM;
                     t->name = pergyra_strdup(ename);
                 }
                 Symbol *s = symbol_create_function(ename,

@@ -522,6 +522,17 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    /* String + String → StringConcat */
+    if (left_type == ctx->type_i8ptr && right_type == ctx->type_i8ptr
+        && node->data.binary.op.type == TOKEN_PLUS) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringConcat");
+        if (fn != NULL) {
+            LLVMValueRef args[] = { left, right };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                  args, 2, llvm_tmp_name(ctx));
+        }
+    }
+
     /* Promote: if one side is double, convert the other */
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
                   || right_type == ctx->type_f64 || right_type == ctx->type_f32);

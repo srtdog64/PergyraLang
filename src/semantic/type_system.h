@@ -20,6 +20,7 @@ typedef enum
     TYPE_KIND_TUPLE,        /* (T, U, V) */
     TYPE_KIND_SLOT,         /* Slot<T>, SecureSlot<T> */
     TYPE_KIND_CLASS,        /* User-defined classes */
+    TYPE_KIND_ENUM,         /* User-defined enums (integer-backed) */
     TYPE_KIND_TRAIT,        /* Interfaces/Traits */
     TYPE_KIND_ALIAS         /* Type aliases */
 } TypeKind;
