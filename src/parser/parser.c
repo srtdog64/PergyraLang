@@ -556,7 +556,12 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     // async 함수 선언
     if (parser_match(parser, TOKEN_ASYNC)) {
-        return parser_finalize_statement(parser, parser_parse_async_function(parser));
+        if (parser_check(parser, TOKEN_FUNC))
+            return parser_finalize_statement(parser, parser_parse_async_function(parser));
+        if (parser_check(parser, TOKEN_LBRACE))
+            return parser_finalize_statement(parser, parser_parse_async_block(parser));
+        parser_error(parser, "Expected 'func' or '{' after 'async'");
+        return NULL;
     }
 
     // actor 선언

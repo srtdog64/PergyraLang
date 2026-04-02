@@ -61,6 +61,15 @@ CC_MACHINE   := $(shell $(CC) -dumpmachine 2>/dev/null || echo unknown)
 CC_TAG       := $(shell printf '%s' "$(CC_MACHINE)" | tr -c 'A-Za-z0-9_.-' '_')
 CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED)_$(CC_TAG).stamp
 
+ifeq ($(origin BUILD_DIR), undefined)
+  ifneq ($(filter /mnt/%,$(PROJECT_ROOT)),)
+    ifeq ($(findstring mingw,$(CC_MACHINE)),)
+      BUILD_DIR := $(TMPDIR)/pgy-$(notdir $(PROJECT_ROOT))-build
+      BIN_DIR   := $(TMPDIR)/pgy-$(notdir $(PROJECT_ROOT))-bin
+    endif
+  endif
+endif
+
 ifneq ($(LLVM_ENABLED),0)
   ifneq ($(LLVM_CONFIG),)
     LLVM_INCLUDEDIR := $(shell $(LLVM_CONFIG) --includedir 2>/dev/null)
@@ -81,8 +90,8 @@ endif
 # Directories
 # -----------------------------------------------------------------
 SRC_DIR      = src
-BUILD_DIR    = build
-BIN_DIR      = bin
+BUILD_DIR   ?= build
+BIN_DIR     ?= bin
 LEXER_DIR    = $(SRC_DIR)/lexer
 PARSER_DIR   = $(SRC_DIR)/parser
 RUNTIME_DIR  = $(SRC_DIR)/runtime

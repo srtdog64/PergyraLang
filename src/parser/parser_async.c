@@ -149,6 +149,36 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
     return actor;
 }
 
+// Parse async block statement
+ASTNode* parser_parse_async_block(Parser* parser)
+{
+    ASTNode* block = ast_create_async_block();
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'async'");
+
+    bool saved_async = parser->in_async_context;
+    parser->in_async_context = true;
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        ASTNode* stmt = parser_parse_statement(parser);
+        if (stmt != NULL) {
+            block->data.async_block.statement_count++;
+            block->data.async_block.statements = realloc(
+                block->data.async_block.statements,
+                block->data.async_block.statement_count * sizeof(ASTNode*)
+            );
+            block->data.async_block.statements[
+                block->data.async_block.statement_count - 1] = stmt;
+        }
+        if (parser->has_error) {
+            parser_synchronize(parser);
+        }
+    }
+    parser->in_async_context = saved_async;
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after async block");
+    return block;
+}
+
 // Parse await expression
 ASTNode* parser_parse_await_expression(Parser* parser)
 {

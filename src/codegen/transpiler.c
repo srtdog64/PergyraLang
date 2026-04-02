@@ -872,8 +872,12 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "H") == 0
                 || strcmp(name, "ArrayPush") == 0
                 || strcmp(name, "ArraySet") == 0
-                || strcmp(name, "ArrayPop") == 0)
+                || strcmp(name, "ArrayPop") == 0
+                || strcmp(name, "ChannelClose") == 0)
                 return "Void";
+            if (strcmp(name, "TryRecv") == 0
+                || strcmp(name, "ChannelReady") == 0)
+                return "Bool";
 
             {
                 ASTNode *decl = find_function_decl(ctx, name);
@@ -1992,6 +1996,49 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(arr);
             return result;
         }
+        /* Channel builtins */
+        if (strcmp(fn, "TryRecv") == 0 && call->data.call.arg_count == 1) {
+            char *ch = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = "Int";
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *tn = lookup_typed_var(ctx,
+                    call->data.call.arguments[0]->data.identifier.name);
+                if (tn != NULL && strncmp(tn, "Channel<", 8) == 0)
+                    inner = slot_inner_type_name(tn);
+            }
+            char *result = strdup_fmt(
+                "pgy_channel_try_recv_%s(&%s, NULL)", inner, ch);
+            free(ch);
+            return result;
+        }
+        if (strcmp(fn, "ChannelClose") == 0 && call->data.call.arg_count == 1) {
+            char *ch = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = "Int";
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *tn = lookup_typed_var(ctx,
+                    call->data.call.arguments[0]->data.identifier.name);
+                if (tn != NULL && strncmp(tn, "Channel<", 8) == 0)
+                    inner = slot_inner_type_name(tn);
+            }
+            char *result = strdup_fmt(
+                "pgy_channel_close_%s(&%s)", inner, ch);
+            free(ch);
+            return result;
+        }
+        if (strcmp(fn, "ChannelReady") == 0 && call->data.call.arg_count == 1) {
+            char *ch = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = "Int";
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *tn = lookup_typed_var(ctx,
+                    call->data.call.arguments[0]->data.identifier.name);
+                if (tn != NULL && strncmp(tn, "Channel<", 8) == 0)
+                    inner = slot_inner_type_name(tn);
+            }
+            char *result = strdup_fmt(
+                "pgy_channel_ready_%s(&%s)", inner, ch);
+            free(ch);
+            return result;
+        }
         /* Print (no newline) vs Log (with newline) */
         if (strcmp(fn, "Print") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
@@ -2126,7 +2173,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         free(wrapper_name);
         free(return_type_name);
         free(return_c_type);
-        return pergyra_strdup("pgy_spawn(NULL, NULL)");
+        return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
 
     if (target->type == AST_CALL) {
@@ -2231,7 +2278,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (args_type_name == NULL) {
-        codebuf_write(expr, "pgy_spawn(%s, NULL)", wrapper_name);
+        codebuf_write(expr, "pgy_async_spawn(%s, NULL)", wrapper_name);
     } else {
         codebuf_write(expr,
             "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
@@ -2242,7 +2289,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
             free(arg);
         }
-        codebuf_write(expr, "pgy_spawn(%s, _pgy_args); })", wrapper_name);
+        codebuf_write(expr, "pgy_async_spawn(%s, _pgy_args); })", wrapper_name);
     }
 
     char *result = pergyra_strdup(expr->data);
@@ -2515,6 +2562,45 @@ void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
+static bool
+select_case_parts(ASTNode *case_node, ASTNode **channel_out,
+                  const char **bind_name_out, ASTNode **body_out)
+{
+    if (case_node == NULL || case_node->type != AST_BLOCK
+        || case_node->data.block.count == 0)
+        return false;
+
+    ASTNode *first = case_node->data.block.statements[0];
+    ASTNode *body = case_node->data.block.count >= 2
+        ? case_node->data.block.statements[1] : NULL;
+
+    if (first->type == AST_CHANNEL_RECV) {
+        if (channel_out != NULL)
+            *channel_out = first->data.channel_recv.channel;
+        if (bind_name_out != NULL)
+            *bind_name_out = NULL;
+        if (body_out != NULL)
+            *body_out = body;
+        return true;
+    }
+
+    if (first->type == AST_ASSIGNMENT
+        && first->data.assignment.target != NULL
+        && first->data.assignment.target->type == AST_IDENTIFIER
+        && first->data.assignment.value != NULL
+        && first->data.assignment.value->type == AST_CHANNEL_RECV) {
+        if (channel_out != NULL)
+            *channel_out = first->data.assignment.value->data.channel_recv.channel;
+        if (bind_name_out != NULL)
+            *bind_name_out = first->data.assignment.target->data.identifier.name;
+        if (body_out != NULL)
+            *body_out = body;
+        return true;
+    }
+
+    return false;
+}
+
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 
 /* -----------------------------------------------------------------
@@ -3338,6 +3424,108 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     #undef IS_SLOT_DUP
 }
 
+static void
+emit_async_block(ASTNode *node, TranspilerCtx *ctx)
+{
+    unsigned int pid = ctx->parallel_id++;
+    int n_slots  = ctx->slot_var_count;
+    int n_typed  = ctx->typed_var_count;
+
+    #define IS_SLOT_DUP(name_str) ({ \
+        bool _dup = false; \
+        for (int _j = 0; _j < n_slots; _j++) { \
+            if (strcmp(ctx->slot_vars[_j].name, (name_str)) == 0) \
+                { _dup = true; break; } \
+        } _dup; })
+
+    int n_unique_typed = 0;
+    for (int i = 0; i < n_typed; i++) {
+        if (!IS_SLOT_DUP(ctx->typed_vars[i].name))
+            n_unique_typed++;
+    }
+
+    bool has_captures = (n_slots > 0 || n_unique_typed > 0);
+
+    if (has_captures) {
+        codebuf_write(ctx->helpers, "typedef struct {\n");
+        for (int i = 0; i < n_slots; i++) {
+            codebuf_write(ctx->helpers, "    PgySlot_%s *%s;\n",
+                ctx->slot_vars[i].inner_type, ctx->slot_vars[i].name);
+        }
+        for (int i = 0; i < n_typed; i++) {
+            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
+                continue;
+            codebuf_write(ctx->helpers, "    %s *%s;\n",
+                pergyra_type_to_c(ctx->typed_vars[i].type_name),
+                ctx->typed_vars[i].name);
+        }
+        codebuf_write(ctx->helpers, "} _pgy_async_ctx_%u;\n\n", pid);
+    }
+
+    codebuf_write(ctx->helpers, "static void *_pgy_async_%u(void *_arg) {\n", pid);
+    if (has_captures) {
+        codebuf_write(ctx->helpers,
+            "    _pgy_async_ctx_%u *_pctx = (_pgy_async_ctx_%u *)_arg;\n",
+            pid, pid);
+    } else {
+        codebuf_write(ctx->helpers, "    (void)_arg;\n");
+    }
+
+    CodeBuf *saved = ctx->out;
+    int saved_indent = ctx->indent;
+    bool saved_in_pw = ctx->in_parallel_wrapper;
+    int saved_slot_end  = ctx->par_capture_slot_end;
+    int saved_typed_end = ctx->par_capture_typed_end;
+
+    ctx->out = ctx->helpers;
+    ctx->indent = 1;
+    ctx->in_parallel_wrapper  = true;
+    ctx->par_capture_slot_end  = n_slots;
+    ctx->par_capture_typed_end = n_typed;
+
+    for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+        emit_statement(node->data.async_block.statements[i], ctx);
+
+    ctx->out = saved;
+    ctx->indent = saved_indent;
+    ctx->in_parallel_wrapper  = saved_in_pw;
+    ctx->par_capture_slot_end  = saved_slot_end;
+    ctx->par_capture_typed_end = saved_typed_end;
+
+    codebuf_write(ctx->helpers, "    return NULL;\n}\n\n");
+
+    write_indent(ctx);
+    codebuf_write(ctx->out, "{\n");
+    ctx->indent++;
+    if (has_captures) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_async_ctx_%u _pctx%u = { ", pid, pid);
+        bool first = true;
+        for (int i = 0; i < n_slots; i++) {
+            if (!first) codebuf_write(ctx->out, ", ");
+            codebuf_write(ctx->out, "&%s", ctx->slot_vars[i].name);
+            first = false;
+        }
+        for (int i = 0; i < n_typed; i++) {
+            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
+                continue;
+            if (!first) codebuf_write(ctx->out, ", ");
+            codebuf_write(ctx->out, "&%s", ctx->typed_vars[i].name);
+            first = false;
+        }
+        codebuf_write(ctx->out, " };\n");
+    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, %s);\n",
+        pid, pid, has_captures ? "&_pctx" : "NULL");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "pgy_async_detach(_ah_%u);\n", pid);
+    ctx->indent--;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "}\n");
+    #undef IS_SLOT_DUP
+}
+
 /* -----------------------------------------------------------------
  * Control flow
  * ----------------------------------------------------------------- */
@@ -3747,8 +3935,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_select_stmt(node, ctx);
         break;
     case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
-            emit_statement(node->data.async_block.statements[i], ctx);
+        emit_async_block(node, ctx);
         break;
     default: {
         /* Expression statement (including event invoke) */
@@ -4538,16 +4725,88 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "/* select */\n");
 
-    /* MVP: emit cases as sequential if-else chain checking channel readiness */
     for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
         ASTNode *c = node->data.select_stmt.cases[i];
+        ASTNode *channel = NULL;
+        ASTNode *body = NULL;
+        const char *bind_name = NULL;
+        bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
+        const char *inner = "Int";
+
+        if (!valid_case || bind_name == NULL || channel == NULL
+            || channel->type != AST_IDENTIFIER)
+            continue;
+
+        {
+            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+                inner = slot_inner_type_name(type_name);
+        }
+
         write_indent(ctx);
-        if (i == 0)
-            codebuf_write(ctx->out, "if (1) { /* select case %zu */\n", i);
-        else
-            codebuf_write(ctx->out, "} else if (1) { /* select case %zu */\n", i);
+        codebuf_write(ctx->out, "%s _sel_recv_%zu;\n",
+                      pergyra_type_to_c(inner), i);
+    }
+
+    for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+        ASTNode *c = node->data.select_stmt.cases[i];
+        ASTNode *channel = NULL;
+        ASTNode *body = NULL;
+        const char *bind_name = NULL;
+        bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
+        const char *inner = "Int";
+
+        if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
+            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+                inner = slot_inner_type_name(type_name);
+        }
+
+        write_indent(ctx);
+        if (i == 0) {
+            if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
+                if (bind_name != NULL)
+                    codebuf_write(ctx->out,
+                        "if (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
+                        inner, channel->data.identifier.name, i, i);
+                else
+                    codebuf_write(ctx->out,
+                        "if (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
+                        inner, channel->data.identifier.name, i);
+            } else {
+                codebuf_write(ctx->out, "if (1) { /* select case %zu */\n", i);
+            }
+        } else {
+            if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
+                if (bind_name != NULL)
+                    codebuf_write(ctx->out,
+                        "} else if (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
+                        inner, channel->data.identifier.name, i, i);
+                else
+                    codebuf_write(ctx->out,
+                        "} else if (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
+                        inner, channel->data.identifier.name, i);
+            } else {
+                codebuf_write(ctx->out, "} else if (1) { /* select case %zu */\n", i);
+            }
+        }
         ctx->indent++;
-        if (c) emit_statement(c, ctx);
+        if (valid_case) {
+            if (bind_name != NULL) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "%s %s = _sel_recv_%zu;\n",
+                              pergyra_type_to_c(inner), bind_name, i);
+            } else if (channel != NULL) {
+                char *recv = emit_channel_recv(ast_create_channel_recv(channel), ctx);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "(void)%s;\n", recv);
+                free(recv);
+            }
+            if (body != NULL)
+                emit_statement(body, ctx);
+        } else if (c != NULL) {
+            emit_statement(c, ctx);
+        }
         ctx->indent--;
     }
 

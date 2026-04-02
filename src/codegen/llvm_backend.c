@@ -780,6 +780,28 @@ llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name)
     return NULL;
 }
 
+void
+llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
+                          const char *inner_type)
+{
+    PGY_DYNARR_ENSURE(ctx->channel_vars, ctx->channel_var_count,
+                      ctx->channel_var_capacity, LLVMChannelVarEntry);
+
+    ctx->channel_vars[ctx->channel_var_count].var_name = var_name;
+    ctx->channel_vars[ctx->channel_var_count].inner_type = inner_type;
+    ctx->channel_var_count++;
+}
+
+const char *
+llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->channel_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->channel_vars[i].var_name, var_name) == 0)
+            return ctx->channel_vars[i].inner_type;
+    }
+    return NULL;
+}
+
 /* =================================================================
  * Class type tracking
  * ================================================================= */
@@ -1446,6 +1468,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
      * pgy_pool_init_export(i64) → void
      * pgy_pool_shutdown_export() → void
      * pgy_spawn_export(fn_ptr, i8*) → { i8* }  (PgyTaskHandle)
+     * pgy_async_spawn_export(fn_ptr, i8*) → { i8* }
+     * pgy_async_detach_export({ i8* }) → void
      * pgy_await_export({ i8* }) → i8*
      * ================================================================= */
 
@@ -1478,6 +1502,27 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
                                            "pgy_spawn_export", ft);
         llvm_register_function(ctx, "pgy_spawn_export",
                                 fn, ft, ctx->type_task_handle);
+    }
+
+    /* PgyTaskHandle pgy_async_spawn_export(i8*, i8*) */
+    {
+        LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle,
+                                           params, 2, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                                           "pgy_async_spawn_export", ft);
+        llvm_register_function(ctx, "pgy_async_spawn_export",
+                                fn, ft, ctx->type_task_handle);
+    }
+
+    /* void pgy_async_detach_export(PgyTaskHandle) */
+    {
+        LLVMTypeRef params[] = { ctx->type_task_handle };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                                           "pgy_async_detach_export", ft);
+        llvm_register_function(ctx, "pgy_async_detach_export",
+                                fn, ft, ctx->type_void);
     }
 
     /* i8* pgy_await_export(PgyTaskHandle) */
@@ -1549,6 +1594,34 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, vt);
+        }
+
+        /* i1 pgy_channel_try_recv_T(ptr, val_type*) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr, LLVMPointerType(vt, 0) };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_try_recv_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
+        }
+
+        /* i1 pgy_channel_ready_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_ready_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
+        }
+
+        /* void pgy_channel_close_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_close_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_void);
         }
 
         /* void pgy_channel_destroy_T(ptr) */

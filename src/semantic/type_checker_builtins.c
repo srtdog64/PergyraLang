@@ -625,6 +625,43 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return wrap_constructed(TYPE_REMOTE_FUTURE,
             type_get_constructed_arg(slot_type, 0));
     }
+
+    /* ---- Channel builtins ---- */
+    if (strcmp(name, "TryRecv") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(ch_type, "Channel")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "TryRecv requires Channel<T>, got '%s'", ch_type->name);
+            return TYPE_UNKNOWN;
+        }
+        /* Returns Bool: true if a value was received, false if empty */
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "ChannelClose") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(ch_type, "Channel")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ChannelClose requires Channel<T>, got '%s'", ch_type->name);
+            return TYPE_UNKNOWN;
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ChannelReady") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(ch_type, "Channel")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ChannelReady requires Channel<T>, got '%s'", ch_type->name);
+            return TYPE_UNKNOWN;
+        }
+        return TYPE_BOOL;
+    }
+
     if (strcmp(name, "Measure") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;

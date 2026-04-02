@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2025 Pergyra Language Project
- * Real concurrency runtime — pthread-based thread pool
+ * Real concurrency + coroutine runtime
  * BSD 3-Clause License
  */
 
@@ -13,9 +13,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <ucontext.h>
+#endif
 
 /* =================================================================
- * Task & Future
+ * Shared task handle
  * ================================================================= */
 
 typedef enum {
@@ -24,42 +29,47 @@ typedef enum {
     PGY_TASK_DONE
 } PgyTaskState;
 
+typedef enum {
+    PGY_TASK_MODEL_THREAD = 1,
+    PGY_TASK_MODEL_COROUTINE = 2
+} PgyTaskModel;
+
+typedef struct {
+    PgyTaskModel model;
+} PgyTaskHeader;
+
 typedef struct PgyTask {
+    PgyTaskModel    model;
     void *(*fn)(void *);
     void           *arg;
     void           *result;
     PgyTaskState    state;
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
-    struct PgyTask *next;          /* intrusive queue link */
+    struct PgyTask *next;
 } PgyTask;
 
 typedef struct {
-    PgyTask *task;                 /* opaque handle to awaitable task */
+    void *task;                 /* PgyTask* or coroutine task header */
 } PgyTaskHandle;
 
 /* =================================================================
- * Thread Pool
+ * Thread pool runtime for `parallel`
  * ================================================================= */
 
 typedef struct {
     pthread_t      *workers;
     size_t          worker_count;
-
-    /* Lock-protected task queue */
     PgyTask        *queue_head;
     PgyTask        *queue_tail;
     pthread_mutex_t queue_mutex;
     pthread_cond_t  queue_cond;
-
     bool            shutdown;
 } PgyThreadPool;
 
-/* Global singleton pool */
 static PgyThreadPool g_pgy_pool = {0};
 static bool          g_pgy_pool_active = false;
 
-/* Worker thread main loop */
 static void *
 pgy_worker_loop(void *arg)
 {
@@ -67,8 +77,6 @@ pgy_worker_loop(void *arg)
 
     for (;;) {
         pthread_mutex_lock(&pool->queue_mutex);
-
-        /* Wait for work or shutdown */
         while (pool->queue_head == NULL && !pool->shutdown)
             pthread_cond_wait(&pool->queue_cond, &pool->queue_mutex);
 
@@ -77,20 +85,17 @@ pgy_worker_loop(void *arg)
             break;
         }
 
-        /* Dequeue task */
         PgyTask *task = pool->queue_head;
         if (task != NULL) {
             pool->queue_head = task->next;
             if (pool->queue_head == NULL)
                 pool->queue_tail = NULL;
         }
-
         pthread_mutex_unlock(&pool->queue_mutex);
 
         if (task == NULL)
             continue;
 
-        /* Execute */
         pthread_mutex_lock(&task->mutex);
         task->state = PGY_TASK_RUNNING;
         pthread_mutex_unlock(&task->mutex);
@@ -99,7 +104,7 @@ pgy_worker_loop(void *arg)
 
         pthread_mutex_lock(&task->mutex);
         task->result = result;
-        task->state  = PGY_TASK_DONE;
+        task->state = PGY_TASK_DONE;
         pthread_cond_broadcast(&task->cond);
         pthread_mutex_unlock(&task->mutex);
     }
@@ -107,7 +112,6 @@ pgy_worker_loop(void *arg)
     return NULL;
 }
 
-/* Initialize thread pool with N workers */
 static inline void
 pgy_pool_init(size_t worker_count)
 {
@@ -115,13 +119,10 @@ pgy_pool_init(size_t worker_count)
         return;
 
     if (worker_count == 0)
-        worker_count = 4;         /* sensible default */
+        worker_count = 4;
 
     memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
     g_pgy_pool.worker_count = worker_count;
-    g_pgy_pool.shutdown     = false;
-    g_pgy_pool.queue_head   = NULL;
-    g_pgy_pool.queue_tail   = NULL;
     pthread_mutex_init(&g_pgy_pool.queue_mutex, NULL);
     pthread_cond_init(&g_pgy_pool.queue_cond, NULL);
 
@@ -133,7 +134,6 @@ pgy_pool_init(size_t worker_count)
     g_pgy_pool_active = true;
 }
 
-/* Shutdown pool, wait for all workers to finish */
 static inline void
 pgy_pool_shutdown(void)
 {
@@ -152,9 +152,8 @@ pgy_pool_shutdown(void)
     pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
     pthread_cond_destroy(&g_pgy_pool.queue_cond);
 
-    /* Free any remaining tasks (shouldn't be any) */
     PgyTask *t = g_pgy_pool.queue_head;
-    while (t) {
+    while (t != NULL) {
         PgyTask *next = t->next;
         pthread_mutex_destroy(&t->mutex);
         pthread_cond_destroy(&t->cond);
@@ -162,40 +161,42 @@ pgy_pool_shutdown(void)
         t = next;
     }
 
+    memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
     g_pgy_pool_active = false;
 }
 
-/* Submit a task to the pool, returns a handle for await */
 static inline PgyTaskHandle
 pgy_spawn(void *(*fn)(void *), void *arg)
 {
     PgyTaskHandle handle = {0};
 
-    /* Fallback to synchronous if pool not active */
     if (!g_pgy_pool_active) {
         PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-        task->fn     = fn;
-        task->arg    = arg;
-        task->result = fn ? fn(arg) : NULL;
-        task->state  = PGY_TASK_DONE;
+        if (task == NULL)
+            return handle;
+        task->model = PGY_TASK_MODEL_THREAD;
+        task->fn = fn;
+        task->arg = arg;
+        task->result = fn != NULL ? fn(arg) : NULL;
+        task->state = PGY_TASK_DONE;
         pthread_mutex_init(&task->mutex, NULL);
         pthread_cond_init(&task->cond, NULL);
-        task->next   = NULL;
-        handle.task  = task;
+        handle.task = task;
         return handle;
     }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-    task->fn    = fn;
-    task->arg   = arg;
+    if (task == NULL)
+        return handle;
+
+    task->model = PGY_TASK_MODEL_THREAD;
+    task->fn = fn;
+    task->arg = arg;
     task->state = PGY_TASK_PENDING;
-    task->next  = NULL;
     pthread_mutex_init(&task->mutex, NULL);
     pthread_cond_init(&task->cond, NULL);
-
     handle.task = task;
 
-    /* Enqueue */
     pthread_mutex_lock(&g_pgy_pool.queue_mutex);
     if (g_pgy_pool.queue_tail != NULL)
         g_pgy_pool.queue_tail->next = task;
@@ -208,17 +209,311 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     return handle;
 }
 
-/* Wait for a spawned task to complete, returns its result */
+/* =================================================================
+ * Cooperative coroutine runtime for `spawn/await/async`
+ * ================================================================= */
+
+#define PGY_COROUTINES_AVAILABLE 1
+
+#if PGY_COROUTINES_AVAILABLE
+
+#define PGY_CORO_STACK_SIZE (1024 * 128)
+
+typedef struct PgyCoroTask {
+    PgyTaskModel           model;
+    void *(*fn)(void *);
+    void                  *arg;
+    void                  *result;
+    bool                   done;
+    bool                   detached;
+    bool                   queued;
+    struct PgyCoroTask    *next;
+    struct PgyCoroTask    *waiter;
+#ifdef _WIN32
+    LPVOID                 fiber;
+#else
+    ucontext_t             ctx;
+    void                  *stack;
+    size_t                 stack_size;
+#endif
+} PgyCoroTask;
+
+typedef struct {
+#ifdef _WIN32
+    LPVOID        scheduler_fiber;
+    bool          scheduler_ready;
+#else
+    ucontext_t    scheduler_ctx;
+#endif
+    PgyCoroTask  *current;
+    PgyCoroTask  *ready_head;
+    PgyCoroTask  *ready_tail;
+} PgyCoroRuntime;
+
+static __thread PgyCoroRuntime g_pgy_coro = {0};
+
+static inline void
+pgy_coro_enqueue(PgyCoroTask *task)
+{
+    if (task == NULL || task->done || task->queued)
+        return;
+
+    task->next = NULL;
+    task->queued = true;
+    if (g_pgy_coro.ready_tail != NULL)
+        g_pgy_coro.ready_tail->next = task;
+    else
+        g_pgy_coro.ready_head = task;
+    g_pgy_coro.ready_tail = task;
+}
+
+static inline PgyCoroTask *
+pgy_coro_dequeue(void)
+{
+    PgyCoroTask *task = g_pgy_coro.ready_head;
+    if (task == NULL)
+        return NULL;
+    g_pgy_coro.ready_head = task->next;
+    if (g_pgy_coro.ready_head == NULL)
+        g_pgy_coro.ready_tail = NULL;
+    task->next = NULL;
+    task->queued = false;
+    return task;
+}
+
+static inline void
+pgy_coro_destroy(PgyCoroTask *task)
+{
+    if (task == NULL)
+        return;
+#ifdef _WIN32
+    if (task->fiber != NULL)
+        DeleteFiber(task->fiber);
+#else
+    free(task->stack);
+#endif
+    free(task);
+}
+
+#ifdef _WIN32
+static inline bool
+pgy_coro_ensure_scheduler(void)
+{
+    if (g_pgy_coro.scheduler_ready)
+        return true;
+
+    LPVOID fiber = ConvertThreadToFiber(NULL);
+    if (fiber == NULL) {
+        DWORD err = GetLastError();
+        if (err == ERROR_ALREADY_FIBER)
+            fiber = GetCurrentFiber();
+    }
+    if (fiber == NULL)
+        return false;
+
+    g_pgy_coro.scheduler_fiber = fiber;
+    g_pgy_coro.scheduler_ready = true;
+    return true;
+}
+
+static VOID WINAPI
+pgy_coro_entry_win(void *raw_task)
+{
+    PgyCoroTask *task = (PgyCoroTask *)raw_task;
+    g_pgy_coro.current = task;
+    task->result = task->fn != NULL ? task->fn(task->arg) : NULL;
+    task->done = true;
+
+    if (task->waiter != NULL)
+        pgy_coro_enqueue(task->waiter);
+
+    g_pgy_coro.current = NULL;
+    SwitchToFiber(g_pgy_coro.scheduler_fiber);
+}
+#else
+static void
+pgy_coro_entry(uintptr_t raw_task)
+{
+    PgyCoroTask *task = (PgyCoroTask *)raw_task;
+    g_pgy_coro.current = task;
+    task->result = task->fn != NULL ? task->fn(task->arg) : NULL;
+    task->done = true;
+
+    if (task->waiter != NULL)
+        pgy_coro_enqueue(task->waiter);
+
+    g_pgy_coro.current = NULL;
+    setcontext(&g_pgy_coro.scheduler_ctx);
+}
+#endif
+
+static inline PgyTaskHandle
+pgy_async_spawn(void *(*fn)(void *), void *arg)
+{
+    PgyTaskHandle handle = {0};
+    PgyCoroTask *task = (PgyCoroTask *)calloc(1, sizeof(PgyCoroTask));
+    if (task == NULL)
+        return handle;
+
+    task->model = PGY_TASK_MODEL_COROUTINE;
+    task->fn = fn;
+    task->arg = arg;
+#ifdef _WIN32
+    if (!pgy_coro_ensure_scheduler()) {
+        free(task);
+        return handle;
+    }
+    task->fiber = CreateFiber(PGY_CORO_STACK_SIZE, pgy_coro_entry_win, task);
+    if (task->fiber == NULL) {
+        free(task);
+        return handle;
+    }
+#else
+    task->stack_size = PGY_CORO_STACK_SIZE;
+    task->stack = malloc(task->stack_size);
+    if (task->stack == NULL) {
+        free(task);
+        return handle;
+    }
+
+    getcontext(&task->ctx);
+    task->ctx.uc_stack.ss_sp = task->stack;
+    task->ctx.uc_stack.ss_size = task->stack_size;
+    task->ctx.uc_link = &g_pgy_coro.scheduler_ctx;
+    makecontext(&task->ctx, (void (*)(void))pgy_coro_entry, 1, (uintptr_t)task);
+#endif
+
+    pgy_coro_enqueue(task);
+    handle.task = task;
+    return handle;
+}
+
+static inline bool
+pgy_async_progress_one(void)
+{
+    PgyCoroTask *task = pgy_coro_dequeue();
+    if (task == NULL)
+        return false;
+
+    g_pgy_coro.current = task;
+#ifdef _WIN32
+    if (!pgy_coro_ensure_scheduler())
+        return false;
+    SwitchToFiber(task->fiber);
+#else
+    swapcontext(&g_pgy_coro.scheduler_ctx, &task->ctx);
+#endif
+    g_pgy_coro.current = NULL;
+
+    if (task->done && task->detached)
+        pgy_coro_destroy(task);
+
+    return true;
+}
+
+static inline void
+pgy_async_progress_until(bool (*predicate)(void *), void *arg)
+{
+    while (!predicate(arg)) {
+        if (!pgy_async_progress_one())
+            break;
+    }
+}
+
+static inline bool
+pgy_async_in_coroutine(void)
+{
+    return g_pgy_coro.current != NULL;
+}
+
+static inline void
+pgy_async_yield(void)
+{
+    PgyCoroTask *current = g_pgy_coro.current;
+    if (current == NULL)
+        return;
+
+    pgy_coro_enqueue(current);
+    g_pgy_coro.current = NULL;
+#ifdef _WIN32
+    if (g_pgy_coro.scheduler_ready)
+        SwitchToFiber(g_pgy_coro.scheduler_fiber);
+#else
+    swapcontext(&current->ctx, &g_pgy_coro.scheduler_ctx);
+#endif
+    g_pgy_coro.current = current;
+}
+
+static inline void
+pgy_async_detach(PgyTaskHandle handle)
+{
+    PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
+    if (header == NULL)
+        return;
+
+    if (header->model == PGY_TASK_MODEL_COROUTINE) {
+        PgyCoroTask *task = (PgyCoroTask *)handle.task;
+        task->detached = true;
+        if (!pgy_async_in_coroutine())
+            (void)pgy_async_progress_one();
+    }
+}
+
+static inline bool
+pgy_async_task_done(void *raw)
+{
+    PgyCoroTask *task = (PgyCoroTask *)raw;
+    return task == NULL || task->done;
+}
+#endif /* PGY_COROUTINES_AVAILABLE */
+
+/* =================================================================
+ * Unified await
+ * ================================================================= */
+
 static inline void *
 pgy_await(PgyTaskHandle handle)
 {
-    PgyTask *task = handle.task;
-    if (task == NULL)
+    PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
+    if (header == NULL)
         return NULL;
 
+    if (header->model == PGY_TASK_MODEL_COROUTINE) {
+        PgyCoroTask *task = (PgyCoroTask *)handle.task;
+        if (pgy_async_in_coroutine()) {
+            while (!task->done) {
+                PgyCoroTask *current = g_pgy_coro.current;
+                task->waiter = current;
+                g_pgy_coro.current = NULL;
+#ifdef _WIN32
+                SwitchToFiber(g_pgy_coro.scheduler_fiber);
+#else
+                swapcontext(&current->ctx, &g_pgy_coro.scheduler_ctx);
+#endif
+                g_pgy_coro.current = current;
+            }
+        } else {
+            pgy_async_progress_until(pgy_async_task_done, task);
+            while (!task->done && pgy_async_progress_one()) {
+            }
+        }
+
+        void *result = task->result;
+        pgy_coro_destroy(task);
+        return result;
+    }
+
+    PgyTask *task = (PgyTask *)handle.task;
     pthread_mutex_lock(&task->mutex);
-    while (task->state != PGY_TASK_DONE)
-        pthread_cond_wait(&task->cond, &task->mutex);
+    while (task->state != PGY_TASK_DONE) {
+        if (pgy_async_in_coroutine()) {
+            pthread_mutex_unlock(&task->mutex);
+            pgy_async_yield();
+            pthread_mutex_lock(&task->mutex);
+        } else {
+            pthread_cond_wait(&task->cond, &task->mutex);
+        }
+    }
     void *result = task->result;
     pthread_mutex_unlock(&task->mutex);
 
@@ -242,15 +537,8 @@ pgy_await(PgyTaskHandle handle)
 
 /* =================================================================
  * Parallel block helpers
- *
- * PGY_PARALLEL_BEGIN / PGY_PARALLEL_TASK / PGY_PARALLEL_END
- * are defined in pgy_runtime.h using OpenMP or sequential fallback.
- *
- * Here we provide a thread-pool-based alternative that the compiler
- * can target directly.
  * ================================================================= */
 
-/* Wrapper for void-returning parallel tasks */
 typedef struct {
     void (*fn)(void);
 } PgyParallelArg;
@@ -259,12 +547,11 @@ static void *
 pgy_parallel_wrapper(void *raw)
 {
     PgyParallelArg *parg = (PgyParallelArg *)raw;
-    if (parg && parg->fn)
+    if (parg != NULL && parg->fn != NULL)
         parg->fn();
     return NULL;
 }
 
-/* Run N tasks in parallel on the thread pool, blocking until all done */
 static inline void
 pgy_parallel_run(void (**tasks)(void), size_t count)
 {
@@ -272,20 +559,19 @@ pgy_parallel_run(void (**tasks)(void), size_t count)
         return;
 
     if (count == 1) {
-        /* Single task: just run directly */
-        if (tasks[0]) tasks[0]();
+        if (tasks[0] != NULL)
+            tasks[0]();
         return;
     }
 
     PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle));
-    PgyParallelArg *args   = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg));
+    PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg));
 
     for (size_t i = 0; i < count; i++) {
         args[i].fn = tasks[i];
         handles[i] = pgy_spawn(pgy_parallel_wrapper, &args[i]);
     }
 
-    /* Await all */
     for (size_t i = 0; i < count; i++)
         pgy_await(handles[i]);
 

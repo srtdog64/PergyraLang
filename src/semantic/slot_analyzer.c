@@ -94,26 +94,189 @@ collect_live_slots(Scope *scope, size_t *out_count)
     return result;
 }
 
-/*
- * Detect Write(slot, ...) calls in an expression subtree.
- * Returns the slot name being written, or NULL.
- */
-static const char *
-find_write_target(ASTNode *node)
-{
-    if (node == NULL)
-        return NULL;
+enum {
+    SLOT_ACCESS_READ = 1u << 0,
+    SLOT_ACCESS_WRITE = 1u << 1,
+    SLOT_ACCESS_RELEASE = 1u << 2
+};
 
-    if (node->type == AST_CALL
-        && node->data.call.callee->type == AST_IDENTIFIER) {
-        const char *name = node->data.call.callee->data.identifier.name;
-        if (strcmp(name, "Write") == 0
-            && node->data.call.arg_count >= 1
-            && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            return node->data.call.arguments[0]->data.identifier.name;
+typedef struct
+{
+    const char *name;
+    unsigned    mask;
+} SlotAccessEntry;
+
+static void
+slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
+                   const char *name, unsigned mask)
+{
+    if (name == NULL || entries == NULL || count == NULL || capacity == NULL)
+        return;
+
+    for (size_t i = 0; i < *count; i++) {
+        if (strcmp((*entries)[i].name, name) == 0) {
+            (*entries)[i].mask |= mask;
+            return;
         }
     }
-    return NULL;
+
+    if (*count >= *capacity) {
+        size_t new_cap = *capacity == 0 ? 8 : (*capacity * 2);
+        SlotAccessEntry *new_entries = realloc(*entries,
+            new_cap * sizeof(SlotAccessEntry));
+        if (new_entries == NULL)
+            return;
+        *entries = new_entries;
+        *capacity = new_cap;
+    }
+
+    (*entries)[*count].name = name;
+    (*entries)[*count].mask = mask;
+    (*count)++;
+}
+
+static void
+collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
+                      size_t *count, size_t *capacity)
+{
+    if (node == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++)
+            collect_slot_accesses(node->data.block.statements[i], entries, count, capacity);
+        break;
+
+    case AST_LET_DECL:
+        collect_slot_accesses(node->data.let_decl.initializer, entries, count, capacity);
+        break;
+
+    case AST_IF_STMT:
+        collect_slot_accesses(node->data.if_stmt.condition, entries, count, capacity);
+        collect_slot_accesses(node->data.if_stmt.then_branch, entries, count, capacity);
+        collect_slot_accesses(node->data.if_stmt.else_branch, entries, count, capacity);
+        break;
+
+    case AST_WITH_STMT:
+        collect_slot_accesses(node->data.with_stmt.slot_type, entries, count, capacity);
+        collect_slot_accesses(node->data.with_stmt.body, entries, count, capacity);
+        break;
+
+    case AST_FOR_LOOP:
+        collect_slot_accesses(node->data.for_loop.range_start, entries, count, capacity);
+        collect_slot_accesses(node->data.for_loop.range_end, entries, count, capacity);
+        collect_slot_accesses(node->data.for_loop.body, entries, count, capacity);
+        break;
+
+    case AST_WHILE_LOOP:
+        collect_slot_accesses(node->data.while_loop.condition, entries, count, capacity);
+        collect_slot_accesses(node->data.while_loop.body, entries, count, capacity);
+        break;
+
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+            collect_slot_accesses(node->data.async_block.statements[i], entries, count, capacity);
+        break;
+
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+            collect_slot_accesses(node->data.parallel.tasks[i], entries, count, capacity);
+        break;
+
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++)
+            collect_slot_accesses(node->data.select_stmt.cases[i], entries, count, capacity);
+        collect_slot_accesses(node->data.select_stmt.default_case, entries, count, capacity);
+        break;
+
+    case AST_MATCH_STMT:
+        collect_slot_accesses(node->data.match_stmt.subject, entries, count, capacity);
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+            collect_slot_accesses(node->data.match_stmt.cases[i], entries, count, capacity);
+        collect_slot_accesses(node->data.match_stmt.default_body, entries, count, capacity);
+        break;
+
+    case AST_MATCH_CASE:
+        collect_slot_accesses(node->data.match_case.pattern, entries, count, capacity);
+        collect_slot_accesses(node->data.match_case.guard, entries, count, capacity);
+        collect_slot_accesses(node->data.match_case.body, entries, count, capacity);
+        break;
+
+    case AST_ASSIGNMENT:
+        collect_slot_accesses(node->data.assignment.target, entries, count, capacity);
+        collect_slot_accesses(node->data.assignment.value, entries, count, capacity);
+        break;
+
+    case AST_BINARY:
+        collect_slot_accesses(node->data.binary.left, entries, count, capacity);
+        collect_slot_accesses(node->data.binary.right, entries, count, capacity);
+        break;
+
+    case AST_UNARY:
+        collect_slot_accesses(node->data.unary.operand, entries, count, capacity);
+        break;
+
+    case AST_CALL:
+        if (node->data.call.callee != NULL
+            && node->data.call.callee->type == AST_IDENTIFIER) {
+            const char *name = node->data.call.callee->data.identifier.name;
+            if ((strcmp(name, "Write") == 0
+                 || strcmp(name, "ViewWrite") == 0
+                 || strcmp(name, "Move") == 0)
+                && node->data.call.arg_count >= 1
+                && node->data.call.arguments[0] != NULL
+                && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                slot_access_record(entries, count, capacity,
+                    node->data.call.arguments[0]->data.identifier.name,
+                    SLOT_ACCESS_WRITE);
+            } else if ((strcmp(name, "Read") == 0
+                        || strcmp(name, "ViewRead") == 0)
+                       && node->data.call.arg_count >= 1
+                       && node->data.call.arguments[0] != NULL
+                       && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                slot_access_record(entries, count, capacity,
+                    node->data.call.arguments[0]->data.identifier.name,
+                    SLOT_ACCESS_READ);
+            } else if (strcmp(name, "Release") == 0
+                       && node->data.call.arg_count >= 1
+                       && node->data.call.arguments[0] != NULL
+                       && node->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                slot_access_record(entries, count, capacity,
+                    node->data.call.arguments[0]->data.identifier.name,
+                    SLOT_ACCESS_RELEASE);
+            }
+        }
+        collect_slot_accesses(node->data.call.callee, entries, count, capacity);
+        for (size_t i = 0; i < node->data.call.arg_count; i++)
+            collect_slot_accesses(node->data.call.arguments[i], entries, count, capacity);
+        break;
+
+    case AST_MEMBER_ACCESS:
+        collect_slot_accesses(node->data.member.object, entries, count, capacity);
+        break;
+
+    case AST_ARRAY_ACCESS:
+        collect_slot_accesses(node->data.array_access.array, entries, count, capacity);
+        collect_slot_accesses(node->data.array_access.index, entries, count, capacity);
+        break;
+
+    case AST_CHANNEL_SEND:
+        collect_slot_accesses(node->data.channel_send.channel, entries, count, capacity);
+        collect_slot_accesses(node->data.channel_send.value, entries, count, capacity);
+        break;
+
+    case AST_CHANNEL_RECV:
+        collect_slot_accesses(node->data.channel_recv.channel, entries, count, capacity);
+        break;
+
+    case AST_RETURN:
+        collect_slot_accesses(node->data.return_stmt.value, entries, count, capacity);
+        break;
+
+    default:
+        break;
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -302,29 +465,46 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
     if (parallel == NULL)
         return true;
 
-    /*
-     * Write-write conflict detection across parallel tasks.
-     * Simple O(n^2) scan over task pairs.
-     */
     size_t n = parallel->data.parallel.task_count;
+    SlotAccessEntry **task_accesses = calloc(n, sizeof(SlotAccessEntry *));
+    size_t *task_counts = calloc(n, sizeof(size_t));
+    size_t *task_caps = calloc(n, sizeof(size_t));
+
+    if (task_accesses == NULL || task_counts == NULL || task_caps == NULL) {
+        free(task_accesses);
+        free(task_counts);
+        free(task_caps);
+        return false;
+    }
+
+    for (size_t i = 0; i < n; i++)
+        collect_slot_accesses(parallel->data.parallel.tasks[i],
+            &task_accesses[i], &task_counts[i], &task_caps[i]);
 
     for (size_t i = 0; i < n; i++) {
-        const char *write_i =
-            find_write_target(parallel->data.parallel.tasks[i]);
-        if (write_i == NULL)
-            continue;
-
         for (size_t j = i + 1; j < n; j++) {
-            const char *write_j =
-                find_write_target(parallel->data.parallel.tasks[j]);
-            if (write_j == NULL)
-                continue;
+            for (size_t ai = 0; ai < task_counts[i]; ai++) {
+                for (size_t aj = 0; aj < task_counts[j]; aj++) {
+                    if (strcmp(task_accesses[i][ai].name, task_accesses[j][aj].name) != 0)
+                        continue;
 
-            if (strcmp(write_i, write_j) == 0) {
-                semantic_error(sa->ctx, parallel,
-                    "Write-write conflict in parallel block: "
-                    "both tasks write to slot '%s'",
-                    write_i);
+                    unsigned left = task_accesses[i][ai].mask;
+                    unsigned right = task_accesses[j][aj].mask;
+                    bool left_mut = (left & (SLOT_ACCESS_WRITE | SLOT_ACCESS_RELEASE)) != 0;
+                    bool right_mut = (right & (SLOT_ACCESS_WRITE | SLOT_ACCESS_RELEASE)) != 0;
+                    bool left_read = (left & SLOT_ACCESS_READ) != 0;
+                    bool right_read = (right & SLOT_ACCESS_READ) != 0;
+
+                    if (left_mut && right_mut) {
+                        semantic_error(sa->ctx, parallel,
+                            "Parallel slot conflict on '%s': multiple tasks mutate or release the same slot",
+                            task_accesses[i][ai].name);
+                    } else if ((left_mut && right_read) || (right_mut && left_read)) {
+                        semantic_warning(sa->ctx, parallel,
+                            "Parallel slot race risk on '%s': one task reads while another mutates or releases the same slot",
+                            task_accesses[i][ai].name);
+                    }
+                }
             }
         }
     }
@@ -332,6 +512,12 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
     /* Recurse into each task */
     for (size_t i = 0; i < n; i++)
         slot_analyze_block(parallel->data.parallel.tasks[i], sa);
+
+    for (size_t i = 0; i < n; i++)
+        free(task_accesses[i]);
+    free(task_accesses);
+    free(task_counts);
+    free(task_caps);
 
     return !sa->ctx->has_error;
 }

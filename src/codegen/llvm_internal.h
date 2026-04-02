@@ -173,6 +173,12 @@ typedef struct
 
 typedef struct
 {
+    const char *var_name;
+    const char *inner_type;
+} LLVMChannelVarEntry;
+
+typedef struct
+{
     const char  *field_name;
     LLVMTypeRef  field_type;
     int          index;
@@ -332,6 +338,10 @@ typedef struct LLVMGenCtx
     int                    future_var_count;
     int                    future_var_capacity;
 
+    LLVMChannelVarEntry   *channel_vars;
+    int                    channel_var_count;
+    int                    channel_var_capacity;
+
     LLVMClassTypeEntry   *class_types;
     int                   class_type_count;
     int                   class_type_capacity;
@@ -433,6 +443,9 @@ LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
 void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
 const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
+                                        const char *inner_type);
+const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
 
 /* =================================================================
  * Class type registry (llvm_backend.c)

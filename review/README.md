@@ -7,6 +7,7 @@
 
 주요 문서:
 
+- `core-principles.md`
 - `deep-research-report.md`
 - `beta-readiness-checklist.md`
 - `beta-priority-roadmap.md`

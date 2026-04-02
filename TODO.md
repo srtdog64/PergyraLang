@@ -19,6 +19,14 @@
 - [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
 - [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
 
+## P1.55 — 사용성 개선
+
+- [ ] **`let` 타입 추론** — `let s: Slot<Int> = 42` → `let s = 42`로 축약. 우변 리터럴/함수 반환 타입에서 `Slot<T>`의 `T`를 자동 추론
+  - 1단계: 리터럴 추론 (`42` → Int, `"hello"` → String, `true` → Bool, `[1,2,3]` → Array<Int>)
+  - 2단계: 함수 반환 타입 추론 (`let s = someFunc()` → 반환 타입 따라감, `infer_expression_type` 활용)
+  - 3단계: View 추론 (`let v = ViewRead(s)` → `ReadView<T>` 자동, 소스 슬롯의 inner type에서 T 추출)
+  - 목표: 제네릭이 기본 축이지만 입문자가 `<T>` 없이 시작할 수 있게
+
 ## P1.6 — 자원/오케스트레이션 방향 고정
 
 - [ ] **Slot Protocol 고정** — 모든 슬롯이 공유하는 불변 계약(`Claim / Access / Mutate / Transfer / Release`)을 정의하고, `Slot<T> / SecureSlot<T> / QubitSlot`이 어디까지 지원하는지 현재 구현과 목표 구현을 명시

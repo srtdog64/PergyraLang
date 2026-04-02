@@ -189,6 +189,38 @@ func Main() -> Void {
 EOF
 run_case "secure_slot_view" "$TMPDIR/secure_slot_view.pgy" "5" "9"
 
+cat > "$TMPDIR/select_ready.pgy" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- 7;
+    }
+    select {
+        case v = <-ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+}
+EOF
+run_case "select_ready" "$TMPDIR/select_ready.pgy" "7"
+
+cat > "$TMPDIR/async_block_runtime.pgy" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    async {
+        ch <- 11;
+    }
+    select {
+        case v = <-ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+}
+EOF
+run_case "async_block_runtime" "$TMPDIR/async_block_runtime.pgy" "11"
+
 cat > "$TMPDIR/generic_call.pgy" <<'EOF'
 func Identity<T>(x: T) -> T {
     return x;

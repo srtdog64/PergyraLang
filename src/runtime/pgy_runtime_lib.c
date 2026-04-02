@@ -801,11 +801,64 @@ bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
     return ready;
 }
 
+bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
+{
+    if (ch == NULL || out == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->count == 0) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
 int32_t pgy_channel_recv_val_Int(PgyChannel_Int_RT *ch)
 {
     int32_t out = 0;
     pgy_channel_recv_Int(ch, &out);
     return out;
+}
+
+typedef struct {
+    char **buffer;
+    size_t capacity;
+    size_t head;
+    size_t tail;
+    size_t count;
+    bool closed;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond_not_full;
+    pthread_cond_t cond_not_empty;
+} PgyChannel_String_RT;
+
+bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
+{
+    if (ch == NULL || out == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->count == 0) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    bool ready = ch->count > 0;
+    pthread_mutex_unlock(&ch->mutex);
+    return ready;
 }
 
 /* =================================================================
@@ -1012,6 +1065,16 @@ void pgy_pool_shutdown_export(void)    { pgy_pool_shutdown(); }
 PgyTaskHandle pgy_spawn_export(void *(*fn)(void *), void *arg)
 {
     return pgy_spawn(fn, arg);
+}
+
+PgyTaskHandle pgy_async_spawn_export(void *(*fn)(void *), void *arg)
+{
+    return pgy_async_spawn(fn, arg);
+}
+
+void pgy_async_detach_export(PgyTaskHandle h)
+{
+    pgy_async_detach(h);
 }
 
 void *pgy_await_export(PgyTaskHandle h)

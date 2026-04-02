@@ -2593,6 +2593,26 @@ test_async_system(void)
         ast_destroy(sel);
     }
 
+    TEST("select statement rejects non-channel case");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *sel = ast_create_select_statement();
+        ASTNode *bad = ast_create_block();
+        ast_add_statement(bad, make_call("Log", NULL, 0, 1));
+        sel->data.select_stmt.case_count = 1;
+        sel->data.select_stmt.cases = calloc(1, sizeof(ASTNode *));
+        sel->data.select_stmt.cases[0] = bad;
+
+        type_check_select_stmt(sel, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "select case must begin"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(sel);
+    }
+
     TEST("spawn expression returns Future<T>");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2887,6 +2907,78 @@ test_effect_inference(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(decl);
+    }
+
+    TEST("parallel slot analyzer rejects write-write conflict");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        parallel {\n"
+            "            Write(s, 1);\n"
+            "            Write(s, 2);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+
+        bool found = false;
+        if (result != NULL) {
+            for (size_t i = 0; i < result->diagnostic_count; i++) {
+                if (strstr(result->diagnostics[i]->message, "Parallel slot conflict") != NULL) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        EXPECT(found);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("parallel slot analyzer warns on read-write race risk");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        parallel {\n"
+            "            let a = Read(s);\n"
+            "            Write(s, 2);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        bool found = false;
+        if (result != NULL) {
+            for (size_t i = 0; i < result->diagnostic_count; i++) {
+                if (strstr(result->diagnostics[i]->message, "Parallel slot race risk") != NULL) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        EXPECT(found);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("DeviceSlot use-after-release is rejected");

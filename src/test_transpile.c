@@ -1412,7 +1412,7 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("async block emits contained statements sequentially");
+    TEST("async block emits detached coroutine wrapper");
     {
         ASTNode *ret_stmt = make_return(make_number(1, 1), 1);
         ASTNode *stmts[1] = { ret_stmt };
@@ -1425,7 +1425,9 @@ test_async_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_statement(&async_block, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "return 1;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_async_spawn");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_async_detach");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "return 1;");
 
         ast_destroy(ret_stmt);
         transpiler_ctx_destroy(ctx);

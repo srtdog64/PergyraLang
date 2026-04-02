@@ -253,7 +253,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
-    spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
+    spawn_fn = llvm_lookup_function(ctx, "pgy_async_spawn_export");
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
     if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL) {
@@ -728,6 +728,140 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (node->data.call.callee->type == AST_MEMBER_ACCESS) {
         ASTNode *obj_node = node->data.call.callee->data.member.object;
         const char *method_name = node->data.call.callee->data.member.name;
+
+        /* Dynamic vtable dispatch: party.slot.method()
+         * AST: call(member(member(party_var, slot_name), method_name)) */
+        if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
+            && method_name != NULL) {
+            ASTNode *party_node = obj_node->data.member.object;
+            const char *slot_name = obj_node->data.member.name;
+
+            if (party_node != NULL && party_node->type == AST_IDENTIFIER
+                && slot_name != NULL) {
+                const char *party_var = party_node->data.identifier.name;
+                const char *party_class = llvm_lookup_var_class(ctx, party_var);
+                LLVMClassTypeEntry *cls = party_class
+                    ? llvm_lookup_class(ctx, party_class) : NULL;
+
+                if (cls != NULL) {
+                    /* Find vtable pointer field: slot_name + "_vtable" */
+                    char vt_field[256];
+                    snprintf(vt_field, sizeof(vt_field), "%s_vtable", slot_name);
+                    int vt_idx = -1;
+                    for (int fi = 0; fi < cls->field_count; fi++) {
+                        if (strcmp(cls->fields[fi].field_name, vt_field) == 0) {
+                            vt_idx = cls->fields[fi].index;
+                            break;
+                        }
+                    }
+
+                    if (vt_idx >= 0) {
+                        /* Find which ability this slot requires, then look up
+                         * the method index in that ability's vtable struct */
+                        char vt_type_prefix[256];
+                        int method_idx = -1;
+                        LLVMClassTypeEntry *vt_cls = NULL;
+
+                        /* Search for *_vtable class that has this method */
+                        for (int ci = 0; ci < ctx->class_type_count; ci++) {
+                            const char *cn = ctx->class_types[ci].class_name;
+                            if (cn != NULL && strstr(cn, "_vtable") != NULL) {
+                                for (int fi = 0; fi < ctx->class_types[ci].field_count; fi++) {
+                                    if (strcmp(ctx->class_types[ci].fields[fi].field_name,
+                                              method_name) == 0) {
+                                        vt_cls = &ctx->class_types[ci];
+                                        method_idx = ctx->class_types[ci].fields[fi].index;
+                                        break;
+                                    }
+                                }
+                                if (method_idx >= 0) break;
+                            }
+                        }
+
+                        if (vt_cls != NULL && method_idx >= 0) {
+                            LLVMVarEntry *pvar = llvm_scope_lookup(ctx, party_var);
+                            if (pvar != NULL) {
+                                /* Load vtable pointer from party struct */
+                                LLVMValueRef vt_ptr_field = LLVMBuildStructGEP2(
+                                    ctx->builder, cls->struct_type, pvar->alloca,
+                                    (unsigned)vt_idx, llvm_tmp_name(ctx));
+                                LLVMValueRef vt_raw = LLVMBuildLoad2(ctx->builder,
+                                    ctx->type_i8ptr, vt_ptr_field, llvm_tmp_name(ctx));
+
+                                /* Cast to vtable struct pointer */
+                                LLVMTypeRef vt_ptr_ty = LLVMPointerType(
+                                    vt_cls->struct_type, 0);
+                                LLVMValueRef vt_typed = LLVMBuildBitCast(
+                                    ctx->builder, vt_raw, vt_ptr_ty,
+                                    llvm_tmp_name(ctx));
+
+                                /* GEP to method function pointer */
+                                LLVMValueRef fn_ptr_field = LLVMBuildStructGEP2(
+                                    ctx->builder, vt_cls->struct_type, vt_typed,
+                                    (unsigned)method_idx, llvm_tmp_name(ctx));
+
+                                /* Build the function type: ret(self_ptr, user_args...) */
+                                size_t argc = node->data.call.arg_count;
+                                LLVMTypeRef *fn_params = calloc(argc + 1,
+                                    sizeof(LLVMTypeRef));
+                                fn_params[0] = ctx->type_i8ptr; /* self */
+                                for (size_t ai = 0; ai < argc; ai++)
+                                    fn_params[ai + 1] = ctx->type_i32; /* TODO: resolve arg types */
+
+                                /* Determine return type from callee name lookup:
+                                 * search registered role methods for this name */
+                                LLVMTypeRef ret_type = ctx->type_i32; /* default */
+                                /* Look for any Role_MethodName function */
+                                for (int ri = 0; ri < ctx->func_count; ri++) {
+                                    const char *fn_name = LLVMGetValueName(ctx->functions[ri].fn);
+                                    if (fn_name != NULL
+                                        && strlen(fn_name) > strlen(method_name) + 1) {
+                                        const char *suffix = fn_name + strlen(fn_name) - strlen(method_name);
+                                        if (suffix > fn_name && *(suffix - 1) == '_'
+                                            && strcmp(suffix, method_name) == 0) {
+                                            ret_type = ctx->functions[ri].ret_type;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                LLVMTypeRef fn_type = LLVMFunctionType(ret_type,
+                                    fn_params, (unsigned)(argc + 1), 0);
+                                LLVMTypeRef fn_ptr_ty = LLVMPointerType(fn_type, 0);
+
+                                /* Load the function pointer from vtable */
+                                LLVMValueRef fn_ptr = LLVMBuildLoad2(ctx->builder,
+                                    fn_ptr_ty, fn_ptr_field, llvm_tmp_name(ctx));
+
+                                /* Build args: self (party_alloca as i8*) + user args */
+                                LLVMValueRef *args = calloc(argc + 1,
+                                    sizeof(LLVMValueRef));
+                                args[0] = LLVMBuildBitCast(ctx->builder,
+                                    pvar->alloca, ctx->type_i8ptr,
+                                    llvm_tmp_name(ctx));
+                                for (size_t ai = 0; ai < argc; ai++)
+                                    args[ai + 1] = llvm_emit_expression(
+                                        node->data.call.arguments[ai], ctx);
+
+                                LLVMValueRef result;
+                                if (ret_type == ctx->type_void) {
+                                    LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
+                                        args, (unsigned)(argc + 1), "");
+                                    result = LLVMConstInt(ctx->type_i32, 0, 0);
+                                } else {
+                                    result = LLVMBuildCall2(ctx->builder, fn_type,
+                                        fn_ptr, args, (unsigned)(argc + 1),
+                                        llvm_tmp_name(ctx));
+                                }
+                                free(fn_params);
+                                free(args);
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
             && method_name != NULL) {
@@ -1841,20 +1975,20 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CHANNEL_SEND: {
         /* ch <- value → pgy_channel_send_T(&ch, value) */
         LLVMVarEntry *ch_var = NULL;
+        const char *suffix = "Int";
         if (node->data.channel_send.channel != NULL
             && node->data.channel_send.channel->type == AST_IDENTIFIER) {
-            ch_var = llvm_scope_lookup(ctx,
-                node->data.channel_send.channel->data.identifier.name);
+            const char *name = node->data.channel_send.channel->data.identifier.name;
+            ch_var = llvm_scope_lookup(ctx, name);
+            {
+                const char *inner = llvm_lookup_channel_inner(ctx, name);
+                if (inner != NULL)
+                    suffix = inner;
+            }
         }
         if (ch_var != NULL) {
             LLVMValueRef val = llvm_emit_expression(
                 node->data.channel_send.value, ctx);
-            /* Determine channel type suffix from value type */
-            const char *suffix = "Int";
-            if (val != NULL) {
-                LLVMTypeRef vt = LLVMTypeOf(val);
-                if (vt == ctx->type_i8ptr) suffix = "String";
-            }
             char fname[128];
             snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
@@ -1870,16 +2004,18 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CHANNEL_RECV: {
         /* <- ch → pgy_channel_recv_val_T(&ch) */
         LLVMVarEntry *ch_var = NULL;
+        const char *suffix = "Int";
         if (node->data.channel_recv.channel != NULL
             && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
-            ch_var = llvm_scope_lookup(ctx,
-                node->data.channel_recv.channel->data.identifier.name);
+            const char *name = node->data.channel_recv.channel->data.identifier.name;
+            ch_var = llvm_scope_lookup(ctx, name);
+            {
+                const char *inner = llvm_lookup_channel_inner(ctx, name);
+                if (inner != NULL)
+                    suffix = inner;
+            }
         }
         if (ch_var != NULL) {
-            /* Determine channel type from variable's LLVM type */
-            const char *suffix = "Int";
-            /* Default to Int; if channel var tracks String type,
-             * the slot_var tracking would identify it */
             char fname[128];
             snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);

@@ -162,17 +162,35 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             continue;
         }
 
-        /* Build struct from shared fields */
-        size_t fc = shared_count;
+        /* Count dyn role slots (for vtable pointer fields) */
+        size_t dyn_slot_count = 0;
+        ASTNode **role_slots = NULL;
+        size_t role_count = 0;
+        if (stmt->type == AST_PARTY_DECL) {
+            role_slots = stmt->data.party_decl.role_slots;
+            role_count = stmt->data.party_decl.role_count;
+        }
+        for (size_t j = 0; j < role_count; j++) {
+            if (role_slots[j] != NULL
+                && role_slots[j]->type == AST_ROLE_SLOT
+                && role_slots[j]->data.role_slot.is_dynamic)
+                dyn_slot_count++;
+        }
+
+        /* Build struct: { shared_fields..., vtable_ptrs_for_dyn_slots... } */
+        size_t fc = shared_count + dyn_slot_count;
         LLVMTypeRef *ftypes = calloc(fc > 0 ? fc : 1,
                                        sizeof(LLVMTypeRef));
-        for (size_t j = 0; j < fc; j++) {
+        for (size_t j = 0; j < shared_count; j++) {
             ASTNode *sf = shared_fields[j];
             ASTNode *sf_type = sf->data.party_shared.type;
             ftypes[j] = (sf_type != NULL)
                 ? ast_type_to_llvm(ctx, sf_type)
                 : ctx->type_i32;
         }
+        /* dyn role slots → i8ptr (vtable pointer) */
+        for (size_t j = 0; j < dyn_slot_count; j++)
+            ftypes[shared_count + j] = ctx->type_i8ptr;
 
         LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context,
                                                         decl_name);
@@ -182,11 +200,26 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMClassTypeEntry *entry = llvm_register_class(ctx,
             decl_name, struct_ty);
         if (entry != NULL) {
-            for (size_t j = 0; j < fc; j++) {
+            for (size_t j = 0; j < shared_count; j++) {
                 ASTNode *sf = shared_fields[j];
                 llvm_class_add_field(entry,
                     sf->data.party_shared.name,
                     ftypes[j], (int)j);
+            }
+            /* Register vtable pointer fields for dyn slots */
+            size_t dyn_idx = 0;
+            for (size_t j = 0; j < role_count; j++) {
+                ASTNode *rs = role_slots[j];
+                if (rs == NULL || rs->type != AST_ROLE_SLOT
+                    || !rs->data.role_slot.is_dynamic)
+                    continue;
+                char vt_field_buf[256];
+                snprintf(vt_field_buf, sizeof(vt_field_buf), "%s_vtable",
+                         rs->data.role_slot.slot_name);
+                llvm_class_add_field(entry, pergyra_strdup(vt_field_buf),
+                    ctx->type_i8ptr,
+                    (int)(shared_count + dyn_idx));
+                dyn_idx++;
             }
         }
         free(ftypes);
@@ -265,17 +298,30 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     method->data.func_decl.return_type);
 
             size_t pc = method->data.func_decl.param_count;
-            LLVMTypeRef *ptypes = calloc(pc + 1, sizeof(LLVMTypeRef));
-            ptypes[0] = ctx->type_i8ptr; /* self */
+            /* Count non-self params */
+            size_t user_pc = 0;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
-                ptypes[k + 1] = (p->type != NULL)
+                if (p->type == NULL && p->name != NULL
+                    && strcmp(p->name, "self") == 0)
+                    continue;
+                user_pc++;
+            }
+            LLVMTypeRef *ptypes = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+            ptypes[0] = ctx->type_i8ptr; /* self */
+            size_t pidx = 1;
+            for (size_t k = 0; k < pc; k++) {
+                FuncParam *p = method->data.func_decl.params[k];
+                if (p->type == NULL && p->name != NULL
+                    && strcmp(p->name, "self") == 0)
+                    continue;
+                ptypes[pidx++] = (p->type != NULL)
                     ? ast_type_to_llvm(ctx, p->type)
                     : ctx->type_i32;
             }
 
             LLVMTypeRef fn_type = LLVMFunctionType(ret,
-                ptypes, (unsigned)(pc + 1), 0);
+                ptypes, (unsigned)(user_pc + 1), 0);
             vt_fields[j] = LLVMPointerType(fn_type, 0);
             free(ptypes);
         }
@@ -287,9 +333,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMStructSetBody(vt_struct, vt_fields, (unsigned)mc, 0);
         free(vt_fields);
 
-        /* Register as class type so it's findable */
+        /* Register as class type so it's findable.
+         * Must strdup because vt_name is a stack local. */
         LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-            vt_name, vt_struct);
+            pergyra_strdup(vt_name), vt_struct);
         if (entry != NULL) {
             for (size_t j = 0; j < mc; j++) {
                 ASTNode *method = stmt->data.ability_decl.methods[j];

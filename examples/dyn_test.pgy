@@ -31,11 +31,11 @@ party Team {
 func Main() -> Void {
     let team: Team = Team();
 
-    // Bind Warrior to the dyn slot
+    // Bind Warrior → vtable dispatch
     bind team.fighter = Warrior;
-    Log(10);
+    Log(team.fighter.Attack());
 
-    // Swap to Archer at runtime
+    // Swap to Archer at runtime → same call, different result
     bind team.fighter = Archer;
-    Log(20);
+    Log(team.fighter.Attack());
 }

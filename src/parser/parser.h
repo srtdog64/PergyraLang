@@ -77,6 +77,7 @@ ASTNode *parser_parse_parallel_block(Parser *parser);
 ASTNode *parser_parse_expression_statement(Parser *parser);
 ASTNode *parser_parse_block(Parser *parser);
 ASTNode *parser_parse_async_function(Parser *parser);
+ASTNode *parser_parse_async_block(Parser *parser);
 ASTNode *parser_parse_actor_declaration(Parser *parser);
 ASTNode *parser_parse_select_statement(Parser *parser);
 

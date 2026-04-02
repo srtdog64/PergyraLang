@@ -1298,8 +1298,15 @@ static inline bool \
 pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
     pthread_mutex_lock(&ch->mutex); \
-    while (ch->count >= ch->cap && !ch->closed) \
-        pthread_cond_wait(&ch->cond_not_full, &ch->mutex); \
+    while (ch->count >= ch->cap && !ch->closed) { \
+        if (pgy_async_in_coroutine()) { \
+            pthread_mutex_unlock(&ch->mutex); \
+            pgy_async_yield(); \
+            pthread_mutex_lock(&ch->mutex); \
+        } else { \
+            pthread_cond_wait(&ch->cond_not_full, &ch->mutex); \
+        } \
+    } \
     if (ch->closed) { \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
@@ -1317,8 +1324,15 @@ static inline bool \
 pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
     pthread_mutex_lock(&ch->mutex); \
-    while (ch->count == 0 && !ch->closed) \
-        pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+    while (ch->count == 0 && !ch->closed) { \
+        if (pgy_async_in_coroutine()) { \
+            pthread_mutex_unlock(&ch->mutex); \
+            pgy_async_yield(); \
+            pthread_mutex_lock(&ch->mutex); \
+        } else { \
+            pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+        } \
+    } \
     if (ch->count == 0 && ch->closed) { \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
@@ -1335,6 +1349,8 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 static inline bool \
 pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
+    if (!pgy_async_in_coroutine()) \
+        (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->count == 0) { \
         pthread_mutex_unlock(&ch->mutex); \
@@ -1352,6 +1368,8 @@ pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 static inline bool \
 pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
+    if (!pgy_async_in_coroutine()) \
+        (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \
     bool ready = ch->count > 0; \
     pthread_mutex_unlock(&ch->mutex); \
