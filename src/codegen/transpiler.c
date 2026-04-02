@@ -808,7 +808,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "IsCollapsed") == 0
                 || strcmp(name, "IntoClassical") == 0)
                 return "Bool";
-            if (strcmp(name, "H") == 0)
+            if (strcmp(name, "H") == 0
+                || strcmp(name, "ArrayPush") == 0
+                || strcmp(name, "ArraySet") == 0
+                || strcmp(name, "ArrayPop") == 0)
                 return "Void";
 
             {
@@ -1816,6 +1819,32 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("((int32_t)(%s.length))", arg);
             free(arg);
+            return result;
+        }
+        if (strcmp(fn, "ArrayPush") == 0 && call->data.call.arg_count == 2) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *val = emit_expression(call->data.call.arguments[1], ctx);
+            const char *suffix = infer_expression_type_name(
+                ctx, call->data.call.arguments[1]);
+            char *result = strdup_fmt(
+                "pgy_array_push_%s(&%s, %s)", suffix, arr, val);
+            free(arr); free(val);
+            return result;
+        }
+        if (strcmp(fn, "ArraySet") == 0 && call->data.call.arg_count == 3) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *idx = emit_expression(call->data.call.arguments[1], ctx);
+            char *val = emit_expression(call->data.call.arguments[2], ctx);
+            char *result = strdup_fmt(
+                "((%s).data[%s] = %s)", arr, idx, val);
+            free(arr); free(idx); free(val);
+            return result;
+        }
+        if (strcmp(fn, "ArrayPop") == 0 && call->data.call.arg_count == 1) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("((%s).length > 0 ? (%s).length-- : 0)",
+                arr, arr);
+            free(arr);
             return result;
         }
         /* Print (no newline) vs Log (with newline) */

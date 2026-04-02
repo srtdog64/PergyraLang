@@ -393,6 +393,48 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         }
         return TYPE_INT;
     }
+    if (strcmp(name, "ArrayPush") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        Type *val = type_check_expression(expr->data.call.arguments[1], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayPush requires Array<T>, got '%s'", arr->name);
+        else {
+            Type *inner = type_get_constructed_arg(arr, 0);
+            if (inner != NULL)
+                require_assignable(val, inner, expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ArraySet") == 0) {
+        if (!check_call_arity(expr, 3, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        require_assignable(
+            type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_INT, expr->data.call.arguments[1], ctx);
+        Type *val = type_check_expression(expr->data.call.arguments[2], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArraySet requires Array<T>, got '%s'", arr->name);
+        else {
+            Type *inner = type_get_constructed_arg(arr, 0);
+            if (inner != NULL)
+                require_assignable(val, inner, expr->data.call.arguments[2], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ArrayPop") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayPop requires Array<T>, got '%s'", arr->name);
+        return TYPE_VOID;
+    }
     if (strcmp(name, "ToString") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;

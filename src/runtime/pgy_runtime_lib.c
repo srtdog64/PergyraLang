@@ -325,6 +325,54 @@ PGY_DEFINE_DEVICE_SLOT_EXPORTS(Double, double, 0.0)
 PGY_DEFINE_DEVICE_SLOT_EXPORTS(Bool, bool, false)
 PGY_DEFINE_DEVICE_SLOT_EXPORTS(String, char *, NULL)
 
+/* =================================================================
+ * Array operations — extern wrappers for LLVM linker
+ * ================================================================= */
+
+#define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \
+typedef struct {                                                                 \
+    CType  *data;                                                                \
+    size_t  length;                                                              \
+    size_t  capacity;                                                            \
+    void   *allocator;                                                           \
+} PgyArray_##Suffix;                                                             \
+                                                                                 \
+PgyArray_##Suffix pgy_array_new_##Suffix(size_t capacity)                        \
+{                                                                                \
+    PgyArray_##Suffix arr;                                                       \
+    arr.length = 0;                                                              \
+    arr.capacity = capacity;                                                     \
+    arr.allocator = NULL;                                                        \
+    arr.data = capacity > 0                                                      \
+        ? (CType *)malloc(sizeof(CType) * capacity)                              \
+        : NULL;                                                                  \
+    return arr;                                                                  \
+}                                                                                \
+                                                                                 \
+void pgy_array_push_##Suffix(PgyArray_##Suffix *arr, CType value)                \
+{                                                                                \
+    if (arr == NULL)                                                             \
+        return;                                                                  \
+    if (arr->length == arr->capacity) {                                          \
+        size_t next = arr->capacity == 0 ? 4 : arr->capacity * 2;                \
+        CType *next_data = arr->data == NULL                                     \
+            ? (CType *)malloc(sizeof(CType) * next)                              \
+            : (CType *)realloc(arr->data, sizeof(CType) * next);                 \
+        if (next_data == NULL)                                                   \
+            return;                                                              \
+        arr->data = next_data;                                                   \
+        arr->capacity = next;                                                    \
+    }                                                                            \
+    arr->data[arr->length++] = value;                                            \
+}
+
+PGY_DEFINE_ARRAY_EXPORTS(Int, int32_t)
+PGY_DEFINE_ARRAY_EXPORTS(Long, int64_t)
+PGY_DEFINE_ARRAY_EXPORTS(Float, float)
+PGY_DEFINE_ARRAY_EXPORTS(Double, double)
+PGY_DEFINE_ARRAY_EXPORTS(Bool, bool)
+PGY_DEFINE_ARRAY_EXPORTS(String, char *)
+
 static char *
 pgy_runtime_lib_strdup(const char *src)
 {

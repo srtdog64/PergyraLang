@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let values: Array<Int> = [];
+    ArrayPush(values, 10);
+    ArrayPush(values, 20);
+    ArraySet(values, 1, 77);
+    Log(ArrayLength(values));
+    Log(values[1]);
+    ArrayPop(values);
+    Log(ArrayLength(values));
+}

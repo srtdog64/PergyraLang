@@ -258,7 +258,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         size_t count = init->data.array_literal.count;
         LLVMTypeRef elem_type = ctx->type_i32;
-        bool has_explicit_array_type = false;
+        const char *inner_name = "Int";
 
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.name != NULL
@@ -266,29 +266,44 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 || strcmp(type_ann->data.type.name, "Slice") == 0)
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0) {
-            has_explicit_array_type = true;
+            inner_name = type_ann->data.type.generic_args->params[0]->name;
             elem_type = pergyra_type_to_llvm(
-                ctx, type_ann->data.type.generic_args->params[0]->name);
+                ctx, inner_name);
         } else if (count > 0) {
             LLVMValueRef first = llvm_emit_expression(
                 init->data.array_literal.elements[0], ctx);
-            if (first != NULL)
+            if (first != NULL) {
                 elem_type = LLVMTypeOf(first);
+                const char *suffix = llvm_type_to_suffix(ctx, elem_type);
+                if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                    inner_name = suffix;
+            }
         }
 
-        LLVMTypeRef array_storage_type = LLVMArrayType(elem_type, (unsigned)count);
-        LLVMValueRef array_alloca = llvm_create_entry_alloca(
-            ctx, array_storage_type, llvm_tmp_name(ctx));
+        LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
+        LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, array_type, name);
+        char new_fn_name[64];
+        char push_fn_name[64];
+        LLVMFuncEntry *new_fn;
+        LLVMFuncEntry *push_fn;
+
+        snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
+        new_fn = llvm_lookup_function(ctx, new_fn_name);
+        if (new_fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
+            };
+            LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
+                new_fn->fn, args, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, arr_val, var_alloca);
+        }
+
+        snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
+        push_fn = llvm_lookup_function(ctx, push_fn_name);
 
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef element = llvm_emit_expression(
                 init->data.array_literal.elements[i], ctx);
-            LLVMValueRef indices[] = {
-                LLVMConstInt(ctx->type_i32, 0, 0),
-                LLVMConstInt(ctx->type_i32, (unsigned long long)i, 0)
-            };
-            LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder,
-                array_storage_type, array_alloca, indices, 2, llvm_tmp_name(ctx));
             if (element != NULL && LLVMTypeOf(element) != elem_type) {
                 LLVMTypeRef element_type = LLVMTypeOf(element);
                 bool target_is_int = (elem_type == ctx->type_i32
@@ -307,33 +322,15 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     element = LLVMBuildSIToFP(ctx->builder, element, elem_type,
                                               llvm_tmp_name(ctx));
             }
-            LLVMBuildStore(ctx->builder, element, elem_ptr);
+            if (push_fn != NULL && element != NULL) {
+                LLVMValueRef args[] = { var_alloca, element };
+                LLVMBuildCall2(ctx->builder, push_fn->fn_type,
+                    push_fn->fn, args, 2, "");
+            }
         }
 
-        LLVMTypeRef elem_ptr_type = LLVMPointerType(elem_type, 0);
-        LLVMValueRef first_ptr;
-        if (count > 0) {
-            LLVMValueRef indices[] = {
-                LLVMConstInt(ctx->type_i32, 0, 0),
-                LLVMConstInt(ctx->type_i32, 0, 0)
-            };
-            first_ptr = LLVMBuildGEP2(ctx->builder, array_storage_type,
-                array_alloca, indices, 2, llvm_tmp_name(ctx));
-        } else {
-            first_ptr = LLVMConstNull(elem_ptr_type);
-        }
-
-        LLVMValueRef var_alloca = llvm_create_entry_alloca(
-            ctx, elem_ptr_type, name);
-        LLVMBuildStore(ctx->builder, first_ptr, var_alloca);
-        llvm_scope_declare(ctx, name, var_alloca, elem_ptr_type);
+        llvm_scope_declare(ctx, name, var_alloca, array_type);
         llvm_register_array_var(ctx, name, elem_type, (int64_t)count);
-
-        if (has_explicit_array_type && type_ann->data.type.name != NULL) {
-            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_ann->data.type.name);
-            if (cls != NULL)
-                llvm_register_var_class(ctx, name, type_ann->data.type.name);
-        }
         return;
     }
 
@@ -383,6 +380,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_declare(ctx, name, alloca, var_type);
+
+    if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && (strcmp(type_ann->data.type.name, "Array") == 0
+            || strcmp(type_ann->data.type.name, "Slice") == 0)
+        && type_ann->data.type.generic_args != NULL
+        && type_ann->data.type.generic_args->count > 0) {
+        LLVMTypeRef elem_type = pergyra_type_to_llvm(
+            ctx, type_ann->data.type.generic_args->params[0]->name);
+        llvm_register_array_var(ctx, name, elem_type, -1);
+    }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL

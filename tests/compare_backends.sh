@@ -107,6 +107,7 @@ main() {
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/break_continue"
         "tests/cases/backend_compare/array_enum"
+        "tests/cases/backend_compare/dynamic_array"
         "tests/cases/backend_compare/string_io"
         "tests/cases/backend_compare/module_namespace"
         "tests/cases/backend_compare/role_operator"

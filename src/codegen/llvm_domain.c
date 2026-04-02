@@ -739,10 +739,11 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 if (fentry == NULL) continue;
 
                 LLVMValueRef fn = fentry->fn;
+                LLVMTypeRef ret_type = fentry->ret_type;
                 LLVMValueRef saved_fn = ctx->current_function;
                 LLVMTypeRef saved_ret = ctx->current_ret_type;
                 ctx->current_function = fn;
-                ctx->current_ret_type = fentry->ret_type;
+                ctx->current_ret_type = ret_type;
 
                 LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                     ctx->context, fn, "entry");
@@ -779,11 +780,11 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                 if (LLVMGetBasicBlockTerminator(
                         LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                    if (fentry->ret_type == ctx->type_void)
+                    if (ret_type == ctx->type_void)
                         LLVMBuildRetVoid(ctx->builder);
                     else
                         LLVMBuildRet(ctx->builder,
-                            LLVMConstInt(fentry->ret_type, 0, 0));
+                            LLVMConstInt(ret_type, 0, 0));
                 }
 
                 llvm_scope_pop(ctx);
@@ -833,8 +834,9 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                     LLVMValueRef saved_fn = ctx->current_function;
                     LLVMTypeRef saved_ret = ctx->current_ret_type;
+                    LLVMTypeRef op_ret_type = op_entry->ret_type;
                     ctx->current_function = op_entry->fn;
-                    ctx->current_ret_type = op_entry->ret_type;
+                    ctx->current_ret_type = op_ret_type;
 
                     LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                         ctx->context, op_entry->fn, "entry");
@@ -850,7 +852,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     LLVMValueRef rhs_arg = LLVMGetParam(op_entry->fn, 1);
                     LLVMValueRef args[] = { lhs_self, rhs_arg };
 
-                    if (op_entry->ret_type == ctx->type_void) {
+                    if (op_ret_type == ctx->type_void) {
                         LLVMBuildCall2(ctx->builder, method_entry->fn_type,
                             method_entry->fn, args, 2, "");
                         LLVMBuildRetVoid(ctx->builder);
@@ -952,10 +954,11 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             if (fentry == NULL) continue;
 
             LLVMValueRef fn = fentry->fn;
+            LLVMTypeRef ret_type = fentry->ret_type;
             LLVMValueRef saved_fn = ctx->current_function;
             LLVMTypeRef saved_ret = ctx->current_ret_type;
             ctx->current_function = fn;
-            ctx->current_ret_type = fentry->ret_type;
+            ctx->current_ret_type = ret_type;
 
             LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                 ctx->context, fn, "entry");
@@ -1001,11 +1004,11 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 
             if (LLVMGetBasicBlockTerminator(
                     LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                if (fentry->ret_type == ctx->type_void)
+                if (ret_type == ctx->type_void)
                     LLVMBuildRetVoid(ctx->builder);
                 else
                     LLVMBuildRet(ctx->builder,
-                        LLVMConstInt(fentry->ret_type, 0, 0));
+                        LLVMConstInt(ret_type, 0, 0));
             }
 
             llvm_scope_pop(ctx);

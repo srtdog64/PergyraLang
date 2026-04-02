@@ -55,6 +55,20 @@ func Main() -> Void {
 EOF
 run_case "array_enum" "$TMPDIR/array_enum.pgy" "2" "9"
 
+cat > "$TMPDIR/dynamic_array_ops.pgy" <<'EOF'
+func Main() -> Void {
+    let values: Array<Int> = [];
+    ArrayPush(values, 10);
+    ArrayPush(values, 20);
+    ArraySet(values, 1, 77);
+    Log(ArrayLength(values));
+    Log(values[1]);
+    ArrayPop(values);
+    Log(ArrayLength(values));
+}
+EOF
+run_case "dynamic_array_ops" "$TMPDIR/dynamic_array_ops.pgy" "2" "77" "1"
+
 DATA_FILE="$TMPDIR/io.txt"
 cat > "$TMPDIR/string_io.pgy" <<EOF
 func Main() -> Void {

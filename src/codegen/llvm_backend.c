@@ -343,6 +343,66 @@ llvm_ctx_create(const char *module_name)
         LLVMTypeRef fields_str[] = { ctx->type_i8ptr, ctx->type_i1 };
         ctx->slot_type_String = LLVMStructCreateNamed(ctx->context, "PgySlot_String");
         LLVMStructSetBody(ctx->slot_type_String, fields_str, 2, 0);
+
+        LLVMTypeRef arr_fields_int[] = {
+            LLVMPointerType(ctx->type_i32, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Int = LLVMStructCreateNamed(ctx->context, "PgyArray_Int");
+        LLVMStructSetBody(ctx->array_type_Int, arr_fields_int, 4, 0);
+
+        LLVMTypeRef arr_fields_long[] = {
+            LLVMPointerType(ctx->type_i64, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Long = LLVMStructCreateNamed(ctx->context, "PgyArray_Long");
+        LLVMStructSetBody(ctx->array_type_Long, arr_fields_long, 4, 0);
+
+        LLVMTypeRef arr_fields_float[] = {
+            LLVMPointerType(ctx->type_f32, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Float = LLVMStructCreateNamed(ctx->context, "PgyArray_Float");
+        LLVMStructSetBody(ctx->array_type_Float, arr_fields_float, 4, 0);
+
+        LLVMTypeRef arr_fields_double[] = {
+            LLVMPointerType(ctx->type_f64, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Double = LLVMStructCreateNamed(ctx->context, "PgyArray_Double");
+        LLVMStructSetBody(ctx->array_type_Double, arr_fields_double, 4, 0);
+
+        LLVMTypeRef arr_fields_bool[] = {
+            LLVMPointerType(ctx->type_i1, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_Bool = LLVMStructCreateNamed(ctx->context, "PgyArray_Bool");
+        LLVMStructSetBody(ctx->array_type_Bool, arr_fields_bool, 4, 0);
+
+        LLVMTypeRef arr_fields_string[] = {
+            LLVMPointerType(ctx->type_i8ptr, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        ctx->array_type_String = LLVMStructCreateNamed(ctx->context, "PgyArray_String");
+        LLVMStructSetBody(ctx->array_type_String, arr_fields_string, 4, 0);
+
+        LLVMTypeRef slice_fields_int[] = { LLVMPointerType(ctx->type_i32, 0), ctx->type_i64 };
+        ctx->slice_type_Int = LLVMStructCreateNamed(ctx->context, "PgySlice_Int");
+        LLVMStructSetBody(ctx->slice_type_Int, slice_fields_int, 2, 0);
+
+        LLVMTypeRef slice_fields_long[] = { LLVMPointerType(ctx->type_i64, 0), ctx->type_i64 };
+        ctx->slice_type_Long = LLVMStructCreateNamed(ctx->context, "PgySlice_Long");
+        LLVMStructSetBody(ctx->slice_type_Long, slice_fields_long, 2, 0);
+
+        LLVMTypeRef slice_fields_float[] = { LLVMPointerType(ctx->type_f32, 0), ctx->type_i64 };
+        ctx->slice_type_Float = LLVMStructCreateNamed(ctx->context, "PgySlice_Float");
+        LLVMStructSetBody(ctx->slice_type_Float, slice_fields_float, 2, 0);
+
+        LLVMTypeRef slice_fields_double[] = { LLVMPointerType(ctx->type_f64, 0), ctx->type_i64 };
+        ctx->slice_type_Double = LLVMStructCreateNamed(ctx->context, "PgySlice_Double");
+        LLVMStructSetBody(ctx->slice_type_Double, slice_fields_double, 2, 0);
+
+        LLVMTypeRef slice_fields_bool[] = { LLVMPointerType(ctx->type_i1, 0), ctx->type_i64 };
+        ctx->slice_type_Bool = LLVMStructCreateNamed(ctx->context, "PgySlice_Bool");
+        LLVMStructSetBody(ctx->slice_type_Bool, slice_fields_bool, 2, 0);
+
+        LLVMTypeRef slice_fields_string[] = { LLVMPointerType(ctx->type_i8ptr, 0), ctx->type_i64 };
+        ctx->slice_type_String = LLVMStructCreateNamed(ctx->context, "PgySlice_String");
+        LLVMStructSetBody(ctx->slice_type_String, slice_fields_string, 2, 0);
     }
 
     return ctx;
@@ -505,6 +565,46 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_BOOL:   return ctx->slot_type_Bool;
     case PGY_TK_STRING: return ctx->slot_type_String;
     default:            return ctx->slot_type_Int;
+    }
+}
+
+LLVMTypeRef
+llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->array_type_Int;
+    case PGY_TK_LONG:   return ctx->array_type_Long;
+    case PGY_TK_FLOAT:  return ctx->array_type_Float;
+    case PGY_TK_DOUBLE: return ctx->array_type_Double;
+    case PGY_TK_BOOL:   return ctx->array_type_Bool;
+    case PGY_TK_STRING: return ctx->array_type_String;
+    default: {
+        LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+        LLVMTypeRef fields[] = {
+            LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
+        };
+        return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
+    }
+    }
+}
+
+LLVMTypeRef
+llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner)
+{
+    switch (pgy_classify_type(inner)) {
+    case PGY_TK_INT:    return ctx->slice_type_Int;
+    case PGY_TK_LONG:   return ctx->slice_type_Long;
+    case PGY_TK_FLOAT:  return ctx->slice_type_Float;
+    case PGY_TK_DOUBLE: return ctx->slice_type_Double;
+    case PGY_TK_BOOL:   return ctx->slice_type_Bool;
+    case PGY_TK_STRING: return ctx->slice_type_String;
+    default: {
+        LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+        LLVMTypeRef fields[] = {
+            LLVMPointerType(elem_ty, 0), ctx->type_i64
+        };
+        return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
+    }
     }
 }
 
@@ -832,12 +932,32 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     }
     case PGY_TK_REMOTE_FUTURE:
         return ctx->type_task_handle;
+    case PGY_TK_ARRAY: {
+        const char *inner_name = strchr(type_name, '<');
+        if (inner_name != NULL) {
+            inner_name++;
+            char buf[64]; size_t l = strcspn(inner_name, ">");
+            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+            memcpy(buf, inner_name, l); buf[l] = '\0';
+            return llvm_array_struct_type(ctx, buf);
+        }
+        return llvm_array_struct_type(ctx, "Int");
+    }
+    case PGY_TK_SLICE: {
+        const char *inner_name = strchr(type_name, '<');
+        if (inner_name != NULL) {
+            inner_name++;
+            char buf[64]; size_t l = strcspn(inner_name, ">");
+            if (l >= sizeof(buf)) l = sizeof(buf) - 1;
+            memcpy(buf, inner_name, l); buf[l] = '\0';
+            return llvm_slice_struct_type(ctx, buf);
+        }
+        return llvm_slice_struct_type(ctx, "Int");
+    }
     case PGY_TK_CHANNEL:
     case PGY_TK_BOX:
     case PGY_TK_RC:
     case PGY_TK_WEAK:
-    case PGY_TK_ARRAY:
-    case PGY_TK_SLICE:
         return ctx->type_i8ptr;
     case PGY_TK_FUTURE:
         return ctx->type_task_handle;
@@ -1169,6 +1289,29 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
             llvm_register_function(ctx,
                 LLVMGetValueName(fn), fn, ft, ctx->type_task_handle);
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(slot_types) / sizeof(slot_types[0]); i++) {
+        const char *suffix = slot_types[i].suffix;
+        LLVMTypeRef arr_ty = llvm_array_struct_type(ctx, suffix);
+        LLVMTypeRef arr_ptr_ty = LLVMPointerType(arr_ty, 0);
+        LLVMTypeRef val_ty = slot_types[i].val_ty;
+        char fn_name[64];
+
+        {
+            LLVMTypeRef params[] = { ctx->type_i64 };
+            LLVMTypeRef ft = LLVMFunctionType(arr_ty, params, 1, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_array_new_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, arr_ty);
+        }
+        {
+            LLVMTypeRef params[] = { arr_ptr_ty, val_ty };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+            snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
         }
     }
 
@@ -1645,10 +1788,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 if (entry == NULL) continue;
 
                 LLVMValueRef fn = entry->fn;
+                LLVMTypeRef ret_type = entry->ret_type;
                 LLVMValueRef saved_fn = ctx->current_function;
                 LLVMTypeRef saved_ret = ctx->current_ret_type;
                 ctx->current_function = fn;
-                ctx->current_ret_type = entry->ret_type;
+                ctx->current_ret_type = ret_type;
 
                 LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                     ctx->context, fn, "entry");
@@ -1695,11 +1839,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                 if (LLVMGetBasicBlockTerminator(
                         LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                    if (entry->ret_type == ctx->type_void)
+                    if (ret_type == ctx->type_void)
                         LLVMBuildRetVoid(ctx->builder);
                     else
                         LLVMBuildRet(ctx->builder,
-                            LLVMConstInt(entry->ret_type, 0, 0));
+                            LLVMConstInt(ret_type, 0, 0));
                 }
 
                 llvm_scope_pop(ctx);
@@ -1737,10 +1881,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             if (fentry == NULL) continue;
 
             LLVMValueRef fn = fentry->fn;
+            LLVMTypeRef ret_type = fentry->ret_type;
             LLVMValueRef saved_fn = ctx->current_function;
             LLVMTypeRef saved_ret = ctx->current_ret_type;
             ctx->current_function = fn;
-            ctx->current_ret_type = fentry->ret_type;
+            ctx->current_ret_type = ret_type;
 
             LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                 ctx->context, fn, "entry");
@@ -1792,11 +1937,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
             if (LLVMGetBasicBlockTerminator(
                     LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                if (fentry->ret_type == ctx->type_void)
+                if (ret_type == ctx->type_void)
                     LLVMBuildRetVoid(ctx->builder);
                 else
                     LLVMBuildRet(ctx->builder,
-                        LLVMConstInt(fentry->ret_type, 0, 0));
+                        LLVMConstInt(ret_type, 0, 0));
             }
 
             llvm_scope_pop(ctx);

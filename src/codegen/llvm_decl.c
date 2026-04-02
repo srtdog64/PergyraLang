@@ -46,13 +46,14 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         return;
 
     LLVMValueRef fn = entry->fn;
+    LLVMTypeRef ret_type = entry->ret_type;
 
     /* Save context */
     LLVMValueRef saved_fn       = ctx->current_function;
     LLVMTypeRef  saved_ret_type = ctx->current_ret_type;
 
     ctx->current_function = fn;
-    ctx->current_ret_type = entry->ret_type;
+    ctx->current_ret_type = ret_type;
 
     /* Create entry block */
     LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
@@ -85,11 +86,11 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Add implicit return if no terminator */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-        if (entry->ret_type == ctx->type_void)
+        if (ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
         else
             LLVMBuildRet(ctx->builder,
-                          LLVMConstInt(entry->ret_type, 0, 0));
+                          LLVMConstInt(ret_type, 0, 0));
     }
 
     llvm_scope_pop(ctx);

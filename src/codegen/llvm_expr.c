@@ -51,6 +51,18 @@ llvm_call_arg_device_inner(LLVMGenCtx *ctx, ASTNode *node)
 }
 
 static LLVMValueRef
+llvm_array_data_ptr(LLVMGenCtx *ctx, LLVMValueRef array_value)
+{
+    return LLVMBuildExtractValue(ctx->builder, array_value, 0, llvm_tmp_name(ctx));
+}
+
+static LLVMValueRef
+llvm_array_length_i64(LLVMGenCtx *ctx, LLVMValueRef array_value)
+{
+    return LLVMBuildExtractValue(ctx->builder, array_value, 1, llvm_tmp_name(ctx));
+}
+
+static LLVMValueRef
 llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner)
 {
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
@@ -213,12 +225,12 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     size_t argc = 0;
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *callee_entry = NULL;
-    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
-    LLVMFuncEntry *malloc_fn = llvm_lookup_function(ctx, "malloc");
-    LLVMFuncEntry *free_fn = llvm_lookup_function(ctx, "free");
+    LLVMFuncEntry *spawn_fn = NULL;
+    LLVMFuncEntry *malloc_fn = NULL;
+    LLVMFuncEntry *free_fn = NULL;
     int wrapper_id = ++ctx->tmp_counter;
 
-    if (target == NULL || spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL)
+    if (target == NULL)
         return LLVMConstNull(ctx->type_task_handle);
 
     if (target->type == AST_CALL) {
@@ -241,6 +253,13 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
+    spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
+    malloc_fn = llvm_lookup_function(ctx, "malloc");
+    free_fn = llvm_lookup_function(ctx, "free");
+    if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL) {
+        free(args);
+        return LLVMConstNull(ctx->type_task_handle);
+    }
     if (callee_entry == NULL) {
         free(args);
         return LLVMConstNull(ctx->type_task_handle);
@@ -1019,17 +1038,101 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
     }
 
-    /* Built-in: ArrayLength(arr) → tracked array literal length */
+    /* Built-in: ArrayLength(arr) */
     if (strcmp(callee_name, "ArrayLength") == 0 && node->data.call.arg_count == 1) {
-        ASTNode *arg = node->data.call.arguments[0];
-        if (arg != NULL && arg->type == AST_IDENTIFIER) {
-            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-                ctx, arg->data.identifier.name);
-            if (entry != NULL) {
-                return LLVMConstInt(ctx->type_i32,
-                    (unsigned long long)entry->length, 0);
-            }
+        LLVMValueRef arr = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        if (arr != NULL && LLVMGetTypeKind(LLVMTypeOf(arr)) == LLVMStructTypeKind) {
+            LLVMValueRef len = llvm_array_length_i64(ctx, arr);
+            return LLVMBuildTrunc(ctx->builder, len, ctx->type_i32, llvm_tmp_name(ctx));
         }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ArrayPush") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *arr_arg = node->data.call.arguments[0];
+        if (arr_arg == NULL || arr_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, arr_arg->data.identifier.name);
+        LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, arr_arg->data.identifier.name);
+        if (arr_var == NULL || entry == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(value) != entry->elem_type) {
+            if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
+            else if ((entry->elem_type == ctx->type_f32 || entry->elem_type == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
+        }
+
+        char fn_name[64];
+        snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        if (fn != NULL) {
+            LLVMValueRef args[] = { arr_var->alloca, value };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ArraySet") == 0 && node->data.call.arg_count == 3) {
+        ASTNode *arr_arg = node->data.call.arguments[0];
+        if (arr_arg == NULL || arr_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, arr_arg->data.identifier.name);
+        LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, arr_arg->data.identifier.name);
+        LLVMValueRef idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        if (arr_var == NULL || entry == NULL || idx == NULL || value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef arr = LLVMBuildLoad2(ctx->builder, arr_var->type, arr_var->alloca,
+            llvm_tmp_name(ctx));
+        LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
+        if (LLVMTypeOf(value) != entry->elem_type) {
+            if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
+            else if ((entry->elem_type == ctx->type_f32 || entry->elem_type == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
+        }
+        LLVMValueRef gep = LLVMBuildGEP2(ctx->builder, entry->elem_type, data_ptr, &idx, 1,
+            llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, gep);
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ArrayPop") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *arr_arg = node->data.call.arguments[0];
+        if (arr_arg == NULL || arr_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, arr_arg->data.identifier.name);
+        if (arr_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef arr = LLVMBuildLoad2(ctx->builder, arr_var->type, arr_var->alloca,
+            llvm_tmp_name(ctx));
+        LLVMValueRef len = llvm_array_length_i64(ctx, arr);
+        LLVMValueRef has_any = LLVMBuildICmp(ctx->builder, LLVMIntUGT, len,
+            LLVMConstInt(ctx->type_i64, 0, 0), llvm_tmp_name(ctx));
+        LLVMValueRef dec = LLVMBuildSub(ctx->builder, len,
+            LLVMConstInt(ctx->type_i64, 1, 0), llvm_tmp_name(ctx));
+        LLVMValueRef next_len = LLVMBuildSelect(ctx->builder, has_any, dec, len,
+            llvm_tmp_name(ctx));
+        arr = LLVMBuildInsertValue(ctx->builder, arr, next_len, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, arr, arr_var->alloca);
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
@@ -1291,6 +1394,28 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
     if (node->data.assignment.target == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
+    if (node->data.assignment.target->type == AST_ARRAY_ACCESS) {
+        ASTNode *array_node = node->data.assignment.target->data.array_access.array;
+        if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
+            const char *name = array_node->data.identifier.name;
+            LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
+            LLVMValueRef idx = llvm_emit_expression(
+                node->data.assignment.target->data.array_access.index, ctx);
+            LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+            if (arr_var != NULL && entry != NULL && idx != NULL && val != NULL) {
+                LLVMValueRef arr = LLVMBuildLoad2(ctx->builder, arr_var->type,
+                    arr_var->alloca, llvm_tmp_name(ctx));
+                LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
+                LLVMValueRef gep = LLVMBuildGEP2(ctx->builder, entry->elem_type,
+                    data_ptr, &idx, 1, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, val, gep);
+                return val;
+            }
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     /* Member assignment: obj.field = value */
     if (node->data.assignment.target->type == AST_MEMBER_ACCESS) {
         ASTNode *member_node = node->data.assignment.target;
@@ -1441,6 +1566,45 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CALL:          return llvm_emit_call(node, ctx);
     case AST_ASSIGNMENT:    return llvm_emit_assignment(node, ctx);
     case AST_MEMBER_ACCESS: return llvm_emit_member_access(node, ctx);
+    case AST_ARRAY_LITERAL: {
+        size_t count = node->data.array_literal.count;
+        const char *inner_name = "Int";
+        LLVMTypeRef elem_type = ctx->type_i32;
+        if (count > 0) {
+            LLVMValueRef first = llvm_emit_expression(node->data.array_literal.elements[0], ctx);
+            if (first != NULL) {
+                elem_type = LLVMTypeOf(first);
+                const char *suffix = llvm_type_to_suffix(ctx, elem_type);
+                if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                    inner_name = suffix;
+            }
+        }
+
+        LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
+        LLVMValueRef tmp = llvm_create_entry_alloca(ctx, array_type, llvm_tmp_name(ctx));
+        char new_fn_name[64];
+        char push_fn_name[64];
+        snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
+        snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
+        LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, new_fn_name);
+        LLVMFuncEntry *push_fn = llvm_lookup_function(ctx, push_fn_name);
+        if (new_fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
+            };
+            LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
+                new_fn->fn, args, 1, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, arr_val, tmp);
+        }
+        for (size_t i = 0; i < count; i++) {
+            LLVMValueRef elem = llvm_emit_expression(node->data.array_literal.elements[i], ctx);
+            if (push_fn != NULL && elem != NULL) {
+                LLVMValueRef args[] = { tmp, elem };
+                LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn, args, 2, "");
+            }
+        }
+        return LLVMBuildLoad2(ctx->builder, array_type, tmp, llvm_tmp_name(ctx));
+    }
 
     case AST_ARRAY_ACCESS: {
         /* arr[idx] → GEP + load */
@@ -1452,17 +1616,6 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
         LLVMTypeRef arr_ty = LLVMTypeOf(arr);
-        if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
-            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-                ctx, array_node->data.identifier.name);
-            if (entry != NULL) {
-                LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
-                    entry->elem_type, arr, &idx, 1, llvm_tmp_name(ctx));
-                return LLVMBuildLoad2(ctx->builder, entry->elem_type,
-                    gep, llvm_tmp_name(ctx));
-            }
-        }
-
         if (arr_ty == ctx->type_i8ptr) {
             LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
                 LLVMInt8TypeInContext(ctx->context),
@@ -1483,9 +1636,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (LLVMGetTypeKind(arr_ty) == LLVMStructTypeKind) {
-            LLVMValueRef data_ptr = LLVMBuildExtractValue(ctx->builder,
-                arr, 0, llvm_tmp_name(ctx));
-            LLVMTypeRef elem_ty = ctx->type_i32; /* default element type */
+            LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
+            LLVMTypeRef elem_ty = ctx->type_i32;
+            if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
+                LLVMArrayVarEntry *entry = llvm_lookup_array_var(
+                    ctx, array_node->data.identifier.name);
+                if (entry != NULL)
+                    elem_ty = entry->elem_type;
+            }
             LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
                 elem_ty, data_ptr, &idx, 1, llvm_tmp_name(ctx));
             return LLVMBuildLoad2(ctx->builder, elem_ty,

@@ -128,6 +128,8 @@ LLVMTypeRef pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind);
 /* Map a PgyTypeKind (primitive only) to its Pergyra name suffix.
  * Returns NULL for non-primitive kinds. */
 const char *pgy_kind_to_suffix(PgyTypeKind kind);
+LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
 
 /* =================================================================
  * Type definitions
@@ -276,6 +278,20 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     slot_type_Double;
     LLVMTypeRef     slot_type_Bool;
     LLVMTypeRef     slot_type_String;
+
+    LLVMTypeRef     array_type_Int;
+    LLVMTypeRef     array_type_Long;
+    LLVMTypeRef     array_type_Float;
+    LLVMTypeRef     array_type_Double;
+    LLVMTypeRef     array_type_Bool;
+    LLVMTypeRef     array_type_String;
+
+    LLVMTypeRef     slice_type_Int;
+    LLVMTypeRef     slice_type_Long;
+    LLVMTypeRef     slice_type_Float;
+    LLVMTypeRef     slice_type_Double;
+    LLVMTypeRef     slice_type_Bool;
+    LLVMTypeRef     slice_type_String;
 
     LLVMSlotVarEntry     *slot_vars;
     int                   slot_var_count;

@@ -1,0 +1,63 @@
+// linked_list.pgy — Slot 의미론 기반 Linked List
+//
+// Pergyra의 Slot 모델: 포인터 없이 자원을 관리한다.
+// 배열 풀에 노드를 할당하고, Int 인덱스가 "다음 노드"를 가리킨다.
+// -1 = null (리스트의 끝)
+//
+// 배열은 값 타입이므로 함수에 넘기면 복사된다.
+// 따라서 리스트 조작은 소유자 스코프 안에서 직접 수행한다.
+// 이것이 Slot의 철학이다: 자원은 소유자가 직접 관리한다.
+
+func Main() -> Void {
+    // ---- 노드 풀 (Slot 소유) ----
+    let values: Array<Int> = [];   // values[i] = i번째 노드의 값
+    let nexts: Array<Int> = [];    // nexts[i]  = 다음 노드 인덱스 (-1 = end)
+    let head: Int = -1;
+
+    // ---- PushFront: 30 → 20 → 10 ----
+
+    // push 10
+    ArrayPush(values, 10);
+    ArrayPush(nexts, head);
+    head = ArrayLength(values) - 1;
+
+    // push 20
+    ArrayPush(values, 20);
+    ArrayPush(nexts, head);
+    head = ArrayLength(values) - 1;
+
+    // push 30
+    ArrayPush(values, 30);
+    ArrayPush(nexts, head);
+    head = ArrayLength(values) - 1;
+
+    // ---- 순회 출력 ----
+    let cur: Int = head;
+    while cur != -1 {
+        Log(values[cur]);
+        cur = nexts[cur];
+    }
+    // 기대 출력: 30, 20, 10
+
+    // ---- 길이 계산 ----
+    let count: Int = 0;
+    cur = head;
+    while cur != -1 {
+        count = count + 1;
+        cur = nexts[cur];
+    }
+    Log(count);  // 기대: 3
+
+    // ---- 검색 ----
+    let found: Bool = false;
+    cur = head;
+    while cur != -1 {
+        if values[cur] == 20 {
+            found = true;
+        }
+        cur = nexts[cur];
+    }
+    if found {
+        Log(1);  // 20을 찾음
+    }
+}
