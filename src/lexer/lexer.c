@@ -371,6 +371,7 @@ Token lexer_next_token(Lexer* lexer) {
             }
             return make_token(lexer, TOKEN_SLASH, start, 1);
         case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
+        case '?': return make_token(lexer, TOKEN_QUESTION, start, 1);
         case '"': return scan_string(lexer);
         
         // Multi-character tokens
@@ -432,6 +433,10 @@ Token lexer_next_token(Lexer* lexer) {
             if (peek(lexer) == '|') {
                 advance(lexer);
                 return make_token(lexer, TOKEN_OR, start, 2);
+            }
+            if (peek(lexer) == '>') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_PIPE_ARROW, start, 2);
             }
             break;
 

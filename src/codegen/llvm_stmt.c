@@ -26,6 +26,50 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
     }
 }
 
+static void
+llvm_defer_scope_push(LLVMGenCtx *ctx)
+{
+    if (ctx->defer_scope_depth >= MAX_SCOPE_DEPTH)
+        return;
+    ctx->defer_body_counts[ctx->defer_scope_depth++] = 0;
+}
+
+static void
+llvm_defer_scope_pop(LLVMGenCtx *ctx)
+{
+    if (ctx->defer_scope_depth <= 0)
+        return;
+    ctx->defer_scope_depth--;
+    ctx->defer_body_counts[ctx->defer_scope_depth] = 0;
+}
+
+static void
+llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx)
+{
+    if (body == NULL || ctx->defer_scope_depth <= 0)
+        return;
+    int scope = ctx->defer_scope_depth - 1;
+    int count = ctx->defer_body_counts[scope];
+    if (count >= MAX_DEFER_PER_SCOPE)
+        return;
+    ctx->defer_bodies[scope][count] = body;
+    ctx->defer_body_counts[scope]++;
+}
+
+static void
+llvm_emit_defers_from(LLVMGenCtx *ctx, int start_depth)
+{
+    if (start_depth < 0)
+        start_depth = 0;
+    for (int depth = ctx->defer_scope_depth - 1; depth >= start_depth; depth--) {
+        for (int i = ctx->defer_body_counts[depth] - 1; i >= 0; i--) {
+            ASTNode *body = ctx->defer_bodies[depth][i];
+            if (body != NULL)
+                llvm_emit_statement(body, ctx);
+        }
+    }
+}
+
 static const char *
 llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
 {
@@ -557,6 +601,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 static void
 llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
+    llvm_emit_defers_from(ctx, 0);
+
     if (node->data.return_stmt.value != NULL) {
         LLVMValueRef val = llvm_emit_expression(node->data.return_stmt.value,
                                                  ctx);
@@ -671,6 +717,7 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
         ctx->loop_continue_blocks[ctx->loop_depth] = cond_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+        ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
     if (node->data.while_loop.body != NULL)
@@ -729,6 +776,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
         ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+        ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
     if (node->data.for_loop.body != NULL)
@@ -904,6 +952,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
         return;
 
     int saved_slot_count = ctx->slot_var_count;
+    llvm_defer_scope_push(ctx);
     llvm_scope_push(ctx);
     for (size_t i = 0; i < node->data.block.count; i++) {
         llvm_emit_statement(node->data.block.statements[i], ctx);
@@ -916,6 +965,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
     /* Slot sugar: auto-release slot vars declared in this scope (LIFO).
      * Skip slots already explicitly released by the user. */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        llvm_emit_defers_from(ctx, ctx->defer_scope_depth - 1);
         for (int i = ctx->slot_var_count - 1; i >= saved_slot_count; i--) {
             if (ctx->slot_vars[i].released) continue;
             const char *inner = ctx->slot_vars[i].inner_type;
@@ -943,6 +993,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
 
     ctx->slot_var_count = saved_slot_count;
     llvm_scope_pop(ctx);
+    llvm_defer_scope_pop(ctx);
 }
 
 /* =================================================================
@@ -1394,6 +1445,8 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_BREAK:
         if (ctx->loop_depth > 0) {
+            llvm_emit_defers_from(ctx,
+                ctx->loop_defer_base_depth[ctx->loop_depth - 1]);
             LLVMBuildBr(ctx->builder,
                 ctx->loop_break_blocks[ctx->loop_depth - 1]);
         }
@@ -1403,6 +1456,8 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
     case AST_CONTINUE:
         if (ctx->loop_depth > 0) {
+            llvm_emit_defers_from(ctx,
+                ctx->loop_defer_base_depth[ctx->loop_depth - 1]);
             LLVMBuildBr(ctx->builder,
                 ctx->loop_continue_blocks[ctx->loop_depth - 1]);
         }
@@ -1469,10 +1524,8 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
 
     case AST_DEFER_STMT:
-        /* defer { ... } — emit at end of current scope
-         * For now: emit inline (proper scope-exit requires goto-cleanup) */
         if (node->data.defer_stmt.body != NULL)
-            llvm_emit_statement(node->data.defer_stmt.body, ctx);
+            llvm_register_defer(node->data.defer_stmt.body, ctx);
         break;
 
     case AST_BIND_STMT: {

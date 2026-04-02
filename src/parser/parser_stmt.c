@@ -127,8 +127,12 @@ ASTNode* parse_if_statement(Parser* parser) {
 
     // else 블록 (선택적)
     if (parser_match(parser, TOKEN_ELSE)) {
-        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after else");
-        if_stmt->data.if_stmt.else_branch = parser_parse_block(parser);
+        if (parser_match(parser, TOKEN_IF)) {
+            if_stmt->data.if_stmt.else_branch = parse_if_statement(parser);
+        } else {
+            parser_consume(parser, TOKEN_LBRACE, "Expected '{' after else");
+            if_stmt->data.if_stmt.else_branch = parser_parse_block(parser);
+        }
     }
 
     return if_stmt;

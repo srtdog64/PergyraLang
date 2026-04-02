@@ -626,6 +626,31 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             type_get_constructed_arg(slot_type, 0));
     }
 
+    /* ---- Result builtins ---- */
+    if (strcmp(name, "IsOk") == 0 || strcmp(name, "IsErr") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "Unwrap") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *rt = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (type_is_constructed_named(rt, "Result"))
+            return type_get_constructed_arg(rt, 0);
+        return TYPE_UNKNOWN;
+    }
+    if (strcmp(name, "UnwrapOr") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *rt = type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        if (type_is_constructed_named(rt, "Result"))
+            return type_get_constructed_arg(rt, 0);
+        return TYPE_UNKNOWN;
+    }
+
     /* ---- Channel builtins ---- */
     if (strcmp(name, "TryRecv") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))

@@ -350,11 +350,14 @@ struct ASTNode
             size_t    count;
         } array_literal;
 
-        /* enum Color { Red, Green, Blue } */
+        /* enum Color { Red, Green, Blue }
+         * enum Shape { Circle(Int), Rect(Int, Int), None }  — tagged union */
         struct {
-            char*   name;
-            char**  variants;
-            size_t  variant_count;
+            char*      name;
+            char**     variants;        /* variant names */
+            ASTNode*** variant_params;  /* variant_params[i] = param type nodes (NULL if no data) */
+            size_t*    variant_param_counts; /* param count per variant (0 if no data) */
+            size_t     variant_count;
         } enum_decl;
 
         /* Assignment */

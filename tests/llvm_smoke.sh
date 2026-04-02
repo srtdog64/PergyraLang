@@ -55,6 +55,25 @@ func Main() -> Void {
 EOF
 run_case "array_enum" "$TMPDIR/array_enum.pgy" "2" "9"
 
+cat > "$TMPDIR/tagged_union.pgy" <<'EOF'
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
+}
+
+func Main() -> Void {
+    let c: Shape = Circle(10);
+    let r: Shape = Rect(4, 5);
+    Log(c.Circle._0);
+    Log(r.Rect._0);
+    Log(r.Rect._1);
+    let x: Shape = Circle(7);
+    Log(x.Circle._0);
+}
+EOF
+run_case "tagged_union" "$TMPDIR/tagged_union.pgy" "10" "4" "5" "7"
+
 cat > "$TMPDIR/dynamic_array_ops.pgy" <<'EOF'
 func Main() -> Void {
     let values: Array<Int> = [];
@@ -220,6 +239,14 @@ func Main() -> Void {
 }
 EOF
 run_case "async_block_runtime" "$TMPDIR/async_block_runtime.pgy" "11"
+
+cat > "$TMPDIR/defer_scope_exit.pgy" <<'EOF'
+func Main() -> Void {
+    defer { Log(1); };
+    Log(2);
+}
+EOF
+run_case "defer_scope_exit" "$TMPDIR/defer_scope_exit.pgy" "2" "1"
 
 cat > "$TMPDIR/generic_call.pgy" <<'EOF'
 func Identity<T>(x: T) -> T {

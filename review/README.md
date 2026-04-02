@@ -20,3 +20,5 @@
 - `module-model-contract.md`
 - `stdlib-beta-contract.md`
 - `diagnostics-contract.md`
+- `syntax-audit.md`
+- `grammar-gap-audit.md`

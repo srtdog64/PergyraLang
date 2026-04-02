@@ -1,456 +1,425 @@
-# Pergyra 언어 문법 정의
+# Pergyra 현재 구현 문법 레퍼런스
 
-<!--
-Copyright (c) 2025 Pergyra Language Project
-All rights reserved.
+이 문서는 `lexer`, `parser`, `semantic`, `tests`, `examples` 기준의 **실제 구현 문법**을 정리한다.
+설계 아이디어와 장기 비전은 별도 문서에 둘 수 있지만, 이 문서는 “지금 파서가 읽고 컴파일러가 처리하는 형태”를 기준으로 한다.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright notice
-2. Redistributions in binary form must reproduce the above copyright notice
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
--->
+관련 문서:
+- 최소 요약: [01_syntax.md](/mnt/e/PergyraLang/docs/grammar/01_syntax.md)
+- 네이밍 규칙: [03_naming.md](/mnt/e/PergyraLang/docs/grammar/03_naming.md)
+- 비전: [00_vision.md](/mnt/e/PergyraLang/docs/00_vision.md)
 
-## 1. 핵심 철학
-- **Slot-based Memory Management**: 포인터 대신 슬롯으로 메모리 관리
-- **의미 기반 선언**: 모든 코드는 의미 단위로 구성
-- **내장 병렬성**: 언어 문법 차원에서 병렬 실행 지원
-- **타입 안전성**: 컴파일 타임 타입 검증
-- **구조화된 비동기**: Structured Effect Async (SEA) 모델
+## 1. 기본 규칙
 
-## 2. 구현 기준 문법
+- 키워드는 소문자 기준이다.
+  예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
+- 내장 API와 타입은 PascalCase 기준이다.
+  예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
+- 문장 종료는 세미콜론 `;` 이다.
+- 블록은 `{ ... }` 로 쓴다.
+- 현재 구현 기준으로 “문서상 제안만 있고 미구현인 문법”은 이 문서에 실지 않는다.
 
-현재 구현에서 고정된 기준은 다음과 같습니다.
-- 키워드: 소문자 `let`, `func`, `with`, `parallel`, `for`, `if`, `else`, `return`, `async`, `await`, `select`, `case`, `default`, `spawn`
-- 내장 API: PascalCase `ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `Log`, `Panic`
-- 문장 종료: 세미콜론 `;` 필수
-- 블록 시작: 같은 줄에서 `{`
+## 2. 리터럴과 표현식
 
-이 문서 아래의 예시는 구현 기준 문법에 맞춰 읽어야 합니다.
+### 2.1 리터럴
+
+```pergyra
+42;
+"hello";
+true;
+[1, 2, 3];
+```
+
+지원되는 리터럴:
+- 정수
+- 문자열
+- 불리언
+- 배열 리터럴
+
+### 2.2 기본 표현식
+
+```pergyra
+a + b * c;
+a == b;
+a && b || !c;
+obj.Method(42);
+array[i + 1];
+value = other;
+```
+
+주요 표현식 종류:
+- 이항/단항 연산
+- 함수 호출
+- 멤버 접근
+- 배열 인덱싱
+- 배열 리터럴
+- 대입
+- `await`
+- `spawn`
+- 채널 송수신
+
+### 2.3 우선순위
+
+대체로 다음 순서를 따른다.
+
+1. 호출, 멤버 접근, 배열 접근
+2. 단항 `!`, `-`
+3. `*`, `/`, `%`
+4. `+`, `-`
+5. 비교 `< <= > >=`
+6. 동등 `== !=`
+7. 논리 `&&`
+8. 논리 `||`
+9. 할당 `=`
+
+## 3. 선언
+
+### 3.1 `let`
+
+```pergyra
+let x = 42;
+let name: String = "Pergyra";
+let values: Array<Int> = [1, 2, 3];
+```
+
+- 타입 주석은 선택 사항이다.
+- 일부 자원 타입은 `let` 초기화 규칙이 더 엄격하다.
+  예: `QubitSlot`, `DeviceSlot`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`
+
+### 3.2 함수
+
+```pergyra
+func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+```
+
+제네릭과 `where` 절:
+
+```pergyra
+func Identity<T>(value: T) -> T {
+    return value;
+}
+
+func Sort<T>(items: Array<T>) -> Array<T>
+where T: Comparable {
+    return items;
+}
+```
+
+지원되는 요소:
+- 일반 함수
+- 제네릭 함수
+- `where` 제약
+- `async func`
+- `export func`
+
+### 3.3 타입 선언
+
+```pergyra
+struct Vec3 {
+    x: Float;
+    y: Float;
+    z: Float;
+}
+
+class Player {
+    private let name: String;
+    public let health: Int;
+}
+
+enum Color { Red, Green, Blue }
+```
+
+지원되는 선언:
+- `struct`
+- `class`
+- `enum`
+- `type` alias
+- `extern "C"` block
+
+### 3.4 모듈
+
+```pergyra
+import "math.pgy";
+
+namespace Math {
+    export func Add(a: Int, b: Int) -> Int {
+        return a + b;
+    }
+}
+```
+
+지원되는 요소:
+- `import`
+- `namespace`
+- `export`
+
+## 4. 타입 표기
+
+### 4.1 기본 타입
+
+- `Int`
+- `Long`
+- `Float`
+- `Double`
+- `Bool`
+- `String`
+- `Void`
+
+### 4.2 컬렉션/자원 타입
+
+```pergyra
+Array<Int>
+Slice<Float>
+Channel<Int>
+Future<Int>
+RemoteFuture<Int>
+Slot<Int>
+SecureSlot<Int>
+ReadView<Int>
+WriteView<Int>
+MoveToken<Int>
+QubitSlot
+DeviceSlot<Int>
+Rc<Int>
+Weak<Int>
+Box<Array<Int>>
+Allocator
+```
+
+현재 구현이 해석하는 대표 타입군:
+- 배열/슬라이스
+- 채널/퓨처
+- 슬롯 계열
+- 양자/디바이스 자원
+- 공유 소유권/박스/할당기
+
+## 5. 제어문
+
+### 5.1 조건문
+
+```pergyra
+if x > 10 {
+    Log("big");
+} else {
+    Log("small");
+}
+```
+
+### 5.2 반복문
+
+```pergyra
+for i in 0..10 {
+    Log(i);
+}
+
+while cond {
+    if stop { break; }
+    continue;
+}
+```
+
+지원:
+- `for i in start..end`
+- `while`
+- `break`
+- `continue`
+
+### 5.3 패턴/선택
+
+```pergyra
+match value {
+    case 0:
+        Log("zero");
+    case 1 if value > 0:
+        Log("one");
+    default:
+        Log("other");
+}
+
+select {
+    case v = <-ch:
+        Log(v);
+    default:
+        Log(0);
+}
+```
+
+지원:
+- `match`
+- `case`
+- `default`
+- `guard` (`case x if cond:`)
+- `select`
+- `case <-ch:`
+- `case v = <-ch:`
+
+## 6. 슬롯과 자원 셀
+
+### 6.1 기본 슬롯
+
+```pergyra
+let s: Slot<Int> = 42;
+Log(s);
+s = 7;
+Release(s);
+```
+
+또는 명시형:
+
+```pergyra
+let s: Slot<Int> = ClaimSlot();
+Write(s, 42);
+let v: Int = Read(s);
+Release(s);
+```
+
+### 6.2 `with`
+
+```pergyra
+with slot<Int> as hp {
+    hp.Write(100);
+    Log(hp.Read());
+}
+
+with SecureSlot<Int>(SECURITY_LEVEL_HARDWARE) as hp {
+    hp.Write(100);
+}
+```
+
+### 6.3 View / Move
+
+```pergyra
+let rv: ReadView<Int> = ViewRead(s);
+let wv: WriteView<Int> = ViewWrite(s);
+let mt: MoveToken<Int> = Move(s);
+let dst: Slot<Int> = mt;
+```
+
+## 7. 병렬 / 비동기 / 채널
+
+### 7.1 `parallel`
+
+```pergyra
+parallel {
+    WorkA();
+    WorkB();
+}
+```
+
+- `parallel`은 pthread 기반 병렬 실행 경로다.
+
+### 7.2 `spawn` / `await`
+
+```pergyra
+async func Fetch() -> Int {
+    let task = spawn Compute(42);
+    let value: Int = await task;
+    return value;
+}
+```
+
+- `spawn`은 `Future<T>` 계열을 만든다.
+- `await`는 async 문맥 안에서 사용한다.
+- 현재 구현은 코루틴 런타임 경로를 사용한다.
+
+### 7.3 `async` 블록
+
+```pergyra
+async {
+    ch <- 11;
+}
+```
+
+- `async { ... }` 는 detached async block으로 해석된다.
+
+### 7.4 채널
+
+```pergyra
+let ch: Channel<Int> = Channel(4);
+ch <- 42;
+let value: Int = <-ch;
+```
+
+## 8. 도메인 계층
+
+### 8.1 ability / role
+
+```pergyra
+ability Damageable {
+    require health: Int;
+    func TakeDamage(amount: Int) -> Void;
+}
+
+role PlayerDamageable for Player {
+    impl ability Damageable {
+        func TakeDamage(amount: Int) -> Void {
+            Log(amount);
+        }
+    }
+}
+```
+
+### 8.2 party / systemic / world
+
+```pergyra
+party Team {
+    role slot tank: Damageable;
+    shared formation: String = "standard";
+}
+
+systemic CombatSystem {
+    party slot team1: Team;
+}
+
+world GameWorld {
+    systemic combat: CombatSystem;
+}
+```
+
+### 8.3 actor / event / lambda
+
+```pergyra
+actor Counter {
+    let count: Int;
+}
+
+event OnHit(damage: Int);
+
+OnHit += (d: Int) => { Log(d); };
+OnHit(77);
+```
+
+## 9. 기타 문법
+
+### 9.1 안전하지 않은 블록 / defer / bind
+
+AST와 parser 기준으로 다음 문법 진입점이 있다.
+
+```pergyra
+unsafe {
+    Dangerous();
+}
+
+defer {
+    Cleanup();
+};
+```
 
 주의:
-- 위 규칙과 [doc/syntax.md](/mnt/e/PergyraLang/doc/syntax.md)의 예시가 현재 파서 구현의 기준이다.
-- 엔진 코어 방향의 다음 단계 언어 기준은 [doc/engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)에 정리한다.
-- 아래 2.4 이후 섹션에는 아직 구현되지 않은 설계 문법이 일부 포함되어 있다.
+- `unsafe`, `defer`, `bind`는 파싱/AST 진입점은 있으나, 다른 핵심 문법보다 완성도가 낮다.
+- 실사용 여부는 현재 테스트/예제 기준으로 다시 검증해야 한다.
 
-### 2.1 슬롯 관리
-```pergyra
-let slot = ClaimSlot<Type>();
-Write(slot, value);
-let val = Read(slot);
-Release(slot);
-```
+## 10. 상태 구분
 
-### 2.2 스코프 기반 슬롯
-```pergyra
-with slot<Type> as s {
-    s.Write(42);
-    Log(s.Read());
-}
-```
+이 문서 기준 구분:
 
-### 2.3 병렬 실행
-```pergyra
-let result = parallel {
-    A();
-    B();
-    C();
-};
-```
+- **지원됨**: parser + semantic + backend/tests/examples로 확인된 문법
+- **부분 지원**: parser/semantic은 있으나 제한이 크거나 backend 차이가 있는 문법
+- **실험적**: 설계 방향은 있으나 문서상 고정 문법으로 간주하면 안 되는 영역
 
-### 2.4 함수 정의 (BSD Style)
-```pergyra
-func ProcessData(input: String) -> Int
-{
-    // 함수 본문
-    return 42
-}
-
-// 제네릭 함수
-func Map<T, U>(items: Array<T>, transform: (T) -> U) -> Array<U>
-    where T: Readable,
-          U: Writable
-{
-    // 구현
-}
-
-// 비동기 함수
-async func FetchData(url: String) -> Result<Data, Error> {
-    let response = await HttpClient.Get(url);
-    return response.ToData();
-}
-```
-
-### 2.5 클래스 정의 (BSD Style)
-```pergyra
-class SecureContainer<T>
-    where T: Serializable
-{
-    private _slot: SecureSlot<T>
-    private _token: SecurityToken
-    
-    public func Store(value: T)
-    {
-        Write(_slot, value, _token)
-    }
-    
-    public func Retrieve() -> T
-    {
-        return Read(_slot, _token)
-    }
-}
-
-// 액터 정의
-actor BankAccount
-{
-    private _balance: Decimal = 0
-    
-    public func Deposit(amount: Decimal) -> Result<Decimal, Error>
-    {
-        if amount <= 0
-        {
-            return .Err(InvalidAmount)
-        }
-        _balance += amount
-        return .Ok(_balance)
-    }
-}
-```
-
-### 2.6 제어 구조 (BSD Style)
-```pergyra
-// If 문
-if condition
-{
-    // true 블록
-}
-else if otherCondition
-{
-    // else if 블록
-}
-else
-{
-    // else 블록
-}
-
-// For 루프
-for i in 0..10
-{
-    Log(i)
-}
-
-// While 루프
-while IsRunning()
-{
-    Process()
-}
-
-// Match 문
-match value
-{
-    case .Success(data):
-        ProcessData(data)
-        
-    case .Error(msg):
-        LogError(msg)
-        
-    default:
-        HandleUnknown()
-}
-
-// Select 문 (채널)
-select
-{
-    case value = <-ch1:
-        Log("Got from ch1: ", value)
-        
-    case msg = <-ch2:
-        Log("Got from ch2: ", msg)
-        
-    case <-timeout:
-        Log("Timeout!")
-        
-    default:
-        Log("No data available")
-}
-```
-
-## 3. 비동기/동시성 문법
-
-### 3.1 Async/Await
-```pergyra
-// 비동기 함수 호출
-let data = await FetchData("https://api.example.com")
-
-// 여러 비동기 작업 동시 실행
-let (a, b, c) = await parallel {
-    FetchA();
-    FetchB();
-    FetchC();
-};
-```
-
-### 3.2 채널 (Channels)
-```pergyra
-// 채널 생성
-let channel = Channel<Int>(bufferSize: 10)
-
-// 송신
-await channel.Send(42)
-
-// 수신
-let value = await channel.Receive()
-
-// 채널 연산자
-ch <- 42        // Send
-let v = <-ch    // Receive
-```
-
-### 3.3 구조화된 동시성
-```pergyra
-async func ProcessItems(items: Array<Item>) -> Array<Result>
-{
-    return await WithTaskGroup(of: Result.self)
-    {
-        group in
-        
-        for item in items
-        {
-            group.AddTask
-            {
-                await ProcessItem(item)
-            }
-        }
-        
-        var results = Array<Result>()
-        for await result in group
-        {
-            results.Append(result)
-        }
-        
-        return results
-    }
-}
-```
-
-### 3.4 Actor 사용
-```pergyra
-let account = BankAccount()
-await account.Deposit(1000)
-let balance = await account.GetBalance()
-```
-
-## 4. 토큰 정의
-
-### 4.1 키워드 (Keywords)
-#### 기본 키워드
-- `let`: 변수/슬롯 선언
-- `with`: 스코프 기반 슬롯 선언
-- `as`: 슬롯 별칭
-- `func`: 함수 선언
-- `if`, `else`: 조건문
-- `for`, `while`: 반복문
-- `return`: 함수 반환
-- `match`, `case`: 패턴 매칭
-- `class`, `struct`: 타입 선언
-- `public`, `private`: 접근 제어자
-
-#### 비동기 키워드
-- `async`: 비동기 함수 선언
-- `await`: 비동기 작업 대기
-- `actor`: 액터 선언
-- `channel`: 채널 타입
-- `select`: 채널 선택문
-- `spawn`: 태스크 생성
-- `default`: select문 기본 케이스
-
-### 4.1.1 내장 함수 (Built-in Functions)
-- `ClaimSlot`: 슬롯 할당
-- `Write`: 슬롯에 값 쓰기
-- `Read`: 슬롯에서 값 읽기
-- `Release`: 슬롯 해제
-- `parallel`: 병렬 실행 블록 키워드
-- `Log`: 출력 함수
-- `Channel`: 채널 생성
-- `WithTaskGroup`: 태스크 그룹 생성
-
-### 4.2 연산자 (Operators)
-- `=`: 할당
-- `()`: 함수 호출/그룹핑
-- `{}`: 블록
-- `<>`: 타입 매개변수
-- `.`: 멤버 접근
-- `;`: 문장 종료
-- `->`: 함수 반환 타입
-- `<-`: 채널 수신 연산자
-
-### 4.3 리터럴 (Literals)
-- 정수: `42`, `-10`, `0`
-- 문자열: `"hello"`, `'world'`
-- 부울: `true`, `false`
-
-### 4.4 식별자 (Identifiers)
-- 변수명: `variableName`, `slotA` (camelCase)
-- 함수명: `FunctionName`, `ProcessData` (PascalCase)
-- 타입명: `Type`, `Int`, `String`, `Vector` (PascalCase)
-- 상수명: `CONSTANT_NAME`, `MAX_VALUE` (UPPER_SNAKE_CASE)
-
-## 5. 제네릭 문법
-
-### 5.1 기본 제네릭
-```pergyra
-// 제네릭 함수
-func Identity<T>(value: T) -> T {
-    return value
-}
-
-// 제네릭 클래스
-class Container<T> {
-    private _value: T
-    
-    func Get() -> T {
-        return _value
-    }
-}
-
-// 다중 타입 파라미터
-func Swap<A, B>(a: A, b: B) -> (B, A) {
-    return (b, a)
-}
-```
-
-### 5.2 제약조건 (Where 절)
-```pergyra
-func Sort<T>(items: Array<T>) -> Array<T>
-    where T: Comparable {
-    // T는 Comparable을 구현해야 함
-}
-
-// 다중 제약
-func Process<T, U>(input: T) -> U
-    where T: Readable + Sized,
-          U: Writable {
-    // 구현
-}
-```
-
-### 5.3 Associated Types
-```pergyra
-trait Iterator<T> {
-    type Item = T
-    func Next() -> Option<Self.Item>
-}
-
-// 구현
-impl Iterator<Int> for Range {
-    type Item = Int
-    func Next() -> Option<Int> {
-        // ...
-    }
-}
-```
-
-### 5.4 제네릭 기본값
-```pergyra
-class Cache<K = String, V = Any> {
-    // K의 기본값은 String, V의 기본값은 Any
-}
-
-let cache1 = Cache()              // Cache<String, Any>
-let cache2 = Cache<Int>()         // Cache<Int, Any>
-let cache3 = Cache<Int, User>()   // Cache<Int, User>
-```
-
-## 6. 타입 시스템
-
-### 6.1 기본 타입
-- `Int`: 32비트 정수
-- `Long`: 64비트 정수  
-- `Float`: 32비트 부동소수점
-- `Double`: 64비트 부동소수점
-- `String`: 문자열
-- `Bool`: 부울값
-
-### 6.2 슬롯 타입
-- `Slot<Type>`: 타입이 지정된 슬롯
-- `SecureSlot<Type>`: 보안 슬롯
-- 예: `Slot<Int>`, `SecureSlot<String>`
-
-### 6.3 비동기 타입
-- `Channel<T>`: 채널 타입
-- `Future<T>`: 미래값 타입
-- `Result<T, E>`: 결과 타입
-- `AsyncIterator<T>`: 비동기 이터레이터
-
-## 7. 메모리 모델
-
-### 7.1 슬롯 테이블 구조
-```
-SlotId | TypeTag | Occupied | DataBlockRef | TTL
-```
-
-### 7.2 생명주기
-- **스코프 기반**: `with` 블록 종료 시 자동 해제
-- **명시적 해제**: `Release()` 호출
-- **TTL 기반**: 시간 초과 시 자동 해제
-- **구조화된 동시성**: 부모 스코프 종료 시 자식 태스크 취소
-
-## 8. 명명 규칙 (Naming Conventions)
-
-### 8.1 BSD 스타일 + C# 컨벤션
-- **변수**: camelCase (예: `counterSlot`, `userData`)
-- **함수/메서드**: PascalCase (예: `ProcessData`, `GetValue`)
-- **타입/클래스**: PascalCase (예: `TreeNode`, `SecureSlot`)
-- **상수**: UPPER_SNAKE_CASE (예: `MAX_SLOTS`, `DEFAULT_TTL`)
-- **프로퍼티**: 
-  - Public: PascalCase (예: `Health`, `Name`)
-  - Private: camelCase with underscore (예: `_health`, `_name`)
-
-### 8.2 예제
-```pergyra
-class Player {
-    private _healthSlot: SecureSlot<Int>
-    private _nameSlot: Slot<String>
-    
-    public Health: Int {
-        get { return Read(_healthSlot) }
-        set { Write(_healthSlot, value) }
-    }
-    
-    public func TakeDamage(damage: Int) {
-        let currentHealth = Read(_healthSlot)
-        Write(_healthSlot, Max(0, currentHealth - damage))
-    }
-}
-```
-
-## 9. Effect System
-
-### 9.1 Effect 타입
-```pergyra
-// I/O Effect
-effect IO {
-    func Read(fd: Int, buffer: Buffer, count: Size) -> Result<Size, Error>
-    func Write(fd: Int, buffer: Buffer, count: Size) -> Result<Size, Error>
-}
-
-// Time Effect
-effect Time {
-    func Sleep(duration: Duration)
-    func Now() -> Timestamp
-}
-```
-
-### 9.2 Effect 사용
-```pergyra
-async func ReadFile(path: String) -> Result<String, Error>
-    with effects IO
-{
-    let fd = await IO.Open(path)
-    let content = await IO.ReadAll(fd)
-    await IO.Close(fd)
-    return .Ok(content)
-}
-```
+현재 특히 주의할 영역:
+- `defer`
+- 일부 고수준 domain 문법의 세부 의미론
+- effect 표기 문법의 확장
+- backend별 세부 동작 차이

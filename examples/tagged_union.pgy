@@ -1,0 +1,25 @@
+// tagged_union.pgy — 태그드 유니언
+//
+// Pergyra의 enum은 데이터를 가질 수 있다.
+// 생성자로 값을 만들고, 필드 접근으로 데이터를 꺼낸다.
+
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
+}
+
+func Main() -> Void {
+    // 생성자로 값 생성
+    let c: Shape = Circle(10);
+    let r: Shape = Rect(4, 5);
+
+    // 필드 접근
+    Log(c.Circle._0);    // 10
+    Log(r.Rect._0);      // 4
+    Log(r.Rect._1);      // 5
+
+    // 태그 비교로 분기
+    let x: Shape = Circle(7);
+    Log(x.Circle._0);    // 7
+}

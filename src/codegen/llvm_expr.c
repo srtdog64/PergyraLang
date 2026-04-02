@@ -409,6 +409,24 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             if (variant != NULL)
                 return variant->enum_name;
         }
+        {
+            const char *base_name =
+                llvm_expr_custom_type_name(node->data.member.object, ctx);
+            LLVMClassTypeEntry *base_cls = NULL;
+            if (base_name != NULL)
+                base_cls = llvm_lookup_class(ctx, base_name);
+            if (base_cls != NULL) {
+                int field_idx = llvm_class_field_index(base_cls,
+                    node->data.member.name);
+                if (field_idx >= 0) {
+                    LLVMTypeRef field_ty = base_cls->fields[field_idx].field_type;
+                    for (int i = 0; i < ctx->class_type_count; i++) {
+                        if (ctx->class_types[i].struct_type == field_ty)
+                            return ctx->class_types[i].class_name;
+                    }
+                }
+            }
+        }
         return NULL;
     case AST_CALL:
         if (node->data.call.callee != NULL
@@ -416,11 +434,43 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             const char *callee = node->data.call.callee->data.identifier.name;
             if (llvm_lookup_class(ctx, callee) != NULL)
                 return callee;
+            {
+                LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee);
+                if (variant != NULL)
+                    return variant->enum_name;
+            }
         }
         return NULL;
     default:
         return NULL;
     }
+}
+
+static LLVMClassTypeEntry *
+llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
+{
+    for (int i = 0; i < ctx->class_type_count; i++) {
+        if (ctx->class_types[i].struct_type == ty)
+            return &ctx->class_types[i];
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || enum_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt != NULL && stmt->type == AST_ENUM_DECL
+            && stmt->data.enum_decl.name != NULL
+            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
+            return stmt;
+        }
+    }
+    return NULL;
 }
 
 static LLVMValueRef
@@ -697,6 +747,52 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 static LLVMValueRef
 llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
 {
+    if (node->data.unary.op.type == TOKEN_QUESTION) {
+        LLVMValueRef result = llvm_emit_expression(node->data.unary.operand, ctx);
+        LLVMTypeRef result_ty = LLVMTypeOf(result);
+        unsigned field_count = LLVMCountStructElementTypes(result_ty);
+
+        if (result == NULL || LLVMGetTypeKind(result_ty) != LLVMStructTypeKind
+            || field_count < 2 || ctx->current_function == NULL) {
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
+
+        LLVMTypeRef fields[8];
+        LLVMGetStructElementTypes(result_ty, fields);
+
+        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, result, 0, llvm_tmp_name(ctx));
+        LLVMValueRef is_ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+
+        LLVMValueRef ok_alloca = llvm_create_entry_alloca(ctx, fields[1], llvm_tmp_name(ctx));
+        LLVMBasicBlockRef ok_bb = LLVMAppendBasicBlockInContext(ctx->context,
+            ctx->current_function, "try.ok");
+        LLVMBasicBlockRef err_bb = LLVMAppendBasicBlockInContext(ctx->context,
+            ctx->current_function, "try.err");
+        LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(ctx->context,
+            ctx->current_function, "try.cont");
+
+        LLVMBuildCondBr(ctx->builder, is_ok, ok_bb, err_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
+        {
+            LLVMValueRef ok_value = LLVMBuildExtractValue(ctx->builder, result, 1,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, ok_value, ok_alloca);
+            LLVMBuildBr(ctx->builder, cont_bb);
+        }
+
+        LLVMPositionBuilderAtEnd(ctx->builder, err_bb);
+        if (ctx->current_ret_type == result_ty) {
+            LLVMBuildRet(ctx->builder, result);
+        } else {
+            LLVMBuildUnreachable(ctx->builder);
+        }
+
+        LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+        return LLVMBuildLoad2(ctx->builder, fields[1], ok_alloca, llvm_tmp_name(ctx));
+    }
+
     LLVMValueRef operand = llvm_emit_expression(node->data.unary.operand, ctx);
     if (operand == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
@@ -758,7 +854,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (vt_idx >= 0) {
                         /* Find which ability this slot requires, then look up
                          * the method index in that ability's vtable struct */
-                        char vt_type_prefix[256];
                         int method_idx = -1;
                         LLVMClassTypeEntry *vt_cls = NULL;
 
@@ -926,6 +1021,63 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (callee_name == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    {
+        LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee_name);
+        if (variant != NULL) {
+            ASTNode *enum_decl = llvm_find_enum_decl(ctx, variant->enum_name);
+            LLVMClassTypeEntry *enum_cls = llvm_lookup_class(ctx, variant->enum_name);
+            if (enum_decl != NULL && enum_cls != NULL) {
+                size_t variant_index = (size_t)variant->value;
+                size_t param_count =
+                    (enum_decl->data.enum_decl.variant_param_counts != NULL)
+                    ? enum_decl->data.enum_decl.variant_param_counts[variant_index] : 0;
+                LLVMValueRef enum_val = LLVMGetUndef(enum_cls->struct_type);
+                enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
+                    LLVMConstInt(ctx->type_i32,
+                        (unsigned long long)variant->value, 0),
+                    0, llvm_tmp_name(ctx));
+
+                if (param_count > 0) {
+                    int field_idx = llvm_class_field_index(enum_cls, callee_name);
+                    if (field_idx > 0) {
+                        LLVMTypeRef payload_ty = enum_cls->fields[field_idx].field_type;
+                        LLVMValueRef payload = LLVMGetUndef(payload_ty);
+                        LLVMClassTypeEntry *payload_cls =
+                            llvm_lookup_class_by_type(ctx, payload_ty);
+
+                        for (size_t i = 0; i < param_count
+                             && i < node->data.call.arg_count; i++) {
+                            LLVMValueRef arg = llvm_emit_expression(
+                                node->data.call.arguments[i], ctx);
+                            if (arg == NULL)
+                                continue;
+                            if (payload_cls != NULL
+                                && i < (size_t)payload_cls->field_count
+                                && payload_cls->fields[i].field_type != LLVMTypeOf(arg)) {
+                                LLVMTypeRef target_ty = payload_cls->fields[i].field_type;
+                                if ((target_ty == ctx->type_i32 || target_ty == ctx->type_i64)
+                                    && (LLVMTypeOf(arg) == ctx->type_i32
+                                        || LLVMTypeOf(arg) == ctx->type_i64)) {
+                                    arg = (LLVMGetIntTypeWidth(target_ty)
+                                        > LLVMGetIntTypeWidth(LLVMTypeOf(arg)))
+                                        ? LLVMBuildSExt(ctx->builder, arg, target_ty,
+                                            llvm_tmp_name(ctx))
+                                        : LLVMBuildTrunc(ctx->builder, arg, target_ty,
+                                            llvm_tmp_name(ctx));
+                                }
+                            }
+                            payload = LLVMBuildInsertValue(ctx->builder, payload, arg,
+                                (unsigned)i, llvm_tmp_name(ctx));
+                        }
+                        enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
+                            payload, (unsigned)field_idx, llvm_tmp_name(ctx));
+                    }
+                }
+                return enum_val;
+            }
+        }
+    }
 
     /* Built-in: Log */
     if (strcmp(callee_name, "Log") == 0) {
@@ -1554,13 +1706,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     /* Built-in: Ok(value) → { .ok=true, .value=value } */
     if (strcmp(callee_name, "Ok") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        /* Result struct: { i32 value, i1 ok } — simplified for Int */
         LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context,
-            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i1 }, 2, 0);
+            (LLVMTypeRef[]){ ctx->type_i32, LLVMTypeOf(val), ctx->type_i8ptr }, 3, 0);
         LLVMValueRef r = LLVMGetUndef(result_ty);
-        r = LLVMBuildInsertValue(ctx->builder, r, val, 0, llvm_tmp_name(ctx));
         r = LLVMBuildInsertValue(ctx->builder, r,
-            LLVMConstInt(ctx->type_i1, 1, 0), 1, llvm_tmp_name(ctx));
+            LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r, val, 1, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstNull(ctx->type_i8ptr), 2, llvm_tmp_name(ctx));
         return r;
     }
 
@@ -1568,39 +1721,53 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (strcmp(callee_name, "Err") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
         LLVMTypeRef result_ty = LLVMStructTypeInContext(ctx->context,
-            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i1 }, 2, 0);
+            (LLVMTypeRef[]){ ctx->type_i32, ctx->type_i32, ctx->type_i8ptr }, 3, 0);
         LLVMValueRef r = LLVMGetUndef(result_ty);
-        r = LLVMBuildInsertValue(ctx->builder, r, val, 0, llvm_tmp_name(ctx));
+        if (LLVMTypeOf(val) != ctx->type_i8ptr) {
+            if (LLVMGetTypeKind(LLVMTypeOf(val)) == LLVMPointerTypeKind) {
+                val = LLVMBuildBitCast(ctx->builder, val, ctx->type_i8ptr, llvm_tmp_name(ctx));
+            } else {
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            }
+        }
         r = LLVMBuildInsertValue(ctx->builder, r,
-            LLVMConstInt(ctx->type_i1, 0, 0), 1, llvm_tmp_name(ctx));
+            LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r,
+            LLVMConstInt(ctx->type_i32, 0, 0), 1, llvm_tmp_name(ctx));
+        r = LLVMBuildInsertValue(ctx->builder, r, val, 2, llvm_tmp_name(ctx));
         return r;
     }
 
     /* Built-in: IsOk(result) → extract ok field */
     if (strcmp(callee_name, "IsOk") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
+        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
     }
 
     /* Built-in: IsErr(result) → !ok */
     if (strcmp(callee_name, "IsErr") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        LLVMValueRef ok = LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
-        return LLVMBuildNot(ctx->builder, ok, llvm_tmp_name(ctx));
+        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
     }
 
     /* Built-in: Unwrap(result) → extract value field */
     if (strcmp(callee_name, "Unwrap") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        return LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
     }
 
     /* Built-in: UnwrapOr(result, default) → ok ? value : default */
     if (strcmp(callee_name, "UnwrapOr") == 0 && node->data.call.arg_count == 2) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
         LLVMValueRef def = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        LLVMValueRef ok = LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
-        LLVMValueRef val = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
+        LLVMValueRef ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+        LLVMValueRef val = LLVMBuildExtractValue(ctx->builder, r, 1, llvm_tmp_name(ctx));
         return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
     }
 
@@ -1760,24 +1927,16 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
     if (obj_node == NULL || field_name == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
-    if (obj_node->type != AST_IDENTIFIER)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-
-    const char *var_name = obj_node->data.identifier.name;
     if (llvm_is_upper_ident(obj_node)) {
         LLVMEnumVariantEntry *variant =
-            llvm_lookup_enum_variant_qualified(ctx, var_name, field_name);
+            llvm_lookup_enum_variant_qualified(ctx,
+                obj_node->data.identifier.name, field_name);
         if (variant != NULL)
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
     }
 
-    LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
-    if (var == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-
-    /* Find class type for this variable */
-    const char *class_name = llvm_lookup_var_class(ctx, var_name);
+    const char *class_name = llvm_expr_custom_type_name(obj_node, ctx);
     if (class_name == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -1789,23 +1948,44 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
     if (field_idx < 0)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
-    /* For 'self', the alloca holds a pointer-to-struct (need to load first).
-       For regular vars, the alloca IS the struct. */
-    LLVMValueRef base_ptr = var->alloca;
-    if (var->type == LLVMPointerType(cls->struct_type, 0)) {
-        /* self case: load the struct pointer from the alloca */
-        base_ptr = LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
-                                   llvm_tmp_name(ctx));
+    if (obj_node->type == AST_IDENTIFIER) {
+        const char *var_name = obj_node->data.identifier.name;
+        LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
+        if (var != NULL) {
+            LLVMValueRef base_ptr = var->alloca;
+            if (var->type == LLVMPointerType(cls->struct_type, 0)) {
+                base_ptr = LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
+                    llvm_tmp_name(ctx));
+            }
+
+            LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
+                cls->struct_type, base_ptr, (unsigned)field_idx,
+                llvm_tmp_name(ctx));
+            LLVMTypeRef field_type = cls->fields[field_idx].field_type;
+            return LLVMBuildLoad2(ctx->builder, field_type, gep,
+                llvm_tmp_name(ctx));
+        }
     }
 
-    /* GEP to get field pointer, then load */
-    LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
-        cls->struct_type, base_ptr, (unsigned)field_idx,
-        llvm_tmp_name(ctx));
+    LLVMValueRef obj_val = llvm_emit_expression(obj_node, ctx);
+    if (obj_val == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
 
-    LLVMTypeRef field_type = cls->fields[field_idx].field_type;
-    return LLVMBuildLoad2(ctx->builder, field_type, gep,
-                           llvm_tmp_name(ctx));
+    if (LLVMTypeOf(obj_val) == LLVMPointerType(cls->struct_type, 0)) {
+        LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
+            cls->struct_type, obj_val, (unsigned)field_idx,
+            llvm_tmp_name(ctx));
+        LLVMTypeRef field_type = cls->fields[field_idx].field_type;
+        return LLVMBuildLoad2(ctx->builder, field_type, gep,
+            llvm_tmp_name(ctx));
+    }
+
+    if (LLVMTypeOf(obj_val) == cls->struct_type) {
+        return LLVMBuildExtractValue(ctx->builder, obj_val,
+            (unsigned)field_idx, llvm_tmp_name(ctx));
+    }
+
+    return LLVMConstInt(ctx->type_i32, 0, 0);
 }
 
 LLVMValueRef

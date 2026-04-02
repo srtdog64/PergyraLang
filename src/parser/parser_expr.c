@@ -1,5 +1,9 @@
 #include "parser_internal.h"
 
+/* Forward declarations */
+ASTNode* parse_pipe(Parser* parser);
+ASTNode* parse_logical_or(Parser* parser);
+
 static void
 free_lookahead_token(Token *token, bool owned)
 {
@@ -53,7 +57,7 @@ ASTNode* parser_parse_expression(Parser* parser) {
 
 // 할당 표현식
 ASTNode* parser_parse_assignment(Parser* parser) {
-    ASTNode* expr = parse_logical_or(parser);
+    ASTNode* expr = parse_pipe(parser);
 
     if (parser_match(parser, TOKEN_ASSIGN)) {
         ASTNode* value = parser_parse_assignment(parser);
@@ -70,6 +74,42 @@ ASTNode* parser_parse_assignment(Parser* parser) {
     if (parser_match(parser, TOKEN_UNSUBSCRIBE)) {
         ASTNode* handler = parser_parse_assignment(parser);
         return ast_create_event_unsubscribe(expr, handler);
+    }
+
+    return expr;
+}
+
+// 파이프 연산자 |> (left-to-right data flow)
+ASTNode* parse_pipe(Parser* parser) {
+    ASTNode* expr = parse_logical_or(parser);
+
+    while (parser_match(parser, TOKEN_PIPE_ARROW)) {
+        Token op = parser->previous_token;
+        ASTNode* right = parse_logical_or(parser);
+        /* a |> f → f(a).  If right is a call f(b), transform to f(a, b). */
+        if (right->type == AST_CALL) {
+            /* Insert expr as first argument */
+            size_t old_count = right->data.call.arg_count;
+            ASTNode **new_args = realloc(right->data.call.arguments,
+                (old_count + 1) * sizeof(ASTNode *));
+            if (new_args != NULL) {
+                memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
+                new_args[0] = expr;
+                right->data.call.arguments = new_args;
+                right->data.call.arg_count = old_count + 1;
+            }
+            expr = right;
+        } else if (right->type == AST_IDENTIFIER) {
+            /* a |> f → f(a) */
+            ASTNode *call = ast_create_call(right);
+            call->data.call.arguments = calloc(1, sizeof(ASTNode *));
+            call->data.call.arguments[0] = expr;
+            call->data.call.arg_count = 1;
+            expr = call;
+        } else {
+            /* Fallback: treat as binary op */
+            expr = ast_create_binary(expr, op, right);
+        }
     }
 
     return expr;
@@ -192,6 +232,16 @@ ASTNode* parser_parse_call(Parser* parser) {
             ASTNode* index = parser_parse_expression(parser);
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after array index");
             expr = ast_create_array_access(expr, index);
+        } else if (parser_match(parser, TOKEN_QUESTION)) {
+            /* Postfix ? — try/propagate: expr? → early return on error */
+            ASTNode *try_node = calloc(1, sizeof(ASTNode));
+            if (try_node != NULL) {
+                try_node->type = AST_UNARY;
+                try_node->line = parser->previous_token.line;
+                try_node->data.unary.op = parser->previous_token;
+                try_node->data.unary.operand = expr;
+            }
+            expr = try_node;
         } else {
             break;
         }
@@ -281,7 +331,85 @@ ASTNode* parser_parse_primary(Parser* parser) {
 
     // 문자열
     if (parser_match(parser, TOKEN_STRING)) {
-        return ast_create_string(parser->previous_token.text);
+        const char *raw = parser->previous_token.text;
+        /* Check for string interpolation: "...${expr}..." */
+        if (raw != NULL && strstr(raw, "${") != NULL) {
+            /* Parse interpolated string:
+             * "hello ${x} world" → StringConcat(StringConcat("hello ", ToString(x)), " world")
+             * We scan the string content (skip leading/trailing quotes) */
+            size_t len = strlen(raw);
+            const char *s = raw + 1;              /* skip opening " */
+            const char *end = raw + len - 1;      /* before closing " */
+            ASTNode *result = NULL;
+
+            while (s < end) {
+                const char *interp = strstr(s, "${");
+                if (interp == NULL || interp >= end) {
+                    /* Remaining literal part */
+                    if (s < end) {
+                        size_t part_len = end - s;
+                        char *part = malloc(part_len + 3);
+                        part[0] = '"';
+                        memcpy(part + 1, s, part_len);
+                        part[part_len + 1] = '"';
+                        part[part_len + 2] = '\0';
+                        ASTNode *str_node = ast_create_string(part);
+                        free(part);
+                        if (result == NULL) result = str_node;
+                        else {
+                            Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+                            result = ast_create_binary(result, plus_tok, str_node);
+                        }
+                    }
+                    break;
+                }
+
+                /* Literal part before ${ */
+                if (interp > s) {
+                    size_t part_len = interp - s;
+                    char *part = malloc(part_len + 3);
+                    part[0] = '"';
+                    memcpy(part + 1, s, part_len);
+                    part[part_len + 1] = '"';
+                    part[part_len + 2] = '\0';
+                    ASTNode *str_node = ast_create_string(part);
+                    free(part);
+                    if (result == NULL) result = str_node;
+                    else {
+                        Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+                        result = ast_create_binary(result, plus_tok, str_node);
+                    }
+                }
+
+                /* Extract expression between ${ and } */
+                const char *expr_start = interp + 2;
+                const char *expr_end = strchr(expr_start, '}');
+                if (expr_end == NULL || expr_end >= end) break;
+
+                size_t expr_len = expr_end - expr_start;
+                char *expr_str = malloc(expr_len + 1);
+                memcpy(expr_str, expr_start, expr_len);
+                expr_str[expr_len] = '\0';
+
+                /* Create identifier node for the interpolated variable.
+                 * No ToString() wrapper — the + operator handles
+                 * String concatenation, and non-string types will
+                 * need explicit ToString() in the interpolated code. */
+                ASTNode *inner_expr = ast_create_identifier(expr_str);
+                free(expr_str);
+
+                if (result == NULL) result = inner_expr;
+                else {
+                    Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+                    result = ast_create_binary(result, plus_tok, inner_expr);
+                }
+
+                s = expr_end + 1;
+            }
+
+            return result != NULL ? result : ast_create_string(raw);
+        }
+        return ast_create_string(raw);
     }
 
     // 식별자 또는 슬롯 연산

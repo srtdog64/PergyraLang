@@ -136,6 +136,8 @@ typedef enum
     TOKEN_NOT,          /* ! */
     TOKEN_ARROW,        /* -> */
     TOKEN_CHANNEL_OP,   /* <- */
+    TOKEN_QUESTION,     /* ? (try/propagate) */
+    TOKEN_PIPE_ARROW,   /* |> (pipe) */
     TOKEN_DOT,          /* . */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */

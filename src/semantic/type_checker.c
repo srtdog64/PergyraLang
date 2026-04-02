@@ -793,7 +793,7 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "Future") == 0) constructor = TYPE_FUTURE;
         else if (strcmp(name, "RemoteFuture") == 0) constructor = TYPE_REMOTE_FUTURE;
         else if (strcmp(name, "DeviceSlot") == 0) constructor = TYPE_DEVICE_SLOT;
-        else if (strcmp(name, "Result") == 0) constructor = TYPE_UNKNOWN;
+        else if (strcmp(name, "Result") == 0) constructor = TYPE_RESULT;
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
     }
@@ -1228,6 +1228,18 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
         return operand;
     }
 
+    /* Postfix ?: try/propagate — unwrap Result<T> to T, propagate error */
+    if (op == TOKEN_QUESTION) {
+        if (!type_is_constructed_named(operand, "Result")) {
+            semantic_error(ctx, expr,
+                "'?' operator requires Result<T>, got '%s'",
+                operand->name);
+            return TYPE_UNKNOWN;
+        }
+        /* Return the inner T of Result<T> */
+        return type_get_constructed_arg(operand, 0);
+    }
+
     return operand;
 }
 
@@ -1248,10 +1260,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (strcmp(name, "Channel") == 0)
             return TYPE_UNKNOWN;  /* type inferred from let annotation */
 
-        /* Result built-in functions */
-        if (strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0
-            || strcmp(name, "IsOk") == 0 || strcmp(name, "IsErr") == 0
-            || strcmp(name, "Unwrap") == 0 || strcmp(name, "UnwrapOr") == 0)
+        /* Result built-in functions — Ok/Err still return TYPE_UNKNOWN
+         * (type from let annotation); others go to stdlib_call */
+        if (strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
             return TYPE_UNKNOWN;
 
         /* Standard library built-in functions */
@@ -2592,14 +2603,32 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
             Symbol *enum_sym = scope_lookup_current(ctx->scope, ename);
+            Type *etype = enum_sym != NULL ? enum_sym->type : TYPE_UNKNOWN;
             for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
                 const char *vname = stmt->data.enum_decl.variants[j];
                 if (vname == NULL || scope_lookup_current(ctx->scope, vname) != NULL)
                     continue;
-                Symbol *vs = symbol_create_variable(vname,
-                    enum_sym != NULL ? enum_sym->type : TYPE_UNKNOWN,
-                    stmt->line, stmt->column);
-                scope_declare(ctx->scope, vs);
+                size_t vpc = (stmt->data.enum_decl.variant_param_counts != NULL)
+                    ? stmt->data.enum_decl.variant_param_counts[j] : 0;
+                if (vpc > 0) {
+                    /* Tagged union variant constructor: register as function
+                     * Circle(Int) → func Circle(Int) -> Shape */
+                    Type **ptypes = calloc(vpc, sizeof(Type *));
+                    for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
+                        ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
+                        ptypes[p] = resolve_type_node(pt, ctx);
+                    }
+                    Type *ft = type_create_function(ptypes, vpc, etype);
+                    free(ptypes);
+                    Symbol *vs = symbol_create_function(vname, ft,
+                        stmt->line, stmt->column);
+                    scope_declare(ctx->scope, vs);
+                } else {
+                    /* Simple variant: register as variable */
+                    Symbol *vs = symbol_create_variable(vname, etype,
+                        stmt->line, stmt->column);
+                    scope_declare(ctx->scope, vs);
+                }
             }
         } else if (stmt->type == AST_EXTERN_BLOCK) {
             for (size_t j = 0; j < stmt->data.extern_block.count; j++) {

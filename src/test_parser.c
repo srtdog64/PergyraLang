@@ -453,6 +453,49 @@ main(void)
             "    }\n"
             "}",
             1
+        },
+        {
+            "Unsafe Block",
+            "func Main() -> Void {\n"
+            "    unsafe {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Defer Statement",
+            "func Main() -> Void {\n"
+            "    defer {\n"
+            "        Log(1);\n"
+            "    };\n"
+            "}",
+            1
+        },
+        {
+            "Bind Statement",
+            "func Main() -> Void {\n"
+            "    bind team.fighter = Warrior;\n"
+            "}",
+            1
+        },
+        {
+            "Else If Chain",
+            "func Main() -> Void {\n"
+            "    if true {\n"
+            "        Log(1);\n"
+            "    } else if false {\n"
+            "        Log(2);\n"
+            "    } else {\n"
+            "        Log(3);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Type Alias Declaration (currently unsupported)",
+            "type UserId = Int;",
+            0
         }
     };
 

@@ -35,6 +35,7 @@
 #define MAX_SCOPE_VARS      256
 #define MAX_CLASS_FIELDS    64
 #define MAX_EVENT_PARAMS    8
+#define MAX_DEFER_PER_SCOPE 64
 #define PGY_EVENT_MAX_HANDLERS 16
 #define MAX_TYPE_SUBST      8
 
@@ -365,7 +366,12 @@ typedef struct LLVMGenCtx
     /* Loop tracking — fixed depth (bounded by scope depth) */
     LLVMBasicBlockRef loop_continue_blocks[MAX_SCOPE_DEPTH];
     LLVMBasicBlockRef loop_break_blocks[MAX_SCOPE_DEPTH];
+    int              loop_defer_base_depth[MAX_SCOPE_DEPTH];
     int              loop_depth;
+
+    ASTNode         *defer_bodies[MAX_SCOPE_DEPTH][MAX_DEFER_PER_SCOPE];
+    int              defer_body_counts[MAX_SCOPE_DEPTH];
+    int              defer_scope_depth;
 
     int             lambda_counter;
     int             tmp_counter;

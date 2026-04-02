@@ -3130,6 +3130,98 @@ test_effect_inference(void)
     }
 }
 
+static void
+test_misc_grammar_edges(void)
+{
+    printf("\n[misc_grammar]\n");
+
+    TEST("unsafe block type-checks its body");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *body = ast_create_block();
+        ASTNode *args[1] = { make_number(1, 1) };
+        ast_add_statement(body, make_call("Log", args, 1, 1));
+        ASTNode *unsafe_block = ast_create_unsafe_block(body);
+        unsafe_block->line = 1; unsafe_block->column = 1;
+
+        type_check_statement(unsafe_block, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(unsafe_block);
+    }
+
+    TEST("defer statement type-checks its body");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *body = ast_create_block();
+        ASTNode *args[1] = { make_number(1, 1) };
+        ast_add_statement(body, make_call("Log", args, 1, 1));
+        ASTNode *defer_stmt = ast_create_defer_statement(body);
+        defer_stmt->line = 1; defer_stmt->column = 1;
+
+        type_check_statement(defer_stmt, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(defer_stmt);
+    }
+
+    TEST("bind statement is accepted by semantic pass");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *bind = ast_create_bind_statement("team", "fighter", "Warrior");
+        bind->line = 1; bind->column = 1;
+
+        type_check_statement(bind, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(bind);
+    }
+
+    TEST("else if chain type-checks nested branch structure");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *then_block = ast_create_block();
+        ASTNode *then_args[1] = { make_number(1, 1) };
+        ast_add_statement(then_block, make_call("Log", then_args, 1, 1));
+
+        ASTNode *else_then = ast_create_block();
+        ASTNode *else_then_args[1] = { make_number(2, 1) };
+        ast_add_statement(else_then, make_call("Log", else_then_args, 1, 1));
+
+        ASTNode *else_final = ast_create_block();
+        ASTNode *else_final_args[1] = { make_number(3, 1) };
+        ast_add_statement(else_final, make_call("Log", else_final_args, 1, 1));
+
+        ASTNode *nested_if = ast_create_if_statement();
+        nested_if->data.if_stmt.condition = ast_create_boolean(false);
+        nested_if->data.if_stmt.then_branch = else_then;
+        nested_if->data.if_stmt.else_branch = else_final;
+
+        ASTNode *outer_if = ast_create_if_statement();
+        outer_if->data.if_stmt.condition = ast_create_boolean(true);
+        outer_if->data.if_stmt.then_branch = then_block;
+        outer_if->data.if_stmt.else_branch = nested_if;
+        outer_if->line = 1; outer_if->column = 1;
+
+        type_check_statement(outer_if, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(outer_if);
+    }
+}
+
 /* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
@@ -3160,6 +3252,7 @@ main(void)
     test_shared_memory_features();
     test_async_system();
     test_effect_inference();
+    test_misc_grammar_edges();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

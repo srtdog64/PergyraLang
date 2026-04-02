@@ -1,8 +1,10 @@
 # Pergyra Programming Language
 
-> 모든 자원을 하나의 규율로 — Slot 기반 자원 통합 언어
+> 서로 다른 자원을 같은 사고 체계로 다루기 위한 의미 통일 언어
 
 ## 사명
+
+Pergyra는 자원의 세부 구현을 직접 드러내기보다, 서로 다른 자원들을 같은 사고 체계로 다룰 수 있게 만드는 **의미 통일 언어**입니다.
 
 PergyraLang은 모든 자원을 **Slot**이라는 공통 모델로 취급한다.
 
@@ -23,7 +25,7 @@ Slot은 저장 공간이 아니라, **점유·권한·수명·보호 규칙이 �
 
 ## 개요
 
-Pergyra는 포인터 대신 **Slot 기반 자원 관리**를 채택한 시스템 프로그래밍 언어입니다.
+Pergyra는 포인터나 도메인별 핸들 API를 언어의 중심에 두기보다, **Slot**과 **병렬 오케스트레이션**으로 이종 자원의 수명과 흐름을 통일하려는 언어입니다.
 LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 않은 경우 C 백엔드로 폴백합니다.
 
 ```
@@ -69,11 +71,8 @@ make all
 
 ```pergyra
 func Main() -> Void {
-    // 슬롯 기반 메모리 관리
-    let msg: Slot<String> = ClaimSlot<String>();
-    Write(msg, "Hello, Pergyra!");
-    Log(Read(msg));
-    Release(msg);
+    let msg: Slot<String> = "Hello, Pergyra!";
+    Log(msg);
 }
 ```
 
@@ -91,9 +90,11 @@ parallel {
 }
 
 // 보안 슬롯
-let (slot, token) = ClaimSecureSlot<Int>();
-Write(slot, 42, token);   // 토큰 필요
-Release(slot, token);
+let ss: SecureSlot<Int> = ClaimSecureSlot();
+let rv: ReadView<Int> = ViewRead(ss);
+let wv: WriteView<Int> = ViewWrite(ss);
+Write(wv, 42);
+Log(Read(rv));
 ```
 
 ## 프로젝트 구조
@@ -161,7 +162,7 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 ## TODO
 
 - [ ] 어셈블리 최적화 런타임 (x86-64 슬롯 연산)
-- [ ] 비동기 런타임 (Fiber, M:N 스케줄러, Channel)
+- [ ] 오케스트레이션 모델 강화 (`select` 공정성, timeout, cancellation, backpressure)
 - [ ] Effect System (I/O, Timer 등 부작용 타입화)
 - [ ] LLVM 백엔드 안정화 및 최적화
 - [ ] JVM 연동 (JNI 브릿지)

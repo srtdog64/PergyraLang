@@ -34,6 +34,7 @@ Type *TYPE_FUTURE = NULL;
 Type *TYPE_REMOTE_FUTURE = NULL;
 Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
+Type *TYPE_RESULT = NULL;
 
 void
 type_system_init(void)
@@ -60,6 +61,7 @@ type_system_init(void)
     TYPE_REMOTE_FUTURE = type_create_primitive("RemoteFuture", 0, false);
     TYPE_DEVICE_SLOT = type_create_primitive("DeviceSlot", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
+    TYPE_RESULT = type_create_primitive("Result", 0, false);
 }
 
 void
@@ -84,12 +86,13 @@ type_system_cleanup(void)
     free(TYPE_REMOTE_FUTURE->name); free(TYPE_REMOTE_FUTURE);
     free(TYPE_DEVICE_SLOT->name); free(TYPE_DEVICE_SLOT);
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
+    free(TYPE_RESULT->name); free(TYPE_RESULT);
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
     TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
     TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
-    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = NULL;
+    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = NULL;
 }
 
 /* -----------------------------------------------------------------

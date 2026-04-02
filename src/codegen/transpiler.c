@@ -301,6 +301,60 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
     return NULL;
 }
 
+static ASTNode *
+find_party_decl(TranspilerCtx *ctx, const char *party_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || party_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->party_count; i++) {
+        ASTNode *stmt = ctx->hir->parties[i];
+        if (stmt != NULL && stmt->type == AST_PARTY_DECL
+            && stmt->data.party_decl.name != NULL
+            && strcmp(stmt->data.party_decl.name, party_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_ability_decl(TranspilerCtx *ctx, const char *ability_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || ability_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->ability_count; i++) {
+        ASTNode *stmt = ctx->hir->abilities[i];
+        if (stmt != NULL && stmt->type == AST_ABILITY_DECL
+            && stmt->data.ability_decl.name != NULL
+            && strcmp(stmt->data.ability_decl.name, ability_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_event_decl(TranspilerCtx *ctx, const char *event_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || event_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->event_count; i++) {
+        ASTNode *stmt = ctx->hir->events[i];
+        if (stmt != NULL && stmt->type == AST_EVENT_DECL
+            && stmt->data.event_decl.name != NULL
+            && strcmp(stmt->data.event_decl.name, event_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 func_has_generic_params(ASTNode *node)
 {
@@ -1699,6 +1753,21 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 char *
 emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
+    /* Postfix ? — try/propagate: expr? → early return on error */
+    if (expr->data.unary.op.type == TOKEN_QUESTION) {
+        char *operand = emit_expression(expr->data.unary.operand, ctx);
+        int try_id = ctx->tmp_counter++;
+        char *result = strdup_fmt(
+            "({ __typeof__(%s) __try_%d = %s; "
+            "if (__try_%d.tag != PgyResultOk) return __try_%d; "
+            "__try_%d.ok; })",
+            operand, try_id, operand,
+            try_id, try_id,
+            try_id);
+        free(operand);
+        return result;
+    }
+
     char *operand = emit_expression(expr->data.unary.operand, ctx);
     const char *op = (expr->data.unary.op.type == TOKEN_NOT) ? "!" : "-";
     char *result = strdup_fmt("(%s%s)", op, operand);
@@ -1833,6 +1902,34 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     default:
         break;
+    }
+
+    /* Tagged union variant constructors: Circle(42) → Shape_Circle(42) */
+    if (callee->type == AST_IDENTIFIER) {
+        const char *fn = callee->data.identifier.name;
+        const char *qualified = lookup_enum_variant_qualified_name(ctx, fn);
+        if (qualified != NULL) {
+            /* Emit: EnumName_VariantName(args...) */
+            size_t argc = call->data.call.arg_count;
+            char **arg_strs = calloc(argc > 0 ? argc : 1, sizeof(char *));
+            for (size_t i = 0; i < argc; i++)
+                arg_strs[i] = emit_expression(call->data.call.arguments[i], ctx);
+            /* Build argument list string */
+            size_t buf_len = strlen(qualified) + 3;
+            for (size_t i = 0; i < argc; i++)
+                buf_len += strlen(arg_strs[i]) + 2;
+            char *result = malloc(buf_len);
+            strcpy(result, qualified);
+            strcat(result, "(");
+            for (size_t i = 0; i < argc; i++) {
+                if (i > 0) strcat(result, ", ");
+                strcat(result, arg_strs[i]);
+                free(arg_strs[i]);
+            }
+            strcat(result, ")");
+            free(arg_strs);
+            return result;
+        }
     }
 
     /* Result<T> built-in functions: Ok, Err, IsOk, IsErr, Unwrap, UnwrapOr */
@@ -2055,10 +2152,93 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
+    if (callee->type == AST_IDENTIFIER) {
+        const char *name = callee->data.identifier.name;
+        if (find_event_decl(ctx, name) != NULL) {
+            CodeBuf *args_buf = codebuf_create();
+            for (size_t i = 0; i < call->data.call.arg_count; i++) {
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                if (i > 0)
+                    codebuf_write(args_buf, ", ");
+                codebuf_write(args_buf, "%s", arg);
+                free(arg);
+            }
+
+            char *result = strdup_fmt("%s_INVOKE(&%s%s%s)",
+                                      name, name,
+                                      args_buf->len > 0 ? ", " : "",
+                                      args_buf->data);
+            codebuf_destroy(args_buf);
+            return result;
+        }
+    }
+
     /* Method-call style slot operations: slot.Write(val), slot.Read(), slot.Release() */
     if (callee->type == AST_MEMBER_ACCESS) {
         const char *method = callee->data.member.name;
         ASTNode *obj = callee->data.member.object;
+
+        if (obj != NULL && obj->type == AST_MEMBER_ACCESS && method != NULL) {
+            ASTNode *party_node = obj->data.member.object;
+            const char *slot_name = obj->data.member.name;
+
+            if (party_node != NULL && party_node->type == AST_IDENTIFIER
+                && slot_name != NULL) {
+                const char *party_var = party_node->data.identifier.name;
+                const char *party_type = lookup_typed_var(ctx, party_var);
+                ASTNode *party_decl = find_party_decl(ctx, party_type);
+                const char *ability_name = NULL;
+
+                if (party_decl != NULL) {
+                    for (size_t i = 0; i < party_decl->data.party_decl.role_count; i++) {
+                        ASTNode *rs = party_decl->data.party_decl.role_slots[i];
+                        if (rs == NULL || strcmp(rs->data.role_slot.slot_name, slot_name) != 0)
+                            continue;
+                        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
+                            ASTNode *ab = rs->data.role_slot.required_abilities[j];
+                            ASTNode *ability_decl;
+                            bool has_method = false;
+                            if (ab == NULL || ab->data.type.name == NULL)
+                                continue;
+                            ability_decl = find_ability_decl(ctx, ab->data.type.name);
+                            if (ability_decl != NULL) {
+                                for (size_t mi = 0; mi < ability_decl->data.ability_decl.method_count; mi++) {
+                                    ASTNode *m = ability_decl->data.ability_decl.methods[mi];
+                                    if (m != NULL && m->type == AST_FUNC_DECL
+                                        && m->data.func_decl.name != NULL
+                                        && strcmp(m->data.func_decl.name, method) == 0) {
+                                        has_method = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (has_method || ability_name == NULL)
+                                ability_name = ab->data.type.name;
+                            if (has_method)
+                                break;
+                        }
+                        break;
+                    }
+                }
+
+                if (ability_name != NULL) {
+                    CodeBuf *args_buf = codebuf_create();
+                    codebuf_write(args_buf, "%s.%s", party_var, slot_name);
+                    for (size_t i = 0; i < call->data.call.arg_count; i++) {
+                        char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                        codebuf_write(args_buf, ", %s", arg);
+                        free(arg);
+                    }
+
+                    char *result = strdup_fmt("%s.%s_%s_vt->%s(%s)",
+                                              party_var, slot_name, ability_name,
+                                              method, args_buf->data);
+                    codebuf_destroy(args_buf);
+                    return result;
+                }
+            }
+        }
+
         bool is_slot_method = (strcmp(method, "Write") == 0
                             || strcmp(method, "Read") == 0
                             || strcmp(method, "Release") == 0);
@@ -3602,7 +3782,8 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 }
 
-/* Check if a match-case pattern is a destructor like Ok(x) or Err(x) */
+/* Check if a match-case pattern is a destructor like Ok(x), Err(x),
+ * or a tagged union variant like Circle(r), Rect(w, h) */
 static bool
 is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
 {
@@ -3624,18 +3805,92 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     return true;
 }
 
+/* Check if pattern is a tagged union variant destructor: Circle(r), Rect(w, h), None */
+static bool
+is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
+                           const char **variant_name_out,
+                           const char **enum_name_out,
+                           const char ***bindings_out,
+                           size_t *binding_count_out)
+{
+    const char *name = NULL;
+    size_t argc = 0;
+
+    if (pat == NULL) return false;
+
+    if (pat->type == AST_CALL
+        && pat->data.call.callee != NULL
+        && pat->data.call.callee->type == AST_IDENTIFIER) {
+        name = pat->data.call.callee->data.identifier.name;
+        argc = pat->data.call.arg_count;
+    } else if (pat->type == AST_IDENTIFIER) {
+        name = pat->data.identifier.name;
+        argc = 0;
+    } else {
+        return false;
+    }
+
+    if (name == NULL) return false;
+
+    /* Look up in HIR enum declarations */
+    if (ctx->hir == NULL) return false;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt == NULL || stmt->type != AST_ENUM_DECL)
+            continue;
+        /* Only tagged unions (at least one variant has data) */
+        bool has_data = false;
+        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
+            if (stmt->data.enum_decl.variant_param_counts != NULL
+                && stmt->data.enum_decl.variant_param_counts[j] > 0) {
+                has_data = true;
+                break;
+            }
+        }
+        if (!has_data) continue;
+
+        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
+            if (strcmp(stmt->data.enum_decl.variants[j], name) == 0) {
+                *variant_name_out = name;
+                *enum_name_out = stmt->data.enum_decl.name;
+                /* Collect bindings */
+                static const char *bindings_buf[8];
+                *binding_count_out = 0;
+                for (size_t k = 0; k < argc && k < 8; k++) {
+                    ASTNode *arg = pat->data.call.arguments[k];
+                    if (arg != NULL && arg->type == AST_IDENTIFIER)
+                        bindings_buf[k] = arg->data.identifier.name;
+                    else
+                        bindings_buf[k] = NULL;
+                    (*binding_count_out)++;
+                }
+                *bindings_out = bindings_buf;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void
 emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     char *subj = emit_expression(node->data.match_stmt.subject, ctx);
     int tmp_id = ctx->tmp_counter++;
 
-    /* Detect if any case uses Ok()/Err() destructuring */
+    /* Detect if any case uses Ok()/Err() or tagged union destructuring */
     bool is_result_match = false;
+    bool is_enum_match = false;
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+        ASTNode *pat = node->data.match_stmt.cases[i]->data.match_case.pattern;
         const char *k, *b;
-        if (is_result_destructor(node->data.match_stmt.cases[i]->data.match_case.pattern, &k, &b)) {
+        if (is_result_destructor(pat, &k, &b)) {
             is_result_match = true;
+            break;
+        }
+        const char *vn, *en; const char **bs; size_t bc;
+        if (is_enum_variant_destructor(pat, ctx, &vn, &en, &bs, &bc)) {
+            is_enum_match = true;
             break;
         }
     }
@@ -3644,8 +3899,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
 
-    if (is_result_match) {
-        /* Result match: store subject as-is (struct), check .ok field */
+    if (is_result_match || is_enum_match) {
+        /* Struct match: store subject as-is (tagged union/result) */
         write_indent(ctx);
         codebuf_write(ctx->out, "__typeof__(%s) __match_%d = %s;\n", subj, tmp_id, subj);
     } else {
@@ -3671,12 +3926,28 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "else if (__match_%d.tag == %s",
                     tmp_id, tag_val);
         } else {
-            char *pat = emit_expression(mc->data.match_case.pattern, ctx);
-            if (i == 0)
-                codebuf_write(ctx->out, "if (__match_%d == %s", tmp_id, pat);
-            else
-                codebuf_write(ctx->out, "else if (__match_%d == %s", tmp_id, pat);
-            free(pat);
+            /* Check for tagged union variant pattern */
+            const char *vname = NULL, *ename = NULL;
+            const char **bindings = NULL;
+            size_t bind_count = 0;
+            if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
+                                            &vname, &ename, &bindings, &bind_count)) {
+                if (i == 0)
+                    codebuf_write(ctx->out, "if (__match_%d.tag == %s_TAG_%s",
+                        tmp_id, ename, vname);
+                else
+                    codebuf_write(ctx->out, "else if (__match_%d.tag == %s_TAG_%s",
+                        tmp_id, ename, vname);
+                /* Mark for binding emission below */
+                kind = vname;
+            } else {
+                char *pat = emit_expression(mc->data.match_case.pattern, ctx);
+                if (i == 0)
+                    codebuf_write(ctx->out, "if (__match_%d == %s", tmp_id, pat);
+                else
+                    codebuf_write(ctx->out, "else if (__match_%d == %s", tmp_id, pat);
+                free(pat);
+            }
         }
 
         if (mc->data.match_case.guard != NULL) {
@@ -3696,9 +3967,26 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             if (strcmp(kind, "Ok") == 0)
                 codebuf_write(ctx->out, "int32_t %s = __match_%d.ok;\n",
                     binding, tmp_id);
-            else
+            else if (strcmp(kind, "Err") == 0)
                 codebuf_write(ctx->out, "PgyError %s = __match_%d.err;\n",
                     binding, tmp_id);
+        }
+        /* Emit enum variant bindings: case Circle(r) → int32_t r = __match_N.Circle._0 */
+        if (kind != NULL && strcmp(kind, "Ok") != 0 && strcmp(kind, "Err") != 0) {
+            const char *vn2 = NULL, *en2 = NULL;
+            const char **bs2 = NULL;
+            size_t bc2 = 0;
+            if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
+                                            &vn2, &en2, &bs2, &bc2)) {
+                for (size_t b = 0; b < bc2; b++) {
+                    if (bs2[b] != NULL) {
+                        write_indent(ctx);
+                        codebuf_write(ctx->out,
+                            "int32_t %s = __match_%d.%s._%zu;\n",
+                            bs2[b], tmp_id, vn2, b);
+                    }
+                }
+            }
         }
 
         emit_block(mc->data.match_case.body, ctx);
@@ -3892,17 +4180,112 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "break;\n");
         break;
     case AST_ENUM_DECL: {
-        /* enum Color { Red, Green, Blue } → typedef enum { Color_Red=0, ... } Color; */
         const char *ename = node->data.enum_decl.name;
-        codebuf_write(ctx->out, "typedef enum {\n");
+
+        /* Check if any variant has data → tagged union */
+        bool has_data = false;
         for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
-            codebuf_write(ctx->out, "    %s_%s = %zu",
-                ename, node->data.enum_decl.variants[i], i);
-            if (i + 1 < node->data.enum_decl.variant_count)
-                codebuf_write(ctx->out, ",");
+            if (node->data.enum_decl.variant_param_counts != NULL
+                && node->data.enum_decl.variant_param_counts[i] > 0) {
+                has_data = true;
+                break;
+            }
+        }
+
+        if (!has_data) {
+            /* Simple enum: typedef enum { Color_Red=0, ... } Color; */
+            codebuf_write(ctx->out, "typedef enum {\n");
+            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                codebuf_write(ctx->out, "    %s_%s = %zu",
+                    ename, node->data.enum_decl.variants[i], i);
+                if (i + 1 < node->data.enum_decl.variant_count)
+                    codebuf_write(ctx->out, ",");
+                codebuf_write(ctx->out, "\n");
+            }
+            codebuf_write(ctx->out, "} %s;\n\n", ename);
+        } else {
+            /* Tagged union:
+             * typedef enum { Shape_TAG_Circle, Shape_TAG_Rect, Shape_TAG_None } Shape_Tag;
+             * typedef struct {
+             *     Shape_Tag tag;
+             *     union {
+             *         struct { int32_t _0; } Circle;
+             *         struct { int32_t _0; int32_t _1; } Rect;
+             *     };
+             * } Shape; */
+
+            /* Tag enum */
+            codebuf_write(ctx->out, "typedef enum {\n");
+            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                codebuf_write(ctx->out, "    %s_TAG_%s = %zu",
+                    ename, node->data.enum_decl.variants[i], i);
+                if (i + 1 < node->data.enum_decl.variant_count)
+                    codebuf_write(ctx->out, ",");
+                codebuf_write(ctx->out, "\n");
+            }
+            codebuf_write(ctx->out, "} %s_Tag;\n\n", ename);
+
+            /* Tagged union struct */
+            codebuf_write(ctx->out, "typedef struct {\n");
+            codebuf_write(ctx->out, "    %s_Tag tag;\n", ename);
+            codebuf_write(ctx->out, "    union {\n");
+            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                size_t pc = (node->data.enum_decl.variant_param_counts != NULL)
+                    ? node->data.enum_decl.variant_param_counts[i] : 0;
+                if (pc == 0) continue;
+                codebuf_write(ctx->out, "        struct { ");
+                for (size_t p = 0; p < pc; p++) {
+                    ASTNode *pt = node->data.enum_decl.variant_params[i][p];
+                    const char *ctype = "int32_t";
+                    if (pt != NULL && pt->type == AST_TYPE
+                        && pt->data.type.name != NULL) {
+                        ctype = pergyra_ast_type_to_c(pt);
+                    }
+                    codebuf_write(ctx->out, "%s _%zu; ", ctype, p);
+                }
+                codebuf_write(ctx->out, "} %s;\n",
+                    node->data.enum_decl.variants[i]);
+            }
+            codebuf_write(ctx->out, "    };\n");
+            codebuf_write(ctx->out, "} %s;\n\n", ename);
+
+            /* Constructor functions:
+             * static inline Shape Shape_Circle(int32_t _0) {
+             *     Shape v; v.tag = Shape_TAG_Circle; v.Circle._0 = _0; return v;
+             * } */
+            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                size_t pc = (node->data.enum_decl.variant_param_counts != NULL)
+                    ? node->data.enum_decl.variant_param_counts[i] : 0;
+                const char *vname = node->data.enum_decl.variants[i];
+                if (pc == 0) {
+                    /* No-data variant: macro constant */
+                    codebuf_write(ctx->out,
+                        "#define %s_%s() ((%s){ .tag = %s_TAG_%s })\n",
+                        ename, vname, ename, ename, vname);
+                } else {
+                    /* Data variant: constructor function */
+                    codebuf_write(ctx->out,
+                        "static inline %s %s_%s(", ename, ename, vname);
+                    for (size_t p = 0; p < pc; p++) {
+                        ASTNode *pt = node->data.enum_decl.variant_params[i][p];
+                        const char *ctype = "int32_t";
+                        if (pt != NULL && pt->type == AST_TYPE
+                            && pt->data.type.name != NULL)
+                            ctype = pergyra_ast_type_to_c(pt);
+                        if (p > 0) codebuf_write(ctx->out, ", ");
+                        codebuf_write(ctx->out, "%s _%zu", ctype, p);
+                    }
+                    codebuf_write(ctx->out, ") {\n");
+                    codebuf_write(ctx->out,
+                        "    %s _v; _v.tag = %s_TAG_%s;\n", ename, ename, vname);
+                    for (size_t p = 0; p < pc; p++)
+                        codebuf_write(ctx->out,
+                            "    _v.%s._%zu = _%zu;\n", vname, p, p);
+                    codebuf_write(ctx->out, "    return _v;\n}\n");
+                }
+            }
             codebuf_write(ctx->out, "\n");
         }
-        codebuf_write(ctx->out, "} %s;\n\n", ename);
         break;
     }
     case AST_CONTINUE:
@@ -4010,7 +4393,10 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         "#include <stdlib.h>\n"
         "#include \"pgy_runtime.h\"\n"
         "#include \"pgy_parallel.h\"\n"
-        "#include \"pgy_channel.h\"\n\n");
+        "#include \"pgy_channel.h\"\n"
+        "#ifndef PGY_EVENT_MAX_HANDLERS\n"
+        "#define PGY_EVENT_MAX_HANDLERS 16\n"
+        "#endif\n\n");
 
     /*
      * Multi-pass strategy for valid C output:
@@ -4832,6 +5218,7 @@ void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.event_decl.name;
+    char *event_type = strdup_fmt("%s_Event", name);
     
     /* Generate event handler type typedef */
     codebuf_write(ctx->out, "\n/* Event: %s */\n", name);
@@ -4858,22 +5245,23 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "    size_t count;\n");
     codebuf_write(ctx->out, "    bool is_invoking;\n");
     codebuf_write(ctx->out, "    bool pending_changes;\n");
-    codebuf_write(ctx->out, "} %s;\n", name);
+    codebuf_write(ctx->out, "} %s;\n", event_type);
+    codebuf_write(ctx->out, "static %s %s;\n", event_type, name);
     
     /* Generate inline init function */
-    codebuf_write(ctx->out, "static inline void %s_INIT(%s* e) {\n", name, name);
+    codebuf_write(ctx->out, "static inline void %s_INIT(%s* e) {\n", name, event_type);
     codebuf_write(ctx->out, "    memset(e, 0, sizeof(*e));\n");
     codebuf_write(ctx->out, "}\n");
     
     /* Generate subscribe function */
-    codebuf_write(ctx->out, "static inline void %s_SUBSCRIBE(%s* e, %s_Handler h) {\n", name, name, name);
+    codebuf_write(ctx->out, "static inline void %s_SUBSCRIBE(%s* e, %s_Handler h) {\n", name, event_type, name);
     codebuf_write(ctx->out, "    if (e->count < PGY_EVENT_MAX_HANDLERS) {\n");
     codebuf_write(ctx->out, "        e->handlers[e->count++] = h;\n");
     codebuf_write(ctx->out, "    }\n");
     codebuf_write(ctx->out, "}\n");
     
     /* Generate unsubscribe function */
-    codebuf_write(ctx->out, "static inline void %s_UNSUBSCRIBE(%s* e, %s_Handler h) {\n", name, name, name);
+    codebuf_write(ctx->out, "static inline void %s_UNSUBSCRIBE(%s* e, %s_Handler h) {\n", name, event_type, name);
     codebuf_write(ctx->out, "    for (size_t i = 0; i < e->count; i++) {\n");
     codebuf_write(ctx->out, "        if (e->handlers[i] == h) {\n");
     codebuf_write(ctx->out, "            for (size_t j = i; j < e->count - 1; j++) {\n");
@@ -4886,7 +5274,7 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
     
     /* Generate invoke function */
-    codebuf_write(ctx->out, "static inline void %s_INVOKE(%s* e", name, name);
+    codebuf_write(ctx->out, "static inline void %s_INVOKE(%s* e", name, event_type);
     for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
         ASTNode *param = node->data.event_decl.params[i];
         const char *pt = "void*";
@@ -4907,6 +5295,7 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "    }\n");
     codebuf_write(ctx->out, "    e->is_invoking = false;\n");
     codebuf_write(ctx->out, "}\n");
+    free(event_type);
 }
 
 void

@@ -628,6 +628,38 @@ test_statement_emit(void)
         EXPECT_STR_CONTAINS(out, "pgy_write_Int(&slot, 42)");
         transpiler_ctx_destroy(ctx);
     }
+
+    TEST("unsafe block emits body directly");
+    {
+        ASTNode *body = ast_create_block();
+        ASTNode *args[1] = { make_number(1, 1) };
+        ast_add_statement(body, make_call("Log", args, 1, 1));
+        ASTNode *unsafe_block = ast_create_unsafe_block(body);
+        const char *out = emit_stmt_to_str(unsafe_block, &ctx);
+        EXPECT_STR_CONTAINS(out, "/* unsafe */");
+        EXPECT_STR_CONTAINS(out, "pgy_log");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("defer statement emits cleanup sentinel");
+    {
+        ASTNode *body = ast_create_block();
+        ASTNode *args[1] = { make_number(1, 1) };
+        ast_add_statement(body, make_call("Log", args, 1, 1));
+        ASTNode *defer_stmt = ast_create_defer_statement(body);
+        const char *out = emit_stmt_to_str(defer_stmt, &ctx);
+        EXPECT_STR_CONTAINS(out, "__attribute__((cleanup(_pgy_defer_");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "static void _pgy_defer_");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("bind statement emits party-role rebinding call");
+    {
+        ASTNode *bind = ast_create_bind_statement("team", "fighter", "Warrior");
+        const char *out = emit_stmt_to_str(bind, &ctx);
+        EXPECT_STR_CONTAINS(out, "UnknownParty_bind_fighter(&team, NULL, &Warrior_fighter_vtable_instance)");
+        transpiler_ctx_destroy(ctx);
+    }
 }
 
 /* -----------------------------------------------------------------

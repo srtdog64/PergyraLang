@@ -175,6 +175,7 @@ extern Type* TYPE_FUTURE;
 extern Type* TYPE_REMOTE_FUTURE;
 extern Type* TYPE_DEVICE_SLOT;
 extern Type* TYPE_ALLOCATOR;
+extern Type* TYPE_RESULT;
 
 void type_system_init(void);
 void type_system_cleanup(void);
