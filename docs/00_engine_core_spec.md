@@ -3,6 +3,12 @@
 이 문서는 Pergyra를 "게임 엔진을 만들기 위한 언어"로 밀어가기 위한 최소 코어 스펙이다.
 목표는 문법 실험을 늘리는 것이 아니라, 엔진 코어를 실제로 구현할 수 있는 작고 단단한 언어 축을 고정하는 데 있다.
 
+현재 구현과의 관계:
+
+- 이 문서는 roadmap 성격의 설계 문서다
+- 현재 구현 기준의 상태 평가는 `docs/17_development_status.md`, `docs/18_language_status.md`를 우선한다
+- 아래 예시 중 일부는 아직 미래 표면이다. 특히 `Result<T, E>`, `Option<T>`, `parallel for`는 현재 stable surface로 간주하지 않는다
+
 ## 1. 목표
 
 Pergyra Engine Core는 다음 요구를 만족해야 한다.
@@ -262,18 +268,24 @@ import Core.Math.{Vec3, Mat4};
 
 코어 정책:
 
-- 복구 가능한 오류: `Result<T, E>`
-- 선택 값: `Option<T>`
+- 복구 가능한 오류: 장기적으로 `Result<T, E>`를 목표로 함
+- 선택 값: 장기적으로 `Option<T>`를 목표로 함
 - 복구 불가능한 오류: `Panic`
 - 정리 보장: `defer`
+
+현재 구현 기준:
+
+- 안정된 표면은 우선 `Result<T>` + `?`
+- `RemoteFuture<T>`는 `await` 시 `Result<T>`로 변환됨
+- `Option<T>`와 `Result<T, E>` full surface는 아직 설계 목표에 가까움
 
 기준 문법:
 
 ```pergyra
-func LoadTexture(path: String) -> Result<Texture, AssetError> {
+func LoadTexture(path: String) -> Result<Texture> {
     let bytes = ReadFile(path)?;
     let image = DecodePng(bytes)?;
-    return .Ok(CreateTexture(image));
+    return Ok(CreateTexture(image));
 }
 ```
 
@@ -340,7 +352,7 @@ parallel for i in 0..transforms.Length {
 4. `Allocator`, `Arena`, `Pool<T>` 런타임 설계
 5. `extern "C"` FFI 파서와 타입 규칙
 6. 파일 기반 모듈 해석
-7. `Result<T, E>`와 `?`, `defer` 정리
+7. `Result<T>`를 중심으로 `?`, `defer` 정리 후 장기적으로 `Result<T, E>` 확장 검토
 8. `parallel`과 `parallel for`를 잡 시스템에 연결
 
 ## 14. 성공 기준

@@ -318,6 +318,26 @@ main(void)
             1
         },
         {
+            "Leading Dot Variant Shorthand",
+            "enum OptionInt { Some(Int), None }\n"
+            "func Wrap(n: Int) -> OptionInt {\n"
+            "    if n > 0 {\n"
+            "        return .Some(n);\n"
+            "    }\n"
+            "    return .None;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let value: OptionInt = .Some(7);\n"
+            "    match value {\n"
+            "        case .Some(v):\n"
+            "            Log(v);\n"
+            "        case .None:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
             "Full Example",
             "// Fibonacci function\n"
             "func Fibonacci(n: Int) -> Int {\n"

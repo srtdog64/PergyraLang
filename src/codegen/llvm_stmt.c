@@ -26,6 +26,50 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
     }
 }
 
+static bool
+llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
+{
+    *kind = NULL;
+    *binding = NULL;
+
+    if (pat == NULL)
+        return false;
+
+    if (pat->type == AST_IDENTIFIER) {
+        const char *name = pat->data.identifier.name;
+        if (name != NULL && strcmp(name, "None") == 0) {
+            *kind = "None";
+            return true;
+        }
+        return false;
+    }
+
+    if (pat->type != AST_CALL
+        || pat->data.call.callee == NULL
+        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    const char *name = pat->data.call.callee->data.identifier.name;
+    if (name == NULL)
+        return false;
+
+    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+        *kind = "None";
+        return true;
+    }
+    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+        *kind = "Some";
+        if (pat->data.call.arguments[0] != NULL
+            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 static void
 llvm_defer_scope_push(LLVMGenCtx *ctx)
 {
@@ -830,14 +874,27 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (mc == NULL || mc->type != AST_MATCH_CASE)
             continue;
 
-        LLVMValueRef pattern = llvm_emit_expression(mc->data.match_case.pattern,
-                                                     ctx);
-        if (pattern == NULL)
-            continue;
+        const char *option_kind = NULL;
+        const char *option_binding = NULL;
+        LLVMValueRef cmp = NULL;
 
-        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
-                                          subject, pattern,
-                                          llvm_tmp_name(ctx));
+        if (llvm_is_option_destructor(mc->data.match_case.pattern,
+                                      &option_kind, &option_binding)) {
+            LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
+                llvm_tmp_name(ctx));
+            cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                LLVMConstInt(ctx->type_i32,
+                    strcmp(option_kind, "Some") == 0 ? 0 : 1, 0),
+                llvm_tmp_name(ctx));
+        } else {
+            LLVMValueRef pattern = llvm_emit_expression(mc->data.match_case.pattern,
+                                                         ctx);
+            if (pattern == NULL)
+                continue;
+            cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+                                subject, pattern,
+                                llvm_tmp_name(ctx));
+        }
 
         LLVMBasicBlockRef case_bb = LLVMAppendBasicBlockInContext(
             ctx->context, fn, "match.case");
@@ -847,8 +904,20 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildCondBr(ctx->builder, cmp, case_bb, next_bb);
 
         LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+        llvm_scope_push(ctx);
+        if (option_binding != NULL) {
+            LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject, 1,
+                llvm_tmp_name(ctx));
+            LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+            LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx, payload_ty,
+                option_binding);
+            LLVMBuildStore(ctx->builder, payload, payload_alloca);
+            llvm_scope_declare(ctx, pergyra_strdup(option_binding),
+                payload_alloca, payload_ty);
+        }
         if (mc->data.match_case.body != NULL)
             llvm_emit_statement(mc->data.match_case.body, ctx);
+        llvm_scope_pop(ctx);
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, merge_bb);
 

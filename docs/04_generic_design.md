@@ -229,3 +229,52 @@ struct User<T> {
 4. **컴파일 타임** (장기)
    - Const generics
    - Type-level programming
+
+## Generic Classes (구현 완료)
+
+제네릭 클래스는 단형화(monomorphization) 전략으로 구현되었다.
+
+### 문법
+
+```pergyra
+class Pair<T> {
+    let first: T;
+    let second: T;
+
+    func GetFirst(self) -> T {
+        return self.first;
+    }
+}
+```
+
+### 단형화 전략
+
+컴파일러는 사용처의 타입 인자를 기반으로 구체화된 struct와 메서드를 생성한다.
+
+- `Pair<Int>` → C struct `Pair_Int` + 메서드 `Pair_Int_GetFirst(Pair_Int* self)`
+- `Pair<Float>` → C struct `Pair_Float` + 메서드 `Pair_Float_GetFirst(Pair_Float* self)`
+- 여러 특수화가 동일 번역 단위에 공존 가능
+
+### 생성자
+
+타입 어노테이션이 필수이며, bare constructor 형태로 호출한다.
+
+```pergyra
+let p: Pair<Int> = Pair(3, 7);
+```
+
+### 메서드 호출
+
+단형화된 이름으로 C 함수가 생성된다.
+
+```c
+// 생성된 C 코드
+int Pair_Int_GetFirst(Pair_Int* self) {
+    return self->first;
+}
+```
+
+### 제한사항
+
+- 자기 참조 타입(self-referential types)은 아직 지원하지 않음
+- 타입 추론 없이 사용처에서 타입 인자를 명시해야 함

@@ -188,6 +188,30 @@ make_generic_type_from_node(const char *name, ASTNode *arg_type)
     return n;
 }
 
+static ASTNode *
+make_match_case(ASTNode *pattern, ASTNode *body)
+{
+    ASTNode *n = calloc(1, sizeof(ASTNode));
+    n->type = AST_MATCH_CASE;
+    n->data.match_case.pattern = pattern;
+    n->data.match_case.body = body;
+    return n;
+}
+
+static ASTNode *
+make_match(ASTNode *subject, ASTNode **cases, size_t case_count)
+{
+    ASTNode *n = calloc(1, sizeof(ASTNode));
+    n->type = AST_MATCH_STMT;
+    n->data.match_stmt.subject = subject;
+    if (case_count > 0) {
+        n->data.match_stmt.cases = calloc(case_count, sizeof(ASTNode *));
+        memcpy(n->data.match_stmt.cases, cases, case_count * sizeof(ASTNode *));
+    }
+    n->data.match_stmt.case_count = case_count;
+    return n;
+}
+
 static GenericParams *
 make_generic_params1(const char *name)
 {
@@ -351,6 +375,25 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("Some(42) → Some_Int(42)");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_number(42, 1) };
+        result = emit_expression(make_call("Some", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "Some_Int(42)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("None() → None_Int()");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("None", NULL, 0, 1), ctx);
+        EXPECT(strcmp(result, "None_Int()") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("identifier → same name");
     {
         ctx    = transpiler_ctx_create();
@@ -493,6 +536,64 @@ test_statement_emit(void)
                                   make_string_lit("hi", 1), 1);
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "char* s = \"hi\";");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let maybe: Option<Int> = Some(42) → PgyOption_Int maybe = Some_Int(42);");
+    {
+        ASTNode *args[1] = { make_number(42, 1) };
+        ASTNode *node = make_let("maybe", make_generic_type("Option", "Int"),
+                                 make_call("Some", args, 1, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyOption_Int maybe = Some_Int(42);");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("let none: Option<Int> = None() → PgyOption_Int none = None_Int();");
+    {
+        ASTNode *node = make_let("none", make_generic_type("Option", "Int"),
+                                 make_call("None", NULL, 0, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyOption_Int none = None_Int();");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("match Option<Int> destructures Some/None");
+    {
+        ctx = transpiler_ctx_create();
+
+        ASTNode *some_args[1] = { make_number(42, 1) };
+        emit_statement(
+            make_let("maybe", make_generic_type("Option", "Int"),
+                     make_call("Some", some_args, 1, 1), 1),
+            ctx);
+
+        ASTNode *bind_args[1] = { make_identifier("v", 2) };
+        ASTNode *case_some_body_stmts[1] = {
+            make_return(make_identifier("v", 2), 2)
+        };
+        ASTNode *case_none_body_stmts[1] = {
+            make_return(make_number(0, 3), 3)
+        };
+        ASTNode *cases[2] = {
+            make_match_case(
+                make_call("Some", bind_args, 1, 2),
+                make_block(case_some_body_stmts, 1)),
+            make_match_case(
+                make_call("None", NULL, 0, 3),
+                make_block(case_none_body_stmts, 1))
+        };
+
+        emit_statement(make_match(make_identifier("maybe", 2), cases, 2), ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "__match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (__match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, ".tag == PgyOptionSome");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__typeof__(__match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "v = __match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, ".value;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "else if (__match_");
+        EXPECT_STR_CONTAINS(ctx->out->data, ".tag == PgyOptionNone");
         transpiler_ctx_destroy(ctx);
     }
 

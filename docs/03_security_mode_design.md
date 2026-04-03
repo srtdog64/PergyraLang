@@ -4,6 +4,12 @@
 
 This document outlines the design for supporting both secure and zero-cost modes in Pergyra while maintaining type safety and preventing security vulnerabilities at compile time.
 
+Status note (2026-04-03):
+
+- This is a design document, not a description of the current stable source-level surface
+- Current implementation uses `Slot<T>`, `SecureSlot<T>`, `ClaimSlot`, `ClaimSecureSlot`, token-checked read/write, and runtime-backed secure slot semantics
+- The generic `Slot<T, S: SecurityModel>` model below is a future unification direction, not current syntax
+
 ## Core Design: Security as a Type Parameter
 
 ### 1. Security Level Types

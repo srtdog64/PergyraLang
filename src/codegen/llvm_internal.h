@@ -103,6 +103,7 @@ typedef enum
     PGY_TK_SLOT,
     PGY_TK_SECURE_SLOT,
     PGY_TK_RESULT,
+    PGY_TK_OPTION,
     PGY_TK_CHANNEL,
     PGY_TK_FUTURE,
     PGY_TK_BOX,

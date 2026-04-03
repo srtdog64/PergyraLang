@@ -236,6 +236,9 @@ pgy_classify_type(const char *type_name)
         if (strncmp(type_name, "Result<", 7) == 0)     return PGY_TK_RESULT;
         if (strncmp(type_name, "Rc<", 3) == 0)         return PGY_TK_RC;
         break;
+    case 'O':
+        if (strncmp(type_name, "Option<", 7) == 0)     return PGY_TK_OPTION;
+        break;
     case 'C':
         if (strncmp(type_name, "Channel<", 8) == 0)    return PGY_TK_CHANNEL;
         break;
@@ -1060,6 +1063,11 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
         LLVMTypeRef fields[] = { ctx->type_i32, inner, ctx->type_i8ptr };
         return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
+    }
+    case PGY_TK_OPTION: {
+        LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
+        LLVMTypeRef fields[] = { ctx->type_i32, inner };
+        return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
     case PGY_TK_SLOT: {
         const char *inner_name = strchr(type_name, '<');

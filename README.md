@@ -37,6 +37,7 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 
 - **Slot 기반 자원 모델**: `Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`는 anchored handle, `QubitSlot`은 move-only handle로 구분
 - **보안 슬롯**: `SecureSlot<T>`에 토큰 기반 접근 제어
+- **제네릭 클래스**: `class Pair<T>` 단형화 기반 제네릭 (Pair<Int> → Pair_Int)
 - **비동기 오케스트레이션**: `async/await`, `spawn`, `Channel<T>`, `select`, `parallel`
 - **원격 결과 의미론**: `RemoteFuture<T>`를 `await`하면 `Result<T>`가 되어 실패 가능성을 타입에 남김
 - **내장 병렬성**: `parallel` 블록으로 선언적 병렬 처리

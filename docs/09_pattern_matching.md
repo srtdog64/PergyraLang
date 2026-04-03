@@ -1,257 +1,124 @@
 # Pergyra 패턴 매칭 시스템
 
-## 1. 기본 패턴 매칭
+마지막 업데이트: 2026-04-03
 
-### 1.1 값 매칭
+이 문서는 현재 구현 기준으로 정리한 패턴 매칭 표면이다. 예전 설계 문서에 있던 구조체 패턴, 배열 패턴, 중첩 패턴, exhaustiveness check는 아직 현재 구현 기준의 stable surface가 아니다.
+
+## 1. 현재 지원 범위
+
+- 값 비교 기반 `match`
+- `case ... if ...` 형태의 guard
+- `Result<T>`의 `Ok(...)` / `Err(...)` destructuring
+- tagged union enum의 variant destructuring
+- leading-dot shorthand: `.Ok(x)`, `.Err(e)`, `.Some(v)`, `.None`
+
+## 2. 기본 값 매칭
+
 ```pergyra
-match value
-{
-    case 0:
-        Log("Zero")
-        
-    case 1..10:
-        Log("Small number")
-        
-    case n if n > 100:
-        Log("Large number: ", n)
-        
-    default:
-        Log("Other")
+func Main() -> Void {
+    let x: Int = 3;
+
+    match x {
+        case 1:
+            Log(10);
+        case 2:
+            Log(20);
+        case 3:
+            Log(30);
+        default:
+            Log(0);
+    }
 }
 ```
 
-### 1.2 타입 매칭
+현재 구현은 일반적으로 `subject == pattern` 비교로 내려간다. 따라서 리터럴, enum variant 상수, 단순 식별자 기반 패턴이 현재 표면의 중심이다.
+
+## 3. Guard
+
 ```pergyra
-match result
-{
-    case .Success(data):
-        ProcessData(data)
-        
-    case .Error(code, msg):
-        LogError(code, msg)
-        
-    case .Pending:
-        Wait()
+func Classify(n: Int) -> Void {
+    match n {
+        case 0:
+            Log("zero");
+        case 2 if n > 0:
+            Log("two positive");
+        default:
+            Log("other");
+    }
 }
 ```
 
-### 1.3 구조체 패턴
-```pergyra
-match player
-{
-    case Player { health: 0, .. }:
-        OnPlayerDeath()
-        
-    case Player { health: h, shield: s } if h < 20 && s == 0:
-        ShowLowHealthWarning()
-        
-    case Player { health: 100, shield: 100 }:
-        ShowFullHealthStatus()
-        
-    default:
-        UpdateNormalStatus()
-}
-```
+guard 식은 `Bool`이어야 하며, 현재 시맨틱 테스트에도 포함되어 있다.
 
-## 2. 고급 패턴 매칭
+## 4. Result 패턴
 
-### 2.1 중첩 패턴
-```pergyra
-match message
-{
-    case .Request(.Login(username, password)):
-        AuthenticateUser(username, password)
-        
-    case .Request(.Data(id)) if IsValidId(id):
-        FetchData(id)
-        
-    case .Response(.Success(data)):
-        ProcessResponse(data)
-        
-    case .Response(.Error(ErrorCode.Timeout)):
-        RetryRequest()
-}
-```
+현재 구현된 에러 처리 표면은 `Result<T>` 중심이다. `Ok(value)` / `Err(error)` 패턴은 `match`에서 destructuring 된다.
 
-### 2.2 슬롯 패턴 매칭
 ```pergyra
-match slot.TryRead()
-{
-    case .Some(value) if value > 0:
-        ProcessPositive(value)
-        
-    case .Some(0):
-        HandleZero()
-        
-    case .None:
-        HandleEmpty()
-}
-```
-
-### 2.3 제네릭 패턴
-```pergyra
-func ProcessResult<T, E>(result: Result<T, E>) -> String
-{
-    match result
-    {
+func Handle(result: Result<Int>) -> Void {
+    match result {
         case .Ok(value):
-            return "Success: " + ToString(value)
-            
+            Log(value);
         case .Err(error):
-            return "Error: " + ToString(error)
+            Log(error);
     }
 }
 ```
 
-## 3. 패턴 가드
+`Ok(value)`와 `.Ok(value)`는 같은 패턴으로 파싱된다.
+
+## 5. Tagged Union Enum 패턴
+
+데이터를 가진 enum variant는 `match`에서 destructuring 가능하다.
 
 ```pergyra
-match request
-{
-    // 복잡한 조건을 가드로 표현
-    case .Update(id, data) if HasPermission(id) && IsValid(data):
-        PerformUpdate(id, data)
-        
-    case .Update(id, _) if !HasPermission(id):
-        DenyAccess(id)
-        
-    case .Update(_, data) if !IsValid(data):
-        RejectInvalidData(data)
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
 }
-```
 
-## 4. 바인딩 패턴
-
-```pergyra
-match shape
-{
-    // @ 연산자로 전체 값 바인딩
-    case rect @ Rectangle { width, height } if width == height:
-        Log("Square: ", rect)
-        
-    // 부분 바인딩
-    case Circle { radius: r @ 1..10 }:
-        Log("Small circle with radius: ", r)
-        
-    // 변수 바인딩과 조건
-    case Triangle { sides: [a, b, c] } if a + b > c:
-        Log("Valid triangle")
-}
-```
-
-## 5. Option/Result 패턴
-
-```pergyra
-// Option 체이닝
-func GetUserName(id: Int) -> Option<String>
-{
-    match GetUser(id)
-    {
-        case .Some(user):
-            match user.name
-            {
-                case .Some(name) if !name.IsEmpty():
-                    return .Some(name)
-                default:
-                    return .None
-            }
-            
+func Print(shape: Shape) -> Void {
+    match shape {
+        case .Circle(r):
+            Log(r);
+        case .Rect(w, h):
+            Log(w);
+            Log(h);
         case .None:
-            return .None
-    }
-}
-
-// Result 체이닝 (더 간결한 버전)
-func ProcessFile(path: String) -> Result<Data, Error>
-{
-    match ReadFile(path)
-    {
-        case .Ok(content):
-            match ParseData(content)
-            {
-                case .Ok(data):
-                    return .Ok(data)
-                    
-                case .Err(e):
-                    return .Err(ParseError(e))
-            }
-            
-        case .Err(e):
-            return .Err(FileError(e))
+            Log(0);
     }
 }
 ```
 
-## 6. 배열/컬렉션 패턴
+이 경로는 C/LLVM 코드젠 양쪽에 연결되어 있다.
+
+## 6. Leading-Dot Shorthand
+
+문서와 예제에서 자주 쓰는 leading-dot variant shorthand가 현재 파서에서 허용된다.
 
 ```pergyra
-match list
-{
-    case []:
-        Log("Empty list")
-        
-    case [single]:
-        Log("Single element: ", single)
-        
-    case [first, second]:
-        Log("Two elements: ", first, ", ", second)
-        
-    case [head, ...tail]:
-        Log("Head: ", head, ", Tail has ", tail.Length, " elements")
-        
-    case [...init, last]:
-        Log("Last element: ", last)
-        
-    case [first, ...middle, last] if middle.Length > 0:
-        Log("First: ", first, ", Last: ", last)
-}
-```
-
-## 7. 완전성 검사
-
-```pergyra
-// 컴파일러가 모든 경우를 처리했는지 검사
-enum Status
-{
-    Active,
-    Pending,
-    Completed,
-    Failed
+enum OptionInt {
+    Some(Int),
+    None
 }
 
-func GetStatusMessage(status: Status) -> String
-{
-    match status
-    {
-        case .Active:
-            return "진행 중"
-            
-        case .Pending:
-            return "대기 중"
-            
-        case .Completed:
-            return "완료됨"
-            
-        // 컴파일 에러: Failed 케이스 누락!
+func Wrap(n: Int) -> OptionInt {
+    if n > 0 {
+        return .Some(n);
     }
+    return .None;
 }
 ```
 
-## 8. 성능 최적화
+## 7. 아직 stable 하지 않은 항목
 
-```pergyra
-// 컴파일러가 점프 테이블로 최적화
-match hashCode
-{
-    case 0x1234:
-        HandleCase1()
-        
-    case 0x5678:
-        HandleCase2()
-        
-    case 0x9ABC:
-        HandleCase3()
-        
-    // 많은 케이스가 있을 때 O(1) 성능
-}
-```
+다음 표면은 예전 설계 문서에는 있었지만, 현재 구현 기준의 stable surface로 문서화하기엔 이르다.
+
+- 구조체 패턴: `Player { health: 0 }`
+- 배열/컬렉션 패턴: `[]`, `[head, ...tail]`
+- 중첩 패턴: `.Request(.Login(...))`
+- `@` 바인딩 패턴
+- 완전성 검사(exhaustiveness checking)
+
+이 항목들은 설계 방향이나 장기 목표로는 남아 있지만, 현재 문법/시맨틱/코드젠이 전부 보장하는 표면으로 보지 않는 편이 맞다.

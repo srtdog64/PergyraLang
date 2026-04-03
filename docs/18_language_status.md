@@ -14,12 +14,22 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `async/await`, `channel`, `select`, `parallel`의 실행 경로 존재
 - `RemoteFuture<T> → await → Result<T>` 규칙이 시맨틱/코드젠에 반영됨
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
+- 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
 
 ## 현재 한계
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - 클래식 OOP 계층(상속, super, 제네릭 클래스)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
+
+## 2026-04-03 기준 확인된 상태
+
+- `make test-all` 통과
+- `make llvm-test-smoke` 통과
+- `make stdlib-test-smoke` 통과
+- `make module-test-smoke` 통과
+- `make llvm-test-backend-compare` 통과
+- `make example-test-smoke` 통과
 
 ## 다음 기준
 

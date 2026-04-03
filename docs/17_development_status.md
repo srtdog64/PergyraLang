@@ -13,6 +13,7 @@
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
 - 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `ability/role/party/systemic/world`, `event`, `actor`, `import/export/namespace`
+- enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
 
 ### 시맨틱
 - 타입 시스템 + 슬롯 규칙 + move/consume 추적
@@ -37,7 +38,7 @@
 
 | 스위트 | 결과 |
 |---|---|
-| semantic | 197 passed |
+| semantic | 205 passed |
 | transpile | 141 passed |
 | memory | 54 passed |
 | concurrency | 2 passed |
@@ -45,9 +46,9 @@
 | lexer/parser | 통과 |
 
 추가 회귀:
-- `make llvm-test-smoke` (async, select, tagged-union, RemoteFuture, device slot 등)
-- `make llvm-test-backend-compare` (대표 예제 C/LLVM 비교)
-- `make stdlib-test-smoke`, `make module-test-smoke`, `make example-test-smoke`
+- `make llvm-test-smoke` 통과 (async, select, tagged-union, RemoteFuture, device slot, generics 등)
+- `make llvm-test-backend-compare` 통과 (대표 예제 8건 C/LLVM 비교)
+- `make stdlib-test-smoke`, `make module-test-smoke`, `make example-test-smoke` 통과
 
 ## 남은 주요 작업
 

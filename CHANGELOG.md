@@ -4,6 +4,14 @@ All notable changes to the Pergyra Language will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
+
+### Changed
+- Parser regression tests now cover docs-style shorthand in `return`, `let`, and `match case` positions
+
 ## [0.3.0] - 2026-03-31
 
 ### Added

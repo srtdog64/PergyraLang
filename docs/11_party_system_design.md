@@ -36,6 +36,7 @@ bind team.tank = Warrior;
 - top-level `bind party.slot = ClassName`
 
 아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+특히 role slot의 복잡한 제약식, `&mut self`, `impl Trait`, advanced orchestration 예시는 장기 설계 메모로 읽는 편이 맞다.
 
 ## Party의 핵심 요소 (Design Notes)
 

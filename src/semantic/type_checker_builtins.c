@@ -668,6 +668,42 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         type_check_expression(expr->data.call.arguments[0], ctx);
         return TYPE_BOOL;
     }
+    if (strcmp(name, "Some") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        return wrap_constructed(TYPE_OPTION,
+            type_check_expression(expr->data.call.arguments[0], ctx));
+    }
+    if (strcmp(name, "None") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
+    }
+    if (strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0) {
+        Type *ot;
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        ot = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(ot, "Option")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "%s requires Option<T>, got '%s'", name,
+                ot != NULL ? ot->name : "<null>");
+            return TYPE_UNKNOWN;
+        }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "UnwrapOption") == 0) {
+        Type *ot;
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        ot = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (type_is_constructed_named(ot, "Option"))
+            return type_get_constructed_arg(ot, 0);
+        semantic_error(ctx, expr->data.call.arguments[0],
+            "UnwrapOption requires Option<T>, got '%s'",
+            ot != NULL ? ot->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
     if (strcmp(name, "Unwrap") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;

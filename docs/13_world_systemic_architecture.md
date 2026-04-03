@@ -48,6 +48,7 @@ world GameWorld {
 ```
 
 아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+특히 `&mut self`, `impl Trait`, thread affinity 표기, 고급 class/object 협업 예시는 현재 stable current surface를 직접 설명하지 않는다.
 
 ## 📋 계층별 정의 (Design Notes)
 
@@ -192,7 +193,9 @@ ability Tradeable {
 
 ability Craftable {
     require _craftingSkill: Int
-    func Craft(recipe: Recipe) -> Option<Item>
+    // 장기적으로는 Option/Result 계열 반환을 원하지만,
+    // 현재 stable current surface로는 tagged union enum 또는 Result<T> 쪽이 더 가깝다.
+    func Craft(recipe: Recipe) -> Result<Item>
 }
 ```
 

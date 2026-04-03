@@ -1247,7 +1247,26 @@ pgy_option_unwrap_##SuffixName(PgyOption_##SuffixName* o) \
 }
 
 PGY_OPTION_DEFINE(Int, int32_t)
+PGY_OPTION_DEFINE(Bool, bool)
 PGY_OPTION_DEFINE(String, char*)
+
+#define Some_Int(v)             pgy_option_some_Int(v)
+#define None_Int()              pgy_option_none_Int()
+#define IsSome_Int(o)           ((o).tag == PgyOptionSome)
+#define IsNone_Int(o)           ((o).tag == PgyOptionNone)
+#define UnwrapOption_Int(o)     pgy_option_unwrap_Int(&(PgyOption_Int){(o).tag, (o).value})
+
+#define Some_Bool(v)            pgy_option_some_Bool(v)
+#define None_Bool()             pgy_option_none_Bool()
+#define IsSome_Bool(o)          ((o).tag == PgyOptionSome)
+#define IsNone_Bool(o)          ((o).tag == PgyOptionNone)
+#define UnwrapOption_Bool(o)    pgy_option_unwrap_Bool(&(PgyOption_Bool){(o).tag, (o).value})
+
+#define Some_String(v)          pgy_option_some_String(v)
+#define None_String()           pgy_option_none_String()
+#define IsSome_String(o)        ((o).tag == PgyOptionSome)
+#define IsNone_String(o)        ((o).tag == PgyOptionNone)
+#define UnwrapOption_String(o)  pgy_option_unwrap_String(&(PgyOption_String){(o).tag, (o).value})
 
 /* =================================================================
  * Channel (thread-safe bounded ring buffer)

@@ -20,6 +20,7 @@
 - `ability/role/party/systemic/world`, `event`, `actor`
 - `import/export/namespace`, `extern "C"`
 - `RemoteFuture<T>`의 `await` 결과는 `Result<T>`
+- enum/result shorthand `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)` 파싱 지원
 
 ### 백엔드/런타임
 - C/LLVM 백엔드 둘 다 동작
@@ -29,12 +30,12 @@
 
 ### 테스트
 `make test-all` 기준:
-- semantic 197, transpile 141, memory 54, concurrency 2, HIR 3
+- semantic 205, transpile 141, memory 54, concurrency 2, HIR 3
 
 추가 회귀:
-- `llvm-test-smoke`
-- `llvm-test-backend-compare`
-- `stdlib-test-smoke`, `module-test-smoke`, `example-test-smoke`
+- `llvm-test-smoke` 통과
+- `llvm-test-backend-compare` 통과
+- `stdlib-test-smoke`, `module-test-smoke`, `example-test-smoke` 통과
 
 ## 미완성 / 다음 단계
 

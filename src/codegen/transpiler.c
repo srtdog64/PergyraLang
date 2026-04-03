@@ -341,7 +341,16 @@ static bool
 is_class_object_type_name(TranspilerCtx *ctx, const char *type_name)
 {
     ASTNode *decl = find_class_decl(ctx, type_name);
-    return decl != NULL && !decl->data.class_decl.is_struct;
+    if (decl != NULL && !decl->data.class_decl.is_struct)
+        return true;
+    /* Also check monomorphized generic class specializations */
+    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
+            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
+            return orig != NULL && !orig->data.class_decl.is_struct;
+        }
+    }
+    return false;
 }
 
 static bool
@@ -353,6 +362,16 @@ current_class_has_field(TranspilerCtx *ctx, const char *field_name)
         return false;
 
     decl = find_class_decl(ctx, ctx->current_class_name);
+    /* For monomorphized generic classes, look up the original class decl */
+    if (decl == NULL) {
+        for (int gi = 0; gi < ctx->generic_class_spec_count; gi++) {
+            if (strcmp(ctx->generic_class_specs[gi].specialized_name,
+                       ctx->current_class_name) == 0) {
+                decl = (ASTNode *)ctx->generic_class_specs[gi].class_decl;
+                break;
+            }
+        }
+    }
     if (decl == NULL)
         return false;
 
@@ -777,6 +796,12 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
         return buf;
     }
+    if (strncmp(name, "Option<", 7) == 0) {
+        static char buf[128];
+        const char *inner = slot_inner_type_name(name);
+        snprintf(buf, sizeof(buf), "PgyOption_%s", inner);
+        return buf;
+    }
     return pergyra_primitive_to_c(name);
 }
 
@@ -980,6 +1005,22 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "TryRecv") == 0
                 || strcmp(name, "ChannelReady") == 0)
                 return "Bool";
+            if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
+                static char opt_buf[128];
+                const char *inner = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
+                snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
+                return opt_buf;
+            }
+            if (strcmp(name, "None") == 0)
+                return "Option<Int>";
+            if ((strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0)
+                && expr->data.call.arg_count == 1)
+                return "Bool";
+            if (strcmp(name, "UnwrapOption") == 0 && expr->data.call.arg_count == 1) {
+                const char *opt_type = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
+                if (strncmp(opt_type, "Option<", 7) == 0)
+                    return slot_inner_type_name(opt_type);
+            }
 
             {
                 ASTNode *decl = find_function_decl(ctx, name);
@@ -2055,6 +2096,43 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(fallback);
             return result;
         }
+        if (strcmp(fn, "Some") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *inner = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char *result = strdup_fmt("Some_%s(%s)", inner, arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "None") == 0 && call->data.call.arg_count == 0) {
+            return strdup_fmt("None_Int()");
+        }
+        if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = strncmp(opt_type, "Option<", 7) == 0
+                ? slot_inner_type_name(opt_type) : "Int";
+            char *result = strdup_fmt("IsSome_%s(%s)", inner, arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "IsNone") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = strncmp(opt_type, "Option<", 7) == 0
+                ? slot_inner_type_name(opt_type) : "Int";
+            char *result = strdup_fmt("IsNone_%s(%s)", inner, arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "UnwrapOption") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = strncmp(opt_type, "Option<", 7) == 0
+                ? slot_inner_type_name(opt_type) : "Int";
+            char *result = strdup_fmt("UnwrapOption_%s(%s)", inner, arg);
+            free(arg);
+            return result;
+        }
     }
 
     /* Standard library built-in functions */
@@ -2930,6 +3008,11 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 
+/* Forward declarations for generic class monomorphization */
+static bool class_has_generic_params(ASTNode *node);
+static const char *ensure_generic_class_specialization(
+    TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
+
 /* -----------------------------------------------------------------
  * Let declaration emitter
  * ----------------------------------------------------------------- */
@@ -2941,6 +3024,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     ASTNode    *init = node->data.let_decl.initializer;
     ASTNode    *ann  = node->data.let_decl.type;
     char       *ann_type_name = ann != NULL ? render_type_name(ann) : NULL;
+
+    /* Generic class monomorphization trigger:
+     * If the annotation is a user-defined generic class (e.g. Node<Int>),
+     * monomorphize the class and replace ann_type_name with the
+     * specialized name (e.g. Node_Int). */
+    const char *generic_class_spec_name = NULL;
+    if (ann != NULL && ann->type == AST_TYPE
+        && ann->data.type.generic_args != NULL
+        && ann->data.type.generic_args->count > 0
+        && ann->data.type.name != NULL) {
+        ASTNode *gc_decl = find_class_decl(ctx, ann->data.type.name);
+        if (gc_decl != NULL && class_has_generic_params(gc_decl)) {
+            generic_class_spec_name =
+                ensure_generic_class_specialization(ctx, gc_decl, ann);
+            /* Replace ann_type_name with the specialized name */
+            free(ann_type_name);
+            ann_type_name = pergyra_strdup(generic_class_spec_name);
+        }
+    }
 
     /* Detect ClaimSlot / ClaimSecureSlot */
     bool is_slot        = false;
@@ -3274,6 +3376,34 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
+    if (ann_type_name != NULL && strncmp(ann_type_name, "Option<", 7) == 0) {
+        const char *inner = slot_inner_type_name(ann_type_name);
+        if (init != NULL
+            && init->type == AST_CALL
+            && init->data.call.callee != NULL
+            && init->data.call.callee->type == AST_IDENTIFIER) {
+            const char *callee_name = init->data.call.callee->data.identifier.name;
+            if (strcmp(callee_name, "Some") == 0 && init->data.call.arg_count == 1) {
+                char *arg = emit_expression(init->data.call.arguments[0], ctx);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "PgyOption_%s %s = Some_%s(%s);\n",
+                    inner, name, inner, arg);
+                register_typed_var(ctx, name, ann_type_name);
+                free(arg);
+                free(ann_type_name);
+                return;
+            }
+            if (strcmp(callee_name, "None") == 0 && init->data.call.arg_count == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "PgyOption_%s %s = None_%s();\n",
+                    inner, name, inner);
+                register_typed_var(ctx, name, ann_type_name);
+                free(ann_type_name);
+                return;
+            }
+        }
+    }
+
     /* Array literal: let arr = [1, 2, 3] → PgyArray_Int arr = ({ ... }); */
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         const char *array_type_name = ann_type_name != NULL
@@ -3312,13 +3442,23 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 
     /* Struct/class constructor: let p: Point = Point(...)
      * Lower positional constructor args into field-order initialization.
-     * Missing fields stay zero-initialized. */
+     * Missing fields stay zero-initialized.
+     * For generic classes: callee is "Node" but ann_type_name is "Node_Int",
+     * so also match against the original class name via generic_class_spec_name. */
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER
         && ann_type_name != NULL
-        && strcmp(init->data.call.callee->data.identifier.name, ann_type_name) == 0
+        && (strcmp(init->data.call.callee->data.identifier.name, ann_type_name) == 0
+            || (generic_class_spec_name != NULL
+                && ann->data.type.name != NULL
+                && strcmp(init->data.call.callee->data.identifier.name, ann->data.type.name) == 0))
         ) {
         ASTNode *class_decl = find_class_decl(ctx, ann_type_name);
+        /* For generic classes, find_class_decl won't find "Node_Int" —
+         * fall back to the original generic class declaration. */
+        if (class_decl == NULL && generic_class_spec_name != NULL
+            && ann->data.type.name != NULL)
+            class_decl = find_class_decl(ctx, ann->data.type.name);
         write_indent(ctx);
         if (class_decl != NULL
             && class_decl->type == AST_CLASS_DECL
@@ -3416,12 +3556,23 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     int saved_typed_count = ctx->typed_var_count;
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    char saved_return_type[128];
 
     const char *ret_type = "void";
     ctx->out = buf;
     g_type_render_ctx = ctx;
+    snprintf(saved_return_type, sizeof(saved_return_type), "%s",
+        ctx->current_return_type);
     if (node->data.func_decl.return_type != NULL) {
         ret_type = pergyra_ast_type_to_c(node->data.func_decl.return_type);
+        {
+            char *rendered = render_type_name(node->data.func_decl.return_type);
+            snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                "%s", rendered);
+            free(rendered);
+        }
+    } else {
+        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
     }
 
     codebuf_write(ctx->out, "\n%s\n%s(", ret_type, name);
@@ -3456,6 +3607,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     ctx->indent--;
     ctx->slot_var_count = saved_slot_count;
     ctx->typed_var_count = saved_typed_count;
+    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+        "%s", saved_return_type);
 
     codebuf_write(ctx->out, "}\n");
     g_type_render_ctx = saved_render_ctx;
@@ -3507,9 +3660,198 @@ emit_extern_block(ASTNode *node, TranspilerCtx *ctx)
  * Class declaration emitter
  * ----------------------------------------------------------------- */
 
+/* -----------------------------------------------------------------
+ * Generic class monomorphization
+ * ----------------------------------------------------------------- */
+
+static bool
+class_has_generic_params(ASTNode *node)
+{
+    return node != NULL
+        && node->type == AST_CLASS_DECL
+        && node->data.class_decl.generic_params != NULL
+        && node->data.class_decl.generic_params->count > 0;
+}
+
+/* Ensure a monomorphized specialization of a generic class exists.
+ * Returns the specialized name (e.g. "Node_Int") that should be used
+ * as the C struct type name.  The struct + methods are emitted into
+ * ctx->helpers on first invocation.
+ *
+ * `ann` is the AST_TYPE node for the annotation (e.g. Node<Int>).
+ * We extract generic_args from it and match them to class_decl's
+ * generic_params to build the bindings. */
+static const char *
+ensure_generic_class_specialization(TranspilerCtx *ctx,
+                                     ASTNode *class_decl,
+                                     ASTNode *ann)
+{
+    GenericParams *gp = class_decl->data.class_decl.generic_params;
+    GenericParams *ga = ann->data.type.generic_args;
+    if (gp == NULL || ga == NULL || gp->count != ga->count)
+        return class_decl->data.class_decl.name;
+
+    /* Build specialized name: ClassName_Arg1_Arg2 */
+    CodeBuf *nbuf = codebuf_create();
+    codebuf_write(nbuf, "%s", class_decl->data.class_decl.name);
+    for (size_t i = 0; i < ga->count; i++) {
+        codebuf_write(nbuf, "_");
+        GenericParam *garg = ga->params[i];
+        if (garg != NULL && garg->name != NULL)
+            append_mangled_type_name(nbuf, garg->name);
+        else if (garg != NULL && garg->constraint != NULL
+                 && garg->constraint->type == AST_TYPE
+                 && garg->constraint->data.type.name != NULL)
+            append_mangled_type_name(nbuf, garg->constraint->data.type.name);
+        else
+            codebuf_write(nbuf, "Unknown");
+    }
+
+    /* Check if already emitted */
+    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name, nbuf->data) == 0) {
+            const char *result = ctx->generic_class_specs[i].specialized_name;
+            codebuf_destroy(nbuf);
+            return result;
+        }
+    }
+
+    /* Register new specialization */
+    if (ctx->generic_class_spec_count >= MAX_GENERIC_CLASS_SPECIALIZATIONS) {
+        codebuf_destroy(nbuf);
+        return class_decl->data.class_decl.name;
+    }
+
+    GenericClassSpecEntry *entry = &ctx->generic_class_specs[ctx->generic_class_spec_count++];
+    entry->class_decl = class_decl;
+    snprintf(entry->specialized_name, sizeof(entry->specialized_name), "%s", nbuf->data);
+    entry->emitted = true;
+    const char *spec_name = entry->specialized_name;
+
+    /* Build bindings: T -> Int, U -> String, etc. */
+    int saved_binding_count = ctx->generic_binding_count;
+    for (size_t i = 0; i < gp->count; i++) {
+        if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
+            break;
+        GenericBindingEntry *b = &ctx->generic_bindings[ctx->generic_binding_count++];
+        snprintf(b->name, sizeof(b->name), "%s",
+                 gp->params[i] != NULL ? gp->params[i]->name : "T");
+        /* The concrete type name comes from the annotation's generic_args.
+         * ga->params[i] is a GenericParam whose 'name' field holds the
+         * actual type name (e.g. "Int") when used as a type argument. */
+        const char *concrete = "int32_t";
+        if (ga->params[i] != NULL && ga->params[i]->name != NULL)
+            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
+                     ga->params[i]->name);
+        else if (ga->params[i] != NULL && ga->params[i]->constraint != NULL
+                 && ga->params[i]->constraint->type == AST_TYPE)
+            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
+                     ga->params[i]->constraint->data.type.name);
+        else
+            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s", concrete);
+
+        entry->bindings[i] = *b;
+    }
+    entry->binding_count = gp->count;
+
+    /* Set g_type_render_ctx so pergyra_ast_type_to_c resolves T → Int */
+    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    g_type_render_ctx = ctx;
+
+    /* Emit struct typedef into helpers buffer */
+    codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
+    for (size_t i = 0; i < class_decl->data.class_decl.field_count; i++) {
+        ClassField *f = class_decl->data.class_decl.fields[i];
+        const char *ft = "int32_t";
+        if (f->type != NULL)
+            ft = pergyra_ast_type_to_c(f->type);
+        codebuf_write(ctx->helpers, "    %s %s;\n", ft, f->name);
+    }
+    codebuf_write(ctx->helpers, "} %s;\n", spec_name);
+
+    /* Container types */
+    codebuf_write(ctx->helpers,
+        "\nPGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_BOX_DEFINE(%s, %s)\n",
+        spec_name, spec_name, spec_name, spec_name);
+
+    /* Methods */
+    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
+        ASTNode *method = class_decl->data.class_decl.methods[i];
+        if (method->type != AST_FUNC_DECL)
+            continue;
+
+        const char *method_name = method->data.func_decl.name;
+        const char *ret_type    = "void";
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+        codebuf_write(ctx->helpers, "\n%s\n%s_%s(%s *self",
+                      ret_type, spec_name, method_name, spec_name);
+
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            if (strcmp(p->name, "self") == 0)
+                continue;
+            const char *pt = "int32_t";
+            if (p->type != NULL)
+                pt = pergyra_ast_type_to_c(p->type);
+            codebuf_write(ctx->helpers, ", %s %s", pt, p->name);
+        }
+        codebuf_write(ctx->helpers, ")\n{\n");
+
+        {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
+            const char *saved_class_name = ctx->current_class_name;
+            CodeBuf *saved_out = ctx->out;
+
+            ctx->current_class_name = spec_name;
+            ctx->out = ctx->helpers;
+            register_typed_var(ctx, "self", spec_name);
+
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *tn;
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0 || p->type == NULL)
+                    continue;
+                tn = render_type_name(p->type);
+                if (tn != NULL) {
+                    register_typed_var(ctx, p->name, tn);
+                    free(tn);
+                }
+            }
+
+            ctx->indent++;
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            ctx->indent--;
+
+            ctx->out = saved_out;
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
+            ctx->current_class_name = saved_class_name;
+        }
+
+        codebuf_write(ctx->helpers, "}\n");
+    }
+
+    /* Restore bindings and render context */
+    g_type_render_ctx = saved_render_ctx;
+    ctx->generic_binding_count = saved_binding_count;
+    codebuf_destroy(nbuf);
+
+    return spec_name;
+}
+
 void
 emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 {
+    /* Generic classes are emitted lazily when first used (monomorphized). */
+    if (class_has_generic_params(node))
+        return;
+
     const char *name = node->data.class_decl.name;
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
@@ -4004,6 +4346,50 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     return true;
 }
 
+static bool
+is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
+{
+    *kind = NULL;
+    *binding = NULL;
+
+    if (pat == NULL)
+        return false;
+
+    if (pat->type == AST_IDENTIFIER) {
+        const char *name = pat->data.identifier.name;
+        if (name != NULL && strcmp(name, "None") == 0) {
+            *kind = "None";
+            return true;
+        }
+        return false;
+    }
+
+    if (pat->type != AST_CALL
+        || pat->data.call.callee == NULL
+        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    const char *name = pat->data.call.callee->data.identifier.name;
+    if (name == NULL)
+        return false;
+
+    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+        *kind = "None";
+        return true;
+    }
+    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+        *kind = "Some";
+        if (pat->data.call.arguments[0] != NULL
+            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 /* Check if pattern is a tagged union variant destructor: Circle(r), Rect(w, h), None */
 static bool
 is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
@@ -4076,13 +4462,20 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     char *subj = emit_expression(node->data.match_stmt.subject, ctx);
     int tmp_id = ctx->tmp_counter++;
+    const char *subject_type = infer_expression_type_name(ctx, node->data.match_stmt.subject);
+    bool subject_is_option = subject_type != NULL && strncmp(subject_type, "Option<", 7) == 0;
 
     /* Detect if any case uses Ok()/Err() or tagged union destructuring */
     bool is_result_match = false;
+    bool is_option_match = false;
     bool is_enum_match = false;
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *pat = node->data.match_stmt.cases[i]->data.match_case.pattern;
         const char *k, *b;
+        if (subject_is_option && is_option_destructor(pat, &k, &b)) {
+            is_option_match = true;
+            break;
+        }
         if (is_result_destructor(pat, &k, &b)) {
             is_result_match = true;
             break;
@@ -4098,7 +4491,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
 
-    if (is_result_match || is_enum_match) {
+    if (is_result_match || is_option_match || is_enum_match) {
         /* Struct match: store subject as-is (tagged union/result) */
         write_indent(ctx);
         codebuf_write(ctx->out, "__typeof__(%s) __match_%d = %s;\n", subj, tmp_id, subj);
@@ -4111,10 +4504,21 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *mc = node->data.match_stmt.cases[i];
         const char *kind = NULL, *binding = NULL;
+        bool option_case = subject_is_option
+            && is_option_destructor(mc->data.match_case.pattern, &kind, &binding);
 
         write_indent(ctx);
 
-        if (is_result_destructor(mc->data.match_case.pattern, &kind, &binding)) {
+        if (option_case) {
+            const char *tag_val = (strcmp(kind, "Some") == 0)
+                ? "PgyOptionSome" : "PgyOptionNone";
+            if (i == 0)
+                codebuf_write(ctx->out, "if (__match_%d.tag == %s",
+                    tmp_id, tag_val);
+            else
+                codebuf_write(ctx->out, "else if (__match_%d.tag == %s",
+                    tmp_id, tag_val);
+        } else if (is_result_destructor(mc->data.match_case.pattern, &kind, &binding)) {
             /* case Ok(x): → if (__match_N.tag == PGY_RESULT_OK) { ... } */
             const char *tag_val = (strcmp(kind, "Ok") == 0)
                 ? "PgyResultOk" : "PgyResultErr";
@@ -4163,7 +4567,10 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         /* Emit binding variable if destructuring */
         if (binding != NULL && kind != NULL) {
             write_indent(ctx);
-            if (strcmp(kind, "Ok") == 0)
+            if (strcmp(kind, "Some") == 0)
+                codebuf_write(ctx->out, "__typeof__(__match_%d.value) %s = __match_%d.value;\n",
+                    tmp_id, binding, tmp_id);
+            else if (strcmp(kind, "Ok") == 0)
                 codebuf_write(ctx->out, "int32_t %s = __match_%d.ok;\n",
                     binding, tmp_id);
             else if (strcmp(kind, "Err") == 0)
@@ -4171,7 +4578,11 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                     binding, tmp_id);
         }
         /* Emit enum variant bindings: case Circle(r) → int32_t r = __match_N.Circle._0 */
-        if (kind != NULL && strcmp(kind, "Ok") != 0 && strcmp(kind, "Err") != 0) {
+        if (kind != NULL
+            && strcmp(kind, "Some") != 0
+            && strcmp(kind, "None") != 0
+            && strcmp(kind, "Ok") != 0
+            && strcmp(kind, "Err") != 0) {
             const char *vn2 = NULL, *en2 = NULL;
             const char **bs2 = NULL;
             size_t bc2 = 0;
@@ -4216,6 +4627,26 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     write_indent(ctx);
     if (node->data.return_stmt.value != NULL) {
+        if (ctx->current_return_type[0] != '\0'
+            && strncmp(ctx->current_return_type, "Option<", 7) == 0) {
+            const char *inner = slot_inner_type_name(ctx->current_return_type);
+            ASTNode *value = node->data.return_stmt.value;
+            if (value->type == AST_CALL
+                && value->data.call.callee != NULL
+                && value->data.call.callee->type == AST_IDENTIFIER) {
+                const char *callee_name = value->data.call.callee->data.identifier.name;
+                if (strcmp(callee_name, "Some") == 0 && value->data.call.arg_count == 1) {
+                    char *arg = emit_expression(value->data.call.arguments[0], ctx);
+                    codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
+                    free(arg);
+                    return;
+                }
+                if (strcmp(callee_name, "None") == 0 && value->data.call.arg_count == 0) {
+                    codebuf_write(ctx->out, "return None_%s();\n", inner);
+                    return;
+                }
+            }
+        }
         char *val = emit_expression(node->data.return_stmt.value, ctx);
         codebuf_write(ctx->out, "return %s;\n", val);
         free(val);

@@ -163,6 +163,7 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "RemoteFuture") == 0) return TYPE_REMOTE_FUTURE;
     if (strcmp(name, "DeviceSlot") == 0) return TYPE_DEVICE_SLOT;
     if (strcmp(name, "Allocator") == 0) return TYPE_ALLOCATOR;
+    if (strcmp(name, "Option") == 0) return TYPE_OPTION;
 
     Symbol *sym = scope_lookup(ctx->scope, name);
     if (sym != NULL)
@@ -533,11 +534,17 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
                 size_t field_count = decl->data.class_decl.field_count;
                 size_t provided = expr->data.call.arg_count;
+                /* Skip field-type validation for generic classes — the
+                 * generic params (T, U) aren't in scope at the call site.
+                 * Type safety is handled by the let-annotation type. */
+                bool decl_is_generic =
+                    (decl->data.class_decl.generic_params != NULL
+                     && decl->data.class_decl.generic_params->count > 0);
                 if (provided > field_count) {
                     semantic_error(ctx, expr,
                         "Constructor '%s' accepts at most %zu positional field argument(s), got %zu",
                         display_name, field_count, provided);
-                } else {
+                } else if (!decl_is_generic) {
                     for (size_t i = 0; i < provided; i++) {
                         ClassField *field = decl->data.class_decl.fields[i];
                         if (field == NULL || field->type == NULL)
@@ -554,6 +561,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
                     }
+                } else {
+                    /* For generic classes, still type-check expressions */
+                    for (size_t i = 0; i < provided; i++)
+                        type_check_expression(expr->data.call.arguments[i], ctx);
                 }
             }
         }
@@ -889,7 +900,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
         || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
         || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
-        || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0) {
+        || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0
+        || strcmp(name, "Option") == 0) {
         if (node->data.type.generic_args == NULL
             || node->data.type.generic_args->count != 1) {
             semantic_error(ctx, node,
@@ -910,8 +922,30 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "RemoteFuture") == 0) constructor = TYPE_REMOTE_FUTURE;
         else if (strcmp(name, "DeviceSlot") == 0) constructor = TYPE_DEVICE_SLOT;
         else if (strcmp(name, "Result") == 0) constructor = TYPE_RESULT;
+        else if (strcmp(name, "Option") == 0) constructor = TYPE_OPTION;
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
+    }
+
+    /* User-defined generic class: Node<Int>, Pair<String> etc.
+     * If the name resolves to a SYMBOL_CLASS and generic_args are present,
+     * build a TYPE_KIND_CONSTRUCTED type so the class specialization can
+     * be tracked through the type system. */
+    if (node->data.type.generic_args != NULL
+        && node->data.type.generic_args->count > 0) {
+        Symbol *sym = scope_lookup(ctx->scope, name);
+        if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != NULL) {
+            GenericParams *ga = node->data.type.generic_args;
+            size_t argc = ga->count;
+            Type **args = calloc(argc, sizeof(Type *));
+            if (args != NULL) {
+                for (size_t i = 0; i < argc; i++)
+                    args[i] = resolve_generic_type_arg(ga->params[i], ctx, node);
+                Type *result = type_create_constructed(sym->type, args, argc);
+                free(args);
+                return result;
+            }
+        }
     }
 
     return resolve_named_type(name, ctx, node);
@@ -2660,9 +2694,36 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.class_decl.name;
 
+    /* If the class has generic parameters (<T, U, ...>), register them
+     * as opaque types in a temporary scope so that resolve_type_node("T")
+     * succeeds for field types and method signatures. */
+    bool has_generics = (node->data.class_decl.generic_params != NULL
+                         && node->data.class_decl.generic_params->count > 0);
+    if (has_generics) {
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        GenericParams *gp = node->data.class_decl.generic_params;
+        for (size_t gi = 0; gi < gp->count; gi++) {
+            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+                continue;
+            Type *tp = calloc(1, sizeof(Type));
+            if (tp != NULL) {
+                tp->kind = TYPE_KIND_CLASS;
+                tp->name = pergyra_strdup(gp->params[gi]->name);
+            }
+            Symbol *s = symbol_create_variable(
+                gp->params[gi]->name,
+                tp != NULL ? tp : TYPE_UNKNOWN,
+                node->line, node->column);
+            s->kind = SYMBOL_CLASS;
+            scope_declare(ctx->scope, s);
+        }
+    }
+
     Type *class_type = calloc(1, sizeof(Type));
-    if (class_type == NULL)
+    if (class_type == NULL) {
+        if (has_generics) scope_exit(&ctx->scope);
         return false;
+    }
     class_type->kind = TYPE_KIND_CLASS;
     class_type->name = pergyra_strdup(name);
 
@@ -2670,16 +2731,51 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
                                                 node->line, node->column);
     class_sym->kind = SYMBOL_CLASS;
 
-    if (!scope_declare(ctx->scope, class_sym)) {
-        semantic_error(ctx, node, "Redeclaration of class '%s'", name);
-        symbol_destroy(class_sym);
-        return false;
+    /* Declare in the outer scope (step out of temporary generic scope) */
+    {
+        Scope *target = has_generics ? ctx->scope->parent : ctx->scope;
+        Scope *saved = ctx->scope;
+        ctx->scope = target;
+        if (!scope_declare(ctx->scope, class_sym)) {
+            semantic_error(ctx, node, "Redeclaration of class '%s'", name);
+            symbol_destroy(class_sym);
+            ctx->scope = saved;
+            if (has_generics) scope_exit(&ctx->scope);
+            return false;
+        }
+        ctx->scope = saved;
     }
+
+    /* Close the temporary generic-params scope before entering the real
+     * class scope — the class scope will re-register generic params so
+     * they're visible in the body. */
+    if (has_generics)
+        scope_exit(&ctx->scope);
 
     /* Check methods — type-check each in a temporary class scope,
      * then register the mangled name (ClassName_MethodName) in the
      * parent scope so that callers can find it. */
     scope_enter(&ctx->scope, SCOPE_CLASS);
+
+    /* Re-register generic type params inside the class scope */
+    if (has_generics) {
+        GenericParams *gp = node->data.class_decl.generic_params;
+        for (size_t gi = 0; gi < gp->count; gi++) {
+            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+                continue;
+            Type *tp = calloc(1, sizeof(Type));
+            if (tp != NULL) {
+                tp->kind = TYPE_KIND_CLASS;
+                tp->name = pergyra_strdup(gp->params[gi]->name);
+            }
+            Symbol *s = symbol_create_variable(
+                gp->params[gi]->name,
+                tp != NULL ? tp : TYPE_UNKNOWN,
+                node->line, node->column);
+            s->kind = SYMBOL_CLASS;
+            scope_declare(ctx->scope, s);
+        }
+    }
     for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
         ClassField *field = node->data.class_decl.fields[i];
         Type *field_type;

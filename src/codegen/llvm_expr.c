@@ -1898,6 +1898,55 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
     }
 
+    /* Built-in: Some(value) → { .tag=PgyOptionSome, .value=value } */
+    if (strcmp(callee_name, "Some") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMTypeRef option_ty = LLVMStructTypeInContext(ctx->context,
+            (LLVMTypeRef[]){ ctx->type_i32, LLVMTypeOf(val) }, 2, 0);
+        LLVMValueRef o = LLVMGetUndef(option_ty);
+        o = LLVMBuildInsertValue(ctx->builder, o,
+            LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));
+        o = LLVMBuildInsertValue(ctx->builder, o, val, 1, llvm_tmp_name(ctx));
+        return o;
+    }
+
+    /* Built-in: None() → { .tag=PgyOptionNone, .value=zero } */
+    if (strcmp(callee_name, "None") == 0 && node->data.call.arg_count == 0) {
+        LLVMTypeRef value_ty = ctx->type_i32;
+        if (LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind
+            && LLVMCountStructElementTypes(ctx->current_ret_type) == 2) {
+            LLVMTypeRef fields[2];
+            LLVMGetStructElementTypes(ctx->current_ret_type, fields);
+            if (fields[0] == ctx->type_i32)
+                value_ty = fields[1];
+        }
+        LLVMTypeRef option_ty = LLVMStructTypeInContext(ctx->context,
+            (LLVMTypeRef[]){ ctx->type_i32, value_ty }, 2, 0);
+        LLVMValueRef o = LLVMGetUndef(option_ty);
+        o = LLVMBuildInsertValue(ctx->builder, o,
+            LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
+        o = LLVMBuildInsertValue(ctx->builder, o,
+            LLVMConstNull(value_ty), 1, llvm_tmp_name(ctx));
+        return o;
+    }
+
+    /* Built-in: IsSome(option) / IsNone(option) */
+    if ((strcmp(callee_name, "IsSome") == 0 || strcmp(callee_name, "IsNone") == 0)
+        && node->data.call.arg_count == 1) {
+        LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, o, 0, llvm_tmp_name(ctx));
+        return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+            LLVMConstInt(ctx->type_i32,
+                strcmp(callee_name, "IsSome") == 0 ? 0 : 1, 0),
+            llvm_tmp_name(ctx));
+    }
+
+    /* Built-in: UnwrapOption(option) → extract value field */
+    if (strcmp(callee_name, "UnwrapOption") == 0 && node->data.call.arg_count == 1) {
+        LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        return LLVMBuildExtractValue(ctx->builder, o, 1, llvm_tmp_name(ctx));
+    }
+
     size_t argc = node->data.call.arg_count;
     LLVMValueRef *args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
     for (size_t i = 0; i < argc; i++)

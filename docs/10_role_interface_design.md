@@ -46,6 +46,7 @@ role MonsterCombat for Monster {
 - `override func ...`
 
 아래 **Core Concepts** 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+특히 `&mut self`, `impl Trait`, `Result<(), Error>` 같은 표기는 현재 stable current surface라기보다 장기 설계 메모에 가깝다.
 
 ## Core Concepts (Design Notes)
 

@@ -40,6 +40,9 @@
 - [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
 - [ ] **`let` 타입 추론** — `let s: Slot<Int> = 42` → `let s = 42`로 축약
 
+### 제네릭 클래스
+- [x] **제네릭 클래스** — `class Pair<T>` 문법 + 시맨틱 + C 코드젠 (단형화). 예제: `examples/generic_class.pgy`
+
 ### Slot 소유권 모델
 - [x] **`own`/`ref` 소유권 모델 확정 및 구현** — move 기본, 함수 시그니처에 명시
   - 완료: `own`/`ref` 키워드 (렉서/파서/AST), Slot 대입 시 move 시맨틱, Clone() 명시적 복사
@@ -142,7 +145,7 @@
 - [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
 - [~] **class/object model 구현 정렬** — class = ability를 수행하는 identity-bearing object type
   - 완료: class direct copy 금지, C/LLVM self-cell lowering, positional constructor
-  - 남음: generic class, inheritance, `Slot<class>` object-handle cell 승격
+  - 남음: inheritance, `Slot<class>` object-handle cell 승격
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure

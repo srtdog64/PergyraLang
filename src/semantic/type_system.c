@@ -35,6 +35,7 @@ Type *TYPE_REMOTE_FUTURE = NULL;
 Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
 Type *TYPE_RESULT = NULL;
+Type *TYPE_OPTION = NULL;
 
 void
 type_system_init(void)
@@ -62,6 +63,7 @@ type_system_init(void)
     TYPE_DEVICE_SLOT = type_create_primitive("DeviceSlot", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
     TYPE_RESULT = type_create_primitive("Result", 0, false);
+    TYPE_OPTION = type_create_primitive("Option", 0, false);
 }
 
 void
@@ -87,12 +89,13 @@ type_system_cleanup(void)
     free(TYPE_DEVICE_SLOT->name); free(TYPE_DEVICE_SLOT);
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
     free(TYPE_RESULT->name); free(TYPE_RESULT);
+    free(TYPE_OPTION->name); free(TYPE_OPTION);
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
     TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
     TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
-    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = NULL;
+    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = TYPE_OPTION = NULL;
 }
 
 /* -----------------------------------------------------------------
@@ -371,6 +374,16 @@ type_is_assignable(const Type *from, const Type *to)
     /* Enum → Int implicit coercion (enums are integer-backed) */
     if (from->kind == TYPE_KIND_ENUM && to->kind == TYPE_KIND_PRIMITIVE
         && strcmp(to->name, "Int") == 0)
+        return true;
+
+    /* Bare class → constructed class (generic class constructor):
+     * Pair → Pair<Int> when Pair is the constructor of Pair<Int>. */
+    if (from->kind == TYPE_KIND_CLASS
+        && to->kind == TYPE_KIND_CONSTRUCTED
+        && to->data.constructed.constructor != NULL
+        && to->data.constructed.constructor->kind == TYPE_KIND_CLASS
+        && from->name != NULL && to->data.constructed.constructor->name != NULL
+        && strcmp(from->name, to->data.constructed.constructor->name) == 0)
         return true;
 
     return false;

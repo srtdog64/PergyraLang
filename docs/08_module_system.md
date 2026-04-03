@@ -2,6 +2,26 @@
 
 엔진용 코어 언어 우선순위에서 모듈 시스템의 기준은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)의 9장을 우선한다.
 
+현재 구현 기준:
+
+- stable current surface는 파일 기반 `import "path.pgy";` 와 namespace/export 조합이다
+- 아래 `module ... {}` 문법, `init/deinit`, attribute 기반 조건부 컴파일은 설계 예시에 가깝다
+- 현재 상태 평가는 `docs/17_development_status.md`를 우선한다
+
+## 0. Current Implementation Surface
+
+```pergyra
+import "math.pgy";
+
+namespace Math {
+    export func Add(a: Int, b: Int) -> Int {
+        return a + b;
+    }
+}
+```
+
+현재 회귀 테스트는 explicit export, implicit export, private hidden, circular import까지 포함한다.
+
 ## 1. 모듈 정의 (BSD Style)
 
 ```pergyra
@@ -125,7 +145,7 @@ module Database
         ReleaseResources()
     }
     
-    export func Query(sql: String) -> Result<Data, Error>
+    export func Query(sql: String) -> Result<Data>
     {
         // 쿼리 실행
     }

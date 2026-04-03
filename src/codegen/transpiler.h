@@ -84,6 +84,17 @@ typedef struct
     bool           emitting;
 } GenericSpecializationEntry;
 
+#define MAX_GENERIC_CLASS_SPECIALIZATIONS 64
+
+typedef struct
+{
+    const ASTNode *class_decl;
+    char           specialized_name[128];
+    bool           emitted;
+    GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
+    size_t         binding_count;
+} GenericClassSpecEntry;
+
 /* -----------------------------------------------------------------
  * Transpiler context
  * ----------------------------------------------------------------- */
@@ -118,6 +129,8 @@ typedef struct
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool  suppress_slot_auto_read;
 
+    char  current_return_type[128];
+
     /* Defer counter for unique defer IDs */
     int   defer_counter;
 
@@ -132,6 +145,10 @@ typedef struct
     /* Generic specializations emitted on demand. */
     GenericSpecializationEntry generic_specializations[MAX_GENERIC_SPECIALIZATIONS];
     int                        generic_specialization_count;
+
+    /* Generic class specializations (monomorphized struct + methods). */
+    GenericClassSpecEntry generic_class_specs[MAX_GENERIC_CLASS_SPECIALIZATIONS];
+    int                   generic_class_spec_count;
 
     /* Current class method emission context for implicit self-field access. */
     const char *current_class_name;

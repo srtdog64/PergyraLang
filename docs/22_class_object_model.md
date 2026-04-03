@@ -231,10 +231,10 @@ Pergyra에서 class method는 개념적으로 항상 `self object cell` 위에�
 - `=` 재대입 금지
 - `Vec2(3, 7)` 형태의 positional constructor
 - `Box<class>`용 C helper 생성
+- generic class codegen (단형화 전략: `Pair<Int>` → `Pair_Int` struct + methods)
 
 ### 아직 닫히지 않은 범위
 
-- generic class codegen
 - class inheritance
 - `super`
 - 복잡한 object hierarchy

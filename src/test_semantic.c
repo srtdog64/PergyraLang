@@ -3579,6 +3579,125 @@ test_misc_grammar_edges(void)
         semantic_context_destroy(ctx);
         ast_destroy(release_call);
     }
+
+    TEST("Option<Int> annotation resolves to constructed type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ASTNode *opt = make_generic_type("Option", "Int");
+        Type *t = resolve_type_node(opt, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_OPTION));
+        EXPECT(t != NULL
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_INT);
+        semantic_context_destroy(ctx);
+        ast_destroy(opt);
+    }
+
+    TEST("Some(42) returns Option<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ASTNode *args[1] = { make_number(42, 1) };
+        ASTNode *call = make_call("Some", args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_OPTION));
+        EXPECT(t != NULL
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_INT);
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("IsSome requires Option<T>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ASTNode *args[1] = { make_number(42, 1) };
+        ASTNode *call = make_call("IsSome", args, 1, 1);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "IsSome requires Option<T>"));
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    /* ---- Generic class semantic tests ---- */
+
+    TEST("generic class declaration passes semantic check");
+    {
+        const char *source =
+            "class Box<T> {\n"
+            "    let value: T;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class with method passes semantic check");
+    {
+        const char *source =
+            "class Wrapper<T> {\n"
+            "    let data: T;\n"
+            "    func GetData(self) -> T {\n"
+            "        return self.data;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class with concrete usage passes semantic check");
+    {
+        const char *source =
+            "class Pair<T> {\n"
+            "    let first: T;\n"
+            "    let second: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let p: Pair<Int> = Pair(3, 7);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------

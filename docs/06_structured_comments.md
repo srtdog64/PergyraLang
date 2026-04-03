@@ -221,6 +221,11 @@ func TestDocumentation() {
 
 ## 8. 실용적 접근
 
+참고:
+
+- 아래 attribute와 `module ... {}` 예시는 structured comment 시스템의 장기 활용 방향을 설명하기 위한 것이다
+- 현재 stable current surface의 중심은 `///` 기반 structured comment 파싱과 effect tag 추적이다
+
 ### 8.1 점진적 도입
 
 ```pergyra

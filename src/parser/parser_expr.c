@@ -269,6 +269,23 @@ ASTNode* finish_call(Parser* parser, ASTNode* callee) {
 
 // 기본 표현식
 ASTNode* parser_parse_primary(Parser* parser) {
+    /* Leading-dot enum/union variant shorthand:
+     * .Some(v), .None, .Ok(x) → parse as bare variant identifier/call.
+     * This keeps docs-style match/return syntax working without forcing
+     * the enum name at each use site. */
+    if (parser_check(parser, TOKEN_DOT)
+        && parser->current_token.length == 1
+        && strcmp(parser->current_token.text, ".") == 0) {
+        parser_advance(parser);
+        Token variant = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected variant name after '.'");
+        if (strcmp(variant.text, "None") == 0) {
+            ASTNode *callee = ast_create_identifier(variant.text);
+            return ast_create_call(callee);
+        }
+        return ast_create_identifier(variant.text);
+    }
+
     // await 표현식
     if (parser_match(parser, TOKEN_AWAIT)) {
         return parser_parse_await_expression(parser);

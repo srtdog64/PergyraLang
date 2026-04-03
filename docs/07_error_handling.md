@@ -1,266 +1,118 @@
 # Pergyra 에러 처리 시스템
 
-엔진용 코어 언어 우선순위에서 오류 처리의 기준은 [engine_core_spec.md](/mnt/e/PergyraLang/doc/engine_core_spec.md)의 10장을 우선한다.
+마지막 업데이트: 2026-04-03
 
-## 1. Result 타입 (Rust 스타일)
+이 문서는 현재 구현 기준으로 정리한 에러 처리 표면이다. 과거 설계 문서에 있던 `Result<T, E>`, `Option<T>` full surface, `try/catch`, 에러 매크로 시스템은 아직 현재 구현 기준의 stable feature가 아니다.
+
+## 1. 현재 구현 중심
+
+현재 코드와 테스트가 실제로 보장하는 축은 다음이다.
+
+- `Result<T>` 타입
+- `Ok(...)`, `Err(...)`
+- `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`
+- postfix `?` 조기 반환
+- `RemoteFuture<T>`를 `await`했을 때 `Result<T>`가 되는 규칙
+
+## 2. Result<T>
+
+현재 예제와 프론트엔드 경로는 `Result<T>`를 중심으로 사용한다.
 
 ```pergyra
-enum Result<T, E>
-{
-    Ok(T),
-    Err(E)
-}
-
-// 사용 예시
-func DivideNumbers(a: Float, b: Float) -> Result<Float, String>
-{
-    if b == 0
-    {
-        return .Err("Division by zero")
+func SafeDiv(a: Int, b: Int) -> Result<Int> {
+    if b == 0 {
+        return Err("division by zero");
     }
-    return .Ok(a / b)
+    return Ok(a / b);
+}
+
+func Main() -> Void {
+    let r1: Result<Int> = SafeDiv(10, 2);
+    let r2: Result<Int> = SafeDiv(10, 0);
+
+    Log(Unwrap(r1));
+    Log(UnwrapOr(r2, -1));
 }
 ```
 
-## 2. Try 연산자 (?)
+현재 구현에서 에러 값은 런타임/코드젠 경로상 문자열 기반 `Err(...)` 사용이 중심이다.
+
+## 3. Try 연산자 `?`
+
+`expr?`는 `Result<T>`에서 성공값을 꺼내고, 실패면 현재 함수를 즉시 반환한다.
 
 ```pergyra
-func ProcessFile(path: String) -> Result<Data, Error>
-{
-    // ? 연산자는 에러를 자동으로 전파
-    let content = ReadFile(path)?
-    let parsed = ParseJson(content)?
-    let validated = ValidateData(parsed)?
-    
-    return .Ok(validated)
-}
-```
-
-## 3. Option 타입
-
-```pergyra
-enum Option<T>
-{
-    Some(T),
-    None
-}
-
-// 안전한 슬롯 읽기
-func SafeRead<T>(slot: Slot<T>) -> Option<T>
-{
-    if slot.IsValid()
-    {
-        return .Some(Read(slot))
+func Validate(x: Int) -> Result<Int> {
+    if x > 100 {
+        return Err("too large");
     }
-    return .None
+    return Ok(x);
+}
+
+func Process(x: Int) -> Result<Int> {
+    let doubled = x * 2;
+    let validated = Validate(doubled)?;
+    return Ok(validated + 10);
 }
 ```
 
-## 4. Panic과 Recovery
+이 경로는 semantic, C backend, LLVM backend 테스트에 반영되어 있다.
+
+## 4. RemoteFuture<T> 와 Result<T>
+
+로컬 `Future<T>`와 원격 `RemoteFuture<T>`는 `await` 결과가 다르다.
+
+- `Future<T>` → `await` → `T`
+- `RemoteFuture<T>` → `await` → `Result<T>`
 
 ```pergyra
-// Panic은 복구 불가능한 에러
-func AssertNotNull<T>(value: Option<T>) -> T
-{
-    match value
-    {
-        case .Some(v):
-            return v
-            
-        case .None:
-            Panic("Unexpected null value")
-    }
-}
+async func ConsumeRemote(pending: RemoteFuture<Int>) -> Void {
+    let result: Result<Int> = await pending;
 
-// Panic 핸들러 설정
-SetPanicHandler(func(message: String)
-{
-    LogError("PANIC: ", message)
-    SaveCrashDump()
-    GracefulShutdown()
-})
-```
-
-## 5. 에러 타입 계층
-
-```pergyra
-// 기본 에러 트레잇
-trait Error
-{
-    func Message() -> String
-    func Source() -> Option<Error>
-    func StackTrace() -> String
-}
-
-// 구체적인 에러 타입들
-class FileError : Error
-{
-    private _path: String
-    private _kind: FileErrorKind
-    
-    enum FileErrorKind
-    {
-        NotFound,
-        PermissionDenied,
-        AlreadyExists,
-        InvalidPath
-    }
-}
-
-class NetworkError : Error
-{
-    private _url: String
-    private _statusCode: Int
-    private _timeout: Bool
-}
-```
-
-## 6. 에러 체이닝
-
-```pergyra
-// 여러 에러를 연결하여 컨텍스트 제공
-func LoadUserData(userId: Int) -> Result<User, Error>
-{
-    return FetchFromDatabase(userId)
-        .MapErr(e => DatabaseError("Failed to fetch user", e))
-        .AndThen(data => DeserializeUser(data))
-        .MapErr(e => DeserializationError("Invalid user data", e))
-}
-```
-
-## 7. Defer와 Cleanup
-
-```pergyra
-func ProcessWithCleanup() -> Result<(), Error>
-{
-    let resource = AcquireResource()?
-    
-    defer
-    {
-        // 함수 종료 시 무조건 실행
-        ReleaseResource(resource)
-    }
-    
-    // 에러가 발생해도 defer 블록은 실행됨
-    DoSomethingDangerous(resource)?
-    
-    return .Ok(())
-}
-```
-
-## 8. 커스텀 에러 매크로
-
-```pergyra
-// 에러 생성을 간편하게
-@[error_type]
-enum AppError
-{
-    InvalidInput(field: String, reason: String),
-    DatabaseError(query: String, error: Error),
-    NetworkTimeout(url: String, duration: Float),
-    ConfigError(key: String)
-}
-
-// 자동 생성되는 메서드들:
-// - Message() -> String
-// - ToResult<T>() -> Result<T, AppError>
-// - Chain(source: Error) -> AppError
-```
-
-## 9. 에러 처리 베스트 프랙티스
-
-```pergyra
-/// [What]: 사용자 생성 with 완전한 에러 처리
-/// [Why]: 각 단계의 실패를 명확히 처리하고 로깅
-func CreateUser(request: CreateUserRequest) -> Result<User, AppError>
-{
-    // 입력 검증
-    ValidateEmail(request.email)
-        .MapErr(e => AppError.InvalidInput("email", e.Message()))?
-    
-    ValidatePassword(request.password)
-        .MapErr(e => AppError.InvalidInput("password", e.Message()))?
-    
-    // 중복 확인
-    let existing = CheckUserExists(request.email)?
-    if existing.IsSome()
-    {
-        return .Err(AppError.InvalidInput("email", "Already exists"))
-    }
-    
-    // 트랜잭션 내에서 생성
-    return Transaction(func()
-    {
-        let hashedPassword = HashPassword(request.password)?
-        let user = User
-        {
-            email: request.email,
-            passwordHash: hashedPassword,
-            createdAt: Now()
-        }
-        
-        SaveToDatabase(user)
-            .MapErr(e => AppError.DatabaseError("INSERT user", e))
-    })
-}
-```
-
-## 10. 비동기 에러 처리
-
-```pergyra
-// Future/Promise 스타일 에러 처리
-async func FetchDataAsync(url: String) -> Result<Data, Error>
-{
-    try
-    {
-        let response = await HttpGet(url)
-        if response.StatusCode != 200
-        {
-            return .Err(NetworkError(url, response.StatusCode))
-        }
-        
-        let data = await response.ReadBodyAsync()
-        return .Ok(data)
-    }
-    catch timeout: TimeoutError
-    {
-        return .Err(NetworkTimeout(url, timeout.Duration))
-    }
-    catch e: Error
-    {
-        return .Err(NetworkError("Unknown error", e))
+    if IsOk(result) {
+        Log(Unwrap(result));
+    } else {
+        Log(UnwrapOr(result, -1));
     }
 }
 ```
 
-## 11. 슬롯 에러 처리
+이 규칙은 현재 Pergyra의 중요한 안정된 의미론 중 하나다.
+
+## 5. match 와 Result 패턴
+
+`Result<T>`는 `match`에서 `Ok(...)` / `Err(...)`로 destructuring 가능하다.
 
 ```pergyra
-// 슬롯 관련 특화 에러
-enum SlotError
-{
-    InvalidToken,
-    ExpiredToken,
-    SlotReleased,
-    SecurityViolation,
-    TypeMismatch
-}
-
-func SecureSlotOperation<T>(slot: SecureSlot<T>, token: Token) -> Result<T, SlotError>
-{
-    // 토큰 검증
-    if !ValidateToken(slot, token)
-    {
-        return .Err(.InvalidToken)
+func Handle(result: Result<Int>) -> Void {
+    match result {
+        case .Ok(value):
+            Log(value);
+        case .Err(error):
+            Log(error);
     }
-    
-    // 슬롯 상태 확인
-    if slot.IsReleased()
-    {
-        return .Err(.SlotReleased)
-    }
-    
-    // 안전한 읽기
-    return .Ok(ReadSecure(slot, token))
 }
 ```
+
+## 6. Option<T> 상태
+
+`Option`은 런타임 매크로와 설계 문서에는 존재하지만, 현재 프로젝트에서 `Result<T>`만큼 고정된 source-level stable surface로 보긴 어렵다.
+
+- 런타임에는 `PgyOption_*` 지원이 존재
+- 문법적으로는 tagged union enum으로 `Some/None` 형태를 직접 정의해서 사용할 수 있음
+- TODO 기준으로 `Option<T> / None`은 아직 고정 대상
+
+따라서 현재 문서에서는 `Option<T>`를 "이미 완성된 언어 내장"으로 보기보다, "부분 준비된 표면"으로 보는 편이 정확하다.
+
+## 7. 아직 stable 하지 않은 항목
+
+다음 표면은 설계 문서에는 있었지만 현재 구현 기준의 stable feature로 문서화하기엔 이르다.
+
+- `Result<T, E>` 두 개의 타입 파라미터를 가진 완전한 표면
+- `Option<T>` full stdlib surface
+- `try { } catch { }`
+- trait/class 기반 에러 계층
+- `@[error_type]` 같은 메타프로그래밍 표면
+- `MapErr`, `AndThen` 같은 고수준 combinator 체인
+
+현재 프로젝트 상태를 정확히 표현하려면, 에러 처리는 우선 `Result<T>` + `?` + `await RemoteFuture -> Result<T>` 조합으로 이해하는 것이 맞다.
