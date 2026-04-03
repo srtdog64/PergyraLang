@@ -9,7 +9,7 @@
 
 ## P1 — 다음 단계
 
-- [ ] **CI (GitHub Actions) 구축** — Ubuntu + Windows 빌드 매트릭스, `make all && make test-all`, AddressSanitizer
+- [ ] **CI 하드닝** — Ubuntu + Windows 빌드 매트릭스 유지, AddressSanitizer/UBSan, 더 촘촘한 smoke coverage
 - [ ] **CodeQL + secret scanning 활성화** — C/C++ 분석 모드, push protection
 - [ ] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
 - [ ] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
@@ -93,18 +93,31 @@
   - World 내부의 Slot은 로컬 (zero-cost), World 간은 Channel (명시적 비용)
 
 ### 스케일링 대응 (레드팀 피드백 기반)
+- [ ] **백엔드 역할 컷오프 고정** — C = reference/fallback, LLVM = optimization/mainline
+  - 같은 의미론을 두 백엔드에 유지하되, 공격적 최적화와 type-erased fast path는 LLVM에만 집중
+  - C 백엔드는 MVP 호환성, 디버깅, 폴백, 부트스트래핑 역할로 제한
+  - 새 기능 추가 시 "C에서도 반드시 최적화 경로까지 구현해야 하는가?"를 기본적으로 `아니오`로 둠
 - [ ] **매크로 조합 폭발 대응** — C 매크로 monomorphization의 장기 대안
   - 현재: `PGY_SLOT_DEFINE`, `PGY_CHANNEL_DEFINE` 등 타입별 전개 (부트스트래핑 전략)
   - 대안: LLVM 백엔드에서 type-erased 경로 (opaque ptr + vtable) 추가
   - LTO + dead code elimination으로 바이너리 비대화 억제
+- [ ] **코드젠 이중화 억제 규칙** — bifurcation trap 방지
+  - 동일 기능의 C/LLVM lowering이 영원히 쌍으로 비대해지지 않게 공통 의미론 테스트 우선
+  - backend compare / smoke를 계약으로 유지하고, backend-specific fast path는 명시적으로 분리
 - [ ] **Async 힙 할당 오버헤드 감소** — 고성능 분산 I/O를 위한 런타임 최적화
   - 현재: `pgy_spawn` + `malloc` per task
   - 대안: Arena allocator 기반 task pool, io_uring/IOCP zero-copy I/O
   - 코루틴 스택은 이미 fiber 기반 (pgy_parallel.h)
+  - 단, 언어 코어와 OS 전용 스케줄러를 강결합하지 말 것
+- [ ] **BYOS (Bring Your Own Scheduler) 경로 설계** — async 의미론과 스케줄러/I/O 모델 분리
+  - 언어는 task/future/channel 의미만 고정
+  - 실제 polling/runtime은 플랫폼별 주입 가능 계층으로 분리
 - [ ] **ABI 다형성 전략** — 크기가 다른 슬롯 타입의 제네릭 처리
   - 의도적 설계: `Slot<T>` ≠ `SecureSlot<T>` (보안 차원 분리)
   - 다형성 필요 시: `ability` vtable dispatch (Party 시스템에 이미 구현)
   - Boxing 필요 시: `Rc<T>` + ability 조합
+  - `Rc<T> + dyn ability`는 explicit high-cost path로 문서화
+  - 값 경로(struct), 객체 경로(class), 동적 경로(Rc + dyn ability)를 성능 계약으로 구분
 
 ### 기존 항목
 - [x] **Slot Protocol 고정** — Claim/Access/Mutate/Transfer/Release 불변 계약

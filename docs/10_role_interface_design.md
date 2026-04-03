@@ -12,7 +12,42 @@
 즉 Pergyra에서 행위의 중심은 `class + ability + role` 조합이고,
 `struct`는 그 아래에서 쓰이는 값 타입이다.
 
-## Core Concepts
+## Current Implementation Surface (2026-04-03)
+
+현재 파서/시맨틱/백엔드에서 지원하는 문법은 다음 형태다.
+
+```pergyra
+ability Damageable {
+    require health: Int;
+    func TakeDamage(amount: Int) -> Void;
+}
+
+role PlayerDamageable for Player {
+    impl ability Damageable {
+        func TakeDamage(amount: Int) -> Void {
+            Log(amount);
+        }
+    }
+}
+
+role MonsterCombat for Monster {
+    include role BasicDamageable;
+    override func TakeDamage(amount: Int) -> Void {
+        Log(amount);
+    }
+}
+```
+
+지원되는 요소:
+- `ability` + `require`
+- `role ... for Type`
+- `impl ability ...`
+- `include role ...`
+- `override func ...`
+
+아래 **Core Concepts** 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+
+## Core Concepts (Design Notes)
 
 ### 1. **struct** (최소 값 타입)
 - 순수 데이터

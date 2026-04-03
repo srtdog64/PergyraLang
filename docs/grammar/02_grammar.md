@@ -44,6 +44,8 @@ a && b || !c;
 obj.Method(42);
 array[i + 1];
 value = other;
+pipeline = x |> F |> G;
+let y = Validate(x)?;
 ```
 
 주요 표현식 종류:
@@ -56,6 +58,8 @@ value = other;
 - `await`
 - `spawn`
 - 채널 송수신
+- 파이프 `|>`
+- postfix `?` (Result<T> unwrap + early return)
 
 ### 2.3 우선순위
 
@@ -113,6 +117,9 @@ where T: Comparable {
 - `async func`
 - `export func`
 
+주의:
+- `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
+
 ### 3.3 타입 선언
 
 ```pergyra
@@ -128,14 +135,22 @@ class Player {
 }
 
 enum Color { Red, Green, Blue }
+
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
+}
 ```
 
 지원되는 선언:
 - `struct`
 - `class`
 - `enum`
-- `type` alias
 - `extern "C"` block
+
+미지원:
+- `type` alias (파서/시맨틱 미구현)
 
 ### 3.4 모듈
 
@@ -287,6 +302,9 @@ with SecureSlot<Int>(SECURITY_LEVEL_HARDWARE) as hp {
 }
 ```
 
+주의:
+- `SECURITY_LEVEL_*`는 현재 **파싱만** 되며 시맨틱 의미는 적용되지 않는다.
+
 ### 6.3 View / Move
 
 ```pergyra
@@ -322,6 +340,8 @@ async func Fetch() -> Int {
 - `spawn`은 `Future<T>` 계열을 만든다.
 - `await`는 async 문맥 안에서 사용한다.
 - 현재 구현은 코루틴 런타임 경로를 사용한다.
+
+`RemoteFuture<T>`는 `await` 결과가 `Result<T>`가 된다.
 
 ### 7.3 `async` 블록
 
@@ -407,8 +427,8 @@ defer {
 ```
 
 주의:
-- `unsafe`, `defer`, `bind`는 파싱/AST 진입점은 있으나, 다른 핵심 문법보다 완성도가 낮다.
-- 실사용 여부는 현재 테스트/예제 기준으로 다시 검증해야 한다.
+- `unsafe`와 `defer`는 시맨틱/백엔드 경로가 존재하며 회귀 테스트로 검증된다.
+- `bind`는 파서/시맨틱/코드젠 경로가 있으나 의미론은 얕다 (동적 바인딩 확인 수준).
 
 ## 10. 상태 구분
 

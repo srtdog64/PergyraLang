@@ -1,93 +1,66 @@
 # Pergyra 개발 현황
 
-## 완료된 컴포넌트
+마지막 업데이트: 2026-04-03
 
-### 렉서 (Lexer)
-- `src/lexer/lexer.h`, `src/lexer/lexer.c`
-- 키워드, 연산자, 리터럴, 식별자 인식
-- 비동기 키워드 지원: `async`, `await`, `actor`, `channel`, `select`, `spawn`
-- 에러 위치 추적
+## 요약
 
-### 파서 (Parser)
-- `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.c`, `src/parser/parser_async.c`
-- 재귀 하향 파서
-- 슬롯/비동기/병렬/역할/파티/월드 구문 파싱
-- 제네릭 타입 파라미터, where 절 지원
+- 컴파일러 파이프라인은 `Lexer → Parser → Semantic → HIR → Backend`로 고정됨.
+- LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
+- async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 
-### 시맨틱 분석 (Semantic Analyzer)
-- `src/semantic/type_system.c` -- 타입 시스템 (Primitive, Generic, Constructed, Function, Slot)
-- `src/semantic/symbol_table.c` -- 스코프 기반 심볼 테이블
-- `src/semantic/type_checker.c` -- 타입 검사, 슬롯 규칙 검증
-- `src/semantic/slot_analyzer.c` -- 슬롯 생명주기 분석
-- `src/semantic/semantic.c` -- 통합 진입점
+## 구현된 컴포넌트
 
-슬롯 규칙 검증:
-- R1: 슬롯 inner type과 값 타입 일치 확인
-- R2: SecureSlot은 토큰 필수
-- R3: 토큰은 해당 슬롯과 페어링 확인
-- R4: 해제된 슬롯 접근 차단
+### 렉서 / 파서
+- 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `ability/role/party/systemic/world`, `event`, `actor`, `import/export/namespace`
 
-### C 트랜스파일러 (Code Generator)
-- `src/codegen/transpiler.h`, `src/codegen/transpiler.c`
-- AST -> C 소스 변환
-- 슬롯 변수 타입 추적 및 올바른 `pgy_*` 함수 호출 생성
-- `func Main()` -> `int main(void)` 자동 래핑
-- `with`, `parallel`, `for`, `while`, `if/else` 지원
+### 시맨틱
+- 타입 시스템 + 슬롯 규칙 + move/consume 추적
+- anchored handle(`Slot/SecureSlot/DeviceSlot`)와 movable handle(`QubitSlot`)의 경계 규칙 반영
+- `RemoteFuture<T>`의 `await`가 `Result<T>`를 반환하도록 강제
 
-### 런타임 (Runtime)
-- `src/runtime/pgy_runtime.h` -- 헤더 온리 런타임
-- C11 `_Generic` 기반 `pgy_log()` 매크로
-- `PGY_SLOT_DEFINE` / `PGY_SECURE_SLOT_DEFINE` 매크로로 6개 타입 인스턴스화
-  - Int (int32_t), Long (int64_t), Float (float), Double (double), Bool (bool), String (char*)
-- `PGY_PARALLEL_BEGIN/TASK/END` OpenMP 매크로
-- `PGY_PANIC`으로 use-after-release, double-release, 잘못된 토큰 감지
+### 백엔드
+- C 백엔드: reference/fallback, 스모크와 트랜스파일 테스트로 유지
+- LLVM 백엔드: 기본 실행 경로, backend-compare 및 llvm-smoke로 회귀 체크
 
-### 컴파일러 드라이버
-- `src/pgy_driver.c`
-- 파이프라인: 파일 읽기 -> 렉서 -> 파서 -> 시맨틱 -> 트랜스파일 -> GCC -> 실행
-- 옵션: `--compile`, `--run`, `--tokens`, `--ast`, `-v`, `-o`
+### 런타임
+- slot/secure slot/device slot/qubit slot 런타임
+- coroutine runtime (POSIX ucontext + Windows Fiber)
+- channel/parallel/select 지원
 
-## 테스트
+### 도구
+- LSP 서버 구현 존재 (`src/lsp/pgy_lsp.c`)
 
-| 스위트 | 파일 | 테스트 수 |
-|--------|------|-----------|
-| 시맨틱 분석 | `src/test_semantic.c` | 29 |
-| 트랜스파일러 | `src/test_transpile.c` | 34 |
-| 메모리 레이아웃 | `src/test_memory_layout.c` | 44 |
-| **합계** | | **107** |
+## 테스트 현황
 
-## End-to-End 검증 완료
+`make test-all` 기준:
 
-```
-examples/hello.pgy  ->  "Hello, Pergyra!"
-examples/slots.pgy  ->  45, 100, 30  (for loop, with 블록, parallel 블록)
-```
+| 스위트 | 결과 |
+|---|---|
+| semantic | 197 passed |
+| transpile | 141 passed |
+| memory | 54 passed |
+| concurrency | 2 passed |
+| HIR | 3 passed |
+| lexer/parser | 통과 |
 
-## 코드 통계
+추가 회귀:
+- `make llvm-test-smoke` (async, select, tagged-union, RemoteFuture, device slot 등)
+- `make llvm-test-backend-compare` (대표 예제 C/LLVM 비교)
+- `make stdlib-test-smoke`, `make module-test-smoke`, `make example-test-smoke`
 
-| 컴포넌트 | 파일 수 | 상태 |
-|----------|---------|------|
-| Lexer | 2 | 완료 |
-| Parser + AST | 4 | 완료 |
-| Semantic | 8 | 완료 |
-| Codegen | 2 | 완료 |
-| Runtime | 1 | 완료 |
-| Driver | 1 | 완료 |
-| Tests | 3 | 완료 |
-
-## 향후 작업
+## 남은 주요 작업
 
 ### 단기
-- 패턴 매칭 트랜스파일 지원
-- 역할(Role)/파티(Party) 시스템 코드 생성
-- 에러 메시지 개선
+- orchestration 고도화 (`select` 공정성, timeout, cancellation, backpressure)
+- effect system 2단계 (선언적 effect, mismatch 진단)
+- 안정화 문서 갱신 및 표면 문법 정리
 
 ### 중기
-- 표준 라이브러리 기초
-- 비동기 런타임 통합 (Fiber, Channel)
-- 최적화 패스
+- stable stdlib surface 고정
+- toolchain 강화 (formatter, LSP 진단 품질, debugger)
 
 ### 장기
-- LLVM 백엔드
-- 패키지 시스템
-- LSP 서버 (IDE 지원)
+- WebAssembly 타겟
+- 패키지 매니저
+- 성능 최적화 (LLVM 쪽 집중)

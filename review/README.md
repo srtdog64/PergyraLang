@@ -22,3 +22,4 @@
 - `diagnostics-contract.md`
 - `syntax-audit.md`
 - `grammar-gap-audit.md`
+- `architecture-boundaries.md`

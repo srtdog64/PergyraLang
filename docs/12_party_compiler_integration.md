@@ -6,7 +6,19 @@ Party 시스템의 컴파일 타임 처리 흐름을 정의합니다.
 여기서 Party는 단순 struct 묶음이 아니라,
 `role slot -> class object -> ability dispatch`를 코드로 고정하는 단계입니다.
 
-## Compilation Pipeline
+## Current Implementation Snapshot (2026-04-03)
+
+- 파서: `AST_PARTY_DECL`, `AST_ROLE_DECL`, `AST_SYSTEMIC_DECL`, `AST_WORLD_DECL`
+- 시맨틱: ability/role/party/systemic/world 선언 검증
+- 코드젠:
+  - C: party/systemic/world struct + role slot + vtable 포인터 생성
+  - LLVM: 동일한 구조체/함수/바인딩 경로
+- `bind`는 vtable 포인터를 slot에 연결하는 경로로 구현됨
+
+현재 구현은 “구조 + 바인딩 + 호출 경로”까지이며,
+아래 FiberMap/scheduler 모델은 **설계 노트**다.
+
+## Compilation Pipeline (Design Notes)
 
 ### 1. **Parsing Phase**
 ```

@@ -13,7 +13,31 @@ Party는 역할들의 협력적 실행 단위를 표현하기 위한 설계 요�
 - `role`은 class가 특정 ability 묶음을 수행하도록 바인딩한다
 - `party`는 role slot에 class 객체를 꽂아 협력시키는 실행 단위다
 
-## Party의 핵심 요소
+## Current Implementation Surface (2026-04-03)
+
+현재 파서/시맨틱/백엔드에서 지원하는 문법:
+
+```pergyra
+party Team {
+    role slot tank: Damageable;
+    role slot healer: Healing;
+    shared formation: String = "standard";
+    func Execute() -> Void {
+        Log(formation);
+    }
+}
+
+bind team.tank = Warrior;
+```
+
+지원되는 요소:
+- `party { role slot ...; shared ...; func ... }`
+- `dyn role slot` (동적 바인딩 가능)
+- top-level `bind party.slot = ClassName`
+
+아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+
+## Party의 핵심 요소 (Design Notes)
 
 ### 1. **Role Slot (역할 슬롯)**
 - Party가 요구하는 역할의 명세

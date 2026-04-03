@@ -17,7 +17,39 @@ class 는 ROLE의 실제 수행 주체이고,
 struct 는 이 계층 아래에서 쓰이는 값 타입이다.
 ```
 
-## 📋 계층별 정의
+## Current Implementation Surface (2026-04-03)
+
+```pergyra
+ability Damageable {
+    require health: Int;
+    func TakeDamage(amount: Int) -> Void;
+}
+
+role WarriorTank for Warrior {
+    impl ability Damageable {
+        func TakeDamage(amount: Int) -> Void {
+            Log(amount);
+        }
+    }
+}
+
+party DungeonTeam {
+    role slot tank: Damageable;
+    shared strategy: Int = 0;
+}
+
+systemic CombatSystem {
+    party slot team1: DungeonTeam;
+}
+
+world GameWorld {
+    systemic combat: CombatSystem;
+}
+```
+
+아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
+
+## 📋 계층별 정의 (Design Notes)
 
 ### 0. **STRUCT / CLASS** - 값과 객체의 분리
 

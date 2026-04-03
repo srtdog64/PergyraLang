@@ -46,11 +46,18 @@ Write   - 자원의 값을 변경한다.
 Release - 자원을 반환한다.
 ```
 
+현재 구현에서는 이 추상화가 한 타입으로 완전히 수렴한 것은 아니다.
+
+- `Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`는 로컬에 고정된 anchored resource handle이다.
+- `QubitSlot`은 복사 불가 move-only resource handle이다.
+- 원격/지연 계산은 슬롯 자체를 직접 노출하기보다 `RemoteFuture<T>`를 `await`해 `Result<T>`로 회수한다.
+
 ---
 
 ## Slot = 자원 점유권
 
 `Slot<T>`는 "T를 저장하는 메모리 위치"가 아니라 "T 타입 자원에 대한 점유권"이다.
+현재 구현에서는 이 규율이 특히 로컬 anchored handle 계열(`Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`)에 직접 적용된다.
 
 | 개념 | 포인터 모델 | Slot 모델 |
 |------|-------------|-----------|
@@ -71,6 +78,19 @@ Release - 자원을 반환한다.
 
 이것은 단순한 접근 제어가 아니라, 능력(capability) 기반 보안 모델이다.
 자원에 대한 접근은 주소를 아는 것이 아니라, 권한을 가진 것으로 결정된다.
+
+### RemoteFuture<T> = 원격 작업 결과 경계
+
+분산 자원이나 디바이스 작업은 로컬 `Slot<T>`처럼 즉시 `Read/Write`하지 않는다.
+현재 구현에서는 `SubmitDeviceRead(slot)` 같은 연산이 `RemoteFuture<T>`를 만들고,
+`await` 결과는 항상 `Result<T>`가 된다.
+
+즉:
+
+```text
+로컬 Future<T>       -> await -> T
+원격 RemoteFuture<T> -> await -> Result<T>
+```
 
 ---
 
@@ -133,9 +153,10 @@ Pergyra는:
   메모리 모델은 인간에게 덜 적대적인 언어.
 
 그 근거는:
-  자원은 주소가 아니라 점유권으로 다룬다.
+  자원은 주소가 아니라 점유권과 전송 경계로 다룬다.
   세마포어가 P/V로 자원을 추상화했듯이,
-  Slot은 Claim/Read/Write/Release로 자원을 추상화한다.
+  로컬 anchored handle은 Claim/Read/Write/Release로,
+  원격 작업은 Submit/Await/Result로 자원을 추상화한다.
 
 그 미래는:
   클래식 메모리든, 큐비트든, 분산 자원이든,

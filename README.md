@@ -6,22 +6,22 @@
 
 Pergyra는 자원의 세부 구현을 직접 드러내기보다, 서로 다른 자원들을 같은 사고 체계로 다룰 수 있게 만드는 **의미 통일 언어**입니다.
 
-PergyraLang은 모든 자원을 **Slot**이라는 공통 모델로 취급한다.
+PergyraLang은 자원을 **Slot 계열 핸들 + 비동기 경계**라는 공통 모델로 다룬다.
 
-Slot은 저장 공간이 아니라, **점유·권한·수명·보호 규칙이 부착된 자원 셀**이다.
-메모리는 그중 하나의 사례일 뿐이며, 디바이스, 보안 자원, 양자 큐비트, 원격 계산 자원도
-동일한 의미론으로 표현된다.
+`Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`는 로컬에 고정된 anchored 자원 핸들이고,
+`QubitSlot`은 복사 불가 move-only 자원 핸들이다.
+원격 작업은 슬롯 자체를 직접 넘기기보다 `RemoteFuture<T>`를 `await`해 `Result<T>`로 회수한다.
 
 이로써 언어는 최고 성능 대신, **이종 자원 통합**과 **도메인 파편화 감소**를 목표로 한다.
 
 | Slot이 담는 것 | 예시 |
 |----------------|------|
 | 수명(Lifetime) | 스코프 진입 시 점유, 탈출 시 반환 |
-| 소유권(Ownership) | 단일 소유자, 이동은 가능하되 복사는 불가 |
+| 소유권(Ownership) | anchored handle은 단일 바인딩 유지, movable handle은 명시적 이동만 허용 |
 | 접근 권한(Permission) | SecureSlot의 토큰 기반 읽기/쓰기 제어 |
 | 해제 의미론(Release) | `with` 블록 자동 해제, 명시적 `Release` |
 | 보호 의미론(Protection) | 관측이 상태를 파괴하는 양자 자원도 동일 모델 |
-| 전이 의미론(Transfer) | 이동(move), 얽힘 전파, Party 간 위임 |
+| 전이 의미론(Transfer) | `QubitSlot` 이동, `recv/await` 경계 전달, 원격 결과는 `RemoteFuture<T>` → `Result<T>` |
 
 ## 개요
 
@@ -35,11 +35,13 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 
 ### 핵심 특징
 
-- **Slot 기반 자원 모델**: 메모리·디바이스·큐비트를 `Slot<T>`라는 하나의 규율로 통합
+- **Slot 기반 자원 모델**: `Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`는 anchored handle, `QubitSlot`은 move-only handle로 구분
 - **보안 슬롯**: `SecureSlot<T>`에 토큰 기반 접근 제어
+- **비동기 오케스트레이션**: `async/await`, `spawn`, `Channel<T>`, `select`, `parallel`
+- **원격 결과 의미론**: `RemoteFuture<T>`를 `await`하면 `Result<T>`가 되어 실패 가능성을 타입에 남김
 - **내장 병렬성**: `parallel` 블록으로 선언적 병렬 처리
 - **스코프 기반 해제**: `with` 블록으로 자동 자원 반환
-- **양자 자원 의미론**: `QubitSlot`의 상태 머신 — 중첩, 얽힘, 붕괴, 고전 변환을 컴파일 타임에 추적
+- **양자 자원 의미론**: `QubitSlot`의 move/collapse/entanglement 규칙을 부분적으로 시맨틱과 런타임에서 추적
 
 ## 빠른 시작
 
@@ -105,9 +107,9 @@ PergyraLang/
     lexer/          # 토크나이저
     parser/         # AST 생성
     semantic/       # 타입 검사, 슬롯 분석
-    codegen/        # C 백엔드
+    codegen/        # C/LLVM 백엔드
     compiler/       # 컴파일 파사드와 네이티브 빌드
-    runtime/        # pgy_runtime.h (슬롯 매크로)
+    runtime/        # 슬롯/병렬/채널/큐비트 런타임
     pgy_driver.c    # 컴파일러 드라이버
   examples/         # .pgy 예제 파일
   docs/             # 언어 설계 문서
@@ -135,6 +137,7 @@ make test-memory    # 메모리 레이아웃
 ```
 
 현재 `make test-semantic`, `make test-transpile` 기준 핵심 프론트엔드 테스트가 통과합니다.
+`make llvm-test-backend-compare`는 대표 예제 코퍼스에 대해 C/LLVM 결과를 비교하지만, 아직 전체 기능 parity를 보증하는 문서는 아닙니다.
 
 ## Slot 시스템
 
@@ -142,9 +145,10 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 
 | 타입 | 자원 | 규율 |
 |------|------|------|
-| `Slot<T>` | 메모리 | 점유 → 읽기/쓰기 → 반환 |
-| `SecureSlot<T>` | 보안 메모리 | 토큰 없이 접근 불가 |
-| `QubitSlot` | 양자 큐비트 | 중첩 → 얽힘 → 측정 → 붕괴 (되돌릴 수 없음) |
+| `Slot<T>` | 메모리 | anchored handle: 점유 → 읽기/쓰기 → 반환 |
+| `SecureSlot<T>` | 보안 메모리 | anchored handle: 토큰 없이 접근 불가 |
+| `DeviceSlot<T>` | 디바이스/가속기 자원 | anchored handle: device read/write/submit/release |
+| `QubitSlot` | 양자 큐비트 | movable handle: 복사 금지, move/measure/entangle 규칙 적용 |
 
 | 연산 | 설명 |
 |------|------|
@@ -152,6 +156,9 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 | `Write(slot, value)` | 값 쓰기 |
 | `Read(slot)` | 값 읽기 |
 | `Release(slot)` | 자원 반환 |
+| `SubmitDeviceRead(slot)` | 원격/디바이스 읽기 제출 → `RemoteFuture<T>` |
+
+`await` 결과는 경계 종류에 따라 다릅니다: `Future<T>`는 `T`를, `RemoteFuture<T>`는 `Result<T>`를 돌려줍니다.
 
 런타임은 `PGY_PANIC`으로 다음을 방지합니다:
 - 해제 후 읽기/쓰기
@@ -164,14 +171,13 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 - [ ] 어셈블리 최적화 런타임 (x86-64 슬롯 연산)
 - [ ] 오케스트레이션 모델 강화 (`select` 공정성, timeout, cancellation, backpressure)
 - [ ] Effect System (I/O, Timer 등 부작용 타입화)
-- [ ] LLVM 백엔드 안정화 및 최적화
+- [ ] LLVM 백엔드 최적화 및 coverage 확장
 - [ ] JVM 연동 (JNI 브릿지)
-- [ ] 패턴 매칭 코드 생성
-- [ ] Role/Party/World 시스템 코드 생성
-- [ ] 표준 라이브러리
-- [ ] 패키지 매니저 / 모듈 시스템
+- [ ] 패턴 매칭 고도화
+- [ ] 표준 라이브러리 안정화
+- [ ] 패키지 매니저
+- [ ] 모듈 시스템 안정화
 - [ ] WebAssembly 타겟
-- [ ] LSP 서버 (IDE 지원)
 - [ ] 디버거
 
 ## 문서

@@ -68,6 +68,9 @@ where T: Comparable {
 - `where` 제약
 - `async func`
 
+주의:
+- `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
+
 ### 2.3 타입 선언
 
 ```pergyra
@@ -263,6 +266,9 @@ with SecureSlot<Int>(SECURITY_LEVEL_HARDWARE) as hp {
 }
 ```
 
+주의:
+- `SECURITY_LEVEL_*`는 현재 파싱만 되며 시맨틱 의미는 적용되지 않는다.
+
 ### 6.3 view / move
 
 ```pergyra
@@ -388,7 +394,7 @@ world GameWorld {
 
 - 실제 구현 문법 확인: 이 문서
 - 설계/비전 확인: [00_vision.md](/mnt/e/PergyraLang/docs/00_vision.md)
-- 오래된 설계안/확장 구문 참고: [02_grammar.md](/mnt/e/PergyraLang/docs/grammar/02_grammar.md)
+- 상세 문법 레퍼런스: [02_grammar.md](/mnt/e/PergyraLang/docs/grammar/02_grammar.md)
 - 네이밍 규칙: [03_naming.md](/mnt/e/PergyraLang/docs/grammar/03_naming.md)
 
 ## 11. 현재 미지원 / AST 흔적만 있는 것

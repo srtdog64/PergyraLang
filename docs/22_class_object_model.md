@@ -2,16 +2,20 @@
 
 ## Overview
 
-이 문서는 Pergyra의 `class`를 어떻게 정의할지 고정한다.
+이 문서는 Pergyra의 `class` 장기 의미론과 현재 구현 범위를 함께 정리한다.
+이미 닫힌 규칙과 아직 목표 상태인 규칙을 분리해서 읽어야 한다.
 
 핵심 전제는 다음과 같다.
 
 - `struct`는 최소 값 타입이다
 - `class`는 ability를 수행하는 객체 타입이다
 - `ability`는 객체 셀 위의 행위 계약이다
-- `role`은 class에 ability를 바인딩한다
+- 장기 모델에서 `role`은 class에 ability를 바인딩한다
 
-즉 Pergyra에서 `class`는 단순히 “필드가 있는 큰 struct”가 아니다.
+현재 컴파일러는 bare `class`, `self` 메서드, positional constructor, class copy 제한까지는 구현했고,
+role/ability/party 중심 객체 모델은 아직 이행 중이다.
+
+즉 장기적으로 Pergyra에서 `class`는 단순히 “필드가 있는 큰 struct”가 아니다.
 `class`는 상태와 identity를 가진 객체이며,
 role/ability/party/world 체계의 실제 수행 주체다.
 
@@ -27,7 +31,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - ability를 수행하는 객체 셀
 - party slot에 들어가 협력하는 actor/object
 
-따라서 `class`는 문법적 사치가 아니라,
+따라서 장기 모델에서 `class`는 문법적 사치가 아니라,
 객체적 행위와 자원 셀을 연결하는 중심 타입으로 필요하다.
 
 ## 2. 최종 정의
@@ -172,12 +176,13 @@ Pergyra에서 class method는 개념적으로 항상 `self object cell` 위에�
 
 ### role
 
-- role은 class에 ability를 붙인다
+- 장기 모델에서 role은 class에 ability를 붙인다
+- 현재 구현에서는 role이 `struct`에 바인딩되면 경고만 낸다
 - role은 “그 class가 어떤 자격으로 행동하는가”를 정의한다
 
 ### party
 
-- party는 role slot에 class object를 꽂아 협력시키는 실행 단위다
+- 장기 모델에서 party는 role slot에 class object를 꽂아 협력시키는 실행 단위다
 - party는 struct 값 모음이 아니라 object collaboration unit이다
 
 ### systemic / world
