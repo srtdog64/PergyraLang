@@ -43,6 +43,8 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.body = NULL;
     node->data.func_decl.generic_params = NULL;
     node->data.func_decl.where_clause = NULL;
+    node->data.func_decl.has_effects_clause = false;
+    node->data.func_decl.declared_effects = 0;
     node->data.func_decl.access = ACCESS_PUBLIC;
     return node;
 }
@@ -530,6 +532,8 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     node->data.async_func_decl.body = NULL;
     node->data.async_func_decl.generic_params = NULL;
     node->data.async_func_decl.where_clause = NULL;
+    node->data.async_func_decl.has_effects_clause = false;
+    node->data.async_func_decl.declared_effects = 0;
     node->data.async_func_decl.access = ACCESS_PUBLIC;
     node->data.async_func_decl.is_async = is_async;
     node->data.async_func_decl.doc_comment = NULL;

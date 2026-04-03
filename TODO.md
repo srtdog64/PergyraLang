@@ -143,13 +143,33 @@
   - `local / secure / remote / device` 자원군의 비용 차이를 표면에 드러내기
 - [ ] **effect system 2단계** — 선언적 effect 표기, mismatch 진단
   - 부분 완료: structured comment `@effects` 기반 mismatch 진단
-  - 남음: 시그니처 문법, 더 정교한 effect lattice, call-site contract surface
+  - 부분 완료: source-level `with effects ...` 시그니처 surface
+  - 남음: 더 정교한 effect lattice, call-site contract surface
+
+### 상위 계층 모델
+- [~] **최종 문맥 계층 고정** — `ability -> role -> party -> relation -> effect -> zone -> world`
+  - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
+  - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
+  - 현재 구현: `ability/role/party/systemic/world`
+  - 남음: `relation`, 구조적 `effect`, `zone`을 실제 표면 문법/시맨틱에 연결
+
+### 존재론 모델
+- [~] **subject-first 존재론 고정** — `struct` vs `subject`
+  - 완료: `subject = 상태와 identity를 가진 주체 타입`으로 문서화
+  - 완료: 현재 `subject`와 `class`가 같은 subject surface라는 점 문서화
+  - 완료: `actor`를 독립 존재론 계층이 아니라 subject의 실행 profile/sugar로 정리
+  - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
+  - 완료: `object`는 별도 코어 타입이 아니라 subject의 수동 해석 모드라고 문서화
+  - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
+  - 완료: `subject` keyword alias를 parser surface에 반영
+  - 남음: `class`와의 장기 alias/deprecation 전략, actor surface 재배치, subject/object view surface 고정
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
 - [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
 - [~] **class/object model 구현 정렬** — class = ability를 수행하는 identity-bearing object type
   - 완료: class direct copy 금지, C/LLVM self-cell lowering, positional constructor
+  - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
   - 남음: inheritance, `Slot<class>` object-handle cell 승격
 
 ### orchestration 완성도

@@ -1,23 +1,32 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-03
+마지막 업데이트: 2026-04-04
 
 ## 요약
 
 - 컴파일러 파이프라인은 `Lexer → Parser → Semantic → HIR → Backend`로 고정됨.
 - LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
+- 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
+- 최종 존재론은 `struct`와 `subject`를 분리하며, 현재 surface는 `subject`와 `class`를 같은 subject declaration으로 해석함.
+- `entity`는 코어 언어 존재론에 넣지 않고, 필요하면 프레임워크/도메인 용어로만 취급함.
+- 상위 레이어로 갈수록 더 덜 구속적인 문맥 계층이라는 원칙을 채택함.
 
 ## 구현된 컴포넌트
 
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
-- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `ability/role/party/systemic/world`, `event`, `actor`, `import/export/namespace`
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `ability/role/party/systemic/world`, `event`, `actor`, `import/export/namespace`
+- 현재 domain 표면은 `ability/role/party/systemic/world`까지 구현돼 있으며, `relation/zone`은 목표 계층으로만 문서화된 상태
+- `actor`는 현재 별도 surface가 있지만 장기 철학에서는 subject의 실행 profile/sugar로 정리할 계획
+- `object`는 별도 코어 타입이 아니라, subject가 transfer/DTO/view 문맥에서 수동적으로 해석된 모습으로 정리됨
 - enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
 - `Option<T>` 표면: `Some/None`, `IsSome/IsNone`, `UnwrapOption`, `match` destructuring이 semantic/C/LLVM 경로에 연결됨
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
 - `match` 품질 진단: duplicate variant case와 redundant default를 warning으로 보고함
-- `@effects` 계약: structured comment 기반 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
+- `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
+- `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
+- `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
 - 채널 convenience surface: `TryRecv -> Option<T>`, `RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`이 C/LLVM 경로에 연결됨
 - 채널 backpressure observation surface: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`이 C/LLVM/runtime에 연결됨
 - 현재 `TryRecv/RecvTimeout/TrySend/SendTimeout`은 plain-value channel 중심이며 movable resource channel은 의도적으로 제외됨
@@ -51,8 +60,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 257 passed |
-| transpile | 172 passed |
+| semantic | 272 passed |
+| transpile | 181 passed |
 | llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:
@@ -69,7 +78,10 @@
 - partial 완료: cooperative cancellation surface (`Cancel`, `IsCancelled`)
 - partial 완료: spawned descendant cancellation propagation
 - 완료: semantic O2 crash root-cause 정리 및 회귀 고정 (`Channel*` diagnostic format bug)
-- effect system 2단계 (선언적 effect, mismatch 진단)
+- partial 완료: source-level `with effects ...` signature surface
+- partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
+- effect system 2단계 (더 정교한 effect lattice, call-site contract)
+- relation/effect/zone을 현재 구현 표면과 어떻게 연결할지 단계적 정리
 - 안정화 문서 갱신 및 표면 문법 정리
 
 ### 중기

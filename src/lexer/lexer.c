@@ -20,6 +20,7 @@ static const KeywordEntry keywords[] = {
     {"let",      TOKEN_LET},
     {"func",     TOKEN_FUNC},
     {"class",    TOKEN_CLASS},
+    {"subject",  TOKEN_CLASS},
     {"struct",   TOKEN_STRUCT},
     {"extern",   TOKEN_EXTERN},
     {"with",     TOKEN_WITH},

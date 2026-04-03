@@ -129,7 +129,7 @@ struct Vec3 {
     z: Float;
 }
 
-class Player {
+subject Player {
     private let name: String;
     public let health: Int;
 }
@@ -145,6 +145,7 @@ enum Shape {
 
 지원되는 선언:
 - `struct`
+- `subject` (`class` alias)
 - `class`
 - `enum`
 - `extern "C"` block

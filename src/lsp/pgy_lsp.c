@@ -350,7 +350,9 @@ main(void)
                     else if (strcmp(word, "struct") == 0)
                         hover_text = "**struct** — Value type (passed by value)";
                     else if (strcmp(word, "class") == 0)
-                        hover_text = "**class** — Reference type with methods";
+                        hover_text = "**class** — Subject declaration (compatibility keyword)";
+                    else if (strcmp(word, "subject") == 0)
+                        hover_text = "**subject** — Identity-bearing host type";
                     else if (strcmp(word, "match") == 0)
                         hover_text = "**match** — Pattern matching expression";
                     else if (strcmp(word, "parallel") == 0)

@@ -62,6 +62,22 @@ ASTNode* parser_parse_async_function(Parser* parser)
     if (parser_match(parser, TOKEN_ARROW)) {
         func->data.async_func_decl.return_type = parse_type(parser);
     }
+
+    while (!parser_is_at_end(parser)) {
+        if (func->data.async_func_decl.where_clause == NULL
+            && parser_check(parser, TOKEN_WHERE)) {
+            func->data.async_func_decl.where_clause = parse_where_clause(parser);
+            continue;
+        }
+        if (!func->data.async_func_decl.has_effects_clause
+            && parser_check(parser, TOKEN_WITH)) {
+            parse_optional_effect_clause(parser,
+                &func->data.async_func_decl.has_effects_clause,
+                &func->data.async_func_decl.declared_effects);
+            continue;
+        }
+        break;
+    }
     
     // Function body
     parser->in_async_context = true;

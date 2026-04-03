@@ -4,7 +4,8 @@
 
 Party 시스템의 컴파일 타임 처리 흐름을 정의합니다.
 여기서 Party는 단순 struct 묶음이 아니라,
-`role slot -> class object -> ability dispatch`를 코드로 고정하는 단계입니다.
+`role slot -> subject -> ability dispatch`를 코드로 고정하는 단계입니다.
+현재 구현 surface에서는 `subject`와 `class`를 같은 declaration으로 허용합니다.
 
 ## Current Implementation Snapshot (2026-04-03)
 
@@ -35,7 +36,7 @@ Role implementations scan
     ↓
 Ability verification
     ↓
-Class/object slot verification
+Subject slot verification
     ↓
 FiberMap generation planning
 ```
@@ -55,7 +56,7 @@ Dispatch wrapper generation
 ```c
 // For each role slot in party
 for (roleSlot in party.roleSlots) {
-    // Find class object + matching role implementation
+    // Find subject + matching role implementation
     roleImpl = findRoleForClass(roleSlot.boundClass)
     
     // Check for parallel block
@@ -269,35 +270,35 @@ DispatchResult DungeonParty_parallel(
 
 여기서 중요한 점은:
 
-- party slot은 class 객체 포인터/핸들을 담는다
-- ability 검증은 그 class에 바인딩된 role을 기준으로 한다
-- dispatch wrapper는 결국 "그 class 객체가 이 ability 메서드를 어떻게 수행하는가"를 연결한다
+- party slot은 subject 포인터/핸들을 담는다
+- ability 검증은 그 subject에 바인딩된 role을 기준으로 한다
+- dispatch wrapper는 결국 "그 subject가 이 ability 메서드를 어떻게 수행하는가"를 연결한다
 
 즉 compiler 관점에서 party integration은
 `struct layout 생성`보다
-`class object + role binding + ability dispatch`를 고정하는 작업에 가깝다.
+`subject + role binding + ability dispatch`를 고정하는 작업에 가깝다.
 
 ## class가 들어오는 위치
 
 ### 1. Binding Input
-- party slot에 들어가는 것은 기본적으로 class 객체다
+- party slot에 들어가는 것은 기본적으로 subject다
 - struct는 shared field, 설정값, 스냅샷, 배열 원소로 많이 쓰인다
 
 ### 2. Role Resolution
-- `role X for Player`에서 `Player`는 class다
-- compiler는 slot에 들어온 class가 요구 ability를 만족하는 role을 갖는지 본다
+- `role X for Player`에서 `Player`는 현재 syntax상 `subject/class` declaration이고 의미론상 subject다
+- compiler는 slot에 들어온 subject가 요구 ability를 만족하는 role을 갖는지 본다
 
 ### 3. Dispatch Lowering
 - `context.GetRole<Damageable>("tank")`
 - `team.fighter.Attack()`
 
 이런 호출은 결국
-`class object`를 receiver로 하는 ability dispatch로 lower된다
+subject를 receiver로 하는 ability dispatch로 lower된다
 
 ### 4. Parallel Planning
 - parallel metadata도 role 자체에 붙지만
-- 실제 실행 주체는 class object instance다
-- 즉 fibermap entry는 "어떤 role이 어떤 class object에서 돌 것인가"를 고정한다
+- 실제 실행 주체는 subject instance다
+- 즉 fibermap entry는 "어떤 role이 어떤 subject에서 돌 것인가"를 고정한다
 
 ## Optimization Opportunities
 

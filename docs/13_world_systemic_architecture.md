@@ -1,23 +1,38 @@
 # Pergyra World-Systemic Architecture
 
-## 🌍 The Complete Hierarchy
+## 🌍 Target Hierarchy
 
 ```
-        [WORLD]
+        [WORLD]    ← 최상위 실행/신뢰/실패 경계
            ↓
-      [SYSTEMIC] ← 아키텍처 단위, 전체 시스템 조합
+         [ZONE]    ← world 내부의 지역 규칙/서브시스템 공간
            ↓
-        [PARTY] ← 실행 단위
+       [EFFECT]    ← 현재 적용 중인 지속 규칙/상태 오버레이
            ↓
-        [ROLE] ← class에 부착되는 기능 단위
+      [RELATION]   ← subject/party 사이의 관계 규칙
            ↓
-      [ABILITY] ← 객체 셀 위의 행위 계약
+        [PARTY]    ← 협력 단위
+           ↓
+        [ROLE]     ← 어떤 자격으로 수행하는가
+           ↓
+      [ABILITY]    ← 무엇을 할 수 있는가
+           ↓
+       [SUBJECT]   ← 상태와 identity를 가진 주체 타입
+           ↓
+        [STRUCT]   ← 값 타입
 
-class 는 ROLE의 실제 수행 주체이고,
-struct 는 이 계층 아래에서 쓰이는 값 타입이다.
+현재 surface syntax에서는 `subject`와 `class`가 같은 subject declaration으로 파싱된다.
 ```
 
-## Current Implementation Surface (2026-04-03)
+핵심 원칙은 다음이다.
+
+- 아래 레이어일수록 더 타입적이고 더 구속적이다
+- 위 레이어일수록 더 문맥적이고 더 덜 구속적이다
+- `world`는 단순 그룹이 아니라 최상위 실행 의미 경계다
+- `zone`은 같은 `world` 내부의 지역 규칙 공간이다
+- `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
+
+## Current Implementation Surface (2026-04-04)
 
 ```pergyra
 ability Damageable {
@@ -47,18 +62,107 @@ world GameWorld {
 }
 ```
 
-아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
-특히 `&mut self`, `impl Trait`, thread affinity 표기, 고급 class/object 협업 예시는 현재 stable current surface를 직접 설명하지 않는다.
+현재 stable current surface는 대체로 `subject/class / ability / role / party / systemic / world`까지다.
+장기 의미론 이름은 `class`보다 `subject`가 더 정확하다고 본다.
+`relation`, `effect`, `zone`은 장기 목표 계층이며 아직 언어 표면으로 완전히 고정된 상태는 아니다.
+아래 섹션은 최종 목표 계층을 설명하며, 일부 예시는 현재 문법과 다를 수 있다.
+특히 `relation`, `effect`, `zone`의 직접 문법, `actor` profile surface, `&mut self`, `impl Trait`, thread affinity 표기 예시는 현재 stable current surface를 직접 설명하지 않는다.
+
+## Layer Semantics
+
+### Ability
+
+- 가장 강한 구속
+- 타입 시스템과 가장 가까운 계약
+- “무엇을 할 수 있는가”를 닫는 층
+
+### Role
+
+- ability를 특정 subject 문맥에 묶는 층
+- “어떤 자격으로 수행하는가”를 나타냄
+
+### Party
+
+- 여러 subject가 role을 통해 협력하는 단위
+- “누구와 협력하는가”를 나타냄
+
+### Relation
+
+- subject나 party 사이의 선형 관계를 표현하는 층
+- 예: ally/enemy, producer/consumer, trusted/untrusted
+- 최종 목표 모델에는 포함되지만 현재 stable syntax는 아님
+
+### Effect
+
+- subject나 협력 단위 위에 덧씌워지는 동적 상태 오버레이
+- 예: poisoned, throttled, readOnly, maintenanceMode
+- 현재 구현의 함수 effect system과는 연결되지만 같은 층으로 완전히 통합된 것은 아님
+
+### Zone
+
+- 같은 world 내부의 지역 규칙/서브시스템 공간
+- 프론트엔드/백엔드/워커처럼 하나의 제품 안 문맥을 자를 때 기본 단위
+- 최종 목표 모델에는 포함되지만 현재 stable syntax는 아님
+
+### World
+
+- 가장 덜 구속적이고 가장 큰 경계
+- 실행 경계, 실패 전파 경계, 신뢰 경계, 배포 경계를 표현하는 최상위 단위
+- Pergyra의 장기 모델에서 전체 시스템 바깥선을 담당
+
+### Subject and Actor
+
+- `subject`는 상태와 identity를 가진 주체 타입이다
+- 현재 구현에서는 `subject`와 `class`가 같은 declaration surface로 동작한다
+- `actor`는 subject와 병렬인 존재론적 종류가 아니라, simulation loop / mailbox / scheduler semantics가 붙은 subject profile로 보는 것이 목표다
+
+### Object, DTO, and Entity
+
+- `object`는 `subject`와 병렬인 새 존재론 계층이 아니다
+- `subject`가 transfer / DTO / view / serialization 문맥으로 들어가면 수동적으로 다뤄지는 `object`처럼 해석될 수 있다
+- 즉 `subject`는 본질적으로 능동적이지만, 문맥에 따라 object화될 수 있다
+- `dto`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
+- `entity`는 이런 해석을 묶는 프레임워크 용어일 수는 있지만, Pergyra 코어 존재론에는 넣지 않는다
+
+## World vs Zone
+
+- 기본값: 전체 프로그램은 하나의 `world`
+- 그 안의 UI/API/Worker/Admin 같은 하위 문맥은 `zone`
+- 브라우저와 서버처럼 신뢰 경계와 실패 경계가 분리되면 `world`를 나누는 것이 맞다
+
+즉 기본 권장은 다음과 같다.
+
+```text
+AppWorld
+  ├─ FrontendZone
+  ├─ BackendZone
+  ├─ WorkerZone
+  └─ AdminZone
+```
+
+분산/신뢰 경계를 더 강하게 표현하고 싶다면 다음도 가능하다.
+
+```text
+BrowserWorld
+  └─ UiZone
+
+ServerWorld
+  ├─ ApiZone
+  ├─ JobZone
+  └─ DbAccessZone
+```
 
 ## 📋 계층별 정의 (Design Notes)
 
-### 0. **STRUCT / CLASS** - 값과 객체의 분리
+### 0. **STRUCT / SUBJECT** - 값과 주체의 분리
 
 - `struct`: 최소 값 타입. 복사/비교가 자연스러운 데이터
-- `class`: 상태와 identity를 가진 객체. ability의 수행 주체
+- `subject`: 상태와 identity를 가진 주체. ability의 수행 주체
+
+현재 syntax 예시에서는 호환성 때문에 `class`를 자주 쓰지만, `subject`도 같은 의미로 허용된다.
 
 즉 이 계층도는 사실
-`class object` 위에 `ability`, `role`, `party`가 올라가는 구조다.
+`subject` 위에 `ability`, `role`, `party`가 올라가는 구조다.
 
 ### 1. **ABILITY** - 요구 조건
 가장 기본적인 행위 계약. 어떤 데이터/자원 셀과 동작이 필요한지 정의.
@@ -72,7 +176,7 @@ ability Damageable {
 ```
 
 ### 2. **ROLE** - 기능 단위
-특정 class가 ability를 어떻게 구현하는지 정의. 병렬 실행 로직 포함.
+특정 subject가 ability를 어떻게 구현하는지 정의. 병렬 실행 로직 포함.
 
 ```pergyra
 role WarriorTank for Warrior {
@@ -86,7 +190,7 @@ role WarriorTank for Warrior {
 ```
 
 ### 3. **PARTY** - 실행 단위
-여러 class 객체가 role slot을 통해 협력하는 실행 가능한 단위. 병렬 실행의 기본 단위.
+여러 subject가 role slot을 통해 협력하는 실행 가능한 단위. 병렬 실행의 기본 단위.
 
 ```pergyra
 party DungeonTeam {
@@ -100,6 +204,9 @@ party DungeonTeam {
 
 ### 4. **SYSTEMIC** - 아키텍처 단위
 관련된 party들을 모아서 하나의 시스템을 구성. 전체 시스템의 조합.
+
+현재 구현에는 존재하지만, 장기적으로는 `zone`/`world` 층과 역할이 재정리될 수 있다.
+즉 `systemic`은 현 단계의 조율/구성 단위이며, 최종 목표 계층의 절대적 중심축이라고 고정하지 않는다.
 
 ```pergyra
 systemic CombatSystem {
@@ -168,15 +275,15 @@ world GameWorld {
 
 ## 🎯 실제 예제: MMORPG
 
-### 이 계층에서 class는 어디에 있나
+### 이 계층에서 subject는 어디에 있나
 
-- ability는 class object가 수행하는 계약이다
-- role은 class에 ability를 붙인다
-- party는 role slot에 class object를 배치한다
-- systemic/world는 party 단위 협력을 조율한다
+- ability는 subject가 수행하는 계약이다
+- role은 subject에 ability를 붙인다
+- party는 role slot에 subject를 배치한다
+- relation/effect/zone/world는 그 협력 위에 더 느슨한 규칙과 경계를 덧씌운다
 
-즉 `world -> systemic -> party -> role -> ability` 계층은
-사실상 `class object`를 중심으로 돌아간다.
+즉 최종 목표의 `world -> zone -> effect -> relation -> party -> role -> ability -> subject` 계층은
+사실상 subject를 중심으로 돌아간다.
 반대로 `struct`는 이 계층의 leaf data로 쓰인다.
 
 ### Ability 레벨
@@ -334,9 +441,11 @@ world MMORPGWorld {
 ## 정리
 
 - `struct`는 값이다
-- `class`는 ability를 수행하는 객체다
-- `role`은 class와 ability를 묶는다
-- `party`는 class 객체들의 협력 단위다
+- `subject`는 상태와 identity를 가진 주체다
+- 현재 `subject`와 `class`는 같은 subject surface다
+- `role`은 subject와 ability를 묶는다
+- `party`는 subject들의 협력 단위다
+- `object`는 subject가 수동 문맥으로 해석된 모습이다
 - `systemic/world`는 그 협력을 더 큰 단위로 조율한다
 
 ## 🚀 장점

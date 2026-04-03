@@ -52,6 +52,8 @@ ASTNode *parse_defer_statement(Parser *parser);
 
 /* --- Declarations (parser_decl.c) --- */
 ASTNode *parse_function_declaration(Parser *parser);
+void     parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
+                                      uint32_t *mask_out);
 ASTNode *parse_class_declaration(Parser *parser);
 ASTNode *parse_struct_declaration(Parser *parser);
 ASTNode *parse_type_declaration(Parser *parser, bool is_struct);

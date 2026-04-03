@@ -240,6 +240,8 @@ struct ASTNode
             ASTNode*       body;
             GenericParams* generic_params;
             WhereClause*   where_clause;
+            bool           has_effects_clause;
+            uint32_t       declared_effects;
             AccessModifier access;
             StructuredComment* doc_comment;  /* Attached documentation */
         } func_decl;
@@ -406,6 +408,8 @@ struct ASTNode
             ASTNode*       body;
             GenericParams* generic_params;
             WhereClause*   where_clause;
+            bool           has_effects_clause;
+            uint32_t       declared_effects;
             AccessModifier access;
             bool           is_async;
             StructuredComment* doc_comment;

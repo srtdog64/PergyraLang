@@ -147,6 +147,10 @@ builtin_resolve(const char *name)
     if (strcmp(name, "AllocatorDebug")  == 0) return BUILTIN_ALLOCATOR_DEBUG;
     if (strcmp(name, "AllocatorPool")   == 0) return BUILTIN_ALLOCATOR_POOL;
     if (strcmp(name, "Box")             == 0) return BUILTIN_BOX;
+    if (strcmp(name, "BoxGet")          == 0) return BUILTIN_BOX_GET;
+    if (strcmp(name, "BoxSet")          == 0) return BUILTIN_BOX_SET;
+    if (strcmp(name, "BoxDrop")         == 0) return BUILTIN_BOX_DROP;
+    if (strcmp(name, "BoxIsValid")      == 0) return BUILTIN_BOX_IS_VALID;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
@@ -1173,6 +1177,78 @@ type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
 }
 
 static Type *
+type_check_box_get(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "BoxGet requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(box_type, "Box")) {
+        semantic_error(ctx, call, "BoxGet requires Box<T>, got '%s'",
+            box_type != NULL ? box_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return type_get_constructed_arg(box_type, 0);
+}
+
+static Type *
+type_check_box_set(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 2) {
+        semantic_error(ctx, call, "BoxSet requires exactly 2 arguments");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(box_type, "Box")) {
+        semantic_error(ctx, call, "BoxSet requires Box<T>, got '%s'",
+            box_type != NULL ? box_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *inner = type_get_constructed_arg(box_type, 0);
+    Type *value_type = type_check_expression(call->data.call.arguments[1], ctx);
+    require_assignable(value_type, inner, call->data.call.arguments[1], ctx);
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_box_drop(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "BoxDrop requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(box_type, "Box")) {
+        semantic_error(ctx, call, "BoxDrop requires Box<T>, got '%s'",
+            box_type != NULL ? box_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_box_is_valid(ASTNode *call, SemanticContext *ctx)
+{
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call, "BoxIsValid requires exactly 1 argument");
+        return TYPE_UNKNOWN;
+    }
+
+    Type *box_type = type_check_expression(call->data.call.arguments[0], ctx);
+    if (!type_is_constructed_named(box_type, "Box")) {
+        semantic_error(ctx, call, "BoxIsValid requires Box<T>, got '%s'",
+            box_type != NULL ? box_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return TYPE_BOOL;
+}
+
+static Type *
 type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
 {
     if (call->data.call.arg_count < 1 || call->data.call.arg_count > 2) {
@@ -1257,6 +1333,14 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_allocator_builtin(call, ctx, true);
     case BUILTIN_BOX:
         return type_check_box_builtin(call, ctx);
+    case BUILTIN_BOX_GET:
+        return type_check_box_get(call, ctx);
+    case BUILTIN_BOX_SET:
+        return type_check_box_set(call, ctx);
+    case BUILTIN_BOX_DROP:
+        return type_check_box_drop(call, ctx);
+    case BUILTIN_BOX_IS_VALID:
+        return type_check_box_is_valid(call, ctx);
     case BUILTIN_BOX_ARRAY:
         return type_check_box_array_builtin(call, ctx);
     case BUILTIN_PARALLEL:

@@ -293,6 +293,29 @@ structured_comment_has_effects_tag(StructuredComment *comment)
     return false;
 }
 
+static uint32_t
+declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
+                                    bool *has_contract_out)
+{
+    bool has_doc_contract;
+    bool has_sig_contract;
+    uint32_t doc_effects;
+    uint32_t sig_effects;
+
+    if (node == NULL)
+        return EFFECT_NONE;
+
+    has_doc_contract = structured_comment_has_effects_tag(node->data.func_decl.doc_comment);
+    has_sig_contract = node->data.func_decl.has_effects_clause;
+    doc_effects = effects_from_structured_comment(node->data.func_decl.doc_comment, ctx, node);
+    sig_effects = node->data.func_decl.declared_effects;
+
+    if (has_contract_out != NULL)
+        *has_contract_out = has_doc_contract || has_sig_contract;
+
+    return doc_effects | sig_effects;
+}
+
 void
 semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
 {
@@ -2572,10 +2595,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
     bool in_class_scope = (ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS);
-    bool has_effect_contract =
-        structured_comment_has_effects_tag(node->data.func_decl.doc_comment);
+    bool has_effect_contract = false;
     uint32_t declared_effects =
-        effects_from_structured_comment(node->data.func_decl.doc_comment, ctx, node);
+        declared_effects_from_function_node(node, ctx, &has_effect_contract);
 
     /* If the function has generic parameters (<T, U, ...>),
      * register them as opaque types in a temporary scope so that
@@ -2965,6 +2987,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     }
                 }
                 Type *placeholder = type_create_function(ptypes, real_pc, ret);
+                if (placeholder != NULL)
+                    placeholder->data.function.effect_mask =
+                        declared_effects_from_function_node(stmt, ctx, NULL);
                 free(ptypes);
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
@@ -3037,6 +3062,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 const char *fname = decl->data.func_decl.name;
                 if (scope_lookup_current(ctx->scope, fname) == NULL) {
                     Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
+                    if (placeholder != NULL)
+                        placeholder->data.function.effect_mask =
+                            declared_effects_from_function_node(decl, ctx, NULL);
                     Symbol *s = symbol_create_function(fname, placeholder,
                                                         decl->line, decl->column);
                     scope_declare(ctx->scope, s);

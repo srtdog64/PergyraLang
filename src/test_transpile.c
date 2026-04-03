@@ -501,6 +501,38 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("BoxGet(boxed) → pgy_box_get_Int(boxed)");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        emit_statement(
+            make_let("boxed",
+                     make_generic_type("Box", "Int"),
+                     make_call("Box", init_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("boxed", 1) };
+        result = emit_expression(make_call("BoxGet", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_box_get_Int(boxed)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("BoxSet(boxed, 42) → pgy_box_set_Int(&boxed, 42)");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        emit_statement(
+            make_let("boxed",
+                     make_generic_type("Box", "Int"),
+                     make_call("Box", init_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[2] = { make_identifier("boxed", 1), make_number(42, 1) };
+        result = emit_expression(make_call("BoxSet", args, 2, 1), ctx);
+        EXPECT(strcmp(result, "pgy_box_set_Int(&boxed, 42)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("AllocatorTracing() → pgy_allocator_tracing()");
     {
         ctx = transpiler_ctx_create();
@@ -1003,6 +1035,43 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 *self");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->x");
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_BOX_DEFINE(Vec2, Vec2)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Box<class> handle lowers through explicit Box helpers");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func MakeVec() -> Box<Vec2> {\n"
+            "    return Box(Vec2(1, 2));\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let handle: Box<Vec2> = MakeVec();\n"
+            "    Log(BoxGet(handle).x);\n"
+            "    BoxSet(handle, Vec2(3, 4));\n"
+            "    BoxDrop(handle);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyBox_Vec2 MakeVec(");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return pgy_box_new_Vec2((Vec2){ .x = 1, .y = 2 });");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(pgy_box_get_Vec2(handle).x);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_box_set_Vec2(&handle, (Vec2){ .x = 3, .y = 4 });");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_box_drop_Vec2(&handle);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

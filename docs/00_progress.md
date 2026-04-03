@@ -1,6 +1,6 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-04-03
+마지막 업데이트: 2026-04-04
 
 ## 컴파일러 파이프라인
 
@@ -18,6 +18,7 @@
 - `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`
 - `slot/view/move`, `SecureSlot`, `DeviceSlot`, `QubitSlot`
 - `ability/role/party/systemic/world`, `event`, `actor`
+- 장기 의미론은 `struct` vs `subject` 분리를 채택했고, 현재 surface는 `subject`/`class`를 같은 subject declaration으로 처리
 - `import/export/namespace`, `extern "C"`
 - `RemoteFuture<T>`의 `await` 결과는 `Result<T>`
 - enum/result shorthand `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)` 파싱 지원

@@ -5,11 +5,12 @@
 핵심은 다음 네 층이다.
 
 - `struct`: 최소 값 타입. 복사/비교가 자연스러운 데이터
-- `class`: ability를 수행하는 객체 타입. 상태와 identity를 가진다
-- `ability`: 객체가 수행할 수 있는 행위 계약
-- `role`: 특정 class가 ability를 어떻게 수행하는지 바인딩하는 계층
+- `subject`: ability를 수행하는 주체 타입. 상태와 identity를 가진다
+- 현재 surface syntax는 `subject`와 `class`를 같은 declaration으로 허용한다
+- `ability`: subject가 수행할 수 있는 행위 계약
+- `role`: 특정 subject가 ability를 어떻게 수행하는지 바인딩하는 계층
 
-즉 Pergyra에서 행위의 중심은 `class + ability + role` 조합이고,
+즉 Pergyra에서 행위의 중심은 `subject + ability + role` 조합이고,
 `struct`는 그 아래에서 쓰이는 값 타입이다.
 
 ## Current Implementation Surface (2026-04-03)
@@ -65,12 +66,14 @@ struct Vec3
 }
 ```
 
-### 2. **class** (객체 타입)
+### 2. **subject** (주체 타입)
 - 상태를 가진 객체
 - identity를 가진다
 - plain value보다 "살아있는 객체"에 가깝다
 - ability의 실제 수행 주체가 된다
-- class의 행위는 항상 `self` 객체 셀 위에서 실행된다고 본다
+- subject의 행위는 항상 `self` 객체 셀 위에서 실행된다고 본다
+
+현재 syntax 예시는 호환성을 위해 `class`를 사용한다. `subject`도 같은 의미로 허용된다.
 
 ```pergyra
 class Player
@@ -113,10 +116,10 @@ ability Attackable
 ```
 
 ### 4. **role** (행위의 구체적 구현)
-- 특정 class가 특정 ability를 어떻게 수행하는지 구현
-- class와 ability를 연결하는 접착 계층
-- 같은 class가 여러 role을 통해 다른 ability 조합을 가질 수 있다
-- role은 타입이 아니라 "그 class가 어떤 자격으로 행동하는가"를 나타낸다
+- 특정 subject가 특정 ability를 어떻게 수행하는지 구현
+- subject와 ability를 연결하는 접착 계층
+- 같은 subject가 여러 role을 통해 다른 ability 조합을 가질 수 있다
+- role은 타입이 아니라 "그 subject가 어떤 자격으로 행동하는가"를 나타낸다
 
 ```pergyra
 role PlayerDamageable for Player
@@ -191,15 +194,16 @@ role MonsterCombat for Monster
 
 ## Security Integration
 
-### class와 ability의 관계
+### subject와 ability의 관계
 
 Pergyra에서 `ability`는 모든 타입에 무차별적으로 붙는 일반 인터페이스가 아니다.
 기본 방향은 다음과 같다.
 
 - `struct`는 값 타입이다
-- `class`는 ability를 수행하는 객체 타입이다
-- role은 class에 ability를 바인딩한다
-- ability의 `require`는 그 class 객체가 점유하거나 접근 가능한 자원 셀을 전제한다
+- `subject`는 ability를 수행하는 주체 타입이다
+- role은 subject에 ability를 바인딩한다
+- ability의 `require`는 그 subject가 점유하거나 접근 가능한 자원 셀을 전제한다
+- `object`는 이 subject가 transfer/view 문맥에서 수동적으로 해석된 모습일 뿐, 별도 코어 타입은 아니다
 
 즉 `ability`는 "메서드 목록"보다
 "이 객체가 어떤 자원 상태와 규율 위에서 어떤 행위를 수행할 수 있는가"에 더 가깝다.
@@ -263,20 +267,20 @@ role ParallelPhysics<T> for T where T: Physics
     }
 }
 
-// 게임 오브젝트 class에 병렬 역할 조합
-role GameObject for Entity
+// 게임 유닛 subject에 병렬 역할 조합
+role GameUnit for WorldUnit
 {
-    include role ParallelRenderer<Entity>
-    include role ParallelPhysics<Entity>
+    include role ParallelRenderer<WorldUnit>
+    include role ParallelPhysics<WorldUnit>
 }
 ```
 
 ## 요약
 
 - `struct`는 복사 가능한 값이다
-- `class`는 ability를 수행하는 객체다
+- `subject`는 ability를 수행하는 주체다
 - `ability`는 객체 셀 위의 행위 계약이다
-- `role`은 class와 ability를 묶는 바인딩이다
+- `role`은 subject와 ability를 묶는 바인딩이다
 - `include`는 role 재사용 수단이다
 
 ## Implementation Plan

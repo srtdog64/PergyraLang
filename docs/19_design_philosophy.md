@@ -110,17 +110,26 @@ Pergyra가 슬롯만으로 구성되는 언어는 아니다.
 - 제네릭을 통한 구조적 표현력
 - 슬롯을 통한 자원 점유권 모델
 
-## 6. ability, role, party, world의 위치
+## 6. struct, subject, ability, role, party, world의 위치
 
 이 계층은 Pergyra 안에서 중요하지만, 모두 같은 무게의 코어는 아니다.
 
 ```text
-ability = 자원이 할 수 있는 것
-role    = 자원이 실제로 하는 것
-party   = 자원들의 협력 단위
-systemic = 여러 협력 단위의 조합
-world   = 자원 시스템의 경계
+struct   = 값 타입
+subject  = 상태와 identity를 가진 주체 타입
+ability  = 무엇을 할 수 있는가
+role     = 어떤 자격으로 수행하는가
+party    = 누구와 협력하는가
+relation = 누구와 어떤 관계인가
+effect   = 어떤 지속 규칙의 영향을 받는가
+zone     = 어느 지역 규칙 안에 있는가
+world    = 전체 시스템의 경계
 ```
+
+여기서 `entity`는 코어 언어 존재론 용어로 넣지 않는다.
+그것은 프레임워크나 도메인 모델이 필요할 때 쓸 수 있는 바깥 어휘에 가깝다.
+반대로 `object`는 별도 최상위 타입이 아니라, `subject`가 transfer / DTO / view 문맥에서 수동적으로 다뤄질 때의 해석이다.
+`dto`는 그 object 표현 중 외부 경계를 넘기기 위한 축약 투영이다.
 
 여기서 설계 우선순위는 다음처럼 보는 것이 맞다.
 
@@ -129,6 +138,7 @@ world   = 자원 시스템의 경계
 - `Slot<T>`
 - `SecureSlot<T>`
 - 제네릭
+- `subject`
 - ability
 - 소유권과 생명주기 규칙
 
@@ -137,15 +147,20 @@ world   = 자원 시스템의 경계
 - role
 - include
 - context
+- actor profile
 
 ### 상위 도메인 계층
 
 - party
-- systemic
+- relation
+- effect
+- zone
 - world
+- systemic (이행기 조립 단위)
 
-즉 Pergyra의 가장 깊은 정체성은 `party/world`가 아니라, 슬롯과 제네릭과 계약 시스템이다.
-`party/systemic/world`는 그 위에 올라가는 합성 계층으로 보는 것이 맞다.
+즉 Pergyra의 가장 깊은 정체성은 `party/world`가 아니라, 슬롯과 제네릭과 subject/ability 계약 시스템이다.
+`party/relation/effect/zone/world`는 그 위에 올라가는 문맥 계층으로 보는 것이 맞다.
+`systemic`은 현재 구현에 존재하지만 최종 존재론 계층이라기보다 이행기 조립 단위로 보는 편이 자연스럽다.
 
 ## 7. 컨테이너 격리는 결과이지 출발점이 아니다
 
@@ -166,7 +181,10 @@ world   = 자원 시스템의 경계
 | `Slot<T>` | 단일 자원 점유 |
 | `SecureSlot<T>` | 권한이 필요한 자원 점유 |
 | `Channel<T>` | 공유하지 않고 이동시키는 자원 흐름 |
-| `Actor` | 캡슐화된 실행 자원 |
+| `Subject` | 상태와 identity를 가진 주체 |
+| `Object` | subject의 수동 해석 모드 |
+| `DTO` | object의 외부 경계용 축약 투영 |
+| `Actor` | subject의 실행 프로파일 |
 | `Party` | 협력하는 자원 묶음 |
 | `World` | 격리된 시스템 경계 |
 

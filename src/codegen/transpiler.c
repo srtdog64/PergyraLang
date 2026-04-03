@@ -1780,6 +1780,92 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 }
 
 char *
+emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
+{
+    const char *inner = "Int";
+    ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
+
+    switch (kind) {
+    case BUILTIN_BOX:
+        if (call->data.call.arg_count != 1)
+            return pergyra_strdup("/* Box: invalid args */");
+        if (arg->type == AST_NUMBER) inner = "Int";
+        else if (arg->type == AST_STRING) inner = "String";
+        else if (arg->type == AST_BOOLEAN) inner = "Bool";
+        else if (arg->type == AST_CALL
+                 && arg->data.call.callee != NULL
+                 && arg->data.call.callee->type == AST_IDENTIFIER) {
+            const char *callee_name = arg->data.call.callee->data.identifier.name;
+            ASTNode *class_decl = find_class_decl(ctx, callee_name);
+            if (class_decl != NULL && class_decl->type == AST_CLASS_DECL)
+                inner = callee_name;
+            else {
+                const char *arg_type = infer_expression_type_name(ctx, arg);
+                if (arg_type != NULL)
+                    inner = arg_type;
+            }
+        }
+        else if (arg->type == AST_IDENTIFIER) {
+            const char *arg_type = lookup_typed_var(ctx, arg->data.identifier.name);
+            if (arg_type != NULL)
+                inner = arg_type;
+        } else {
+            const char *arg_type = infer_expression_type_name(ctx, arg);
+            if (arg_type != NULL)
+                inner = arg_type;
+        }
+        break;
+    case BUILTIN_BOX_GET:
+    case BUILTIN_BOX_SET:
+    case BUILTIN_BOX_DROP:
+    case BUILTIN_BOX_IS_VALID:
+        inner = lookup_wrapped_inner_type(ctx, arg, "Box");
+        break;
+    default:
+        break;
+    }
+
+    if (kind == BUILTIN_BOX) {
+        char *value = emit_expression(arg, ctx);
+        char *result = strdup_fmt("pgy_box_new_%s(%s)", inner, value);
+        free(value);
+        return result;
+    }
+
+    if (kind == BUILTIN_BOX_GET) {
+        char *value = emit_expression(arg, ctx);
+        char *result = strdup_fmt("pgy_box_get_%s(%s)", inner, value);
+        free(value);
+        return result;
+    }
+
+    if (kind == BUILTIN_BOX_SET) {
+        char *box_expr = emit_expression(arg, ctx);
+        char *value = emit_expression(call->data.call.arguments[1], ctx);
+        char *result = strdup_fmt("pgy_box_set_%s(&%s, %s)", inner, box_expr, value);
+        free(box_expr);
+        free(value);
+        return result;
+    }
+
+    if (kind == BUILTIN_BOX_DROP) {
+        char *value = emit_expression(arg, ctx);
+        char *result = strdup_fmt("pgy_box_drop_%s(&%s)", inner, value);
+        free(value);
+        return result;
+    }
+
+    if (kind == BUILTIN_BOX_IS_VALID) {
+        char *value = emit_expression(arg, ctx);
+        char *result = strdup_fmt("pgy_box_is_valid_%s(&%s)", inner, value);
+        free(value);
+        return result;
+    }
+
+    return pergyra_strdup("/* unsupported box builtin */");
+}
+
+char *
 emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
     switch (kind) {
@@ -1948,6 +2034,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_WEAK_UPGRADE:
     case BUILTIN_WEAK_DROP:
         return emit_builtin_rc(call, bk, ctx);
+    case BUILTIN_BOX:
+    case BUILTIN_BOX_GET:
+    case BUILTIN_BOX_SET:
+    case BUILTIN_BOX_DROP:
+    case BUILTIN_BOX_IS_VALID:
+        return emit_builtin_box(call, bk, ctx);
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:

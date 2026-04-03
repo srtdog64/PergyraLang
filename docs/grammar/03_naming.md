@@ -35,6 +35,7 @@ select
 import
 namespace
 export
+subject
 class
 struct
 enum

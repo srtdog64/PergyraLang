@@ -29,7 +29,7 @@
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 
 대표 키워드:
-`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `class`, `struct`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `systemic`, `world`
+`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `systemic`, `world`
 
 ## 2. 선언
 
@@ -80,7 +80,7 @@ struct Vec3 {
     z: Float;
 }
 
-class Player<T> where T: Serializable {
+subject Player<T> where T: Serializable {
     private let name: String;
     public let health: Int;
 }
@@ -90,12 +90,14 @@ enum Color { Red, Green, Blue }
 
 지원:
 - `struct`
+- `subject`
 - `class`
 - `enum`
 - `actor`
 
 주의:
-- 클래스/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
+- `subject`와 `class`는 현재 같은 declaration으로 파싱된다.
+- subject/class/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
 
 ### 2.4 모듈/가시성
 

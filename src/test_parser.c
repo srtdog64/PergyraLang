@@ -10,6 +10,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "parser/ast.h"
+#include "semantic/type_system.h"
 
 typedef struct {
     const char *name;
@@ -144,6 +145,145 @@ run_doc_comment_attachment_test(void)
     }
 
     printf("Structured comments attached successfully!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_signature_effect_clause_test(void)
+{
+    const char *code =
+        "func RemoteOp() -> Void with effects remote, secure {\n"
+        "    Log(1);\n"
+        "}\n"
+        "async func Tick() -> Int with effects local {\n"
+        "    return 2;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *func = NULL;
+    ASTNode *async_func = NULL;
+
+    printf("\n=== Test: Signature Effect Clause ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count < 2) {
+        printf("[FAIL] Expected program with two declarations\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    func = ast->data.program.statements[0];
+    async_func = ast->data.program.statements[1];
+    if (func == NULL || func->type != AST_FUNC_DECL
+        || !func->data.func_decl.has_effects_clause
+        || func->data.func_decl.declared_effects != (EFFECT_REMOTE | EFFECT_SECURE)) {
+        printf("[FAIL] Regular function signature effects were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (async_func == NULL || async_func->type != AST_FUNC_DECL
+        || !async_func->data.func_decl.has_effects_clause
+        || async_func->data.func_decl.declared_effects != EFFECT_NONE
+        || !async_func->is_async_decl) {
+        printf("[FAIL] Async function signature effects were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Signature effect clauses parsed successfully!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_subject_keyword_alias_test(void)
+{
+    const char *code =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "    func TakeDamage(amount: Int) -> Void {\n"
+        "        hp = hp - amount;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+
+    printf("\n=== Test: Subject Keyword Alias ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL) {
+        printf("[FAIL] Expected 'subject' to parse as AST_CLASS_DECL\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (strcmp(decl->data.class_decl.name, "Player") != 0
+        || decl->data.class_decl.field_count != 1
+        || decl->data.class_decl.method_count != 1) {
+        printf("[FAIL] Subject declaration members were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Subject keyword parsed successfully as class-compatible declaration!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -530,6 +670,10 @@ main(void)
     }
 
     failures += run_doc_comment_attachment_test();
+    printf("\n");
+    failures += run_signature_effect_clause_test();
+    printf("\n");
+    failures += run_subject_keyword_alias_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

@@ -1,4 +1,82 @@
 #include "parser_internal.h"
+#include "../semantic/type_system.h"
+
+static bool
+parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
+{
+    if (mask_out == NULL)
+        return false;
+
+    if (tok.type == TOKEN_SECURE) {
+        *mask_out = EFFECT_SECURE;
+        return true;
+    }
+
+    if (tok.text == NULL)
+        return false;
+    if (strcmp(tok.text, "remote") == 0) {
+        *mask_out = EFFECT_REMOTE;
+        return true;
+    }
+    if (strcmp(tok.text, "nondeterministic") == 0) {
+        *mask_out = EFFECT_NONDETERMINISTIC;
+        return true;
+    }
+    if (strcmp(tok.text, "collapse") == 0) {
+        *mask_out = EFFECT_COLLAPSE;
+        return true;
+    }
+    if (strcmp(tok.text, "local") == 0) {
+        *mask_out = EFFECT_NONE;
+        return true;
+    }
+
+    return false;
+}
+
+void
+parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
+                             uint32_t *mask_out)
+{
+    uint32_t mask = 0;
+
+    if (has_clause_out == NULL || mask_out == NULL || !parser_match(parser, TOKEN_WITH))
+        return;
+
+    *has_clause_out = true;
+
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL
+        || strcmp(parser->current_token.text, "effects") != 0) {
+        parser_error(parser, "Expected 'effects' after 'with'");
+        return;
+    }
+    parser_advance(parser);
+
+    while (!parser_is_at_end(parser)) {
+        uint32_t effect = EFFECT_NONE;
+        Token tok;
+
+        if (parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_SECURE))
+            tok = parser_advance(parser);
+        else {
+            parser_error(parser, "Expected effect name after 'with effects'");
+            return;
+        }
+
+        if (!parser_effect_mask_from_token(tok, &effect)) {
+            parser_error(parser, "Unknown effect '%s' in effect clause",
+                         tok.text != NULL ? tok.text : "<token>");
+            return;
+        }
+
+        mask |= effect;
+        if (!parser_match(parser, TOKEN_COMMA))
+            break;
+    }
+
+    *mask_out = mask;
+}
 
 Token
 consume_name_token(Parser* parser, const char* message)
@@ -206,8 +284,21 @@ ASTNode* parse_function_declaration(Parser* parser) {
         func->data.func_decl.return_type = parse_type(parser);
     }
 
-    // where 절
-    func->data.func_decl.where_clause = parse_where_clause(parser);
+    while (!parser_is_at_end(parser)) {
+        if (func->data.func_decl.where_clause == NULL
+            && parser_check(parser, TOKEN_WHERE)) {
+            func->data.func_decl.where_clause = parse_where_clause(parser);
+            continue;
+        }
+        if (!func->data.func_decl.has_effects_clause
+            && parser_check(parser, TOKEN_WITH)) {
+            parse_optional_effect_clause(parser,
+                &func->data.func_decl.has_effects_clause,
+                &func->data.func_decl.declared_effects);
+            continue;
+        }
+        break;
+    }
 
     if (parser->in_extern_block) {
         parser_consume(parser, TOKEN_SEMICOLON,

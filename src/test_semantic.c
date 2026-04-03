@@ -2663,6 +2663,103 @@ test_shared_memory_features(void)
         semantic_context_destroy(ctx);
         ast_destroy(decl);
     }
+
+    TEST("BoxGet returns inner class object type");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let handle: Box<Vec2> = Box(Vec2(3, 7));\n"
+            "    let value: Vec2 = BoxGet(handle);\n"
+            "    Log(value.x);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("BoxSet requires assignable inner value");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *box_type = type_create_constructed(TYPE_BOX, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("boxed", box_type, 1, 1));
+
+        ASTNode *call = make_call("BoxSet",
+            (ASTNode *[]){ make_identifier("boxed", 2), make_number(42, 2) }, 2, 2);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved == TYPE_VOID && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("BoxIsValid returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_STRING };
+        Type *box_type = type_create_constructed(TYPE_BOX, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("boxed", box_type, 1, 1));
+
+        ASTNode *call = make_call("BoxIsValid",
+            (ASTNode *[]){ make_identifier("boxed", 2) }, 1, 2);
+        Type *resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved == TYPE_BOOL && !ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("Box<class> can be returned and passed explicitly");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func MakeVec() -> Box<Vec2> {\n"
+            "    return Box(Vec2(1, 2));\n"
+            "}\n"
+            "func SumX(cell: Box<Vec2>) -> Int {\n"
+            "    return BoxGet(cell).x;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let handle: Box<Vec2> = MakeVec();\n"
+            "    Log(SumX(handle));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -3857,6 +3954,33 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("source-level with effects clause flows from parser into semantic effects");
+    {
+        const char *source =
+            "func PlanRemote() -> Int with effects remote, secure {\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+
+        EXPECT(!parser_has_error(parser));
+        type_check_program(program, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "PlanRemote");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_REMOTE)
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("declared effects must cover inferred body effects");
     {
         const char *source =
@@ -3874,6 +3998,50 @@ test_effect_inference(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "missing declared effects: remote"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("signature effects must cover inferred body effects");
+    {
+        const char *source =
+            "func Dispatch() -> Int with effects local {\n"
+            "    let pending = spawn 42;\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing declared effects: remote"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("signature effects may exactly match inferred body effects");
+    {
+        const char *source =
+            "func Dispatch() -> Int with effects remote {\n"
+            "    let pending = spawn 42;\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

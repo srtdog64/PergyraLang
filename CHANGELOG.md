@@ -20,6 +20,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `select` round-robin starting-point fairness in both C and LLVM backends
 - Cooperative task cancellation surface: `Cancel(task)` and `IsCancelled()`
 - Cooperative cancellation now propagates through spawned descendant tasks via inherited cancellation chains
+- Source-level effect signature surface: `func F() -> T with effects remote, secure { ... }`
+- `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
+- `Box<class>` can now serve as the explicit object-handle path for function parameters and returns in the C/semantic surface
+- `subject` keyword now parses as a class-compatible subject declaration alias
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -28,6 +32,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Status docs and TODO now reflect current `Option<T>`/slot sugar/type inference implementation state
 - Channel non-blocking/timeout built-ins intentionally reject movable resource channels until conditional ownership transfer is modeled explicitly
 - Cancellation is currently best-effort/cooperative rather than preemptive
+- World architecture docs now treat `world` as the final top-level execution boundary and fix the long-term layer model as `ability -> role -> party -> relation -> effect -> zone -> world`
+- Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, current `subject`/`class` syntax is treated as the subject surface, and `actor` is positioned as a subject execution profile
+- Core docs now keep `entity` out of the language ontology and define `object` as a passive interpretation mode of `subject` rather than a separate top-level kind
+- Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite

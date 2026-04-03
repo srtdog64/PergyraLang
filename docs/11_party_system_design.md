@@ -9,9 +9,10 @@ Party는 역할들의 협력적 실행 단위를 표현하기 위한 설계 요�
 여기서 중요한 전제는 다음과 같다.
 
 - `struct`는 값 타입이다
-- `class`는 party에 참여하는 실제 객체 타입이다
-- `role`은 class가 특정 ability 묶음을 수행하도록 바인딩한다
-- `party`는 role slot에 class 객체를 꽂아 협력시키는 실행 단위다
+- `subject`는 party에 참여하는 실제 주체 타입이다
+- 현재 surface syntax에서는 `subject`와 `class`가 같은 declaration으로 동작한다
+- `role`은 subject가 특정 ability 묶음을 수행하도록 바인딩한다
+- `party`는 role slot에 subject를 꽂아 협력시키는 실행 단위다
 
 ## Current Implementation Surface (2026-04-03)
 
@@ -37,6 +38,7 @@ bind team.tank = Warrior;
 
 아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
 특히 role slot의 복잡한 제약식, `&mut self`, `impl Trait`, advanced orchestration 예시는 장기 설계 메모로 읽는 편이 맞다.
+또한 `entity`는 party 존재론의 코어 용어가 아니며, core에서는 `subject`를 기준으로 설명한다.
 
 ## Party의 핵심 요소 (Design Notes)
 
@@ -44,7 +46,7 @@ bind team.tank = Warrior;
 - Party가 요구하는 역할의 명세
 - 컴파일 타임에 타입 안전성 보장
 - 다중 ability 요구사항 지원
-- 실제로는 "이 slot에 들어올 class 객체가 어떤 ability를 만족해야 하는가"를 뜻한다
+- 실제로는 "이 slot에 들어올 subject가 어떤 ability를 만족해야 하는가"를 뜻한다
 
 ### 2. **Context (컨텍스트)**
 - Party 내 역할 간 안전한 상호작용
@@ -82,23 +84,23 @@ party HolyPaladin
 ```
 
 여기서 `tank`, `healer`, `dps`는 값 타입이 아니라
-ability를 수행하는 객체 slot이다.
+ability를 수행하는 subject slot이다.
 즉 party는 struct 값을 담는 컨테이너가 아니라
-class 객체들의 협력 단위다.
+subject들의 협력 단위다.
 
 현재 구현은 이 철학을 향해 가는 중이지만, 아직 완전히 닫히진 않았다.
 - role slot은 ability 계약을 표현한다
 - role이 `struct` 값 타입에 바인딩되면 시맨틱 경고가 난다
-- 하지만 party instance에 실제 class object를 꽂는 경로를 강하게 검증하는 단계까지는 아직 아니다
-- 즉 현재 party는 "class collaboration model"을 향한 표면과 계약이 먼저 고정된 상태다
+- 하지만 party instance에 실제 subject를 꽂는 경로를 강하게 검증하는 단계까지는 아직 아니다
+- 즉 현재 party는 "subject collaboration model"을 향한 표면과 계약이 먼저 고정된 상태다
 
 ### Party 인스턴스 생성
 
 ```pergyra
-// 각 역할을 수행할 객체들
-let warrior = Warrior()  // class object, has Damageable & Taunting
-let priest = Priest()    // class object, has Healing & Cleansing
-let mage = Mage()        // class object, has DamageDealing
+// 각 역할을 수행할 주체들
+let warrior = Warrior()  // subject instance, current syntax accepts class/subject declarations
+let priest = Priest()
+let mage = Mage()
 
 // Party 구성
 let raid = HolyPaladin
@@ -137,7 +139,7 @@ role PriestHealer for Priest
 ```
 
 `context`는 값 타입 모음에 대한 접근이 아니라,
-현재 party 안에서 협력 중인 class 객체들에 대한 능력 기반 접근이다.
+현재 party 안에서 협력 중인 subject들에 대한 능력 기반 접근이다.
 
 ### Party 병렬 실행
 
@@ -217,7 +219,7 @@ let invalidParty = HolyPaladin
 
 이 검증의 의미는 단순 "메서드가 있나?"가 아니다.
 `healer` slot에 들어갈 객체가 `Healing & Cleansing` role/ability 조합을
-실제로 수행할 수 있는 class인가를 보는 것이다.
+실제로 수행할 수 있는 subject인가를 보는 것이다.
 
 ### 2. **Context 접근 제어**
 ```pergyra
@@ -278,7 +280,7 @@ party FlexibleTeam
 ```
 
 이때도 교체 대상은 plain struct 값이 아니라
-새 role binding을 가진 class 객체다.
+새 role binding을 가진 subject다.
 
 ### 2. **Party Inheritance**
 ```pergyra
