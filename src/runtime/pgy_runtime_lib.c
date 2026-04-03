@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
 #include "runtime/pgy_parallel.h"
 
@@ -36,6 +37,20 @@ void pgy_log_float(float v)    { printf("%f\n", v); }
 void pgy_log_double(double v)  { printf("%lf\n", v); }
 void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
 void pgy_log_string(char *v)   { printf("%s\n", v ? v : "(null)"); }
+
+static struct timespec
+pgy_runtime_deadline_after_ns(uint64_t timeout_ns)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_sec += (time_t)(timeout_ns / 1000000000ull);
+    ts.tv_nsec += (long)(timeout_ns % 1000000000ull);
+    if (ts.tv_nsec >= 1000000000l) {
+        ts.tv_sec += 1;
+        ts.tv_nsec -= 1000000000l;
+    }
+    return ts;
+}
 
 /* =================================================================
  * Slot types (must match pgy_runtime.h layout)
@@ -774,6 +789,47 @@ bool pgy_channel_send_Int(PgyChannel_Int_RT *ch, int32_t v)
     return true;
 }
 
+bool pgy_channel_try_send_Int(PgyChannel_Int_RT *ch, int32_t v)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->closed || ch->count >= ch->capacity) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = v;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_send_timeout_Int(PgyChannel_Int_RT *ch, int32_t v,
+                                  uint64_t timeout_ns)
+{
+    if (ch == NULL) return false;
+    struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed) {
+        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
+            == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+    }
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = v;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
 bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 {
     if (ch == NULL || out == NULL) return false;
@@ -801,11 +857,81 @@ bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
     return ready;
 }
 
+int32_t pgy_channel_length_Int(PgyChannel_Int_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t len = (int32_t)ch->count;
+    pthread_mutex_unlock(&ch->mutex);
+    return len;
+}
+
+int32_t pgy_channel_capacity_Int(PgyChannel_Int_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t cap = (int32_t)ch->capacity;
+    pthread_mutex_unlock(&ch->mutex);
+    return cap;
+}
+
+bool pgy_channel_full_Int(PgyChannel_Int_RT *ch)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    bool full = ch->count >= ch->capacity;
+    pthread_mutex_unlock(&ch->mutex);
+    return full;
+}
+
+int32_t pgy_channel_space_Int(PgyChannel_Int_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t space = (int32_t)(ch->capacity - ch->count);
+    pthread_mutex_unlock(&ch->mutex);
+    return space;
+}
+
+bool pgy_channel_closed_Int(PgyChannel_Int_RT *ch)
+{
+    if (ch == NULL) return true;
+    pthread_mutex_lock(&ch->mutex);
+    bool closed = ch->closed;
+    pthread_mutex_unlock(&ch->mutex);
+    return closed;
+}
+
 bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 {
     if (ch == NULL || out == NULL) return false;
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_recv_timeout_Int(PgyChannel_Int_RT *ch, int32_t *out,
+                                  uint64_t timeout_ns)
+{
+    if (ch == NULL || out == NULL) return false;
+    struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == 0 && !ch->closed) {
+        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
+            == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+    }
+    if (ch->count == 0 && ch->closed) {
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -836,6 +962,142 @@ typedef struct {
     pthread_cond_t cond_not_empty;
 } PgyChannel_String_RT;
 
+void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
+{
+    if (ch == NULL) return;
+    ch->buffer = (char **)calloc(cap, sizeof(char *));
+    ch->capacity = cap;
+    ch->head = 0;
+    ch->tail = 0;
+    ch->count = 0;
+    ch->closed = false;
+    pthread_mutex_init(&ch->mutex, NULL);
+    pthread_cond_init(&ch->cond_not_full, NULL);
+    pthread_cond_init(&ch->cond_not_empty, NULL);
+}
+
+void pgy_channel_destroy_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return;
+    pthread_mutex_destroy(&ch->mutex);
+    pthread_cond_destroy(&ch->cond_not_full);
+    pthread_cond_destroy(&ch->cond_not_empty);
+    free(ch->buffer);
+    ch->buffer = NULL;
+}
+
+void pgy_channel_close_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return;
+    pthread_mutex_lock(&ch->mutex);
+    ch->closed = true;
+    pthread_cond_broadcast(&ch->cond_not_full);
+    pthread_cond_broadcast(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+}
+
+bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed)
+        pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = v;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->closed || ch->count >= ch->capacity) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = v;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
+                                     uint64_t timeout_ns)
+{
+    if (ch == NULL) return false;
+    struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed) {
+        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
+            == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+    }
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = v;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
+{
+    if (ch == NULL || out == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == 0 && !ch->closed)
+        pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+    if (ch->count == 0 && ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
+bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
+                                     uint64_t timeout_ns)
+{
+    if (ch == NULL || out == NULL) return false;
+    struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count == 0 && !ch->closed) {
+        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
+            == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+    }
+    if (ch->count == 0 && ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    *out = ch->buffer[ch->head];
+    ch->head = (ch->head + 1) % ch->capacity;
+    ch->count--;
+    pthread_cond_signal(&ch->cond_not_full);
+    pthread_mutex_unlock(&ch->mutex);
+    return true;
+}
+
 bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
 {
     if (ch == NULL || out == NULL) return false;
@@ -859,6 +1121,58 @@ bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
     bool ready = ch->count > 0;
     pthread_mutex_unlock(&ch->mutex);
     return ready;
+}
+
+int32_t pgy_channel_length_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t len = (int32_t)ch->count;
+    pthread_mutex_unlock(&ch->mutex);
+    return len;
+}
+
+int32_t pgy_channel_capacity_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t cap = (int32_t)ch->capacity;
+    pthread_mutex_unlock(&ch->mutex);
+    return cap;
+}
+
+bool pgy_channel_full_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return false;
+    pthread_mutex_lock(&ch->mutex);
+    bool full = ch->count >= ch->capacity;
+    pthread_mutex_unlock(&ch->mutex);
+    return full;
+}
+
+int32_t pgy_channel_space_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return 0;
+    pthread_mutex_lock(&ch->mutex);
+    int32_t space = (int32_t)(ch->capacity - ch->count);
+    pthread_mutex_unlock(&ch->mutex);
+    return space;
+}
+
+bool pgy_channel_closed_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL) return true;
+    pthread_mutex_lock(&ch->mutex);
+    bool closed = ch->closed;
+    pthread_mutex_unlock(&ch->mutex);
+    return closed;
+}
+
+char *pgy_channel_recv_val_String(PgyChannel_String_RT *ch)
+{
+    char *out = NULL;
+    pgy_channel_recv_String(ch, &out);
+    return out;
 }
 
 /* =================================================================
@@ -1080,6 +1394,16 @@ void pgy_async_detach_export(PgyTaskHandle h)
 void *pgy_await_export(PgyTaskHandle h)
 {
     return pgy_await(h);
+}
+
+bool pgy_task_cancel_export(PgyTaskHandle h)
+{
+    return pgy_task_cancel(h);
+}
+
+bool pgy_task_is_cancelled_export(void)
+{
+    return pgy_task_is_cancelled();
 }
 
 #endif /* PGY_LLVM_ENABLED */

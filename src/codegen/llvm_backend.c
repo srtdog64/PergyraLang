@@ -1559,6 +1559,25 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
                                 fn, ft, ctx->type_i8ptr);
     }
 
+    /* i1 pgy_task_cancel_export(PgyTaskHandle) */
+    {
+        LLVMTypeRef params[] = { ctx->type_task_handle };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 1, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                                           "pgy_task_cancel_export", ft);
+        llvm_register_function(ctx, "pgy_task_cancel_export",
+                                fn, ft, ctx->type_i1);
+    }
+
+    /* i1 pgy_task_is_cancelled_export() */
+    {
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, NULL, 0, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                                           "pgy_task_is_cancelled_export", ft);
+        llvm_register_function(ctx, "pgy_task_is_cancelled_export",
+                                fn, ft, ctx->type_i1);
+    }
+
     /* i8* malloc(i64) */
     {
         LLVMTypeRef params[] = { ctx->type_i64 };
@@ -1611,6 +1630,26 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
                                     ctx->type_i1);
         }
 
+        /* i1 pgy_channel_try_send_T(ptr, val_type) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr, vt };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 2, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_try_send_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_i1);
+        }
+
+        /* i1 pgy_channel_send_timeout_T(ptr, val_type, i64) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr, vt, ctx->type_i64 };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 3, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_send_timeout_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_i1);
+        }
+
         /* val_type pgy_channel_recv_val_T(ptr) */
         {
             LLVMTypeRef params[] = { ctx->type_i8ptr };
@@ -1629,11 +1668,68 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
         }
 
+        /* i1 pgy_channel_recv_timeout_T(ptr, val_type*, i64) */
+        {
+            LLVMTypeRef params[] = {
+                ctx->type_i8ptr, LLVMPointerType(vt, 0), ctx->type_i64
+            };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 3, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_recv_timeout_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+                                    ctx->type_i1);
+        }
+
         /* i1 pgy_channel_ready_T(ptr) */
         {
             LLVMTypeRef params[] = { ctx->type_i8ptr };
             LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 1, 0);
             snprintf(fname, sizeof(fname), "pgy_channel_ready_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
+        }
+
+        /* i32 pgy_channel_length_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_length_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i32);
+        }
+
+        /* i32 pgy_channel_capacity_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_capacity_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i32);
+        }
+
+        /* i32 pgy_channel_space_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i32, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_space_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i32);
+        }
+
+        /* i1 pgy_channel_full_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_full_%s", suf);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
+            llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
+        }
+
+        /* i1 pgy_channel_closed_T(ptr) */
+        {
+            LLVMTypeRef params[] = { ctx->type_i8ptr };
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_i1, params, 1, 0);
+            snprintf(fname, sizeof(fname), "pgy_channel_closed_%s", suf);
             LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
             llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i1);
         }

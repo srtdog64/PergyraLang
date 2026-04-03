@@ -24,9 +24,9 @@
 ### 기반 타입 시스템
 - [x] **태그드 유니언 (enum with data)** — `enum Shape { Circle(Int), Rect(Int, Int) }` 데이터를 가진 enum
   - 완료: variant payload 파싱, variant 생성자 타입 추론, C tagged union / LLVM discriminated struct, LLVM tagged-union regression 및 예제 실행
-- [ ] **Option<T> / None** — "상자가 비어있을 수 있다"를 타입으로 표현. `-1` sentinel 제거
-  - `Option<T>` = 태그드 유니언 `{ Some(T), None }`
-  - 패턴 매칭과 연동: `match opt { case Some(v): ... case None: ... }`
+- [x] **Option<T> / None** — "상자가 비어있을 수 있다"를 타입으로 표현. `-1` sentinel 제거
+  - 완료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
+  - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
 - [ ] **디스트럭처링** — `let (slot, token) = ClaimSecureSlot<Int>()` 등 패턴 기반 바인딩 확장
 - [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
 
@@ -38,7 +38,9 @@
 - [x] **문자열 보간** — `"값은 ${x}"` → `StringConcat(...)` 계열로 lowering
 - [x] **파이프 연산자** — `data |> Transform |> Validate |> Persist` 단방향 데이터 흐름
 - [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
-- [ ] **`let` 타입 추론** — `let s: Slot<Int> = 42` → `let s = 42`로 축약
+- [x] **`let` 타입 추론** — initializer 기반 기본 추론은 현재 구현됨
+  - 완료: annotation이 없을 때 initializer 타입으로 추론
+  - 남음: 문서/표면 예시를 더 공격적으로 inference 중심으로 정리할지 결정
 
 ### 제네릭 클래스
 - [x] **제네릭 클래스** — `class Pair<T>` 문법 + 시맨틱 + C 코드젠 (단형화). 예제: `examples/generic_class.pgy`
@@ -51,10 +53,10 @@
   - 문서화: `docs/22_ownership_model.md`
 
 ### Slot 표면 문법 개선 (P0 우선순위)
-- [ ] **암묵적 Read + 대입 기반 Write** — Slot의 기본 사용 표면을 일반 변수처럼
-  - 읽기: `Slot<T>`가 `T` 문맥에 오면 자동 `Read` (암묵적 역참조)
-  - 쓰기: `slot = expr` → 자동 `Write(slot, expr)` lowering
-  - 해제: `Release(slot)` 항상 명시적 유지
+- [x] **암묵적 Read + 대입 기반 Write** — Slot의 기본 사용 표면을 일반 변수처럼
+  - 완료: 읽기 문맥에서 `Slot<T>` auto-read
+  - 완료: `slot = expr` → `Write(slot, expr)` lowering
+  - 유지: `Release(slot)`는 계속 명시적
 
 ### Slot 최적화 (P0 우선순위)
 - [ ] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
@@ -130,7 +132,8 @@
 - [x] **`Future<T>`를 transfer boundary로 고정** — await/recv와 같은 ownership 경계
 - [ ] **effect/resource capability 표기 도입** — `local cpu`, `secure device`, `remote` 등 타입/효과 시스템
   - 현재: inferred effect mask + spawn/await/channel에서 remote 추론
-  - 다음: 선언적 annotation 문법, effect mismatch 진단
+  - 현재: `/// @effects ...` 선언이 있으면 body inferred effect와 mismatch 진단
+  - 다음: 시그니처 문법 차원의 선언적 annotation 표면
 - [ ] **성능 목표를 orchestration overhead 중심으로 재정의**
 
 ## P1.7 — 의미 통일 언어로서의 다음 단계
@@ -139,6 +142,8 @@
 - [ ] **비용 모델 표면화** — "semantic unity, visible cost" 원칙
   - `local / secure / remote / device` 자원군의 비용 차이를 표면에 드러내기
 - [ ] **effect system 2단계** — 선언적 effect 표기, mismatch 진단
+  - 부분 완료: structured comment `@effects` 기반 mismatch 진단
+  - 남음: 시그니처 문법, 더 정교한 effect lattice, call-site contract surface
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
@@ -149,6 +154,14 @@
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
+  - 부분 완료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
+  - 부분 완료: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
+  - 부분 완료: `select` round-robin 시작 인덱스 fairness
+  - 부분 완료: `Cancel(task)` / `IsCancelled()` cooperative cancellation
+  - 부분 완료: spawned descendant cancellation propagation
+  - 현재 제한: movable resource channel의 non-blocking/timeout transfer는 미지원
+  - 현재 제한: pressure observation은 가능하지만 bounded policy/backpressure protocol은 아직 미구현
+  - 현재 제한: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice는 미지원
 - [x] **async/await runtime 고도화** — POSIX ucontext + Windows Fiber 기반 coroutine
 - [ ] **Windows coroutine 검증/고정**
 

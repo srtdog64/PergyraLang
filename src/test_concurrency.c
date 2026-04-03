@@ -119,6 +119,75 @@ test_channel_transfers_between_threads(void)
     EXPECT(second == 11);
 }
 
+static void *
+cancellable_coro_task(void *arg)
+{
+    (void)arg;
+    pgy_async_yield();
+    int32_t *out = (int32_t *)malloc(sizeof(int32_t));
+    if (out == NULL)
+        return NULL;
+    *out = pgy_task_is_cancelled() ? 9 : 0;
+    return out;
+}
+
+static void *
+cancel_propagation_child_task(void *arg)
+{
+    (void)arg;
+    pgy_async_yield();
+    int32_t *out = (int32_t *)malloc(sizeof(int32_t));
+    if (out == NULL)
+        return NULL;
+    *out = pgy_task_is_cancelled() ? 17 : 0;
+    return out;
+}
+
+static void *
+cancel_propagation_parent_task(void *arg)
+{
+    (void)arg;
+    PgyTaskHandle child = pgy_async_spawn(cancel_propagation_child_task, NULL);
+    pgy_async_yield();
+
+    int32_t *out = (int32_t *)malloc(sizeof(int32_t));
+    if (out == NULL)
+        return NULL;
+    *out = pgy_await_take(child, int32_t);
+    return out;
+}
+
+static void
+test_async_task_cancel_is_visible_inside_task(void)
+{
+    TEST("async task observes cancellation cooperatively");
+
+    PgyTaskHandle task = pgy_async_spawn(cancellable_coro_task, NULL);
+    EXPECT(task.task != NULL);
+
+    /* Let the coroutine start and yield once so cancellation is observed
+     * cooperatively on resume rather than being skipped before entry. */
+    EXPECT(pgy_async_progress_one());
+    EXPECT(pgy_task_cancel(task));
+
+    EXPECT(pgy_await_take(task, int32_t) == 9);
+}
+
+static void
+test_async_task_cancel_propagates_to_spawned_children(void)
+{
+    TEST("async task cancellation propagates to spawned children");
+
+    PgyTaskHandle parent = pgy_async_spawn(cancel_propagation_parent_task, NULL);
+    EXPECT(parent.task != NULL);
+
+    /* Start the parent so it spawns a child and yields. */
+    EXPECT(pgy_async_progress_one());
+    EXPECT(pgy_task_cancel(parent));
+
+    EXPECT(pgy_await_take(parent, int32_t) == 17);
+}
+
 int
 main(void)
 {
@@ -126,6 +195,8 @@ main(void)
 
     test_spawn_runs_concurrently();
     test_channel_transfers_between_threads();
+    test_async_task_cancel_is_visible_inside_task();
+    test_async_task_cancel_propagates_to_spawned_children();
 
     printf("Tests run: %d\n", tests_run);
     if (tests_failed != 0) {

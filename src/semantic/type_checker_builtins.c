@@ -21,6 +21,103 @@ check_call_arity(ASTNode *expr, size_t expected, const char *name,
     return true;
 }
 
+static Type *
+channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
+                             const char *name, SemanticContext *ctx)
+{
+    Type *ch_type = type_check_expression(
+        expr->data.call.arguments[channel_arg_index], ctx);
+    if (!type_is_constructed_named(ch_type, "Channel")) {
+        semantic_error(ctx, expr->data.call.arguments[channel_arg_index],
+            "%s requires Channel<T>, got '%s'", name,
+            ch_type != NULL ? ch_type->name : "<null>");
+        return TYPE_UNKNOWN;
+    }
+    return type_get_constructed_arg(ch_type, 0);
+}
+
+static Type *
+channel_builtin_recv_result(Type *element_type, const char *name,
+                            ASTNode *site, SemanticContext *ctx)
+{
+    if (type_is_anchored_resource_handle(element_type)) {
+        semantic_error(ctx, site,
+            "%s cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; receive a plain value instead",
+            name);
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_movable_resource_handle(element_type)) {
+        semantic_error(ctx, site,
+            "%s does not support movable resource channels yet; use blocking '<-' receive and bind the result first",
+            name);
+        return TYPE_UNKNOWN;
+    }
+    return wrap_constructed(TYPE_OPTION, element_type);
+}
+
+static bool
+type_is_future_like(Type *type)
+{
+    return type_is_constructed_named(type, "Future")
+        || type_is_constructed_named(type, "RemoteFuture");
+}
+
+static Type *
+type_check_channel_send_builtin(ASTNode *expr, const char *name,
+                                bool has_timeout, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, has_timeout ? 3 : 2, name, ctx))
+        return TYPE_UNKNOWN;
+
+    semantic_record_effect(ctx, EFFECT_REMOTE);
+    Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
+    Type *value_type = type_check_expression(expr->data.call.arguments[1], ctx);
+
+    if (has_timeout) {
+        require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
+            TYPE_INT, expr->data.call.arguments[2], ctx);
+    }
+
+    if (element_type == TYPE_UNKNOWN)
+        return TYPE_BOOL;
+
+    if (type_is_anchored_resource_handle(element_type)
+        || type_is_anchored_resource_handle(value_type)) {
+        semantic_error(ctx, expr->data.call.arguments[1],
+            "%s cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; send the inner value or keep the handle local",
+            name);
+        return TYPE_BOOL;
+    }
+
+    if (type_is_movable_resource_handle(element_type)
+        || type_is_movable_resource_handle(value_type)) {
+        semantic_error(ctx, expr->data.call.arguments[1],
+            "%s does not support movable resource sends yet; use blocking 'ch <- value' so ownership transfer stays explicit",
+            name);
+        return TYPE_BOOL;
+    }
+
+    require_assignable(value_type, element_type, expr->data.call.arguments[1], ctx);
+    return TYPE_BOOL;
+}
+
+static Type *
+type_check_channel_recv_builtin(ASTNode *expr, const char *name,
+                                bool has_timeout, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, has_timeout ? 2 : 1, name, ctx))
+        return TYPE_UNKNOWN;
+
+    semantic_record_effect(ctx, EFFECT_REMOTE);
+    Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
+    if (has_timeout) {
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_INT, expr->data.call.arguments[1], ctx);
+    }
+    return channel_builtin_recv_result(
+        element_type, name, expr->data.call.arguments[0], ctx);
+}
+
 BuiltinKind
 builtin_resolve(const char *name)
 {
@@ -724,24 +821,56 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 
     /* ---- Channel builtins ---- */
     if (strcmp(name, "TryRecv") == 0) {
+        return type_check_channel_recv_builtin(expr, name, false, ctx);
+    }
+    if (strcmp(name, "RecvTimeout") == 0) {
+        return type_check_channel_recv_builtin(expr, name, true, ctx);
+    }
+    if (strcmp(name, "TrySend") == 0) {
+        return type_check_channel_send_builtin(expr, name, false, ctx);
+    }
+    if (strcmp(name, "SendTimeout") == 0) {
+        return type_check_channel_send_builtin(expr, name, true, ctx);
+    }
+    if (strcmp(name, "ChannelLength") == 0
+        || strcmp(name, "ChannelCapacity") == 0
+        || strcmp(name, "ChannelSpace") == 0
+        || strcmp(name, "ChannelFull") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "TryRecv requires Channel<T>, got '%s'", ch_type->name);
+                "%s requires Channel<T>, got '%s'",
+                name,
+                ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
         }
-        /* Returns Bool: true if a value was received, false if empty */
+        return strcmp(name, "ChannelFull") == 0 ? TYPE_BOOL : TYPE_INT;
+    }
+    if (strcmp(name, "ChannelClosed") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
+        Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(ch_type, "Channel")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ChannelClosed requires Channel<T>, got '%s'",
+                ch_type != NULL ? ch_type->name : "<null>");
+            return TYPE_UNKNOWN;
+        }
         return TYPE_BOOL;
     }
     if (strcmp(name, "ChannelClose") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "ChannelClose requires Channel<T>, got '%s'", ch_type->name);
+                "ChannelClose requires Channel<T>, got '%s'",
+                ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
         }
         return TYPE_VOID;
@@ -749,12 +878,33 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "ChannelReady") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
         Type *ch_type = type_check_expression(expr->data.call.arguments[0], ctx);
         if (!type_is_constructed_named(ch_type, "Channel")) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "ChannelReady requires Channel<T>, got '%s'", ch_type->name);
+                "ChannelReady requires Channel<T>, got '%s'",
+                ch_type != NULL ? ch_type->name : "<null>");
             return TYPE_UNKNOWN;
         }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "Cancel") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
+        Type *task_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_future_like(task_type)) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",
+                task_type != NULL ? task_type->name : "<null>");
+            return TYPE_UNKNOWN;
+        }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "IsCancelled") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_REMOTE);
         return TYPE_BOOL;
     }
 

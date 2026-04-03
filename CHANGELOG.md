@@ -8,9 +8,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
+- `Option<T>` source-level surface: `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`
+- `Option<T>` destructuring in `match` for both C and LLVM backends
+- Semantic destructuring bindings for `Option<T>`, `Result<T>`, and tagged enum variants in `match`
+- Limited exhaustiveness checking for `Option<T>`, `Result<T>`, and enum variant matches
+- Redundancy warnings for duplicate covered variants and redundant `default` in variant-style matches
+- Semantic effect-contract checking for explicit `/// @effects ...` declarations versus inferred function body effects
+- Channel convenience built-ins: `TryRecv -> Option<T>`, `RecvTimeout -> Option<T>`, `TrySend`, `SendTimeout`
+- Channel backpressure observation built-ins: `ChannelLength`, `ChannelCapacity`, `ChannelFull`
+- Channel backpressure observation built-ins expanded with `ChannelSpace` and `ChannelClosed`
+- `select` round-robin starting-point fairness in both C and LLVM backends
+- Cooperative task cancellation surface: `Cancel(task)` and `IsCancelled()`
+- Cooperative cancellation now propagates through spawned descendant tasks via inherited cancellation chains
+- Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
+- `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
 ### Changed
 - Parser regression tests now cover docs-style shorthand in `return`, `let`, and `match case` positions
+- Status docs and TODO now reflect current `Option<T>`/slot sugar/type inference implementation state
+- Channel non-blocking/timeout built-ins intentionally reject movable resource channels until conditional ownership transfer is modeled explicitly
+- Cancellation is currently best-effort/cooperative rather than preemptive
+
+### Fixed
+- Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite
 
 ## [0.3.0] - 2026-03-31
 

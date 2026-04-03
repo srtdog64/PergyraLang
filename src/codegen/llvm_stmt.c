@@ -1402,106 +1402,161 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 static void
 llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
+    size_t case_count = node->data.select_stmt.case_count;
     LLVMValueRef fn = ctx->current_function;
     LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlockInContext(
         ctx->context, fn, "select.end");
-    LLVMBasicBlockRef next_check_bb = NULL;
 
-    for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
-        ASTNode *case_node = node->data.select_stmt.cases[i];
-        ASTNode *channel = NULL;
-        ASTNode *body = NULL;
-        const char *bind_name = NULL;
-        bool valid_case = llvm_select_case_parts(case_node, &channel, &bind_name, &body);
-
-        LLVMBasicBlockRef case_bb = LLVMAppendBasicBlockInContext(
-            ctx->context, fn, "select.case");
-        LLVMBasicBlockRef fail_bb = LLVMAppendBasicBlockInContext(
-            ctx->context, fn, "select.next");
-
-        if (next_check_bb != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, next_check_bb);
-
-        if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
-            const char *channel_name = channel->data.identifier.name;
-            const char *inner = llvm_lookup_channel_inner(ctx, channel_name);
-            LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, channel_name);
-            if (inner == NULL) inner = "Int";
-
-            if (ch_var != NULL) {
-                char fn_name[128];
-                if (bind_name != NULL) {
-                    LLVMTypeRef val_ty = pergyra_type_to_llvm(ctx, inner);
-                    LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
-                    snprintf(fn_name, sizeof(fn_name), "pgy_channel_try_recv_%s", inner);
-                    LLVMFuncEntry *try_fn = llvm_lookup_function(ctx, fn_name);
-                    if (try_fn != NULL) {
-                        LLVMValueRef args[] = { ch_var->alloca, tmp };
-                        LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
-                            try_fn->fn, args, 2, llvm_tmp_name(ctx));
-                        LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
-
-                        LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-                        llvm_scope_push(ctx);
-                        {
-                            LLVMValueRef bind_alloca =
-                                llvm_create_entry_alloca(ctx, val_ty, bind_name);
-                            LLVMValueRef received = LLVMBuildLoad2(ctx->builder, val_ty, tmp,
-                                llvm_tmp_name(ctx));
-                            LLVMBuildStore(ctx->builder, received, bind_alloca);
-                            llvm_scope_declare(ctx, pergyra_strdup(bind_name),
-                                               bind_alloca, val_ty);
-                        }
-                        if (body != NULL)
-                            llvm_emit_statement(body, ctx);
-                        llvm_scope_pop(ctx);
-                        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
-                            LLVMBuildBr(ctx->builder, merge_bb);
-                        next_check_bb = fail_bb;
-                        continue;
-                    }
-                } else {
-                    snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
-                    LLVMFuncEntry *ready_fn = llvm_lookup_function(ctx, fn_name);
-                    if (ready_fn != NULL) {
-                        LLVMValueRef args[] = { ch_var->alloca };
-                        LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
-                            ready_fn->fn, args, 1, llvm_tmp_name(ctx));
-                        LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
-
-                        LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-                        {
-                            char recv_name[128];
-                            snprintf(recv_name, sizeof(recv_name), "pgy_channel_recv_val_%s", inner);
-                            LLVMFuncEntry *recv_fn = llvm_lookup_function(ctx, recv_name);
-                            if (recv_fn != NULL) {
-                                LLVMValueRef recv_args[] = { ch_var->alloca };
-                                (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
-                                    recv_fn->fn, recv_args, 1, "");
-                            }
-                        }
-                        if (body != NULL)
-                            llvm_emit_statement(body, ctx);
-                        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
-                            LLVMBuildBr(ctx->builder, merge_bb);
-                        next_check_bb = fail_bb;
-                        continue;
-                    }
-                }
-            }
-        }
-
-        LLVMBuildBr(ctx->builder, case_bb);
-        LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-        if (case_node != NULL)
-            llvm_emit_statement(case_node, ctx);
+    if (case_count == 0) {
+        if (node->data.select_stmt.default_case != NULL)
+            llvm_emit_statement(node->data.select_stmt.default_case, ctx);
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, merge_bb);
-        next_check_bb = fail_bb;
+        LLVMPositionBuilderAtEnd(ctx->builder, merge_bb);
+        return;
     }
 
-    if (next_check_bb != NULL)
-        LLVMPositionBuilderAtEnd(ctx->builder, next_check_bb);
+    {
+        int select_id = ctx->tmp_counter++;
+        char rr_name[64];
+        snprintf(rr_name, sizeof(rr_name), "__pgy_select_rr_%d", select_id);
+
+        LLVMValueRef rr_global = LLVMAddGlobal(ctx->module, ctx->type_i32, rr_name);
+        LLVMSetInitializer(rr_global, LLVMConstInt(ctx->type_i32, 0, 0));
+        LLVMSetLinkage(rr_global, LLVMInternalLinkage);
+
+        LLVMValueRef rr_cur = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            rr_global, llvm_tmp_name(ctx));
+        LLVMValueRef rr_next = LLVMBuildAdd(ctx->builder, rr_cur,
+            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, rr_next, rr_global);
+
+        LLVMValueRef start = LLVMBuildURem(ctx->builder, rr_cur,
+            LLVMConstInt(ctx->type_i32, (unsigned long long)case_count, 0),
+            llvm_tmp_name(ctx));
+
+        LLVMBasicBlockRef default_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, fn, "select.default");
+        LLVMBasicBlockRef *rotation_bbs = calloc(case_count, sizeof(LLVMBasicBlockRef));
+        for (size_t i = 0; i < case_count; i++) {
+            rotation_bbs[i] = LLVMAppendBasicBlockInContext(
+                ctx->context, fn, "select.rotation");
+        }
+
+        LLVMValueRef dispatch = LLVMBuildSwitch(ctx->builder, start,
+            rotation_bbs[0], (unsigned)(case_count > 0 ? case_count - 1 : 0));
+        for (size_t i = 1; i < case_count; i++) {
+            LLVMAddCase(dispatch, LLVMConstInt(ctx->type_i32,
+                (unsigned long long)i, 0), rotation_bbs[i]);
+        }
+
+        for (size_t start_idx = 0; start_idx < case_count; start_idx++) {
+            LLVMBasicBlockRef next_check_bb = NULL;
+            LLVMPositionBuilderAtEnd(ctx->builder, rotation_bbs[start_idx]);
+
+            for (size_t offset = 0; offset < case_count; offset++) {
+                size_t i = (start_idx + offset) % case_count;
+                ASTNode *case_node = node->data.select_stmt.cases[i];
+                ASTNode *channel = NULL;
+                ASTNode *body = NULL;
+                const char *bind_name = NULL;
+                bool valid_case = llvm_select_case_parts(case_node, &channel, &bind_name, &body);
+
+                LLVMBasicBlockRef case_bb = LLVMAppendBasicBlockInContext(
+                    ctx->context, fn, "select.case");
+                LLVMBasicBlockRef fail_bb = LLVMAppendBasicBlockInContext(
+                    ctx->context, fn, "select.next");
+
+                if (next_check_bb != NULL)
+                    LLVMPositionBuilderAtEnd(ctx->builder, next_check_bb);
+
+                if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
+                    const char *channel_name = channel->data.identifier.name;
+                    const char *inner = llvm_lookup_channel_inner(ctx, channel_name);
+                    LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, channel_name);
+                    if (inner == NULL) inner = "Int";
+
+                    if (ch_var != NULL) {
+                        char fn_name[128];
+                        if (bind_name != NULL) {
+                            LLVMTypeRef val_ty = pergyra_type_to_llvm(ctx, inner);
+                            LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
+                            snprintf(fn_name, sizeof(fn_name), "pgy_channel_try_recv_%s", inner);
+                            LLVMFuncEntry *try_fn = llvm_lookup_function(ctx, fn_name);
+                            if (try_fn != NULL) {
+                                LLVMValueRef args[] = { ch_var->alloca, tmp };
+                                LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
+                                    try_fn->fn, args, 2, llvm_tmp_name(ctx));
+                                LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
+
+                                LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+                                llvm_scope_push(ctx);
+                                {
+                                    LLVMValueRef bind_alloca =
+                                        llvm_create_entry_alloca(ctx, val_ty, bind_name);
+                                    LLVMValueRef received = LLVMBuildLoad2(ctx->builder, val_ty, tmp,
+                                        llvm_tmp_name(ctx));
+                                    LLVMBuildStore(ctx->builder, received, bind_alloca);
+                                    llvm_scope_declare(ctx, pergyra_strdup(bind_name),
+                                                       bind_alloca, val_ty);
+                                }
+                                if (body != NULL)
+                                    llvm_emit_statement(body, ctx);
+                                llvm_scope_pop(ctx);
+                                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                                    LLVMBuildBr(ctx->builder, merge_bb);
+                                next_check_bb = fail_bb;
+                                continue;
+                            }
+                        } else {
+                            snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
+                            LLVMFuncEntry *ready_fn = llvm_lookup_function(ctx, fn_name);
+                            if (ready_fn != NULL) {
+                                LLVMValueRef args[] = { ch_var->alloca };
+                                LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
+                                    ready_fn->fn, args, 1, llvm_tmp_name(ctx));
+                                LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
+
+                                LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+                                {
+                                    char recv_name[128];
+                                    snprintf(recv_name, sizeof(recv_name), "pgy_channel_recv_val_%s", inner);
+                                    LLVMFuncEntry *recv_fn = llvm_lookup_function(ctx, recv_name);
+                                    if (recv_fn != NULL) {
+                                        LLVMValueRef recv_args[] = { ch_var->alloca };
+                                        (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
+                                            recv_fn->fn, recv_args, 1, "");
+                                    }
+                                }
+                                if (body != NULL)
+                                    llvm_emit_statement(body, ctx);
+                                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                                    LLVMBuildBr(ctx->builder, merge_bb);
+                                next_check_bb = fail_bb;
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                LLVMBuildBr(ctx->builder, case_bb);
+                LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+                if (case_node != NULL)
+                    llvm_emit_statement(case_node, ctx);
+                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                    LLVMBuildBr(ctx->builder, merge_bb);
+                next_check_bb = fail_bb;
+            }
+
+            if (next_check_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, next_check_bb);
+            LLVMBuildBr(ctx->builder, default_bb);
+        }
+
+        free(rotation_bbs);
+        LLVMPositionBuilderAtEnd(ctx->builder, default_bb);
+    }
+
     if (node->data.select_stmt.default_case != NULL)
         llvm_emit_statement(node->data.select_stmt.default_case, ctx);
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)

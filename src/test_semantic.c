@@ -1937,6 +1937,231 @@ test_match_stmt(void)
         free(match->data.match_stmt.cases);
         free(match); free(mc); free(body);
     }
+
+    TEST("Option<T> match destructuring binds case variable");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *opt_type = type_create_constructed(TYPE_OPTION, args, 1);
+        scope_declare(ctx->scope, symbol_create_variable("opt", opt_type, 1, 1));
+
+        ASTNode *match = ast_create_match_statement();
+        match->data.match_stmt.subject = ast_create_identifier("opt");
+
+        ASTNode *some_case = ast_create_match_case();
+        ASTNode *some_args[1] = { ast_create_identifier("value") };
+        some_case->data.match_case.pattern = make_call("Some", some_args, 1, 2);
+        some_case->data.match_case.body = ast_create_block();
+        ASTNode *log_args[1] = { ast_create_identifier("value") };
+        ast_add_statement(some_case->data.match_case.body,
+            make_call("Log", log_args, 1, 3));
+
+        ASTNode *none_case = ast_create_match_case();
+        none_case->data.match_case.pattern = make_call("None", NULL, 0, 4);
+        none_case->data.match_case.body = ast_create_block();
+
+        match->data.match_stmt.cases = calloc(2, sizeof(ASTNode *));
+        match->data.match_stmt.cases[0] = some_case;
+        match->data.match_stmt.cases[1] = none_case;
+        match->data.match_stmt.case_count = 2;
+
+        type_check_match_stmt(match, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(match);
+    }
+
+    TEST("Result<T> match destructuring binds Ok/Err variables");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[1] = { TYPE_INT };
+        Type *res_type = type_create_constructed(TYPE_RESULT, args, 1);
+        scope_declare(ctx->scope, symbol_create_variable("result", res_type, 1, 1));
+
+        ASTNode *match = ast_create_match_statement();
+        match->data.match_stmt.subject = ast_create_identifier("result");
+
+        ASTNode *ok_case = ast_create_match_case();
+        ASTNode *ok_args[1] = { ast_create_identifier("value") };
+        ok_case->data.match_case.pattern = make_call("Ok", ok_args, 1, 2);
+        ok_case->data.match_case.body = ast_create_block();
+        ASTNode *log_ok_args[1] = { ast_create_identifier("value") };
+        ast_add_statement(ok_case->data.match_case.body,
+            make_call("Log", log_ok_args, 1, 3));
+
+        ASTNode *err_case = ast_create_match_case();
+        ASTNode *err_args[1] = { ast_create_identifier("error") };
+        err_case->data.match_case.pattern = make_call("Err", err_args, 1, 4);
+        err_case->data.match_case.body = ast_create_block();
+        ASTNode *log_err_args[1] = { ast_create_identifier("error") };
+        ast_add_statement(err_case->data.match_case.body,
+            make_call("Log", log_err_args, 1, 5));
+
+        match->data.match_stmt.cases = calloc(2, sizeof(ASTNode *));
+        match->data.match_stmt.cases[0] = ok_case;
+        match->data.match_stmt.cases[1] = err_case;
+        match->data.match_stmt.case_count = 2;
+
+        type_check_match_stmt(match, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(match);
+    }
+
+    TEST("enum payload match destructuring binds case variables");
+    {
+        const char *source =
+            "enum Shape {\n"
+            "    Circle(Int),\n"
+            "    Rect(Int, Int),\n"
+            "    None\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let shape: Shape = Circle(7);\n"
+            "    match shape {\n"
+            "        case .Circle(r):\n"
+            "            Log(r);\n"
+            "        case .Rect(w, h):\n"
+            "            Log(w);\n"
+            "            Log(h);\n"
+            "        case .None:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Option<T> match without None is non-exhaustive");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let opt: Option<Int> = Some(1);\n"
+            "    match opt {\n"
+            "        case .Some(v):\n"
+            "            Log(v);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Non-exhaustive match"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing cases: None"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("guarded variant does not satisfy exhaustiveness");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let result: Result<Int> = Ok(3);\n"
+            "    match result {\n"
+            "        case .Ok(v) if v > 0:\n"
+            "            Log(v);\n"
+            "        case .Err(e):\n"
+            "            Log(e);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing cases: Ok"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("duplicate variant case produces warning");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let opt: Option<Int> = Some(1);\n"
+            "    match opt {\n"
+            "        case .Some(v):\n"
+            "            Log(v);\n"
+            "        case .Some(x):\n"
+            "            Log(x);\n"
+            "        case .None:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Redundant match case for 'Some'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("redundant default after full variant coverage produces warning");
+    {
+        const char *source =
+            "enum Color { Red, Green }\n"
+            "func Main() -> Void {\n"
+            "    let c: Color = Red;\n"
+            "    match c {\n"
+            "        case .Red:\n"
+            "            Log(1);\n"
+            "        case .Green:\n"
+            "            Log(2);\n"
+            "        default:\n"
+            "            Log(3);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Redundant default case"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -2681,6 +2906,54 @@ test_async_system(void)
         ast_destroy(spawn);
     }
 
+    TEST("Cancel(Future<Int>) returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("pending", 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("Cancel rejects non-future values");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *call_args[1] = { make_number(42, 1) };
+        ASTNode *call = make_call("Cancel", call_args, 1, 1);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx,
+                "Cancel requires Future<T> or RemoteFuture<T>"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("IsCancelled returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *call = make_call("IsCancelled", NULL, 0, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
     TEST("channel send accepts plain value payload");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2700,6 +2973,211 @@ test_async_system(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(send);
+    }
+
+    TEST("TryRecv(Channel<Int>) returns Option<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("TryRecv", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_OPTION));
+        EXPECT(t != NULL
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_INT);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("RecvTimeout(Channel<Int>, Int) returns Option<Int>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = { make_identifier("ch", 1), make_number(1000, 1) };
+        ASTNode *call = make_call("RecvTimeout", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(t != NULL
+            && t->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(t->data.constructed.constructor, TYPE_OPTION));
+        EXPECT(t != NULL
+            && t->data.constructed.arg_count >= 1
+            && t->data.constructed.args[0] == TYPE_INT);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelLength(Channel<Int>) returns Int");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelLength", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelCapacity(Channel<Int>) returns Int");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelCapacity", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelSpace(Channel<Int>) returns Int");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelSpace", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelFull(Channel<Int>) returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelFull", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelClosed(Channel<Int>) returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("ChannelClosed", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("ChannelLength rejects non-channel values");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *call_args[1] = { make_number(42, 1) };
+        ASTNode *call = make_call("ChannelLength", call_args, 1, 1);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("TrySend(Channel<Int>, Int) returns Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = { make_identifier("ch", 1), make_number(42, 1) };
+        ASTNode *call = make_call("TrySend", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("TrySend rejects movable resource channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_QUBIT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *decl = ast_create_let_declaration("q");
+        decl->data.let_decl.type = ast_create_type("QubitSlot");
+        decl->data.let_decl.initializer = make_call("ClaimQubit", NULL, 0, 1);
+        type_check_let_decl(decl, ctx);
+
+        ASTNode *call_args[2] = { make_identifier("ch", 2), make_identifier("q", 2) };
+        ASTNode *call = make_call("TrySend", call_args, 2, 2);
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx,
+                "TrySend does not support movable resource sends yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+        ast_destroy(call);
     }
 
     TEST("channel send rejects anchored Slot handle payload");
@@ -3374,6 +3852,52 @@ test_effect_inference(void)
             && type_effect_mask_has(effects, EFFECT_SECURE));
 
         semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("declared effects must cover inferred body effects");
+    {
+        const char *source =
+            "/// @effects local\n"
+            "func Dispatch() -> Int {\n"
+            "    let pending = spawn 42;\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing declared effects: remote"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("declared effects may exactly match inferred body effects");
+    {
+        const char *source =
+            "/// @effects remote\n"
+            "func Dispatch() -> Int {\n"
+            "    let pending = spawn 42;\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);

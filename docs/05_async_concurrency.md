@@ -70,9 +70,33 @@ func Main() -> Void {
 }
 ```
 
+현재 convenience built-in도 있다.
+
+```pergyra
+func Poll(ch: Channel<Int>) -> Void {
+    let maybe: Option<Int> = TryRecv(ch);
+    let timed: Option<Int> = RecvTimeout(ch, 1_000_000);
+    let ok: Bool = TrySend(ch, 7);
+    let sent: Bool = SendTimeout(ch, 9, 1_000_000);
+    let len: Int = ChannelLength(ch);
+    let cap: Int = ChannelCapacity(ch);
+    let space: Int = ChannelSpace(ch);
+    let full: Bool = ChannelFull(ch);
+    let closed: Bool = ChannelClosed(ch);
+
+    match maybe {
+        case .Some(v):
+            Log(v);
+        case .None:
+            Log(0);
+    }
+}
+```
+
 ## 4. select
 
-`select`는 현재 readiness 기반이며 `default`는 논블로킹 경로다.
+`select`는 현재 readiness 기반이며 `default`는 논블로킹 경로다.  
+여러 case가 동시에 준비되어 있으면 고정 우선순위 대신 **round-robin 시작 인덱스**로 검사해 앞 case starvation을 줄인다.
 
 ```pergyra
 select {
@@ -95,14 +119,47 @@ parallel {
 }
 ```
 
-## 6. 현재 지원 / 미지원
+## 6. cancellation
+
+현재 cancellation 표면은 cooperative/best-effort다.
+
+```pergyra
+func Worker() -> Int {
+    if (IsCancelled()) {
+        return 9;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let cancelled: Bool = Cancel(pending);
+    Log(cancelled);
+}
+```
+
+- `Cancel(task)`는 `Future<T>` / `RemoteFuture<T>`에 취소 요청을 건다.
+- `IsCancelled()`는 현재 실행 중 task 안에서 그 요청을 읽는다.
+- spawned child task는 부모 task의 cancellation chain을 상속한다.
+- 그래서 `Cancel(parent)` 이후 child가 `IsCancelled()`를 확인하면 `true`를 관측할 수 있다.
+- 현재 모델은 cooperative다. task가 `IsCancelled()`를 확인하거나 자연스럽게 종료해야 실제 종료로 이어진다.
+
+## 7. 현재 지원 / 미지원
 
 지원:
 - `async func`, `await`, `spawn`
 - `async { ... }` 블록
 - `Channel<T>`, `select`, `parallel`
+- `TryRecv/RecvTimeout -> Option<T>`
+- `TrySend/SendTimeout -> Bool`
+- `ChannelLength/ChannelCapacity/ChannelSpace -> Int`
+- `ChannelFull/ChannelClosed -> Bool`
+- `Cancel(task)` / `IsCancelled()` cooperative cancellation
+- spawned descendant에 대한 cancellation propagation
 - `RemoteFuture<T>` → `Result<T>`
 
 미지원 또는 비공식:
 - `await for`, `TaskGroup`, `CancellationToken` 같은 구조화된 동시성 API
 - OS 전용 I/O 스케줄러 강결합
+- movable resource channel에 대한 non-blocking/timeout transfer surface
+- preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice

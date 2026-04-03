@@ -208,6 +208,42 @@ parse_effect_word(const char *word)
     return UINT32_MAX;
 }
 
+static void
+append_effect_name(char *buf, size_t buf_size, const char *name, bool *first)
+{
+    if (buf == NULL || buf_size == 0 || name == NULL || first == NULL)
+        return;
+
+    if (!*first)
+        strncat(buf, ", ", buf_size - strlen(buf) - 1);
+    strncat(buf, name, buf_size - strlen(buf) - 1);
+    *first = false;
+}
+
+static void
+effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
+{
+    bool first = true;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+
+    buf[0] = '\0';
+    if (mask == EFFECT_NONE) {
+        strncat(buf, "local", buf_size - 1);
+        return;
+    }
+
+    if (type_effect_mask_has(mask, EFFECT_SECURE))
+        append_effect_name(buf, buf_size, "secure", &first);
+    if (type_effect_mask_has(mask, EFFECT_REMOTE))
+        append_effect_name(buf, buf_size, "remote", &first);
+    if (type_effect_mask_has(mask, EFFECT_NONDETERMINISTIC))
+        append_effect_name(buf, buf_size, "nondeterministic", &first);
+    if (type_effect_mask_has(mask, EFFECT_COLLAPSE))
+        append_effect_name(buf, buf_size, "collapse", &first);
+}
+
 static uint32_t
 effects_from_structured_comment(StructuredComment *comment,
                                 SemanticContext *ctx,
@@ -242,6 +278,19 @@ effects_from_structured_comment(StructuredComment *comment,
     }
 
     return mask;
+}
+
+static bool
+structured_comment_has_effects_tag(StructuredComment *comment)
+{
+    for (StructuredComment *block = comment; block != NULL; block = block->next) {
+        for (size_t i = 0; i < block->tag_count; i++) {
+            DocTag *tag = block->tags[i];
+            if (tag != NULL && tag->type == DOC_TAG_EFFECTS)
+                return true;
+        }
+    }
+    return false;
 }
 
 void
@@ -2523,6 +2572,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
     bool in_class_scope = (ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS);
+    bool has_effect_contract =
+        structured_comment_has_effects_tag(node->data.func_decl.doc_comment);
     uint32_t declared_effects =
         effects_from_structured_comment(node->data.func_decl.doc_comment, ctx, node);
 
@@ -2663,7 +2714,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Type *prev_return  = ctx->current_return;
     ctx->current_return = return_type;
-    ctx->current_function_effects = declared_effects;
+    ctx->current_function_effects = EFFECT_NONE;
     ctx->tracking_function_effects = true;
     ctx->in_async_func = prev_async || node->is_async_decl;
 
@@ -2679,7 +2730,25 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL)
         type_check_block(node->data.func_decl.body, ctx);
 
-    func_type->data.function.effect_mask = ctx->current_function_effects;
+    {
+        uint32_t inferred_effects = ctx->current_function_effects;
+        uint32_t missing_effects = inferred_effects & ~declared_effects;
+        char inferred_buf[128];
+        char missing_buf[128];
+        char declared_buf[128];
+
+        if (has_effect_contract && missing_effects != EFFECT_NONE) {
+            effect_mask_to_string(inferred_effects, inferred_buf, sizeof(inferred_buf));
+            effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
+            effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
+            semantic_error(ctx, node,
+                "Function '%s' is missing declared effects: %s (declared: %s, inferred from body: %s)",
+                name != NULL ? name : "<anonymous>",
+                missing_buf, declared_buf, inferred_buf);
+        }
+
+        func_type->data.function.effect_mask = declared_effects | inferred_effects;
+    }
 
     ctx->current_return = prev_return;
     ctx->current_function_effects = prev_effects;

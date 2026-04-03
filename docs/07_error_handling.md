@@ -2,7 +2,7 @@
 
 마지막 업데이트: 2026-04-03
 
-이 문서는 현재 구현 기준으로 정리한 에러 처리 표면이다. 과거 설계 문서에 있던 `Result<T, E>`, `Option<T>` full surface, `try/catch`, 에러 매크로 시스템은 아직 현재 구현 기준의 stable feature가 아니다.
+이 문서는 현재 구현 기준으로 정리한 에러 처리 표면이다. 과거 설계 문서에 있던 `Result<T, E>`, `try/catch`, 에러 매크로 시스템은 아직 현재 구현 기준의 stable feature가 아니다.
 
 ## 1. 현재 구현 중심
 
@@ -11,6 +11,9 @@
 - `Result<T>` 타입
 - `Ok(...)`, `Err(...)`
 - `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`
+- `Option<T>` 타입
+- `Some(...)`, `None()`
+- `IsSome`, `IsNone`, `UnwrapOption`
 - postfix `?` 조기 반환
 - `RemoteFuture<T>`를 `await`했을 때 `Result<T>`가 되는 규칙
 
@@ -94,25 +97,45 @@ func Handle(result: Result<Int>) -> Void {
 }
 ```
 
-## 6. Option<T> 상태
+## 6. Option<T>
 
-`Option`은 런타임 매크로와 설계 문서에는 존재하지만, 현재 프로젝트에서 `Result<T>`만큼 고정된 source-level stable surface로 보긴 어렵다.
+`Option<T>`는 현재 source-level 표면에 포함된다. 기본 축은 `Some(...)`, `None()`, `IsSome`, `IsNone`, `UnwrapOption`, 그리고 `match` destructuring이다.
 
-- 런타임에는 `PgyOption_*` 지원이 존재
-- 문법적으로는 tagged union enum으로 `Some/None` 형태를 직접 정의해서 사용할 수 있음
-- TODO 기준으로 `Option<T> / None`은 아직 고정 대상
+```pergyra
+func FindPositive(n: Int) -> Option<Int> {
+    if n > 0 {
+        return Some(n);
+    }
+    return None();
+}
 
-따라서 현재 문서에서는 `Option<T>`를 "이미 완성된 언어 내장"으로 보기보다, "부분 준비된 표면"으로 보는 편이 정확하다.
+func Main() -> Void {
+    let value: Option<Int> = FindPositive(7);
+
+    match value {
+        case .Some(v):
+            Log(v);
+        case .None:
+            Log(0);
+    }
+}
+```
+
+현재 구현 기준에서 다음이 연결되어 있다.
+
+- semantic: `Option<T>` 타입, built-in 함수 검증
+- C backend: `PgyOption_*` lowering
+- LLVM backend: option struct lowering
+- `match`: `Some(...)` / `None()` destructuring
 
 ## 7. 아직 stable 하지 않은 항목
 
 다음 표면은 설계 문서에는 있었지만 현재 구현 기준의 stable feature로 문서화하기엔 이르다.
 
 - `Result<T, E>` 두 개의 타입 파라미터를 가진 완전한 표면
-- `Option<T>` full stdlib surface
 - `try { } catch { }`
 - trait/class 기반 에러 계층
 - `@[error_type]` 같은 메타프로그래밍 표면
 - `MapErr`, `AndThen` 같은 고수준 combinator 체인
 
-현재 프로젝트 상태를 정확히 표현하려면, 에러 처리는 우선 `Result<T>` + `?` + `await RemoteFuture -> Result<T>` 조합으로 이해하는 것이 맞다.
+현재 프로젝트 상태를 정확히 표현하려면, 에러 처리는 우선 `Result<T>` + `?` + `await RemoteFuture -> Result<T>`를 중심으로 이해하고, `Option<T>`는 "값의 부재"를 표현하는 현재 표준 표면으로 보면 된다.

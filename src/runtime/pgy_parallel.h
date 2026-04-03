@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdatomic.h>
 #include <pthread.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -34,9 +35,70 @@ typedef enum {
     PGY_TASK_MODEL_COROUTINE = 2
 } PgyTaskModel;
 
+typedef struct PgyCancelNode {
+    struct PgyCancelNode *parent;
+    atomic_size_t        refcount;
+    atomic_bool          cancelled;
+} PgyCancelNode;
+
 typedef struct {
     PgyTaskModel model;
 } PgyTaskHeader;
+
+static inline PgyCancelNode *
+pgy_current_cancel_node(void);
+
+static inline void
+pgy_cancel_retain(PgyCancelNode *node)
+{
+    if (node != NULL)
+        (void)atomic_fetch_add_explicit(&node->refcount, 1, memory_order_relaxed);
+}
+
+static inline PgyCancelNode *
+pgy_cancel_node_create(PgyCancelNode *parent)
+{
+    PgyCancelNode *node = (PgyCancelNode *)calloc(1, sizeof(PgyCancelNode));
+    if (node == NULL)
+        return NULL;
+    node->parent = parent;
+    atomic_init(&node->refcount, 1);
+    atomic_init(&node->cancelled, false);
+    pgy_cancel_retain(parent);
+    return node;
+}
+
+static inline void
+pgy_cancel_release(PgyCancelNode *node)
+{
+    if (node == NULL)
+        return;
+
+    if (atomic_fetch_sub_explicit(&node->refcount, 1, memory_order_acq_rel) != 1)
+        return;
+
+    PgyCancelNode *parent = node->parent;
+    free(node);
+    pgy_cancel_release(parent);
+}
+
+static inline void
+pgy_cancel_request(PgyCancelNode *node)
+{
+    if (node != NULL)
+        atomic_store_explicit(&node->cancelled, true, memory_order_release);
+}
+
+static inline bool
+pgy_cancel_is_requested(PgyCancelNode *node)
+{
+    while (node != NULL) {
+        if (atomic_load_explicit(&node->cancelled, memory_order_acquire))
+            return true;
+        node = node->parent;
+    }
+    return false;
+}
 
 typedef struct PgyTask {
     PgyTaskModel    model;
@@ -44,6 +106,7 @@ typedef struct PgyTask {
     void           *arg;
     void           *result;
     PgyTaskState    state;
+    PgyCancelNode  *cancel_node;
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
     struct PgyTask *next;
@@ -69,6 +132,7 @@ typedef struct {
 
 static PgyThreadPool g_pgy_pool = {0};
 static bool          g_pgy_pool_active = false;
+static __thread PgyTask *g_pgy_thread_current = NULL;
 
 static void *
 pgy_worker_loop(void *arg)
@@ -97,10 +161,19 @@ pgy_worker_loop(void *arg)
             continue;
 
         pthread_mutex_lock(&task->mutex);
+        if (pgy_cancel_is_requested(task->cancel_node)) {
+            task->state = PGY_TASK_DONE;
+            task->result = NULL;
+            pthread_cond_broadcast(&task->cond);
+            pthread_mutex_unlock(&task->mutex);
+            continue;
+        }
         task->state = PGY_TASK_RUNNING;
         pthread_mutex_unlock(&task->mutex);
 
+        g_pgy_thread_current = task;
         void *result = task->fn(task->arg);
+        g_pgy_thread_current = NULL;
 
         pthread_mutex_lock(&task->mutex);
         task->result = result;
@@ -155,6 +228,7 @@ pgy_pool_shutdown(void)
     PgyTask *t = g_pgy_pool.queue_head;
     while (t != NULL) {
         PgyTask *next = t->next;
+        pgy_cancel_release(t->cancel_node);
         pthread_mutex_destroy(&t->mutex);
         pthread_cond_destroy(&t->cond);
         free(t);
@@ -177,7 +251,10 @@ pgy_spawn(void *(*fn)(void *), void *arg)
         task->model = PGY_TASK_MODEL_THREAD;
         task->fn = fn;
         task->arg = arg;
-        task->result = fn != NULL ? fn(arg) : NULL;
+        task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
+        task->result = pgy_cancel_is_requested(task->cancel_node)
+            ? NULL
+            : (fn != NULL ? fn(arg) : NULL);
         task->state = PGY_TASK_DONE;
         pthread_mutex_init(&task->mutex, NULL);
         pthread_cond_init(&task->cond, NULL);
@@ -193,6 +270,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
+    task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
     pthread_mutex_init(&task->mutex, NULL);
     pthread_cond_init(&task->cond, NULL);
     handle.task = task;
@@ -227,6 +305,7 @@ typedef struct PgyCoroTask {
     bool                   done;
     bool                   detached;
     bool                   queued;
+    PgyCancelNode         *cancel_node;
     struct PgyCoroTask    *next;
     struct PgyCoroTask    *waiter;
 #ifdef _WIN32
@@ -251,6 +330,16 @@ typedef struct {
 } PgyCoroRuntime;
 
 static __thread PgyCoroRuntime g_pgy_coro = {0};
+
+static inline PgyCancelNode *
+pgy_current_cancel_node(void)
+{
+#if PGY_COROUTINES_AVAILABLE
+    if (g_pgy_coro.current != NULL)
+        return g_pgy_coro.current->cancel_node;
+#endif
+    return g_pgy_thread_current != NULL ? g_pgy_thread_current->cancel_node : NULL;
+}
 
 static inline void
 pgy_coro_enqueue(PgyCoroTask *task)
@@ -286,6 +375,7 @@ pgy_coro_destroy(PgyCoroTask *task)
 {
     if (task == NULL)
         return;
+    pgy_cancel_release(task->cancel_node);
 #ifdef _WIN32
     if (task->fiber != NULL)
         DeleteFiber(task->fiber);
@@ -374,18 +464,22 @@ pgy_async_spawn(void *(*fn)(void *), void *arg)
     task->model = PGY_TASK_MODEL_COROUTINE;
     task->fn = fn;
     task->arg = arg;
+    task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
 #ifdef _WIN32
     if (!pgy_coro_ensure_scheduler()) {
+        pgy_cancel_release(task->cancel_node);
         free(task);
         return handle;
     }
     task->fiber = CreateFiber(PGY_CORO_STACK_SIZE, pgy_coro_entry_win, task);
     if (task->fiber == NULL) {
+        pgy_cancel_release(task->cancel_node);
         free(task);
         return handle;
     }
 #else
     if (!pgy_coro_init_task_posix(task)) {
+        pgy_cancel_release(task->cancel_node);
         free(task);
         return handle;
     }
@@ -476,6 +570,44 @@ pgy_async_task_done(void *raw)
 #endif /* PGY_COROUTINES_AVAILABLE */
 
 /* =================================================================
+ * Task cancellation / cancellation query
+ * ================================================================= */
+
+static inline bool
+pgy_task_cancel(PgyTaskHandle handle)
+{
+    PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
+    if (header == NULL)
+        return false;
+
+#if PGY_COROUTINES_AVAILABLE
+    if (header->model == PGY_TASK_MODEL_COROUTINE) {
+        PgyCoroTask *task = (PgyCoroTask *)handle.task;
+        pgy_cancel_request(task->cancel_node);
+        if (!pgy_async_in_coroutine())
+            (void)pgy_async_progress_one();
+        return true;
+    }
+#endif
+
+    if (header->model == PGY_TASK_MODEL_THREAD) {
+        PgyTask *task = (PgyTask *)handle.task;
+        pthread_mutex_lock(&task->mutex);
+        pgy_cancel_request(task->cancel_node);
+        pthread_mutex_unlock(&task->mutex);
+        return true;
+    }
+
+    return false;
+}
+
+static inline bool
+pgy_task_is_cancelled(void)
+{
+    return pgy_cancel_is_requested(pgy_current_cancel_node());
+}
+
+/* =================================================================
  * Unified await
  * ================================================================= */
 
@@ -525,6 +657,7 @@ pgy_await(PgyTaskHandle handle)
     void *result = task->result;
     pthread_mutex_unlock(&task->mutex);
 
+    pgy_cancel_release(task->cancel_node);
     pthread_mutex_destroy(&task->mutex);
     pthread_cond_destroy(&task->cond);
     free(task);

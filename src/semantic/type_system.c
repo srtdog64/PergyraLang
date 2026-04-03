@@ -207,14 +207,18 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
     t->data.function.return_type  = return_type;
     t->data.function.param_count  = param_count;
     t->data.function.effect_mask  = EFFECT_NONE;
-    t->data.function.param_types  = malloc(param_count * sizeof(Type *));
-    if (t->data.function.param_types == NULL) {
+    t->data.function.param_types  = (param_count > 0)
+        ? malloc(param_count * sizeof(Type *))
+        : NULL;
+    if (param_count > 0 && t->data.function.param_types == NULL) {
         free(t->name);
         free(t);
         return NULL;
     }
-    memcpy(t->data.function.param_types, params,
-           param_count * sizeof(Type *));
+    if (param_count > 0 && params != NULL) {
+        memcpy(t->data.function.param_types, params,
+               param_count * sizeof(Type *));
+    }
     return t;
 }
 

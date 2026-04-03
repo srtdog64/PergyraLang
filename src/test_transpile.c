@@ -1538,6 +1538,99 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("TryRecv emits Option-based non-blocking receive");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("TryRecv", args, 1, 2), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_try_recv_Int(&ch, &_pgy_recv_tmp)") != NULL);
+        EXPECT(strstr(result, "Some_Int(_pgy_recv_tmp)") != NULL);
+        EXPECT(strstr(result, "None_Int()") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("RecvTimeout emits Option-based timed receive");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+
+        ASTNode *args[2] = { make_identifier("ch", 2), make_number(1000, 2) };
+        char *result = emit_expression(make_call("RecvTimeout", args, 2, 2), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_recv_timeout_Int(&ch, &_pgy_recv_tmp, (uint64_t)(1000))") != NULL);
+        EXPECT(strstr(result, "Some_Int(_pgy_recv_tmp)") != NULL);
+        EXPECT(strstr(result, "None_Int()") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("TrySend emits pgy_channel_try_send");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+
+        ASTNode *args[2] = { make_identifier("ch", 2), make_number(42, 2) };
+        char *result = emit_expression(make_call("TrySend", args, 2, 2), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_try_send_Int(&ch, 42)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Cancel emits pgy_task_cancel");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *spawn = calloc(1, sizeof(ASTNode));
+        spawn->type = AST_SPAWN_EXPR;
+        spawn->data.spawn_expr.function = make_identifier("Work", 1);
+        spawn->data.spawn_expr.arguments = NULL;
+        spawn->data.spawn_expr.arg_count = 0;
+        emit_statement(make_let("pending", NULL, spawn, 1), ctx);
+
+        ASTNode *args[1] = { make_identifier("pending", 2) };
+        char *result = emit_expression(make_call("Cancel", args, 1, 2), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_task_cancel(pending)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("IsCancelled emits pgy_task_is_cancelled");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(make_call("IsCancelled", NULL, 0, 1), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_task_is_cancelled()") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("event invoke emits generated invoke helper call");
     {
         ASTNode event_node; memset(&event_node, 0, sizeof(event_node));
@@ -1580,12 +1673,104 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("select statement emits if-else chain");
+    TEST("ChannelLength emits pgy_channel_length");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("ChannelLength", args, 1, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_length_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ChannelCapacity emits pgy_channel_capacity");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("ChannelCapacity", args, 1, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_capacity_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ChannelSpace emits pgy_channel_space");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("ChannelSpace", args, 1, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_space_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ChannelFull emits pgy_channel_full");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("ChannelFull", args, 1, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_full_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ChannelClosed emits pgy_channel_closed");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("ch", 2) };
+        char *result = emit_expression(make_call("ChannelClosed", args, 1, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_closed_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("select statement emits round-robin switch");
     {
         ASTNode select_node; memset(&select_node, 0, sizeof(select_node));
         select_node.type = AST_SELECT_STMT;
-        select_node.data.select_stmt.cases = NULL;
-        select_node.data.select_stmt.case_count = 0;
+        ASTNode *recv = ast_create_channel_recv(make_identifier("ch", 1));
+        ASTNode *assign = ast_create_assignment(make_identifier("v", 1), recv);
+        ASTNode *body = ast_create_block();
+        ASTNode *case_block = ast_create_block();
+        ast_add_statement(case_block, assign);
+        ast_add_statement(case_block, body);
+        ASTNode *cases[1] = { case_block };
+        select_node.data.select_stmt.cases = cases;
+        select_node.data.select_stmt.case_count = 1;
 
         /* Add a default case */
         ASTNode default_body; memset(&default_body, 0, sizeof(default_body));
@@ -1595,11 +1780,17 @@ test_async_emit(void)
         select_node.data.select_stmt.default_case = &default_body;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", (ASTNode *[]){ make_number(4, 1) }, 1, 1), 1),
+            ctx);
         emit_select_stmt(&select_node, ctx);
 
         EXPECT(ctx->out->data != NULL);
         EXPECT(strstr(ctx->out->data, "select") != NULL);
         EXPECT(strstr(ctx->out->data, "default") != NULL);
+        EXPECT(strstr(ctx->out->data, "switch (_sel_start_") != NULL);
+        EXPECT(strstr(ctx->out->data, "_sel_rr_") != NULL);
 
         transpiler_ctx_destroy(ctx);
     }

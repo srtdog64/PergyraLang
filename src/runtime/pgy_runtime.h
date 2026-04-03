@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <errno.h>
 #include <pthread.h>
 #include "pgy_parallel.h"
 
@@ -58,6 +60,20 @@ pgy_runtime_strdup(const char *src)
 
     memcpy(copy, src, len + 1);
     return copy;
+}
+
+static inline struct timespec
+pgy_timespec_after_ns(uint64_t timeout_ns)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_sec += (time_t)(timeout_ns / 1000000000ull);
+    ts.tv_nsec += (long)(timeout_ns % 1000000000ull);
+    if (ts.tv_nsec >= 1000000000l) {
+        ts.tv_sec += 1;
+        ts.tv_nsec -= 1000000000l;
+    }
+    return ts;
 }
 
 #if defined(PGY_DEBUG) || defined(PGY_SAFE_SLOTS)
@@ -1357,6 +1373,49 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
     return true; \
 } \
 \
+/* Non-blocking try_send. Returns false if full or closed. */ \
+static inline bool \
+pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
+{ \
+    pthread_mutex_lock(&ch->mutex); \
+    if (ch->closed || ch->count >= ch->cap) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return false; \
+    } \
+    ch->buf[ch->tail] = value; \
+    ch->tail = (ch->tail + 1) % ch->cap; \
+    ch->count++; \
+    pthread_cond_signal(&ch->cond_not_empty); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return true; \
+} \
+\
+/* Blocking send with timeout. Returns false on timeout or closed. */ \
+static inline bool \
+pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
+                                      CType value, uint64_t timeout_ns) \
+{ \
+    struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
+    pthread_mutex_lock(&ch->mutex); \
+    while (ch->count >= ch->cap && !ch->closed) { \
+        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline) \
+            == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
+            pthread_mutex_unlock(&ch->mutex); \
+            return false; \
+        } \
+    } \
+    if (ch->closed) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return false; \
+    } \
+    ch->buf[ch->tail] = value; \
+    ch->tail = (ch->tail + 1) % ch->cap; \
+    ch->count++; \
+    pthread_cond_signal(&ch->cond_not_empty); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return true; \
+} \
+\
 /* Blocking recv. Returns false if channel closed and empty. */ \
 static inline bool \
 pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
@@ -1369,6 +1428,32 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
             pthread_mutex_lock(&ch->mutex); \
         } else { \
             pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+        } \
+    } \
+    if (ch->count == 0 && ch->closed) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return false; \
+    } \
+    *out = ch->buf[ch->head]; \
+    ch->head = (ch->head + 1) % ch->cap; \
+    ch->count--; \
+    pthread_cond_signal(&ch->cond_not_full); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return true; \
+} \
+\
+/* Blocking recv with timeout. Returns false on timeout or closed+empty. */ \
+static inline bool \
+pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
+                                      CType *out, uint64_t timeout_ns) \
+{ \
+    struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
+    pthread_mutex_lock(&ch->mutex); \
+    while (ch->count == 0 && !ch->closed) { \
+        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline) \
+            == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
+            pthread_mutex_unlock(&ch->mutex); \
+            return false; \
         } \
     } \
     if (ch->count == 0 && ch->closed) { \
@@ -1412,6 +1497,62 @@ pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
     bool ready = ch->count > 0; \
     pthread_mutex_unlock(&ch->mutex); \
     return ready; \
+} \
+\
+/* Backpressure observation helpers. */ \
+static inline int32_t \
+pgy_channel_length_##SuffixName(PgyChannel_##SuffixName *ch) \
+{ \
+    if (ch == NULL) \
+        return 0; \
+    pthread_mutex_lock(&ch->mutex); \
+    int32_t len = (int32_t)ch->count; \
+    pthread_mutex_unlock(&ch->mutex); \
+    return len; \
+} \
+\
+static inline int32_t \
+pgy_channel_capacity_##SuffixName(PgyChannel_##SuffixName *ch) \
+{ \
+    if (ch == NULL) \
+        return 0; \
+    pthread_mutex_lock(&ch->mutex); \
+    int32_t cap = (int32_t)ch->cap; \
+    pthread_mutex_unlock(&ch->mutex); \
+    return cap; \
+} \
+\
+static inline bool \
+pgy_channel_full_##SuffixName(PgyChannel_##SuffixName *ch) \
+{ \
+    if (ch == NULL) \
+        return false; \
+    pthread_mutex_lock(&ch->mutex); \
+    bool full = ch->count >= ch->cap; \
+    pthread_mutex_unlock(&ch->mutex); \
+    return full; \
+} \
+\
+static inline int32_t \
+pgy_channel_space_##SuffixName(PgyChannel_##SuffixName *ch) \
+{ \
+    if (ch == NULL) \
+        return 0; \
+    pthread_mutex_lock(&ch->mutex); \
+    int32_t space = (int32_t)(ch->cap - ch->count); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return space; \
+} \
+\
+static inline bool \
+pgy_channel_closed_##SuffixName(PgyChannel_##SuffixName *ch) \
+{ \
+    if (ch == NULL) \
+        return true; \
+    pthread_mutex_lock(&ch->mutex); \
+    bool closed = ch->closed; \
+    pthread_mutex_unlock(&ch->mutex); \
+    return closed; \
 } \
 \
 /* Blocking recv that returns the value (convenience wrapper). \

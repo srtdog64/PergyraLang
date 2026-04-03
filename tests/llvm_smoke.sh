@@ -220,6 +220,88 @@ func Main() -> Void {
 EOF
 run_case "select_ready" "$TMPDIR/select_ready.pgy" "7"
 
+cat > "$TMPDIR/select_fairness.pgy" <<'EOF'
+func Main() -> Void {
+    let a: Channel<Int> = Channel(4);
+    let b: Channel<Int> = Channel(4);
+    a <- 1;
+    a <- 3;
+    b <- 2;
+    b <- 4;
+
+    for i in 0..4 {
+        select {
+            case v = <-a:
+                Log(v);
+            case v = <-b:
+                Log(v);
+            default:
+                Log(0);
+        }
+    }
+}
+EOF
+run_case "select_fairness" "$TMPDIR/select_fairness.pgy" "1" "2" "3" "4"
+
+cat > "$TMPDIR/cancel_future.pgy" <<'EOF'
+func Worker() -> Int {
+    return 1;
+}
+
+func Main() -> Void {
+    let pending: Future<Int> = spawn Worker();
+    let cancelled: Bool = Cancel(pending);
+    Log(cancelled);
+}
+EOF
+run_case "cancel_future" "$TMPDIR/cancel_future.pgy" "true"
+
+cat > "$TMPDIR/cancel_propagation.pgy" <<'EOF'
+func Child() -> Int {
+    if (IsCancelled()) {
+        return 9;
+    }
+    return 0;
+}
+
+async func Parent() -> Int {
+    let child: Future<Int> = spawn Child();
+    let value: Int = await child;
+    return value;
+}
+
+async func Main() -> Void {
+    let parent: Future<Int> = spawn Parent();
+    let cancelled: Bool = Cancel(parent);
+    Log(cancelled);
+    let value: Int = await parent;
+    Log(value);
+}
+EOF
+run_case "cancel_propagation" "$TMPDIR/cancel_propagation.pgy" "true" "9"
+
+cat > "$TMPDIR/channel_pressure.pgy" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    Log(ChannelCapacity(ch));
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+    Log(ChannelClosed(ch));
+    ch <- 7;
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+    ch <- 8;
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+    ChannelClose(ch);
+    Log(ChannelClosed(ch));
+}
+EOF
+run_case "channel_pressure" "$TMPDIR/channel_pressure.pgy" "2" "0" "2" "false" "false" "1" "1" "false" "2" "0" "true" "true"
+
 cat > "$TMPDIR/async_block_runtime.pgy" <<'EOF'
 func Main() -> Void {
     let ch: Channel<Int> = Channel(4);
