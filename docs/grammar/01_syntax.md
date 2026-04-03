@@ -402,6 +402,9 @@ zone BattleZone {
     link trust between player, enemy
     detach poison from enemy
     unlink trust between player, enemy
+    refresh playerView from player
+    maintain poison on player
+    maintain trust between player, enemy
     shared round: Int = 1
 }
 
@@ -416,7 +419,7 @@ world GameWorld {
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
-현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `zone`은 `relation slot`/`effect slot`과 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
+현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `zone`은 `relation slot`/`effect slot`과 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `refresh objectSlot from subjectSlot`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`, `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 

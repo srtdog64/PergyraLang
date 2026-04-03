@@ -593,6 +593,64 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "refresh")) {
+            Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected object slot name after 'refresh'");
+            if (!parser_match_identifier_keyword(parser, "from")) {
+                parser_error(parser, "Expected 'from' after object slot name in refresh");
+                parser_advance(parser);
+                continue;
+            }
+            Token source_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected source slot name after 'from'");
+
+            ASTNode *refresh = ast_create_zone_refresh(
+                object_slot.text, source_slot.text);
+            refresh->line = object_slot.line;
+            refresh->column = object_slot.column;
+
+            append_child_node(&zone->data.zone_decl.refreshes,
+                &zone->data.zone_decl.refresh_count, refresh);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "maintain")) {
+            Token layer_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected effect or relation slot name after 'maintain'");
+
+            if (parser_match_identifier_keyword(parser, "on")) {
+                Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected target slot name after 'on'");
+                ASTNode *maintain = ast_create_zone_maintain_effect(
+                    layer_slot.text, target_slot.text);
+                maintain->line = layer_slot.line;
+                maintain->column = layer_slot.column;
+
+                append_child_node(&zone->data.zone_decl.maintained_effects,
+                    &zone->data.zone_decl.maintained_effect_count, maintain);
+            } else if (parser_match_identifier_keyword(parser, "between")) {
+                Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected left slot name after 'between'");
+                parser_consume(parser, TOKEN_COMMA,
+                    "Expected ',' between maintained slot names");
+                Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected right slot name after ','");
+                ASTNode *maintain = ast_create_zone_maintain_relation(
+                    layer_slot.text, left_slot.text, right_slot.text);
+                maintain->line = layer_slot.line;
+                maintain->column = layer_slot.column;
+
+                append_child_node(&zone->data.zone_decl.maintained_relations,
+                    &zone->data.zone_decl.maintained_relation_count, maintain);
+            } else {
+                parser_error(parser,
+                    "Expected 'on' or 'between' after slot name in maintain");
+                parser_advance(parser);
+                continue;
+            }
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_SHARED)) {
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected field name after 'shared'");
@@ -630,7 +688,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'maintain', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
     }

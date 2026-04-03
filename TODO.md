@@ -162,6 +162,9 @@
   - 완료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface를 semantic/C backend에 연결
   - 완료: `ToDto(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
   - 완료: `relation/effect/zone`의 domain slot에 optional initializer를 연결해 `object slot view: View = ToObject(View, subject)` 같은 projection wiring을 직접 표현 가능하게 함
+  - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
+  - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
+  - 완료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추가
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
   - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론과 inter-layer composition
 

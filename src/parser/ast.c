@@ -314,6 +314,12 @@ ASTNode* ast_create_zone_declaration(const char* name) {
     node->data.zone_decl.detach_count = 0;
     node->data.zone_decl.unlinks = NULL;
     node->data.zone_decl.unlink_count = 0;
+    node->data.zone_decl.refreshes = NULL;
+    node->data.zone_decl.refresh_count = 0;
+    node->data.zone_decl.maintained_effects = NULL;
+    node->data.zone_decl.maintained_effect_count = 0;
+    node->data.zone_decl.maintained_relations = NULL;
+    node->data.zone_decl.maintained_relation_count = 0;
     node->data.zone_decl.shared_fields = NULL;
     node->data.zone_decl.shared_count = 0;
     node->data.zone_decl.methods = NULL;
@@ -375,6 +381,35 @@ ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left
     node->data.zone_unlink.left_slot_name =
         left_slot_name ? pergyra_strdup(left_slot_name) : NULL;
     node->data.zone_unlink.right_slot_name =
+        right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* source_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_REFRESH);
+    node->data.zone_refresh.object_slot_name =
+        object_slot_name ? pergyra_strdup(object_slot_name) : NULL;
+    node->data.zone_refresh.source_slot_name =
+        source_slot_name ? pergyra_strdup(source_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_maintain_effect(const char* effect_slot_name, const char* target_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_MAINTAIN_EFFECT);
+    node->data.zone_maintain_effect.effect_slot_name =
+        effect_slot_name ? pergyra_strdup(effect_slot_name) : NULL;
+    node->data.zone_maintain_effect.target_slot_name =
+        target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_maintain_relation(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_MAINTAIN_RELATION);
+    node->data.zone_maintain_relation.relation_slot_name =
+        relation_slot_name ? pergyra_strdup(relation_slot_name) : NULL;
+    node->data.zone_maintain_relation.left_slot_name =
+        left_slot_name ? pergyra_strdup(left_slot_name) : NULL;
+    node->data.zone_maintain_relation.right_slot_name =
         right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
     return node;
 }
@@ -1179,6 +1214,15 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++)
                 ast_destroy(node->data.zone_decl.unlinks[i]);
             free(node->data.zone_decl.unlinks);
+            for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++)
+                ast_destroy(node->data.zone_decl.refreshes[i]);
+            free(node->data.zone_decl.refreshes);
+            for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++)
+                ast_destroy(node->data.zone_decl.maintained_effects[i]);
+            free(node->data.zone_decl.maintained_effects);
+            for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++)
+                ast_destroy(node->data.zone_decl.maintained_relations[i]);
+            free(node->data.zone_decl.maintained_relations);
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
                 ast_destroy(node->data.zone_decl.shared_fields[i]);
             free(node->data.zone_decl.shared_fields);
@@ -1219,6 +1263,22 @@ void ast_destroy(ASTNode* node) {
             free(node->data.zone_unlink.relation_slot_name);
             free(node->data.zone_unlink.left_slot_name);
             free(node->data.zone_unlink.right_slot_name);
+            break;
+
+        case AST_ZONE_REFRESH:
+            free(node->data.zone_refresh.object_slot_name);
+            free(node->data.zone_refresh.source_slot_name);
+            break;
+
+        case AST_ZONE_MAINTAIN_EFFECT:
+            free(node->data.zone_maintain_effect.effect_slot_name);
+            free(node->data.zone_maintain_effect.target_slot_name);
+            break;
+
+        case AST_ZONE_MAINTAIN_RELATION:
+            free(node->data.zone_maintain_relation.relation_slot_name);
+            free(node->data.zone_maintain_relation.left_slot_name);
+            free(node->data.zone_maintain_relation.right_slot_name);
             break;
 
         case AST_PARTY_DECL:
@@ -2346,6 +2406,15 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
                 ast_print(node->data.zone_decl.unlinks[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
+                ast_print(node->data.zone_decl.refreshes[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
+                ast_print(node->data.zone_decl.maintained_effects[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++) {
+                ast_print(node->data.zone_decl.maintained_relations[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
                 ast_print(node->data.zone_decl.shared_fields[i], indent + 1);
             }
@@ -2400,6 +2469,25 @@ void ast_print(ASTNode* node, int indent) {
                    node->data.zone_unlink.relation_slot_name,
                    node->data.zone_unlink.left_slot_name,
                    node->data.zone_unlink.right_slot_name);
+            break;
+
+        case AST_ZONE_REFRESH:
+            printf("Refresh: %s from %s\n",
+                   node->data.zone_refresh.object_slot_name,
+                   node->data.zone_refresh.source_slot_name);
+            break;
+
+        case AST_ZONE_MAINTAIN_EFFECT:
+            printf("MaintainEffect: %s on %s\n",
+                   node->data.zone_maintain_effect.effect_slot_name,
+                   node->data.zone_maintain_effect.target_slot_name);
+            break;
+
+        case AST_ZONE_MAINTAIN_RELATION:
+            printf("MaintainRelation: %s between %s, %s\n",
+                   node->data.zone_maintain_relation.relation_slot_name,
+                   node->data.zone_maintain_relation.left_slot_name,
+                   node->data.zone_maintain_relation.right_slot_name);
             break;
 
         case AST_ACTOR_DECL:

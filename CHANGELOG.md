@@ -38,6 +38,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `ToDto(TargetDto, subjectBinding)` as a minimal subject-to-dto projection surface
 - Added LLVM lowering parity for `ToObject` / `ToDto` subject projection built-ins
 - Added optional domain-slot initializers so `object slot view: PlayerView = ToObject(PlayerView, player)` can be modeled directly in `relation` / `effect` / `zone`
+- Added `refresh objectSlot from subjectSlot` as an explicit zone projection-refresh surface
+- Added `maintain effectSlot on targetSlot` and `maintain relationSlot between left, right` as zone lifecycle-rule surfaces
+- Added lifecycle warnings for duplicate or conflicting `maintain` rules versus `detach` / `unlink`
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 

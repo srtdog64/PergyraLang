@@ -64,7 +64,7 @@ world GameWorld {
 
 현재 stable current surface는 대체로 `subject/class / ability / role / party / relation / effect / zone / systemic / world`까지다.
 장기 의미론 이름은 `class`보다 `subject`가 더 정확하다고 본다.
-`relation`, `effect`, `zone`은 이제 `for ...` header와 `subject slot` / `object slot` / `shared` / `func` 수준의 최소 body surface까지 올라왔고, `zone`은 `relation slot` / `effect slot` / `apply effectSlot to targetSlot` / `detach effectSlot from targetSlot` / `link relationSlot between left, right` / `unlink relationSlot between left, right`, `world`는 `zone` slot으로 최소 조립이 가능하다. 또한 `apply/detach`는 `effect`의 subject target contract와, `link/unlink`는 `relation`의 two-endpoint contract와 기본 타입 정합성을 검사한다. 아직 dynamic attachment lifecycle, projection, propagation semantics는 얕다.
+`relation`, `effect`, `zone`은 이제 `for ...` header와 `subject slot` / `object slot` / `shared` / `func` 수준의 최소 body surface까지 올라왔고, `zone`은 `relation slot` / `effect slot` / `apply effectSlot to targetSlot` / `detach effectSlot from targetSlot` / `link relationSlot between left, right` / `unlink relationSlot between left, right` / `refresh objectSlot from subjectSlot` / `maintain effectSlot on targetSlot` / `maintain relationSlot between left, right`, `world`는 `zone` slot으로 최소 조립이 가능하다. 또한 `apply/detach`는 `effect`의 subject target contract와, `link/unlink`는 `relation`의 two-endpoint contract와 기본 타입 정합성을 검사하고, `refresh`는 projection field 정합성을 검사하며, `maintain`은 duplicate/conflicting lifecycle rule에 warning을 낸다. 아직 deeper propagation semantics는 얕다.
 아래 섹션은 최종 목표 계층을 설명하며, 일부 예시는 현재 문법과 다를 수 있다.
 특히 `relation`, `effect`, `zone`의 직접 문법, `actor` profile surface, `&mut self`, `impl Trait`, thread affinity 표기 예시는 현재 stable current surface를 직접 설명하지 않는다.
 

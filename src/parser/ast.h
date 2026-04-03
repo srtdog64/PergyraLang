@@ -145,6 +145,9 @@ typedef enum
     AST_ZONE_LINK,
     AST_ZONE_DETACH,
     AST_ZONE_UNLINK,
+    AST_ZONE_REFRESH,
+    AST_ZONE_MAINTAIN_EFFECT,
+    AST_ZONE_MAINTAIN_RELATION,
 
     /* Event system (C# style) */
     AST_EVENT_DECL,
@@ -688,6 +691,12 @@ struct ASTNode
             size_t detach_count;
             ASTNode** unlinks;
             size_t unlink_count;
+            ASTNode** refreshes;
+            size_t refresh_count;
+            ASTNode** maintained_effects;
+            size_t maintained_effect_count;
+            ASTNode** maintained_relations;
+            size_t maintained_relation_count;
             ASTNode** shared_fields;
             size_t shared_count;
             ASTNode** methods;
@@ -735,6 +744,25 @@ struct ASTNode
             char* left_slot_name;
             char* right_slot_name;
         } zone_unlink;
+
+        /* Zone object refresh */
+        struct {
+            char* object_slot_name;
+            char* source_slot_name;
+        } zone_refresh;
+
+        /* Zone effect maintenance rule */
+        struct {
+            char* effect_slot_name;
+            char* target_slot_name;
+        } zone_maintain_effect;
+
+        /* Zone relation maintenance rule */
+        struct {
+            char* relation_slot_name;
+            char* left_slot_name;
+            char* right_slot_name;
+        } zone_maintain_relation;
 
         /* Event declaration */
         struct {
@@ -880,6 +908,9 @@ ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_
 ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target_slot_name);
 ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
+ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* source_slot_name);
+ASTNode* ast_create_zone_maintain_effect(const char* effect_slot_name, const char* target_slot_name);
+ASTNode* ast_create_zone_maintain_relation(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 
 /* Party system AST creation functions */
 ASTNode* ast_create_party_declaration(const char* name);

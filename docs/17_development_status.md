@@ -27,8 +27,12 @@
 - `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
+- `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
+- `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
 - `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
+- `zone`의 `refresh`는 object slot / subject slot kind와 projection field 정합성을 검사함
+- `zone`의 `maintain`은 `effect/relation` contract를 재사용하고 duplicate/conflicting lifecycle rule에 warning을 냄
 - `zone`은 현재 subject가 0개이거나 4개를 크게 넘는 형태에 대해 운영 lint를 냄
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 현재 별도 surface가 있지만 장기 철학에서는 subject의 실행 profile/sugar로 정리할 계획
@@ -73,8 +77,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 272 passed |
-| transpile | 181 passed |
+| semantic | 315 passed |
+| transpile | 185 passed |
 | llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:

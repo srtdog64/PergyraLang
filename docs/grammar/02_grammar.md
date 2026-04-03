@@ -156,7 +156,7 @@ enum Shape {
 추가 메모:
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `shared`, `func`의 최소 조합을 지원한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
-- `zone` body는 현재 `subject slot`, `object slot`, `relation slot`, `effect slot`, `apply <effectSlot> to <targetSlot>`, `detach <effectSlot> from <targetSlot>`, `link <relationSlot> between <left>, <right>`, `unlink <relationSlot> between <left>, <right>`, `shared`, `func`를 지원한다.
+- `zone` body는 현재 `subject slot`, `object slot`, `relation slot`, `effect slot`, `apply <effectSlot> to <targetSlot>`, `detach <effectSlot> from <targetSlot>`, `link <relationSlot> between <left>, <right>`, `unlink <relationSlot> between <left>, <right>`, `refresh <objectSlot> from <subjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `shared`, `func`를 지원한다.
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
 - `world` body는 `systemic`, `zone`, `shared`, `func`를 지원한다.
 

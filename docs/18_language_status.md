@@ -31,8 +31,12 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `relation slot` / `effect slot`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot` 최소 attachment 표면까지 parser/semantic에 반영됨
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
+- `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
+- `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
 - `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
 - `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
+- `refresh`는 object slot / subject slot kind와 projection field 정합성을 검사함
+- `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
 - 장기 존재론 `struct` vs `subject` 분리와 `actor = subject profile` 방향이 문서상 고정됨
