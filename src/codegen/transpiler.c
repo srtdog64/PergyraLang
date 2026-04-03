@@ -339,6 +339,23 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
     return NULL;
 }
 
+static ClassField *
+find_class_field_decl(ASTNode *decl, const char *field_name)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+        ClassField *field = decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return field;
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 is_class_object_type_name(TranspilerCtx *ctx, const char *type_name)
 {
@@ -386,6 +403,72 @@ current_class_has_field(TranspilerCtx *ctx, const char *field_name)
     }
 
     return false;
+}
+
+static char *
+emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
+{
+    ASTNode *target_arg;
+    ASTNode *source_arg;
+    ASTNode *target_decl;
+    ASTNode *source_decl;
+    const char *source_type_name;
+    char *source_expr;
+    CodeBuf *buf;
+    char *result;
+    bool first = true;
+
+    if (call->data.call.arg_count != 2)
+        return pergyra_strdup("/* ToDto: invalid args */");
+
+    target_arg = call->data.call.arguments[0];
+    source_arg = call->data.call.arguments[1];
+    if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
+        || target_arg->data.identifier.name == NULL) {
+        return pergyra_strdup("/* ToDto: need target dto type */");
+    }
+    if (source_arg == NULL || source_arg->type != AST_IDENTIFIER) {
+        return pergyra_strdup("/* ToDto: need named subject source */");
+    }
+
+    target_decl = find_class_decl(ctx, target_arg->data.identifier.name);
+    if (target_decl == NULL || !target_decl->data.class_decl.is_struct)
+        return pergyra_strdup("/* ToDto: target must be dto/struct */");
+
+    source_type_name = infer_expression_type_name(ctx, source_arg);
+    source_decl = find_class_decl(ctx, source_type_name);
+    if (source_decl == NULL)
+        return pergyra_strdup("/* ToDto: source subject type not found */");
+
+    source_expr = emit_expression(source_arg, ctx);
+    buf = codebuf_create();
+    codebuf_write(buf, "(%s){ ", target_arg->data.identifier.name);
+
+    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
+        ClassField *target_field = target_decl->data.class_decl.fields[i];
+        ClassField *source_field;
+
+        if (target_field == NULL || target_field->name == NULL)
+            continue;
+
+        source_field = find_class_field_decl(source_decl, target_field->name);
+        if (!first)
+            codebuf_write(buf, ", ");
+        first = false;
+
+        if (source_field != NULL) {
+            codebuf_write(buf, ".%s = %s.%s",
+                target_field->name, source_expr, target_field->name);
+        } else {
+            codebuf_write(buf, ".%s = 0", target_field->name);
+        }
+    }
+
+    codebuf_write(buf, " }");
+    free(source_expr);
+    result = pergyra_strdup(buf->data);
+    codebuf_destroy(buf);
+    return result;
 }
 
 static ASTNode *
@@ -1049,6 +1132,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *opt_type = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
                 if (strncmp(opt_type, "Option<", 7) == 0)
                     return slot_inner_type_name(opt_type);
+            }
+            if (strcmp(name, "ToDto") == 0 && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER
+                && expr->data.call.arguments[0]->data.identifier.name != NULL) {
+                return expr->data.call.arguments[0]->data.identifier.name;
+            }
+            if (strcmp(name, "ToObject") == 0 && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER
+                && expr->data.call.arguments[0]->data.identifier.name != NULL) {
+                return expr->data.call.arguments[0]->data.identifier.name;
             }
 
             {
@@ -2040,6 +2135,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_BOX_DROP:
     case BUILTIN_BOX_IS_VALID:
         return emit_builtin_box(call, bk, ctx);
+    case BUILTIN_TO_OBJECT:
+        return emit_builtin_to_dto(call, ctx);
+    case BUILTIN_TO_DTO:
+        return emit_builtin_to_dto(call, ctx);
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:

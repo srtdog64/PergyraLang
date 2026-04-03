@@ -9,6 +9,9 @@
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
 - 최종 존재론은 `struct`와 `subject`를 분리하며, 현재 surface는 `subject`와 `class`를 같은 subject declaration으로 해석함.
+- `dto`는 현재 `struct` 호환 projection value declaration alias로 동작함.
+- `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
+- `ToDto(TargetDto, subjectBinding)` 최소 projection surface가 semantic/C/LLVM backend에 반영됨.
 - `entity`는 코어 언어 존재론에 넣지 않고, 필요하면 프레임워크/도메인 용어로만 취급함.
 - 상위 레이어로 갈수록 더 덜 구속적인 문맥 계층이라는 원칙을 채택함.
 
@@ -19,7 +22,14 @@
 - 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `ability/role/party/relation/effect/zone/systemic/world`, `event`, `actor`, `import/export/namespace`
 - 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
+- `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
+- `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
 - `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
+- `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
+- `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
+- `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
+- `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
+- `zone`은 현재 subject가 0개이거나 4개를 크게 넘는 형태에 대해 운영 lint를 냄
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 현재 별도 surface가 있지만 장기 철학에서는 subject의 실행 profile/sugar로 정리할 계획
 - `object`는 별도 코어 타입이 아니라, subject가 transfer/DTO/view 문맥에서 수동적으로 해석된 모습으로 정리됨

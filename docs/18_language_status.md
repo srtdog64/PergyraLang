@@ -26,10 +26,20 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
 - `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` 최소 표면까지 parser/semantic에 반영됨
+- `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
+- `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
 - `zone`은 `relation slot` / `effect slot`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
+- `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot` 최소 attachment 표면까지 parser/semantic에 반영됨
+- `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
+- `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
+- `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
+- `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
 - 장기 존재론 `struct` vs `subject` 분리와 `actor = subject profile` 방향이 문서상 고정됨
 - `subject` keyword alias가 parser surface에 반영되어 `subject`와 `class`가 같은 선언으로 파싱됨
+- `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
+- `ToObject(TargetStruct, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
+- `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 subject의 수동 해석 모드로 정리됨
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
 

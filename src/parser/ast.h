@@ -141,6 +141,10 @@ typedef enum
     AST_ZONE_DECL,
     AST_DOMAIN_SLOT,
     AST_ZONE_LAYER_SLOT,
+    AST_ZONE_APPLY,
+    AST_ZONE_LINK,
+    AST_ZONE_DETACH,
+    AST_ZONE_UNLINK,
 
     /* Event system (C# style) */
     AST_EVENT_DECL,
@@ -676,6 +680,14 @@ struct ASTNode
             size_t slot_count;
             ASTNode** layer_slots;
             size_t layer_slot_count;
+            ASTNode** applies;
+            size_t apply_count;
+            ASTNode** links;
+            size_t link_count;
+            ASTNode** detaches;
+            size_t detach_count;
+            ASTNode** unlinks;
+            size_t unlink_count;
             ASTNode** shared_fields;
             size_t shared_count;
             ASTNode** methods;
@@ -688,6 +700,7 @@ struct ASTNode
             char* slot_name;
             ASTNode* type;
             bool is_subject;
+            ASTNode* initializer;
         } domain_slot;
 
         /* Zone relation/effect slot */
@@ -696,6 +709,32 @@ struct ASTNode
             char* layer_type;
             bool is_relation;
         } zone_layer_slot;
+
+        /* Zone effect application */
+        struct {
+            char* effect_slot_name;
+            char* target_slot_name;
+        } zone_apply;
+
+        /* Zone relation link */
+        struct {
+            char* relation_slot_name;
+            char* left_slot_name;
+            char* right_slot_name;
+        } zone_link;
+
+        /* Zone effect detachment */
+        struct {
+            char* effect_slot_name;
+            char* target_slot_name;
+        } zone_detach;
+
+        /* Zone relation unlink */
+        struct {
+            char* relation_slot_name;
+            char* left_slot_name;
+            char* right_slot_name;
+        } zone_unlink;
 
         /* Event declaration */
         struct {
@@ -837,6 +876,10 @@ ASTNode* ast_create_effect_declaration(const char* name);
 ASTNode* ast_create_zone_declaration(const char* name);
 ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject);
 ASTNode* ast_create_zone_layer_slot(const char* slot_name, const char* layer_type, bool is_relation);
+ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_slot_name);
+ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
+ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target_slot_name);
+ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 
 /* Party system AST creation functions */
 ASTNode* ast_create_party_declaration(const char* name);

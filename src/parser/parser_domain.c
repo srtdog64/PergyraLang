@@ -269,11 +269,59 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
 
     ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
     slot->data.domain_slot.type = slot_type;
+    if (parser_match(parser, TOKEN_ASSIGN))
+        slot->data.domain_slot.initializer = parser_parse_expression(parser);
     slot->line = slot_name.line;
     slot->column = slot_name.column;
 
     (void)owner_name;
     return slot;
+}
+
+static void
+append_domain_slot(ASTNode ***slots, size_t *slot_count, ASTNode *slot)
+{
+    if (slots == NULL || slot_count == NULL || slot == NULL)
+        return;
+
+    *slot_count += 1;
+    *slots = realloc(*slots, *slot_count * sizeof(ASTNode *));
+    (*slots)[*slot_count - 1] = slot;
+}
+
+static void
+append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node)
+{
+    if (nodes == NULL || count == NULL || node == NULL)
+        return;
+
+    *count += 1;
+    *nodes = realloc(*nodes, *count * sizeof(ASTNode *));
+    (*nodes)[*count - 1] = node;
+}
+
+static void
+parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_count,
+                             const char *owner_kind)
+{
+    if (!parser_match(parser, TOKEN_FOR))
+        return;
+
+    do {
+        Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected subject target name after 'for'");
+        parser_consume(parser, TOKEN_COLON,
+            "Expected ':' after subject target name");
+        ASTNode *slot_type = parse_type(parser);
+
+        ASTNode *slot = ast_create_domain_slot(slot_name.text, true);
+        slot->data.domain_slot.type = slot_type;
+        slot->line = slot_name.line;
+        slot->column = slot_name.column;
+        append_domain_slot(slots, slot_count, slot);
+    } while (parser_match(parser, TOKEN_COMMA));
+
+    (void)owner_kind;
 }
 
 ASTNode* parse_relation_declaration(Parser* parser) {
@@ -282,6 +330,10 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     relation->data.relation_decl.doc_comment = parser_take_pending_doc_comment(parser);
     relation->line = name.line;
     relation->column = name.column;
+    parse_header_subject_targets(parser,
+        &relation->data.relation_decl.slots,
+        &relation->data.relation_decl.slot_count,
+        "relation");
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after relation name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -289,12 +341,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
 
         ASTNode *slot = parse_domain_slot_entry(parser, "relation");
         if (slot != NULL) {
-            relation->data.relation_decl.slot_count++;
-            relation->data.relation_decl.slots = realloc(
-                relation->data.relation_decl.slots,
-                relation->data.relation_decl.slot_count * sizeof(ASTNode*));
-            relation->data.relation_decl.slots[
-                relation->data.relation_decl.slot_count - 1] = slot;
+            append_domain_slot(&relation->data.relation_decl.slots,
+                &relation->data.relation_decl.slot_count, slot);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -350,6 +398,10 @@ ASTNode* parse_effect_declaration(Parser* parser) {
     effect->data.effect_decl.doc_comment = parser_take_pending_doc_comment(parser);
     effect->line = name.line;
     effect->column = name.column;
+    parse_header_subject_targets(parser,
+        &effect->data.effect_decl.slots,
+        &effect->data.effect_decl.slot_count,
+        "effect");
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after effect name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -357,12 +409,8 @@ ASTNode* parse_effect_declaration(Parser* parser) {
 
         ASTNode *slot = parse_domain_slot_entry(parser, "effect");
         if (slot != NULL) {
-            effect->data.effect_decl.slot_count++;
-            effect->data.effect_decl.slots = realloc(
-                effect->data.effect_decl.slots,
-                effect->data.effect_decl.slot_count * sizeof(ASTNode*));
-            effect->data.effect_decl.slots[
-                effect->data.effect_decl.slot_count - 1] = slot;
+            append_domain_slot(&effect->data.effect_decl.slots,
+                &effect->data.effect_decl.slot_count, slot);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -425,12 +473,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
         ASTNode *slot = parse_domain_slot_entry(parser, "zone");
         if (slot != NULL) {
-            zone->data.zone_decl.slot_count++;
-            zone->data.zone_decl.slots = realloc(
-                zone->data.zone_decl.slots,
-                zone->data.zone_decl.slot_count * sizeof(ASTNode*));
-            zone->data.zone_decl.slots[
-                zone->data.zone_decl.slot_count - 1] = slot;
+            append_domain_slot(&zone->data.zone_decl.slots,
+                &zone->data.zone_decl.slot_count, slot);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -452,12 +496,100 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             layer_slot->line = slot_name.line;
             layer_slot->column = slot_name.column;
 
-            zone->data.zone_decl.layer_slot_count++;
-            zone->data.zone_decl.layer_slots = realloc(
-                zone->data.zone_decl.layer_slots,
-                zone->data.zone_decl.layer_slot_count * sizeof(ASTNode*));
-            zone->data.zone_decl.layer_slots[
-                zone->data.zone_decl.layer_slot_count - 1] = layer_slot;
+            append_child_node(&zone->data.zone_decl.layer_slots,
+                &zone->data.zone_decl.layer_slot_count, layer_slot);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "apply")) {
+            Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected effect slot name after 'apply'");
+            if (!parser_match_identifier_keyword(parser, "to")) {
+                parser_error(parser, "Expected 'to' after effect slot name in apply");
+                parser_advance(parser);
+                continue;
+            }
+            Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected target slot name after 'to'");
+
+            ASTNode *apply = ast_create_zone_apply(
+                effect_slot.text, target_slot.text);
+            apply->line = effect_slot.line;
+            apply->column = effect_slot.column;
+
+            append_child_node(&zone->data.zone_decl.applies,
+                &zone->data.zone_decl.apply_count, apply);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "link")) {
+            Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected relation slot name after 'link'");
+            if (!parser_match_identifier_keyword(parser, "between")) {
+                parser_error(parser, "Expected 'between' after relation slot name in link");
+                parser_advance(parser);
+                continue;
+            }
+            Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected left slot name after 'between'");
+            parser_consume(parser, TOKEN_COMMA,
+                "Expected ',' between linked slot names");
+            Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected right slot name after ','");
+
+            ASTNode *link = ast_create_zone_link(
+                relation_slot.text, left_slot.text, right_slot.text);
+            link->line = relation_slot.line;
+            link->column = relation_slot.column;
+
+            append_child_node(&zone->data.zone_decl.links,
+                &zone->data.zone_decl.link_count, link);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "detach")) {
+            Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected effect slot name after 'detach'");
+            if (!parser_match_identifier_keyword(parser, "from")) {
+                parser_error(parser, "Expected 'from' after effect slot name in detach");
+                parser_advance(parser);
+                continue;
+            }
+            Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected target slot name after 'from'");
+
+            ASTNode *detach = ast_create_zone_detach(
+                effect_slot.text, target_slot.text);
+            detach->line = effect_slot.line;
+            detach->column = effect_slot.column;
+
+            append_child_node(&zone->data.zone_decl.detaches,
+                &zone->data.zone_decl.detach_count, detach);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "unlink")) {
+            Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected relation slot name after 'unlink'");
+            if (!parser_match_identifier_keyword(parser, "between")) {
+                parser_error(parser, "Expected 'between' after relation slot name in unlink");
+                parser_advance(parser);
+                continue;
+            }
+            Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected left slot name after 'between'");
+            parser_consume(parser, TOKEN_COMMA,
+                "Expected ',' between unlinked slot names");
+            Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected right slot name after ','");
+
+            ASTNode *unlink = ast_create_zone_unlink(
+                relation_slot.text, left_slot.text, right_slot.text);
+            unlink->line = relation_slot.line;
+            unlink->column = relation_slot.column;
+
+            append_child_node(&zone->data.zone_decl.unlinks,
+                &zone->data.zone_decl.unlink_count, unlink);
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -498,7 +630,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
     }

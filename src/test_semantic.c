@@ -2789,21 +2789,24 @@ test_shared_memory_features(void)
         const char *source =
             "subject Player { let hp: Int; }\n"
             "struct PlayerView { hp: Int; }\n"
-            "relation TrustedLink {\n"
-            "    subject slot source: Player\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
             "    shared trust: Int = 100\n"
             "}\n"
-            "effect Poisoned {\n"
-            "    subject slot bearer: Player\n"
+            "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
             "    shared stacks: Int = 1\n"
             "}\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
             "    object slot playerView: PlayerView\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
+            "    apply poison to player\n"
+            "    link trust between player, enemy\n"
+            "    detach poison from enemy\n"
+            "    unlink trust between player, enemy\n"
             "    shared round: Int = 1\n"
             "}\n"
             "world GameWorld {\n"
@@ -2816,6 +2819,30 @@ test_shared_memory_features(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect warn when no subject endpoint or target is declared");
+    {
+        const char *source =
+            "relation LooseLink {\n"
+            "    shared trust: Int = 100\n"
+            "}\n"
+            "effect AmbientFog {\n"
+            "    shared density: Int = 1\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 2);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2845,6 +2872,218 @@ test_shared_memory_features(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count >= 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone object slot initializer can project from subject slot");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "struct PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
+            "    object slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone slot initializer enforces declared slot type");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "struct PlayerView { hp: Int; }\n"
+            "zone BrokenZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot bad: Int = ToObject(PlayerView, player)\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone apply rejects unknown effect or target slot");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    apply missing to player\n"
+            "    apply poison to missingTarget\n"
+            "}\n"
+            "effect Poisoned for bearer: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone link rejects unknown relation or endpoint slot");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    link missing between player, enemy\n"
+            "    link trust between player, missingEnemy\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone detach and unlink reject unknown slots");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    detach missing from player\n"
+            "    detach poison from missingEnemy\n"
+            "    unlink missing between player, enemy\n"
+            "    unlink trust between player, missingEnemy\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 4);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone link enforces relation endpoint types and arity");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "subject Monster { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Monster\n"
+            "    relation slot trust: TrustedLink\n"
+            "    relation slot crowd: CrowdLink\n"
+            "    link trust between player, enemy\n"
+            "    link crowd between player, enemy\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "relation CrowdLink for a: Player, b: Player, c: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone apply enforces effect target type and arity");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "subject Monster { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot curse: Cursed\n"
+            "    effect slot split: SplitMind\n"
+            "    apply curse to player\n"
+            "    apply split to player\n"
+            "}\n"
+            "effect Cursed for bearer: Monster { }\n"
+            "effect SplitMind for a: Player, b: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone warns when subject count exceeds recommended shape");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BusyZone {\n"
+            "    subject slot a: Player\n"
+            "    subject slot b: Player\n"
+            "    subject slot c: Player\n"
+            "    subject slot d: Player\n"
+            "    subject slot e: Player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 2);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4436,6 +4675,77 @@ test_misc_grammar_edges(void)
             && ctx_has_diagnostic_substring(ctx, "IsSome requires Option<T>"));
         semantic_context_destroy(ctx);
         ast_destroy(call);
+    }
+
+    TEST("ToDto returns dto/struct type for matching subject fields");
+    {
+        const char *source =
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; let name: String; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let snapshot: PlayerDto = ToDto(PlayerDto, player);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToDto rejects missing fields, subject targets, and unnamed sources");
+    {
+        const char *source =
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let missing: PlayerDto = ToDto(PlayerDto, player);\n"
+            "    let wrong = ToDto(Player, player);\n"
+            "    let anon = ToDto(PlayerDto, Player());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToObject returns passive projection type for matching subject fields");
+    {
+        const char *source =
+            "struct PlayerView { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; let name: String; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let view: PlayerView = ToObject(PlayerView, player);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     /* ---- Generic class semantic tests ---- */

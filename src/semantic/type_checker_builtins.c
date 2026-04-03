@@ -62,6 +62,42 @@ type_is_future_like(Type *type)
         || type_is_constructed_named(type, "RemoteFuture");
 }
 
+static ASTNode *
+find_named_class_decl(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_CLASS_DECL
+            || stmt->data.class_decl.name == NULL) {
+            continue;
+        }
+        if (strcmp(stmt->data.class_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+static ClassField *
+find_named_class_field(ASTNode *decl, const char *field_name)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+        ClassField *field = decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return field;
+        }
+    }
+
+    return NULL;
+}
+
 static Type *
 type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                 bool has_timeout, SemanticContext *ctx)
@@ -152,6 +188,8 @@ builtin_resolve(const char *name)
     if (strcmp(name, "BoxDrop")         == 0) return BUILTIN_BOX_DROP;
     if (strcmp(name, "BoxIsValid")      == 0) return BUILTIN_BOX_IS_VALID;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
+    if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
+    if (strcmp(name, "ToDto")           == 0) return BUILTIN_TO_DTO;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
@@ -1276,6 +1314,106 @@ type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
     return TYPE_UNKNOWN;
 }
 
+static Type *
+type_check_to_dto(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *target_arg;
+    ASTNode *source_arg;
+    ASTNode *target_decl;
+    ASTNode *source_decl;
+    Symbol *target_sym;
+    Type *source_type;
+
+    if (!check_call_arity(call, 2, "ToDto", ctx))
+        return TYPE_UNKNOWN;
+
+    target_arg = call->data.call.arguments[0];
+    source_arg = call->data.call.arguments[1];
+
+    if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
+        || target_arg->data.identifier.name == NULL) {
+        semantic_error(ctx, call,
+            "ToDto requires the first argument to be a dto/struct type name");
+        return TYPE_UNKNOWN;
+    }
+
+    if (source_arg == NULL || source_arg->type != AST_IDENTIFIER
+        || source_arg->data.identifier.name == NULL) {
+        semantic_error(ctx, call,
+            "ToDto currently requires a named subject binding as the source");
+        return TYPE_UNKNOWN;
+    }
+
+    target_decl = find_named_class_decl(ctx->program_root,
+        target_arg->data.identifier.name);
+    if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
+        semantic_error(ctx, target_arg,
+            "ToDto target '%s' must be a dto/struct declaration",
+            target_arg->data.identifier.name);
+        return TYPE_UNKNOWN;
+    }
+
+    target_sym = scope_lookup(ctx->scope, target_arg->data.identifier.name);
+    if (target_sym == NULL || target_sym->type == NULL) {
+        semantic_error(ctx, target_arg,
+            "Unknown dto/struct type '%s'",
+            target_arg->data.identifier.name);
+        return TYPE_UNKNOWN;
+    }
+
+    source_type = type_check_expression(source_arg, ctx);
+    if (source_type == NULL || source_type == TYPE_UNKNOWN)
+        return TYPE_UNKNOWN;
+
+    if (source_type->kind != TYPE_KIND_CLASS || source_type->name == NULL) {
+        semantic_error(ctx, source_arg,
+            "ToDto source must be a subject/class binding, got '%s'",
+            source_type->name != NULL ? source_type->name : "<unknown>");
+        return TYPE_UNKNOWN;
+    }
+
+    source_decl = find_named_class_decl(ctx->program_root, source_type->name);
+    if (source_decl == NULL || source_decl->data.class_decl.is_struct) {
+        semantic_error(ctx, source_arg,
+            "ToDto source '%s' must be a subject/class declaration",
+            source_type->name != NULL ? source_type->name : "<unknown>");
+        return TYPE_UNKNOWN;
+    }
+
+    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
+        ClassField *target_field = target_decl->data.class_decl.fields[i];
+        ClassField *source_field;
+        Type *target_field_type;
+        Type *source_field_type;
+
+        if (target_field == NULL || target_field->name == NULL
+            || target_field->type == NULL) {
+            continue;
+        }
+
+        source_field = find_named_class_field(source_decl, target_field->name);
+        if (source_field == NULL || source_field->type == NULL) {
+            semantic_error(ctx, call,
+                "ToDto target field '%s' is missing from source subject '%s'",
+                target_field->name,
+                source_type->name != NULL ? source_type->name : "<unknown>");
+            continue;
+        }
+
+        target_field_type = resolve_type_node(target_field->type, ctx);
+        source_field_type = resolve_type_node(source_field->type, ctx);
+        require_assignable(source_field_type, target_field_type, call, ctx);
+    }
+
+    return target_sym->type;
+}
+
+static Type *
+type_check_to_object(ASTNode *call, SemanticContext *ctx)
+{
+    return type_check_to_dto(call, ctx);
+}
+
 Type *
 type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
 {
@@ -1343,6 +1481,10 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_box_is_valid(call, ctx);
     case BUILTIN_BOX_ARRAY:
         return type_check_box_array_builtin(call, ctx);
+    case BUILTIN_TO_OBJECT:
+        return type_check_to_object(call, ctx);
+    case BUILTIN_TO_DTO:
+        return type_check_to_dto(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
     case BUILTIN_FILE_OPEN:

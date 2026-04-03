@@ -306,6 +306,14 @@ ASTNode* ast_create_zone_declaration(const char* name) {
     node->data.zone_decl.slot_count = 0;
     node->data.zone_decl.layer_slots = NULL;
     node->data.zone_decl.layer_slot_count = 0;
+    node->data.zone_decl.applies = NULL;
+    node->data.zone_decl.apply_count = 0;
+    node->data.zone_decl.links = NULL;
+    node->data.zone_decl.link_count = 0;
+    node->data.zone_decl.detaches = NULL;
+    node->data.zone_decl.detach_count = 0;
+    node->data.zone_decl.unlinks = NULL;
+    node->data.zone_decl.unlink_count = 0;
     node->data.zone_decl.shared_fields = NULL;
     node->data.zone_decl.shared_count = 0;
     node->data.zone_decl.methods = NULL;
@@ -319,6 +327,7 @@ ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject) {
     node->data.domain_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.domain_slot.type = NULL;
     node->data.domain_slot.is_subject = is_subject;
+    node->data.domain_slot.initializer = NULL;
     return node;
 }
 
@@ -327,6 +336,46 @@ ASTNode* ast_create_zone_layer_slot(const char* slot_name, const char* layer_typ
     node->data.zone_layer_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.zone_layer_slot.layer_type = layer_type ? pergyra_strdup(layer_type) : NULL;
     node->data.zone_layer_slot.is_relation = is_relation;
+    return node;
+}
+
+ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_APPLY);
+    node->data.zone_apply.effect_slot_name =
+        effect_slot_name ? pergyra_strdup(effect_slot_name) : NULL;
+    node->data.zone_apply.target_slot_name =
+        target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_LINK);
+    node->data.zone_link.relation_slot_name =
+        relation_slot_name ? pergyra_strdup(relation_slot_name) : NULL;
+    node->data.zone_link.left_slot_name =
+        left_slot_name ? pergyra_strdup(left_slot_name) : NULL;
+    node->data.zone_link.right_slot_name =
+        right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_DETACH);
+    node->data.zone_detach.effect_slot_name =
+        effect_slot_name ? pergyra_strdup(effect_slot_name) : NULL;
+    node->data.zone_detach.target_slot_name =
+        target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name) {
+    ASTNode* node = ast_create_node(AST_ZONE_UNLINK);
+    node->data.zone_unlink.relation_slot_name =
+        relation_slot_name ? pergyra_strdup(relation_slot_name) : NULL;
+    node->data.zone_unlink.left_slot_name =
+        left_slot_name ? pergyra_strdup(left_slot_name) : NULL;
+    node->data.zone_unlink.right_slot_name =
+        right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
     return node;
 }
 
@@ -1118,6 +1167,18 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++)
                 ast_destroy(node->data.zone_decl.layer_slots[i]);
             free(node->data.zone_decl.layer_slots);
+            for (size_t i = 0; i < node->data.zone_decl.apply_count; i++)
+                ast_destroy(node->data.zone_decl.applies[i]);
+            free(node->data.zone_decl.applies);
+            for (size_t i = 0; i < node->data.zone_decl.link_count; i++)
+                ast_destroy(node->data.zone_decl.links[i]);
+            free(node->data.zone_decl.links);
+            for (size_t i = 0; i < node->data.zone_decl.detach_count; i++)
+                ast_destroy(node->data.zone_decl.detaches[i]);
+            free(node->data.zone_decl.detaches);
+            for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++)
+                ast_destroy(node->data.zone_decl.unlinks[i]);
+            free(node->data.zone_decl.unlinks);
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
                 ast_destroy(node->data.zone_decl.shared_fields[i]);
             free(node->data.zone_decl.shared_fields);
@@ -1130,11 +1191,34 @@ void ast_destroy(ASTNode* node) {
         case AST_DOMAIN_SLOT:
             free(node->data.domain_slot.slot_name);
             ast_destroy(node->data.domain_slot.type);
+            ast_destroy(node->data.domain_slot.initializer);
             break;
 
         case AST_ZONE_LAYER_SLOT:
             free(node->data.zone_layer_slot.slot_name);
             free(node->data.zone_layer_slot.layer_type);
+            break;
+
+        case AST_ZONE_APPLY:
+            free(node->data.zone_apply.effect_slot_name);
+            free(node->data.zone_apply.target_slot_name);
+            break;
+
+        case AST_ZONE_LINK:
+            free(node->data.zone_link.relation_slot_name);
+            free(node->data.zone_link.left_slot_name);
+            free(node->data.zone_link.right_slot_name);
+            break;
+
+        case AST_ZONE_DETACH:
+            free(node->data.zone_detach.effect_slot_name);
+            free(node->data.zone_detach.target_slot_name);
+            break;
+
+        case AST_ZONE_UNLINK:
+            free(node->data.zone_unlink.relation_slot_name);
+            free(node->data.zone_unlink.left_slot_name);
+            free(node->data.zone_unlink.right_slot_name);
             break;
 
         case AST_PARTY_DECL:
@@ -2250,6 +2334,18 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
                 ast_print(node->data.zone_decl.layer_slots[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
+                ast_print(node->data.zone_decl.applies[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
+                ast_print(node->data.zone_decl.links[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
+                ast_print(node->data.zone_decl.detaches[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
+                ast_print(node->data.zone_decl.unlinks[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
                 ast_print(node->data.zone_decl.shared_fields[i], indent + 1);
             }
@@ -2266,6 +2362,10 @@ void ast_print(ASTNode* node, int indent) {
                 printf(": ");
                 ast_print_inline(node->data.domain_slot.type);
             }
+            if (node->data.domain_slot.initializer != NULL) {
+                printf(" = ");
+                ast_print_inline(node->data.domain_slot.initializer);
+            }
             printf("\n");
             break;
 
@@ -2274,6 +2374,32 @@ void ast_print(ASTNode* node, int indent) {
                    node->data.zone_layer_slot.is_relation ? "Relation" : "Effect",
                    node->data.zone_layer_slot.slot_name,
                    node->data.zone_layer_slot.layer_type);
+            break;
+
+        case AST_ZONE_APPLY:
+            printf("Apply: %s -> %s\n",
+                   node->data.zone_apply.effect_slot_name,
+                   node->data.zone_apply.target_slot_name);
+            break;
+
+        case AST_ZONE_LINK:
+            printf("Link: %s between %s, %s\n",
+                   node->data.zone_link.relation_slot_name,
+                   node->data.zone_link.left_slot_name,
+                   node->data.zone_link.right_slot_name);
+            break;
+
+        case AST_ZONE_DETACH:
+            printf("Detach: %s from %s\n",
+                   node->data.zone_detach.effect_slot_name,
+                   node->data.zone_detach.target_slot_name);
+            break;
+
+        case AST_ZONE_UNLINK:
+            printf("Unlink: %s between %s, %s\n",
+                   node->data.zone_unlink.relation_slot_name,
+                   node->data.zone_unlink.left_slot_name,
+                   node->data.zone_unlink.right_slot_name);
             break;
 
         case AST_ACTOR_DECL:

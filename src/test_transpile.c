@@ -533,6 +533,60 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("ToDto(PlayerDto, player) → struct projection literal");
+    {
+        const char *source =
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; let name: String; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let snapshot: PlayerDto = ToDto(PlayerDto, player);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PlayerDto snapshot = (PlayerDto){ .hp = player.hp, .name = player.name };");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToObject(PlayerView, player) → passive projection literal");
+    {
+        const char *source =
+            "struct PlayerView { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; let name: String; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let view: PlayerView = ToObject(PlayerView, player);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PlayerView view = (PlayerView){ .hp = player.hp, .name = player.name };");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("AllocatorTracing() → pgy_allocator_tracing()");
     {
         ctx = transpiler_ctx_create();

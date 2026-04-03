@@ -437,6 +437,14 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
                 normalize_node_refs(node->data.zone_decl.slots[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++)
                 normalize_node_refs(node->data.zone_decl.layer_slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.apply_count; i++)
+                normalize_node_refs(node->data.zone_decl.applies[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.link_count; i++)
+                normalize_node_refs(node->data.zone_decl.links[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.detach_count; i++)
+                normalize_node_refs(node->data.zone_decl.detaches[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++)
+                normalize_node_refs(node->data.zone_decl.unlinks[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
                 normalize_node_refs(node->data.zone_decl.shared_fields[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
@@ -445,10 +453,15 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
 
         case AST_DOMAIN_SLOT:
             normalize_node_refs(node->data.domain_slot.type, scope, shadow);
+            normalize_node_refs(node->data.domain_slot.initializer, scope, shadow);
             return;
 
         case AST_WORLD_ZONE:
         case AST_ZONE_LAYER_SLOT:
+        case AST_ZONE_APPLY:
+        case AST_ZONE_LINK:
+        case AST_ZONE_DETACH:
+        case AST_ZONE_UNLINK:
             return;
 
         case AST_EVENT_DECL:

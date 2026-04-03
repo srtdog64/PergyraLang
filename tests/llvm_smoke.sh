@@ -204,6 +204,32 @@ func Main() -> Void {
 EOF
 run_case "secure_slot_view" "$TMPDIR/secure_slot_view.pgy" "5" "9"
 
+cat > "$TMPDIR/subject_projection.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+dto PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+struct PlayerView {
+    hp: Int;
+}
+
+func Main() -> Void {
+    let player: Player = Player(42, "neo");
+    let snapshot: PlayerDto = ToDto(PlayerDto, player);
+    let view: PlayerView = ToObject(PlayerView, player);
+    Log(snapshot.hp);
+    Log(view.hp);
+    Log(snapshot.name);
+}
+EOF
+run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
+
 cat > "$TMPDIR/select_ready.pgy" <<'EOF'
 func Main() -> Void {
     let ch: Channel<Int> = Channel(4);

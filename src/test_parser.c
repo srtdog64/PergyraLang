@@ -292,6 +292,70 @@ cleanup:
     return failed;
 }
 
+static int
+run_dto_keyword_alias_test(void)
+{
+    const char *code =
+        "dto PlayerDto {\n"
+        "    hp: Int;\n"
+        "    name: String;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+
+    printf("\n=== Test: DTO Keyword Alias ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct) {
+        printf("[FAIL] Expected 'dto' to parse as struct-compatible declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (strcmp(decl->data.class_decl.name, "PlayerDto") != 0
+        || decl->data.class_decl.field_count != 2) {
+        printf("[FAIL] DTO declaration members were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("DTO keyword parsed successfully as struct-compatible declaration!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
 int
 main(void)
 {
@@ -563,8 +627,7 @@ main(void)
         },
         {
             "Relation Declaration",
-            "relation TrustedLink {\n"
-            "    subject slot source: Player\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
             "    shared trust: Int = 100\n"
             "    func Refresh() -> Void {\n"
@@ -575,8 +638,7 @@ main(void)
         },
         {
             "Effect Declaration",
-            "effect Poisoned {\n"
-            "    subject slot bearer: Player\n"
+            "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
             "    shared stacks: Int = 1\n"
             "    func Tick() -> Void {\n"
@@ -589,9 +651,14 @@ main(void)
             "Zone Declaration",
             "zone DungeonZone {\n"
             "    subject slot player: Player\n"
-            "    object slot playerView: PlayerView\n"
+            "    subject slot enemy: Player\n"
+            "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
+            "    apply poison to player\n"
+            "    link trust between player, enemy\n"
+            "    detach poison from enemy\n"
+            "    unlink trust between player, enemy\n"
             "    shared level: Int = 3\n"
             "    func Update() -> Void {\n"
             "        Log(level);\n"
@@ -713,6 +780,8 @@ main(void)
     failures += run_signature_effect_clause_test();
     printf("\n");
     failures += run_subject_keyword_alias_test();
+    printf("\n");
+    failures += run_dto_keyword_alias_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

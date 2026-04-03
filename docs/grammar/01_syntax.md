@@ -29,7 +29,7 @@
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 
 대표 키워드:
-`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
+`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `dto`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
 
 ## 2. 선언
 
@@ -80,6 +80,11 @@ struct Vec3 {
     z: Float;
 }
 
+dto PlayerDto {
+    hp: Int;
+    name: String;
+}
+
 subject Player<T> where T: Serializable {
     private let name: String;
     public let health: Int;
@@ -90,6 +95,7 @@ enum Color { Red, Green, Blue }
 
 지원:
 - `struct`
+- `dto`
 - `subject`
 - `class`
 - `enum`
@@ -100,6 +106,7 @@ enum Color { Red, Green, Blue }
 
 주의:
 - `subject`와 `class`는 현재 같은 declaration으로 파싱된다.
+- `dto`와 `struct`는 현재 같은 value/projection declaration으로 파싱된다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `shared` / `func`까지의 최소 body surface를 가진다.
 - subject/class/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
 
@@ -375,23 +382,26 @@ party DungeonTeam {
     role slot tank: Damageable
 }
 
-relation TrustedLink {
-    subject slot source: Player
+relation TrustedLink for source: Player, target: Player {
     object slot snapshot: PlayerView
     shared trust: Int = 100
 }
 
-effect Poisoned {
-    subject slot bearer: Player
+effect Poisoned for bearer: Player {
     object slot view: PlayerView
     shared stacks: Int = 1
 }
 
 zone BattleZone {
     subject slot player: Player
-    object slot playerView: PlayerView
+    subject slot enemy: Player
+    object slot playerView: PlayerView = ToObject(PlayerView, player)
     relation slot trust: TrustedLink
     effect slot poison: Poisoned
+    apply poison to player
+    link trust between player, enemy
+    detach poison from enemy
+    unlink trust between player, enemy
     shared round: Int = 1
 }
 
@@ -406,7 +416,7 @@ world GameWorld {
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
-현재 `relation`, `effect`, `zone`은 `subject slot`/`object slot`/`shared`/`func`까지의 최소 표면이 구현돼 있고, `zone`은 `relation slot`/`effect slot`, `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
+현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `zone`은 `relation slot`/`effect slot`과 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 

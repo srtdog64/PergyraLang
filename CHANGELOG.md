@@ -27,6 +27,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `relation`, `effect`, and `zone` now parse as top-level declaration keywords and pass semantic/HIR/codegen no-op handling
 - `relation`, `effect`, and `zone` now support minimal `subject slot` / `object slot` body surface in parser and semantic passes
 - `zone` now supports `relation slot` / `effect slot`, and `world` now supports `zone` slots for minimal layer composition
+- `relation` and `effect` now support optional `for name: Type[, ...]` headers for subject endpoint/target declaration
+- `zone` now supports `apply effectSlot to targetSlot` for minimal effect attachment semantics
+- `zone` now supports `link relationSlot between left, right` for minimal relation wiring semantics
+- `zone` now supports `detach effectSlot from targetSlot` and `unlink relationSlot between left, right` for minimal release semantics
+- `zone` apply/detach and link/unlink now validate effect/relation endpoint arity and basic subject-type compatibility
+- `zone` now emits warnings for subject-heavy shapes that exceed the recommended small active-subject profile
+- Added `dto` keyword as a struct-compatible projection/declaration alias
+- Added `ToObject(TargetStruct, subjectBinding)` as a minimal subject-to-object projection surface
+- Added `ToDto(TargetDto, subjectBinding)` as a minimal subject-to-dto projection surface
+- Added LLVM lowering parity for `ToObject` / `ToDto` subject projection built-ins
+- Added optional domain-slot initializers so `object slot view: PlayerView = ToObject(PlayerView, player)` can be modeled directly in `relation` / `effect` / `zone`
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 

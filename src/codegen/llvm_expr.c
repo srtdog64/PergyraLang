@@ -79,6 +79,79 @@ llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,
 }
 
 static LLVMValueRef
+llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *target_arg;
+    ASTNode *source_arg;
+    const char *source_class_name;
+    LLVMClassTypeEntry *target_cls;
+    LLVMClassTypeEntry *source_cls;
+    LLVMVarEntry *source_var;
+    LLVMValueRef source_base;
+    LLVMValueRef projected;
+
+    if (node == NULL || node->data.call.arg_count != 2)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    target_arg = node->data.call.arguments[0];
+    source_arg = node->data.call.arguments[1];
+    if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
+        || target_arg->data.identifier.name == NULL
+        || source_arg == NULL || source_arg->type != AST_IDENTIFIER
+        || source_arg->data.identifier.name == NULL) {
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    target_cls = llvm_lookup_class(ctx, target_arg->data.identifier.name);
+    source_var = llvm_scope_lookup(ctx, source_arg->data.identifier.name);
+    source_class_name = llvm_lookup_var_class(ctx, source_arg->data.identifier.name);
+    source_cls = source_class_name != NULL
+        ? llvm_lookup_class(ctx, source_class_name) : NULL;
+    if (target_cls == NULL || source_var == NULL || source_cls == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    source_base = source_var->alloca;
+    if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
+        source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
+            source_var->alloca, llvm_tmp_name(ctx));
+    }
+
+    projected = LLVMConstNull(target_cls->struct_type);
+    for (int i = 0; i < target_cls->field_count; i++) {
+        LLVMClassFieldInfo *target_field = &target_cls->fields[i];
+        int source_index;
+        LLVMClassFieldInfo *source_field = NULL;
+        LLVMValueRef field_ptr;
+        LLVMValueRef field_value;
+
+        if (target_field->field_name == NULL)
+            continue;
+
+        source_index = llvm_class_field_index(source_cls, target_field->field_name);
+        if (source_index < 0)
+            continue;
+
+        for (int j = 0; j < source_cls->field_count; j++) {
+            if (source_cls->fields[j].index == source_index) {
+                source_field = &source_cls->fields[j];
+                break;
+            }
+        }
+        if (source_field == NULL || source_field->field_type == NULL)
+            continue;
+
+        field_ptr = LLVMBuildStructGEP2(ctx->builder, source_cls->struct_type,
+            source_base, (unsigned)source_index, llvm_tmp_name(ctx));
+        field_value = LLVMBuildLoad2(ctx->builder, source_field->field_type,
+            field_ptr, llvm_tmp_name(ctx));
+        projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
+            (unsigned)target_field->index, llvm_tmp_name(ctx));
+    }
+
+    return projected;
+}
+
+static LLVMValueRef
 llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner,
                        bool is_remote)
 {
@@ -1210,6 +1283,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
             return object;
         }
+    }
+
+    if ((strcmp(callee_name, "ToDto") == 0 || strcmp(callee_name, "ToObject") == 0)
+        && node->data.call.arg_count == 2) {
+        return llvm_emit_subject_projection(node, ctx);
     }
 
     /* Built-in: Log */

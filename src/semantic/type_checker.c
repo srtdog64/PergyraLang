@@ -2321,6 +2321,353 @@ type_check_domain_slots(ASTNode **slots,
 }
 
 static bool
+type_check_domain_slot_initializers(ASTNode **slots,
+                                    size_t slot_count,
+                                    SemanticContext *ctx,
+                                    const char *kind_name)
+{
+    if (slots == NULL || ctx == NULL)
+        return true;
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        Type *slot_type;
+        Symbol *sym;
+
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || slot->data.domain_slot.slot_name == NULL) {
+            continue;
+        }
+
+        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        if (slot_type == NULL || slot_type == TYPE_UNKNOWN)
+            continue;
+
+        sym = symbol_create_variable(slot->data.domain_slot.slot_name, slot_type,
+            slot->line, slot->column);
+        if (sym == NULL)
+            continue;
+
+        if (!scope_declare(ctx->scope, sym)) {
+            semantic_error(ctx, slot,
+                "Redeclaration of %s slot '%s'",
+                kind_name,
+                slot->data.domain_slot.slot_name);
+            symbol_destroy(sym);
+        }
+    }
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        Type *slot_type;
+        Type *init_type;
+
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || slot->data.domain_slot.initializer == NULL) {
+            continue;
+        }
+
+        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        init_type = type_check_expression(slot->data.domain_slot.initializer, ctx);
+        if (slot_type == NULL || init_type == NULL
+            || slot_type == TYPE_UNKNOWN || init_type == TYPE_UNKNOWN) {
+            continue;
+        }
+
+        require_assignable(init_type, slot_type,
+            slot->data.domain_slot.initializer, ctx);
+    }
+
+    scope_exit(&ctx->scope);
+    return !ctx->has_error;
+}
+
+static size_t
+count_subject_domain_slots(ASTNode **slots, size_t slot_count)
+{
+    size_t subject_count = 0;
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.is_subject) {
+            subject_count++;
+        }
+    }
+    return subject_count;
+}
+
+static size_t
+count_object_domain_slots(ASTNode **slots, size_t slot_count)
+{
+    size_t object_count = 0;
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+            && !slot->data.domain_slot.is_subject) {
+            object_count++;
+        }
+    }
+    return object_count;
+}
+
+static ASTNode *
+find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t ordinal)
+{
+    size_t seen = 0;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject) {
+            continue;
+        }
+
+        if (seen == ordinal)
+            return slot;
+        seen++;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_zone_domain_slot(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.slots[i];
+        if (slot != NULL
+            && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+find_domain_decl_by_name(ASTNode *program,
+                         ASTNodeType decl_type,
+                         const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != decl_type)
+            continue;
+
+        const char *decl_name = NULL;
+        if (decl_type == AST_RELATION_DECL)
+            decl_name = stmt->data.relation_decl.name;
+        else if (decl_type == AST_EFFECT_DECL)
+            decl_name = stmt->data.effect_decl.name;
+        else if (decl_type == AST_ZONE_DECL)
+            decl_name = stmt->data.zone_decl.name;
+
+        if (decl_name != NULL && strcmp(decl_name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_zone_effect_slot(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL
+            && slot->type == AST_ZONE_LAYER_SLOT
+            && !slot->data.zone_layer_slot.is_relation
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+find_zone_relation_slot(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL
+            && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.is_relation
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static bool
+type_check_zone_effect_contract(ASTNode *zone,
+                                ASTNode *apply_like,
+                                const char *effect_slot_name,
+                                const char *target_slot_name,
+                                SemanticContext *ctx,
+                                const char *action_name)
+{
+    ASTNode *effect_slot;
+    ASTNode *effect_decl;
+    ASTNode *target_slot;
+    ASTNode *decl_target;
+    Type *target_type;
+    Type *decl_target_type;
+    size_t subject_count;
+
+    effect_slot = find_zone_effect_slot(zone, effect_slot_name);
+    target_slot = find_zone_domain_slot(zone, target_slot_name);
+    if (effect_slot == NULL || target_slot == NULL || ctx == NULL)
+        return false;
+
+    effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+        effect_slot->data.zone_layer_slot.layer_type);
+    if (effect_decl == NULL)
+        return false;
+
+    subject_count = count_subject_domain_slots(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count);
+    if (subject_count != 1) {
+        semantic_error(ctx, apply_like,
+            "Zone %s requires effect '%s' to declare exactly one subject target, found %zu",
+            action_name,
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            subject_count);
+        return true;
+    }
+
+    decl_target = find_nth_subject_domain_slot(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count, 0);
+    if (decl_target == NULL)
+        return false;
+
+    target_type = resolve_type_node(target_slot->data.domain_slot.type, ctx);
+    decl_target_type = resolve_type_node(decl_target->data.domain_slot.type, ctx);
+    if (!type_is_assignable(target_type, decl_target_type)) {
+        semantic_error(ctx, apply_like,
+            "Zone %s target slot '%s' has type '%s' but effect '%s' expects subject type '%s'",
+            action_name,
+            target_slot_name != NULL ? target_slot_name : "<unknown>",
+            target_type != NULL && target_type->name != NULL ? target_type->name : "<unknown>",
+            effect_decl->data.effect_decl.name != NULL
+                ? effect_decl->data.effect_decl.name
+                : "<unknown>",
+            decl_target_type != NULL && decl_target_type->name != NULL
+                ? decl_target_type->name
+                : "<unknown>");
+    }
+
+    return true;
+}
+
+static bool
+type_check_zone_relation_contract(ASTNode *zone,
+                                  ASTNode *link_like,
+                                  const char *relation_slot_name,
+                                  const char *left_slot_name,
+                                  const char *right_slot_name,
+                                  SemanticContext *ctx,
+                                  const char *action_name)
+{
+    ASTNode *relation_slot;
+    ASTNode *relation_decl;
+    ASTNode *left_slot;
+    ASTNode *right_slot;
+    ASTNode *decl_left;
+    ASTNode *decl_right;
+    Type *left_type;
+    Type *right_type;
+    Type *decl_left_type;
+    Type *decl_right_type;
+    size_t subject_count;
+
+    relation_slot = find_zone_relation_slot(zone, relation_slot_name);
+    left_slot = find_zone_domain_slot(zone, left_slot_name);
+    right_slot = find_zone_domain_slot(zone, right_slot_name);
+    if (relation_slot == NULL || left_slot == NULL || right_slot == NULL || ctx == NULL)
+        return false;
+
+    relation_decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
+        relation_slot->data.zone_layer_slot.layer_type);
+    if (relation_decl == NULL)
+        return false;
+
+    subject_count = count_subject_domain_slots(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count);
+    if (subject_count != 2) {
+        semantic_error(ctx, link_like,
+            "Zone %s requires relation '%s' to declare exactly two subject endpoints, found %zu",
+            action_name,
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            subject_count);
+        return true;
+    }
+
+    decl_left = find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 0);
+    decl_right = find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 1);
+    if (decl_left == NULL || decl_right == NULL)
+        return false;
+
+    left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
+    right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
+    decl_left_type = resolve_type_node(decl_left->data.domain_slot.type, ctx);
+    decl_right_type = resolve_type_node(decl_right->data.domain_slot.type, ctx);
+
+    if (!type_is_assignable(left_type, decl_left_type)) {
+        semantic_error(ctx, link_like,
+            "Zone %s left slot '%s' has type '%s' but relation '%s' expects left subject type '%s'",
+            action_name,
+            left_slot_name != NULL ? left_slot_name : "<unknown>",
+            left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_left_type != NULL && decl_left_type->name != NULL
+                ? decl_left_type->name
+                : "<unknown>");
+    }
+
+    if (!type_is_assignable(right_type, decl_right_type)) {
+        semantic_error(ctx, link_like,
+            "Zone %s right slot '%s' has type '%s' but relation '%s' expects right subject type '%s'",
+            action_name,
+            right_slot_name != NULL ? right_slot_name : "<unknown>",
+            right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
+            relation_decl->data.relation_decl.name != NULL
+                ? relation_decl->data.relation_decl.name
+                : "<unknown>",
+            decl_right_type != NULL && decl_right_type->name != NULL
+                ? decl_right_type->name
+                : "<unknown>");
+    }
+
+    return true;
+}
+
+static bool
 type_check_overlay_decl_common(ASTNode *node,
                                SemanticContext *ctx,
                                const char *name,
@@ -2380,6 +2727,20 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
 
     ok = type_check_domain_slots(node->data.relation_decl.slots,
         node->data.relation_decl.slot_count, ctx, "Relation") && ok;
+    ok = type_check_domain_slot_initializers(node->data.relation_decl.slots,
+        node->data.relation_decl.slot_count, ctx, "relation") && ok;
+    size_t subject_count = count_subject_domain_slots(
+        node->data.relation_decl.slots,
+        node->data.relation_decl.slot_count);
+    if (subject_count == 0) {
+        semantic_warning(ctx, node,
+            "Relation '%s' should declare at least one subject endpoint; use 'for name: Type' or 'subject slot ...'",
+            node->data.relation_decl.name);
+    } else if (subject_count > 2) {
+        semantic_warning(ctx, node,
+            "Relation '%s' currently models a small edge; more than two subject endpoints may be better expressed as party or zone",
+            node->data.relation_decl.name);
+    }
     return ok && !ctx->has_error;
 }
 
@@ -2397,12 +2758,28 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
 
     ok = type_check_domain_slots(node->data.effect_decl.slots,
         node->data.effect_decl.slot_count, ctx, "Effect") && ok;
+    ok = type_check_domain_slot_initializers(node->data.effect_decl.slots,
+        node->data.effect_decl.slot_count, ctx, "effect") && ok;
+    size_t subject_count = count_subject_domain_slots(
+        node->data.effect_decl.slots,
+        node->data.effect_decl.slot_count);
+    if (subject_count == 0) {
+        semantic_warning(ctx, node,
+            "Effect '%s' should declare at least one subject target; use 'for name: Type' or 'subject slot ...'",
+            node->data.effect_decl.name);
+    } else if (subject_count > 1) {
+        semantic_warning(ctx, node,
+            "Effect '%s' currently expects a small target surface; multiple subject targets may be better expressed via relation or zone",
+            node->data.effect_decl.name);
+    }
     return ok && !ctx->has_error;
 }
 
 bool
 type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
+    size_t subject_count;
+    size_t object_count;
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.zone_decl.name,
         SYMBOL_ZONE,
@@ -2414,6 +2791,29 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     ok = type_check_domain_slots(node->data.zone_decl.slots,
         node->data.zone_decl.slot_count, ctx, "Zone") && ok;
+    ok = type_check_domain_slot_initializers(node->data.zone_decl.slots,
+        node->data.zone_decl.slot_count, ctx, "zone") && ok;
+    subject_count = count_subject_domain_slots(node->data.zone_decl.slots,
+        node->data.zone_decl.slot_count);
+    object_count = count_object_domain_slots(node->data.zone_decl.slots,
+        node->data.zone_decl.slot_count);
+
+    if (subject_count == 0) {
+        semantic_warning(ctx, node,
+            "Zone '%s' should declare at least one subject slot",
+            node->data.zone_decl.name);
+    } else if (subject_count > 4) {
+        semantic_warning(ctx, node,
+            "Zone '%s' declares %zu subject slots; prefer keeping active subjects to 4 or fewer and model supporting state as objects",
+            node->data.zone_decl.name,
+            subject_count);
+    }
+
+    if (subject_count > 1 && object_count == 0) {
+        semantic_warning(ctx, node,
+            "Zone '%s' has multiple subject slots but no object slots; consider modeling passive support state as objects",
+            node->data.zone_decl.name);
+    }
 
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *layer_slot = node->data.zone_decl.layer_slots[i];
@@ -2432,6 +2832,90 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 type_name != NULL ? type_name : "<unknown>",
                 layer_slot->data.zone_layer_slot.slot_name);
         }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
+        ASTNode *apply = node->data.zone_decl.applies[i];
+        const char *effect_slot_name = apply->data.zone_apply.effect_slot_name;
+        const char *target_slot_name = apply->data.zone_apply.target_slot_name;
+        if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
+            semantic_error(ctx, apply,
+                "Zone apply references unknown effect slot '%s'",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, target_slot_name) == NULL) {
+            semantic_error(ctx, apply,
+                "Zone apply references unknown target slot '%s'",
+                target_slot_name != NULL ? target_slot_name : "<unknown>");
+        }
+        type_check_zone_effect_contract(node, apply,
+            effect_slot_name, target_slot_name, ctx, "apply");
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
+        ASTNode *link = node->data.zone_decl.links[i];
+        const char *relation_slot_name = link->data.zone_link.relation_slot_name;
+        const char *left_slot_name = link->data.zone_link.left_slot_name;
+        const char *right_slot_name = link->data.zone_link.right_slot_name;
+        if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
+            semantic_error(ctx, link,
+                "Zone link references unknown relation slot '%s'",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, left_slot_name) == NULL) {
+            semantic_error(ctx, link,
+                "Zone link references unknown left slot '%s'",
+                left_slot_name != NULL ? left_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, right_slot_name) == NULL) {
+            semantic_error(ctx, link,
+                "Zone link references unknown right slot '%s'",
+                right_slot_name != NULL ? right_slot_name : "<unknown>");
+        }
+        type_check_zone_relation_contract(node, link,
+            relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
+        ASTNode *detach = node->data.zone_decl.detaches[i];
+        const char *effect_slot_name = detach->data.zone_detach.effect_slot_name;
+        const char *target_slot_name = detach->data.zone_detach.target_slot_name;
+        if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
+            semantic_error(ctx, detach,
+                "Zone detach references unknown effect slot '%s'",
+                effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, target_slot_name) == NULL) {
+            semantic_error(ctx, detach,
+                "Zone detach references unknown target slot '%s'",
+                target_slot_name != NULL ? target_slot_name : "<unknown>");
+        }
+        type_check_zone_effect_contract(node, detach,
+            effect_slot_name, target_slot_name, ctx, "detach");
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
+        ASTNode *unlink = node->data.zone_decl.unlinks[i];
+        const char *relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
+        const char *left_slot_name = unlink->data.zone_unlink.left_slot_name;
+        const char *right_slot_name = unlink->data.zone_unlink.right_slot_name;
+        if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
+            semantic_error(ctx, unlink,
+                "Zone unlink references unknown relation slot '%s'",
+                relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, left_slot_name) == NULL) {
+            semantic_error(ctx, unlink,
+                "Zone unlink references unknown left slot '%s'",
+                left_slot_name != NULL ? left_slot_name : "<unknown>");
+        }
+        if (find_zone_domain_slot(node, right_slot_name) == NULL) {
+            semantic_error(ctx, unlink,
+                "Zone unlink references unknown right slot '%s'",
+                right_slot_name != NULL ? right_slot_name : "<unknown>");
+        }
+        type_check_zone_relation_contract(node, unlink,
+            relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
     }
 
     return ok && !ctx->has_error;

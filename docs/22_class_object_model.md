@@ -44,6 +44,9 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - `subject`는 상태와 identity를 가지고 능동적으로 행위를 수행하는 코어 타입이다
 - `object`는 별도 최상위 타입이라기보다, `subject`가 transfer / DTO / view / serialization 문맥에서 수동적으로 다뤄질 때의 해석이다
 - `dto`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
+- 현재 compiler surface는 `dto`를 `struct` 호환 declaration alias로 받는다
+- 현재 compiler surface는 `ToObject(TargetStruct, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
+- 현재 compiler surface는 `ToDto(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
 - 즉 subject는 본질적으로 능동적이지만, 특정 문맥에서 object화되면 행동은 피동적으로 소비된다
 - `entity`는 이 둘을 묶는 넓은 프레임워크 용어가 될 수는 있지만, Pergyra 코어 존재론에는 넣지 않는다
 
