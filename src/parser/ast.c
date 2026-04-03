@@ -246,6 +246,8 @@ ASTNode* ast_create_world_declaration(const char* name) {
     node->data.world_decl.name = name ? pergyra_strdup(name) : NULL;
     node->data.world_decl.systemics = NULL;
     node->data.world_decl.systemic_count = 0;
+    node->data.world_decl.zones = NULL;
+    node->data.world_decl.zone_count = 0;
     node->data.world_decl.shared_fields = NULL;
     node->data.world_decl.shared_count = 0;
     node->data.world_decl.methods = NULL;
@@ -260,6 +262,71 @@ ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_t
     node->data.world_systemic.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.world_systemic.systemic_type = systemic_type ? pergyra_strdup(systemic_type) : NULL;
     node->data.world_systemic.initializer = NULL;
+    return node;
+}
+
+ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type) {
+    ASTNode* node = ast_create_node(AST_WORLD_ZONE);
+    node->data.world_zone.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.world_zone.zone_type = zone_type ? pergyra_strdup(zone_type) : NULL;
+    node->data.world_zone.initializer = NULL;
+    return node;
+}
+
+ASTNode* ast_create_relation_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_RELATION_DECL);
+    node->data.relation_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.relation_decl.slots = NULL;
+    node->data.relation_decl.slot_count = 0;
+    node->data.relation_decl.shared_fields = NULL;
+    node->data.relation_decl.shared_count = 0;
+    node->data.relation_decl.methods = NULL;
+    node->data.relation_decl.method_count = 0;
+    node->data.relation_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_effect_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_EFFECT_DECL);
+    node->data.effect_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.effect_decl.slots = NULL;
+    node->data.effect_decl.slot_count = 0;
+    node->data.effect_decl.shared_fields = NULL;
+    node->data.effect_decl.shared_count = 0;
+    node->data.effect_decl.methods = NULL;
+    node->data.effect_decl.method_count = 0;
+    node->data.effect_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_zone_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_ZONE_DECL);
+    node->data.zone_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.zone_decl.slots = NULL;
+    node->data.zone_decl.slot_count = 0;
+    node->data.zone_decl.layer_slots = NULL;
+    node->data.zone_decl.layer_slot_count = 0;
+    node->data.zone_decl.shared_fields = NULL;
+    node->data.zone_decl.shared_count = 0;
+    node->data.zone_decl.methods = NULL;
+    node->data.zone_decl.method_count = 0;
+    node->data.zone_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject) {
+    ASTNode* node = ast_create_node(AST_DOMAIN_SLOT);
+    node->data.domain_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.domain_slot.type = NULL;
+    node->data.domain_slot.is_subject = is_subject;
+    return node;
+}
+
+ASTNode* ast_create_zone_layer_slot(const char* slot_name, const char* layer_type, bool is_relation) {
+    ASTNode* node = ast_create_node(AST_ZONE_LAYER_SLOT);
+    node->data.zone_layer_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.zone_layer_slot.layer_type = layer_type ? pergyra_strdup(layer_type) : NULL;
+    node->data.zone_layer_slot.is_relation = is_relation;
     return node;
 }
 
@@ -991,6 +1058,9 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.world_decl.systemic_count; i++)
                 ast_destroy(node->data.world_decl.systemics[i]);
             free(node->data.world_decl.systemics);
+            for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
+                ast_destroy(node->data.world_decl.zones[i]);
+            free(node->data.world_decl.zones);
             for (size_t i = 0; i < node->data.world_decl.shared_count; i++)
                 ast_destroy(node->data.world_decl.shared_fields[i]);
             free(node->data.world_decl.shared_fields);
@@ -1004,6 +1074,67 @@ void ast_destroy(ASTNode* node) {
             free(node->data.world_systemic.slot_name);
             free(node->data.world_systemic.systemic_type);
             ast_destroy(node->data.world_systemic.initializer);
+            break;
+
+        case AST_WORLD_ZONE:
+            free(node->data.world_zone.slot_name);
+            free(node->data.world_zone.zone_type);
+            ast_destroy(node->data.world_zone.initializer);
+            break;
+
+        case AST_RELATION_DECL:
+            free(node->data.relation_decl.name);
+            for (size_t i = 0; i < node->data.relation_decl.slot_count; i++)
+                ast_destroy(node->data.relation_decl.slots[i]);
+            free(node->data.relation_decl.slots);
+            for (size_t i = 0; i < node->data.relation_decl.shared_count; i++)
+                ast_destroy(node->data.relation_decl.shared_fields[i]);
+            free(node->data.relation_decl.shared_fields);
+            for (size_t i = 0; i < node->data.relation_decl.method_count; i++)
+                ast_destroy(node->data.relation_decl.methods[i]);
+            free(node->data.relation_decl.methods);
+            ast_destroy_structured_comment(node->data.relation_decl.doc_comment);
+            break;
+
+        case AST_EFFECT_DECL:
+            free(node->data.effect_decl.name);
+            for (size_t i = 0; i < node->data.effect_decl.slot_count; i++)
+                ast_destroy(node->data.effect_decl.slots[i]);
+            free(node->data.effect_decl.slots);
+            for (size_t i = 0; i < node->data.effect_decl.shared_count; i++)
+                ast_destroy(node->data.effect_decl.shared_fields[i]);
+            free(node->data.effect_decl.shared_fields);
+            for (size_t i = 0; i < node->data.effect_decl.method_count; i++)
+                ast_destroy(node->data.effect_decl.methods[i]);
+            free(node->data.effect_decl.methods);
+            ast_destroy_structured_comment(node->data.effect_decl.doc_comment);
+            break;
+
+        case AST_ZONE_DECL:
+            free(node->data.zone_decl.name);
+            for (size_t i = 0; i < node->data.zone_decl.slot_count; i++)
+                ast_destroy(node->data.zone_decl.slots[i]);
+            free(node->data.zone_decl.slots);
+            for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++)
+                ast_destroy(node->data.zone_decl.layer_slots[i]);
+            free(node->data.zone_decl.layer_slots);
+            for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
+                ast_destroy(node->data.zone_decl.shared_fields[i]);
+            free(node->data.zone_decl.shared_fields);
+            for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
+                ast_destroy(node->data.zone_decl.methods[i]);
+            free(node->data.zone_decl.methods);
+            ast_destroy_structured_comment(node->data.zone_decl.doc_comment);
+            break;
+
+        case AST_DOMAIN_SLOT:
+            free(node->data.domain_slot.slot_name);
+            ast_destroy(node->data.domain_slot.type);
+            break;
+
+        case AST_ZONE_LAYER_SLOT:
+            free(node->data.zone_layer_slot.slot_name);
+            free(node->data.zone_layer_slot.layer_type);
             break;
 
         case AST_PARTY_DECL:
@@ -2052,6 +2183,9 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
                 ast_print(node->data.world_decl.systemics[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+                ast_print(node->data.world_decl.zones[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
                 ast_print(node->data.world_decl.shared_fields[i], indent + 1);
             }
@@ -2069,6 +2203,77 @@ void ast_print(ASTNode* node, int indent) {
                 ast_print_inline(node->data.world_systemic.initializer);
             }
             printf("\n");
+            break;
+
+        case AST_WORLD_ZONE:
+            printf("WorldZone: %s: %s",
+                   node->data.world_zone.slot_name,
+                   node->data.world_zone.zone_type);
+            if (node->data.world_zone.initializer != NULL) {
+                printf(" = ");
+                ast_print_inline(node->data.world_zone.initializer);
+            }
+            printf("\n");
+            break;
+
+        case AST_RELATION_DECL:
+            printf("Relation: %s\n", node->data.relation_decl.name);
+            for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
+                ast_print(node->data.relation_decl.slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
+                ast_print(node->data.relation_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+                ast_print(node->data.relation_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_EFFECT_DECL:
+            printf("Effect: %s\n", node->data.effect_decl.name);
+            for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
+                ast_print(node->data.effect_decl.slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
+                ast_print(node->data.effect_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+                ast_print(node->data.effect_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_ZONE_DECL:
+            printf("Zone: %s\n", node->data.zone_decl.name);
+            for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+                ast_print(node->data.zone_decl.slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+                ast_print(node->data.zone_decl.layer_slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
+                ast_print(node->data.zone_decl.shared_fields[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+                ast_print(node->data.zone_decl.methods[i], indent + 1);
+            }
+            break;
+
+        case AST_DOMAIN_SLOT:
+            printf("%sSlot: %s",
+                   node->data.domain_slot.is_subject ? "Subject" : "Object",
+                   node->data.domain_slot.slot_name);
+            if (node->data.domain_slot.type != NULL) {
+                printf(": ");
+                ast_print_inline(node->data.domain_slot.type);
+            }
+            printf("\n");
+            break;
+
+        case AST_ZONE_LAYER_SLOT:
+            printf("%sSlot: %s: %s\n",
+                   node->data.zone_layer_slot.is_relation ? "Relation" : "Effect",
+                   node->data.zone_layer_slot.slot_name,
+                   node->data.zone_layer_slot.layer_type);
             break;
 
         case AST_ACTOR_DECL:

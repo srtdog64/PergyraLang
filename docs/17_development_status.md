@@ -16,8 +16,11 @@
 
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
-- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `ability/role/party/systemic/world`, `event`, `actor`, `import/export/namespace`
-- 현재 domain 표면은 `ability/role/party/systemic/world`까지 구현돼 있으며, `relation/zone`은 목표 계층으로만 문서화된 상태
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `ability/role/party/relation/effect/zone/systemic/world`, `event`, `actor`, `import/export/namespace`
+- 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
+- `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
+- `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 현재 별도 surface가 있지만 장기 철학에서는 subject의 실행 profile/sugar로 정리할 계획
 - `object`는 별도 코어 타입이 아니라, subject가 transfer/DTO/view 문맥에서 수동적으로 해석된 모습으로 정리됨
 - enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
@@ -81,7 +84,7 @@
 - partial 완료: source-level `with effects ...` signature surface
 - partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
-- relation/effect/zone을 현재 구현 표면과 어떻게 연결할지 단계적 정리
+- relation/effect/zone declaration 이후의 구조적 의미론 고도화
 - 안정화 문서 갱신 및 표면 문법 정리
 
 ### 중기

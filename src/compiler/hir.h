@@ -16,6 +16,9 @@ typedef enum
     HIR_TOPLEVEL_PARTY,
     HIR_TOPLEVEL_SYSTEMIC,
     HIR_TOPLEVEL_WORLD,
+    HIR_TOPLEVEL_RELATION,
+    HIR_TOPLEVEL_EFFECT,
+    HIR_TOPLEVEL_ZONE,
     HIR_TOPLEVEL_ACTOR,
     HIR_TOPLEVEL_EVENT,
     HIR_TOPLEVEL_FUNCTION,
@@ -48,6 +51,12 @@ typedef struct
     size_t            systemic_count;
     ASTNode         **worlds;
     size_t            world_count;
+    ASTNode         **relations;
+    size_t            relation_count;
+    ASTNode         **effects;
+    size_t            effect_count;
+    ASTNode         **zones;
+    size_t            zone_count;
     ASTNode         **actors;
     size_t            actor_count;
     ASTNode         **events;

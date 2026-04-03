@@ -24,6 +24,9 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `with effects ...` / `/// @effects ...` 선언과 body inferred effect 사이의 mismatch 진단이 반영됨
 - `Box<T>` explicit handle surface와 `Box<class>` object-handle 경로가 semantic/C backend에 반영됨
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
+- `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` 최소 표면까지 parser/semantic에 반영됨
+- `zone`은 `relation slot` / `effect slot`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
 - 장기 존재론 `struct` vs `subject` 분리와 `actor = subject profile` 방향이 문서상 고정됨
 - `subject` keyword alias가 parser surface에 반영되어 `subject`와 `class`가 같은 선언으로 파싱됨
@@ -33,7 +36,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 ## 현재 한계
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
-- `relation`, `zone`, 구조적 `effect`는 목표 계층으로 정의됐지만 아직 stable syntax/semantics는 아님
+- `relation`, `effect`, `zone`은 declaration keyword를 넘어서 최소 slot surface까지 올라왔지만 구조적 semantics와 codegen surface는 아직 얕음
 - `subject` keyword는 alias로 올라왔지만, `class`와의 장기 alias/deprecation policy는 아직 미정
 - 클래식 OOP 계층(상속, super)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성

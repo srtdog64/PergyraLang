@@ -53,6 +53,12 @@ hir_node_name(ASTNode *node)
             return node->data.systemic_decl.name;
         case AST_WORLD_DECL:
             return node->data.world_decl.name;
+        case AST_RELATION_DECL:
+            return node->data.relation_decl.name;
+        case AST_EFFECT_DECL:
+            return node->data.effect_decl.name;
+        case AST_ZONE_DECL:
+            return node->data.zone_decl.name;
         case AST_ACTOR_DECL:
             return node->data.actor_decl.name;
         case AST_EVENT_DECL:
@@ -75,6 +81,9 @@ hir_top_level_kind_name(HIRTopLevelKind kind)
         case HIR_TOPLEVEL_PARTY: return "party";
         case HIR_TOPLEVEL_SYSTEMIC: return "systemic";
         case HIR_TOPLEVEL_WORLD: return "world";
+        case HIR_TOPLEVEL_RELATION: return "relation";
+        case HIR_TOPLEVEL_EFFECT: return "effect";
+        case HIR_TOPLEVEL_ZONE: return "zone";
         case HIR_TOPLEVEL_ACTOR: return "actor";
         case HIR_TOPLEVEL_EVENT: return "event";
         case HIR_TOPLEVEL_FUNCTION: return "function";
@@ -126,6 +135,21 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_WORLD_DECL:
             item.kind = HIR_TOPLEVEL_WORLD;
             if (!append_ast(&hir->worlds, &hir->world_count, node))
+                goto oom;
+            break;
+        case AST_RELATION_DECL:
+            item.kind = HIR_TOPLEVEL_RELATION;
+            if (!append_ast(&hir->relations, &hir->relation_count, node))
+                goto oom;
+            break;
+        case AST_EFFECT_DECL:
+            item.kind = HIR_TOPLEVEL_EFFECT;
+            if (!append_ast(&hir->effects, &hir->effect_count, node))
+                goto oom;
+            break;
+        case AST_ZONE_DECL:
+            item.kind = HIR_TOPLEVEL_ZONE;
+            if (!append_ast(&hir->zones, &hir->zone_count, node))
                 goto oom;
             break;
         case AST_ACTOR_DECL:
@@ -268,6 +292,9 @@ hir_destroy(HIRProgram *hir)
     free(hir->parties);
     free(hir->systemics);
     free(hir->worlds);
+    free(hir->relations);
+    free(hir->effects);
+    free(hir->zones);
     free(hir->actors);
     free(hir->events);
     free(hir->functions);

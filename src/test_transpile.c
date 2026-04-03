@@ -1468,7 +1468,7 @@ test_systemic_world_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("world emits struct with systemic member");
+    TEST("world emits struct with systemic and zone members");
     {
         ASTNode world_node; memset(&world_node, 0, sizeof(world_node));
         world_node.type = AST_WORLD_DECL;
@@ -1479,9 +1479,17 @@ test_systemic_world_emit(void)
         ws.data.world_systemic.slot_name = "combat";
         ws.data.world_systemic.systemic_type = "CombatSystem";
 
+        ASTNode wz; memset(&wz, 0, sizeof(wz));
+        wz.type = AST_WORLD_ZONE;
+        wz.data.world_zone.slot_name = "battle";
+        wz.data.world_zone.zone_type = "BattleZone";
+
         ASTNode *systemics[1] = { &ws };
+        ASTNode *zones[1] = { &wz };
         world_node.data.world_decl.systemics = systemics;
         world_node.data.world_decl.systemic_count = 1;
+        world_node.data.world_decl.zones = zones;
+        world_node.data.world_decl.zone_count = 1;
         world_node.data.world_decl.shared_fields = NULL;
         world_node.data.world_decl.shared_count = 0;
         world_node.data.world_decl.methods = NULL;
@@ -1492,7 +1500,33 @@ test_systemic_world_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");
         EXPECT_STR_CONTAINS(ctx->out->data, "CombatSystem combat");
+        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone battle");
         EXPECT_STR_CONTAINS(ctx->out->data, "} GameWorld;");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("relation/effect/zone declarations are accepted as no-op top-level layers");
+    {
+        ASTNode relation_node; memset(&relation_node, 0, sizeof(relation_node));
+        relation_node.type = AST_RELATION_DECL;
+        relation_node.data.relation_decl.name = "TrustedLink";
+
+        ASTNode effect_node; memset(&effect_node, 0, sizeof(effect_node));
+        effect_node.type = AST_EFFECT_DECL;
+        effect_node.data.effect_decl.name = "Poisoned";
+
+        ASTNode zone_node; memset(&zone_node, 0, sizeof(zone_node));
+        zone_node.type = AST_ZONE_DECL;
+        zone_node.data.zone_decl.name = "DungeonZone";
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        size_t before = ctx->out->len;
+        emit_statement(&relation_node, ctx);
+        emit_statement(&effect_node, ctx);
+        emit_statement(&zone_node, ctx);
+
+        EXPECT(ctx->out->len == before);
 
         transpiler_ctx_destroy(ctx);
     }

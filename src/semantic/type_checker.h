@@ -109,6 +109,9 @@ bool type_check_role_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_party_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_systemic_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_world_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_relation_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_effect_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_zone_decl(ASTNode* node, SemanticContext* ctx);
 
 /* Async system checkers */
 bool type_check_actor_decl(ASTNode* node, SemanticContext* ctx);

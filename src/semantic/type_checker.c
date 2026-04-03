@@ -2182,12 +2182,16 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
+    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
+        existing->kind = SYMBOL_SYSTEMIC;
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of systemic '%s'", name);
         symbol_destroy(sym);
         return false;
+    } else {
+        scope_declare(ctx->scope, sym);
     }
-    scope_declare(ctx->scope, sym);
 
     /* Check party slot references */
     for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
@@ -2236,12 +2240,16 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
+    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
+        existing->kind = SYMBOL_WORLD;
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of world '%s'", name);
         symbol_destroy(sym);
         return false;
+    } else {
+        scope_declare(ctx->scope, sym);
     }
-    scope_declare(ctx->scope, sym);
 
     /* Check systemic references */
     for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
@@ -2254,6 +2262,20 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Systemic type '%s' not found for slot '%s'",
                     ws->data.world_systemic.systemic_type,
                     ws->data.world_systemic.slot_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+        ASTNode *wz = node->data.world_decl.zones[i];
+        if (wz->data.world_zone.zone_type != NULL) {
+            Symbol *zone = scope_lookup(ctx->scope,
+                wz->data.world_zone.zone_type);
+            if (zone == NULL || zone->kind != SYMBOL_ZONE) {
+                semantic_warning(ctx, wz,
+                    "Zone type '%s' not found for slot '%s'",
+                    wz->data.world_zone.zone_type,
+                    wz->data.world_zone.slot_name);
             }
         }
     }
@@ -2275,6 +2297,144 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     scope_exit(&ctx->scope);
 
     return !ctx->has_error;
+}
+
+static bool
+type_check_domain_slots(ASTNode **slots,
+                        size_t slot_count,
+                        SemanticContext *ctx,
+                        const char *kind_name)
+{
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        if (slot->data.domain_slot.is_subject
+            && !type_is_class_object_type(slot_type, ctx)) {
+            semantic_error(ctx, slot,
+                "%s subject slot '%s' requires a subject/class type",
+                kind_name,
+                slot->data.domain_slot.slot_name);
+        }
+    }
+
+    return !ctx->has_error;
+}
+
+static bool
+type_check_overlay_decl_common(ASTNode *node,
+                               SemanticContext *ctx,
+                               const char *name,
+                               SymbolKind kind,
+                               ASTNode **shared_fields,
+                               size_t shared_count,
+                               ASTNode **methods,
+                               size_t method_count,
+                               const char *kind_name)
+{
+    Symbol *sym = calloc(1, sizeof(Symbol));
+    sym->name = pergyra_strdup(name);
+    sym->kind = kind;
+    sym->type = TYPE_VOID;
+    sym->decl_line = node->line;
+    sym->decl_col = node->column;
+
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL && existing->kind == SYMBOL_CLASS) {
+        existing->kind = kind;
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
+        semantic_error(ctx, node, "Redeclaration of %s '%s'", kind_name, name);
+        symbol_destroy(sym);
+        return false;
+    } else {
+        scope_declare(ctx->scope, sym);
+    }
+
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
+        if (shared->data.party_shared.type != NULL)
+            resolve_type_node(shared->data.party_shared.type, ctx);
+        if (shared->data.party_shared.initializer != NULL)
+            type_check_expression(shared->data.party_shared.initializer, ctx);
+    }
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < method_count; i++)
+        type_check_func_decl(methods[i], ctx);
+    scope_exit(&ctx->scope);
+
+    return !ctx->has_error;
+}
+
+bool
+type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
+{
+    bool ok = type_check_overlay_decl_common(node, ctx,
+        node->data.relation_decl.name,
+        SYMBOL_RELATION,
+        node->data.relation_decl.shared_fields,
+        node->data.relation_decl.shared_count,
+        node->data.relation_decl.methods,
+        node->data.relation_decl.method_count,
+        "relation");
+
+    ok = type_check_domain_slots(node->data.relation_decl.slots,
+        node->data.relation_decl.slot_count, ctx, "Relation") && ok;
+    return ok && !ctx->has_error;
+}
+
+bool
+type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
+{
+    bool ok = type_check_overlay_decl_common(node, ctx,
+        node->data.effect_decl.name,
+        SYMBOL_EFFECT,
+        node->data.effect_decl.shared_fields,
+        node->data.effect_decl.shared_count,
+        node->data.effect_decl.methods,
+        node->data.effect_decl.method_count,
+        "effect");
+
+    ok = type_check_domain_slots(node->data.effect_decl.slots,
+        node->data.effect_decl.slot_count, ctx, "Effect") && ok;
+    return ok && !ctx->has_error;
+}
+
+bool
+type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
+{
+    bool ok = type_check_overlay_decl_common(node, ctx,
+        node->data.zone_decl.name,
+        SYMBOL_ZONE,
+        node->data.zone_decl.shared_fields,
+        node->data.zone_decl.shared_count,
+        node->data.zone_decl.methods,
+        node->data.zone_decl.method_count,
+        "zone");
+
+    ok = type_check_domain_slots(node->data.zone_decl.slots,
+        node->data.zone_decl.slot_count, ctx, "Zone") && ok;
+
+    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *layer_slot = node->data.zone_decl.layer_slots[i];
+        const char *type_name = layer_slot->data.zone_layer_slot.layer_type;
+        Symbol *sym = type_name != NULL ? scope_lookup(ctx->scope, type_name) : NULL;
+        SymbolKind expected = layer_slot->data.zone_layer_slot.is_relation
+            ? SYMBOL_RELATION
+            : SYMBOL_EFFECT;
+        const char *kind_name = layer_slot->data.zone_layer_slot.is_relation
+            ? "relation"
+            : "effect";
+        if (sym == NULL || sym->kind != expected) {
+            semantic_warning(ctx, layer_slot,
+                "%s type '%s' not found for slot '%s'",
+                kind_name,
+                type_name != NULL ? type_name : "<unknown>",
+                layer_slot->data.zone_layer_slot.slot_name);
+        }
+    }
+
+    return ok && !ctx->has_error;
 }
 
 /* -----------------------------------------------------------------
@@ -2556,6 +2716,12 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_systemic_decl(node, ctx);
     case AST_WORLD_DECL:
         return type_check_world_decl(node, ctx);
+    case AST_RELATION_DECL:
+        return type_check_relation_decl(node, ctx);
+    case AST_EFFECT_DECL:
+        return type_check_effect_decl(node, ctx);
+    case AST_ZONE_DECL:
+        return type_check_zone_decl(node, ctx);
     case AST_ACTOR_DECL:
         return type_check_actor_decl(node, ctx);
     case AST_ASYNC_BLOCK:
@@ -3072,16 +3238,25 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             }
         } else if (stmt->type == AST_PARTY_DECL
                    || stmt->type == AST_SYSTEMIC_DECL
-                   || stmt->type == AST_WORLD_DECL) {
-            /* Register party/systemic/world as class-like symbols
-             * so that PartyName() constructor syntax works */
+                   || stmt->type == AST_WORLD_DECL
+                   || stmt->type == AST_RELATION_DECL
+                   || stmt->type == AST_EFFECT_DECL
+                   || stmt->type == AST_ZONE_DECL) {
+            /* Register domain declarations as class-like symbols
+             * so that constructor-like syntax can be introduced consistently */
             const char *dname = NULL;
             if (stmt->type == AST_PARTY_DECL)
                 dname = stmt->data.party_decl.name;
             else if (stmt->type == AST_SYSTEMIC_DECL)
                 dname = stmt->data.systemic_decl.name;
-            else
+            else if (stmt->type == AST_WORLD_DECL)
                 dname = stmt->data.world_decl.name;
+            else if (stmt->type == AST_RELATION_DECL)
+                dname = stmt->data.relation_decl.name;
+            else if (stmt->type == AST_EFFECT_DECL)
+                dname = stmt->data.effect_decl.name;
+            else
+                dname = stmt->data.zone_decl.name;
             if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
                 if (t != NULL) {

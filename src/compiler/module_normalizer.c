@@ -196,6 +196,9 @@ node_name_slot(ASTNode *node)
         case AST_PARTY_DECL: return &node->data.party_decl.name;
         case AST_SYSTEMIC_DECL: return &node->data.systemic_decl.name;
         case AST_WORLD_DECL: return &node->data.world_decl.name;
+        case AST_RELATION_DECL: return &node->data.relation_decl.name;
+        case AST_EFFECT_DECL: return &node->data.effect_decl.name;
+        case AST_ZONE_DECL: return &node->data.zone_decl.name;
         case AST_EVENT_DECL: return &node->data.event_decl.name;
         case AST_ENUM_DECL: return &node->data.enum_decl.name;
         default: return NULL;
@@ -403,10 +406,49 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
         case AST_WORLD_DECL:
             for (size_t i = 0; i < node->data.world_decl.systemic_count; i++)
                 normalize_node_refs(node->data.world_decl.systemics[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
+                normalize_node_refs(node->data.world_decl.zones[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.shared_count; i++)
                 normalize_node_refs(node->data.world_decl.shared_fields[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.method_count; i++)
                 normalize_node_refs(node->data.world_decl.methods[i], scope, shadow);
+            return;
+
+        case AST_RELATION_DECL:
+            for (size_t i = 0; i < node->data.relation_decl.slot_count; i++)
+                normalize_node_refs(node->data.relation_decl.slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.relation_decl.shared_count; i++)
+                normalize_node_refs(node->data.relation_decl.shared_fields[i], scope, shadow);
+            for (size_t i = 0; i < node->data.relation_decl.method_count; i++)
+                normalize_node_refs(node->data.relation_decl.methods[i], scope, shadow);
+            return;
+
+        case AST_EFFECT_DECL:
+            for (size_t i = 0; i < node->data.effect_decl.slot_count; i++)
+                normalize_node_refs(node->data.effect_decl.slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.effect_decl.shared_count; i++)
+                normalize_node_refs(node->data.effect_decl.shared_fields[i], scope, shadow);
+            for (size_t i = 0; i < node->data.effect_decl.method_count; i++)
+                normalize_node_refs(node->data.effect_decl.methods[i], scope, shadow);
+            return;
+
+        case AST_ZONE_DECL:
+            for (size_t i = 0; i < node->data.zone_decl.slot_count; i++)
+                normalize_node_refs(node->data.zone_decl.slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++)
+                normalize_node_refs(node->data.zone_decl.layer_slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
+                normalize_node_refs(node->data.zone_decl.shared_fields[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
+                normalize_node_refs(node->data.zone_decl.methods[i], scope, shadow);
+            return;
+
+        case AST_DOMAIN_SLOT:
+            normalize_node_refs(node->data.domain_slot.type, scope, shadow);
+            return;
+
+        case AST_WORLD_ZONE:
+        case AST_ZONE_LAYER_SLOT:
             return;
 
         case AST_EVENT_DECL:

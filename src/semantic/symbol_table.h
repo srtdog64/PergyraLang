@@ -33,7 +33,10 @@ typedef enum
     SYMBOL_ROLE,        /* role Bar for Baz         */
     SYMBOL_PARTY,       /* party Baz                */
     SYMBOL_SYSTEMIC,    /* systemic Sys             */
-    SYMBOL_WORLD        /* world W                  */
+    SYMBOL_WORLD,       /* world W                  */
+    SYMBOL_RELATION,    /* relation R               */
+    SYMBOL_EFFECT,      /* effect E                 */
+    SYMBOL_ZONE         /* zone Z                   */
 } SymbolKind;
 
 /*

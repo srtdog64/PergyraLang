@@ -148,7 +148,15 @@ enum Shape {
 - `subject` (`class` alias)
 - `class`
 - `enum`
+- `relation`
+- `effect`
+- `zone`
 - `extern "C"` block
+
+추가 메모:
+- `relation`, `effect`, `zone` body는 현재 `subject slot`, `object slot`, `shared`, `func`의 최소 조합을 지원한다.
+- `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
+- `world` body는 `systemic`, `zone`, `shared`, `func`를 지원한다.
 
 미지원:
 - `type` alias (파서/시맨틱 미구현)

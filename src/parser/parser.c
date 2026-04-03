@@ -94,6 +94,14 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
             case TOKEN_LET:
+            case TOKEN_RELATION:
+            case TOKEN_EFFECT:
+            case TOKEN_ZONE:
+            case TOKEN_ABILITY:
+            case TOKEN_ROLE:
+            case TOKEN_PARTY:
+            case TOKEN_SYSTEMIC:
+            case TOKEN_WORLD:
             case TOKEN_NAMESPACE:
             case TOKEN_EXPORT:
             case TOKEN_WITH:
@@ -396,6 +404,18 @@ parser_attach_pending_doc_comment(Parser *parser, ASTNode *node)
             node->data.world_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
             return true;
+        case AST_RELATION_DECL:
+            node->data.relation_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_EFFECT_DECL:
+            node->data.effect_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
+        case AST_ZONE_DECL:
+            node->data.zone_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
         default:
             return false;
     }
@@ -418,6 +438,9 @@ parser_is_exportable_decl(ASTNode *node)
         case AST_PARTY_DECL:
         case AST_SYSTEMIC_DECL:
         case AST_WORLD_DECL:
+        case AST_RELATION_DECL:
+        case AST_EFFECT_DECL:
+        case AST_ZONE_DECL:
         case AST_EVENT_DECL:
         case AST_ENUM_DECL:
         case AST_IMPORT_DECL:
@@ -527,6 +550,12 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_systemic_declaration(parser);
     else if (parser_match(parser, TOKEN_WORLD))
         node = parse_world_declaration(parser);
+    else if (parser_match(parser, TOKEN_RELATION))
+        node = parse_relation_declaration(parser);
+    else if (parser_match(parser, TOKEN_EFFECT))
+        node = parse_effect_declaration(parser);
+    else if (parser_match(parser, TOKEN_ZONE))
+        node = parse_zone_declaration(parser);
     else if (parser_match(parser, TOKEN_PARTY))
         node = parse_party_declaration(parser);
     else if (parser_match(parser, TOKEN_ABILITY))
@@ -806,6 +835,21 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // world 선언
     if (parser_match(parser, TOKEN_WORLD)) {
         return parser_finalize_statement(parser, parse_world_declaration(parser));
+    }
+
+    // relation 선언
+    if (parser_match(parser, TOKEN_RELATION)) {
+        return parser_finalize_statement(parser, parse_relation_declaration(parser));
+    }
+
+    // effect 선언
+    if (parser_match(parser, TOKEN_EFFECT)) {
+        return parser_finalize_statement(parser, parse_effect_declaration(parser));
+    }
+
+    // zone 선언
+    if (parser_match(parser, TOKEN_ZONE)) {
+        return parser_finalize_statement(parser, parse_zone_declaration(parser));
     }
 
     // party 선언

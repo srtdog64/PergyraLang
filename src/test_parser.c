@@ -553,9 +553,48 @@ main(void)
             "World Declaration",
             "world GameWorld {\n"
             "    systemic combat: CombatSystem\n"
+            "    zone battle: BattleZone\n"
             "    shared tick: Int = 0\n"
             "    func Update() -> Void {\n"
             "        Log(tick);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Relation Declaration",
+            "relation TrustedLink {\n"
+            "    subject slot source: Player\n"
+            "    object slot snapshot: PlayerView\n"
+            "    shared trust: Int = 100\n"
+            "    func Refresh() -> Void {\n"
+            "        Log(trust);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Effect Declaration",
+            "effect Poisoned {\n"
+            "    subject slot bearer: Player\n"
+            "    object slot view: PlayerView\n"
+            "    shared stacks: Int = 1\n"
+            "    func Tick() -> Void {\n"
+            "        Log(stacks);\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Zone Declaration",
+            "zone DungeonZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    shared level: Int = 3\n"
+            "    func Update() -> Void {\n"
+            "        Log(level);\n"
             "    }\n"
             "}",
             1

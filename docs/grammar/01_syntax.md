@@ -29,7 +29,7 @@
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 
 대표 키워드:
-`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `systemic`, `world`
+`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
 
 ## 2. 선언
 
@@ -94,9 +94,13 @@ enum Color { Red, Green, Blue }
 - `class`
 - `enum`
 - `actor`
+- `relation`
+- `effect`
+- `zone`
 
 주의:
 - `subject`와 `class`는 현재 같은 declaration으로 파싱된다.
+- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `shared` / `func`까지의 최소 body surface를 가진다.
 - subject/class/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
 
 ### 2.4 모듈/가시성
@@ -364,11 +368,31 @@ role IntMath for Int {
 }
 ```
 
-### 8.3 party / systemic / world
+### 8.3 party / relation / effect / zone / systemic / world
 
 ```pergyra
 party DungeonTeam {
     role slot tank: Damageable
+}
+
+relation TrustedLink {
+    subject slot source: Player
+    object slot snapshot: PlayerView
+    shared trust: Int = 100
+}
+
+effect Poisoned {
+    subject slot bearer: Player
+    object slot view: PlayerView
+    shared stacks: Int = 1
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    relation slot trust: TrustedLink
+    effect slot poison: Poisoned
+    shared round: Int = 1
 }
 
 systemic CombatSystem {
@@ -377,10 +401,12 @@ systemic CombatSystem {
 
 world GameWorld {
     systemic combat: CombatSystem
+    zone battle: BattleZone
 }
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
+현재 `relation`, `effect`, `zone`은 `subject slot`/`object slot`/`shared`/`func`까지의 최소 표면이 구현돼 있고, `zone`은 `relation slot`/`effect slot`, `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 

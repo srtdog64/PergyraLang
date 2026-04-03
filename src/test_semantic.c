@@ -2760,6 +2760,124 @@ test_shared_memory_features(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("relation/effect/zone declarations pass");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *relation = ast_create_relation_declaration("TrustedLink");
+        relation->line = 1; relation->column = 1;
+        ASTNode *effect = ast_create_effect_declaration("Poisoned");
+        effect->line = 2; effect->column = 1;
+        ASTNode *zone = ast_create_zone_declaration("DungeonZone");
+        zone->line = 3; zone->column = 1;
+
+        type_check_relation_decl(relation, ctx);
+        type_check_effect_decl(effect, ctx);
+        type_check_zone_decl(zone, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(relation);
+        ast_destroy(effect);
+        ast_destroy(zone);
+    }
+
+    TEST("relation/effect/zone/world minimal composition parses and subject slots require subject type");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "struct PlayerView { hp: Int; }\n"
+            "relation TrustedLink {\n"
+            "    subject slot source: Player\n"
+            "    object slot snapshot: PlayerView\n"
+            "    shared trust: Int = 100\n"
+            "}\n"
+            "effect Poisoned {\n"
+            "    subject slot bearer: Player\n"
+            "    object slot view: PlayerView\n"
+            "    shared stacks: Int = 1\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    shared round: Int = 1\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone/world references warn when relation/effect/zone types are missing");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "struct PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    relation slot trust: MissingRelation\n"
+            "    effect slot poison: MissingEffect\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: MissingZone\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect/zone reject non-subject type in subject slot");
+    {
+        const char *source =
+            "struct PlayerView { hp: Int; }\n"
+            "relation BrokenLink {\n"
+            "    subject slot source: PlayerView\n"
+            "}\n"
+            "effect BrokenEffect {\n"
+            "    subject slot bearer: PlayerView\n"
+            "}\n"
+            "zone BrokenZone {\n"
+            "    subject slot player: PlayerView\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------

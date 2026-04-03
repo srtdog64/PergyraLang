@@ -43,6 +43,9 @@ actor
 ability
 role
 party
+relation
+effect
+zone
 systemic
 world
 ```

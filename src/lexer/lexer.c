@@ -67,6 +67,9 @@ static const KeywordEntry keywords[] = {
     {"super",    TOKEN_SUPER},
     {"secure",   TOKEN_SECURE},
     {"party",    TOKEN_PARTY},
+    {"relation", TOKEN_RELATION},
+    {"effect",   TOKEN_EFFECT},
+    {"zone",     TOKEN_ZONE},
     {"slot",     TOKEN_SLOT},
     {"shared",   TOKEN_SHARED},
     {"context",  TOKEN_CONTEXT},
@@ -499,6 +502,23 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_UNSAFE: return "UNSAFE";
         case TOKEN_DEFER: return "DEFER";
         case TOKEN_BIND: return "BIND";
+        case TOKEN_ABILITY: return "ABILITY";
+        case TOKEN_ROLE: return "ROLE";
+        case TOKEN_PARTY: return "PARTY";
+        case TOKEN_RELATION: return "RELATION";
+        case TOKEN_EFFECT: return "EFFECT";
+        case TOKEN_ZONE: return "ZONE";
+        case TOKEN_SHARED: return "SHARED";
+        case TOKEN_CONTEXT: return "CONTEXT";
+        case TOKEN_EXTENDS: return "EXTENDS";
+        case TOKEN_SYSTEMIC: return "SYSTEMIC";
+        case TOKEN_WORLD: return "WORLD";
+        case TOKEN_INCLUDE: return "INCLUDE";
+        case TOKEN_REQUIRE: return "REQUIRE";
+        case TOKEN_OVERRIDE: return "OVERRIDE";
+        case TOKEN_SUPER: return "SUPER";
+        case TOKEN_SECURE: return "SECURE";
+        case TOKEN_MATCH: return "MATCH";
         case TOKEN_DYN: return "DYN";
         case TOKEN_SUBSCRIBE: return "+=";
         case TOKEN_UNSUBSCRIBE: return "-=";

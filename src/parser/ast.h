@@ -135,6 +135,12 @@ typedef enum
     AST_SYSTEMIC_SLOT,
     AST_WORLD_DECL,
     AST_WORLD_SYSTEMIC,
+    AST_WORLD_ZONE,
+    AST_RELATION_DECL,
+    AST_EFFECT_DECL,
+    AST_ZONE_DECL,
+    AST_DOMAIN_SLOT,
+    AST_ZONE_LAYER_SLOT,
 
     /* Event system (C# style) */
     AST_EVENT_DECL,
@@ -616,6 +622,8 @@ struct ASTNode
             char* name;
             ASTNode** systemics;       /* Systemic instances */
             size_t systemic_count;
+            ASTNode** zones;           /* Zone instances */
+            size_t zone_count;
             ASTNode** shared_fields;   /* World-level data */
             size_t shared_count;
             ASTNode** methods;         /* World methods */
@@ -629,6 +637,65 @@ struct ASTNode
             char* systemic_type;
             ASTNode* initializer;      /* Optional initialization */
         } world_systemic;
+
+        /* World zone instance */
+        struct {
+            char* slot_name;
+            char* zone_type;
+            ASTNode* initializer;      /* Optional initialization */
+        } world_zone;
+
+        /* Relation declaration */
+        struct {
+            char* name;
+            ASTNode** slots;
+            size_t slot_count;
+            ASTNode** shared_fields;
+            size_t shared_count;
+            ASTNode** methods;
+            size_t method_count;
+            StructuredComment* doc_comment;
+        } relation_decl;
+
+        /* Effect declaration */
+        struct {
+            char* name;
+            ASTNode** slots;
+            size_t slot_count;
+            ASTNode** shared_fields;
+            size_t shared_count;
+            ASTNode** methods;
+            size_t method_count;
+            StructuredComment* doc_comment;
+        } effect_decl;
+
+        /* Zone declaration */
+        struct {
+            char* name;
+            ASTNode** slots;
+            size_t slot_count;
+            ASTNode** layer_slots;
+            size_t layer_slot_count;
+            ASTNode** shared_fields;
+            size_t shared_count;
+            ASTNode** methods;
+            size_t method_count;
+            StructuredComment* doc_comment;
+        } zone_decl;
+
+        /* Domain slot */
+        struct {
+            char* slot_name;
+            ASTNode* type;
+            bool is_subject;
+        } domain_slot;
+
+        /* Zone relation/effect slot */
+        struct {
+            char* slot_name;
+            char* layer_type;
+            bool is_relation;
+        } zone_layer_slot;
 
         /* Event declaration */
         struct {
@@ -764,6 +831,12 @@ ASTNode* ast_create_systemic_declaration(const char* name);
 ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type);
 ASTNode* ast_create_world_declaration(const char* name);
 ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type);
+ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type);
+ASTNode* ast_create_relation_declaration(const char* name);
+ASTNode* ast_create_effect_declaration(const char* name);
+ASTNode* ast_create_zone_declaration(const char* name);
+ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject);
+ASTNode* ast_create_zone_layer_slot(const char* slot_name, const char* layer_type, bool is_relation);
 
 /* Party system AST creation functions */
 ASTNode* ast_create_party_declaration(const char* name);

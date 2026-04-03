@@ -1648,6 +1648,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_PARTY_DECL:
     case AST_SYSTEMIC_DECL:
     case AST_WORLD_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
     case AST_EVENT_DECL:
     case AST_IMPORT_DECL:
     case AST_NAMESPACE_DECL:

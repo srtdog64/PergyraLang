@@ -87,6 +87,9 @@ typedef enum
     
     /* Party keywords */
     TOKEN_PARTY,
+    TOKEN_RELATION,
+    TOKEN_EFFECT,
+    TOKEN_ZONE,
     TOKEN_SLOT,
     TOKEN_SHARED,
     TOKEN_CONTEXT,

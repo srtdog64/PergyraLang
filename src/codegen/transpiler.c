@@ -4985,6 +4985,11 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_WORLD_DECL:
         emit_world_decl(node, ctx);
         break;
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
+        /* Declaration-only for now; reserved top-level domain layers. */
+        break;
     case AST_EVENT_DECL:
         emit_event_decl(node, ctx);
         break;
@@ -5846,6 +5851,14 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s %s;\n",
             ws->data.world_systemic.systemic_type,
             ws->data.world_systemic.slot_name);
+    }
+
+    /* Zone instances */
+    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+        ASTNode *wz = node->data.world_decl.zones[i];
+        codebuf_write(ctx->out, "    %s %s;\n",
+            wz->data.world_zone.zone_type,
+            wz->data.world_zone.slot_name);
     }
 
     /* Shared fields */

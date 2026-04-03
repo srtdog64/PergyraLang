@@ -145,6 +145,28 @@ ASTNode* parse_world_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
 
+        } else if (parser_match(parser, TOKEN_ZONE)) {
+            Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone name");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after zone name");
+            Token zone_type = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone type");
+
+            ASTNode* wz = ast_create_world_zone(slot_name.text, zone_type.text);
+            wz->line = slot_name.line;
+            wz->column = slot_name.column;
+
+            world->data.world_decl.zone_count++;
+            world->data.world_decl.zones = realloc(
+                world->data.world_decl.zones,
+                world->data.world_decl.zone_count * sizeof(ASTNode*));
+            world->data.world_decl.zones[
+                world->data.world_decl.zone_count - 1] = wz;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+
         } else if (parser_match(parser, TOKEN_SHARED)) {
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected field name after 'shared'");
@@ -185,13 +207,304 @@ ASTNode* parse_world_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'systemic', 'shared', or 'func' in world body");
+                "Expected 'systemic', 'zone', 'shared', or 'func' in world body");
             parser_advance(parser);
         }
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after world body");
     return world;
+}
+
+static bool
+parser_match_identifier_keyword(Parser *parser, const char *keyword)
+{
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL
+        || keyword == NULL) {
+        return false;
+    }
+
+    if (strcmp(parser->current_token.text, keyword) != 0)
+        return false;
+
+    parser_advance(parser);
+    return true;
+}
+
+static bool
+parser_match_domain_slot_kind(Parser *parser, bool *is_subject)
+{
+    if (parser_match(parser, TOKEN_CLASS)) {
+        if (is_subject != NULL)
+            *is_subject = true;
+        return true;
+    }
+
+    if (parser_match_identifier_keyword(parser, "object")) {
+        if (is_subject != NULL)
+            *is_subject = false;
+        return true;
+    }
+
+    return false;
+}
+
+static ASTNode *
+parse_domain_slot_entry(Parser *parser, const char *owner_name)
+{
+    bool is_subject = false;
+    if (!parser_match_domain_slot_kind(parser, &is_subject))
+        return NULL;
+
+    parser_consume(parser, TOKEN_SLOT,
+        is_subject
+            ? "Expected 'slot' after 'subject' in domain body"
+            : "Expected 'slot' after 'object' in domain body");
+    Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+        "Expected slot name");
+    parser_consume(parser, TOKEN_COLON,
+        "Expected ':' after domain slot name");
+    ASTNode *slot_type = parse_type(parser);
+
+    ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
+    slot->data.domain_slot.type = slot_type;
+    slot->line = slot_name.line;
+    slot->column = slot_name.column;
+
+    (void)owner_name;
+    return slot;
+}
+
+ASTNode* parse_relation_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected relation name");
+    ASTNode* relation = ast_create_relation_declaration(name.text);
+    relation->data.relation_decl.doc_comment = parser_take_pending_doc_comment(parser);
+    relation->line = name.line;
+    relation->column = name.column;
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after relation name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
+        ASTNode *slot = parse_domain_slot_entry(parser, "relation");
+        if (slot != NULL) {
+            relation->data.relation_decl.slot_count++;
+            relation->data.relation_decl.slots = realloc(
+                relation->data.relation_decl.slots,
+                relation->data.relation_decl.slot_count * sizeof(ASTNode*));
+            relation->data.relation_decl.slots[
+                relation->data.relation_decl.slot_count - 1] = slot;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            relation->data.relation_decl.shared_count++;
+            relation->data.relation_decl.shared_fields = realloc(
+                relation->data.relation_decl.shared_fields,
+                relation->data.relation_decl.shared_count * sizeof(ASTNode*));
+            relation->data.relation_decl.shared_fields[
+                relation->data.relation_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
+            relation->data.relation_decl.method_count++;
+            relation->data.relation_decl.methods = realloc(
+                relation->data.relation_decl.methods,
+                relation->data.relation_decl.method_count * sizeof(ASTNode*));
+            relation->data.relation_decl.methods[
+                relation->data.relation_decl.method_count - 1] = method;
+        } else {
+            parser_discard_pending_doc_comment(parser);
+            parser_error(parser,
+                "Expected 'subject slot', 'object slot', 'shared', or 'func' in relation body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after relation body");
+    return relation;
+}
+
+ASTNode* parse_effect_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected effect name");
+    ASTNode* effect = ast_create_effect_declaration(name.text);
+    effect->data.effect_decl.doc_comment = parser_take_pending_doc_comment(parser);
+    effect->line = name.line;
+    effect->column = name.column;
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after effect name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
+        ASTNode *slot = parse_domain_slot_entry(parser, "effect");
+        if (slot != NULL) {
+            effect->data.effect_decl.slot_count++;
+            effect->data.effect_decl.slots = realloc(
+                effect->data.effect_decl.slots,
+                effect->data.effect_decl.slot_count * sizeof(ASTNode*));
+            effect->data.effect_decl.slots[
+                effect->data.effect_decl.slot_count - 1] = slot;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            effect->data.effect_decl.shared_count++;
+            effect->data.effect_decl.shared_fields = realloc(
+                effect->data.effect_decl.shared_fields,
+                effect->data.effect_decl.shared_count * sizeof(ASTNode*));
+            effect->data.effect_decl.shared_fields[
+                effect->data.effect_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
+            effect->data.effect_decl.method_count++;
+            effect->data.effect_decl.methods = realloc(
+                effect->data.effect_decl.methods,
+                effect->data.effect_decl.method_count * sizeof(ASTNode*));
+            effect->data.effect_decl.methods[
+                effect->data.effect_decl.method_count - 1] = method;
+        } else {
+            parser_discard_pending_doc_comment(parser);
+            parser_error(parser,
+                "Expected 'subject slot', 'object slot', 'shared', or 'func' in effect body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after effect body");
+    return effect;
+}
+
+ASTNode* parse_zone_declaration(Parser* parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected zone name");
+    ASTNode* zone = ast_create_zone_declaration(name.text);
+    zone->data.zone_decl.doc_comment = parser_take_pending_doc_comment(parser);
+    zone->line = name.line;
+    zone->column = name.column;
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after zone name");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        parser_collect_doc_comments(parser);
+
+        ASTNode *slot = parse_domain_slot_entry(parser, "zone");
+        if (slot != NULL) {
+            zone->data.zone_decl.slot_count++;
+            zone->data.zone_decl.slots = realloc(
+                zone->data.zone_decl.slots,
+                zone->data.zone_decl.slot_count * sizeof(ASTNode*));
+            zone->data.zone_decl.slots[
+                zone->data.zone_decl.slot_count - 1] = slot;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_RELATION) || parser_match(parser, TOKEN_EFFECT)) {
+            bool is_relation = parser->previous_token.type == TOKEN_RELATION;
+            parser_consume(parser, TOKEN_SLOT,
+                is_relation
+                    ? "Expected 'slot' after 'relation' in zone"
+                    : "Expected 'slot' after 'effect' in zone");
+            Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected slot name");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after zone layer slot name");
+            Token layer_type = parser_consume(parser, TOKEN_IDENTIFIER,
+                is_relation ? "Expected relation type" : "Expected effect type");
+
+            ASTNode *layer_slot = ast_create_zone_layer_slot(
+                slot_name.text, layer_type.text, is_relation);
+            layer_slot->line = slot_name.line;
+            layer_slot->column = slot_name.column;
+
+            zone->data.zone_decl.layer_slot_count++;
+            zone->data.zone_decl.layer_slots = realloc(
+                zone->data.zone_decl.layer_slots,
+                zone->data.zone_decl.layer_slot_count * sizeof(ASTNode*));
+            zone->data.zone_decl.layer_slots[
+                zone->data.zone_decl.layer_slot_count - 1] = layer_slot;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_SHARED)) {
+            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name after 'shared'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after shared field name");
+            ASTNode* field_type = parse_type(parser);
+
+            ASTNode* shared = ast_create_party_shared(field_name.text);
+            shared->data.party_shared.type = field_type;
+            shared->line = field_name.line;
+            shared->column = field_name.column;
+
+            if (parser_match(parser, TOKEN_ASSIGN)) {
+                shared->data.party_shared.initializer =
+                    parser_parse_expression(parser);
+            }
+
+            zone->data.zone_decl.shared_count++;
+            zone->data.zone_decl.shared_fields = realloc(
+                zone->data.zone_decl.shared_fields,
+                zone->data.zone_decl.shared_count * sizeof(ASTNode*));
+            zone->data.zone_decl.shared_fields[
+                zone->data.zone_decl.shared_count - 1] = shared;
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match(parser, TOKEN_FUNC)) {
+            ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
+            zone->data.zone_decl.method_count++;
+            zone->data.zone_decl.methods = realloc(
+                zone->data.zone_decl.methods,
+                zone->data.zone_decl.method_count * sizeof(ASTNode*));
+            zone->data.zone_decl.methods[
+                zone->data.zone_decl.method_count - 1] = method;
+        } else {
+            parser_discard_pending_doc_comment(parser);
+            parser_error(parser,
+                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'shared', or 'func' in zone body");
+            parser_advance(parser);
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after zone body");
+    return zone;
 }
 
 /* =================================================================

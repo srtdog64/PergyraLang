@@ -150,8 +150,10 @@
 - [~] **최종 문맥 계층 고정** — `ability -> role -> party -> relation -> effect -> zone -> world`
   - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
   - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
-  - 현재 구현: `ability/role/party/systemic/world`
-  - 남음: `relation`, 구조적 `effect`, `zone`을 실제 표면 문법/시맨틱에 연결
+  - 완료: `relation`, `effect`, `zone` declaration keyword와 최소 `subject slot` / `object slot` surface를 parser/semantic 표면에 연결
+  - 완료: `zone -> relation/effect`, `world -> zone` 최소 조립 slot surface를 parser/semantic에 연결
+  - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
+  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론과 inter-layer composition
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`

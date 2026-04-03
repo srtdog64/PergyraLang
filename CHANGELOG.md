@@ -24,6 +24,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>` can now serve as the explicit object-handle path for function parameters and returns in the C/semantic surface
 - `subject` keyword now parses as a class-compatible subject declaration alias
+- `relation`, `effect`, and `zone` now parse as top-level declaration keywords and pass semantic/HIR/codegen no-op handling
+- `relation`, `effect`, and `zone` now support minimal `subject slot` / `object slot` body surface in parser and semantic passes
+- `zone` now supports `relation slot` / `effect slot`, and `world` now supports `zone` slots for minimal layer composition
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
