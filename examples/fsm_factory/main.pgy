@@ -242,16 +242,6 @@ world FactoryWorld
         gridNoise = (shift % 3) + 1;
     }
 
-    func ResetFactory(self) -> Void
-    {
-        shift = 0;
-        gridNoise = 1;
-        totalSealed = 0;
-        totalRejects = 0;
-        alpha.ResetBaseline(7, 3, 8);
-        beta.ResetBaseline(5, 2, 7);
-    }
-
     func Simulate(self) -> Void
     {
         let tick = 0;
@@ -360,7 +350,6 @@ func Main() -> Void
     beta.maintenance = 5;
 
     let factory = FactoryWorld(alpha, beta);
-    factory.ResetFactory();
     factory.Simulate();
 
     Log("SAVING FSM REPORT");

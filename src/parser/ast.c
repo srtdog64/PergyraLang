@@ -565,6 +565,7 @@ ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* sourc
         source_slot_name ? pergyra_strdup(source_slot_name) : NULL;
     node->data.zone_refresh.actor_slot_name = NULL;
     node->data.zone_refresh.requires_dto = false;
+    node->data.zone_refresh.infer_target_kind = false;
     return node;
 }
 
@@ -1763,4 +1764,3 @@ void ast_destroy(ASTNode* node) {
 
     free(node);
 }
-

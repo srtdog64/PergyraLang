@@ -2459,12 +2459,36 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_MEMBER_ACCESS
             && expr->data.call.callee->data.member.name != NULL) {
+            ASTNode *receiver = expr->data.call.callee->data.member.object;
+            const char *method_name = expr->data.call.callee->data.member.name;
+            const char *receiver_type = infer_expression_type_name(ctx, receiver);
+            if (receiver_type != NULL && method_name != NULL) {
+                if ((strncmp(receiver_type, "Slot<", 5) == 0
+                     || strncmp(receiver_type, "SecureSlot<", 11) == 0
+                     || strncmp(receiver_type, "ReadView<", 9) == 0
+                     || strncmp(receiver_type, "WriteView<", 10) == 0)
+                    && strcmp(method_name, "Read") == 0) {
+                    return slot_inner_type_name(receiver_type);
+                }
+                if ((strncmp(receiver_type, "DeviceSlot<", 11) == 0)
+                    && strcmp(method_name, "Read") == 0) {
+                    return slot_inner_type_name(receiver_type);
+                }
+                if (((strncmp(receiver_type, "Slot<", 5) == 0
+                      || strncmp(receiver_type, "SecureSlot<", 11) == 0
+                      || strncmp(receiver_type, "ReadView<", 9) == 0
+                      || strncmp(receiver_type, "WriteView<", 10) == 0
+                      || strncmp(receiver_type, "DeviceSlot<", 11) == 0))
+                    && (strcmp(method_name, "Write") == 0
+                        || strcmp(method_name, "Release") == 0)) {
+                    return "Void";
+                }
+            }
             ASTNode *method_decl = NULL;
-            const char *receiver_type = resolve_nominal_host_expr_type_name(
-                ctx, expr->data.call.callee->data.member.object);
+            receiver_type = resolve_nominal_host_expr_type_name(ctx, receiver);
             if (receiver_type != NULL) {
                 method_decl = find_nominal_host_method_decl(ctx, receiver_type,
-                    expr->data.call.callee->data.member.name);
+                    method_name);
             }
             if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
                 && method_decl->data.func_decl.return_type != NULL) {
@@ -2500,6 +2524,29 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             }
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
+            if (strcmp(name, "Read") == 0 && expr->data.call.arg_count >= 1) {
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (strncmp(slot_type, "Slot<", 5) == 0
+                    || strncmp(slot_type, "SecureSlot<", 11) == 0
+                    || strncmp(slot_type, "ReadView<", 9) == 0
+                    || strncmp(slot_type, "WriteView<", 10) == 0
+                    || strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                    return slot_inner_type_name(slot_type);
+                }
+            }
+            if ((strcmp(name, "Write") == 0 || strcmp(name, "Release") == 0)
+                && expr->data.call.arg_count >= 1) {
+                const char *slot_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (strncmp(slot_type, "Slot<", 5) == 0
+                    || strncmp(slot_type, "SecureSlot<", 11) == 0
+                    || strncmp(slot_type, "ReadView<", 9) == 0
+                    || strncmp(slot_type, "WriteView<", 10) == 0
+                    || strncmp(slot_type, "DeviceSlot<", 11) == 0) {
+                    return "Void";
+                }
+            }
             if (strcmp(name, "DeviceRead") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);

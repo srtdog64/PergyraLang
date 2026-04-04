@@ -37,7 +37,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
 - `zone`은 `publish dtoSlot from subjectSlot`으로 dto projection 갱신을 명시할 수 있음
-- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 직접 가질 수 있음
+- `zone`은 `bind slotName from sourceSlot`으로 target slot kind 기반 projection sync를 명시할 수 있음
+- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 직접 가질 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
 - `zone`은 `authority subjectSlot`으로 승인 주체를 선언할 수 있음
 - `zone` authority는 `requires Ability[, Ability]`를 붙여 subject type의 role impl ability까지 검사할 수 있음
@@ -57,7 +58,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `world` lifecycle도 duplicate `activate` / `deactivate`, conflicting `activate` + `deactivate`, redundant `activate` + `maintain`를 warning으로 정리해 zone lifecycle 쪽과 비슷한 정책 강도를 가짐
 - direct `activate/deactivate/maintain <zoneSlot>`도 semantic/C/LLVM에서 동일하게 zone slot으로 해석됨
 - C backend는 zone layer를 `__layer_active_*` flag로, zone state를 `__state_*` flag와 `Zone_sync(self)` helper로, world zone lifecycle을 `__zone_active_*` / `__zone_state_*` flag와 `World_sync(self)` helper로 낮춤
-- relation/effect method는 C/LLVM 양쪽에서 sync helper를 전후로 감싸 `refresh`/`publish` projection을 incremental하게 갱신함
+- relation/effect method는 C/LLVM 양쪽에서 sync helper를 전후로 감싸 projection sync를 incremental하게 갱신함
 - C backend는 relation/effect constructor를 runtime compound literal instance로 lowering하고, instance method call을 pointer-self로 호출함
 - LLVM backend도 relation/effect constructor type path와 runtime instance method call parity까지 올라와 있음
 - zone/world lifecycle sync와 `HasLayer` / `HasState` / `HasZone` query lowering도 이제 LLVM까지 올라와 C/LLVM parity를 가진다
@@ -69,7 +70,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM runtime smoke로 검증된다
 - `apply/detach`는 `effect`의 bindable target arity/type와 기본 정합성을 검사하며 object target도 허용함
 - `link/unlink`는 `relation`의 bindable endpoint arity/type와 기본 정합성을 검사하며 object endpoint도 허용함
-- `refresh`/`publish`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
+- `refresh`/`publish`/`bind`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
 - `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
 - `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
@@ -97,7 +98,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
-- relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
+- relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 projection sync(`refresh` / `publish` / `bind`)임
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
@@ -107,7 +108,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
 - `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state까지 올라왔지만, 더 깊은 propagation model은 아직 남아 있다
-- projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `refresh` / `publish` 흐름이다
+- projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다

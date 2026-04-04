@@ -1,5 +1,6 @@
 === DND TAVERN CAMPAIGN REPORT ===
-day=5 omen=1 fame=52 gold=62 morale=46 route=12/15/24/9
+phase=EPILOGUE day=5 omen=1 fame=63 gold=134 morale=58 route=12/15/22/11
+choices=3/1/2/1/2
 partyViewsReady=1
 packetsReady=1
 
@@ -9,7 +10,14 @@ states=1/1
 layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
 
 --- TRANSCRIPT ---
-== TAVERN NIGHT ==
+== TAVERN ==
+[Choice] TAVERN rolled 3
+  [1] buy a full round and win the room
+  [2] lean on the barkeep for ruin rumors
+  [3] challenge mercenaries to a loud knife game
+  [4] listen quietly and read the room
+  [Selected] challenge mercenaries to a loud knife game
+  [PartyTalk] Ari grins at the noise while Sol quietly counts exits and knives.
 [Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.
 [Creation] Ari the Vanguard from guild orphan carries the iron wolf and favors shield-first
 [Hook] fresh guild charter
@@ -30,65 +38,122 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
 [Tavern] She promises no one bleeds out alone.
 [Tavern] She promises every trap she sees will be called.
 [Tavern] He promises to crack any sealed chamber with a pulse.
-[World] day=1 omen=1 fame=4 gold=0 morale=8 route=10/3/6/6
-  [Fighter] Ari lv=1 aff=5
+  [Fighter] Ari lv=1 aff=6
   [MagePacket] Sol hp=21 gold=0
+  [Objective] loot=guild rumor map
+[World] phase=TAVERN day=1 omen=1 fame=4 gold=0 morale=9 route=10/3/6/6
+  [Journey] stage=TAVERN floor=TAVERN trapName=crowded tables monsterName=restless mercenaries rumor=6 threat=0 trap=0 monster=0 treasure=0 affinityPulse=2 morale=9 keys=0 dragonHp=0 victory=0
   [Layers] bless=1/1 bonds=1/1
   [States] bless=1/1 bond=1/1
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=tavern pact pulse=2
-  [Objective] loot=guild rumor map
   [Camp] Ari lays a chalk route over the table and names the order of march.
 
-== FLOOR 1 ==
-[World] day=2 omen=2 fame=11 gold=15 morale=12 route=9/8/10/8
+== FLOOR1 ==
+[Choice] FLOOR1 rolled 1
+  [1] send Nyx scouting through the cider vents
+  [2] let Ari breach the cellar straight on
+  [3] have Mira sanctify the old shrine
+  [4] let Sol decode the mold-choked runes
+  [Selected] send Nyx scouting through the cider vents
+  [PartyTalk] Nyx comes back with a trap map drawn in spilled cider soot.
+  [Round 1] pulse=1
+  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=2 trap=1 monster=3 treasure=8 affinityPulse=3 morale=13 keys=1 dragonHp=0 victory=0
+  [Round 2] pulse=4
+  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=1 trap=1 monster=3 treasure=12 affinityPulse=3 morale=13 keys=1 dragonHp=0 victory=0
   [Hazard] trap=spore darts monster=cellar gnolls
-  [Journey] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=3 trap=2 monster=3 treasure=7 affinityPulse=3 morale=12 keys=1 dragonHp=0 victory=0
+  [Loot] mildewed reliquary secured
+[World] phase=FLOOR1 day=2 omen=2 fame=13 gold=31 morale=13 route=9/7/8/8
+  [Journey] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=1 trap=1 monster=3 treasure=12 affinityPulse=3 morale=13 keys=1 dragonHp=0 victory=0
+  [Layers] bless=1/1 bonds=1/1
+  [States] bless=1/1 bond=1/1
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=rescue knot pulse=3
-  [Loot] mildewed reliquary secured
   [Camp] The party camps beside cracked cider barrels while spores drift through candlelight.
 
-== FLOOR 2 ==
-[World] day=3 omen=3 fame=17 gold=33 morale=18 route=8/11/18/10
+== FLOOR2 ==
+[Choice] FLOOR2 rolled 2
+  [1] cross the mirror hall in shield formation
+  [2] split the party to flank the wraiths
+  [3] trade blood for a saint-glass shortcut
+  [4] force a blasting route through the sigils
+  [Selected] split the party to flank the wraiths
+  [PartyTalk] The split works, but trust has to hold under broken reflections.
+  [Round 1] pulse=4
+  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=9 trap=3 monster=5 treasure=22 affinityPulse=6 morale=20 keys=2 dragonHp=0 victory=0
+  [Round 2] pulse=4
+  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=9 trap=2 monster=5 treasure=22 affinityPulse=6 morale=21 keys=2 dragonHp=0 victory=0
   [Hazard] trap=mirror sigils monster=silver wraiths
-  [Journey] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=9 trap=3 monster=5 treasure=17 affinityPulse=5 morale=18 keys=2 dragonHp=0 victory=0
-  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-  [Bond] event=mirror oath pulse=5
   [Loot] glass saint icons secured
+[World] phase=FLOOR2 day=3 omen=3 fame=21 gold=66 morale=21 route=8/10/19/10
+  [Journey] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=9 trap=2 monster=5 treasure=22 affinityPulse=6 morale=21 keys=2 dragonHp=0 victory=0
+  [Layers] bless=1/1 bonds=1/1
+  [States] bless=1/1 bond=1/1
+  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
+  [Bond] event=mirror oath pulse=6
   [Camp] The party rests between black mirrors, trading vows to keep each other from the glass.
 
-== FLOOR 3 ==
-[World] day=4 omen=2 fame=24 gold=62 morale=27 route=10/15/24/10
+== FLOOR3 ==
+[Choice] FLOOR3 rolled 1
+  [1] rush the ash chains before they tighten
+  [2] pause to bind the party with an ember oath
+  [3] bleed the vault with patient trap-work
+  [4] steal the crown seals under dragon smoke
+  [Selected] rush the ash chains before they tighten
+  [PartyTalk] The ash chains rattle like a countdown as Ari charges.
+  [Round 1] pulse=2
+  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=10 trap=5 monster=7 treasure=37 affinityPulse=9 morale=30 keys=4 dragonHp=0 victory=0
+  [Round 2] pulse=1
+  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=9 trap=5 monster=7 treasure=37 affinityPulse=9 morale=30 keys=5 dragonHp=0 victory=0
   [Hazard] trap=ash chains monster=cinder knights
-  [Journey] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=12 trap=5 monster=7 treasure=31 affinityPulse=8 morale=27 keys=3 dragonHp=0 victory=0
-  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-  [Bond] event=ember vow pulse=8
   [Loot] smoldering crown seals secured
+[World] phase=FLOOR3 day=4 omen=2 fame=37 gold=134 morale=30 route=10/15/22/12
+  [Journey] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=9 trap=5 monster=7 treasure=37 affinityPulse=9 morale=30 keys=5 dragonHp=0 victory=0
+  [Layers] bless=1/1 bonds=1/1
+  [States] bless=1/1 bond=1/1
+  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
+  [Bond] event=ember vow pulse=9
   [Camp] The party braces in the ash vault, counting keys and whispering what they owe the dragon.
 
-== DRAGON LAIR ==
+== DRAGON ==
+[Choice] DRAGON rolled 2
+  [1] hold a vanguard shield wall
+  [2] invoke Mira's saint-fire ward
+  [3] let Nyx cut the flank under smoke
+  [4] commit Sol to a reckless ember burst
+  [Selected] invoke Mira's saint-fire ward
+  [PartyTalk] Mira turns fear into liturgy and the room answers with heat.
 [Lair] The dragon descends through brass smoke and molten paper.
-[World] day=5 omen=1 fame=52 gold=62 morale=46 route=12/15/24/9
+  [BossRound 1] pulse=3
+  [BossBreak] the dragon buckles under the combined push.
   [Boss] trap=dragonfire vents monster=wyrm herald
-  [Journey] stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=12 trap=5 monster=7 treasure=31 affinityPulse=8 morale=46 keys=3 dragonHp=0 victory=1
-  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-  [Bond] event=dragon stand pulse=8
   [Epilogue] The wyrm collapses across the hoard while the party drags the crown seals into dawn.
-[Ledger] morale=40
-day=5 omen=1 fame=52 gold=62 morale=46 route=12/15/24/9
+[Ledger] morale=50
+[World] phase=DRAGON day=5 omen=1 fame=63 gold=134 morale=58 route=12/15/22/11
+  [Journey] stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=9 trap=5 monster=7 treasure=37 affinityPulse=9 morale=58 keys=5 dragonHp=0 victory=1
+  [Layers] bless=1/1 bonds=1/1
+  [States] bless=1/1 bond=1/1
+  [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
+  [Bond] event=dragon stand pulse=9
+  [Camp] The wyrm collapses across the hoard while the party drags the crown seals into dawn.
+
+== EPILOGUE ==
+[Story] tavern=3 floor1=1 floor2=2 floor3=1 dragon=2
+[Story] the party walks out with 5 seals and 37 ruin gold.
+phase=EPILOGUE day=5 omen=1 fame=63 gold=134 morale=58 route=12/15/22/11
+choices=3/1/2/1/2
 ready=1/1
 layers=1/1
 states=1/1
 layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-fighter: Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=4 hp=34 mp=17 sta=2 atk=10 grd=6 focus=15 affinity=8 trust=7 relics=5 gold=8 fx=0/3/3/5 dragon=11
-cleric: Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=3 hp=32 mp=24 sta=4 atk=5 grd=5 focus=12 affinity=12 trust=8 relics=3 gold=6 fx=0/0/6/0 dragon=5
-rogue: Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=4 hp=31 mp=16 sta=2 atk=8 grd=6 focus=17 affinity=9 trust=6 relics=6 gold=9 fx=1/3/5/0 dragon=9
-mage: Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=4 hp=25 mp=26 sta=2 atk=10 grd=5 focus=18 affinity=7 trust=6 relics=5 gold=8 fx=1/6/7/1 dragon=13
+fighter: Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=5 hp=37 mp=19 sta=0 atk=11 grd=7 focus=18 affinity=9 trust=8 relics=13 gold=36 fx=0/3/1/3 dragon=16
+cleric: Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=3 hp=32 mp=24 sta=4 atk=5 grd=5 focus=12 affinity=12 trust=8 relics=3 gold=6 fx=0/0/8/0 dragon=9
+rogue: Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=5 hp=36 mp=18 sta=2 atk=9 grd=7 focus=21 affinity=12 trust=9 relics=12 gold=27 fx=1/4/4/0 dragon=14
+mage: Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=5 hp=26 mp=28 sta=0 atk=11 grd=6 focus=20 affinity=7 trust=6 relics=11 gold=28 fx=1/7/3/0 dragon=19
 
 --- JOURNEY ---
-stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=12 trap=5 monster=7 treasure=31 affinityPulse=8 morale=46 keys=3 dragonHp=0 victory=1
-Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=4 hp=34 mp=17 sta=2 atk=10 grd=6 focus=15 affinity=8 trust=7 relics=5 gold=8 fx=0/3/3/5 dragon=11
-Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=3 hp=32 mp=24 sta=4 atk=5 grd=5 focus=12 affinity=12 trust=8 relics=3 gold=6 fx=0/0/6/0 dragon=5
-Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=4 hp=31 mp=16 sta=2 atk=8 grd=6 focus=17 affinity=9 trust=6 relics=6 gold=9 fx=1/3/5/0 dragon=9
-Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=4 hp=25 mp=26 sta=2 atk=10 grd=5 focus=18 affinity=7 trust=6 relics=5 gold=8 fx=1/6/7/1 dragon=13
+stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=9 trap=5 monster=7 treasure=37 affinityPulse=9 morale=58 keys=5 dragonHp=0 victory=1
+Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=5 hp=37 mp=19 sta=0 atk=11 grd=7 focus=18 affinity=9 trust=8 relics=13 gold=36 fx=0/3/1/3 dragon=16
+Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=3 hp=32 mp=24 sta=4 atk=5 grd=5 focus=12 affinity=12 trust=8 relics=3 gold=6 fx=0/0/8/0 dragon=9
+Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=5 hp=36 mp=18 sta=2 atk=9 grd=7 focus=21 affinity=12 trust=9 relics=12 gold=27 fx=1/4/4/0 dragon=14
+Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=5 hp=26 mp=28 sta=0 atk=11 grd=6 focus=20 affinity=7 trust=6 relics=11 gold=28 fx=1/7/3/0 dragon=19

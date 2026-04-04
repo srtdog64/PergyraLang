@@ -29,7 +29,7 @@
 - `subject`, `class`, `struct`, `object`, `dto` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
 - 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
-- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 declaration body에서 직접 가질 수 있음
+- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 declaration body에서 직접 가질 수 있음
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 declaration header에 고정할 수 있음
@@ -39,12 +39,13 @@
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
 - `zone`은 `publish dtoSlot from subjectSlot`으로 subject -> dto projection 갱신을 명시할 수 있음
+- `zone`은 `bind slotName from sourceSlot`으로 object/dto target kind를 slot declaration에서 추론하는 projection sync surface를 가짐
 - `HasProjection(slotName)` builtin은 relation/effect/zone declaration / method 안에서 선언된 object/dto projection slot의 sync-ready 여부를 Bool query로 읽을 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`은 `authority subjectSlot`으로 mutation/projection 승인 주체를 선언할 수 있음
 - `zone` authority는 `authority subjectSlot requires Ability[, Ability]`로 승인 주체가 수행 가능한 ability 계약까지 명시할 수 있음
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...`로 lifecycle state alias를 선언할 수 있음
-- `zone`의 `apply/link/detach/unlink/refresh/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
+- `zone`의 `apply/link/detach/unlink/refresh/publish/bind/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원함
 - `HasLayer(layerSlot)` builtin은 zone declaration / zone method 안에서 선언된 `relation slot` / `effect slot` 활성 여부를 Bool query로 읽을 수 있음
 - `HasState(stateName)` builtin은 zone declaration / zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
@@ -75,7 +76,7 @@
 - C backend에서 `HasLayer(...)` / `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__layer_active_*` / `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 bindable target 수와 타입을 검사하며 object target도 허용함
 - `zone`의 `link/unlink`는 `relation` declaration의 bindable endpoint 수와 타입을 검사하며 object endpoint도 허용함
-- `zone` / `relation` / `effect`의 `refresh`/`publish`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
+- `zone` / `relation` / `effect`의 `refresh`/`publish`/`bind`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
 - `zone` subject slot은 이제 bare `class`가 아니라 subject host (`subject`, `actor`)만 허용함
 - `ToObject` / `ToDto` source projection은 이제 bare `class`가 아니라 subject host binding만 허용함
 - `role`은 이제 non-subject nominal declaration에 바인딩되면 semantic error를 냄

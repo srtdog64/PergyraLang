@@ -218,3 +218,18 @@ func BuildJourneyZone() -> JourneyZone
         "TAVERN", "", "", "", "", ""
     );
 }
+
+func OpenTavernCampaign() -> TavernCampaignWorld
+{
+    let journey = BuildJourneyZone();
+    return TavernCampaignWorld(
+        journey,
+        0, 0, 0, 0,
+        2, 3, 4, 5,
+        "",
+        0,
+        19,
+        0,
+        0, 0, 0, 0, 0
+    );
+}

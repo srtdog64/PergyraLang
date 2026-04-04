@@ -224,14 +224,15 @@ enum Color { Red, Green, Blue }
 주의:
 - `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
 - `object`, `dto`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
-- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `dto slot` / `refresh` / `publish` / `shared` / `func`까지의 최소 body surface를 가진다.
+- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `dto slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
 - `authority subjectSlot`은 optional `requires Ability[, Ability]` 절을 붙일 수 있다.
-- `zone`은 `apply/detach/link/unlink/refresh/publish/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
+- `zone`은 `apply/detach/link/unlink/refresh/publish/bind/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `zone`은 `publish dtoSlot from subjectSlot`로 dto projection 갱신을 명시할 수 있다.
+- `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 추론할 수 있다. object slot이면 `refresh`, dto slot이면 `publish`와 같은 semantic 계약으로 해석된다.
 - `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.

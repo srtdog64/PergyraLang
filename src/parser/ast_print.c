@@ -1197,7 +1197,8 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_ZONE_REFRESH:
             printf("%s: %s from %s",
-                   node->data.zone_refresh.requires_dto ? "Publish" : "Refresh",
+                   node->data.zone_refresh.infer_target_kind ? "Bind"
+                   : (node->data.zone_refresh.requires_dto ? "Publish" : "Refresh"),
                    node->data.zone_refresh.object_slot_name,
                    node->data.zone_refresh.source_slot_name);
             if (node->data.zone_refresh.actor_slot_name != NULL)
@@ -1363,6 +1364,29 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
                 ast_print(node->data.namespace_decl.statements[i], indent + 1);
             }
+            break;
+
+        case AST_UNSAFE_BLOCK:
+            printf("UnsafeBlock:\n");
+            ast_print(node->data.unsafe_block.body, indent + 1);
+            break;
+
+        case AST_DEFER_STMT:
+            printf("Defer:\n");
+            ast_print(node->data.defer_stmt.body, indent + 1);
+            break;
+
+        case AST_BIND_STMT:
+            printf("BindStmt: %s.%s = %s\n",
+                   node->data.bind_stmt.party_var != NULL
+                       ? node->data.bind_stmt.party_var
+                       : "<unknown>",
+                   node->data.bind_stmt.slot_name != NULL
+                       ? node->data.bind_stmt.slot_name
+                       : "<unknown>",
+                   node->data.bind_stmt.role_name != NULL
+                       ? node->data.bind_stmt.role_name
+                       : "<unknown>");
             break;
             
         default:

@@ -141,12 +141,21 @@ This scenario is likely to expose:
 ## Current Status
 
 - Multi-file implementation is running end to end on both C and LLVM
+- The campaign now runs as an explicit world-owned game state machine:
+  tavern -> floor 1 -> floor 2 -> floor 3 -> dragon -> epilogue
+- Each phase now exposes four numbered options and logs the rolled
+  deterministic choice, so the transcript reads like a GM-driven scenario
+  instead of a straight-line function dump
 - The protagonist and companions are built through deterministic DND-style
   sheet/spec factories rather than raw constructor spam
 - Character creation now carries explicit `background`, `intro`, `crest`, and
   `signature` flavor through factory-built specs into the live `subject`
   instances, so tavern recruitment reads like campaign setup rather than
   constructor noise
+- The world entry path is now also factory-shaped. `main.pgy` opens the
+  scenario through `OpenTavernCampaign()` instead of spelling a long
+  `TavernCampaignWorld(...)` constructor call inline, so the example reads like
+  "enter the tavern campaign" rather than "manually wire every shared field"
 - The zone/world runtime now tracks more campaign-like narrative state:
   `morale`, floor camp reports, tavern hooks, and dragon epilogue text all flow
   into stdout and `results.txt`
@@ -155,6 +164,9 @@ This scenario is likely to expose:
   `HasZoneState(...)` showing up in the final report path
 - Those layers now affect actual campaign math: tavern morale, route pressure,
   trap pressure, and dragon preparation all change based on bond/blessing state
+- Journey projection wiring now uses `bind ... from ...` so object/dto target
+  kind comes from slot declarations instead of forcing repeated `refresh` /
+  `publish` choices in the scenario body
 - `results.txt` is transcript-first and now captures the entire scenario flow,
   not just a final summary
 - Exact stdout and exact `results.txt` goldens are now part of the regression shape
@@ -185,6 +197,14 @@ This scenario is likely to expose:
   “set and forget”. The campaign now explicitly initializes layer shared values
   in `TavernScene`, which makes the runtime behavior legible and stable on both
   backends.
+- Rich constructor calls that omit newer trailing `world shared` fields can
+  still create backend-sensitive behavior. The campaign hit this when the new
+  FSM choice fields were added; the fix was to make the root world constructor
+  explicit about every trailing shared field used by the state machine.
+- Hosted slot built-ins and method sugar used to diverge for non-primitive
+  payloads. While tightening this scenario, `let v = Read(slot)` and
+  `let v = slot.Read()` on `Slot<Vec2>` exposed separate C and LLVM failures.
+  Those are now fixed, and both forms behave the same in the campaign runtime.
 
 ## Remaining Follow-up
 
@@ -196,3 +216,7 @@ This scenario is likely to expose:
   campaign flow, but the combat engine still stops short of a full tactical
   rules engine with initiative stacks, per-target targeting rules, and deeper
   status-resolution ordering.
+- Tavern dialogue and companion affinity are now choice-driven, but they are
+  still auto-rolled. A future iteration may want a first-class interactive
+  choice/input surface so the exact same state machine can run in both scripted
+  regression mode and player-driven mode.

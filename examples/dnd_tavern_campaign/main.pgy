@@ -16,8 +16,7 @@ func Main() -> Void
     Log(CampaignHeader());
     Log(CampaignSubtitle());
 
-    let journey = BuildJourneyZone();
-    let world = TavernCampaignWorld(journey, 0, 0, 0, 0, 2, 3, 4, 5, "");
+    let world = OpenTavernCampaign();
 
     world.RunCampaign();
 

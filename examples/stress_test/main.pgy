@@ -1,0 +1,197 @@
+// stress_test/main.pgy -- Open-World Stress Test
+// 8 units, 100 ticks, random effect apply/detach, lifecycle edge cases
+// BSD (Allman) style
+
+subject Unit
+{
+    let id: Int;
+    let name: String;
+    let energy: Int;
+    let shield: Int;
+    let poisoned: Int;
+    let burning: Int;
+
+    func IsAlive(self) -> Bool
+    {
+        return energy > 0;
+    }
+
+    func ApplyDamage(self, amount: Int) -> Void
+    {
+        let actual = amount;
+        if shield > 0
+        {
+            let absorbed = Min(shield, actual);
+            shield = shield - absorbed;
+            actual = actual - absorbed;
+        }
+        energy = energy - actual;
+        if energy < 0 { energy = 0; }
+    }
+
+    func ApplyHeal(self, amount: Int) -> Void
+    {
+        energy = Min(energy + amount, 100);
+    }
+
+    func TickEffects(self) -> Int
+    {
+        let dmg = 0;
+        if poisoned > 0
+        {
+            dmg = dmg + 3;
+            poisoned = poisoned - 1;
+        }
+        if burning > 0
+        {
+            dmg = dmg + 5;
+            burning = burning - 1;
+        }
+        if dmg > 0
+        {
+            self.ApplyDamage(dmg);
+        }
+        return dmg;
+    }
+}
+
+func RandomEvent(unit: Unit, tick: Int) -> Int
+{
+    let roll = Random(100);
+
+    if roll < 20
+    {
+        unit.poisoned = Min(unit.poisoned + 3, 10);
+        return 1;
+    }
+    if roll < 35
+    {
+        unit.burning = Min(unit.burning + 2, 8);
+        return 2;
+    }
+    if roll < 50
+    {
+        unit.ApplyHeal(Random(15) + 5);
+        return 3;
+    }
+    if roll < 70
+    {
+        unit.ApplyDamage(Random(20) + 1);
+        return 4;
+    }
+    if roll < 80
+    {
+        unit.poisoned = 0;
+        unit.burning = 0;
+        return 5;
+    }
+    if roll < 90
+    {
+        unit.shield = Random(10) + 5;
+        return 6;
+    }
+    return 0;
+}
+
+func ShowUnit(u: Unit) -> Void
+{
+    let tag: String = "  [" + ToString(u.id) + "] " + u.name + " E:" + ToString(u.energy);
+    if u.poisoned > 0 { tag = tag + " PSN:" + ToString(u.poisoned); }
+    if u.burning > 0 { tag = tag + " BRN:" + ToString(u.burning); }
+    if u.shield > 0 { tag = tag + " SH:" + ToString(u.shield); }
+    Log(tag);
+}
+
+func TickUnit(u: Unit, tick: Int, applies: Int, ticks_dmg: Int, underflows: Int) -> Void
+{
+    let alive: Bool = u.IsAlive();
+    if alive
+    {
+        RandomEvent(u, tick);
+        let dmg = u.TickEffects();
+    }
+}
+
+// ============================================================
+// Main
+// ============================================================
+
+Log("=== PERGYRA OPEN-WORLD STRESS TEST ===");
+Log("  8 units, 100 ticks, random effect apply/detach");
+Log("");
+
+let u0 = Unit(0, "Alpha",   100, 0, 0, 0);
+let u1 = Unit(1, "Bravo",   100, 0, 0, 0);
+let u2 = Unit(2, "Charlie", 100, 0, 0, 0);
+let u3 = Unit(3, "Delta",   100, 0, 0, 0);
+let u4 = Unit(4, "Echo",    100, 0, 0, 0);
+let u5 = Unit(5, "Foxtrot", 100, 0, 0, 0);
+let u6 = Unit(6, "Golf",    100, 0, 0, 0);
+let u7 = Unit(7, "Hotel",   100, 0, 0, 0);
+
+let tick = 0;
+let total_applies = 0;
+let total_effect_dmg = 0;
+
+while tick < 100
+{
+    TickUnit(u0, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u1, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u2, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u3, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u4, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u5, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u6, tick, total_applies, total_effect_dmg, 0);
+    TickUnit(u7, tick, total_applies, total_effect_dmg, 0);
+
+    // Log every 25 ticks
+    let show: Bool = (tick == 0) || (tick == 24) || (tick == 49) || (tick == 74) || (tick == 99);
+    if show
+    {
+        Log("-- Tick " + ToString(tick + 1) + " --");
+        ShowUnit(u0);
+        ShowUnit(u1);
+        ShowUnit(u2);
+        ShowUnit(u3);
+        ShowUnit(u4);
+        ShowUnit(u5);
+        ShowUnit(u6);
+        ShowUnit(u7);
+
+        let survivors = 0;
+        if u0.energy > 0 { survivors = survivors + 1; }
+        if u1.energy > 0 { survivors = survivors + 1; }
+        if u2.energy > 0 { survivors = survivors + 1; }
+        if u3.energy > 0 { survivors = survivors + 1; }
+        if u4.energy > 0 { survivors = survivors + 1; }
+        if u5.energy > 0 { survivors = survivors + 1; }
+        if u6.energy > 0 { survivors = survivors + 1; }
+        if u7.energy > 0 { survivors = survivors + 1; }
+        Log("  Alive: " + ToString(survivors) + "/8");
+        Log("");
+    }
+
+    tick = tick + 1;
+}
+
+Log("=== FINAL STATUS ===");
+ShowUnit(u0);
+ShowUnit(u1);
+ShowUnit(u2);
+ShowUnit(u3);
+ShowUnit(u4);
+ShowUnit(u5);
+ShowUnit(u6);
+ShowUnit(u7);
+
+let final_alive = 0;
+if u0.energy > 0 { final_alive = final_alive + 1; }
+if u1.energy > 0 { final_alive = final_alive + 1; }
+if u2.energy > 0 { final_alive = final_alive + 1; }
+if u3.energy > 0 { final_alive = final_alive + 1; }
+if u4.energy > 0 { final_alive = final_alive + 1; }
+if u5.energy > 0 { final_alive = final_alive + 1; }
+if u6.energy > 0 { final_alive = final_alive + 1; }
+if u7.energy > 0 { final_alive = final_alive + 1; }
+Log("  Survivors: " + ToString(final_alive) + "/8");
+Log("========================================");

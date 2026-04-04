@@ -1317,6 +1317,7 @@ type_check_projection_contract(ASTNode **slots,
 {
     ASTNode *object_slot;
     ASTNode *source_slot;
+    bool requires_dto;
     Type *target_type;
     Type *source_type;
     ASTNode *target_decl;
@@ -1335,9 +1336,12 @@ type_check_projection_contract(ASTNode **slots,
             object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
     }
-    if (site != NULL && site->type == AST_ZONE_REFRESH
-        && site->data.zone_refresh.requires_dto
-        && !object_slot->data.domain_slot.is_dto) {
+    requires_dto =
+        site != NULL && site->type == AST_ZONE_REFRESH
+        && (site->data.zone_refresh.infer_target_kind
+            ? object_slot->data.domain_slot.is_dto
+            : site->data.zone_refresh.requires_dto);
+    if (requires_dto && !object_slot->data.domain_slot.is_dto) {
         semantic_error(ctx, site,
             "%s %s target slot '%s' must be a dto slot",
             owner_label, action_name,
@@ -1362,9 +1366,9 @@ type_check_projection_contract(ASTNode **slots,
     }
     if (site != NULL && site->type == AST_ZONE_REFRESH) {
         NominalDeclKind expected_kind =
-            site->data.zone_refresh.requires_dto ? NOMINAL_DECL_DTO : NOMINAL_DECL_OBJECT;
+            requires_dto ? NOMINAL_DECL_DTO : NOMINAL_DECL_OBJECT;
         const char *expected_label =
-            site->data.zone_refresh.requires_dto ? "dto" : "object";
+            requires_dto ? "dto" : "object";
 
         if (target_decl->data.class_decl.nominal_kind != expected_kind) {
             semantic_error(ctx, site,
@@ -1736,13 +1740,16 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         node->data.relation_decl.slot_count, ctx, "relation") && ok;
     for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.relation_decl.refreshes[i];
+        const char *action_name =
+            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (refresh == NULL)
             continue;
         ok = type_check_projection_contract(node->data.relation_decl.slots,
             node->data.relation_decl.slot_count, "Relation", refresh,
             refresh->data.zone_refresh.object_slot_name,
             refresh->data.zone_refresh.source_slot_name, ctx,
-            refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
+            action_name) && ok;
     }
     size_t endpoint_count = count_bindable_domain_slots(
         node->data.relation_decl.slots,
@@ -1783,13 +1790,16 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         node->data.effect_decl.slot_count, ctx, "effect") && ok;
     for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.effect_decl.refreshes[i];
+        const char *action_name =
+            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (refresh == NULL)
             continue;
         ok = type_check_projection_contract(node->data.effect_decl.slots,
             node->data.effect_decl.slot_count, "Effect", refresh,
             refresh->data.zone_refresh.object_slot_name,
             refresh->data.zone_refresh.source_slot_name, ctx,
-            refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
+            action_name) && ok;
     }
     size_t target_count = count_bindable_domain_slots(
         node->data.effect_decl.slots,
@@ -2094,7 +2104,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
         const char *actor_slot_name = refresh->data.zone_refresh.actor_slot_name;
-        const char *action_name = refresh->data.zone_refresh.requires_dto ? "publish" : "refresh";
+        const char *action_name =
+            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error(ctx, refresh,
                 "Zone %s references unknown target slot '%s'",

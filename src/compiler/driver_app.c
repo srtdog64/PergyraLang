@@ -11,6 +11,9 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#include <direct.h>
+#endif
 
 #include "../common/string_compat.h"
 #include "../lexer/lexer.h"
@@ -100,10 +103,16 @@ scaffold_mkdir_p(const char *path)
     if (buf == NULL)
         return 1;
 
+#ifdef _WIN32
+#define PGY_MKDIR(path_) _mkdir(path_)
+#else
+#define PGY_MKDIR(path_) mkdir((path_), 0777)
+#endif
+
     for (size_t i = 1; i < len; i++) {
         if (buf[i] == '/') {
             buf[i] = '\0';
-            if (buf[0] != '\0' && mkdir(buf, 0755) != 0 && errno != EEXIST) {
+            if (buf[0] != '\0' && PGY_MKDIR(buf) != 0 && errno != EEXIST) {
                 fprintf(stderr, "pgy: failed to create directory '%s': %s\n",
                     buf, strerror(errno));
                 free(buf);
@@ -113,12 +122,14 @@ scaffold_mkdir_p(const char *path)
         }
     }
 
-    if (mkdir(buf, 0755) != 0 && errno != EEXIST) {
+    if (PGY_MKDIR(buf) != 0 && errno != EEXIST) {
         fprintf(stderr, "pgy: failed to create directory '%s': %s\n",
             buf, strerror(errno));
         free(buf);
         return 1;
     }
+
+#undef PGY_MKDIR
 
     free(buf);
     return 0;

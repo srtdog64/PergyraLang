@@ -372,6 +372,33 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone bind infers object and dto projection targets from slot kind");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    bind playerView from player\n"
+            "    bind snapshot from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone publish requires dto slot target");
     {
         const char *source =
@@ -408,6 +435,33 @@ test_shared_memory_features(void)
             "    dto slot packet: PlayerDto\n"
             "    refresh player from player\n"
             "    refresh playerView from packet\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone bind rejects non object/dto targets and dto sources");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; }\n"
+            "zone BrokenZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    bind player from player\n"
+            "    bind playerView from packet\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -957,6 +1011,39 @@ test_shared_memory_features(void)
             "    dto slot packet: PlayerDto\n"
             "    refresh view from bearer\n"
             "    publish packet from bearer\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect bind infers object and dto projection targets from slot kind");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    object slot snapshot: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    bind snapshot from source\n"
+            "    bind packet from target\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    bind view from bearer\n"
+            "    bind packet from bearer\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

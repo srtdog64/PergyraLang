@@ -53,10 +53,10 @@ zone JourneyZone
     state vanguardLinked: relation vanguardBond between fighter, cleric
     state shadowLinked: relation shadowBond between rogue, mage
 
-    refresh fighterView from fighter by fighter
-    refresh rogueView from rogue by rogue
-    publish clericPacket from cleric by cleric
-    publish magePacket from mage by mage
+    bind fighterView from fighter by fighter
+    bind rogueView from rogue by rogue
+    bind clericPacket from cleric by cleric
+    bind magePacket from mage by mage
 
     func StageName(self) -> String
     {

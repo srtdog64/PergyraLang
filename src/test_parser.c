@@ -821,8 +821,8 @@ main(void)
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
             "    dto slot packet: LinkDto\n"
-            "    refresh snapshot from source\n"
-            "    publish packet from target\n"
+            "    bind snapshot from source\n"
+            "    bind packet from target\n"
             "    shared trust: Int = 100\n"
             "    func Refresh() -> Void {\n"
             "        Log(trust);\n"
@@ -835,8 +835,8 @@ main(void)
             "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
             "    dto slot packet: StatusDto\n"
-            "    refresh view from bearer\n"
-            "    publish packet from bearer\n"
+            "    bind view from bearer\n"
+            "    bind packet from bearer\n"
             "    shared stacks: Int = 1\n"
             "    func Tick() -> Void {\n"
             "        Log(stacks);\n"
@@ -864,8 +864,8 @@ main(void)
             "    detach poisoned by player\n"
             "    unlink trust between player, enemy by player\n"
             "    unlink allied by player\n"
-            "    refresh playerView from player by player\n"
-            "    publish playerDto from player by player\n"
+            "    bind playerView from player by player\n"
+            "    bind playerDto from player by player\n"
             "    maintain poison on player by player\n"
             "    maintain trust between player, enemy by player\n"
             "    maintain poisoned by player\n"
@@ -876,6 +876,20 @@ main(void)
             "    }\n"
             "}",
             1
+        },
+        {
+            "Zone Bind Declaration",
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    bind playerView from player\n"
+            "    bind snapshot from player by player\n"
+            "}\n",
+            4
         },
         {
             "Zone Declaration With Vessel Slot",

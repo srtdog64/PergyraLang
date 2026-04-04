@@ -166,9 +166,54 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
     case AST_CALL:
         if (expr->data.call.callee != NULL
+            && expr->data.call.callee->type == AST_MEMBER_ACCESS
+            && expr->data.call.callee->data.member.name != NULL
+            && expr->data.call.callee->data.member.object != NULL
+            && expr->data.call.callee->data.member.object->type == AST_IDENTIFIER) {
+            const char *receiver_name =
+                expr->data.call.callee->data.member.object->data.identifier.name;
+            const char *method_name = expr->data.call.callee->data.member.name;
+            const char *inner = llvm_lookup_slot_inner(ctx, receiver_name);
+            if (inner == NULL) {
+                LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, receiver_name);
+                if (view != NULL)
+                    inner = view->inner_type;
+            }
+            if (inner == NULL)
+                inner = llvm_lookup_device_slot_inner(ctx, receiver_name);
+            if (inner != NULL && strcmp(method_name, "Read") == 0)
+                return pergyra_type_to_llvm(ctx, inner);
+            if (inner != NULL
+                && (strcmp(method_name, "Write") == 0
+                    || strcmp(method_name, "Release") == 0)) {
+                return ctx->type_void;
+            }
+        }
+        if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *callee = expr->data.call.callee->data.identifier.name;
+            if ((strcmp(callee, "Read") == 0
+                 || strcmp(callee, "Write") == 0
+                 || strcmp(callee, "Release") == 0)
+                && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *receiver_name =
+                    expr->data.call.arguments[0]->data.identifier.name;
+                const char *inner = llvm_lookup_slot_inner(ctx, receiver_name);
+                if (inner == NULL) {
+                    LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, receiver_name);
+                    if (view != NULL)
+                        inner = view->inner_type;
+                }
+                if (inner == NULL)
+                    inner = llvm_lookup_device_slot_inner(ctx, receiver_name);
+                if (inner != NULL && strcmp(callee, "Read") == 0)
+                    return pergyra_type_to_llvm(ctx, inner);
+                if (inner != NULL)
+                    return ctx->type_void;
+            }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
             if (fn != NULL)
                 return fn->ret_type;
@@ -465,6 +510,10 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
 static const char *
 llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
 {
+    ASTNode *callee;
+    ASTNode *receiver;
+    const char *method_name;
+
     if (expr == NULL)
         return "Int";
 
@@ -478,6 +527,58 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
             return llvm_type_to_suffix(ctx, entry->type);
         return "Int";
     }
+    case AST_CALL:
+        callee = expr->data.call.callee;
+        if (callee != NULL
+            && callee->type == AST_MEMBER_ACCESS
+            && callee->data.member.name != NULL) {
+            receiver = callee->data.member.object;
+            method_name = callee->data.member.name;
+            if (receiver != NULL && receiver->type == AST_IDENTIFIER) {
+                const char *name = receiver->data.identifier.name;
+                const char *inner = llvm_lookup_slot_inner(ctx, name);
+                if (inner == NULL) {
+                    LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
+                    if (view != NULL)
+                        inner = view->inner_type;
+                }
+                if (inner == NULL)
+                    inner = llvm_lookup_device_slot_inner(ctx, name);
+                if (inner != NULL && strcmp(method_name, "Read") == 0)
+                    return inner;
+                if (inner != NULL
+                    && (strcmp(method_name, "Write") == 0
+                        || strcmp(method_name, "Release") == 0)) {
+                    return "Void";
+                }
+            }
+        }
+        if (callee != NULL
+            && callee->type == AST_IDENTIFIER
+            && callee->data.identifier.name != NULL
+            && expr->data.call.arg_count >= 1
+            && expr->data.call.arguments[0] != NULL
+            && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            const char *name = expr->data.call.arguments[0]->data.identifier.name;
+            const char *inner = NULL;
+            if (strcmp(callee->data.identifier.name, "Read") == 0
+                || strcmp(callee->data.identifier.name, "Write") == 0
+                || strcmp(callee->data.identifier.name, "Release") == 0) {
+                inner = llvm_lookup_slot_inner(ctx, name);
+                if (inner == NULL) {
+                    LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
+                    if (view != NULL)
+                        inner = view->inner_type;
+                }
+                if (inner == NULL)
+                    inner = llvm_lookup_device_slot_inner(ctx, name);
+                if (inner != NULL && strcmp(callee->data.identifier.name, "Read") == 0)
+                    return inner;
+                if (inner != NULL)
+                    return "Void";
+            }
+        }
+        return "Int";
     default:
         return "Int";
     }
@@ -1128,6 +1229,25 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_declare(ctx, name, alloca, var_type);
+
+    {
+        LLVMClassTypeEntry *value_cls = llvm_stmt_lookup_class_by_type(ctx, var_type);
+        if (value_cls != NULL)
+            llvm_register_var_class(ctx, name, value_cls->class_name);
+    }
+
+    if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL) {
+        LLVMClassTypeEntry *ann_cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+        if (ann_cls != NULL)
+            llvm_register_var_class(ctx, name, type_ann->data.type.name);
+    } else if (init != NULL) {
+        const char *inferred_nominal = llvm_stmt_infer_nominal_name_from_init(ctx, init);
+        LLVMClassTypeEntry *inferred_cls = inferred_nominal != NULL
+            ? llvm_lookup_class(ctx, inferred_nominal) : NULL;
+        if (inferred_cls != NULL)
+            llvm_register_var_class(ctx, name, inferred_nominal);
+    }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL

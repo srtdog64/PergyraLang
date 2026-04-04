@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- `OpenTavernCampaign()` factory entry for `examples/dnd_tavern_campaign/` so
+  the scenario now opens through a place/campaign builder instead of spelling a
+  long `TavernCampaignWorld(...)` constructor inline in `main.pgy`
 - Regression-grade DND campaign scenario: `examples/dnd_tavern_campaign/`
   with tavern recruitment, deterministic DND sheet/spec factories, a three-floor
   dungeon, dragon boss resolution, transcript-first `results.txt`, and exact
@@ -48,6 +51,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- C domain/world constructor lowering now preserves omitted `shared` default
+  initializers in generated compound literals, fixing `fsm_factory` parity for
+  `gridNoise` and related world-shared defaults
+- `examples/fsm_factory/` no longer needs the old `ResetFactory()` seed step;
+  constructor/default-state behavior now matches well enough that the scenario
+  can construct `FactoryWorld(alpha, beta)` and simulate immediately on both
+  backends
+- `examples/dnd_tavern_campaign/` now runs as an explicit world-owned game
+  state machine with numbered tavern/floor/dragon choices, deterministic
+  rolled branching, and a full story transcript in `results.txt`
+- Slot built-ins and slot member-call sugar now agree on both backends for
+  non-primitive payloads such as `Slot<Vec2>`, so `Read(slot)` and
+  `slot.Read()` share the same type inference and runtime behavior
+- Example smoke exact stdout comparison now trims leading blank lines after
+  normalization so transcript-style scenarios do not fail on harmless banner
+  spacing differences
 - `examples/dnd_tavern_campaign/` now uses table/spec factories for class
   flavor, tavern hooks, floor scripts, dragon epilogue text, and zone/world
   morale tracking so the scenario reads more like a campaign transcript than a

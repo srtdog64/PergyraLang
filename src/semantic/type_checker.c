@@ -630,6 +630,110 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             /* Resolve object type for normal method calls.
              * Namespace/static-style calls like Math.Add are lowered later. */
             Type *object_type = type_check_expression(object, ctx);
+            if (object_type != NULL
+                && object_type->kind == TYPE_KIND_SLOT
+                && method_name != NULL) {
+                Symbol *sym = NULL;
+                Symbol *owner = NULL;
+                if (object->type == AST_IDENTIFIER)
+                    sym = scope_lookup(ctx->scope, object->data.identifier.name);
+
+                if (strcmp(method_name, "Write") == 0) {
+                    if (expr->data.call.arg_count < 1) {
+                        semantic_error(ctx, expr,
+                            "slot.Write(value) requires a value argument");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (type_is_read_view(object_type)) {
+                        semantic_error(ctx, object,
+                            "Cannot write through ReadView<T>; create a WriteView(slot) or keep the owning Slot<T>");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (type_is_move_token(object_type)) {
+                        semantic_error(ctx, object,
+                            "Cannot write through MoveToken<T>");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (object_type->data.slot.is_secure)
+                        semantic_record_effect(ctx, EFFECT_SECURE);
+                    if (sym != NULL && sym->kind == SYMBOL_SLOT) {
+                        if (sym->slot_info.state == SLOT_STATE_RELEASED) {
+                            semantic_error(ctx, object,
+                                "Cannot write to released slot '%s'",
+                                sym->name);
+                            return TYPE_UNKNOWN;
+                        }
+                    } else if (sym != NULL && type_is_write_view(sym->type)
+                               && sym->slot_info.paired_slot_name != NULL) {
+                        owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
+                        if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
+                            semantic_error(ctx, object,
+                                "Cannot write through WriteView '%s' because source slot '%s' was released",
+                                sym->name, owner->name);
+                            return TYPE_UNKNOWN;
+                        }
+                        if (owner != NULL && owner->slot_info.is_secure)
+                            semantic_record_effect(ctx, EFFECT_SECURE);
+                    }
+                    require_assignable(
+                        type_check_expression(expr->data.call.arguments[0], ctx),
+                        object_type->data.slot.inner_type,
+                        expr->data.call.arguments[0], ctx);
+                    return TYPE_VOID;
+                }
+
+                if (strcmp(method_name, "Read") == 0) {
+                    if (type_is_write_view(object_type)) {
+                        semantic_error(ctx, object,
+                            "Cannot read through WriteView<T>; create a ReadView(slot) or keep the owning Slot<T>");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (type_is_move_token(object_type)) {
+                        semantic_error(ctx, object,
+                            "Cannot read through MoveToken<T>");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (object_type->data.slot.is_secure)
+                        semantic_record_effect(ctx, EFFECT_SECURE);
+                    if (sym != NULL && sym->kind == SYMBOL_SLOT) {
+                        if (sym->slot_info.state == SLOT_STATE_RELEASED) {
+                            semantic_error(ctx, object,
+                                "Cannot read from released slot '%s'",
+                                sym->name);
+                            return TYPE_UNKNOWN;
+                        }
+                    } else if (sym != NULL && type_is_read_view(sym->type)
+                               && sym->slot_info.paired_slot_name != NULL) {
+                        owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
+                        if (owner != NULL && owner->slot_info.state == SLOT_STATE_RELEASED) {
+                            semantic_error(ctx, object,
+                                "Cannot read through ReadView '%s' because source slot '%s' was released",
+                                sym->name, owner->name);
+                            return TYPE_UNKNOWN;
+                        }
+                        if (owner != NULL && owner->slot_info.is_secure)
+                            semantic_record_effect(ctx, EFFECT_SECURE);
+                    }
+                    return object_type->data.slot.inner_type;
+                }
+
+                if (strcmp(method_name, "Release") == 0) {
+                    if (object->type != AST_IDENTIFIER || sym == NULL || sym->kind != SYMBOL_SLOT) {
+                        semantic_error(ctx, object,
+                            "slot.Release() requires an owning slot identifier");
+                        return TYPE_UNKNOWN;
+                    }
+                    if (sym->slot_info.state == SLOT_STATE_RELEASED) {
+                        semantic_error(ctx, object,
+                            "Slot '%s' has already been released", sym->name);
+                        return TYPE_UNKNOWN;
+                    }
+                    if (sym->slot_info.is_secure)
+                        semantic_record_effect(ctx, EFFECT_SECURE);
+                    scope_release_slot(ctx->scope, sym->name);
+                    return TYPE_VOID;
+                }
+            }
             ASTNode *class_decl;
 
             if (type_is_nominal_host_type(object_type, ctx)

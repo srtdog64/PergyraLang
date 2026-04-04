@@ -853,6 +853,7 @@ struct ASTNode
             char* source_slot_name;
             char* actor_slot_name;
             bool requires_dto;
+            bool infer_target_kind;
         } zone_refresh;
 
         /* Zone effect maintenance rule */

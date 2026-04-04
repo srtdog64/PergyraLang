@@ -11,11 +11,29 @@ world TavernCampaignWorld
     shared floor2To3: Int = 4
     shared floor3ToLair: Int = 5
     shared transcript: String = ""
+    shared gameState: Int = 0
+    shared storySeed: Int = 19
+    shared choiceCursor: Int = 0
+    shared tavernChoice: Int = 0
+    shared floor1Choice: Int = 0
+    shared floor2Choice: Int = 0
+    shared floor3Choice: Int = 0
+    shared dragonChoice: Int = 0
 
     state partyViewsReady: zone journey projection fighterView
     state packetsReady: zone journey projection clericPacket
 
     activate journey
+
+    func PhaseName(self, stateId: Int) -> String
+    {
+        if stateId == 0 { return "TAVERN"; }
+        if stateId == 1 { return "FLOOR1"; }
+        if stateId == 2 { return "FLOOR2"; }
+        if stateId == 3 { return "FLOOR3"; }
+        if stateId == 4 { return "DRAGON"; }
+        return "EPILOGUE";
+    }
 
     func CostTownToGate(self) -> Int
     {
@@ -55,7 +73,8 @@ world TavernCampaignWorld
 
     func StrategicLine(self) -> String
     {
-        return "day=" + ToString(day)
+        return "phase=" + PhaseName(gameState)
+            + " day=" + ToString(day)
             + " omen=" + ToString(omen)
             + " fame=" + ToString(fame)
             + " gold=" + ToString(gold)
@@ -87,6 +106,365 @@ world TavernCampaignWorld
         Record("");
     }
 
+    func RollChoice(self, stateId: Int) -> Int
+    {
+        let nextCursor = choiceCursor + 1;
+        choiceCursor = nextCursor;
+        return 1 + (((storySeed * 11) + (stateId * 17) + (nextCursor * 5) + omen + day + journey.affinityPulse) % 4);
+    }
+
+    func CombatRoll(self, stateId: Int, round: Int, option: Int) -> Int
+    {
+        return 1 + (((storySeed * 13) + (stateId * 19) + (round * 7) + (option * 5) + omen + journey.morale) % 4);
+    }
+
+    func OptionText(self, stateId: Int, option: Int) -> String
+    {
+        if stateId == 0
+        {
+            if option == 1 { return "buy a full round and win the room"; }
+            if option == 2 { return "lean on the barkeep for ruin rumors"; }
+            if option == 3 { return "challenge mercenaries to a loud knife game"; }
+            return "listen quietly and read the room"; 
+        }
+        if stateId == 1
+        {
+            if option == 1 { return "send Nyx scouting through the cider vents"; }
+            if option == 2 { return "let Ari breach the cellar straight on"; }
+            if option == 3 { return "have Mira sanctify the old shrine"; }
+            return "let Sol decode the mold-choked runes"; 
+        }
+        if stateId == 2
+        {
+            if option == 1 { return "cross the mirror hall in shield formation"; }
+            if option == 2 { return "split the party to flank the wraiths"; }
+            if option == 3 { return "trade blood for a saint-glass shortcut"; }
+            return "force a blasting route through the sigils"; 
+        }
+        if stateId == 3
+        {
+            if option == 1 { return "rush the ash chains before they tighten"; }
+            if option == 2 { return "pause to bind the party with an ember oath"; }
+            if option == 3 { return "bleed the vault with patient trap-work"; }
+            return "steal the crown seals under dragon smoke"; 
+        }
+        if option == 1 { return "hold a vanguard shield wall"; }
+        if option == 2 { return "invoke Mira's saint-fire ward"; }
+        if option == 3 { return "let Nyx cut the flank under smoke"; }
+        return "commit Sol to a reckless ember burst";
+    }
+
+    func CompanionComment(self, stateId: Int, option: Int) -> String
+    {
+        if stateId == 0
+        {
+            if option == 1 { return "Mira nods; Nyx smirks; Sol already spends tomorrow's prize money."; }
+            if option == 2 { return "Nyx likes the pressure; Mira dislikes the omen in the barkeep's voice."; }
+            if option == 3 { return "Ari grins at the noise while Sol quietly counts exits and knives."; }
+            return "The table goes still, and everyone starts talking more honestly."; }
+        if stateId == 1
+        {
+            if option == 1 { return "Nyx comes back with a trap map drawn in spilled cider soot."; }
+            if option == 2 { return "Ari's push turns caution into momentum for the whole line."; }
+            if option == 3 { return "Mira's prayer cools the spores but draws saint-hungry dead."; }
+            return "Sol's rune notes open a richer route, but every ward notices."; }
+        if stateId == 2
+        {
+            if option == 1 { return "The party advances like a single mirrored silhouette."; }
+            if option == 2 { return "The split works, but trust has to hold under broken reflections."; }
+            if option == 3 { return "The shortcut costs breath and blood, not just courage."; }
+            return "The blast route is fast, loud, and impossible to hide."; }
+        if stateId == 3
+        {
+            if option == 1 { return "The ash chains rattle like a countdown as Ari charges."; }
+            if option == 2 { return "The ember oath hardens every promise made since the tavern."; }
+            if option == 3 { return "Nyx turns every lock into a wager with the vault."; }
+            return "Sol steals the seals one smoking breath ahead of disaster."; }
+        if option == 1 { return "Ari orders everyone into the dragon's sightline and refuses to yield."; }
+        if option == 2 { return "Mira turns fear into liturgy and the room answers with heat."; }
+        if option == 3 { return "Nyx vanishes under the wing-shadow and waits for the true opening."; }
+        return "Sol burns tomorrow for power right now and everyone knows it."; 
+    }
+
+    func SaveChoice(self, stateId: Int, option: Int) -> Void
+    {
+        if stateId == 0 { tavernChoice = option; return; }
+        if stateId == 1 { floor1Choice = option; return; }
+        if stateId == 2 { floor2Choice = option; return; }
+        if stateId == 3 { floor3Choice = option; return; }
+        dragonChoice = option;
+    }
+
+    func ChoiceFor(self, stateId: Int) -> Int
+    {
+        if stateId == 0 { return tavernChoice; }
+        if stateId == 1 { return floor1Choice; }
+        if stateId == 2 { return floor2Choice; }
+        if stateId == 3 { return floor3Choice; }
+        return dragonChoice;
+    }
+
+    func AnnounceChoice(self, stateId: Int, option: Int) -> Void
+    {
+        Broadcast("[Choice] " + PhaseName(stateId) + " rolled " + ToString(option));
+        Broadcast("  [1] " + OptionText(stateId, 1));
+        Broadcast("  [2] " + OptionText(stateId, 2));
+        Broadcast("  [3] " + OptionText(stateId, 3));
+        Broadcast("  [4] " + OptionText(stateId, 4));
+        Broadcast("  [Selected] " + OptionText(stateId, option));
+        Broadcast("  [PartyTalk] " + CompanionComment(stateId, option));
+    }
+
+    func ApplyChoice(self, stateId: Int, option: Int) -> Void
+    {
+        if stateId == 0
+        {
+            if option == 1
+            {
+                journey.fighter.Toast(2, 1);
+                journey.cleric.BondEvent(1, 1);
+                journey.morale = journey.morale + 2;
+                journey.tavernHeat = journey.tavernHeat + 1;
+            }
+            else if option == 2
+            {
+                journey.rogue.Toast(2, 1);
+                journey.tavernRumor = journey.tavernRumor + 2;
+                omen = omen + 1;
+            }
+            else if option == 3
+            {
+                journey.fighter.BondEvent(1, 1);
+                journey.rogue.BondEvent(1, 1);
+                journey.morale = journey.morale + 1;
+                journey.routeSeed = journey.routeSeed + 1;
+            }
+            else
+            {
+                journey.mage.Toast(1, 1);
+                journey.cleric.Toast(1, 1);
+                townToGate = Max(townToGate - 1, 0);
+                journey.affinityPulse = journey.affinityPulse + 1;
+            }
+            return;
+        }
+
+        if stateId == 1
+        {
+            if option == 1
+            {
+                journey.rogue.Explore(1, 0);
+                journey.trapLevel = Max(journey.trapLevel - 1, 0);
+                journey.routeSeed = journey.routeSeed + 1;
+            }
+            else if option == 2
+            {
+                journey.fighter.BondEvent(1, 1);
+                journey.morale = journey.morale + 1;
+                journey.monsterLevel = journey.monsterLevel + 1;
+            }
+            else if option == 3
+            {
+                journey.cleric.BondEvent(1, 1);
+                journey.morale = journey.morale + 2;
+                journey.threat = Max(journey.threat - 1, 0);
+            }
+            else
+            {
+                journey.mage.BondEvent(1, 1);
+                journey.treasure = journey.treasure + 2;
+                omen = omen + 1;
+            }
+            return;
+        }
+
+        if stateId == 2
+        {
+            if option == 1
+            {
+                journey.fighter.effects.shield = journey.fighter.effects.shield + 1;
+                journey.cleric.effects.bless = journey.cleric.effects.bless + 1;
+                journey.routeSeed = Max(journey.routeSeed - 1, 0);
+            }
+            else if option == 2
+            {
+                journey.rogue.stats.focus = journey.rogue.stats.focus + 2;
+                journey.mage.stats.focus = journey.mage.stats.focus + 1;
+                journey.affinityPulse = journey.affinityPulse + 1;
+                journey.trapLevel = journey.trapLevel + 1;
+            }
+            else if option == 3
+            {
+                journey.fighter.HitTrap(1, 0, 0);
+                journey.cleric.BondEvent(2, 1);
+                journey.keyCount = journey.keyCount + 1;
+                journey.morale = journey.morale + 1;
+            }
+            else
+            {
+                journey.mage.effects.bless = journey.mage.effects.bless + 2;
+                journey.monsterLevel = journey.monsterLevel + 1;
+                journey.treasure = journey.treasure + 3;
+            }
+            return;
+        }
+
+        if stateId == 3
+        {
+            if option == 1
+            {
+                journey.fighter.stats.focus = journey.fighter.stats.focus + 2;
+                journey.threat = Max(journey.threat - 1, 0);
+            }
+            else if option == 2
+            {
+                journey.cleric.BondEvent(2, 2);
+                journey.fighter.BondEvent(1, 1);
+                journey.morale = journey.morale + 3;
+            }
+            else if option == 3
+            {
+                journey.rogue.effects.shield = journey.rogue.effects.shield + 1;
+                journey.trapLevel = Max(journey.trapLevel - 2, 0);
+                journey.keyCount = journey.keyCount + 1;
+            }
+            else
+            {
+                journey.mage.effects.bless = journey.mage.effects.bless + 1;
+                journey.treasure = journey.treasure + 4;
+                omen = omen + 1;
+            }
+            return;
+        }
+
+        if option == 1
+        {
+            journey.fighter.effects.shield = journey.fighter.effects.shield + 2;
+            journey.dragonArmor = Max(journey.dragonArmor - 1, 0);
+            journey.morale = journey.morale + 1;
+        }
+        else if option == 2
+        {
+            journey.cleric.effects.bless = journey.cleric.effects.bless + 2;
+            journey.dragonFlame = Max(journey.dragonFlame - 1, 0);
+            journey.morale = journey.morale + 2;
+        }
+        else if option == 3
+        {
+            journey.rogue.stats.focus = journey.rogue.stats.focus + 2;
+            journey.dragonHp = Max(journey.dragonHp - 4, 0);
+            journey.affinityPulse = journey.affinityPulse + 1;
+        }
+        else
+        {
+            journey.mage.effects.bless = journey.mage.effects.bless + 2;
+            journey.dragonHp = Max(journey.dragonHp - 6, 0);
+            journey.morale = Max(journey.morale - 1, 0);
+        }
+    }
+
+    func RunSkirmishRounds(self, stateId: Int, option: Int) -> Void
+    {
+        let round = 1;
+        while round <= 2
+        {
+            let pulse = CombatRoll(stateId, round, option);
+            Broadcast("  [Round " + ToString(round) + "] pulse=" + ToString(pulse));
+
+            if stateId == 1
+            {
+                journey.fighter.Fight(1 + pulse, 1, 2 + pulse);
+                journey.rogue.Fight(1 + (pulse / 2), 1, 2);
+                if pulse >= 3 { journey.cleric.DrinkPotion(2 + pulse); }
+                journey.threat = Max(journey.threat - 1, 0);
+                journey.treasure = journey.treasure + pulse;
+            }
+            else if stateId == 2
+            {
+                journey.fighter.Fight(2 + pulse, 1, 3 + pulse);
+                journey.mage.Fight(2 + pulse, 1, 3 + pulse);
+                if pulse % 2 == 0 { journey.rogue.BondEvent(1, 1); }
+                journey.trapLevel = Max(journey.trapLevel - 1, 0);
+                journey.morale = journey.morale + 1;
+            }
+            else
+            {
+                journey.fighter.Fight(3 + pulse, 2, 4 + pulse);
+                journey.rogue.Fight(2 + pulse, 2, 4 + pulse);
+                journey.mage.Fight(2 + pulse, 2, 5 + pulse);
+                if pulse >= 3 { journey.cleric.DrinkPotion(3 + pulse); }
+                journey.threat = Max(journey.threat - 1, 0);
+                journey.keyCount = journey.keyCount + 1;
+            }
+
+            Broadcast("  [Skirmish] " + journey.Snapshot());
+            round = round + 1;
+        }
+    }
+
+    func RunDragonRounds(self, option: Int) -> Void
+    {
+        let round = 1;
+        while round <= 3
+        {
+            let pulse = CombatRoll(4, round, option);
+            Broadcast("  [BossRound " + ToString(round) + "] pulse=" + ToString(pulse));
+
+            journey.fighter.FaceDragon(2 + pulse, 0, 3 + pulse);
+            journey.cleric.FaceDragon(1 + pulse, 0, 2 + pulse);
+            journey.rogue.FaceDragon(2 + pulse, 1, 3 + pulse);
+            journey.mage.FaceDragon(3 + pulse, 1, 4 + pulse);
+
+            journey.dragonHp = Max(journey.dragonHp
+                - (journey.fighter.CombatPower()
+                + journey.cleric.CombatPower()
+                + journey.rogue.CombatPower()
+                + journey.mage.CombatPower()
+                + pulse
+                + option), 0);
+
+            if journey.dragonHp == 0
+            {
+                journey.victory = 1;
+                journey.morale = journey.morale + 3 + pulse;
+                Broadcast("  [BossBreak] the dragon buckles under the combined push.");
+                return;
+            }
+
+            if round == 2
+            {
+                journey.cleric.DrinkPotion(4);
+                journey.fighter.BondEvent(1, 1);
+                journey.rogue.BondEvent(1, 1);
+            }
+
+            Broadcast("  [Boss] hp=" + ToString(journey.dragonHp) + " flame=" + ToString(journey.dragonFlame) + " armor=" + ToString(journey.dragonArmor));
+            round = round + 1;
+        }
+
+        if journey.dragonHp > 0
+        {
+            journey.dragonHp = Max(journey.dragonHp - (journey.keyCount * 5) - journey.affinityPulse - 6, 0);
+            if journey.dragonHp == 0
+            {
+                journey.victory = 1;
+                journey.morale = journey.morale + 5;
+                Broadcast("  [Finale] the crown seals flare and the lair finally breaks.");
+            }
+        }
+    }
+
+    func LogJourneyState(self) -> Void
+    {
+        Broadcast("[World] " + StrategicLine());
+        Broadcast("  [Journey] " + journey.Snapshot());
+        Broadcast("  [Layers] bless=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, mageBlessing)) + " bonds=" + ToString(HasZoneLayer(journey, vanguardBond)) + "/" + ToString(HasZoneLayer(journey, shadowBond)));
+        Broadcast("  [States] bless=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, mageBlessed)) + " bond=" + ToString(HasZoneState(journey, vanguardLinked)) + "/" + ToString(HasZoneState(journey, shadowLinked)));
+        Broadcast("  [LayerText] " + journey.LayerReport());
+        Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+        Broadcast("  [Camp] " + journey.CampReport());
+    }
+
     func RunCampaign(self) -> Void
     {
         with slot<Int> as moraleLedger
@@ -96,108 +474,129 @@ world TavernCampaignWorld
             let rogueCard = TavernCardForClass(2);
             let mageCard = TavernCardForClass(3);
 
+            transcript = "";
+            gameState = 0;
+            choiceCursor = 0;
+            tavernChoice = 0;
+            floor1Choice = 0;
+            floor2Choice = 0;
+            floor3Choice = 0;
+            dragonChoice = 0;
+
             Write(moraleLedger, 0);
 
-            Broadcast("== TAVERN NIGHT ==");
-            Broadcast("[Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.");
-            Broadcast("[Creation] " + journey.fighter.CreationLine());
-            Broadcast("[Hook] " + journey.fighter.TavernPitch());
-            Broadcast("[Creation] " + journey.fighter.name + " sheet " + journey.fighter.sheet.Summary());
-            Broadcast("[Creation] " + journey.cleric.CreationLine());
-            Broadcast("[Hook] " + journey.cleric.TavernPitch());
-            Broadcast("[Creation] " + journey.cleric.name + " sheet " + journey.cleric.sheet.Summary());
-            Broadcast("[Creation] " + journey.rogue.CreationLine());
-            Broadcast("[Hook] " + journey.rogue.TavernPitch());
-            Broadcast("[Creation] " + journey.rogue.name + " sheet " + journey.rogue.sheet.Summary());
-            Broadcast("[Creation] " + journey.mage.CreationLine());
-            Broadcast("[Hook] " + journey.mage.TavernPitch());
-            Broadcast("[Creation] " + journey.mage.name + " sheet " + journey.mage.sheet.Summary());
-            Broadcast("[Recruit] " + clericCard.bargain);
-            Broadcast("[Recruit] " + rogueCard.bargain);
-            Broadcast("[Recruit] " + mageCard.bargain);
-            Broadcast("[Tavern] " + fighterCard.opener);
-            Broadcast("[Tavern] " + clericCard.promise);
-            Broadcast("[Tavern] " + rogueCard.promise);
-            Broadcast("[Tavern] " + mageCard.promise);
-            journey.TavernScene(fighterCard, clericCard, rogueCard, mageCard);
-            day = 1;
-            omen = 1;
-            Recount();
-            Broadcast("[World] " + StrategicLine());
-            Broadcast("  [Fighter] " + journey.fighterView.name + " lv=" + ToString(journey.fighterView.level) + " aff=" + ToString(journey.fighterView.affinity));
-            Broadcast("  [MagePacket] " + journey.magePacket.name + " hp=" + ToString(journey.magePacket.hp) + " gold=" + ToString(journey.magePacket.gold));
-            Broadcast("  [Layers] bless=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, mageBlessing)) + " bonds=" + ToString(HasZoneLayer(journey, vanguardBond)) + "/" + ToString(HasZoneLayer(journey, shadowBond)));
-            Broadcast("  [States] bless=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, mageBlessed)) + " bond=" + ToString(HasZoneState(journey, vanguardLinked)) + "/" + ToString(HasZoneState(journey, shadowLinked)));
-            Broadcast("  [LayerText] " + journey.LayerReport());
-            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
-            Broadcast("  [Objective] loot=" + journey.lootText);
-            Broadcast("  [Camp] " + journey.CampReport());
+            while gameState <= 4
+            {
+                let rolledChoice = RollChoice(gameState);
+                SaveChoice(gameState, rolledChoice);
+
+                Blank();
+                Broadcast("== " + PhaseName(gameState) + " ==");
+                AnnounceChoice(gameState, rolledChoice);
+
+                if gameState == 0
+                {
+                    Broadcast("[Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.");
+                    Broadcast("[Creation] " + journey.fighter.CreationLine());
+                    Broadcast("[Hook] " + journey.fighter.TavernPitch());
+                    Broadcast("[Creation] " + journey.fighter.name + " sheet " + journey.fighter.sheet.Summary());
+                    Broadcast("[Creation] " + journey.cleric.CreationLine());
+                    Broadcast("[Hook] " + journey.cleric.TavernPitch());
+                    Broadcast("[Creation] " + journey.cleric.name + " sheet " + journey.cleric.sheet.Summary());
+                    Broadcast("[Creation] " + journey.rogue.CreationLine());
+                    Broadcast("[Hook] " + journey.rogue.TavernPitch());
+                    Broadcast("[Creation] " + journey.rogue.name + " sheet " + journey.rogue.sheet.Summary());
+                    Broadcast("[Creation] " + journey.mage.CreationLine());
+                    Broadcast("[Hook] " + journey.mage.TavernPitch());
+                    Broadcast("[Creation] " + journey.mage.name + " sheet " + journey.mage.sheet.Summary());
+                    Broadcast("[Recruit] " + clericCard.bargain);
+                    Broadcast("[Recruit] " + rogueCard.bargain);
+                    Broadcast("[Recruit] " + mageCard.bargain);
+                    Broadcast("[Tavern] " + fighterCard.opener);
+                    Broadcast("[Tavern] " + clericCard.promise);
+                    Broadcast("[Tavern] " + rogueCard.promise);
+                    Broadcast("[Tavern] " + mageCard.promise);
+                    journey.TavernScene(fighterCard, clericCard, rogueCard, mageCard);
+                    ApplyChoice(gameState, rolledChoice);
+                    day = 1;
+                    omen = 1;
+                    Recount();
+                    Broadcast("  [Fighter] " + journey.fighterView.name + " lv=" + ToString(journey.fighterView.level) + " aff=" + ToString(journey.fighterView.affinity));
+                    Broadcast("  [MagePacket] " + journey.magePacket.name + " hp=" + ToString(journey.magePacket.hp) + " gold=" + ToString(journey.magePacket.gold));
+                    Broadcast("  [Objective] loot=" + journey.lootText);
+                    LogJourneyState();
+                }
+                else if gameState == 1
+                {
+                    let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
+                    journey.ResolveFloorOne(CostTownToGate() + floorOneScript.travelBias, floorOneScript);
+                    ApplyChoice(gameState, rolledChoice);
+                    RunSkirmishRounds(gameState, rolledChoice);
+                    day = 2;
+                    omen = 2;
+                    Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + rolledChoice);
+                    Recount();
+                    Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+                    Broadcast("  [Loot] " + journey.lootText + " secured");
+                    LogJourneyState();
+                }
+                else if gameState == 2
+                {
+                    let floorTwoScript = FloorScriptFor(2, omen, journey.affinityPulse);
+                    journey.ResolveFloorTwo(CostFloorOneToTwo() + floorTwoScript.travelBias, floorTwoScript);
+                    ApplyChoice(gameState, rolledChoice);
+                    RunSkirmishRounds(gameState, rolledChoice);
+                    day = 3;
+                    omen = 3;
+                    Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + rolledChoice);
+                    Recount();
+                    Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+                    Broadcast("  [Loot] " + journey.lootText + " secured");
+                    LogJourneyState();
+                }
+                else if gameState == 3
+                {
+                    let floorThreeScript = FloorScriptFor(3, omen, journey.affinityPulse);
+                    journey.ResolveFloorThree(CostFloorTwoToThree() + floorThreeScript.travelBias, floorThreeScript);
+                    ApplyChoice(gameState, rolledChoice);
+                    RunSkirmishRounds(gameState, rolledChoice);
+                    day = 4;
+                    omen = 2;
+                    Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + rolledChoice);
+                    Recount();
+                    Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+                    Broadcast("  [Loot] " + journey.lootText + " secured");
+                    LogJourneyState();
+                }
+                else
+                {
+                    let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
+                    journey.PrepareDragon(dragonScript);
+                    ApplyChoice(gameState, rolledChoice);
+                    Broadcast("[Lair] " + dragonScript.battleCry);
+                    journey.RunDragon(CostFloorThreeToLair(), dragonScript);
+                    RunDragonRounds(rolledChoice);
+                    day = 5;
+                    omen = 1;
+                    Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + dragonScript.moraleBonus + rolledChoice);
+                    Recount();
+                    Broadcast("  [Boss] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+                    Broadcast("  [Epilogue] " + journey.CampReport());
+                    Broadcast("[Ledger] morale=" + ToString(Read(moraleLedger)));
+                    LogJourneyState();
+                }
+
+                gameState = gameState + 1;
+            }
 
             Blank();
-            Broadcast("== FLOOR 1 ==");
-            let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
-            journey.ResolveFloorOne(CostTownToGate() + floorOneScript.travelBias, floorOneScript);
-            day = 2;
-            omen = 2;
-            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
-            Recount();
-            Broadcast("[World] " + StrategicLine());
-            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
-            Broadcast("  [Journey] " + journey.Snapshot());
-            Broadcast("  [LayerText] " + journey.LayerReport());
-            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
-            Broadcast("  [Loot] " + journey.lootText + " secured");
-            Broadcast("  [Camp] " + journey.CampReport());
-
-            Blank();
-            Broadcast("== FLOOR 2 ==");
-            let floorTwoScript = FloorScriptFor(2, omen, journey.affinityPulse);
-            journey.ResolveFloorTwo(CostFloorOneToTwo() + floorTwoScript.travelBias, floorTwoScript);
-            day = 3;
-            omen = 3;
-            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
-            Recount();
-            Broadcast("[World] " + StrategicLine());
-            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
-            Broadcast("  [Journey] " + journey.Snapshot());
-            Broadcast("  [LayerText] " + journey.LayerReport());
-            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
-            Broadcast("  [Loot] " + journey.lootText + " secured");
-            Broadcast("  [Camp] " + journey.CampReport());
-
-            Blank();
-            Broadcast("== FLOOR 3 ==");
-            let floorThreeScript = FloorScriptFor(3, omen, journey.affinityPulse);
-            journey.ResolveFloorThree(CostFloorTwoToThree() + floorThreeScript.travelBias, floorThreeScript);
-            day = 4;
-            omen = 2;
-            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
-            Recount();
-            Broadcast("[World] " + StrategicLine());
-            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
-            Broadcast("  [Journey] " + journey.Snapshot());
-            Broadcast("  [LayerText] " + journey.LayerReport());
-            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
-            Broadcast("  [Loot] " + journey.lootText + " secured");
-            Broadcast("  [Camp] " + journey.CampReport());
-
-            Blank();
-            Broadcast("== DRAGON LAIR ==");
-            let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
-            journey.PrepareDragon(dragonScript);
-            Broadcast("[Lair] " + dragonScript.battleCry);
-            journey.RunDragon(CostFloorThreeToLair(), dragonScript);
-            day = 5;
-            omen = 1;
-            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + dragonScript.moraleBonus);
-            Recount();
-            Broadcast("[World] " + StrategicLine());
-            Broadcast("  [Boss] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
-            Broadcast("  [Journey] " + journey.Snapshot());
-            Broadcast("  [LayerText] " + journey.LayerReport());
-            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
-            Broadcast("  [Epilogue] " + journey.CampReport());
-            Broadcast("[Ledger] morale=" + ToString(Read(moraleLedger)));
+            Broadcast("== EPILOGUE ==");
+            Broadcast("[Story] tavern=" + ToString(tavernChoice)
+                + " floor1=" + ToString(floor1Choice)
+                + " floor2=" + ToString(floor2Choice)
+                + " floor3=" + ToString(floor3Choice)
+                + " dragon=" + ToString(dragonChoice));
+            Broadcast("[Story] the party walks out with " + ToString(journey.keyCount) + " seals and " + ToString(journey.treasure) + " ruin gold.");
         }
     }
 
@@ -205,6 +604,8 @@ world TavernCampaignWorld
     {
         Log(StrategicLine());
         Record(StrategicLine());
+        Log("choices=" + ToString(tavernChoice) + "/" + ToString(floor1Choice) + "/" + ToString(floor2Choice) + "/" + ToString(floor3Choice) + "/" + ToString(dragonChoice));
+        Record("choices=" + ToString(tavernChoice) + "/" + ToString(floor1Choice) + "/" + ToString(floor2Choice) + "/" + ToString(floor3Choice) + "/" + ToString(dragonChoice));
         Log("ready=" + ToString(HasZoneProjection(journey, fighterView)) + "/" + ToString(HasZoneProjection(journey, clericPacket)));
         Record("ready=" + ToString(HasZoneProjection(journey, fighterView)) + "/" + ToString(HasZoneProjection(journey, clericPacket)));
         Log("layers=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, vanguardBond)));
@@ -228,6 +629,7 @@ world TavernCampaignWorld
         WriteFile(path,
             "=== DND TAVERN CAMPAIGN REPORT ===\n"
             + StrategicLine() + "\n"
+            + "choices=" + ToString(tavernChoice) + "/" + ToString(floor1Choice) + "/" + ToString(floor2Choice) + "/" + ToString(floor3Choice) + "/" + ToString(dragonChoice) + "\n"
             + "partyViewsReady=" + ToString(HasZoneProjection(journey, fighterView)) + "\n"
             + "packetsReady=" + ToString(HasZoneProjection(journey, clericPacket)) + "\n\n"
             + "layers=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, vanguardBond)) + "\n"

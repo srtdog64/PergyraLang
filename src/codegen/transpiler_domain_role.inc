@@ -865,11 +865,20 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             state->data.zone_state.state_name);
     }
 
+    /* Concurrency protection + stale-state detection */
+    codebuf_write(ctx->out, "    PGY_ZONE_LOCK_FIELD\n");
+    codebuf_write(ctx->out, "    PGY_ZONE_GENERATION_FIELD\n");
     codebuf_write(ctx->out, "} %s;\n", name);
 
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+
+    /* Acquire write lock + bump generation for stale-state detection */
+    write_indent(ctx);
+    codebuf_write(ctx->out, "PGY_ZONE_WRLOCK(self);\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "PGY_ZONE_GENERATION_INC(self);\n");
 
     for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
         ASTNode *state = node->data.zone_decl.states[i];
@@ -1167,6 +1176,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
     }
+
+    /* Release write lock */
+    write_indent(ctx);
+    codebuf_write(ctx->out, "PGY_ZONE_UNLOCK(self);\n");
 
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");

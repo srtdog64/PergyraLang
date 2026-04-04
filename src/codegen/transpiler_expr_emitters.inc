@@ -1011,6 +1011,27 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
+                for (size_t i = 0; i < shared_count; i++) {
+                    size_t absolute_index = slot_count + i;
+                    ASTNode *shared;
+                    const char *field_name;
+                    char *init_expr;
+                    if (absolute_index < argc)
+                        continue;
+                    shared = overlay_decl->type == AST_RELATION_DECL
+                        ? overlay_decl->data.relation_decl.shared_fields[i]
+                        : overlay_decl->data.effect_decl.shared_fields[i];
+                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                        continue;
+                    field_name = shared->data.party_shared.name;
+                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        init_expr != NULL ? init_expr : "0");
+                    free(init_expr);
+                }
                 {
                     char *result = fields->len > 0
                         ? strdup_fmt("(%s){ %s }", fn, fields->data)
@@ -1044,6 +1065,25 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         field_name != NULL ? field_name : "field",
                         arg != NULL ? arg : "0");
                     free(arg);
+                }
+                for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
+                    size_t absolute_index = zone_decl->data.zone_decl.slot_count + i;
+                    ASTNode *shared;
+                    const char *field_name;
+                    char *init_expr;
+                    if (absolute_index < argc)
+                        continue;
+                    shared = zone_decl->data.zone_decl.shared_fields[i];
+                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                        continue;
+                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        init_expr != NULL ? init_expr : "0");
+                    free(init_expr);
                 }
                 {
                     char *result = fields->len > 0
@@ -1085,6 +1125,26 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         field_name != NULL ? field_name : "field",
                         arg != NULL ? arg : "0");
                     free(arg);
+                }
+                for (size_t i = 0; i < world_decl->data.world_decl.shared_count; i++) {
+                    size_t absolute_index = world_decl->data.world_decl.systemic_count
+                        + world_decl->data.world_decl.zone_count + i;
+                    ASTNode *shared;
+                    const char *field_name;
+                    char *init_expr;
+                    if (absolute_index < argc)
+                        continue;
+                    shared = world_decl->data.world_decl.shared_fields[i];
+                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                        continue;
+                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        init_expr != NULL ? init_expr : "0");
+                    free(init_expr);
                 }
                 for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
                     ASTNode *zone = world_decl->data.world_decl.zones[i];

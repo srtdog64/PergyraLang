@@ -583,19 +583,28 @@ ASTNode* parse_relation_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "refresh")
-                   || parser_match_identifier_keyword(parser, "publish")) {
-            bool requires_dto =
+                   || parser_match_identifier_keyword(parser, "publish")
+                   || parser_match(parser, TOKEN_BIND)) {
+            bool infer_target_kind =
                 parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "bind") == 0;
+            bool requires_dto =
+                !infer_target_kind
+                && parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                requires_dto
-                    ? "Expected dto slot name after 'publish'"
-                    : "Expected object slot name after 'refresh'");
+                infer_target_kind
+                    ? "Expected object/dto slot name after 'bind'"
+                    : (requires_dto
+                        ? "Expected dto slot name after 'publish'"
+                        : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
-                    requires_dto
-                        ? "Expected 'from' after dto slot name in publish"
-                        : "Expected 'from' after object slot name in refresh");
+                    infer_target_kind
+                        ? "Expected 'from' after slot name in bind"
+                        : (requires_dto
+                            ? "Expected 'from' after dto slot name in publish"
+                            : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
             }
@@ -605,6 +614,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
             ASTNode *refresh = ast_create_zone_refresh(
                 object_slot.text, source_slot.text);
             refresh->data.zone_refresh.requires_dto = requires_dto;
+            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
             refresh->line = object_slot.line;
             refresh->column = object_slot.column;
 
@@ -624,7 +634,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'shared', or 'func' in relation body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in relation body");
             parser_advance(parser);
         }
     }
@@ -682,19 +692,28 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "refresh")
-                   || parser_match_identifier_keyword(parser, "publish")) {
-            bool requires_dto =
+                   || parser_match_identifier_keyword(parser, "publish")
+                   || parser_match(parser, TOKEN_BIND)) {
+            bool infer_target_kind =
                 parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "bind") == 0;
+            bool requires_dto =
+                !infer_target_kind
+                && parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                requires_dto
-                    ? "Expected dto slot name after 'publish'"
-                    : "Expected object slot name after 'refresh'");
+                infer_target_kind
+                    ? "Expected object/dto slot name after 'bind'"
+                    : (requires_dto
+                        ? "Expected dto slot name after 'publish'"
+                        : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
-                    requires_dto
-                        ? "Expected 'from' after dto slot name in publish"
-                        : "Expected 'from' after object slot name in refresh");
+                    infer_target_kind
+                        ? "Expected 'from' after slot name in bind"
+                        : (requires_dto
+                            ? "Expected 'from' after dto slot name in publish"
+                            : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
             }
@@ -704,6 +723,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             ASTNode *refresh = ast_create_zone_refresh(
                 object_slot.text, source_slot.text);
             refresh->data.zone_refresh.requires_dto = requires_dto;
+            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
             refresh->line = object_slot.line;
             refresh->column = object_slot.column;
 
@@ -723,7 +743,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'shared', or 'func' in effect body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in effect body");
             parser_advance(parser);
         }
     }
@@ -886,19 +906,28 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "refresh")
-                   || parser_match_identifier_keyword(parser, "publish")) {
-            bool requires_dto =
+                   || parser_match_identifier_keyword(parser, "publish")
+                   || parser_match(parser, TOKEN_BIND)) {
+            bool infer_target_kind =
                 parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "bind") == 0;
+            bool requires_dto =
+                !infer_target_kind
+                && parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                requires_dto
-                    ? "Expected dto slot name after 'publish'"
-                    : "Expected object slot name after 'refresh'");
+                infer_target_kind
+                    ? "Expected object/dto slot name after 'bind'"
+                    : (requires_dto
+                        ? "Expected dto slot name after 'publish'"
+                        : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
-                    requires_dto
-                        ? "Expected 'from' after dto slot name in publish"
-                        : "Expected 'from' after object slot name in refresh");
+                    infer_target_kind
+                        ? "Expected 'from' after slot name in bind"
+                        : (requires_dto
+                            ? "Expected 'from' after dto slot name in publish"
+                            : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
             }
@@ -908,6 +937,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             ASTNode *refresh = ast_create_zone_refresh(
                 object_slot.text, source_slot.text);
             refresh->data.zone_refresh.requires_dto = requires_dto;
+            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
             refresh->data.zone_refresh.actor_slot_name =
                 parse_optional_zone_actor_name(parser);
             refresh->line = object_slot.line;
@@ -1078,7 +1108,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'bind', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
     }

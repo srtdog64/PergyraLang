@@ -27,7 +27,7 @@ normalize_output() {
         -e '/^pgy: compiled/d' \
         -e '/^pgy: compiled (LLVM)/d' \
         -e '/^--- output ---$/d' \
-        -e '/^--- end ---$/d'
+        -e '/^--- end ---$/d' | awk 'seen || length($0) > 0 { print; seen = 1 }'
 }
 
 pick_expected_file() {
@@ -58,7 +58,7 @@ run_exact_output_if_present() {
     fi
 
     cleaned_output="$(printf '%s' "$output" | normalize_output)"
-    cleaned_expected="$(cat "$expected")"
+    cleaned_expected="$(cat "$expected" | normalize_output)"
     if ! diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >/dev/null; then
         echo "[example-smoke] $name backend=$backend stdout mismatch" >&2
         diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >&2 || true

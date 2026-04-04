@@ -5,22 +5,29 @@ examples such as the battle simulator and biome simulator.
 
 ## Current
 
-- Projection sync is still host-field centric. Rich scenarios are usable now,
-  but larger framework work will eventually want higher-level projection/binding
-  surfaces over repeated `refresh` / `publish` wiring.
-- Rich constructor/default-state paths still have a backend-sensitive edge in
-  large `world` + embedded `zone` scenarios. `fsm_factory` now runs without the
-  old reset workaround, but C still misses at least one `world shared` default
-  initializer (`gridNoise`) that LLVM applies correctly. Deeper constructor
-  parity is still worth tightening.
-- Stable slot built-ins and slot method sugar still diverge. `Write(slot, value)`
-  / `Read(slot)` remain the reliable path, but direct local member-call sugar
-  (`slot.Write(...)` / `slot.Read()` / `slot.Release()`) still has a split bug:
-  C type inference can still treat `slot.Read()` results too narrowly, while
-  LLVM can still lower the same path to the wrong runtime value. This now looks
-  broader than an LLVM-only issue.
+- Projection sync is lighter now, but larger framework work still wants a
+  richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
+  bindings and deeper auto-propagation are the next pressure point.
 
 ## Recently Resolved
+
+- `bind <slot> from <source>` now exists for `relation` / `effect` / `zone`.
+  It keeps the explicit projection contract but removes the extra `refresh` vs
+  `publish` split from many scenario declarations by inferring `object` vs
+  `dto` from the target slot kind.
+
+- `fsm_factory` no longer needs the old `ResetFactory()` workaround to seed
+  `world shared` defaults before simulation. Current C and LLVM runs now agree
+  on constructor/default-state behavior for that scenario, so the example can
+  construct `FactoryWorld(alpha, beta)` and run immediately.
+- C domain/world constructor lowering now preserves omitted `shared = default`
+  initializers instead of silently zeroing them. This closes the `gridNoise`
+  parity bug that `fsm_factory` exposed between C and LLVM.
+- Stable slot built-ins and slot method sugar now agree for local slots on both
+  backends, including non-primitive payloads like `Slot<Vec2>`. C type
+  inference now treats `Read(slot)` / `slot.Read()` as the inner payload type,
+  and LLVM now preserves the same nominal value path so `let v = Read(slot);
+  v.x` and `let v = slot.Read(); v.x` both produce the correct runtime value.
 
 - Early standalone helper predeclarations on the C backend are no longer
   blindly emitted before domain types exist. Larger scenario factories can now

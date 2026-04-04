@@ -1108,6 +1108,100 @@ static inline char* pgy_int_to_string(int32_t val) {
 #endif
 
 /* =================================================================
+ * Zone Concurrency Protection
+ *
+ * Wraps zone struct access with rwlock when PGY_ZONE_THREADSAFE is
+ * defined. Single-threaded builds use no-op macros (zero cost).
+ * ================================================================= */
+
+#ifdef PGY_ZONE_THREADSAFE
+#include <pthread.h>
+
+typedef pthread_rwlock_t PgyZoneLock;
+
+#define PGY_ZONE_LOCK_FIELD    PgyZoneLock __zone_lock;
+#define PGY_ZONE_LOCK_INIT(z)  pthread_rwlock_init(&(z)->__zone_lock, NULL)
+#define PGY_ZONE_LOCK_DESTROY(z) pthread_rwlock_destroy(&(z)->__zone_lock)
+#define PGY_ZONE_RDLOCK(z)     pthread_rwlock_rdlock(&(z)->__zone_lock)
+#define PGY_ZONE_WRLOCK(z)     pthread_rwlock_wrlock(&(z)->__zone_lock)
+#define PGY_ZONE_UNLOCK(z)     pthread_rwlock_unlock(&(z)->__zone_lock)
+
+#else /* single-threaded: zero cost */
+
+#define PGY_ZONE_LOCK_FIELD    /* no lock field */
+#define PGY_ZONE_LOCK_INIT(z)  ((void)(z))
+#define PGY_ZONE_LOCK_DESTROY(z) ((void)(z))
+#define PGY_ZONE_RDLOCK(z)     ((void)(z))
+#define PGY_ZONE_WRLOCK(z)     ((void)(z))
+#define PGY_ZONE_UNLOCK(z)     ((void)(z))
+
+#endif /* PGY_ZONE_THREADSAFE */
+
+/* Generation counter for stale-state detection */
+#define PGY_ZONE_GENERATION_FIELD  uint32_t __sync_generation;
+#define PGY_ZONE_GENERATION_INC(z) ((z)->__sync_generation++)
+
+/* =================================================================
+ * Effect Pool — multiple instances of the same effect type
+ *
+ * Usage in generated zone struct:
+ *   PGY_EFFECT_POOL_DEFINE(DamageEffect, 8)
+ *   -> typedef struct { DamageEffect items[8]; bool active[8]; uint8_t count; uint8_t cap; } PgyEffectPool_DamageEffect_8;
+ *
+ * API:
+ *   PGY_EFFECT_POOL_APPLY(pool, instance)  — activate next slot
+ *   PGY_EFFECT_POOL_DETACH(pool, index)    — deactivate slot
+ *   PGY_EFFECT_POOL_ACTIVE_COUNT(pool)     — number of active instances
+ *   PGY_EFFECT_POOL_FOR_EACH(pool, i, item) — iterate active instances
+ * ================================================================= */
+
+#define PGY_EFFECT_POOL_DEFINE(Type, Cap)                              \
+typedef struct {                                                        \
+    Type items[Cap];                                                    \
+    bool active[Cap];                                                   \
+    uint8_t count;                                                      \
+    uint8_t cap;                                                        \
+} PgyEffectPool_##Type##_##Cap;
+
+#define PGY_EFFECT_POOL_INIT(pool) do {                                \
+    memset(&(pool), 0, sizeof(pool));                                   \
+    (pool).cap = sizeof((pool).items) / sizeof((pool).items[0]);        \
+} while(0)
+
+#define PGY_EFFECT_POOL_APPLY(pool, instance) do {                     \
+    for (uint8_t _pi = 0; _pi < (pool).cap; _pi++) {                  \
+        if (!(pool).active[_pi]) {                                      \
+            (pool).items[_pi] = (instance);                             \
+            (pool).active[_pi] = true;                                  \
+            (pool).count++;                                             \
+            break;                                                      \
+        }                                                               \
+    }                                                                   \
+} while(0)
+
+#define PGY_EFFECT_POOL_DETACH(pool, index) do {                       \
+    if ((index) < (pool).cap && (pool).active[(index)]) {              \
+        (pool).active[(index)] = false;                                 \
+        (pool).count--;                                                 \
+    }                                                                   \
+} while(0)
+
+#define PGY_EFFECT_POOL_DETACH_ALL(pool) do {                          \
+    for (uint8_t _pi = 0; _pi < (pool).cap; _pi++) {                  \
+        (pool).active[_pi] = false;                                     \
+    }                                                                   \
+    (pool).count = 0;                                                   \
+} while(0)
+
+#define PGY_EFFECT_POOL_ACTIVE_COUNT(pool) ((pool).count)
+
+#define PGY_EFFECT_POOL_FOR_EACH(pool, idx_var, item_var)              \
+    for (uint8_t idx_var = 0; idx_var < (pool).cap; idx_var++)         \
+        if ((pool).active[idx_var])                                     \
+            for (int _once = 1; _once; _once = 0)                      \
+                for (__typeof__((pool).items[0]) *item_var = &(pool).items[idx_var]; _once; _once = 0)
+
+/* =================================================================
  * Unsafe Block Marker (for FFI)
  *
  * In C, this is just a documentation marker. Future versions may
