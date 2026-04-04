@@ -1,0 +1,87 @@
+// crew.pgy -- CrewMember subject with general func + action
+// BSD (Allman) style
+
+object CrewView
+{
+    name: String;
+    health_pct: Int;
+    stamina_pct: Int;
+    role_name: String;
+}
+
+dto StatusReport
+{
+    crew_name: String;
+    location: String;
+    alert: Int;
+}
+
+subject CrewMember
+{
+    let name: String;
+    let role_name: String;
+    vessel vitals: VitalSigns;
+    vessel skills: SkillSet;
+
+    // general func -- private internal computation
+    func IsOperational(self) -> Bool
+    {
+        let alive: Bool = vitals.IsAlive();
+        let exhausted: Bool = vitals.IsExhausted();
+        let rested: Bool = !exhausted;
+        return alive && rested;
+    }
+
+    func CalculateEfficiency(self) -> Int
+    {
+        let hp_factor = vitals.HealthPct();
+        let st_factor = vitals.StaminaPct();
+        return (hp_factor + st_factor) / 2;
+    }
+
+    func RollSkillCheck(self, skill_name: String, difficulty: Int) -> Bool
+    {
+        let skill = skills.SkillLevel(skill_name);
+        let roll = Random(20) + 1;
+        return (roll + skill) >= difficulty;
+    }
+
+    // action -- public plot behavior
+    action RepairSystem(self, target: CrewMember) -> Int
+        requires Repairable
+        within EngineeringBay
+    {
+        let power = skills.engineering * 2;
+        let variance = Random(power / 2 + 1);
+        let total = power + variance;
+        return total;
+    }
+
+    action HealCrewmate(self, target: CrewMember) -> Int
+        requires Healable
+        within MedicalBay
+    {
+        let power = skills.medical * 2;
+        let variance = Random(power / 2 + 1);
+        let heal = power + variance;
+        target.vitals.health = Min(target.vitals.health + heal, target.vitals.health_max);
+        return heal;
+    }
+
+    action TakeDamage(self, amount: Int) -> Void
+    {
+        vitals.health = Max(vitals.health - amount, 0);
+    }
+
+    action Rest(self) -> Int
+    {
+        let recovery = 10 + Random(11);
+        vitals.stamina = Min(vitals.stamina + recovery, vitals.stamina_max);
+        return recovery;
+    }
+
+    action Work(self, effort: Int) -> Void
+    {
+        vitals.stamina = Max(vitals.stamina - effort, 0);
+    }
+}

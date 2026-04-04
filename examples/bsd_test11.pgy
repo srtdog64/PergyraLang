@@ -1,0 +1,10 @@
+let x = 1;
+while x > 0
+{
+    let event = Random(4);
+    if event == 0
+    {
+        Log("zero");
+    }
+    x = 0;
+}

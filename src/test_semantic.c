@@ -4948,6 +4948,64 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone methods resolve bare shared fields and helper funcs in zone scope");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "    shared round: Int = 1\n"
+            "    func Next(self) -> Int {\n"
+            "        round = round + 1;\n"
+            "        return round;\n"
+            "    }\n"
+            "    func Tick(self) -> Int {\n"
+            "        return Next() + round;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world methods resolve bare shared fields zone slots and helper funcs in world scope");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "    shared round: Int = 1\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    shared storm: Int = 1\n"
+            "    func Pulse(self) -> Int {\n"
+            "        storm = storm + 1;\n"
+            "        return storm + battle.round;\n"
+            "    }\n"
+            "    func Tick(self) -> Int {\n"
+            "        return Pulse() + storm;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("class constructor positional arguments are type-checked");
     {
         const char *source =

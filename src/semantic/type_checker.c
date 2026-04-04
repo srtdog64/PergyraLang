@@ -718,6 +718,174 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
 }
 
 static ASTNode *
+current_host_decl(SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_nominal_decl != NULL)
+        return ctx->current_nominal_decl;
+    if (ctx->current_relation != NULL)
+        return ctx->current_relation;
+    if (ctx->current_effect != NULL)
+        return ctx->current_effect;
+    if (ctx->current_zone != NULL)
+        return ctx->current_zone;
+    if (ctx->current_world != NULL)
+        return ctx->current_world;
+    return NULL;
+}
+
+static Type *
+current_host_field_type(SemanticContext *ctx, const char *field_name)
+{
+    ASTNode *decl = current_host_decl(ctx);
+    if (decl == NULL || field_name == NULL)
+        return NULL;
+
+    if (decl->type == AST_CLASS_DECL || decl->type == AST_ACTOR_DECL) {
+        size_t field_count = projection_source_field_count(decl);
+        for (size_t i = 0; i < field_count; i++) {
+            ClassField *field = projection_source_field_at(decl, i);
+            if (field != NULL && field->name != NULL
+                && strcmp(field->name, field_name) == 0) {
+                return resolve_type_node(field->type, ctx);
+            }
+        }
+        return NULL;
+    }
+
+    if (decl->type == AST_WORLD_DECL) {
+        for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
+            ASTNode *slot = decl->data.world_decl.systemics[i];
+            if (slot != NULL && slot->data.world_systemic.slot_name != NULL
+                && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
+                return resolve_named_type(slot->data.world_systemic.systemic_type,
+                    ctx, slot);
+            }
+        }
+        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
+            ASTNode *slot = decl->data.world_decl.zones[i];
+            if (slot != NULL && slot->data.world_zone.slot_name != NULL
+                && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+                return resolve_named_type(slot->data.world_zone.zone_type, ctx, slot);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < overlay_field_count(decl); i++) {
+        const char *name = NULL;
+        ASTNode *type_node = overlay_field_decl_at(decl, i, &name);
+        if (name != NULL && strcmp(name, field_name) == 0)
+            return resolve_type_node(type_node, ctx);
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+current_host_method_decl(SemanticContext *ctx, const char *method_name)
+{
+    ASTNode *decl = current_host_decl(ctx);
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (decl == NULL || method_name == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        methods = decl->data.class_decl.methods;
+        method_count = decl->data.class_decl.method_count;
+        break;
+    case AST_ACTOR_DECL:
+        methods = decl->data.actor_decl.methods;
+        method_count = decl->data.actor_decl.method_count;
+        break;
+    case AST_RELATION_DECL:
+        methods = decl->data.relation_decl.methods;
+        method_count = decl->data.relation_decl.method_count;
+        break;
+    case AST_EFFECT_DECL:
+        methods = decl->data.effect_decl.methods;
+        method_count = decl->data.effect_decl.method_count;
+        break;
+    case AST_ZONE_DECL:
+        methods = decl->data.zone_decl.methods;
+        method_count = decl->data.zone_decl.method_count;
+        break;
+    case AST_WORLD_DECL:
+        methods = decl->data.world_decl.methods;
+        method_count = decl->data.world_decl.method_count;
+        break;
+    default:
+        return NULL;
+    }
+
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods[i];
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            return method;
+        }
+    }
+
+    return NULL;
+}
+
+static Type *
+type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx)
+{
+    size_t implicit_self = 0;
+    size_t expected;
+    size_t provided;
+
+    if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
+        return TYPE_UNKNOWN;
+
+    if (method->data.func_decl.param_count > 0
+        && method->data.func_decl.params[0] != NULL
+        && method->data.func_decl.params[0]->name != NULL
+        && strcmp(method->data.func_decl.params[0]->name, "self") == 0
+        && method->data.func_decl.params[0]->type == NULL) {
+        implicit_self = 1;
+    }
+
+    expected = method->data.func_decl.param_count - implicit_self;
+    provided = expr->data.call.arg_count;
+    if (provided != expected) {
+        semantic_error(ctx, expr,
+            "'%s' expects %zu argument(s), got %zu",
+            method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
+            expected, provided);
+        if (method->data.func_decl.return_type != NULL)
+            return resolve_type_node(method->data.func_decl.return_type, ctx);
+        return TYPE_VOID;
+    }
+
+    for (size_t i = 0; i < provided; i++) {
+        FuncParam *param = method->data.func_decl.params[i + implicit_self];
+        Type *param_type = (param != NULL && param->type != NULL)
+            ? resolve_type_node(param->type, ctx)
+            : TYPE_UNKNOWN;
+        Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
+        if (param_type != NULL && arg_type != NULL
+            && !type_is_assignable(arg_type, param_type)) {
+            semantic_error(ctx, expr->data.call.arguments[i],
+                "Argument %zu for '%s' expects '%s', got '%s'",
+                i + 1,
+                method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>",
+                param_type->name != NULL ? param_type->name : "<type>",
+                arg_type->name != NULL ? arg_type->name : "<type>");
+        }
+    }
+
+    if (method->data.func_decl.return_type != NULL)
+        return resolve_type_node(method->data.func_decl.return_type, ctx);
+    return TYPE_VOID;
+}
+
+static ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name)
 {
     if (program == NULL || name == NULL)
@@ -1774,6 +1942,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         Symbol *sym = scope_lookup(ctx->scope,
                                     expr->data.identifier.name);
         if (sym == NULL) {
+            Type *field_type = current_host_field_type(ctx, expr->data.identifier.name);
+            if (field_type != NULL)
+                return field_type;
             if (name_looks_qualified(expr->data.identifier.name)) {
                 semantic_error(ctx, expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
@@ -1965,6 +2136,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         BuiltinKind bk   = builtin_resolve(name);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
+
+        {
+            ASTNode *host_method = current_host_method_decl(ctx, name);
+            if (host_method != NULL)
+                return type_check_host_method_call(expr, host_method, ctx);
+        }
 
         /* Channel(capacity) is a built-in constructor that the transpiler
          * handles; let it pass without a symbol table entry. The actual
@@ -4152,6 +4329,58 @@ type_check_overlay_decl_common(ASTNode *node,
     }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    /* Register domain slots so bare slot access works in hosted funcs */
+    if (node->type == AST_ZONE_DECL) {
+        for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+            ASTNode *slot = node->data.zone_decl.slots[i];
+            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                && slot->data.domain_slot.slot_name != NULL
+                && slot->data.domain_slot.type != NULL) {
+                Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+                Symbol *slot_sym = calloc(1, sizeof(Symbol));
+                slot_sym->name = pergyra_strdup(slot->data.domain_slot.slot_name);
+                slot_sym->kind = SYMBOL_VARIABLE;
+                slot_sym->type = slot_type != NULL ? slot_type : TYPE_INT;
+                slot_sym->decl_line = slot->line;
+                slot_sym->decl_col = slot->column;
+                scope_declare(ctx->scope, slot_sym);
+            }
+        }
+    }
+    if (node->type == AST_WORLD_DECL) {
+        for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+            ASTNode *wz = node->data.world_decl.zones[i];
+            if (wz != NULL && wz->type == AST_WORLD_ZONE
+                && wz->data.world_zone.slot_name != NULL
+                && wz->data.world_zone.zone_type != NULL) {
+                Type *zone_type = resolve_named_type(
+                    wz->data.world_zone.zone_type, ctx, wz);
+                Symbol *zone_sym = calloc(1, sizeof(Symbol));
+                zone_sym->name = pergyra_strdup(wz->data.world_zone.slot_name);
+                zone_sym->kind = SYMBOL_VARIABLE;
+                zone_sym->type = zone_type != NULL ? zone_type : TYPE_INT;
+                zone_sym->decl_line = wz->line;
+                zone_sym->decl_col = wz->column;
+                scope_declare(ctx->scope, zone_sym);
+            }
+        }
+    }
+    /* Register shared fields so bare field access works in hosted funcs */
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
+        if (shared != NULL && shared->data.party_shared.name != NULL) {
+            Type *field_type = TYPE_INT;
+            if (shared->data.party_shared.type != NULL)
+                field_type = resolve_type_node(shared->data.party_shared.type, ctx);
+            Symbol *field_sym = calloc(1, sizeof(Symbol));
+            field_sym->name = pergyra_strdup(shared->data.party_shared.name);
+            field_sym->kind = SYMBOL_VARIABLE;
+            field_sym->type = field_type;
+            field_sym->decl_line = shared->line;
+            field_sym->decl_col = shared->column;
+            scope_declare(ctx->scope, field_sym);
+        }
+    }
     for (size_t i = 0; i < method_count; i++)
         type_check_func_decl(methods[i], ctx);
     scope_exit(&ctx->scope);

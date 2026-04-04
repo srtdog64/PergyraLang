@@ -605,7 +605,7 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_ability_declaration(parser);
     else if (parser_match(parser, TOKEN_ROLE))
         node = parse_role_declaration(parser);
-    else if (parser_match(parser, TOKEN_EVENT))
+    else if (parser_match_contextual_keyword(parser, "event"))
         node = parse_event_declaration(parser);
 
     if (node == NULL) {
@@ -929,8 +929,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_role_declaration(parser));
     }
 
-    // event 선언
-    if (parser_match(parser, TOKEN_EVENT)) {
+    // event 선언 (contextual keyword)
+    if (parser_match_contextual_keyword(parser, "event")) {
         return parser_finalize_statement(parser, parse_event_declaration(parser));
     }
 

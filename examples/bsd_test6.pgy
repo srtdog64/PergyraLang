@@ -1,0 +1,24 @@
+let running = true;
+let turn = 1;
+while running
+{
+    let event = Random(4);
+
+    if event == 0
+    {
+        Log("zero");
+    }
+
+    if event == 1
+    {
+        Log("one");
+    }
+
+    if turn >= 3
+    {
+        running = false;
+    }
+
+    turn = turn + 1;
+}
+Log("done");

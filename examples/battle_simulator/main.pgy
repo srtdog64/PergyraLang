@@ -1,0 +1,108 @@
+import "fighters.pgy";
+
+zone BattleZone {
+    subject slot attacker: Fighter
+    subject slot defender: Fighter
+    object slot attackerView: FighterView
+    object slot defenderView: FighterView
+    dto slot attackerPacket: FighterDto
+    dto slot defenderPacket: FighterDto
+    authority attacker
+    refresh attackerView from attacker by attacker
+    refresh defenderView from defender by attacker
+    publish attackerPacket from attacker by attacker
+    publish defenderPacket from defender by attacker
+
+    func Exchange(self) -> Void {
+        let opening = self.attacker.Commit();
+        let counter = 0;
+
+        self.defender.health.current = Max(self.defender.health.current - opening, 0);
+        if self.defender.health.current > 0 {
+            counter = self.defender.Commit();
+            self.attacker.health.current = Max(self.attacker.health.current - counter, 0);
+        }
+
+        Log("BATTLE");
+        Log(self.attackerView.name);
+        Log(self.attacker.health.current);
+        Log(self.defenderView.name);
+        Log(self.defender.health.current);
+        Log(self.attackerPacket.name);
+        Log(self.defenderPacket.name);
+        Log(opening);
+        Log(counter);
+        Log(HasProjection(attackerView));
+        Log(HasProjection(defenderView));
+        Log(HasProjection(attackerPacket));
+        Log(HasProjection(defenderPacket));
+    }
+}
+
+world BattleWorld {
+    zone arena: BattleZone
+    zone rematch: BattleZone
+    state arenaLive: zone arena
+    state rematchLive: zone rematch
+    state arenaViewReady: zone arena projection attackerView
+    state rematchViewReady: zone rematch projection attackerView
+    state arenaPacketReady: zone arena projection attackerPacket
+    state rematchPacketReady: zone rematch projection attackerPacket
+    state tournamentLive: all arenaLive, rematchLive
+    state anyProjectionReady: any arenaViewReady, rematchViewReady, arenaPacketReady, rematchPacketReady
+    activate arena
+    activate rematch
+
+    func Run(self) -> Void {
+        let round = 0;
+        while round < 2 {
+            self.arena.Exchange();
+            self.rematch.Exchange();
+            round = round + 1;
+        }
+
+        Log("TOURNAMENT");
+        Log(self.arena.attacker.health.current);
+        Log(self.arena.defender.health.current);
+        Log(self.rematch.attacker.health.current);
+        Log(self.rematch.defender.health.current);
+        Log(HasZone(arenaLive));
+        Log(HasZone(rematchLive));
+        Log(HasZone(tournamentLive));
+        Log(HasZone(anyProjectionReady));
+    }
+
+    func SaveReport(self, path: String) -> Void {
+        let fd = FileOpen(path, "w");
+        if fd < 0 {
+            return;
+        }
+
+        FileWrite(fd, "TOURNAMENT\n");
+        FileWrite(fd, self.arena.attacker.name); FileWrite(fd, "\n");
+        FileWrite(fd, ToString(self.arena.attacker.health.current)); FileWrite(fd, "\n");
+        FileWrite(fd, self.arena.defender.name); FileWrite(fd, "\n");
+        FileWrite(fd, ToString(self.arena.defender.health.current)); FileWrite(fd, "\n");
+        FileWrite(fd, self.rematch.attacker.name); FileWrite(fd, "\n");
+        FileWrite(fd, ToString(self.rematch.attacker.health.current)); FileWrite(fd, "\n");
+        FileWrite(fd, self.rematch.defender.name); FileWrite(fd, "\n");
+        FileWrite(fd, ToString(self.rematch.defender.health.current)); FileWrite(fd, "\n");
+        FileWrite(fd, "projection_ready\n");
+        FileWrite(fd, self.arena.attackerPacket.name); FileWrite(fd, "\n");
+        FileWrite(fd, self.rematch.attackerPacket.name); FileWrite(fd, "\n");
+        FileClose(fd);
+    }
+}
+
+func Main() -> Void {
+    let hero = Fighter("Hero", 7, Health(20, 20));
+    let slime = Fighter("Slime", 3, Health(12, 12));
+    let knight = Fighter("Knight", 6, Health(22, 22));
+    let goblin = Fighter("Goblin", 4, Health(14, 14));
+    let arena = BattleZone(hero, slime);
+    let rematch = BattleZone(knight, goblin);
+    let battleWorld = BattleWorld(arena, rematch);
+
+    battleWorld.Run();
+    battleWorld.SaveReport("examples/battle_simulator/results.txt");
+}

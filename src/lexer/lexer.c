@@ -54,7 +54,7 @@ static const KeywordEntry keywords[] = {
     {"case",     TOKEN_CASE},
     {"default",  TOKEN_DEFAULT},
     {"spawn",    TOKEN_SPAWN},
-    {"event",    TOKEN_EVENT},
+    /* "event" is now a contextual keyword — parsed as TOKEN_IDENTIFIER */
     {"match",    TOKEN_MATCH},
     {"import",   TOKEN_IMPORT},
     {"unsafe",   TOKEN_UNSAFE},

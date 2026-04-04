@@ -1,0 +1,6 @@
+let running = true;
+while running
+{
+    Log("tick");
+    running = false;
+}

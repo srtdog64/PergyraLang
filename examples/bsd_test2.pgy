@@ -1,0 +1,16 @@
+func Greet(name: String) -> Void
+{
+    Log("Hello " + name);
+}
+
+let x = 10;
+while x > 0
+{
+    if x == 5
+    {
+        Log("halfway");
+    }
+    x = x - 1;
+}
+
+Greet("World");

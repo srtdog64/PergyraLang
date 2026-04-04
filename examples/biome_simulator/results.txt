@@ -1,0 +1,17 @@
+=== BIOME SIMULATION FINAL REPORT ===
+season: 2
+migration: 0
+
+--- MEADOW ---
+plants: grass=18 brush=7 berry=18
+Swift Hare E:30 H:1
+Red Deer E:30 H:1
+Boar E:30 H:1
+Grey Wolf E:30 H:1
+
+--- GROVE ---
+plants: grass=14 brush=7 berry=18
+Field Mouse E:30 H:1
+Elk E:30 H:1
+Badger E:30 H:1
+Lynx E:30 H:1

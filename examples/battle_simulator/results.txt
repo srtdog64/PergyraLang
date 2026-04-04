@@ -1,0 +1,12 @@
+TOURNAMENT
+Hero
+17
+Slime
+0
+Knight
+14
+Goblin
+2
+projection_ready
+Hero
+Knight

@@ -38,6 +38,13 @@ void pgy_log_double(double v)  { printf("%lf\n", v); }
 void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
 void pgy_log_string(char *v)   { printf("%s\n", v ? v : "(null)"); }
 
+char *pgy_int_to_string(int32_t v)
+{
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "%d", v);
+    return buf;
+}
+
 static struct timespec
 pgy_runtime_deadline_after_ns(uint64_t timeout_ns)
 {

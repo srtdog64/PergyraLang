@@ -1,0 +1,42 @@
+// domains.pgy -- effect, relation, zone definitions
+// BSD (Allman) style
+
+effect RadiationExposure for target: CrewMember
+{
+    shared dosage: Int;
+}
+
+effect Fatigue for target: CrewMember
+{
+    shared severity: Int;
+}
+
+relation CommandChain for commander: CrewMember, subordinate: CrewMember
+{
+    shared trust: Int;
+}
+
+zone EngineeringBay
+{
+    subject slot engineer: CrewMember
+    subject slot assistant: CrewMember
+    effect slot radiation: RadiationExposure
+    relation slot chain: CommandChain
+    authority engineer requires Repairable
+}
+
+zone MedicalBay
+{
+    subject slot medic: CrewMember
+    subject slot patient: CrewMember
+    effect slot fatigue: Fatigue
+    authority medic requires Healable
+}
+
+zone Bridge
+{
+    subject slot captain: CrewMember
+    subject slot officer: CrewMember
+    relation slot command: CommandChain
+    authority captain
+}

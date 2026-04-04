@@ -21,6 +21,14 @@ run_expect_lines() {
     local output
     local out_bin="$WORK_DIR/${name}_${backend}"
 
+    if [[ -d "$file" ]]; then
+        file="$file/main.pgy"
+    fi
+    if [[ ! -f "$file" ]]; then
+        echo "[example-smoke] $name backend=$backend missing entry: $file" >&2
+        exit 1
+    fi
+
     output="$("$PGY" "$file" --run --backend="$backend" -o "$out_bin" 2>&1)"
     for expected in "$@"; do
         if ! grep -Fq "$expected" <<<"$output"; then
@@ -34,12 +42,43 @@ run_expect_lines() {
     echo "[example-smoke] $name backend=$backend ok"
 }
 
+run_expect_file_lines() {
+    local name="$1"
+    local file="$2"
+    shift 2
+    local content
+
+    if [[ ! -f "$file" ]]; then
+        echo "[example-smoke] $name missing output file $file" >&2
+        exit 1
+    fi
+    content="$(cat "$file")"
+    for expected in "$@"; do
+        if ! grep -Fq "$expected" <<<"$content"; then
+            echo "[example-smoke] $name file missing '$expected'" >&2
+            echo "--- file ---" >&2
+            echo "$content" >&2
+            echo "------------" >&2
+            exit 1
+        fi
+    done
+    echo "[example-smoke] $name file ok"
+}
+
 run_stable_examples() {
     local backend="$1"
     run_expect_lines "beta_resource_slots" "$backend" \
         "$ROOT_DIR/examples/beta_resource_slots.pgy" "42" "7" "3"
     run_expect_lines "beta_modules_generics" "$backend" \
         "$ROOT_DIR/examples/beta_modules_generics.pgy" "7"
+    run_expect_lines "battle_simulator" "$backend" \
+        "$ROOT_DIR/examples/battle_simulator" "BATTLE" "Hero" "Slime" "TOURNAMENT" "14" "true"
+    run_expect_lines "biome_simulator" "$backend" \
+        "$ROOT_DIR/examples/biome_simulator" "BIOME" "Red Deer" "Grey Wolf" "[World] Total migration pressure" "Day 6" "SAVING REPORT"
+    run_expect_file_lines "battle_simulator" \
+        "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
+    run_expect_file_lines "biome_simulator" \
+        "$ROOT_DIR/examples/biome_simulator/results.txt" "BIOME SIMULATION FINAL REPORT" "Red Deer" "Lynx" "migration:"
 }
 
 run_qubit_example() {

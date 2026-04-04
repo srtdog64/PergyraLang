@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- Folder-based example smoke entries: a path may now point to an example directory with `main.pgy`
+- New multi-file example scenarios: `examples/battle_simulator/` and `examples/biome_simulator/`
+- Richer biome simulator scenario: vegetation pools, species-specific traits, four-creature biome loops, world season/storm aggregation, and file report output
+- Practical simulator pain-point tracker: `docs/27_simulator_pain_points.md`
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 - `Option<T>` source-level surface: `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`
 - `Option<T>` destructuring in `match` for both C and LLVM backends

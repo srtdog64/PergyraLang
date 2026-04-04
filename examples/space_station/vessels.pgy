@@ -1,0 +1,63 @@
+// vessels.pgy -- Passive state holders (value-self, read-only computation)
+// BSD (Allman) style
+
+vessel VitalSigns
+{
+    health: Int;
+    health_max: Int;
+    stamina: Int;
+    stamina_max: Int;
+
+    func HealthPct(self) -> Int
+    {
+        return (health * 100) / health_max;
+    }
+
+    func StaminaPct(self) -> Int
+    {
+        return (stamina * 100) / stamina_max;
+    }
+
+    func IsAlive(self) -> Bool
+    {
+        return health > 0;
+    }
+
+    func IsExhausted(self) -> Bool
+    {
+        return stamina <= 0;
+    }
+}
+
+vessel SkillSet
+{
+    engineering: Int;
+    medical: Int;
+    combat: Int;
+
+    func BestSkill(self) -> String
+    {
+        if engineering >= medical && engineering >= combat
+        {
+            return "engineering";
+        }
+        if medical >= combat
+        {
+            return "medical";
+        }
+        return "combat";
+    }
+
+    func SkillLevel(self, skill_name: String) -> Int
+    {
+        if skill_name == "engineering"
+        {
+            return engineering;
+        }
+        if skill_name == "medical"
+        {
+            return medical;
+        }
+        return combat;
+    }
+}

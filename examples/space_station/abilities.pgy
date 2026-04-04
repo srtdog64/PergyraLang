@@ -1,0 +1,34 @@
+// abilities.pgy -- Behavioral contracts and role implementations
+// BSD (Allman) style
+
+ability Repairable
+{
+    func GetRepairPower(self) -> Int;
+}
+
+ability Healable
+{
+    func GetHealPower(self) -> Int;
+}
+
+role Engineer for CrewMember
+{
+    impl Repairable
+    {
+        func GetRepairPower(self) -> Int
+        {
+            return self.skills.engineering * 2;
+        }
+    }
+}
+
+role Medic for CrewMember
+{
+    impl Healable
+    {
+        func GetHealPower(self) -> Int
+        {
+            return self.skills.medical * 2;
+        }
+    }
+}

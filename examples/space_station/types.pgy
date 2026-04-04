@@ -1,0 +1,24 @@
+// types.pgy -- Value types and enums for space station simulation
+// BSD (Allman) style braces
+
+struct Resource
+{
+    name: String;
+    amount: Int;
+    max: Int;
+}
+
+enum CrewStatus
+{
+    Active,
+    Injured,
+    Exhausted,
+    Dead
+}
+
+enum AlertLevel
+{
+    Green,
+    Yellow,
+    Red
+}

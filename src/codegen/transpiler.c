@@ -16,6 +16,8 @@
 #include "../semantic/type_checker.h"
 
 static const char *infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr);
+static char *escape_c_string_literal(const char *src);
+static char *render_type_name(ASTNode *type_node);
 
 /* -----------------------------------------------------------------
  * CodeBuf
@@ -1278,6 +1280,82 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 }
 
 static const char *
+current_host_decl_name(TranspilerCtx *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_relation_name != NULL)
+        return ctx->current_relation_name;
+    if (ctx->current_effect_name != NULL)
+        return ctx->current_effect_name;
+    if (ctx->current_zone_name != NULL)
+        return ctx->current_zone_name;
+    if (ctx->current_world_name != NULL)
+        return ctx->current_world_name;
+    return ctx->current_class_name;
+}
+
+static ASTNode *
+current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
+{
+    ASTNode *decl = NULL;
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (ctx == NULL || method_name == NULL)
+        return NULL;
+
+    if (ctx->current_relation_name != NULL) {
+        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        if (decl != NULL) {
+            methods = decl->data.relation_decl.methods;
+            method_count = decl->data.relation_decl.method_count;
+        }
+    } else if (ctx->current_effect_name != NULL) {
+        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        if (decl != NULL) {
+            methods = decl->data.effect_decl.methods;
+            method_count = decl->data.effect_decl.method_count;
+        }
+    } else if (ctx->current_zone_name != NULL) {
+        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        if (decl != NULL) {
+            methods = decl->data.zone_decl.methods;
+            method_count = decl->data.zone_decl.method_count;
+        }
+    } else if (ctx->current_world_name != NULL) {
+        decl = find_world_decl(ctx, ctx->current_world_name);
+        if (decl != NULL) {
+            methods = decl->data.world_decl.methods;
+            method_count = decl->data.world_decl.method_count;
+        }
+    } else if (ctx->current_class_name != NULL) {
+        decl = find_class_decl(ctx, ctx->current_class_name);
+        if (decl != NULL && decl->type == AST_CLASS_DECL) {
+            methods = decl->data.class_decl.methods;
+            method_count = decl->data.class_decl.method_count;
+        } else {
+            decl = find_actor_decl(ctx, ctx->current_class_name);
+            if (decl != NULL && decl->type == AST_ACTOR_DECL) {
+                methods = decl->data.actor_decl.methods;
+                method_count = decl->data.actor_decl.method_count;
+            }
+        }
+    }
+
+    for (size_t i = 0; methods != NULL && i < method_count; i++) {
+        ASTNode *method = methods[i];
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            return method;
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
 resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
     if (ctx == NULL || expr == NULL)
@@ -1292,11 +1370,35 @@ resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
 
     if (expr->type == AST_MEMBER_ACCESS
         && expr->data.member.object != NULL
-        && expr->data.member.object->type == AST_IDENTIFIER
-        && expr->data.member.object->data.identifier.name != NULL
-        && strcmp(expr->data.member.object->data.identifier.name, "self") == 0
         && expr->data.member.name != NULL) {
-        return current_field_type_name(ctx, expr->data.member.name);
+        /* self.field */
+        if (expr->data.member.object->type == AST_IDENTIFIER
+            && strcmp(expr->data.member.object->data.identifier.name, "self") == 0) {
+            return current_field_type_name(ctx, expr->data.member.name);
+        }
+        /* obj.field — resolve obj type, then look up field type in that class */
+        const char *obj_type = NULL;
+        if (expr->data.member.object->type == AST_IDENTIFIER)
+            obj_type = lookup_typed_var(ctx, expr->data.member.object->data.identifier.name);
+        if (obj_type != NULL) {
+            ASTNode *obj_decl = find_class_decl(ctx, obj_type);
+            if (obj_decl != NULL) {
+                for (size_t i = 0; i < obj_decl->data.class_decl.field_count; i++) {
+                    ClassField *f = obj_decl->data.class_decl.fields[i];
+                    if (f != NULL && f->name != NULL && f->type != NULL
+                        && strcmp(f->name, expr->data.member.name) == 0) {
+                        char *ft = render_type_name(f->type);
+                        if (ft != NULL) {
+                            /* Copy to static buffer to match return convention */
+                            static char field_type_buf[128];
+                            snprintf(field_type_buf, sizeof(field_type_buf), "%s", ft);
+                            free(ft);
+                            return field_type_buf;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return NULL;
@@ -2026,6 +2128,37 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         return "Int";
     }
+    case AST_MEMBER_ACCESS: {
+        const char *resolved = resolve_nominal_host_expr_type_name(ctx, expr);
+        if (resolved != NULL)
+            return resolved;
+        /* For member access on known-typed vars, try field lookup */
+        if (expr->data.member.object != NULL
+            && expr->data.member.object->type == AST_IDENTIFIER
+            && expr->data.member.name != NULL) {
+            const char *obj_type = lookup_typed_var(ctx,
+                expr->data.member.object->data.identifier.name);
+            if (obj_type != NULL) {
+                ASTNode *obj_decl = find_class_decl(ctx, obj_type);
+                if (obj_decl != NULL) {
+                    for (size_t fi = 0; fi < obj_decl->data.class_decl.field_count; fi++) {
+                        ClassField *f = obj_decl->data.class_decl.fields[fi];
+                        if (f != NULL && f->name != NULL && f->type != NULL
+                            && strcmp(f->name, expr->data.member.name) == 0) {
+                            char *ft = render_type_name(f->type);
+                            if (ft != NULL) {
+                                static char mbuf[128];
+                                snprintf(mbuf, sizeof(mbuf), "%s", ft);
+                                free(ft);
+                                return mbuf;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return "Int";
+    }
     case AST_CALL:
         if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_IDENTIFIER
@@ -2422,6 +2555,50 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
 /* -----------------------------------------------------------------
  * Expression emitters — return heap-allocated C expression string
  * ----------------------------------------------------------------- */
+
+static char *
+escape_c_string_literal(const char *src)
+{
+    size_t len = 0;
+    size_t i;
+    size_t j = 0;
+    char *out;
+
+    if (src == NULL)
+        return pergyra_strdup("");
+
+    for (i = 0; src[i] != '\0'; i++) {
+        switch (src[i]) {
+        case '\n':
+        case '\r':
+        case '\t':
+        case '\\':
+        case '"':
+            len += 2;
+            break;
+        default:
+            len += 1;
+            break;
+        }
+    }
+
+    out = (char *)malloc(len + 1);
+    if (out == NULL)
+        return pergyra_strdup("");
+
+    for (i = 0; src[i] != '\0'; i++) {
+        switch (src[i]) {
+        case '\n': out[j++] = '\\'; out[j++] = 'n'; break;
+        case '\r': out[j++] = '\\'; out[j++] = 'r'; break;
+        case '\t': out[j++] = '\\'; out[j++] = 't'; break;
+        case '\\': out[j++] = '\\'; out[j++] = '\\'; break;
+        case '"': out[j++] = '\\'; out[j++] = '"'; break;
+        default: out[j++] = src[i]; break;
+        }
+    }
+    out[j] = '\0';
+    return out;
+}
 
 static char *
 strdup_fmt(const char *fmt, ...)
@@ -4300,6 +4477,26 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* User function call */
+    if (callee->type == AST_IDENTIFIER) {
+        ASTNode *host_method = current_host_method_decl(ctx, callee->data.identifier.name);
+        const char *host_name = current_host_decl_name(ctx);
+        if (host_method != NULL && host_name != NULL) {
+            CodeBuf *args_buf = codebuf_create();
+            codebuf_write(args_buf, "self");
+            for (size_t i = 0; i < call->data.call.arg_count; i++) {
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                codebuf_write(args_buf, ", %s", arg);
+                free(arg);
+            }
+            {
+                char *result = strdup_fmt("%s_%s(%s)",
+                    host_name, callee->data.identifier.name, args_buf->data);
+                codebuf_destroy(args_buf);
+                return result;
+            }
+        }
+    }
+
     char *callee_str = NULL;
     if (callee->type == AST_IDENTIFIER) {
         ASTNode *decl = find_function_decl(ctx, callee->data.identifier.name);
@@ -4603,7 +4800,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return strdup_fmt("%g", node->data.number.value);
 
     case AST_STRING:
-        return strdup_fmt("\"%s\"", node->data.string.value);
+    {
+        char *escaped = escape_c_string_literal(node->data.string.value);
+        char *result = strdup_fmt("\"%s\"", escaped);
+        free(escaped);
+        return result;
+    }
 
     case AST_BOOLEAN:
         return pergyra_strdup(node->data.boolean.value ? "true" : "false");
@@ -7159,6 +7361,12 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     for (size_t i = 0; i < hir->systemic_count; i++)
         emit_systemic_decl(hir->systemics[i], ctx);
 
+    /* Pass 3.75: relations and effects (must precede zones that reference them) */
+    for (size_t i = 0; i < hir->relation_count; i++)
+        emit_relation_decl(hir->relations[i], ctx);
+    for (size_t i = 0; i < hir->effect_count; i++)
+        emit_effect_decl(hir->effects[i], ctx);
+
     /* Pass 3.8: zones (struct + methods + sync helpers) */
     for (size_t i = 0; i < hir->zone_count; i++)
         emit_zone_decl(hir->zones[i], ctx);
@@ -7296,7 +7504,8 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     if (method->data.func_decl.return_type != NULL)
         ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
-    codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
+    /* Role methods use void *self for vtable compatibility, cast in body */
+    codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
                   ret_type, role_name, method_name);
 
     for (size_t k = 0; k < method->data.func_decl.param_count; k++) {
@@ -7310,10 +7519,36 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     }
     codebuf_write(ctx->out, ")\n{\n");
 
-    ctx->indent++;
-    if (method->data.func_decl.body != NULL)
-        emit_block(method->data.func_decl.body, ctx);
-    ctx->indent--;
+    {
+        const char *saved_class = ctx->current_class_name;
+        int saved_typed = ctx->typed_var_count;
+        const char *subject_name = NULL;
+        /* Role methods operate on subject (pointer-self);
+         * find the role's target subject so bare field access uses -> */
+        ASTNode *role_node = find_role_decl(ctx, role_name);
+        if (role_node != NULL
+            && role_node->data.role_decl.for_type != NULL
+            && role_node->data.role_decl.for_type->type == AST_TYPE
+            && role_node->data.role_decl.for_type->data.type.name != NULL) {
+            subject_name = role_node->data.role_decl.for_type->data.type.name;
+            ctx->current_class_name = subject_name;
+        }
+        /* Cast void *_raw_self to concrete subject type */
+        if (subject_name != NULL && is_pointer_self_host_type_name(ctx, subject_name))
+            codebuf_write(ctx->out, "    %s *self = (%s *)_raw_self;\n", subject_name, subject_name);
+        else if (subject_name != NULL)
+            codebuf_write(ctx->out, "    %s self = *(%s *)_raw_self;\n", subject_name, subject_name);
+        else
+            codebuf_write(ctx->out, "    (void)_raw_self;\n");
+
+        ctx->indent++;
+        if (method->data.func_decl.body != NULL)
+            emit_block(method->data.func_decl.body, ctx);
+        ctx->indent--;
+
+        ctx->current_class_name = saved_class;
+        ctx->typed_var_count = saved_typed;
+    }
 
     codebuf_write(ctx->out, "}\n");
 }

@@ -1,0 +1,42 @@
+vessel Health {
+    current: Int;
+    max: Int;
+
+    func Damage(self, amount: Int) -> Void {
+        current = Max(current - amount, 0);
+    }
+
+    func IsAlive(self) -> Bool {
+        return current > 0;
+    }
+}
+
+subject Fighter {
+    let name: String;
+    let attack: Int;
+    vessel health: Health;
+
+    func Preview(self) -> Int {
+        let dmg = attack;
+        if dmg < 1 {
+            dmg = 1;
+        }
+        return dmg;
+    }
+
+    action Commit(self) -> Int
+        within BattleZone
+        authorized by self {
+        return self.Preview();
+    }
+}
+
+object FighterView {
+    name: String;
+    attack: Int;
+}
+
+dto FighterDto {
+    name: String;
+    attack: Int;
+}

@@ -15,6 +15,44 @@ static void ast_destroy_generic_params(GenericParams* params);
 static void ast_destroy_where_clause(WhereClause* clause);
 void ast_destroy_structured_comment(StructuredComment* comment);
 
+static char *
+ast_unescape_string_literal(const char *value)
+{
+    size_t len;
+    char *out;
+    size_t i;
+    size_t j = 0;
+
+    if (value == NULL)
+        return pergyra_strdup("");
+
+    len = strlen(value);
+    out = (char *)malloc(len + 1);
+    if (out == NULL)
+        return pergyra_strdup("");
+
+    for (i = 0; i < len; i++) {
+        if (value[i] == '\\' && i + 1 < len) {
+            i++;
+            switch (value[i]) {
+            case 'n': out[j++] = '\n'; break;
+            case 'r': out[j++] = '\r'; break;
+            case 't': out[j++] = '\t'; break;
+            case '\\': out[j++] = '\\'; break;
+            case '"': out[j++] = '"'; break;
+            case '0': out[j++] = '\0'; break;
+            default:
+                out[j++] = value[i];
+                break;
+            }
+        } else {
+            out[j++] = value[i];
+        }
+    }
+    out[j] = '\0';
+    return out;
+}
+
 static const char *
 nominal_decl_kind_name(NominalDeclKind kind)
 {
@@ -833,9 +871,11 @@ ASTNode* ast_create_string(const char* value) {
     // 따옴표 제거
     size_t len = strlen(value);
     if (len >= 2 && value[0] == '"' && value[len-1] == '"') {
-        node->data.string.value = pergyra_strndup(value + 1, len - 2);
+        char *raw = pergyra_strndup(value + 1, len - 2);
+        node->data.string.value = ast_unescape_string_literal(raw);
+        free(raw);
     } else {
-        node->data.string.value = pergyra_strdup(value);
+        node->data.string.value = ast_unescape_string_literal(value);
     }
     return node;
 }

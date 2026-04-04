@@ -1,0 +1,5 @@
+let turn = 8;
+if turn >= 8
+{
+    Log("done");
+}

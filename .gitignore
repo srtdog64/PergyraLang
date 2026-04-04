@@ -6,9 +6,14 @@ bin/
 
 # Generated C files from transpiler
 examples/*.c
-examples/*
-!examples/*.pgy
-!examples/
+examples/**/*.c
+
+# Compiled example binaries (tracked .pgy files only)
+examples/*.exe
+examples/**/*.exe
+
+# Keep all .pgy source files and subdirectories
+# (battle_simulator/, space_station/, biome_simulator/ etc.)
 
 # Editor / OS
 *.backup

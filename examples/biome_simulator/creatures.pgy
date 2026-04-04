@@ -1,0 +1,185 @@
+// creatures.pgy -- Biome Simulator creature definitions
+// BSD (Allman) style
+
+vessel Cycle
+{
+    age: Int;
+    fatigue: Int;
+    stress: Int;
+
+    func Advance(self, burden: Int) -> Void
+    {
+        age = age + 1;
+        fatigue = fatigue + burden;
+        stress = Min(stress + burden, 24);
+    }
+
+    func Ease(self, comfort: Int) -> Void
+    {
+        fatigue = Max(fatigue - comfort, 0);
+        stress = Max(stress - comfort, 0);
+    }
+}
+
+vessel Traits
+{
+    graze_rate: Int;
+    browse_rate: Int;
+    hunt_rate: Int;
+    metabolism: Int;
+    resilience: Int;
+    caution: Int;
+    recovery: Int;
+
+    func ForageDemand(self, hunger: Int, fatigue: Int) -> Int
+    {
+        return graze_rate + browse_rate + hunger + fatigue;
+    }
+
+    func HuntDrive(self, hunger: Int, stress: Int) -> Int
+    {
+        return hunt_rate + hunger + stress;
+    }
+}
+
+subject Creature
+{
+    let name: String;
+    let species: String;
+    let niche: String;
+    let energy: Int;
+    let hunger: Int;
+    let alertness: Int;
+    vessel cycle: Cycle;
+    vessel traits: Traits;
+
+    // -- general func (private computation) --
+
+    func CanAct(self) -> Bool
+    {
+        return energy > 0;
+    }
+
+    func ForageNeed(self) -> Int
+    {
+        return self.traits.ForageDemand(hunger, cycle.fatigue);
+    }
+
+    func BrowseBias(self) -> Int
+    {
+        return self.traits.browse_rate + self.traits.caution;
+    }
+
+    func HuntDrive(self) -> Int
+    {
+        return self.traits.HuntDrive(hunger, cycle.stress);
+    }
+
+    func Exposure(self) -> Int
+    {
+        return Max(12 - alertness - self.traits.caution, 0);
+    }
+
+    func FeedFromCarcass(self, carcass: Int) -> Int
+    {
+        let gain = Min(carcass + self.traits.recovery, 10);
+        energy = Min(energy + gain, 30);
+        hunger = Max(hunger - gain, 0);
+        return gain;
+    }
+
+    func StatusLine(self) -> String
+    {
+        let tag: String = "  [" + niche + "] " + name;
+        let stats: String = " E:" + ToString(energy) + " H:" + ToString(hunger) + " A:" + ToString(alertness);
+        let cyc: String = " fat:" + ToString(cycle.fatigue) + " str:" + ToString(cycle.stress);
+        return tag + stats + cyc;
+    }
+
+    // -- action (public plot behavior, zone-bound) --
+
+    action Graze(self, forage: Int, water: Int) -> Int
+        within MeadowZone
+        authorized by self
+    {
+        let gain = Min(forage + water + self.traits.recovery, self.ForageNeed());
+        energy = Min(energy + gain, 30);
+        hunger = Max(hunger - gain, 0);
+        alertness = Min(alertness + water + self.traits.caution, 20);
+        cycle.Advance(1 + self.traits.metabolism);
+        return gain;
+    }
+
+    action Scavenge(self, carcass: Int, forage: Int, water: Int) -> Int
+        within MeadowZone
+        authorized by self
+    {
+        let gain = Min(carcass + forage + water + self.traits.recovery, self.ForageNeed() + self.traits.recovery);
+        energy = Min(energy + gain, 30);
+        hunger = Max(hunger - gain, 0);
+        alertness = Min(alertness + self.traits.caution, 20);
+        cycle.Advance(1);
+        return gain;
+    }
+
+    action Hunt(self, preyOpen: Int, cover: Int) -> Int
+        within MeadowZone
+        authorized by self
+    {
+        if self.CanAct()
+        {
+            let strike = Max(self.HuntDrive() + cover - preyOpen, 0);
+            let pressure = Min(strike, self.traits.hunt_rate + 5);
+            energy = Max(energy - self.traits.metabolism, 0);
+            hunger = Min(hunger + 1, 24);
+            alertness = Min(alertness + 2, 20);
+            cycle.Advance(2 + self.traits.metabolism);
+            return pressure;
+        }
+
+        cycle.Advance(1);
+        return 0;
+    }
+
+    action Rest(self, shelter: Int, water: Int) -> Int
+        within MeadowZone
+        authorized by self
+    {
+        let calm = Min(shelter + water + self.traits.recovery, 8);
+        energy = Min(energy + calm, 30);
+        hunger = Min(hunger + 1, 24);
+        alertness = Max(alertness - 1, 0);
+        cycle.Ease(calm);
+        return calm;
+    }
+
+    action WeatherStress(self, pressure: Int) -> Int
+        within MeadowZone
+        authorized by self
+    {
+        let drain = Max(pressure + self.traits.metabolism - self.traits.resilience, 0);
+        energy = Max(energy - drain, 0);
+        hunger = Min(hunger + drain, 24);
+        cycle.stress = Min(cycle.stress + pressure, 24);
+        return drain;
+    }
+}
+
+object CreatureView
+{
+    name: String;
+    species: String;
+    niche: String;
+    energy: Int;
+    hunger: Int;
+    alertness: Int;
+}
+
+dto CreaturePacket
+{
+    name: String;
+    species: String;
+    niche: String;
+    energy: Int;
+    hunger: Int;
+}

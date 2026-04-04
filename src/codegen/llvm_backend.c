@@ -1332,6 +1332,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i8ptr }, 1 },
             { "StringConcat", ctx->type_i8ptr,
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_int_to_string", ctx->type_i8ptr,
+              { ctx->type_i32 }, 1 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "pgy_write_file", ctx->type_void,

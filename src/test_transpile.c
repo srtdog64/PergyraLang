@@ -1528,6 +1528,73 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone methods lower bare shared fields and helper calls through implicit self");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "    shared round: Int = 1\n"
+            "    func Next(self) -> Int {\n"
+            "        round = round + 1;\n"
+            "        return round;\n"
+            "    }\n"
+            "    func Tick(self) -> Int {\n"
+            "        return Next() + round;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->round = (self->round + 1);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return (BattleZone_Next(self) + self->round);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world methods lower bare shared fields zone fields and helper calls through implicit self");
+    {
+        const char *source =
+            "zone BattleZone {\n"
+            "    shared round: Int = 1\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    shared storm: Int = 1\n"
+            "    func Pulse(self) -> Int {\n"
+            "        storm = storm + 1;\n"
+            "        return storm + battle.round;\n"
+            "    }\n"
+            "    func Tick(self) -> Int {\n"
+            "        return Pulse() + storm;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->storm = (self->storm + 1);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return (self->storm + self->battle.round);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return (GameWorld_Pulse(self) + self->storm);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("vessel methods lower like passive value receivers");
     {
         const char *source =
