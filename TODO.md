@@ -168,6 +168,7 @@
   - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
   - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
   - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
+  - 완료: `HasState(stateName)` zone query builtin을 parser/semantic/transpiler placeholder surface에 연결
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
   - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, runtime/codegen surface, inter-layer composition
 

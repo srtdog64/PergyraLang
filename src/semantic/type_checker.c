@@ -3069,9 +3069,12 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
 bool
 type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
+    ASTNode *saved_zone = ctx->current_zone;
     size_t subject_count;
     size_t object_count;
     size_t mutation_rule_count;
+    ctx->current_zone = node;
+
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.zone_decl.name,
         SYMBOL_ZONE,
@@ -3613,6 +3616,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    ctx->current_zone = saved_zone;
     return ok && !ctx->has_error;
 }
 

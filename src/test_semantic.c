@@ -4979,6 +4979,72 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("HasState works inside zone methods for declared states");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
+            "    func Tick() -> Void {\n"
+            "        if HasState(poisoned) || HasState(\"allied\") {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasState rejects unknown states and use outside zone");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    state poisoned: effect poison on player\n"
+            "    effect slot poison: Poisoned\n"
+            "    func Tick() -> Void {\n"
+            "        if HasState(missing) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "func Main() -> Void {\n"
+            "    let active = HasState(\"poisoned\");\n"
+            "    Log(active);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* ---- Generic class semantic tests ---- */
 
     TEST("generic class declaration passes semantic check");

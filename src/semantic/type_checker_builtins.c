@@ -154,6 +154,62 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
         element_type, name, expr->data.call.arguments[0], ctx);
 }
 
+static Type *
+type_check_has_state(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *zone;
+    ASTNode *arg;
+    const char *state_name = NULL;
+
+    if (!check_call_arity(call, 1, "HasState", ctx))
+        return TYPE_BOOL;
+
+    zone = ctx->current_zone;
+    if (zone == NULL || zone->type != AST_ZONE_DECL) {
+        semantic_error(ctx, call,
+            "HasState(...) is only available inside zone declarations and zone methods");
+        return TYPE_BOOL;
+    }
+
+    arg = call->data.call.arguments[0];
+    if (arg == NULL) {
+        semantic_error(ctx, call,
+            "HasState(...) requires a zone state name");
+        return TYPE_BOOL;
+    }
+
+    if (arg->type == AST_IDENTIFIER) {
+        state_name = arg->data.identifier.name;
+    } else if (arg->type == AST_STRING) {
+        state_name = arg->data.string.value;
+    } else {
+        semantic_error(ctx, arg,
+            "HasState(...) expects a state identifier or string literal");
+        return TYPE_BOOL;
+    }
+
+    if (state_name == NULL) {
+        semantic_error(ctx, arg,
+            "HasState(...) requires a valid zone state name");
+        return TYPE_BOOL;
+    }
+
+    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
+        ASTNode *state = zone->data.zone_decl.states[i];
+        if (state != NULL
+            && state->type == AST_ZONE_STATE
+            && state->data.zone_state.state_name != NULL
+            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            return TYPE_BOOL;
+        }
+    }
+
+    semantic_error(ctx, arg,
+        "Unknown zone state '%s' in HasState(...)",
+        state_name);
+    return TYPE_BOOL;
+}
+
 BuiltinKind
 builtin_resolve(const char *name)
 {
@@ -190,6 +246,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
     if (strcmp(name, "ToDto")           == 0) return BUILTIN_TO_DTO;
+    if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
@@ -1485,6 +1542,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_to_object(call, ctx);
     case BUILTIN_TO_DTO:
         return type_check_to_dto(call, ctx);
+    case BUILTIN_HAS_STATE:
+        return type_check_has_state(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
     case BUILTIN_FILE_OPEN:

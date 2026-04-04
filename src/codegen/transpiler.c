@@ -1109,6 +1109,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "SendTimeout") == 0
                 || strcmp(name, "Cancel") == 0
                 || strcmp(name, "IsCancelled") == 0
+                || strcmp(name, "HasState") == 0
                 || strcmp(name, "ChannelFull") == 0
                 || strcmp(name, "ChannelClosed") == 0
                 || strcmp(name, "ChannelReady") == 0)
@@ -2139,6 +2140,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_to_dto(call, ctx);
     case BUILTIN_TO_DTO:
         return emit_builtin_to_dto(call, ctx);
+    case BUILTIN_HAS_STATE:
+        return pergyra_strdup("false /* HasState: zone-semantic query only */");
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
