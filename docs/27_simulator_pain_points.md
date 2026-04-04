@@ -8,17 +8,34 @@ examples such as the battle simulator and biome simulator.
 - Projection sync is still host-field centric. Rich scenarios are usable now,
   but larger framework work will eventually want higher-level projection/binding
   surfaces over repeated `refresh` / `publish` wiring.
-- Rich constructor/default-state paths still have backend-sensitive edges in
-  large `world` + embedded `zone` scenarios. The new FSM example stabilizes its
-  runtime with an explicit `ResetFactory`/`ResetBaseline` pass after world
-  construction, but deeper constructor parity is still worth tightening.
-- LLVM still has a gap between stable slot built-ins and slot method sugar.
-  `Write(slot, value)` / `Read(slot)` are stable and now back the raid graph
-  example, but direct `slot.Write(...)` / `slot.Read()` on local slots remain a
-  separate LLVM bug to close.
+- Rich constructor/default-state paths still have a backend-sensitive edge in
+  large `world` + embedded `zone` scenarios. `fsm_factory` now runs without the
+  old reset workaround, but C still misses at least one `world shared` default
+  initializer (`gridNoise`) that LLVM applies correctly. Deeper constructor
+  parity is still worth tightening.
+- Stable slot built-ins and slot method sugar still diverge. `Write(slot, value)`
+  / `Read(slot)` remain the reliable path, but direct local member-call sugar
+  (`slot.Write(...)` / `slot.Read()` / `slot.Release()`) still has a split bug:
+  C type inference can still treat `slot.Read()` results too narrowly, while
+  LLVM can still lower the same path to the wrong runtime value. This now looks
+  broader than an LLVM-only issue.
 
 ## Recently Resolved
 
+- Early standalone helper predeclarations on the C backend are no longer
+  blindly emitted before domain types exist. Larger scenario factories can now
+  use helpers like `BuildJourneyZone() -> JourneyZone` without introducing
+  `unknown type name` failures in generated C.
+- Example smoke no longer prefers a stale repo-local `bin/pgy` over the newer
+  tmp build artifact produced by test targets. It now auto-picks the newer
+  `/tmp/pgy-PergyraLang-bin/pgy` unless `PGY_BIN` is explicitly set.
+- Hosted helper forward declarations are no longer order-sensitive only because
+  of source layout. Large class/party/systemic/relation/effect/zone/world hosts
+  now emit method prototypes before bodies on the C backend, so scenario code
+  such as `JourneyZone.Snapshot()` can call helpers declared later in the host.
+- LLVM `ToString(Bool)` no longer sends raw `i1` values into the integer-string
+  runtime function. Bool string conversion now widens through the same coercion
+  path used by mixed string concatenation.
 - `ToString(Int)` no longer reuses a single static buffer across nested string
   concatenations. The campaign graph/FSM scenario exposed this sharply on the C
   backend, where strategic/world report lines collapsed many numbers to the
@@ -43,6 +60,12 @@ examples such as the battle simulator and biome simulator.
 - Hosted helper calls such as `PlantMass()`, `SeasonPulse()`, `battle.Tick()`,
   and `player.Hurt()` now lower correctly without mandatory `self.` on both C
   and LLVM paths.
+- World-level layer/state reporting is now clearer in practice: large scenarios
+  should use `HasZoneLayer(worldZoneSlot, layerSlot)` / `HasZoneState(...)`
+  from world code rather than zone-local `HasLayer(...)` / `HasState(...)`.
+- In larger relation/effect scenarios, layer shared defaults are clearer and
+  more stable when the scenario explicitly seeds them during setup instead of
+  assuming declaration-time defaults will be the only source of truth.
 - Zones embedded into a world value are now frozen outside that world root.
   Direct assignment or hosted `func` / `action` calls through the old zone
   binding now produce semantic errors instead of soft warnings.

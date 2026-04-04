@@ -1802,10 +1802,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "ToString") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_int_to_string");
-        if (fn != NULL)
-            return llvm_emit_function_call_args(ctx, fn,
-                node->data.call.arguments, 1);
+        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        return llvm_coerce_value_to_string(value, ctx);
     }
 
     if (strcmp(callee_name, "WriteFile") == 0

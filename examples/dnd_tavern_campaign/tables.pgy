@@ -1,0 +1,179 @@
+struct ClassTemplate
+{
+    let classCode: Int;
+    let className: String;
+    let crest: String;
+    let signature: String;
+}
+
+struct CharacterProfile
+{
+    let seed: Int;
+    let classCode: Int;
+    let name: String;
+    let seat: Int;
+    let background: String;
+    let intro: String;
+    let affinity: Int;
+    let trust: Int;
+    let courage: Int;
+    let potions: Int;
+    let bombs: Int;
+    let herbs: Int;
+}
+
+struct TavernCard
+{
+    let opener: String;
+    let bargain: String;
+    let promise: String;
+    let campToast: String;
+}
+
+struct FloorScript
+{
+    let floorId: Int;
+    let floorTitle: String;
+    let trapName: String;
+    let monsterName: String;
+    let bondEvent: String;
+    let lootLabel: String;
+    let threat: Int;
+    let trapLevel: Int;
+    let monsterLevel: Int;
+    let treasure: Int;
+    let keyReward: Int;
+    let travelBias: Int;
+    let campNote: String;
+}
+
+struct DragonScript
+{
+    let trapName: String;
+    let monsterName: String;
+    let battleCry: String;
+    let armor: Int;
+    let flame: Int;
+    let moraleBonus: Int;
+    let epilogue: String;
+}
+
+func TemplateForClass(classCode: Int) -> ClassTemplate
+{
+    if classCode == 0
+    {
+        return ClassTemplate(0, "Vanguard", "iron wolf", "shield-first");
+    }
+    if classCode == 1
+    {
+        return ClassTemplate(1, "Cleric", "sun chalice", "saint-fire");
+    }
+    if classCode == 2
+    {
+        return ClassTemplate(2, "Rogue", "crow lockpick", "shadow-step");
+    }
+    return ClassTemplate(3, "Mage", "ember eye", "wyrm-lexicon");
+}
+
+func HeroProfile(seed: Int) -> CharacterProfile
+{
+    return CharacterProfile(seed, 0, "Ari", 0, "guild orphan", "fresh guild charter", 2, 3, 4, 2, 1, 1);
+}
+
+func CompanionProfile(slot: Int) -> CharacterProfile
+{
+    if slot == 1
+    {
+        return CharacterProfile(29, 1, "Mira", 1, "cathedral exile", "ruins touched by saint-fire", 3, 3, 3, 3, 0, 2);
+    }
+    if slot == 2
+    {
+        return CharacterProfile(47, 2, "Nyx", 2, "vault runner", "hidden vault keys", 2, 2, 3, 2, 2, 1);
+    }
+    return CharacterProfile(71, 3, "Sol", 3, "academy dropout", "dragon library", 2, 2, 2, 1, 1, 1);
+}
+
+func TavernCardForClass(classCode: Int) -> TavernCard
+{
+    if classCode == 0
+    {
+        return TavernCard("The barkeep clocks the heavy shield on the table.", "Ari offers first pick of paid contracts.", "The vanguard promises to take the front line.", "Ari lays a chalk route over the table and names the order of march.");
+    }
+    if classCode == 1
+    {
+        return TavernCard("Mira tests the air for ash and incense.", "She wants proof the ruin still keeps saint-fire.", "She promises no one bleeds out alone.", "Mira marks each mug with a quiet blessing against the dark.");
+    }
+    if classCode == 2
+    {
+        return TavernCard("Nyx never sits with her back to the door.", "She wants first claim on any key-bearing vault.", "She promises every trap she sees will be called.", "Nyx threads stolen brass wire into a map of likely ambushes.");
+    }
+    return TavernCard("Sol arrives with soot on the cuffs and a grin.", "He wants the first dragon text that survives the fire.", "He promises to crack any sealed chamber with a pulse.", "Sol sketches the lair in ale foam and cinder dust.");
+}
+
+func FloorScriptFor(floorId: Int, omen: Int, affinityPulse: Int) -> FloorScript
+{
+    if floorId == 1
+    {
+        return FloorScript(
+            1,
+            "ROOT CELLAR",
+            "spore darts",
+            "cellar gnolls",
+            "rescue knot",
+            "mildewed reliquary",
+            4 + omen,
+            2,
+            3,
+            5 + affinityPulse,
+            1,
+            1,
+            "The party camps beside cracked cider barrels while spores drift through candlelight."
+        );
+    }
+    if floorId == 2
+    {
+        return FloorScript(
+            2,
+            "MIRROR HALL",
+            "mirror sigils",
+            "silver wraiths",
+            "mirror oath",
+            "glass saint icons",
+            7 + omen,
+            4,
+            5,
+            7 + affinityPulse,
+            1,
+            2,
+            "The party rests between black mirrors, trading vows to keep each other from the glass."
+        );
+    }
+    return FloorScript(
+        3,
+        "ASH VAULT",
+        "ash chains",
+        "cinder knights",
+        "ember vow",
+        "smoldering crown seals",
+        9 + omen,
+        5,
+        7,
+        9 + affinityPulse,
+        1,
+        3,
+        "The party braces in the ash vault, counting keys and whispering what they owe the dragon."
+    );
+}
+
+func DragonScriptFor(omen: Int, affinityPulse: Int) -> DragonScript
+{
+    return DragonScript(
+        "dragonfire vents",
+        "wyrm herald",
+        "The dragon descends through brass smoke and molten paper.",
+        4 + omen,
+        6 + affinityPulse / 3,
+        8 + affinityPulse,
+        "The wyrm collapses across the hoard while the party drags the crown seals into dawn."
+    );
+}

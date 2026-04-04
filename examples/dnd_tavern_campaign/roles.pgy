@@ -1,0 +1,51 @@
+role VanguardRole for Adventurer
+{
+    impl ability Striking
+    {
+        func StrikeMark() -> String
+        {
+            return "vanguard-strike";
+        }
+    }
+
+    impl ability Guarding
+    {
+        func GuardMark() -> String
+        {
+            return "vanguard-guard";
+        }
+    }
+}
+
+role RadiantRole for Adventurer
+{
+    impl ability Healing
+    {
+        func HealMark() -> String
+        {
+            return "radiant-heal";
+        }
+    }
+}
+
+role ShadowRole for Adventurer
+{
+    impl ability Scouting
+    {
+        func ScoutMark() -> String
+        {
+            return "shadow-scout";
+        }
+    }
+}
+
+role EmberRole for Adventurer
+{
+    impl ability Arcane
+    {
+        func ArcaneMark() -> String
+        {
+            return "ember-arcane";
+        }
+    }
+}

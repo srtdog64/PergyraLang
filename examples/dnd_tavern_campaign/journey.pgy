@@ -1,0 +1,361 @@
+zone JourneyZone
+{
+    subject slot fighter: Adventurer
+    subject slot cleric: Adventurer
+    subject slot rogue: Adventurer
+    subject slot mage: Adventurer
+
+    object slot fighterView: HeroView = ToObject(HeroView, fighter)
+    object slot rogueView: HeroView = ToObject(HeroView, rogue)
+    dto slot clericPacket: HeroPacket = ToDto(HeroPacket, cleric)
+    dto slot magePacket: HeroPacket = ToDto(HeroPacket, mage)
+
+    effect slot fighterBlessing: BattleBless
+    effect slot mageBlessing: BattleBless
+    relation slot vanguardBond: PartyBond
+    relation slot shadowBond: PartyBond
+
+    shared stage: Int = 0
+    shared floor: Int = 0
+    shared tavernRumor: Int = 0
+    shared tavernHeat: Int = 0
+    shared routeSeed: Int = 0
+    shared threat: Int = 0
+    shared trapLevel: Int = 0
+    shared monsterLevel: Int = 0
+    shared treasure: Int = 0
+    shared affinityPulse: Int = 0
+    shared keyCount: Int = 0
+    shared dragonHp: Int = 0
+    shared dragonFlame: Int = 0
+    shared dragonArmor: Int = 0
+    shared victory: Int = 0
+    shared morale: Int = 0
+    shared floorTitle: String = "TAVERN"
+    shared trapText: String = ""
+    shared monsterText: String = ""
+    shared bondText: String = ""
+    shared lootText: String = ""
+    shared campText: String = ""
+
+    authority fighter requires Striking, Guarding
+    authority cleric requires Healing
+    authority rogue requires Scouting
+    authority mage requires Arcane
+
+    apply fighterBlessing to fighter by fighter
+    apply mageBlessing to mage by mage
+    link vanguardBond between fighter, cleric by fighter
+    link shadowBond between rogue, mage by rogue
+
+    state fighterBlessed: effect fighterBlessing on fighter
+    state mageBlessed: effect mageBlessing on mage
+    state vanguardLinked: relation vanguardBond between fighter, cleric
+    state shadowLinked: relation shadowBond between rogue, mage
+
+    refresh fighterView from fighter by fighter
+    refresh rogueView from rogue by rogue
+    publish clericPacket from cleric by cleric
+    publish magePacket from mage by mage
+
+    func StageName(self) -> String
+    {
+        if stage == 0 { return "TAVERN"; }
+        if stage == 1 { return "FLOOR1"; }
+        if stage == 2 { return "FLOOR2"; }
+        if stage == 3 { return "FLOOR3"; }
+        if stage == 4 { return "DRAGON"; }
+        if stage == 5 { return "DONE"; }
+        return "STAGE?";
+    }
+
+    func FloorName(self) -> String
+    {
+        return floorTitle;
+    }
+
+    func TrapName(self) -> String
+    {
+        return trapText;
+    }
+
+    func MonsterName(self) -> String
+    {
+        return monsterText;
+    }
+
+    func BondEventName(self) -> String
+    {
+        return bondText;
+    }
+
+    func ApplyFloorScript(self, script: FloorScript) -> Void
+    {
+        floor = script.floorId;
+        floorTitle = script.floorTitle;
+        trapText = script.trapName;
+        monsterText = script.monsterName;
+        bondText = script.bondEvent;
+        lootText = script.lootLabel;
+        campText = script.campNote;
+        threat = script.threat;
+        trapLevel = script.trapLevel;
+        monsterLevel = script.monsterLevel;
+        treasure = treasure + script.treasure;
+        keyCount = keyCount + script.keyReward;
+        routeSeed = script.travelBias;
+    }
+
+    func Snapshot(self) -> String
+    {
+        return "stage=" + StageName()
+            + " floor=" + FloorName()
+            + " trapName=" + TrapName()
+            + " monsterName=" + MonsterName()
+            + " rumor=" + ToString(tavernRumor)
+            + " threat=" + ToString(threat)
+            + " trap=" + ToString(trapLevel)
+            + " monster=" + ToString(monsterLevel)
+            + " treasure=" + ToString(treasure)
+            + " affinityPulse=" + ToString(affinityPulse)
+            + " morale=" + ToString(morale)
+            + " keys=" + ToString(keyCount)
+            + " dragonHp=" + ToString(dragonHp)
+            + " victory=" + ToString(victory);
+    }
+
+    func CampReport(self) -> String
+    {
+        return campText;
+    }
+
+    func LayerReport(self) -> String
+    {
+        return self.fighterBlessing.Label()
+            + " | " + self.mageBlessing.Label()
+            + " | " + self.vanguardBond.PairLabel()
+            + " | " + self.shadowBond.PairLabel();
+    }
+
+    func TavernScene(self, fighterCard: TavernCard, clericCard: TavernCard, rogueCard: TavernCard, mageCard: TavernCard) -> Void
+    {
+        stage = 0;
+        floor = 0;
+        floorTitle = "TAVERN";
+        trapText = "crowded tables";
+        monsterText = "restless mercenaries";
+        bondText = "tavern pact";
+        lootText = "guild rumor map";
+        campText = fighterCard.campToast;
+        tavernHeat = 4;
+        tavernRumor = 2;
+        routeSeed = 1;
+        morale = 4;
+        self.fighterBlessing.moraleBoost = 2;
+        self.mageBlessing.moraleBoost = 3;
+        self.vanguardBond.trustDelta = 1;
+        self.shadowBond.trustDelta = 2;
+        fighter.Toast(2, 2);
+        cleric.Toast(1, 3);
+        rogue.Toast(3, 2);
+        mage.Toast(2, 2);
+        if rogue.bond.affinity + mage.bond.affinity >= 8
+        {
+            rogue.BondEvent(2, 1);
+            mage.BondEvent(1, 2);
+            affinityPulse = affinityPulse + 2;
+        }
+        if fighter.bond.trust + cleric.bond.trust >= 6
+        {
+            fighter.BondEvent(1, 1);
+            cleric.BondEvent(2, 1);
+            tavernRumor = tavernRumor + 1;
+        }
+        tavernRumor = tavernRumor + StringLength(fighterCard.promise) / 20;
+        tavernHeat = tavernHeat + StringLength(mageCard.opener) / 20;
+        morale = morale + StringLength(clericCard.campToast) / 30;
+        if HasState(vanguardLinked, fighter, cleric)
+        {
+            morale = morale + self.vanguardBond.trustDelta;
+            fighter.effects.shield = fighter.effects.shield + self.fighterBlessing.moraleBoost;
+            tavernRumor = tavernRumor + 1;
+        }
+        if HasState(shadowLinked, rogue, mage)
+        {
+            morale = morale + self.shadowBond.trustDelta;
+            rogue.stats.focus = rogue.stats.focus + 1;
+            mage.effects.bless = mage.effects.bless + self.mageBlessing.moraleBoost;
+            routeSeed = routeSeed + 1;
+        }
+    }
+
+    func ResolveFloorOne(self, travelCost: Int, script: FloorScript) -> Void
+    {
+        stage = 1;
+        ApplyFloorScript(script);
+        fighter.Explore(1, travelCost);
+        cleric.Explore(1, travelCost + 1);
+        rogue.Explore(1, Max(travelCost - 1, 0));
+        mage.Explore(1, travelCost);
+        rogue.HitTrap(3, 1, 0);
+        if HasState(shadowLinked, rogue, mage)
+        {
+            rogue.effects.shield = rogue.effects.shield + 1;
+            threat = Max(threat - self.shadowBond.trustDelta, 0);
+        }
+        fighter.Fight(3, 2, 6);
+        cleric.Fight(2, 1, 5);
+        mage.Fight(2, 2, 6);
+        if HasState(fighterBlessed, fighter)
+        {
+            fighter.stats.focus = fighter.stats.focus + self.fighterBlessing.moraleBoost;
+            morale = morale + self.fighterBlessing.moraleBoost;
+        }
+        morale = morale + 2;
+        if rogue.bond.affinity >= 4
+        {
+            rogue.BondEvent(1, 1);
+            fighter.BondEvent(1, 0);
+            affinityPulse = affinityPulse + 1;
+        }
+    }
+
+    func ResolveFloorTwo(self, travelCost: Int, script: FloorScript) -> Void
+    {
+        stage = 2;
+        ApplyFloorScript(script);
+        fighter.Explore(2, travelCost);
+        cleric.Explore(2, travelCost + 1);
+        rogue.Explore(2, travelCost);
+        mage.Explore(2, travelCost + 1);
+        fighter.HitTrap(4, 0, 1);
+        if HasState(vanguardLinked, fighter, cleric)
+        {
+            fighter.effects.shield = fighter.effects.shield + self.vanguardBond.trustDelta;
+            cleric.effects.bless = cleric.effects.bless + self.fighterBlessing.moraleBoost;
+            trapLevel = Max(trapLevel - 1, 0);
+        }
+        cleric.DrinkPotion(3);
+        rogue.Fight(3, 2, 7);
+        mage.Fight(4, 3, 8);
+        if HasState(mageBlessed, mage)
+        {
+            mage.stats.focus = mage.stats.focus + self.mageBlessing.moraleBoost;
+            morale = morale + self.mageBlessing.moraleBoost;
+        }
+        morale = morale + 3;
+        if cleric.bond.affinity + fighter.bond.trust >= 8
+        {
+            cleric.BondEvent(2, 2);
+            fighter.BondEvent(1, 1);
+            fighter.effects.shield = fighter.effects.shield + 1;
+            affinityPulse = affinityPulse + 2;
+        }
+    }
+
+    func ResolveFloorThree(self, travelCost: Int, script: FloorScript) -> Void
+    {
+        stage = 3;
+        ApplyFloorScript(script);
+        fighter.Explore(3, travelCost);
+        cleric.Explore(3, travelCost + 1);
+        rogue.Explore(3, travelCost);
+        mage.Explore(3, travelCost + 2);
+        mage.HitTrap(5, 1, 2);
+        if HasState(shadowLinked, rogue, mage)
+        {
+            rogue.effects.bless = rogue.effects.bless + self.shadowBond.trustDelta;
+            mage.effects.shield = mage.effects.shield + 1;
+            routeSeed = routeSeed + 1;
+        }
+        fighter.Fight(5, 3, 9);
+        cleric.Fight(3, 2, 8);
+        rogue.Fight(4, 4, 9);
+        if HasState(fighterBlessed, fighter) && HasState(mageBlessed, mage)
+        {
+            morale = morale + self.fighterBlessing.moraleBoost + self.mageBlessing.moraleBoost;
+        }
+        morale = morale + 4;
+        if rogue.bond.affinity + mage.bond.affinity >= 10
+        {
+            rogue.BondEvent(2, 1);
+            mage.BondEvent(2, 1);
+            mage.effects.bless = mage.effects.bless + 1;
+            affinityPulse = affinityPulse + 3;
+        }
+    }
+
+    func PrepareDragon(self, script: DragonScript) -> Void
+    {
+        stage = 4;
+        floor = 4;
+        floorTitle = "DRAGON LAIR";
+        trapText = script.trapName;
+        monsterText = script.monsterName;
+        bondText = "dragon stand";
+        lootText = "wyrm hoard";
+        campText = script.epilogue;
+        dragonHp = 120;
+        dragonFlame = script.flame;
+        dragonArmor = script.armor;
+        fighter.effects.shield = fighter.effects.shield + 2;
+        cleric.effects.bless = cleric.effects.bless + 2;
+        rogue.effects.bless = rogue.effects.bless + 1;
+        mage.effects.bless = mage.effects.bless + 2;
+        if HasState(vanguardLinked, fighter, cleric)
+        {
+            dragonArmor = Max(dragonArmor - self.vanguardBond.trustDelta, 0);
+            morale = morale + self.vanguardBond.trustDelta;
+        }
+        if HasState(shadowLinked, rogue, mage)
+        {
+            dragonFlame = Max(dragonFlame - self.shadowBond.trustDelta, 0);
+            morale = morale + self.shadowBond.trustDelta;
+        }
+    }
+
+    func RunDragon(self, travelCost: Int, script: DragonScript) -> Void
+    {
+        fighter.Explore(4, travelCost);
+        cleric.Explore(4, travelCost + 1);
+        rogue.Explore(4, travelCost);
+        mage.Explore(4, travelCost + 1);
+
+        fighter.FaceDragon(7, 1, 12);
+        cleric.FaceDragon(5, 1, 11);
+        rogue.FaceDragon(6, 2, 12);
+        mage.FaceDragon(8, 2, 13);
+
+        dragonHp = Max(dragonHp - (fighter.CombatPower() + cleric.CombatPower() + rogue.CombatPower() + mage.CombatPower()
+            + self.fighterBlessing.moraleBoost + self.mageBlessing.moraleBoost + self.vanguardBond.trustDelta + self.shadowBond.trustDelta), 0);
+
+        if dragonHp > 35
+        {
+            dragonFlame = dragonFlame + 2;
+            fighter.FaceDragon(4, 1, 6);
+            cleric.DrinkPotion(4);
+            rogue.FaceDragon(3, 1, 6);
+            mage.FaceDragon(5, 2, 7);
+            dragonHp = Max(dragonHp - (fighter.CombatPower() + rogue.CombatPower() + mage.CombatPower()), 0);
+        }
+
+        if cleric.bond.affinity + fighter.bond.trust >= 10
+        {
+            cleric.BondEvent(2, 1);
+            fighter.BondEvent(1, 1);
+            fighter.effects.shield = fighter.effects.shield + 1;
+        }
+
+        if dragonHp > 0
+        {
+            dragonHp = Max(dragonHp - ((keyCount * 4) + affinityPulse + mage.effects.bless + rogue.stats.focus), 0);
+        }
+
+        if dragonHp == 0
+        {
+            victory = 1;
+            morale = morale + script.moraleBonus;
+        }
+        stage = 5;
+    }
+}

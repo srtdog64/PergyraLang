@@ -1,6 +1,8 @@
 static const char *infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr);
 static char *escape_c_string_literal(const char *src);
 static char *render_type_name(ASTNode *type_node);
+static bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node);
+static bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func);
 
 /* -----------------------------------------------------------------
  * CodeBuf
@@ -2720,6 +2722,64 @@ pergyra_ast_type_to_c(ASTNode *type_node)
     return mapped;
 }
 
+static bool
+transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    if (ctx == NULL || type_node == NULL)
+        return true;
+    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+        return true;
+
+    const char *name = type_node->data.type.name;
+    if (strcmp(name, "Int") == 0
+        || strcmp(name, "Float") == 0
+        || strcmp(name, "Bool") == 0
+        || strcmp(name, "String") == 0
+        || strcmp(name, "Char") == 0
+        || strcmp(name, "Byte") == 0
+        || strcmp(name, "Void") == 0
+        || strcmp(name, "Qubit") == 0)
+        return true;
+
+    if (strcmp(name, "Result") == 0
+        || strcmp(name, "Option") == 0
+        || strcmp(name, "Slot") == 0
+        || strcmp(name, "SecureSlot") == 0
+        || strcmp(name, "DeviceSlot") == 0
+        || strcmp(name, "RemoteFuture") == 0
+        || strcmp(name, "Array") == 0
+        || strcmp(name, "Slice") == 0
+        || strcmp(name, "Channel") == 0
+        || strcmp(name, "Box") == 0
+        || strcmp(name, "Rc") == 0
+        || strcmp(name, "Weak") == 0
+        || strcmp(name, "Future") == 0)
+        return true;
+
+    return find_class_decl(ctx, name) != NULL;
+}
+
+static bool
+transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
+{
+    if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
+        return false;
+    if (func->data.func_decl.generic_params != NULL
+        && func->data.func_decl.generic_params->count > 0)
+        return false;
+    if (!transpiler_can_forward_declare_type_early(ctx,
+            func->data.func_decl.return_type))
+        return false;
+    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
+        FuncParam *p = func->data.func_decl.params[i];
+        if (p == NULL || p->type == NULL)
+            continue;
+        if (!transpiler_can_forward_declare_type_early(ctx, p->type))
+            return false;
+    }
+    return true;
+}
+
 static void
 append_mangled_type_name(CodeBuf *buf, const char *type_name)
 {
@@ -2819,6 +2879,49 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
 static void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx);
+
+static void
+emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
+                                      bool pointer_self, CodeBuf *buf,
+                                      TranspilerCtx *ctx)
+{
+    if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
+        || method->type != AST_FUNC_DECL)
+        return;
+
+    const char *method_name = method->data.func_decl.name;
+    const char *ret_type = "void";
+    if (method_name == NULL)
+        return;
+    if (method->data.func_decl.return_type != NULL)
+        ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+    codebuf_write(buf, "\n%s\n%s_%s(%s%s",
+                  ret_type, host_name, method_name, host_name,
+                  pointer_self ? " *self" : " self");
+
+    for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+        FuncParam *p = method->data.func_decl.params[j];
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (strcmp(p->name, "self") == 0)
+            continue;
+
+        const char *pt = "int32_t";
+        if (p->type != NULL)
+            pt = pergyra_ast_type_to_c(p->type);
+        {
+            char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+            bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+            if (subj_param)
+                codebuf_write(buf, ", %s *%s", pt, p->name);
+            else
+                codebuf_write(buf, ", %s %s", pt, p->name);
+            free(ptn);
+        }
+    }
+    codebuf_write(buf, ");\n");
+}
 
 static const char *
 ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)

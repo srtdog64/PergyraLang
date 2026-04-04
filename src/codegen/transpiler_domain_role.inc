@@ -354,6 +354,11 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 
     /* Methods as free functions */
     for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.party_decl.methods[i], true, ctx->out, ctx);
+    }
+
+    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
         ASTNode *method = node->data.party_decl.methods[i];
         if (method->type != AST_FUNC_DECL)
             continue;
@@ -443,6 +448,11 @@ emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "} %s;\n", name);
 
     /* Methods */
+    for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.systemic_decl.methods[i], true, ctx->out, ctx);
+    }
+
     for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
         ASTNode *method = node->data.systemic_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;
@@ -563,6 +573,11 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
+
+    for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.relation_decl.methods[i], true, ctx->out, ctx);
+    }
 
     for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
         ASTNode *method = node->data.relation_decl.methods[i];
@@ -726,6 +741,11 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
+
+    for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.effect_decl.methods[i], true, ctx->out, ctx);
+    }
 
     for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
         ASTNode *method = node->data.effect_decl.methods[i];
@@ -1152,6 +1172,11 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 
     for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.zone_decl.methods[i], true, ctx->out, ctx);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
         ASTNode *method = node->data.zone_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;
 
@@ -1449,6 +1474,11 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 
     /* Methods */
+    for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+        emit_hosted_method_forward_decl_named(name,
+            node->data.world_decl.methods[i], true, ctx->out, ctx);
+    }
+
     for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
         ASTNode *method = node->data.world_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;

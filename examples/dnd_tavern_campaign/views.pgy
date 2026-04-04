@@ -1,0 +1,26 @@
+object HeroView
+{
+    let name: String;
+    let className: String;
+    let level: Int;
+    let hp: Int;
+    let stamina: Int;
+    let affinity: Int;
+    let poison: Int;
+    let burn: Int;
+    let bless: Int;
+    let shield: Int;
+}
+
+dto HeroPacket
+{
+    let name: String;
+    let className: String;
+    let level: Int;
+    let hp: Int;
+    let mana: Int;
+    let relics: Int;
+    let gold: Int;
+    let dragonWounds: Int;
+}
+

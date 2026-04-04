@@ -545,6 +545,66 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         ASTNode *object = callee->data.member.object;
         const char *method_name = callee->data.member.name;
 
+        if (object != NULL && method_name != NULL
+            && (strcmp(method_name, "Write") == 0
+                || strcmp(method_name, "Read") == 0
+                || strcmp(method_name, "Release") == 0)) {
+            Type *slot_type = type_check_expression(object, ctx);
+            if (slot_type != NULL && slot_type->kind == TYPE_KIND_SLOT) {
+                size_t orig_argc = expr->data.call.arg_count;
+                bool inject_token = false;
+                char token_name_buf[256];
+                ASTNode token_arg;
+                ASTNode *synthetic_args[4];
+                ASTNode fake_call;
+                size_t new_argc = 1 + orig_argc;
+
+                memset(&token_arg, 0, sizeof(token_arg));
+                memset(&fake_call, 0, sizeof(fake_call));
+
+                if (slot_type->data.slot.is_secure
+                    && object->type == AST_IDENTIFIER
+                    && object->data.identifier.name != NULL) {
+                    snprintf(token_name_buf, sizeof(token_name_buf), "%s_token",
+                        object->data.identifier.name);
+                    if ((strcmp(method_name, "Write") == 0 && orig_argc < 2)
+                        || ((strcmp(method_name, "Read") == 0
+                             || strcmp(method_name, "Release") == 0)
+                            && orig_argc < 1)) {
+                        inject_token = true;
+                        new_argc++;
+                        token_arg.type = AST_IDENTIFIER;
+                        token_arg.data.identifier.name = token_name_buf;
+                    }
+                }
+
+                if (new_argc <= sizeof(synthetic_args) / sizeof(synthetic_args[0])) {
+                    synthetic_args[0] = object;
+                    for (size_t i = 0; i < orig_argc; i++)
+                        synthetic_args[i + 1] = expr->data.call.arguments[i];
+                    if (inject_token)
+                        synthetic_args[new_argc - 1] = &token_arg;
+
+                    fake_call.type = AST_CALL;
+                    fake_call.line = expr->line;
+                    fake_call.column = expr->column;
+                    fake_call.data.call.callee = callee;
+                    fake_call.data.call.arguments = synthetic_args;
+                    fake_call.data.call.arg_count = new_argc;
+
+                    if (strcmp(method_name, "Write") == 0) {
+                        (void)type_check_write_slot(&fake_call, ctx);
+                        return TYPE_VOID;
+                    }
+                    if (strcmp(method_name, "Read") == 0)
+                        return type_check_read_slot(&fake_call, ctx);
+
+                    (void)type_check_release_slot(&fake_call, ctx);
+                    return TYPE_VOID;
+                }
+            }
+        }
+
         if (expr_is_static_member_access(callee)) {
             char *flat_name = flatten_static_member_access(callee, '_');
             char *display_name = flatten_static_member_access(callee, '.');

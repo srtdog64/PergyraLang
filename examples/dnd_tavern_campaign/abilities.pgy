@@ -1,0 +1,30 @@
+ability Striking
+{
+    require attack: Int;
+    func StrikeMark() -> String;
+}
+
+ability Healing
+{
+    require mana: Int;
+    func HealMark() -> String;
+}
+
+ability Scouting
+{
+    require focus: Int;
+    func ScoutMark() -> String;
+}
+
+ability Arcane
+{
+    require mana: Int;
+    func ArcaneMark() -> String;
+}
+
+ability Guarding
+{
+    require guard: Int;
+    func GuardMark() -> String;
+}
+

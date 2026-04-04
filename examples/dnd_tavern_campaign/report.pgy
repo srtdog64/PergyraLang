@@ -1,0 +1,10 @@
+func CampaignHeader() -> String
+{
+    return "=== DND TAVERN CAMPAIGN ===";
+}
+
+func CampaignSubtitle() -> String
+{
+    return "  tavern recruitment, 3-floor dungeon, affinity events, dragon boss";
+}
+

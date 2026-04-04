@@ -905,6 +905,13 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
         ASTNode *method = class_decl->data.class_decl.methods[i];
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
+        emit_hosted_method_forward_decl_named(spec_name, method, use_self_cell,
+                                              ctx->helpers, ctx);
+    }
+
+    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
+        ASTNode *method = class_decl->data.class_decl.methods[i];
+        bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         if (method->type != AST_FUNC_DECL)
             continue;
 
@@ -1012,6 +1019,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         name, name);
 
     /* Methods become free functions over a subject self-cell or class value. */
+    for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+        ASTNode *method = node->data.class_decl.methods[i];
+        bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
+        emit_hosted_method_forward_decl_named(name, method, use_self_cell,
+                                              ctx->out, ctx);
+    }
+
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
@@ -2290,6 +2304,13 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Pass 2.5: extern declarations */
     for (size_t i = 0; i < hir->extern_count; i++)
         emit_extern_block(hir->externs[i], ctx);
+
+    /* Pass 2.6: early forward declarations for standalone functions so
+     * class/domain hosted methods can call file-scope helpers declared later. */
+    for (size_t i = 0; i < hir->function_count; i++) {
+        if (transpiler_can_forward_declare_func_early(ctx, hir->functions[i]))
+            emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
+    }
 
     /* Pass 3: roles (vtable instances + free functions) */
     for (size_t i = 0; i < hir->role_count; i++)

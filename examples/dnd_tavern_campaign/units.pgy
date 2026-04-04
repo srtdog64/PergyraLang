@@ -1,0 +1,173 @@
+subject Adventurer
+{
+    let name: String;
+    let className: String;
+    let background: String;
+    let intro: String;
+    let crest: String;
+    let signature: String;
+    let seat: Int;
+    let recruited: Int;
+
+    vessel sheet: DndSheetVessel;
+    vessel stats: StatsVessel;
+    vessel bond: BondVessel;
+    vessel pack: PackVessel;
+    vessel effects: EffectVessel;
+    vessel quest: QuestVessel;
+
+    func StateLabel(self) -> String
+    {
+        if quest.state == 0 { return "idle"; }
+        if quest.state == 1 { return "talking"; }
+        if quest.state == 2 { return "delving"; }
+        if quest.state == 3 { return "trapped"; }
+        if quest.state == 4 { return "fighting"; }
+        if quest.state == 5 { return "bonding"; }
+        if quest.state == 6 { return "bossing"; }
+        if quest.state == 7 { return "recovering"; }
+        return "state?";
+    }
+
+    func FloorName(self, id: Int) -> String
+    {
+        if id == 0 { return "TAVERN"; }
+        if id == 1 { return "ROOT CELLAR"; }
+        if id == 2 { return "MIRROR HALL"; }
+        if id == 3 { return "ASH VAULT"; }
+        if id == 4 { return "DRAGON LAIR"; }
+        return "FLOOR?";
+    }
+
+    func CombatPower(self) -> Int
+    {
+        return stats.attack + stats.level + effects.bless + pack.bombs;
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " [" + className + "]"
+            + " crest=" + crest
+            + " state=" + StateLabel()
+            + " floor=" + FloorName(stats.floor)
+            + " sheet={" + sheet.Summary() + "}"
+            + " lv=" + ToString(stats.level)
+            + " hp=" + ToString(stats.hp)
+            + " mp=" + ToString(stats.mana)
+            + " sta=" + ToString(stats.stamina)
+            + " atk=" + ToString(stats.attack)
+            + " grd=" + ToString(stats.guard)
+            + " focus=" + ToString(stats.focus)
+            + " affinity=" + ToString(bond.affinity)
+            + " trust=" + ToString(bond.trust)
+            + " relics=" + ToString(pack.relics)
+            + " gold=" + ToString(pack.gold)
+            + " fx=" + ToString(effects.poison) + "/" + ToString(effects.burn) + "/" + ToString(effects.bless) + "/" + ToString(effects.shield)
+            + " dragon=" + ToString(quest.dragonWounds);
+    }
+
+    func CreationLine(self) -> String
+    {
+        return name
+            + " the " + className
+            + " from " + background
+            + " carries the " + crest
+            + " and favors " + signature;
+    }
+
+    func TavernPitch(self) -> String
+    {
+        return intro;
+    }
+
+    action Toast(self, rumorGain: Int, affinityGain: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(1);
+        bond.tavernTalks = bond.tavernTalks + 1;
+        bond.Warm(affinityGain, 1);
+        stats.focus = stats.focus + rumorGain;
+        effects.bless = effects.bless + 1;
+        quest.SetState(0);
+        return bond.affinity;
+    }
+
+    action Explore(self, floorId: Int, travelCost: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(2);
+        stats.floor = floorId;
+        quest.targetFloor = floorId;
+        stats.stamina = Max(stats.stamina - travelCost, 0);
+        stats.focus = stats.focus + 1;
+        effects.fear = Max(effects.fear - 1, 0);
+        quest.SetState(0);
+        return stats.stamina;
+    }
+
+    action HitTrap(self, severity: Int, poisonGain: Int, burnGain: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(3);
+        stats.Damage(severity);
+        effects.poison = effects.poison + poisonGain;
+        effects.burn = effects.burn + burnGain;
+        quest.trapsCleared = quest.trapsCleared + 1;
+        bond.Strain(1, 1);
+        quest.SetState(0);
+        return stats.hp;
+    }
+
+    action Fight(self, strain: Int, loot: Int, xpGain: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(4);
+        let protected = Max(strain - effects.shield, 0);
+        stats.Damage(protected);
+        pack.GainLoot(loot, loot + stats.level);
+        stats.GainXP(xpGain + effects.bless);
+        quest.monstersSlain = quest.monstersSlain + 1;
+        effects.ResetRound();
+        quest.SetState(0);
+        return stats.level;
+    }
+
+    action BondEvent(self, warmth: Int, trustGain: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(5);
+        bond.Warm(warmth, trustGain);
+        effects.bless = effects.bless + 1;
+        quest.SetState(0);
+        return bond.affinity;
+    }
+
+    action DrinkPotion(self, power: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(7);
+        if pack.SpendPotion(1) > 0
+        {
+            stats.Recover(power);
+            effects.poison = Max(effects.poison - 1, 0);
+            effects.burn = Max(effects.burn - 1, 0);
+        }
+        quest.SetState(0);
+        return stats.hp;
+    }
+
+    action FaceDragon(self, pressure: Int, burnGain: Int, xpGain: Int) -> Int
+        authorized by self
+    {
+        quest.SetState(6);
+        quest.dragonSeen = 1;
+        quest.dragonWounds = quest.dragonWounds + pressure;
+        stats.Damage(Max((pressure + burnGain) - effects.shield, 0));
+        effects.burn = effects.burn + burnGain;
+        stats.GainXP(xpGain);
+        quest.bossPhase = quest.bossPhase + 1;
+        quest.SetState(0);
+        return stats.hp;
+    }
+}

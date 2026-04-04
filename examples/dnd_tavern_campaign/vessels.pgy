@@ -1,0 +1,151 @@
+vessel StatsVessel
+{
+    level: Int;
+    xp: Int;
+    hp: Int;
+    mana: Int;
+    stamina: Int;
+    attack: Int;
+    guard: Int;
+    focus: Int;
+    floor: Int;
+
+    func GainXP(self, amount: Int) -> Int
+    {
+        xp = xp + amount;
+        while xp >= level * 6
+        {
+            xp = xp - (level * 6);
+            level = level + 1;
+            hp = hp + 4;
+            mana = mana + 2;
+            stamina = stamina + 2;
+            attack = attack + 1;
+            guard = guard + 1;
+            focus = focus + 1;
+        }
+        return level;
+    }
+
+    func Damage(self, amount: Int) -> Int
+    {
+        let reduced = Max(amount - guard, 0);
+        hp = Max(hp - reduced, 0);
+        return hp;
+    }
+
+    func Recover(self, amount: Int) -> Int
+    {
+        hp = Min(hp + amount, 32);
+        mana = Min(mana + amount, 24);
+        stamina = Min(stamina + amount, 24);
+        return hp;
+    }
+}
+
+vessel DndSheetVessel
+{
+    strength: Int;
+    dexterity: Int;
+    constitution: Int;
+    intelligence: Int;
+    wisdom: Int;
+    charisma: Int;
+
+    func Summary(self) -> String
+    {
+        return "STR=" + ToString(strength)
+            + " DEX=" + ToString(dexterity)
+            + " CON=" + ToString(constitution)
+            + " INT=" + ToString(intelligence)
+            + " WIS=" + ToString(wisdom)
+            + " CHA=" + ToString(charisma);
+    }
+}
+
+vessel BondVessel
+{
+    affinity: Int;
+    trust: Int;
+    courage: Int;
+    rivalry: Int;
+    tavernTalks: Int;
+
+    func Warm(self, affinityGain: Int, trustGain: Int) -> Int
+    {
+        affinity = affinity + affinityGain;
+        trust = trust + trustGain;
+        courage = courage + 1;
+        return affinity;
+    }
+
+    func Strain(self, rivalryGain: Int, courageLoss: Int) -> Int
+    {
+        rivalry = rivalry + rivalryGain;
+        courage = Max(courage - courageLoss, 0);
+        return rivalry;
+    }
+}
+
+vessel PackVessel
+{
+    potions: Int;
+    bombs: Int;
+    herbs: Int;
+    relics: Int;
+    gold: Int;
+    keys: Int;
+
+    func SpendPotion(self, amount: Int) -> Int
+    {
+        let spent = Min(potions, amount);
+        potions = Max(potions - spent, 0);
+        return spent;
+    }
+
+    func SpendBomb(self, amount: Int) -> Int
+    {
+        let spent = Min(bombs, amount);
+        bombs = Max(bombs - spent, 0);
+        return spent;
+    }
+
+    func GainLoot(self, relicGain: Int, goldGain: Int) -> Int
+    {
+        relics = relics + relicGain;
+        gold = gold + goldGain;
+        return relics;
+    }
+}
+
+vessel EffectVessel
+{
+    poison: Int;
+    burn: Int;
+    bless: Int;
+    shield: Int;
+    fear: Int;
+
+    func ResetRound(self) -> Void
+    {
+        bless = Max(bless - 1, 0);
+        shield = Max(shield - 1, 0);
+        fear = Max(fear - 1, 0);
+    }
+}
+
+vessel QuestVessel
+{
+    state: Int;
+    targetFloor: Int;
+    trapsCleared: Int;
+    monstersSlain: Int;
+    dragonSeen: Int;
+    dragonWounds: Int;
+    bossPhase: Int;
+
+    func SetState(self, nextState: Int) -> Void
+    {
+        state = nextState;
+    }
+}

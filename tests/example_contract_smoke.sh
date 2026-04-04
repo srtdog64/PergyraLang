@@ -2,7 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+DEFAULT_PGY="$ROOT_DIR/bin/pgy"
+TMP_PGY="/tmp/pgy-PergyraLang-bin/pgy"
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY="$PGY_BIN"
+elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
+    PGY="$TMP_PGY"
+else
+    PGY="$DEFAULT_PGY"
+fi
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -153,6 +161,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/raid_graph_fsm" "RAID GRAPH + FSM" "RAID TURN 1" "[Raider] Iris" "[Room] VAULT" "SAVING RAID REPORT"
     run_expect_lines "campaign_graph_fsm" "$backend" \
         "$ROOT_DIR/examples/campaign_graph_fsm" "PERGYRA CAMPAIGN GRAPH + FSM" "CAMPAIGN DAY 1" "[Watch] view Iris" "FINAL CAMPAIGN SNAPSHOT" "saving examples/campaign_graph_fsm/results.txt"
+    run_expect_lines "dnd_tavern_campaign" "$backend" \
+        "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \
@@ -163,6 +173,8 @@ run_stable_examples() {
         "$backend" "$ROOT_DIR/examples/raid_graph_fsm/results.txt" "RAID GRAPH FSM REPORT" "FORGE" "SANCTUM" "Iris relics="
     run_expect_file_lines "campaign_graph_fsm" \
         "$backend" "$ROOT_DIR/examples/campaign_graph_fsm/results.txt" "CAMPAIGN GRAPH FSM REPORT" "WATCH" "SUMMIT" "allViewsReady=true"
+    run_expect_file_lines "dnd_tavern_campaign" \
+        "$backend" "$ROOT_DIR/examples/dnd_tavern_campaign/results.txt" "DND TAVERN CAMPAIGN REPORT" "dragonHp=0 victory=1" "Ari [Vanguard]" "Sol [Mage]"
 }
 
 run_qubit_example() {

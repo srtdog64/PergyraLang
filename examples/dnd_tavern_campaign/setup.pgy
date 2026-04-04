@@ -1,0 +1,220 @@
+struct AdventurerSpec
+{
+    let name: String;
+    let className: String;
+    let background: String;
+    let intro: String;
+    let crest: String;
+    let signature: String;
+    let seat: Int;
+    let recruited: Int;
+    let sheet: DndSheetVessel;
+    let stats: StatsVessel;
+    let bond: BondVessel;
+    let pack: PackVessel;
+    let effects: EffectVessel;
+    let quest: QuestVessel;
+}
+
+func MakeStats(level: Int, hp: Int, mana: Int, stamina: Int, attack: Int, guard: Int, focus: Int) -> StatsVessel
+{
+    return StatsVessel(level, 0, hp, mana, stamina, attack, guard, focus, 0);
+}
+
+func RollDie(seed: Int, offset: Int) -> Int
+{
+    return 1 + (((seed * 7) + (offset * 5) + 11) % 6);
+}
+
+func RollStat(seed: Int, bias: Int) -> Int
+{
+    let a = RollDie(seed, 0);
+    let b = RollDie(seed, 1);
+    let c = RollDie(seed, 2);
+    let d = RollDie(seed, 3);
+    let low = Min(Min(a, b), Min(c, d));
+    return a + b + c + d - low + bias;
+}
+
+func MakeSheet(seed: Int, classCode: Int) -> DndSheetVessel
+{
+    let strength = RollStat(seed + 1, 0);
+    let dexterity = RollStat(seed + 5, 0);
+    let constitution = RollStat(seed + 9, 0);
+    let intelligence = RollStat(seed + 13, 0);
+    let wisdom = RollStat(seed + 17, 0);
+    let charisma = RollStat(seed + 21, 0);
+
+    if classCode == 0
+    {
+        return DndSheetVessel(strength + 2, dexterity, constitution + 1, intelligence, wisdom, charisma);
+    }
+    if classCode == 1
+    {
+        return DndSheetVessel(strength, dexterity, constitution, intelligence, wisdom + 2, charisma + 1);
+    }
+    if classCode == 2
+    {
+        return DndSheetVessel(strength, dexterity + 2, constitution, intelligence + 1, wisdom, charisma);
+    }
+    return DndSheetVessel(strength, dexterity, constitution, intelligence + 2, wisdom + 1, charisma);
+}
+
+func MakeStatsFromSheet(classCode: Int, sheet: DndSheetVessel) -> StatsVessel
+{
+    if classCode == 0
+    {
+        return MakeStats(1,
+            12 + sheet.constitution,
+            4 + sheet.wisdom / 2,
+            10 + sheet.dexterity / 2,
+            2 + sheet.strength / 3,
+            1 + sheet.constitution / 4,
+            1 + sheet.wisdom / 4);
+    }
+    if classCode == 1
+    {
+        return MakeStats(1,
+            10 + sheet.constitution,
+            8 + sheet.wisdom / 2 + sheet.charisma / 4,
+            8 + sheet.dexterity / 3,
+            1 + sheet.wisdom / 4,
+            1 + sheet.constitution / 5,
+            2 + sheet.wisdom / 3);
+    }
+    if classCode == 2
+    {
+        return MakeStats(1,
+            9 + sheet.constitution,
+            5 + sheet.intelligence / 3,
+            11 + sheet.dexterity / 2,
+            2 + sheet.dexterity / 3,
+            1 + sheet.dexterity / 5,
+            2 + sheet.intelligence / 4);
+    }
+    return MakeStats(1,
+        8 + sheet.constitution,
+        10 + sheet.intelligence / 2 + sheet.wisdom / 4,
+        8 + sheet.dexterity / 3,
+        2 + sheet.intelligence / 3,
+        sheet.constitution / 6,
+        2 + sheet.intelligence / 4);
+}
+
+func MakeBond(affinity: Int, trust: Int, courage: Int) -> BondVessel
+{
+    return BondVessel(affinity, trust, courage, 0, 0);
+}
+
+func MakePack(potions: Int, bombs: Int, herbs: Int) -> PackVessel
+{
+    return PackVessel(potions, bombs, herbs, 0, 0, 0);
+}
+
+func MakeEffects() -> EffectVessel
+{
+    return EffectVessel(0, 0, 0, 0, 0);
+}
+
+func MakeQuest() -> QuestVessel
+{
+    return QuestVessel(0, 0, 0, 0, 0, 0, 0);
+}
+
+func BuildHeroView(unit: Adventurer) -> HeroView
+{
+    return HeroView(
+        unit.name,
+        unit.className,
+        unit.stats.level,
+        unit.stats.hp,
+        unit.stats.stamina,
+        unit.bond.affinity,
+        unit.effects.poison,
+        unit.effects.burn,
+        unit.effects.bless,
+        unit.effects.shield
+    );
+}
+
+func BuildHeroPacket(unit: Adventurer) -> HeroPacket
+{
+    return HeroPacket(
+        unit.name,
+        unit.className,
+        unit.stats.level,
+        unit.stats.hp,
+        unit.stats.mana,
+        unit.pack.relics,
+        unit.pack.gold,
+        unit.quest.dragonWounds
+    );
+}
+
+func MakeHeroSpec(seed: Int) -> AdventurerSpec
+{
+    return BuildAdventurerSpec(HeroProfile(seed));
+}
+
+func MakeMiraSpec() -> AdventurerSpec
+{
+    return BuildAdventurerSpec(CompanionProfile(1));
+}
+
+func MakeNyxSpec() -> AdventurerSpec
+{
+    return BuildAdventurerSpec(CompanionProfile(2));
+}
+
+func MakeSolSpec() -> AdventurerSpec
+{
+    return BuildAdventurerSpec(CompanionProfile(3));
+}
+
+func BuildAdventurerSpec(profile: CharacterProfile) -> AdventurerSpec
+{
+    let template = TemplateForClass(profile.classCode);
+    let sheet = MakeSheet(profile.seed, profile.classCode);
+    return AdventurerSpec(
+        profile.name,
+        template.className,
+        profile.background,
+        profile.intro,
+        template.crest,
+        template.signature,
+        profile.seat,
+        1,
+        sheet,
+        MakeStatsFromSheet(profile.classCode, sheet),
+        MakeBond(profile.affinity, profile.trust, profile.courage),
+        MakePack(profile.potions, profile.bombs, profile.herbs),
+        MakeEffects(),
+        MakeQuest()
+    );
+}
+
+func BuildJourneyZone() -> JourneyZone
+{
+    let fighterSpec = MakeHeroSpec(13);
+    let clericSpec = MakeMiraSpec();
+    let rogueSpec = MakeNyxSpec();
+    let mageSpec = MakeSolSpec();
+
+    let fighter = Adventurer(fighterSpec.name, fighterSpec.className, fighterSpec.background, fighterSpec.intro, fighterSpec.crest, fighterSpec.signature, fighterSpec.seat, fighterSpec.recruited, fighterSpec.sheet, fighterSpec.stats, fighterSpec.bond, fighterSpec.pack, fighterSpec.effects, fighterSpec.quest);
+    let cleric = Adventurer(clericSpec.name, clericSpec.className, clericSpec.background, clericSpec.intro, clericSpec.crest, clericSpec.signature, clericSpec.seat, clericSpec.recruited, clericSpec.sheet, clericSpec.stats, clericSpec.bond, clericSpec.pack, clericSpec.effects, clericSpec.quest);
+    let rogue = Adventurer(rogueSpec.name, rogueSpec.className, rogueSpec.background, rogueSpec.intro, rogueSpec.crest, rogueSpec.signature, rogueSpec.seat, rogueSpec.recruited, rogueSpec.sheet, rogueSpec.stats, rogueSpec.bond, rogueSpec.pack, rogueSpec.effects, rogueSpec.quest);
+    let mage = Adventurer(mageSpec.name, mageSpec.className, mageSpec.background, mageSpec.intro, mageSpec.crest, mageSpec.signature, mageSpec.seat, mageSpec.recruited, mageSpec.sheet, mageSpec.stats, mageSpec.bond, mageSpec.pack, mageSpec.effects, mageSpec.quest);
+
+    return JourneyZone(
+        fighter,
+        cleric,
+        rogue,
+        mage,
+        BuildHeroView(fighter),
+        BuildHeroView(rogue),
+        BuildHeroPacket(cleric),
+        BuildHeroPacket(mage),
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        "TAVERN", "", "", "", "", ""
+    );
+}

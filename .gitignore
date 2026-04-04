@@ -12,6 +12,7 @@ examples/**/*.c
 examples/*.exe
 examples/**/*.exe
 examples/**/*.o
+examples/**/main
 
 # Example runtime output (regenerated on run)
 # Keep one representative scenario report tracked.

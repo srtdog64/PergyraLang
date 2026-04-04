@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- Regression-grade DND campaign scenario: `examples/dnd_tavern_campaign/`
+  with tavern recruitment, deterministic DND sheet/spec factories, a three-floor
+  dungeon, dragon boss resolution, transcript-first `results.txt`, and exact
+  stdout/results goldens in example smoke
 - `docs/testdoc/README.md` and `docs/testdoc/campaign_graph_fsm.md` to start a
   testdoc workflow where large scenarios are kept together with their design
   notes, discovered pain points, and exact regression coverage
@@ -44,6 +48,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- `examples/dnd_tavern_campaign/` now uses table/spec factories for class
+  flavor, tavern hooks, floor scripts, dragon epilogue text, and zone/world
+  morale tracking so the scenario reads more like a campaign transcript than a
+  constructor dump
+- `examples/dnd_tavern_campaign/` now also exercises `relation` / `effect`
+  runtime layers and world-visible `HasZoneLayer` / `HasZoneState` queries via
+  party-bond and battle-blessing campaign state
+- Those DND campaign layers now feed back into route pressure, trap pressure,
+  morale, and dragon preparation, so relation/effect runtime is no longer just
+  visible in reports but also changes scenario outcomes
+- The C backend now filters early standalone helper forward declarations to
+  signatures whose types are already known, fixing factory-style helpers such
+  as `BuildJourneyZone() -> JourneyZone` in large multi-file scenarios
+- Example smoke now prefers the newer `/tmp/pgy-PergyraLang-bin/pgy` build over
+  a stale repo-local `bin/pgy` unless `PGY_BIN` is explicitly set
 - LLVM world `all/any` derived-state queries now compose correctly for example
   scenarios such as `battle_simulator`
 - LLVM slot built-ins now use the stable `Write(slot, value)` / `Read(slot)`
@@ -182,6 +201,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - World-level cross-layer queries now lower to embedded zone runtime flags in both C and LLVM backends
 
 ### Fixed
+- The C backend now emits hosted method forward declarations for large host
+  declarations such as `class`, `party`, `systemic`, `relation`, `effect`,
+  `zone`, and `world`, so helper-order-sensitive scenario code no longer needs
+  manual source reordering just to compile
+- LLVM `ToString(Bool)` now widens bools before calling the integer-to-string
+  runtime helper, fixing verifier failures in the DND campaign and other
+  transcript-heavy scenarios
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite
 - Added missing `-lm` linkage in build/runtime native link paths so runtime math helpers link cleanly in tests and LLVM smoke
 

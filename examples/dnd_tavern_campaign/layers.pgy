@@ -1,0 +1,19 @@
+effect BattleBless for bearer: Adventurer
+{
+    shared moraleBoost: Int = 2
+
+    func Label(self) -> String
+    {
+        return bearer.name + " carries battle blessing(" + ToString(moraleBoost) + ")";
+    }
+}
+
+relation PartyBond for source: Adventurer, target: Adventurer
+{
+    shared trustDelta: Int = 1
+
+    func PairLabel(self) -> String
+    {
+        return source.name + " keeps faith with " + target.name + " (+" + ToString(trustDelta) + ")";
+    }
+}

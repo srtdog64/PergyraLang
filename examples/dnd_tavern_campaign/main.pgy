@@ -1,0 +1,29 @@
+import "common.pgy";
+import "tables.pgy";
+import "vessels.pgy";
+import "abilities.pgy";
+import "views.pgy";
+import "units.pgy";
+import "roles.pgy";
+import "layers.pgy";
+import "journey.pgy";
+import "world.pgy";
+import "setup.pgy";
+import "report.pgy";
+
+func Main() -> Void
+{
+    Log(CampaignHeader());
+    Log(CampaignSubtitle());
+
+    let journey = BuildJourneyZone();
+    let world = TavernCampaignWorld(journey, 0, 0, 0, 0, 2, 3, 4, 5, "");
+
+    world.RunCampaign();
+
+    Log("");
+    Log("=== FINAL PARTY SNAPSHOT ===");
+    world.LogSnapshot();
+    Log("saving examples/dnd_tavern_campaign/results.txt");
+    world.SaveReport("examples/dnd_tavern_campaign/results.txt");
+}

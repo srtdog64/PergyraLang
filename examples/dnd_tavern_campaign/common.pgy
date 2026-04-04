@@ -1,0 +1,44 @@
+func ClampStat(value: Int, maxValue: Int) -> Int
+{
+    return Min(Max(value, 0), maxValue);
+}
+
+func StageLabel(stage: Int) -> String
+{
+    if stage == 0 { return "TAVERN"; }
+    if stage == 1 { return "FLOOR1"; }
+    if stage == 2 { return "FLOOR2"; }
+    if stage == 3 { return "FLOOR3"; }
+    if stage == 4 { return "DRAGON"; }
+    if stage == 5 { return "DONE"; }
+    return "STAGE?";
+}
+
+func FloorLabel(floor: Int) -> String
+{
+    if floor == 0 { return "TAVERN"; }
+    if floor == 1 { return "ROOT CELLAR"; }
+    if floor == 2 { return "MIRROR HALL"; }
+    if floor == 3 { return "ASH VAULT"; }
+    if floor == 4 { return "DRAGON LAIR"; }
+    return "FLOOR?";
+}
+
+func RouteLabel(route: Int) -> String
+{
+    if route == 0 { return "ember stairs"; }
+    if route == 1 { return "root maze"; }
+    if route == 2 { return "glass bridge"; }
+    if route == 3 { return "obsidian lift"; }
+    return "route?";
+}
+
+func ClassIcon(name: String) -> String
+{
+    return "crest";
+}
+
+func DeterministicRoll(seed: Int, bias: Int) -> Int
+{
+    return ((seed * 3) + bias) % 5;
+}

@@ -1,0 +1,246 @@
+world TavernCampaignWorld
+{
+    zone journey: JourneyZone
+
+    shared day: Int = 0
+    shared fame: Int = 0
+    shared gold: Int = 0
+    shared omen: Int = 0
+    shared townToGate: Int = 2
+    shared floor1To2: Int = 3
+    shared floor2To3: Int = 4
+    shared floor3ToLair: Int = 5
+    shared transcript: String = ""
+
+    state partyViewsReady: zone journey projection fighterView
+    state packetsReady: zone journey projection clericPacket
+
+    activate journey
+
+    func CostTownToGate(self) -> Int
+    {
+        return townToGate + journey.tavernRumor + (((day + 1) * 3) + omen) % 5;
+    }
+
+    func CostFloorOneToTwo(self) -> Int
+    {
+        return floor1To2 + journey.trapLevel + journey.monsterLevel;
+    }
+
+    func CostFloorTwoToThree(self) -> Int
+    {
+        return floor2To3 + journey.threat + journey.affinityPulse;
+    }
+
+    func CostFloorThreeToLair(self) -> Int
+    {
+        return floor3ToLair + journey.keyCount + omen;
+    }
+
+    func Recount(self) -> Void
+    {
+        gold = journey.treasure
+            + journey.fighter.pack.gold
+            + journey.cleric.pack.gold
+            + journey.rogue.pack.gold
+            + journey.mage.pack.gold;
+
+        fame = journey.victory * 25
+            + journey.keyCount * 4
+            + journey.fighter.stats.level
+            + journey.cleric.stats.level
+            + journey.rogue.stats.level
+            + journey.mage.stats.level;
+    }
+
+    func StrategicLine(self) -> String
+    {
+        return "day=" + ToString(day)
+            + " omen=" + ToString(omen)
+            + " fame=" + ToString(fame)
+            + " gold=" + ToString(gold)
+            + " morale=" + ToString(journey.morale)
+            + " route=" + ToString(CostTownToGate()) + "/" + ToString(CostFloorOneToTwo()) + "/" + ToString(CostFloorTwoToThree()) + "/" + ToString(CostFloorThreeToLair());
+    }
+
+    func Record(self, line: String) -> Void
+    {
+        if StringLength(transcript) == 0
+        {
+            transcript = line;
+        }
+        else
+        {
+            transcript = transcript + "\n" + line;
+        }
+    }
+
+    func Broadcast(self, line: String) -> Void
+    {
+        Log(line);
+        Record(line);
+    }
+
+    func Blank(self) -> Void
+    {
+        Log("");
+        Record("");
+    }
+
+    func RunCampaign(self) -> Void
+    {
+        with slot<Int> as moraleLedger
+        {
+            let fighterCard = TavernCardForClass(0);
+            let clericCard = TavernCardForClass(1);
+            let rogueCard = TavernCardForClass(2);
+            let mageCard = TavernCardForClass(3);
+
+            Write(moraleLedger, 0);
+
+            Broadcast("== TAVERN NIGHT ==");
+            Broadcast("[Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.");
+            Broadcast("[Creation] " + journey.fighter.CreationLine());
+            Broadcast("[Hook] " + journey.fighter.TavernPitch());
+            Broadcast("[Creation] " + journey.fighter.name + " sheet " + journey.fighter.sheet.Summary());
+            Broadcast("[Creation] " + journey.cleric.CreationLine());
+            Broadcast("[Hook] " + journey.cleric.TavernPitch());
+            Broadcast("[Creation] " + journey.cleric.name + " sheet " + journey.cleric.sheet.Summary());
+            Broadcast("[Creation] " + journey.rogue.CreationLine());
+            Broadcast("[Hook] " + journey.rogue.TavernPitch());
+            Broadcast("[Creation] " + journey.rogue.name + " sheet " + journey.rogue.sheet.Summary());
+            Broadcast("[Creation] " + journey.mage.CreationLine());
+            Broadcast("[Hook] " + journey.mage.TavernPitch());
+            Broadcast("[Creation] " + journey.mage.name + " sheet " + journey.mage.sheet.Summary());
+            Broadcast("[Recruit] " + clericCard.bargain);
+            Broadcast("[Recruit] " + rogueCard.bargain);
+            Broadcast("[Recruit] " + mageCard.bargain);
+            Broadcast("[Tavern] " + fighterCard.opener);
+            Broadcast("[Tavern] " + clericCard.promise);
+            Broadcast("[Tavern] " + rogueCard.promise);
+            Broadcast("[Tavern] " + mageCard.promise);
+            journey.TavernScene(fighterCard, clericCard, rogueCard, mageCard);
+            day = 1;
+            omen = 1;
+            Recount();
+            Broadcast("[World] " + StrategicLine());
+            Broadcast("  [Fighter] " + journey.fighterView.name + " lv=" + ToString(journey.fighterView.level) + " aff=" + ToString(journey.fighterView.affinity));
+            Broadcast("  [MagePacket] " + journey.magePacket.name + " hp=" + ToString(journey.magePacket.hp) + " gold=" + ToString(journey.magePacket.gold));
+            Broadcast("  [Layers] bless=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, mageBlessing)) + " bonds=" + ToString(HasZoneLayer(journey, vanguardBond)) + "/" + ToString(HasZoneLayer(journey, shadowBond)));
+            Broadcast("  [States] bless=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, mageBlessed)) + " bond=" + ToString(HasZoneState(journey, vanguardLinked)) + "/" + ToString(HasZoneState(journey, shadowLinked)));
+            Broadcast("  [LayerText] " + journey.LayerReport());
+            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+            Broadcast("  [Objective] loot=" + journey.lootText);
+            Broadcast("  [Camp] " + journey.CampReport());
+
+            Blank();
+            Broadcast("== FLOOR 1 ==");
+            let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
+            journey.ResolveFloorOne(CostTownToGate() + floorOneScript.travelBias, floorOneScript);
+            day = 2;
+            omen = 2;
+            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
+            Recount();
+            Broadcast("[World] " + StrategicLine());
+            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+            Broadcast("  [Journey] " + journey.Snapshot());
+            Broadcast("  [LayerText] " + journey.LayerReport());
+            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+            Broadcast("  [Loot] " + journey.lootText + " secured");
+            Broadcast("  [Camp] " + journey.CampReport());
+
+            Blank();
+            Broadcast("== FLOOR 2 ==");
+            let floorTwoScript = FloorScriptFor(2, omen, journey.affinityPulse);
+            journey.ResolveFloorTwo(CostFloorOneToTwo() + floorTwoScript.travelBias, floorTwoScript);
+            day = 3;
+            omen = 3;
+            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
+            Recount();
+            Broadcast("[World] " + StrategicLine());
+            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+            Broadcast("  [Journey] " + journey.Snapshot());
+            Broadcast("  [LayerText] " + journey.LayerReport());
+            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+            Broadcast("  [Loot] " + journey.lootText + " secured");
+            Broadcast("  [Camp] " + journey.CampReport());
+
+            Blank();
+            Broadcast("== FLOOR 3 ==");
+            let floorThreeScript = FloorScriptFor(3, omen, journey.affinityPulse);
+            journey.ResolveFloorThree(CostFloorTwoToThree() + floorThreeScript.travelBias, floorThreeScript);
+            day = 4;
+            omen = 2;
+            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse);
+            Recount();
+            Broadcast("[World] " + StrategicLine());
+            Broadcast("  [Hazard] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+            Broadcast("  [Journey] " + journey.Snapshot());
+            Broadcast("  [LayerText] " + journey.LayerReport());
+            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+            Broadcast("  [Loot] " + journey.lootText + " secured");
+            Broadcast("  [Camp] " + journey.CampReport());
+
+            Blank();
+            Broadcast("== DRAGON LAIR ==");
+            let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
+            journey.PrepareDragon(dragonScript);
+            Broadcast("[Lair] " + dragonScript.battleCry);
+            journey.RunDragon(CostFloorThreeToLair(), dragonScript);
+            day = 5;
+            omen = 1;
+            Write(moraleLedger, Read(moraleLedger) + journey.affinityPulse + dragonScript.moraleBonus);
+            Recount();
+            Broadcast("[World] " + StrategicLine());
+            Broadcast("  [Boss] trap=" + journey.TrapName() + " monster=" + journey.MonsterName());
+            Broadcast("  [Journey] " + journey.Snapshot());
+            Broadcast("  [LayerText] " + journey.LayerReport());
+            Broadcast("  [Bond] event=" + journey.BondEventName() + " pulse=" + ToString(journey.affinityPulse));
+            Broadcast("  [Epilogue] " + journey.CampReport());
+            Broadcast("[Ledger] morale=" + ToString(Read(moraleLedger)));
+        }
+    }
+
+    func LogSnapshot(self) -> Void
+    {
+        Log(StrategicLine());
+        Record(StrategicLine());
+        Log("ready=" + ToString(HasZoneProjection(journey, fighterView)) + "/" + ToString(HasZoneProjection(journey, clericPacket)));
+        Record("ready=" + ToString(HasZoneProjection(journey, fighterView)) + "/" + ToString(HasZoneProjection(journey, clericPacket)));
+        Log("layers=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, vanguardBond)));
+        Record("layers=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, vanguardBond)));
+        Log("states=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, vanguardLinked)));
+        Record("states=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, vanguardLinked)));
+        Log("layer_text=" + journey.LayerReport());
+        Record("layer_text=" + journey.LayerReport());
+        Log("fighter: " + journey.fighter.Summary());
+        Record("fighter: " + journey.fighter.Summary());
+        Log("cleric: " + journey.cleric.Summary());
+        Record("cleric: " + journey.cleric.Summary());
+        Log("rogue: " + journey.rogue.Summary());
+        Record("rogue: " + journey.rogue.Summary());
+        Log("mage: " + journey.mage.Summary());
+        Record("mage: " + journey.mage.Summary());
+    }
+
+    func SaveReport(self, path: String) -> Void
+    {
+        WriteFile(path,
+            "=== DND TAVERN CAMPAIGN REPORT ===\n"
+            + StrategicLine() + "\n"
+            + "partyViewsReady=" + ToString(HasZoneProjection(journey, fighterView)) + "\n"
+            + "packetsReady=" + ToString(HasZoneProjection(journey, clericPacket)) + "\n\n"
+            + "layers=" + ToString(HasZoneLayer(journey, fighterBlessing)) + "/" + ToString(HasZoneLayer(journey, vanguardBond)) + "\n"
+            + "states=" + ToString(HasZoneState(journey, fighterBlessed)) + "/" + ToString(HasZoneState(journey, vanguardLinked)) + "\n\n"
+            + "layer_text=" + journey.LayerReport() + "\n\n"
+            + "--- TRANSCRIPT ---\n"
+            + transcript + "\n\n"
+            + "--- JOURNEY ---\n"
+            + journey.Snapshot() + "\n"
+            + journey.fighter.Summary() + "\n"
+            + journey.cleric.Summary() + "\n"
+            + journey.rogue.Summary() + "\n"
+            + journey.mage.Summary() + "\n"
+        );
+    }
+}
