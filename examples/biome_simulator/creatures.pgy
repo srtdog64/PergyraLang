@@ -42,6 +42,18 @@ vessel Traits
     }
 }
 
+vessel HabitatState
+{
+    grass: Int;
+    brush: Int;
+    berries: Int;
+    water: Int;
+    shelter: Int;
+    blight: Int;
+    migrationPressure: Int;
+    dayCount: Int;
+}
+
 subject Creature
 {
     let name: String;
@@ -173,6 +185,9 @@ object CreatureView
     energy: Int;
     hunger: Int;
     alertness: Int;
+    age: Int;
+    fatigue: Int;
+    metabolism: Int;
 }
 
 dto CreaturePacket
@@ -182,4 +197,6 @@ dto CreaturePacket
     niche: String;
     energy: Int;
     hunger: Int;
+    stress: Int;
+    resilience: Int;
 }

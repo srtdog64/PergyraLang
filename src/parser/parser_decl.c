@@ -95,9 +95,36 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
 Token
 consume_name_token(Parser* parser, const char* message)
 {
-    if (parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_SLOT))
+    if (parser_check_name_token(parser))
         return parser_advance(parser);
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
+}
+
+bool
+parser_check_name_token(Parser *parser)
+{
+    if (parser == NULL)
+        return false;
+
+    switch (parser->current_token.type) {
+    case TOKEN_IDENTIFIER:
+    case TOKEN_SLOT:
+    case TOKEN_CLASS:
+    case TOKEN_STRUCT:
+    case TOKEN_ACTOR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool
+parser_match_name_token(Parser *parser)
+{
+    if (!parser_check_name_token(parser))
+        return false;
+    parser_advance(parser);
+    return true;
 }
 
 // ============= 제네릭 파싱 =============
@@ -267,7 +294,7 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             mode = PARAM_MODE_REF;
 
         // 파라미터 이름
-        Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
+        Token param_name = consume_name_token(parser, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);

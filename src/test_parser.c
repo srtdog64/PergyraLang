@@ -810,6 +810,13 @@ main(void)
             1
         },
         {
+            "Domain Keywords As Parameters",
+            "func Main(world: Int, actor: Int, subject: Int) -> Void {\n"
+            "    Log(world + actor + subject);\n"
+            "}",
+            1
+        },
+        {
             "Relation Declaration",
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
@@ -869,6 +876,16 @@ main(void)
             "    }\n"
             "}",
             1
+        },
+        {
+            "Zone Declaration With Vessel Slot",
+            "vessel HabitatState {\n"
+            "    current: Int;\n"
+            "}\n"
+            "zone MeadowZone {\n"
+            "    vessel slot habitat: HabitatState = HabitatState(3)\n"
+            "}\n",
+            2
         },
         {
             "Actor Declaration",

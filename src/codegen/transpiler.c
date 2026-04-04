@@ -468,6 +468,118 @@ find_class_field_decl(ASTNode *decl, const char *field_name)
     return NULL;
 }
 
+static size_t
+projection_source_field_count_local(ASTNode *decl)
+{
+    if (decl == NULL)
+        return 0;
+    if (decl->type == AST_CLASS_DECL)
+        return decl->data.class_decl.field_count;
+    if (decl->type == AST_ACTOR_DECL)
+        return decl->data.actor_decl.field_count;
+    return 0;
+}
+
+static ClassField *
+projection_source_field_at_local(ASTNode *decl, size_t index)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        if (index < decl->data.class_decl.field_count)
+            return decl->data.class_decl.fields[index];
+        return NULL;
+    }
+    if (decl->type == AST_ACTOR_DECL) {
+        if (index < decl->data.actor_decl.field_count)
+            return decl->data.actor_decl.fields[index];
+        return NULL;
+    }
+    return NULL;
+}
+
+static int
+resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
+                                   const char *field_name, unsigned depth,
+                                   char **path_out)
+{
+    size_t field_count;
+    int match_count = 0;
+    char *resolved_path = NULL;
+
+    if (path_out != NULL)
+        *path_out = NULL;
+    if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+        return 0;
+
+    field_count = projection_source_field_count_local(source_decl);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at_local(source_decl, i);
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            if (path_out != NULL)
+                *path_out = pergyra_strdup(field_name);
+            return 1;
+        }
+    }
+
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at_local(source_decl, i);
+        ASTNode *vessel_decl;
+        char *nested_path = NULL;
+        char *prefixed_path;
+        int nested_status;
+
+        if (field == NULL || !field->is_vessel_field
+            || field->type == NULL || field->type->type != AST_TYPE
+            || field->type->data.type.name == NULL) {
+            continue;
+        }
+
+        vessel_decl = find_class_decl(ctx, field->type->data.type.name);
+        if (vessel_decl == NULL
+            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            continue;
+        }
+
+        nested_status = resolve_projection_source_path_rec(
+            ctx, vessel_decl, field_name, depth + 1, &nested_path);
+        if (nested_status != 1) {
+            if (nested_path != NULL)
+                free(nested_path);
+            if (nested_status == 2)
+                match_count = 2;
+            continue;
+        }
+
+        prefixed_path = strdup_fmt("%s.%s", field->name, nested_path);
+        free(nested_path);
+        if (prefixed_path == NULL)
+            continue;
+
+        match_count++;
+        if (match_count == 1) {
+            resolved_path = prefixed_path;
+        } else {
+            free(prefixed_path);
+            free(resolved_path);
+            resolved_path = NULL;
+        }
+    }
+
+    if (match_count == 1) {
+        if (path_out != NULL)
+            *path_out = resolved_path;
+        else
+            free(resolved_path);
+        return 1;
+    }
+
+    if (resolved_path != NULL)
+        free(resolved_path);
+    return match_count > 1 ? 2 : 0;
+}
+
 static bool
 is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 {
@@ -1490,22 +1602,25 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
-        ClassField *source_field;
+        char *source_path = NULL;
+        int source_status;
 
         if (target_field == NULL || target_field->name == NULL)
             continue;
 
-        source_field = find_class_field_decl(source_decl, target_field->name);
+        source_status = resolve_projection_source_path_rec(
+            ctx, source_decl, target_field->name, 0, &source_path);
         if (!first)
             codebuf_write(buf, ", ");
         first = false;
 
-        if (source_field != NULL) {
+        if (source_status == 1 && source_path != NULL) {
             codebuf_write(buf, ".%s = %s.%s",
-                target_field->name, source_expr, target_field->name);
+                target_field->name, source_expr, source_path);
         } else {
             codebuf_write(buf, ".%s = 0", target_field->name);
         }
+        free(source_path);
     }
 
     codebuf_write(buf, " }");
@@ -1516,7 +1631,7 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 }
 
 static char *
-emit_projection_literal(ASTNode *target_decl, ASTNode *source_decl,
+emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *source_decl,
                         const char *target_type_name, const char *source_expr)
 {
     CodeBuf *buf;
@@ -1533,22 +1648,25 @@ emit_projection_literal(ASTNode *target_decl, ASTNode *source_decl,
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
-        ClassField *source_field;
+        char *source_path = NULL;
+        int source_status;
 
         if (target_field == NULL || target_field->name == NULL)
             continue;
 
-        source_field = find_class_field_decl(source_decl, target_field->name);
+        source_status = resolve_projection_source_path_rec(
+            ctx, source_decl, target_field->name, 0, &source_path);
         if (!first)
             codebuf_write(buf, ", ");
         first = false;
 
-        if (source_field != NULL) {
+        if (source_status == 1 && source_path != NULL) {
             codebuf_write(buf, ".%s = %s.%s",
-                target_field->name, source_expr, target_field->name);
+                target_field->name, source_expr, source_path);
         } else {
             codebuf_write(buf, ".%s = 0", target_field->name);
         }
+        free(source_path);
     }
 
     codebuf_write(buf, " }");
@@ -8039,7 +8157,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
-            literal = emit_projection_literal(target_decl, source_decl,
+            literal = emit_projection_literal(ctx, target_decl, source_decl,
                 target_type_name, source_expr);
             free(source_expr);
         }
@@ -8169,7 +8287,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
-            literal = emit_projection_literal(target_decl, source_decl,
+            literal = emit_projection_literal(ctx, target_decl, source_decl,
                 target_type_name, source_expr);
             free(source_expr);
         }
@@ -8328,7 +8446,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
-            literal = emit_projection_literal(target_decl, source_decl,
+            literal = emit_projection_literal(ctx, target_decl, source_decl,
                 target_type_name, source_expr);
             free(source_expr);
         }

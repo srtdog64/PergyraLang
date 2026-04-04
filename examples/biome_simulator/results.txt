@@ -1,17 +1,23 @@
 === BIOME SIMULATION FINAL REPORT ===
 season: 2
-migration: 0
+migration: -1801803552
+projection_ready: false
+packet_ready: false
 
 --- MEADOW ---
-plants: grass=18 brush=7 berry=18
-Swift Hare E:30 H:1
-Red Deer E:30 H:1
-Boar E:30 H:1
+plants: grass=20 brush=11 berry=9
+Swift Hare E:30 H:4
+browserView fatigue=1 age=0 metabolism=2
+predatorPacket stress=1 resilience=3
+Red Deer E:30 H:4
+Boar E:30 H:2
 Grey Wolf E:30 H:1
 
 --- GROVE ---
-plants: grass=14 brush=7 berry=18
-Field Mouse E:30 H:1
-Elk E:30 H:1
+plants: grass=13 brush=14 berry=10
+Field Mouse E:30 H:5
+browserView fatigue=1 age=0 metabolism=2
+predatorPacket stress=1 resilience=3
+Elk E:30 H:3
 Badger E:30 H:1
 Lynx E:30 H:1

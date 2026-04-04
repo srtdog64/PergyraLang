@@ -24,6 +24,8 @@ WhereClause    *parse_where_clause(Parser *parser);
 ASTNode        *parse_type(Parser *parser);
 ASTNode        *parse_type_constraint(Parser *parser);
 void            skip_generic_arguments(Parser *parser);
+bool            parser_check_name_token(Parser *parser);
+bool            parser_match_name_token(Parser *parser);
 Token           consume_name_token(Parser *parser, const char *message);
 void            parser_collect_doc_comments(Parser *parser);
 void            parser_discard_pending_doc_comment(Parser *parser);

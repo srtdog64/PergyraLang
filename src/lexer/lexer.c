@@ -361,7 +361,12 @@ Token lexer_next_token(Lexer* lexer) {
             }
             return make_token(lexer, TOKEN_DOT, start, 1);
         case ';': return make_token(lexer, TOKEN_SEMICOLON, start, 1);
-        case ':': return make_token(lexer, TOKEN_COLON, start, 1);
+        case ':':
+            if (peek(lexer) == '=') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_COLON_ASSIGN, start, 2);
+            }
+            return make_token(lexer, TOKEN_COLON, start, 1);
         case '+':
             if (peek(lexer) == '=') {
                 advance(lexer);
@@ -541,6 +546,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_DOT: return ".";
         case TOKEN_COMMA: return ",";
         case TOKEN_COLON: return ":";
+        case TOKEN_COLON_ASSIGN: return ":=";
         case TOKEN_SEMICOLON: return ";";
         case TOKEN_LPAREN: return "(";
         case TOKEN_RPAREN: return ")";

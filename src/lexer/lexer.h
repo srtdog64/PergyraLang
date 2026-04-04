@@ -148,6 +148,7 @@ typedef enum
     TOKEN_DOT,          /* . */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */
+    TOKEN_COLON_ASSIGN, /* := */
     TOKEN_SEMICOLON,    /* ; */
     
     /* Delimiters */

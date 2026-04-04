@@ -80,6 +80,7 @@ struct Symbol
     uint32_t   decl_col;
     bool       is_used;
     bool       is_consumed;
+    bool       embedded_in_world;
 
     /* Slot-specific metadata */
     struct

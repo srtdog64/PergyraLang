@@ -514,6 +514,7 @@ ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject) {
     node->data.domain_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.domain_slot.type = NULL;
     node->data.domain_slot.is_subject = is_subject;
+    node->data.domain_slot.is_vessel = false;
     node->data.domain_slot.is_dto = false;
     node->data.domain_slot.is_binding = is_subject;
     node->data.domain_slot.initializer = NULL;
@@ -2877,7 +2878,8 @@ void ast_print(ASTNode* node, int indent) {
         case AST_DOMAIN_SLOT:
             printf("%sSlot: %s",
                    node->data.domain_slot.is_subject ? "Subject"
-                   : (node->data.domain_slot.is_dto ? "Dto" : "Object"),
+                   : (node->data.domain_slot.is_vessel ? "Vessel"
+                      : (node->data.domain_slot.is_dto ? "Dto" : "Object")),
                    node->data.domain_slot.slot_name);
             if (node->data.domain_slot.type != NULL) {
                 printf(": ");

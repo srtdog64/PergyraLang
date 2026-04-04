@@ -339,6 +339,104 @@ decl_is_subject_nominal(ASTNode *decl)
 }
 
 static size_t
+projection_source_field_count_local(ASTNode *decl)
+{
+    if (decl == NULL)
+        return 0;
+    if (decl->type == AST_CLASS_DECL)
+        return decl->data.class_decl.field_count;
+    if (decl->type == AST_ACTOR_DECL)
+        return decl->data.actor_decl.field_count;
+    return 0;
+}
+
+static ClassField *
+projection_source_field_at_local(ASTNode *decl, size_t index)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        if (index < decl->data.class_decl.field_count)
+            return decl->data.class_decl.fields[index];
+        return NULL;
+    }
+    if (decl->type == AST_ACTOR_DECL) {
+        if (index < decl->data.actor_decl.field_count)
+            return decl->data.actor_decl.fields[index];
+        return NULL;
+    }
+    return NULL;
+}
+
+static int
+resolve_projection_source_field_type_rec(ASTNode *program,
+                                         ASTNode *source_decl,
+                                         const char *field_name,
+                                         unsigned depth,
+                                         SemanticContext *ctx,
+                                         Type **field_type_out)
+{
+    size_t field_count;
+    int match_count = 0;
+    Type *resolved_type = NULL;
+
+    if (field_type_out != NULL)
+        *field_type_out = NULL;
+    if (program == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+        return 0;
+
+    field_count = projection_source_field_count_local(source_decl);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at_local(source_decl, i);
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            if (field_type_out != NULL)
+                *field_type_out = field->type != NULL
+                    ? resolve_type_node(field->type, ctx)
+                    : TYPE_UNKNOWN;
+            return 1;
+        }
+    }
+
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at_local(source_decl, i);
+        ASTNode *vessel_decl;
+        Type *nested_type = NULL;
+        int nested_status;
+
+        if (field == NULL || !field->is_vessel_field
+            || field->type == NULL || field->type->type != AST_TYPE
+            || field->type->data.type.name == NULL) {
+            continue;
+        }
+
+        vessel_decl = find_named_class_decl(program, field->type->data.type.name);
+        if (vessel_decl == NULL || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL)
+            continue;
+
+        nested_status = resolve_projection_source_field_type_rec(
+            program, vessel_decl, field_name, depth + 1, ctx, &nested_type);
+        if (nested_status == 1) {
+            match_count++;
+            if (match_count == 1)
+                resolved_type = nested_type;
+            else
+                resolved_type = NULL;
+        } else if (nested_status == 2) {
+            match_count = 2;
+            resolved_type = NULL;
+        }
+    }
+
+    if (match_count == 1) {
+        if (field_type_out != NULL)
+            *field_type_out = resolved_type;
+        return 1;
+    }
+    return match_count > 1 ? 2 : 0;
+}
+
+static size_t
 subject_host_field_count(ASTNode *decl)
 {
     if (decl == NULL)
@@ -2209,25 +2307,18 @@ type_check_projection_call(ASTNode *call,
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
-        ClassField *source_field;
         Type *target_field_type;
         Type *source_field_type;
+        int source_status;
 
         if (target_field == NULL || target_field->name == NULL
             || target_field->type == NULL) {
             continue;
         }
 
-        source_field = NULL;
-        for (size_t j = 0; j < subject_host_field_count(source_decl); j++) {
-            ClassField *candidate = subject_host_field_at(source_decl, j);
-            if (candidate != NULL && candidate->name != NULL
-                && strcmp(candidate->name, target_field->name) == 0) {
-                source_field = candidate;
-                break;
-            }
-        }
-        if (source_field == NULL || source_field->type == NULL) {
+        source_status = resolve_projection_source_field_type_rec(
+            ctx->program_root, source_decl, target_field->name, 0, ctx, &source_field_type);
+        if (source_status == 0 || source_field_type == NULL) {
             semantic_error(ctx, call,
                 "%s target field '%s' is missing from source subject '%s'",
                 builtin_name,
@@ -2235,9 +2326,16 @@ type_check_projection_call(ASTNode *call,
                 source_type->name != NULL ? source_type->name : "<unknown>");
             continue;
         }
+        if (source_status == 2) {
+            semantic_error(ctx, call,
+                "%s target field '%s' is ambiguous in source subject '%s'; rename the field or expose it directly on the host",
+                builtin_name,
+                target_field->name,
+                source_type->name != NULL ? source_type->name : "<unknown>");
+            continue;
+        }
 
         target_field_type = resolve_type_node(target_field->type, ctx);
-        source_field_type = resolve_type_node(source_field->type, ctx);
         require_assignable(source_field_type, target_field_type, call, ctx);
     }
 

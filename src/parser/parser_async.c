@@ -13,7 +13,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
     parser_consume(parser, TOKEN_FUNC, "Expected 'func' after 'async'");
     
     // Function name
-    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected function name");
+    Token name = consume_name_token(parser, "Expected function name");
     
     // Create async function node
     ASTNode* func = ast_create_async_function(name.text, true);
@@ -31,7 +31,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
     
     // Parse parameters (similar to regular function)
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-        Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
+        Token param_name = consume_name_token(parser, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);
@@ -110,7 +110,7 @@ parse_actor_body(Parser *parser, ASTNode *actor)
             parser_advance(parser);
 
             // Field
-            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected field name");
+            Token field_name = consume_name_token(parser, "Expected field name");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
             ASTNode* field_type = parse_type(parser);
 
@@ -173,7 +173,7 @@ ASTNode* parser_parse_actor_declaration_with_name(Parser* parser, const char* na
 ASTNode* parser_parse_actor_declaration(Parser* parser)
 {
     // 'actor' keyword already consumed
-    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected actor name");
+    Token name = consume_name_token(parser, "Expected actor name");
     return parser_parse_actor_declaration_with_name(parser, name.text, false);
 }
 
@@ -310,7 +310,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
                 case_node = ast_create_channel_recv(channel);
             } else {
                 // Receive with assignment: case val = <-channel:
-                Token var_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name");
+                Token var_name = consume_name_token(parser, "Expected variable name");
 
                 if (parser_match(parser, TOKEN_ASSIGN)) {
                     parser_consume(parser, TOKEN_CHANNEL_OP, "Expected '<-' in select case");

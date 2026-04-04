@@ -8,6 +8,7 @@ zone MeadowZone
     subject slot browser: Creature
     subject slot forager: Creature
     subject slot predator: Creature
+    vessel slot habitat: HabitatState = HabitatState(16, 10, 8, 6, 5, 1, 0, 0)
     object slot grazerView: CreatureView
     object slot browserView: CreatureView
     object slot predatorView: CreatureView
@@ -21,60 +22,52 @@ zone MeadowZone
     publish browserPacket from browser by predator
     publish foragerPacket from forager by predator
     publish predatorPacket from predator by predator
-    shared grass: Int = 16
-    shared brush: Int = 10
-    shared berries: Int = 8
-    shared water: Int = 6
-    shared shelter: Int = 5
-    shared blight: Int = 1
-    shared migrationPressure: Int = 0
-    shared dayCount: Int = 0
 
     func PlantMass(self) -> Int
     {
-        return grass + brush + berries;
+        return habitat.grass + habitat.brush + habitat.berries;
     }
 
     func ConsumePlant(self, demand: Int, browseBias: Int) -> Int
     {
         let taken = 0;
-        let grassTake = Min(grass, demand);
-        grass = Max(grass - grassTake, 0);
+        let grassTake = Min(habitat.grass, demand);
+        habitat.grass = Max(habitat.grass - grassTake, 0);
         taken = taken + grassTake;
         let remaining = Max(demand - grassTake, 0);
-        let brushTake = Min(brush, remaining + browseBias);
-        brush = Max(brush - brushTake, 0);
+        let brushTake = Min(habitat.brush, remaining + browseBias);
+        habitat.brush = Max(habitat.brush - brushTake, 0);
         taken = taken + brushTake;
         let remainingAfterBrush = Max(remaining - brushTake, 0);
-        let berryTake = Min(berries, remainingAfterBrush);
-        berries = Max(berries - berryTake, 0);
+        let berryTake = Min(habitat.berries, remainingAfterBrush);
+        habitat.berries = Max(habitat.berries - berryTake, 0);
         taken = taken + berryTake;
         return taken;
     }
 
     func WeatherPulse(self, seasonPulse: Int, storm: Int) -> Int
     {
-        return Max(blight + storm - water + seasonPulse, 0);
+        return Max(habitat.blight + storm - habitat.water + seasonPulse, 0);
     }
 
     func RecoverPlants(self, seasonPulse: Int, storm: Int) -> Void
     {
-        let grassGrowth = Max(seasonPulse + water - blight, 0);
-        let brushGrowth = Max(seasonPulse + shelter - blight, 0);
-        let berryGrowth = Max(storm + water - blight - 1, 0);
-        grass = Min(grass + grassGrowth, 30);
-        brush = Min(brush + brushGrowth, 24);
-        berries = Min(berries + berryGrowth, 18);
-        water = Min(water + Max(storm - blight, 0), 16);
+        let grassGrowth = Max(seasonPulse + habitat.water - habitat.blight, 0);
+        let brushGrowth = Max(seasonPulse + habitat.shelter - habitat.blight, 0);
+        let berryGrowth = Max(storm + habitat.water - habitat.blight - 1, 0);
+        habitat.grass = Min(habitat.grass + grassGrowth, 30);
+        habitat.brush = Min(habitat.brush + brushGrowth, 24);
+        habitat.berries = Min(habitat.berries + berryGrowth, 18);
+        habitat.water = Min(habitat.water + Max(storm - habitat.blight, 0), 16);
     }
 
     func Tick(self, seasonPulse: Int, storm: Int) -> Void
     {
-        dayCount = dayCount + 1;
+        habitat.dayCount = habitat.dayCount + 1;
 
-        let beforeGrass = grass;
-        let beforeBrush = brush;
-        let beforeBerries = berries;
+        let beforeGrass = habitat.grass;
+        let beforeBrush = habitat.brush;
+        let beforeBerries = habitat.berries;
 
         // -- FORAGING PHASE --
         let grazerDemand = grazer.ForageNeed();
@@ -86,13 +79,13 @@ zone MeadowZone
         let foragerDemand = forager.ForageNeed();
         let foragerTaken = ConsumePlant(foragerDemand, forager.BrowseBias());
 
-        let moisture = water + shelter;
+        let moisture = habitat.water + habitat.shelter;
         let grazerGain = grazer.Graze(grazerTaken, moisture);
         let browserGain = browser.Graze(browserTaken, moisture);
 
         // -- HUNT PHASE --
         let preyOpen = grazer.Exposure() + browser.Exposure() + forager.Exposure();
-        let huntPressure = predator.Hunt(preyOpen, brush + shelter);
+        let huntPressure = predator.Hunt(preyOpen, habitat.brush + habitat.shelter);
 
         let grazerLoss = Min(grazer.energy, huntPressure + 1);
         let browserLoss = Min(browser.energy, Max(huntPressure - 1, 0));
@@ -111,17 +104,17 @@ zone MeadowZone
         let grazerDrain = grazer.WeatherStress(weather);
         let browserDrain = browser.WeatherStress(weather);
         let foragerDrain = forager.WeatherStress(Max(weather - 1, 0));
-        let predatorDrain = predator.WeatherStress(Max(weather - shelter, 0));
+        let predatorDrain = predator.WeatherStress(Max(weather - habitat.shelter, 0));
 
         // -- REST PHASE --
-        let grazerRest = grazer.Rest(shelter, water);
-        let browserRest = browser.Rest(shelter + 1, water);
-        let foragerRest = forager.Rest(shelter, water + berries);
-        let predatorRest = predator.Rest(shelter + brush, water);
+        let grazerRest = grazer.Rest(habitat.shelter, habitat.water);
+        let browserRest = browser.Rest(habitat.shelter + 1, habitat.water);
+        let foragerRest = forager.Rest(habitat.shelter, habitat.water + habitat.berries);
+        let predatorRest = predator.Rest(habitat.shelter + habitat.brush, habitat.water);
 
         // -- REGROWTH --
         RecoverPlants(seasonPulse, storm);
-        migrationPressure = Max(
+        habitat.migrationPressure = Max(
             grazer.hunger + browser.hunger + forager.hunger + predator.hunger - PlantMass(),
             0
         );
@@ -134,14 +127,14 @@ zone MeadowZone
         Log("  [Hunt]   " + grazer.species + " lost " + ToString(grazerLoss) + "E | " + browser.species + " lost " + ToString(browserLoss) + "E");
         Log("  [Weather] severity=" + ToString(weather) + " drain: " + ToString(grazerDrain + browserDrain + foragerDrain + predatorDrain));
         Log("  [Rest]   recovery: " + ToString(grazerRest + browserRest + foragerRest + predatorRest));
-        Log("  [Plants] grass:" + ToString(beforeGrass) + "->" + ToString(grass) + " brush:" + ToString(beforeBrush) + "->" + ToString(brush) + " berry:" + ToString(beforeBerries) + "->" + ToString(berries));
+        Log("  [Plants] grass:" + ToString(beforeGrass) + "->" + ToString(habitat.grass) + " brush:" + ToString(beforeBrush) + "->" + ToString(habitat.brush) + " berry:" + ToString(beforeBerries) + "->" + ToString(habitat.berries));
         Log(grazer.StatusLine());
         Log(browser.StatusLine());
         Log(forager.StatusLine());
         Log(predator.StatusLine());
-        if migrationPressure > 0
+        if habitat.migrationPressure > 0
         {
-            Log("  ** Migration pressure: " + ToString(migrationPressure));
+            Log("  ** Migration pressure: " + ToString(habitat.migrationPressure));
         }
     }
 }
@@ -209,7 +202,7 @@ world BiomeWorld
             Log("  -- GROVE --");
             grove.Tick(Max(pulse - 1, 0), groveStorm);
 
-            totalMigration = meadow.migrationPressure + grove.migrationPressure;
+            totalMigration = meadow.habitat.migrationPressure + grove.habitat.migrationPressure;
 
             Log("");
             Log("  [World] Total migration pressure: " + ToString(totalMigration));
@@ -250,14 +243,23 @@ world BiomeWorld
         FileWrite(fd, "=== BIOME SIMULATION FINAL REPORT ===\n");
         FileWrite(fd, "season: " + ToString(seasonIndex) + "\n");
         FileWrite(fd, "migration: " + ToString(totalMigration) + "\n");
+        if HasZone(allProjectionReady) { FileWrite(fd, "projection_ready: true\n"); }
+        else { FileWrite(fd, "projection_ready: false\n"); }
+        if HasZone(anyPacketReady) { FileWrite(fd, "packet_ready: true\n"); }
+        else { FileWrite(fd, "packet_ready: false\n"); }
         FileWrite(fd, "\n");
 
         FileWrite(fd, "--- MEADOW ---\n");
-        FileWrite(fd, "plants: grass="); FileWrite(fd, ToString(meadow.grass));
-        FileWrite(fd, " brush="); FileWrite(fd, ToString(meadow.brush));
-        FileWrite(fd, " berry="); FileWrite(fd, ToString(meadow.berries)); FileWrite(fd, "\n");
+        FileWrite(fd, "plants: grass="); FileWrite(fd, ToString(meadow.habitat.grass));
+        FileWrite(fd, " brush="); FileWrite(fd, ToString(meadow.habitat.brush));
+        FileWrite(fd, " berry="); FileWrite(fd, ToString(meadow.habitat.berries)); FileWrite(fd, "\n");
         FileWrite(fd, meadow.grazer.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(meadow.grazer.energy));
         FileWrite(fd, " H:"); FileWrite(fd, ToString(meadow.grazer.hunger)); FileWrite(fd, "\n");
+        FileWrite(fd, "browserView fatigue="); FileWrite(fd, ToString(meadow.browserView.fatigue));
+        FileWrite(fd, " age="); FileWrite(fd, ToString(meadow.browserView.age));
+        FileWrite(fd, " metabolism="); FileWrite(fd, ToString(meadow.browserView.metabolism)); FileWrite(fd, "\n");
+        FileWrite(fd, "predatorPacket stress="); FileWrite(fd, ToString(meadow.predatorPacket.stress));
+        FileWrite(fd, " resilience="); FileWrite(fd, ToString(meadow.predatorPacket.resilience)); FileWrite(fd, "\n");
         FileWrite(fd, meadow.browser.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(meadow.browser.energy));
         FileWrite(fd, " H:"); FileWrite(fd, ToString(meadow.browser.hunger)); FileWrite(fd, "\n");
         FileWrite(fd, meadow.forager.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(meadow.forager.energy));
@@ -267,11 +269,16 @@ world BiomeWorld
         FileWrite(fd, "\n");
 
         FileWrite(fd, "--- GROVE ---\n");
-        FileWrite(fd, "plants: grass="); FileWrite(fd, ToString(grove.grass));
-        FileWrite(fd, " brush="); FileWrite(fd, ToString(grove.brush));
-        FileWrite(fd, " berry="); FileWrite(fd, ToString(grove.berries)); FileWrite(fd, "\n");
+        FileWrite(fd, "plants: grass="); FileWrite(fd, ToString(grove.habitat.grass));
+        FileWrite(fd, " brush="); FileWrite(fd, ToString(grove.habitat.brush));
+        FileWrite(fd, " berry="); FileWrite(fd, ToString(grove.habitat.berries)); FileWrite(fd, "\n");
         FileWrite(fd, grove.grazer.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(grove.grazer.energy));
         FileWrite(fd, " H:"); FileWrite(fd, ToString(grove.grazer.hunger)); FileWrite(fd, "\n");
+        FileWrite(fd, "browserView fatigue="); FileWrite(fd, ToString(grove.browserView.fatigue));
+        FileWrite(fd, " age="); FileWrite(fd, ToString(grove.browserView.age));
+        FileWrite(fd, " metabolism="); FileWrite(fd, ToString(grove.browserView.metabolism)); FileWrite(fd, "\n");
+        FileWrite(fd, "predatorPacket stress="); FileWrite(fd, ToString(grove.predatorPacket.stress));
+        FileWrite(fd, " resilience="); FileWrite(fd, ToString(grove.predatorPacket.resilience)); FileWrite(fd, "\n");
         FileWrite(fd, grove.browser.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(grove.browser.energy));
         FileWrite(fd, " H:"); FileWrite(fd, ToString(grove.browser.hunger)); FileWrite(fd, "\n");
         FileWrite(fd, grove.forager.name); FileWrite(fd, " E:"); FileWrite(fd, ToString(grove.forager.energy));
@@ -301,19 +308,19 @@ func Main() -> Void
         Creature("Badger", "Badger", "forager", 9, 4, 6, Cycle(0, 1, 1), Traits(2, 3, 1, 2, 5, 3, 2)),
         Creature("Lynx", "Lynx", "predator", 11, 6, 9, Cycle(0, 1, 1), Traits(1, 0, 5, 2, 3, 5, 2))
     );
-    meadow.grass = 20;
-    meadow.brush = 11;
-    meadow.berries = 9;
-    meadow.water = 7;
-    meadow.shelter = 5;
-    meadow.blight = 1;
+    meadow.habitat.grass = 20;
+    meadow.habitat.brush = 11;
+    meadow.habitat.berries = 9;
+    meadow.habitat.water = 7;
+    meadow.habitat.shelter = 5;
+    meadow.habitat.blight = 1;
 
-    grove.grass = 13;
-    grove.brush = 14;
-    grove.berries = 10;
-    grove.water = 6;
-    grove.shelter = 7;
-    grove.blight = 2;
+    grove.habitat.grass = 13;
+    grove.habitat.brush = 14;
+    grove.habitat.berries = 10;
+    grove.habitat.water = 6;
+    grove.habitat.shelter = 7;
+    grove.habitat.blight = 2;
 
     let biomeWorld = BiomeWorld(meadow, grove);
     biomeWorld.Simulate();

@@ -225,7 +225,7 @@ ASTNode* parser_parse_call(Parser* parser) {
                    strcmp(parser->current_token.text, ".") == 0) {
             parser_advance(parser);
             // 멤버 접근
-            Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected property name after '.'");
+            Token name = consume_name_token(parser, "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
             // 배열 인덱싱
@@ -277,7 +277,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
         && parser->current_token.length == 1
         && strcmp(parser->current_token.text, ".") == 0) {
         parser_advance(parser);
-        Token variant = parser_consume(parser, TOKEN_IDENTIFIER,
+        Token variant = consume_name_token(parser,
             "Expected variant name after '.'");
         if (strcmp(variant.text, "None") == 0) {
             ASTNode *callee = ast_create_identifier(variant.text);
@@ -430,7 +430,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
     }
 
     // 식별자 또는 슬롯 연산
-    if (parser_match(parser, TOKEN_IDENTIFIER) || parser_match(parser, TOKEN_SLOT)) {
+    if (parser_match_name_token(parser)) {
         char* name = pergyra_strdup(parser->previous_token.text);
 
         if ((strcmp(name, "ClaimSlot") == 0 ||
@@ -488,7 +488,7 @@ ASTNode* parse_lambda_expression(Parser* parser) {
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' before lambda parameters");
 
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-        Token param_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
+        Token param_name = consume_name_token(parser, "Expected parameter name");
 
         ASTNode* param = ast_create_identifier(param_name.text);
 

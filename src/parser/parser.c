@@ -42,6 +42,25 @@ Token parser_advance(Parser* parser) {
     return parser->previous_token;
 }
 
+// 다음 토큰 미리보기 (non-destructive lookahead)
+Token parser_peek_next(Parser* parser) {
+    /* Save lexer state */
+    const char *saved_current = parser->lexer->current;
+    size_t saved_pos = parser->lexer->position;
+    uint32_t saved_line = parser->lexer->line;
+    uint32_t saved_col = parser->lexer->column;
+
+    Token next = lexer_next_token(parser->lexer);
+
+    /* Restore lexer state */
+    parser->lexer->current = saved_current;
+    parser->lexer->position = saved_pos;
+    parser->lexer->line = saved_line;
+    parser->lexer->column = saved_col;
+
+    return next;
+}
+
 // 토큰 타입 확인
 bool parser_check(Parser* parser, TokenType type) {
     return parser->current_token.type == type;
@@ -755,6 +774,34 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parser_parse_let_declaration(parser));
     }
 
+    // := 단축 선언: name := expr
+    // Consume identifier speculatively, check for :=, rewind if not
+    if (parser_check(parser, TOKEN_IDENTIFIER)) {
+        Token saved = parser->current_token;
+        Token saved_prev = parser->previous_token;
+        const char *lx_saved = parser->lexer->current;
+        size_t lx_pos = parser->lexer->position;
+        uint32_t lx_line = parser->lexer->line;
+        uint32_t lx_col = parser->lexer->column;
+
+        parser_advance(parser);  // consume identifier
+        if (parser_check(parser, TOKEN_COLON_ASSIGN)) {
+            parser_advance(parser);  // consume :=
+            ASTNode *init = parser_parse_expression(parser);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after := declaration");
+            ASTNode *let_node = ast_create_let_declaration(saved.text);
+            let_node->data.let_decl.initializer = init;
+            return let_node;
+        }
+        // Rewind — not a := declaration
+        parser->current_token = saved;
+        parser->previous_token = saved_prev;
+        parser->lexer->current = lx_saved;
+        parser->lexer->position = lx_pos;
+        parser->lexer->line = lx_line;
+        parser->lexer->column = lx_col;
+    }
+
     // with 문
     if (parser_match(parser, TOKEN_WITH)) {
         return parser_finalize_statement(parser, parser_parse_with_statement(parser));
@@ -952,7 +999,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         node->data.let_destructure.initializer = NULL;
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-            Token var = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name in destructuring");
+            Token var = consume_name_token(parser, "Expected variable name in destructuring");
             size_t n = ++node->data.let_destructure.name_count;
             node->data.let_destructure.names = realloc(
                 node->data.let_destructure.names, n * sizeof(char *));
@@ -1021,7 +1068,7 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
 
     // as 변수명
     parser_consume(parser, TOKEN_AS, "Expected 'as' in with statement");
-    Token alias = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name after 'as'");
+    Token alias = consume_name_token(parser, "Expected variable name after 'as'");
     with_stmt->data.with_stmt.alias = pergyra_strdup(alias.text);
 
     // 블록

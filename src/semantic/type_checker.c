@@ -15,6 +15,22 @@
 
 #define INITIAL_DIAG_CAPACITY 16
 
+/* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
+static char *
+tc_strdup_fmt(const char *fmt, ...)
+{
+    va_list ap, ap2;
+    va_start(ap, fmt);
+    va_copy(ap2, ap);
+    int len = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+    if (len < 0) { va_end(ap2); return NULL; }
+    char *buf = malloc((size_t)len + 1);
+    if (buf != NULL) vsnprintf(buf, (size_t)len + 1, fmt, ap2);
+    va_end(ap2);
+    return buf;
+}
+
 /* -----------------------------------------------------------------
  * Context lifecycle
  * ----------------------------------------------------------------- */
@@ -188,6 +204,49 @@ static bool
 name_looks_qualified(const char *name)
 {
     return name != NULL && strchr(name, '.') != NULL;
+}
+
+static const char *
+root_identifier_name(ASTNode *expr)
+{
+    if (expr == NULL)
+        return NULL;
+
+    switch (expr->type) {
+    case AST_IDENTIFIER:
+        return expr->data.identifier.name;
+    case AST_MEMBER_ACCESS:
+        return root_identifier_name(expr->data.member.object);
+    case AST_ARRAY_ACCESS:
+        return root_identifier_name(expr->data.array_access.array);
+    default:
+        return NULL;
+    }
+}
+
+static void
+warn_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
+                                     ASTNode *target, const char *op_name)
+{
+    const char *root_name;
+    Symbol *root_sym;
+
+    if (ctx == NULL || site == NULL || target == NULL || op_name == NULL)
+        return;
+    if (ctx->current_world != NULL)
+        return;
+
+    root_name = root_identifier_name(target);
+    if (root_name == NULL)
+        return;
+
+    root_sym = scope_lookup(ctx->scope, root_name);
+    if (root_sym == NULL || !root_sym->embedded_in_world)
+        return;
+
+    semantic_warning(ctx, site,
+        "Zone '%s' is being mutated via %s after it was embedded into a world value; prefer configuring zones first or mutating them through the owning world",
+        root_name, op_name);
 }
 
 static uint32_t
@@ -590,6 +649,119 @@ projection_source_field_at(ASTNode *decl, size_t index)
         return NULL;
     }
     return NULL;
+}
+
+static int
+resolve_projection_source_field_path_rec(ASTNode *program_root,
+                                         ASTNode *source_decl,
+                                         const char *field_name,
+                                         unsigned depth,
+                                         SemanticContext *ctx,
+                                         char **path_out,
+                                         Type **field_type_out)
+{
+    size_t field_count;
+    int match_count = 0;
+    char *resolved_path = NULL;
+    Type *resolved_type = NULL;
+
+    if (path_out != NULL)
+        *path_out = NULL;
+    if (field_type_out != NULL)
+        *field_type_out = NULL;
+
+    if (program_root == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+        return 0;
+
+    field_count = projection_source_field_count(source_decl);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at(source_decl, i);
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            if (path_out != NULL)
+                *path_out = pergyra_strdup(field_name);
+            if (field_type_out != NULL)
+                *field_type_out = field->type != NULL
+                    ? resolve_type_node(field->type, ctx)
+                    : TYPE_UNKNOWN;
+            return 1;
+        }
+    }
+
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = projection_source_field_at(source_decl, i);
+        ASTNode *vessel_decl;
+        char *nested_path = NULL;
+        Type *nested_type = NULL;
+        char *prefixed_path;
+        int nested_status;
+
+        if (field == NULL || !field->is_vessel_field
+            || field->name == NULL || field->type == NULL
+            || field->type->type != AST_TYPE
+            || field->type->data.type.name == NULL) {
+            continue;
+        }
+
+        vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
+        if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
+            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            continue;
+        }
+
+        nested_status = resolve_projection_source_field_path_rec(
+            program_root, vessel_decl, field_name, depth + 1, ctx,
+            &nested_path, &nested_type);
+        if (nested_status != 1) {
+            if (nested_path != NULL)
+                free(nested_path);
+            if (nested_status == 2)
+                match_count = 2;
+            continue;
+        }
+
+        prefixed_path = tc_strdup_fmt("%s.%s", field->name, nested_path);
+        free(nested_path);
+        if (prefixed_path == NULL)
+            continue;
+
+        match_count++;
+        if (match_count == 1) {
+            resolved_path = prefixed_path;
+            resolved_type = nested_type;
+        } else {
+            free(prefixed_path);
+            free(resolved_path);
+            resolved_path = NULL;
+            resolved_type = NULL;
+        }
+    }
+
+    if (match_count == 1) {
+        if (path_out != NULL)
+            *path_out = resolved_path;
+        else
+            free(resolved_path);
+        if (field_type_out != NULL)
+            *field_type_out = resolved_type;
+        return 1;
+    }
+
+    if (resolved_path != NULL)
+        free(resolved_path);
+    return match_count > 1 ? 2 : 0;
+}
+
+static int
+resolve_projection_source_field_path(ASTNode *program_root,
+                                     ASTNode *source_decl,
+                                     const char *field_name,
+                                     SemanticContext *ctx,
+                                     char **path_out,
+                                     Type **field_type_out)
+{
+    return resolve_projection_source_field_path_rec(program_root, source_decl,
+        field_name, 0, ctx, path_out, field_type_out);
 }
 
 static Type *
@@ -1283,6 +1455,25 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 field_name != NULL ? field_name : "<field>",
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
+                        }
+                        if (sym->kind == SYMBOL_WORLD
+                            && field_type != NULL
+                            && field_type->kind == TYPE_KIND_CLASS
+                            && expr->data.call.arguments[i] != NULL
+                            && expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                            Symbol *arg_sym = scope_lookup(ctx->scope,
+                                expr->data.call.arguments[i]->data.identifier.name);
+                            if (arg_sym != NULL && arg_sym->kind == SYMBOL_VARIABLE
+                                && arg_sym->type != NULL
+                                && arg_sym->type->kind == TYPE_KIND_CLASS
+                                && field_type->name != NULL
+                                && arg_sym->type->name != NULL
+                                && strcmp(field_type->name, arg_sym->type->name) == 0) {
+                                ASTNode *zone_decl = constructor_decl_for_symbol_kind(
+                                    ctx->program_root, SYMBOL_ZONE, field_type->name);
+                                if (zone_decl != NULL)
+                                    arg_sym->embedded_in_world = true;
+                            }
                         }
                     }
                 } else {
@@ -2192,6 +2383,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
               && object->data.identifier.name != NULL
               && object->data.identifier.name[0] >= 'A'
               && object->data.identifier.name[0] <= 'Z')) {
+            warn_if_embedded_world_zone_mutation(ctx, expr, object, "hosted func/action call");
             /* Resolve object type for normal method calls.
              * Namespace/static-style calls like Math.Add are lowered later. */
             Type *object_type = type_check_expression(object, ctx);
@@ -2317,6 +2509,8 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
+    warn_if_embedded_world_zone_mutation(ctx, expr,
+        expr->data.assignment.target, "assignment");
     Type *value_type  = type_check_expression(expr->data.assignment.value,  ctx);
     Type *target_type = type_check_expression(expr->data.assignment.target, ctx);
 
@@ -3483,6 +3677,19 @@ type_check_domain_slots(ASTNode **slots,
                 "%s subject slot '%s' requires a subject type",
                 kind_name,
                 slot->data.domain_slot.slot_name);
+        } else if (slot->data.domain_slot.is_vessel) {
+            ASTNode *slot_decl = NULL;
+            if (slot_type != NULL && slot_type->kind == TYPE_KIND_CLASS
+                && slot_type->name != NULL) {
+                slot_decl = find_type_decl_by_name(ctx->program_root, slot_type->name);
+            }
+            if (slot_decl == NULL || slot_decl->type != AST_CLASS_DECL
+                || slot_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+                semantic_error(ctx, slot,
+                    "%s vessel slot '%s' requires a vessel type",
+                    kind_name,
+                    slot->data.domain_slot.slot_name);
+            }
         }
     }
 
@@ -4005,7 +4212,8 @@ type_check_projection_contract(ASTNode **slots,
     if (object_slot == NULL || source_slot == NULL || ctx == NULL)
         return false;
 
-    if (object_slot->data.domain_slot.is_subject) {
+    if (object_slot->data.domain_slot.is_subject
+        || object_slot->data.domain_slot.is_vessel) {
         semantic_error(ctx, site,
             "%s %s target slot '%s' must be an object/dto slot",
             owner_label, action_name,
@@ -4078,25 +4286,20 @@ type_check_projection_contract(ASTNode **slots,
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
-        ClassField *source_field;
         Type *target_field_type;
         Type *source_field_type;
+        char *source_path = NULL;
+        int source_status;
 
         if (target_field == NULL || target_field->name == NULL
             || target_field->type == NULL) {
             continue;
         }
 
-        source_field = NULL;
-        for (size_t j = 0; j < projection_source_field_count(source_decl); j++) {
-            ClassField *candidate = projection_source_field_at(source_decl, j);
-            if (candidate != NULL && candidate->name != NULL
-                && strcmp(candidate->name, target_field->name) == 0) {
-                source_field = candidate;
-                break;
-            }
-        }
-        if (source_field == NULL || source_field->type == NULL) {
+        source_status = resolve_projection_source_field_path(
+            ctx->program_root, source_decl, target_field->name, ctx,
+            &source_path, &source_field_type);
+        if (source_status == 0 || source_field_type == NULL) {
             semantic_error(ctx, site,
                 "%s %s target field '%s' is missing from source slot '%s'",
                 owner_label, action_name,
@@ -4104,10 +4307,18 @@ type_check_projection_contract(ASTNode **slots,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
             continue;
         }
+        if (source_status == 2) {
+            semantic_error(ctx, site,
+                "%s %s target field '%s' is ambiguous in source slot '%s'; rename the field or expose it through a dedicated object/dto field",
+                owner_label, action_name,
+                target_field->name,
+                source_slot_name != NULL ? source_slot_name : "<unknown>");
+            continue;
+        }
 
         target_field_type = resolve_type_node(target_field->type, ctx);
-        source_field_type = resolve_type_node(source_field->type, ctx);
         require_assignable(source_field_type, target_field_type, site, ctx);
+        free(source_path);
     }
 
     return true;

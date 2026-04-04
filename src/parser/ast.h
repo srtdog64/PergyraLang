@@ -800,6 +800,7 @@ struct ASTNode
             char* slot_name;
             ASTNode* type;
             bool is_subject;
+            bool is_vessel;
             bool is_dto;
             bool is_binding;
             ASTNode* initializer;
