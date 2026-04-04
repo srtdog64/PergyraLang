@@ -1519,6 +1519,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             type_check_expression(expr->data.call.arguments[0], ctx);
         return TYPE_INT;
     }
+    if (strcmp(name, "SeedRandom") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_INT, expr->data.call.arguments[0], ctx);
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return TYPE_VOID;
+    }
     if (strcmp(name, "ArrayLength") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;

@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added `effect pool <name>: <EffectType> capacity <N>` zone syntax with parser/semantic/C transpile support for fixed-capacity effect instancing.
+- Added C backend `HasLayer(...)` helper lowering with automatic zone rdlock wrapping and generation stale-warning checks.
+- Added multithreaded zone layer stress coverage to `test_concurrency`.
+
 ### Added
 - `OpenTavernCampaign()` factory entry for `examples/dnd_tavern_campaign/` so
   the scenario now opens through a place/campaign builder instead of spelling a
@@ -51,6 +55,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- `examples/dnd_tavern_campaign/` now emits a denser GM-style transcript with
+  explicit state-entry/state-exit markers, six scene beats per phase, five
+  node/event beats per floor, and more detailed skirmish/boss round logging
+- DND transcript helpers now key class-sensitive flavor text off stable class
+  codes instead of comparing strings to literals in generated C, eliminating
+  backend warnings from the richer story/combat logging path
 - C domain/world constructor lowering now preserves omitted `shared` default
   initializers in generated compound literals, fixing `fsm_factory` parity for
   `gridNoise` and related world-shared defaults

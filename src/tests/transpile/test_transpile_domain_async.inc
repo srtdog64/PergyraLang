@@ -360,7 +360,8 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__layer_active_poison = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.bearer = self->player;");
         EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(&self->poison);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__layer_active_poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_log(BattleZone_has_layer_poison(self, __pgy_zone_gen));");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

@@ -1,4 +1,5 @@
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 200809L
+#define PGY_ZONE_THREADSAFE 1
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,6 +40,9 @@ sleep_ms(long ms)
 
 static atomic_int active_workers;
 static atomic_int max_active_workers;
+static atomic_int zone_reads;
+static atomic_int zone_true_reads;
+static atomic_int zone_false_reads;
 
 static void
 record_parallelism(int current)
@@ -188,6 +192,137 @@ test_async_task_cancel_propagates_to_spawned_children(void)
     EXPECT(pgy_await_take(parent, int32_t) == 17);
 }
 
+typedef struct {
+    int32_t target;
+} StressDamageEffect;
+
+typedef struct {
+    struct {
+        StressDamageEffect items[8];
+        bool active[8];
+        uint8_t count;
+        uint8_t cap;
+    } damage;
+    bool __layer_active_damage;
+    PGY_ZONE_LOCK_FIELD
+    PGY_ZONE_GENERATION_FIELD
+} StressZone;
+
+static inline void
+StressZone_init(StressZone *self)
+{
+    memset(self, 0, sizeof(*self));
+    PGY_ZONE_LOCK_INIT(self);
+    PGY_EFFECT_POOL_INIT(self->damage);
+}
+
+static inline void
+StressZone_destroy(StressZone *self)
+{
+    PGY_ZONE_LOCK_DESTROY(self);
+}
+
+static inline void
+StressZone_sync(StressZone *self, int tick)
+{
+    StressDamageEffect effect = { .target = tick };
+
+    PGY_ZONE_WRLOCK(self);
+    PGY_ZONE_GENERATION_INC(self);
+    PGY_EFFECT_POOL_INIT(self->damage);
+    if ((tick % 3) != 0)
+        PGY_EFFECT_POOL_APPLY(self->damage, effect);
+    self->__layer_active_damage = PGY_EFFECT_POOL_ACTIVE_COUNT(self->damage) > 0;
+    PGY_ZONE_UNLOCK(self);
+}
+
+static inline bool
+StressZone_has_layer_damage(StressZone *self, uint32_t expected_gen)
+{
+    bool result;
+    PGY_ZONE_RDLOCK(self);
+    PGY_ZONE_GENERATION_WARN_IF_STALE(self, expected_gen, "StressZone.damage");
+    result = self->__layer_active_damage;
+    PGY_ZONE_UNLOCK(self);
+    return result;
+}
+
+typedef struct {
+    StressZone *zone;
+    int loops;
+} StressZoneTaskArgs;
+
+static void *
+stress_zone_writer(void *arg)
+{
+    StressZoneTaskArgs *args = (StressZoneTaskArgs *)arg;
+    for (int i = 0; i < args->loops; i++) {
+        StressZone_sync(args->zone, i);
+        if ((i % 32) == 0)
+            sleep_ms(1);
+    }
+    return NULL;
+}
+
+static void *
+stress_zone_reader(void *arg)
+{
+    StressZoneTaskArgs *args = (StressZoneTaskArgs *)arg;
+    for (int i = 0; i < args->loops; i++) {
+        uint32_t gen;
+        bool active;
+
+        PGY_ZONE_RDLOCK(args->zone);
+        gen = args->zone->__sync_generation;
+        PGY_ZONE_UNLOCK(args->zone);
+
+        active = StressZone_has_layer_damage(args->zone, gen);
+        atomic_fetch_add(&zone_reads, 1);
+        if (active)
+            atomic_fetch_add(&zone_true_reads, 1);
+        else
+            atomic_fetch_add(&zone_false_reads, 1);
+
+        if ((i % 16) == 0)
+            sleep_ms(1);
+    }
+    return NULL;
+}
+
+static void
+test_zone_has_layer_stress_across_spawned_workers(void)
+{
+    TEST("zone HasLayer stress works across spawned workers");
+
+    StressZone zone;
+    StressZoneTaskArgs args = { .zone = &zone, .loops = 256 };
+    PgyTaskHandle writer;
+    PgyTaskHandle reader1;
+    PgyTaskHandle reader2;
+
+    atomic_store(&zone_reads, 0);
+    atomic_store(&zone_true_reads, 0);
+    atomic_store(&zone_false_reads, 0);
+
+    StressZone_init(&zone);
+    pgy_pool_init(3);
+
+    writer = pgy_spawn(stress_zone_writer, &args);
+    reader1 = pgy_spawn(stress_zone_reader, &args);
+    reader2 = pgy_spawn(stress_zone_reader, &args);
+
+    pgy_await_void(writer);
+    pgy_await_void(reader1);
+    pgy_await_void(reader2);
+
+    pgy_pool_shutdown();
+    StressZone_destroy(&zone);
+
+    EXPECT(atomic_load(&zone_reads) > 0);
+    EXPECT(atomic_load(&zone_true_reads) > 0);
+    EXPECT(atomic_load(&zone_false_reads) > 0);
+}
+
 int
 main(void)
 {
@@ -197,6 +332,7 @@ main(void)
     test_channel_transfers_between_threads();
     test_async_task_cancel_is_visible_inside_task();
     test_async_task_cancel_propagates_to_spawned_children();
+    test_zone_has_layer_stress_across_spawned_workers();
 
     printf("Tests run: %d\n", tests_run);
     if (tests_failed != 0) {

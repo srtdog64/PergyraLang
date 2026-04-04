@@ -17,15 +17,15 @@ import "report.pgy";
 func Main() -> Void
 {
     Log(CampaignHeader());
-    Log(CampaignSubtitle());
+    Log("  RANDOM MODE");
 
     let world = OpenTavernCampaign();
 
-    world.RunCampaignScripted();
+    world.RunCampaignRandom(77);
 
     Log("");
     Log("=== FINAL PARTY SNAPSHOT ===");
     world.LogSnapshot();
-    Log("saving examples/dnd_tavern_campaign/results.txt");
-    world.SaveReport("examples/dnd_tavern_campaign/results.txt");
+    Log("saving examples/dnd_tavern_campaign/results.random.txt");
+    world.SaveReport("examples/dnd_tavern_campaign/results.random.txt");
 }

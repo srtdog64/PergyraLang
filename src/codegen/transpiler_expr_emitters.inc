@@ -735,7 +735,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             else if (call->data.call.arguments[0]->type == AST_STRING)
                 layer_name = call->data.call.arguments[0]->data.string.value;
             if (layer_name != NULL)
-                return strdup_fmt("self->__layer_active_%s", layer_name);
+                return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
+                    ctx->current_zone_name, layer_name);
         }
         return pergyra_strdup("false /* HasLayer: zone-semantic query only */");
     case BUILTIN_HAS_STATE:
@@ -1418,6 +1419,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return result;
             }
             return pergyra_strdup("Random(100)");
+        }
+        if (strcmp(fn, "SeedRandom") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("SeedRandom(%s)", arg);
+            free(arg);
+            return result;
         }
         if (strcmp(fn, "ArrayLength") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);

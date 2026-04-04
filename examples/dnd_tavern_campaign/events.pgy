@@ -1,0 +1,89 @@
+func EventNodeLine(stateId: Int, node: Int, option: Int) -> String
+{
+    if stateId == 1
+    {
+        if node == 1 { return "A ruined taproom under the tavern becomes the party's first real map node."; }
+        if node == 2 { return "A fork of root-choked halls asks whether speed or caution owns the next minute."; }
+        if node == 3 { return "A reliquary room offers loot only after the traps are understood."; }
+        if node == 4 { return "A fungus cistern whispers with trapped air and worse guidance."; }
+        return "A broken dumbwaiter shaft suggests a riskier route back toward the main cellar."; 
+    }
+    if stateId == 2
+    {
+        if node == 1 { return "The first mirror bridge tests formation before combat does."; }
+        if node == 2 { return "A saint-glass alcove offers a shortcut to anyone willing to pay in blood or trust."; }
+        if node == 3 { return "The wraith court arrives as reflections first and enemies second."; }
+        if node == 4 { return "A choir loft of glass eyes catalogues every hesitation."; }
+        return "A split stair of mirrored steps rewards rhythm more than caution."; 
+    }
+    if stateId == 3
+    {
+        if node == 1 { return "Ash chains drag over stone like something enormous is already listening."; }
+        if node == 2 { return "The crown-seal vault forces the party to choose between loot discipline and speed."; }
+        if node == 3 { return "The final antechamber tastes of metal, smoke, and almost-dragon."; }
+        if node == 4 { return "A hall of spent braziers hides vents that wake when the wrong seal is moved."; }
+        return "A molten counting room still tracks tribute no dragon plans to collect again."; 
+    }
+    if node == 1 { return "The lair threshold turns every old choice into present weight."; }
+    if node == 2 { return "The hoard field is both battlefield and argument about greed."; }
+    if node == 3 { return "The kill window appears only if the party still trusts each other enough to take it."; }
+    if node == 4 { return "The dragon's second wingbeat rearranges the whole battlefield and every plan on it."; }
+    return "The last safe ground is not safe, only familiar enough to die on."; 
+}
+
+func EventResolutionLine(stateId: Int, node: Int, option: Int) -> String
+{
+    if stateId == 1
+    {
+        if node == 1
+        {
+            if option == 1 { return "Scouting cuts risk and turns rumor into route control."; }
+            if option == 2 { return "Force shortens the path but wakes more of the floor."; }
+            if option == 3 { return "Sanctity steadies morale at the cost of drawing attention."; }
+            return "Arcane speed opens caches and complications together."; 
+        }
+        if node == 2 { return "The party redraws the route with every trap they refuse to trigger twice."; }
+        if node == 3 { return "Reliquary dust turns treasure counting into theology and theft at once."; }
+        if node == 4 { return "The cistern rewards whoever understands that bad air is also a warning system."; }
+        return "The dumbwaiter route is faster only if nobody minds climbing through old panic."; 
+    }
+    if stateId == 2
+    {
+        if node == 1
+        {
+            if option == 1 { return "Formation trades tempo for certainty and mostly wins."; }
+            if option == 2 { return "The split pays off only because no one hesitates at the wrong second."; }
+            if option == 3 { return "The shortcut scars the party but improves the strategic board."; }
+            return "The blast route leaves no subtlety behind to clean up the consequences."; 
+        }
+        if node == 2 { return "The saint-glass alcove measures sincerity in blood and never refunds the difference."; }
+        if node == 3 { return "Once the reflections attack, trust becomes a faster resource than healing."; }
+        if node == 4 { return "The choir loft reveals who can move under surveillance without becoming slower."; }
+        return "The mirrored stair is less a path than a coordinated lie told with perfect timing."; 
+    }
+    if stateId == 3
+    {
+        if node == 1
+        {
+            if option == 1 { return "Momentum steals the first move from the vault."; }
+            if option == 2 { return "The oath hardens loyalty into a tactical resource."; }
+            if option == 3 { return "Trap-work buys precision where raw force would waste blood."; }
+            return "Seal theft rewards nerve and punishes every wasted motion."; 
+        }
+        if node == 2 { return "Speed and discipline argue here, and only one gets to keep the keys."; }
+        if node == 3 { return "The antechamber decides whether fear becomes caution or noise."; }
+        if node == 4 { return "Braziers reward anyone who remembers that heat can be navigated, not only endured."; }
+        return "The counting room turns greed into a tactical time limit."; 
+    }
+    if node == 1
+    {
+        if option == 1 { return "The dragon's rhythm slows against the shield wall."; }
+        if option == 2 { return "Saint-fire reduces panic and opens a survivable center."; }
+        if option == 3 { return "The flank cut forces the dragon to defend too many truths at once."; }
+        return "The reckless burst shortens the fight and everyone's future by the same margin."; 
+    }
+    if node == 2 { return "The hoard makes footing political; everyone chooses what not to step on."; }
+    if node == 3 { return "The kill window appears, disappears, and appears again only for the disciplined."; }
+    if node == 4 { return "One wingbeat changes cover, range, and courage in the same instant."; }
+    return "The final ground teaches that survival and victory are not always the same geometry."; 
+}

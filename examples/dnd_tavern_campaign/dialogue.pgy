@@ -1,0 +1,117 @@
+func StoryBeat(stateId: Int, option: Int, beat: Int) -> String
+{
+    if stateId == 0
+    {
+        if beat == 1 { return "Rain beads on the Ember Lantern sign while boots and rumors flood the room."; }
+        if beat == 2 { return "Dice, knives, and chapel hymns all compete under the same smoke-black beams."; }
+        if beat == 3 { return "A guild runner nails a dragon bounty over the hearth and every table goes half quiet."; }
+        if beat == 4 { return "The barkeep keeps polishing the same cup because listening pays better than asking."; }
+        if beat == 5 { return "Ari's charter, Mira's seal, Nyx's grin, and Sol's notes finally start looking like one expedition."; }
+        if option == 1 { return "The party turns the tavern into a victory rehearsal before the contract is even signed."; }
+        if option == 2 { return "Every rumor comes with a price, and tonight the price is honesty."; }
+        if option == 3 { return "The knife game is loud enough to shake secrets loose from mercenaries and priests alike."; }
+        return "Silence works harder than ale; every half-heard sentence starts fitting together."; 
+    }
+
+    if stateId == 1
+    {
+        if beat == 1 { return "The root cellar breathes damp spores through broken casks and saint-stamped stone."; }
+        if beat == 2 { return "Every corridor splits into rat paths, trap seams, and old delivery rails."; }
+        if beat == 3 { return "Somewhere ahead, gnolls laugh around barrels that still smell like the tavern above."; }
+        if beat == 4 { return "Spores cling to cloaks and promises alike, marking who rushed and who watched."; }
+        if beat == 5 { return "Old delivery chalk still points toward the reliquary if someone is patient enough to trust the dead."; }
+        if option == 1 { return "The party leans into stealth, letting scouting shape the map before steel does."; }
+        if option == 2 { return "Momentum becomes a weapon; the dungeon must answer a front-line breach."; }
+        if option == 3 { return "Prayer changes the air, but it also tells the dead someone holy just arrived."; }
+        return "Arcane curiosity opens a faster route and wakes every sigil on the walls."; 
+    }
+
+    if stateId == 2
+    {
+        if beat == 1 { return "The mirror hall doubles every torch and triples every mistake."; }
+        if beat == 2 { return "Silver wraiths move behind reflections a heartbeat before they move in the room itself."; }
+        if beat == 3 { return "Saint-glass saints watch the party choose whether trust or speed matters more."; }
+        if beat == 4 { return "Every reflection has a different opinion about who should take the next hit."; }
+        if beat == 5 { return "Broken glass underfoot turns retreat into a tax paid in confidence."; }
+        if option == 1 { return "Formation becomes faith; each shield angle decides who survives the mirrors."; }
+        if option == 2 { return "The split turns one party into two fragile promises trying to keep the same pace."; }
+        if option == 3 { return "Blood buys a shortcut, but the hall remembers the taste."; }
+        return "Force wins distance quickly and subtlety not at all."; 
+    }
+
+    if stateId == 3
+    {
+        if beat == 1 { return "The ash vault is less a floor than a throat leading down into dragon weather."; }
+        if beat == 2 { return "Cinder knights patrol crown seals chained to obsidian ribs in the walls."; }
+        if beat == 3 { return "Every key now feels heavy enough to bend a future around it."; }
+        if beat == 4 { return "The vault counts intruders by breath, not by footsteps."; }
+        if beat == 5 { return "Even silence burns here; only discipline decides what kind of scar it leaves."; }
+        if option == 1 { return "Speed is the only shield against the ash chains tightening shut."; }
+        if option == 2 { return "The ember oath makes companionship feel like a spell as much as a promise."; }
+        if option == 3 { return "Patience turns traps into tools and panic into leverage."; }
+        return "Smoke-thin timing matters more than armor where the seals hang."; 
+    }
+
+    if beat == 1 { return "The lair opens like a furnace temple built for one enormous believer."; }
+    if beat == 2 { return "Coins, bones, and library ash shift together whenever the dragon breathes."; }
+    if beat == 3 { return "Everything the party carried from the tavern arrives here as courage, fear, and unfinished sentences."; }
+    if beat == 4 { return "The hoard is not treasure here but memory arranged into a warning."; }
+    if beat == 5 { return "Every companion now knows which promise brought them this far and which one might break first."; }
+    if option == 1 { return "The plan is to stand and force the dragon to break first."; }
+    if option == 2 { return "The plan is to turn liturgy into a battlefield and dare the dragon to answer."; }
+    if option == 3 { return "The plan is to cut where the dragon cannot watch and hurt what it thinks is safe."; }
+    return "The plan is reckless power before the lair can decide whose story this is."; 
+}
+
+func CompanionBeat(name: String, classCode: Int, stateId: Int, option: Int, beat: Int) -> String
+{
+    if classCode == 0
+    {
+        if stateId == 0 { return name + " checks exits, tables, and wrists before trusting anyone's smile."; }
+        if beat == 4 { return name + " keeps rewriting the route in his head every time the room changes volume."; }
+        if stateId == 4 { return name + " keeps the line even when the line is made of dragonfire."; }
+        return name + " sets the pace and dares the floor to keep up."; 
+    }
+    if classCode == 1
+    {
+        if beat == 2 { return name + " counts wounds before they happen and calls that optimism."; }
+        if beat == 5 { return name + " notices the one member of the party pretending not to shake and stands closer."; }
+        if stateId == 4 { return name + " threads prayer between every impact like chain links."; }
+        return name + " watches morale the way others watch hit points."; 
+    }
+    if classCode == 2
+    {
+        if option == 1 || option == 3 { return name + " smiles like every trap is secretly an introduction."; }
+        if beat == 4 { return name + " keeps score in shortcuts, not kills."; }
+        if stateId == 0 { return name + " never wastes a room full of liars."; }
+        return name + " treats bad odds like a puzzle with sharper edges."; 
+    }
+    if beat == 4 { return name + " is already narrating the magical failure case no one else wants to hear."; }
+    if stateId == 4 { return name + " starts speaking in ember math and impossible percentages."; }
+    return name + " hears hidden structure in every ruin wall and every bad plan."; 
+}
+
+func CampReflection(stateId: Int, beat: Int) -> String
+{
+    if stateId == 1
+    {
+        if beat == 1 { return "The first camp smells of spores, lamp oil, and relief that still refuses to relax."; }
+        if beat == 2 { return "No one says they were lucky, but everyone inventories what nearly went wrong."; }
+        return "The tavern already feels far away enough to be myth."; 
+    }
+    if stateId == 2
+    {
+        if beat == 1 { return "Mirror shards turn the campfire into a council of uncertain faces."; }
+        if beat == 2 { return "Trust becomes practical here: who wakes first, who watches longest, who lies least."; }
+        return "The party learns that surviving together and agreeing together are separate skills."; 
+    }
+    if stateId == 3
+    {
+        if beat == 1 { return "Ash settles on armor and bread alike, making every ration taste like tomorrow."; }
+        if beat == 2 { return "The key count is spoken aloud three times, as if numbers could guard themselves."; }
+        return "Everyone rehearses what to say to a dragon and hopes not to need the words."; 
+    }
+    if beat == 1 { return "Even victory in the lair sounds at first like everyone finally breathing at once."; }
+    if beat == 2 { return "The hoard reflects four exhausted people back as something closer to a party."; }
+    return "Morning turns dragon smoke into weather and the campaign into memory."; 
+}

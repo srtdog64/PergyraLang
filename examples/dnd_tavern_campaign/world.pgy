@@ -19,6 +19,8 @@ world TavernCampaignWorld
     shared floor2Choice: Int = 0
     shared floor3Choice: Int = 0
     shared dragonChoice: Int = 0
+    shared playMode: Int = 0
+    shared modeLabel: String = "SCRIPTED"
 
     state partyViewsReady: zone journey projection fighterView
     state packetsReady: zone journey projection clericPacket
@@ -73,13 +75,31 @@ world TavernCampaignWorld
 
     func StrategicLine(self) -> String
     {
-        return "phase=" + PhaseName(gameState)
+        return "mode=" + modeLabel
+            + " phase=" + PhaseName(gameState)
             + " day=" + ToString(day)
             + " omen=" + ToString(omen)
             + " fame=" + ToString(fame)
             + " gold=" + ToString(gold)
             + " morale=" + ToString(journey.morale)
             + " route=" + ToString(CostTownToGate()) + "/" + ToString(CostFloorOneToTwo()) + "/" + ToString(CostFloorTwoToThree()) + "/" + ToString(CostFloorThreeToLair());
+    }
+
+    func ReadPlayerChoice(self, stateId: Int) -> Int
+    {
+        let choice = 0;
+        while choice < 1 || choice > 4
+        {
+            Broadcast("  [Prompt] choose 1-4 for " + PhaseName(stateId));
+            let raw: String = Input("choose [1-4] > ");
+            Broadcast("  [Input] " + raw);
+            choice = ToInt(raw);
+            if choice < 1 || choice > 4
+            {
+                Broadcast("  [Input] invalid choice, expected 1..4");
+            }
+        }
+        return choice;
     }
 
     func Record(self, line: String) -> Void
@@ -108,6 +128,14 @@ world TavernCampaignWorld
 
     func RollChoice(self, stateId: Int) -> Int
     {
+        if playMode == 1
+        {
+            return ReadPlayerChoice(stateId);
+        }
+        if playMode == 2
+        {
+            return 1 + Random(4);
+        }
         let nextCursor = choiceCursor + 1;
         choiceCursor = nextCursor;
         return 1 + (((storySeed * 11) + (stateId * 17) + (nextCursor * 5) + omen + day + journey.affinityPulse) % 4);
@@ -115,6 +143,10 @@ world TavernCampaignWorld
 
     func CombatRoll(self, stateId: Int, round: Int, option: Int) -> Int
     {
+        if playMode == 1 || playMode == 2
+        {
+            return 1 + Random(4);
+        }
         return 1 + (((storySeed * 13) + (stateId * 19) + (round * 7) + (option * 5) + omen + journey.morale) % 4);
     }
 
@@ -213,6 +245,66 @@ world TavernCampaignWorld
         Broadcast("  [4] " + OptionText(stateId, 4));
         Broadcast("  [Selected] " + OptionText(stateId, option));
         Broadcast("  [PartyTalk] " + CompanionComment(stateId, option));
+    }
+
+    func MemberName(self, seat: Int) -> String
+    {
+        if seat == 0 { return journey.fighter.name; }
+        if seat == 1 { return journey.cleric.name; }
+        if seat == 2 { return journey.rogue.name; }
+        return journey.mage.name;
+    }
+
+    func MemberClass(self, seat: Int) -> String
+    {
+        if seat == 0 { return journey.fighter.className; }
+        if seat == 1 { return journey.cleric.className; }
+        if seat == 2 { return journey.rogue.className; }
+        return journey.mage.className;
+    }
+
+    func MemberClassCode(self, seat: Int) -> Int
+    {
+        return seat;
+    }
+
+    func MemberShortState(self, seat: Int) -> String
+    {
+        if seat == 0 { return "hp=" + ToString(journey.fighter.stats.hp) + " focus=" + ToString(journey.fighter.stats.focus); }
+        if seat == 1 { return "hp=" + ToString(journey.cleric.stats.hp) + " mana=" + ToString(journey.cleric.stats.mana); }
+        if seat == 2 { return "hp=" + ToString(journey.rogue.stats.hp) + " stamina=" + ToString(journey.rogue.stats.stamina); }
+        return "hp=" + ToString(journey.mage.stats.hp) + " mana=" + ToString(journey.mage.stats.mana);
+    }
+
+    func RunSceneBeats(self, stateId: Int, option: Int) -> Void
+    {
+        let beat = 1;
+        while beat <= 6
+        {
+            Broadcast("  [Scene " + ToString(beat) + "] " + StoryBeat(stateId, option, beat));
+            Broadcast("    [Ari] " + CompanionBeat(journey.fighter.name, 0, stateId, option, beat));
+            Broadcast("    [Mira] " + CompanionBeat(journey.cleric.name, 1, stateId, option, beat));
+            Broadcast("    [Nyx] " + CompanionBeat(journey.rogue.name, 2, stateId, option, beat));
+            Broadcast("    [Sol] " + CompanionBeat(journey.mage.name, 3, stateId, option, beat));
+            beat = beat + 1;
+        }
+    }
+
+    func RunEncounterNodes(self, stateId: Int, option: Int) -> Void
+    {
+        let node = 1;
+        while node <= 5
+        {
+            Broadcast("  [Node " + ToString(node) + "] " + EventNodeLine(stateId, node, option));
+            Broadcast("    [Resolution] " + EventResolutionLine(stateId, node, option));
+            Broadcast("    [PartyState] Ari " + MemberShortState(0) + " | Mira " + MemberShortState(1));
+            Broadcast("    [PartyState] Nyx " + MemberShortState(2) + " | Sol " + MemberShortState(3));
+            if stateId <= 3
+            {
+                Broadcast("    [CampForeshadow] " + CampReflection(stateId, node));
+            }
+            node = node + 1;
+        }
     }
 
     func ApplyChoice(self, stateId: Int, option: Int) -> Void
@@ -366,10 +458,18 @@ world TavernCampaignWorld
     func RunSkirmishRounds(self, stateId: Int, option: Int) -> Void
     {
         let round = 1;
-        while round <= 2
+        while round <= 3
         {
             let pulse = CombatRoll(stateId, round, option);
             Broadcast("  [Round " + ToString(round) + "] pulse=" + ToString(pulse));
+            Broadcast("    [Action] " + journey.fighter.name + " " + CombatVerb(0, pulse) + " into " + CombatTarget(stateId, round, 0));
+            Broadcast("    [Effect] " + CombatEffectLine(0, pulse));
+            Broadcast("    [Action] " + journey.cleric.name + " " + CombatVerb(1, pulse) + " at " + CombatTarget(stateId, round, 1));
+            Broadcast("    [Effect] " + CombatEffectLine(1, pulse));
+            Broadcast("    [Action] " + journey.rogue.name + " " + CombatVerb(2, pulse) + " against " + CombatTarget(stateId, round, 2));
+            Broadcast("    [Effect] " + CombatEffectLine(2, pulse));
+            Broadcast("    [Action] " + journey.mage.name + " " + CombatVerb(3, pulse) + " through " + CombatTarget(stateId, round, 3));
+            Broadcast("    [Effect] " + CombatEffectLine(3, pulse));
 
             if stateId == 1
             {
@@ -397,6 +497,10 @@ world TavernCampaignWorld
                 journey.keyCount = journey.keyCount + 1;
             }
 
+            Broadcast("    [Resolve] Ari " + MemberShortState(0));
+            Broadcast("    [Resolve] Mira " + MemberShortState(1));
+            Broadcast("    [Resolve] Nyx " + MemberShortState(2));
+            Broadcast("    [Resolve] Sol " + MemberShortState(3));
             Broadcast("  [Skirmish] " + journey.Snapshot());
             round = round + 1;
         }
@@ -405,10 +509,20 @@ world TavernCampaignWorld
     func RunDragonRounds(self, option: Int) -> Void
     {
         let round = 1;
-        while round <= 3
+        while round <= 4
         {
             let pulse = CombatRoll(4, round, option);
+            Broadcast("  [BossPhase " + ToString(round) + "] " + BossPhaseName(round));
+            Broadcast("    [Narration] " + StoryBeat(4, option, round));
             Broadcast("  [BossRound " + ToString(round) + "] pulse=" + ToString(pulse));
+            Broadcast("    [Action] " + journey.fighter.name + " " + CombatVerb(0, pulse) + " into " + CombatTarget(4, round, 0));
+            Broadcast("    [Effect] " + CombatEffectLine(0, pulse));
+            Broadcast("    [Action] " + journey.cleric.name + " " + CombatVerb(1, pulse) + " at " + CombatTarget(4, round, 1));
+            Broadcast("    [Effect] " + CombatEffectLine(1, pulse));
+            Broadcast("    [Action] " + journey.rogue.name + " " + CombatVerb(2, pulse) + " against " + CombatTarget(4, round, 2));
+            Broadcast("    [Effect] " + CombatEffectLine(2, pulse));
+            Broadcast("    [Action] " + journey.mage.name + " " + CombatVerb(3, pulse) + " through " + CombatTarget(4, round, 3));
+            Broadcast("    [Effect] " + CombatEffectLine(3, pulse));
 
             journey.fighter.FaceDragon(2 + pulse, 0, 3 + pulse);
             journey.cleric.FaceDragon(1 + pulse, 0, 2 + pulse);
@@ -439,6 +553,10 @@ world TavernCampaignWorld
             }
 
             Broadcast("  [Boss] hp=" + ToString(journey.dragonHp) + " flame=" + ToString(journey.dragonFlame) + " armor=" + ToString(journey.dragonArmor));
+            Broadcast("    [Resolve] Ari " + MemberShortState(0));
+            Broadcast("    [Resolve] Mira " + MemberShortState(1));
+            Broadcast("    [Resolve] Nyx " + MemberShortState(2));
+            Broadcast("    [Resolve] Sol " + MemberShortState(3));
             round = round + 1;
         }
 
@@ -484,6 +602,7 @@ world TavernCampaignWorld
             dragonChoice = 0;
 
             Write(moraleLedger, 0);
+            Broadcast("[Mode] " + modeLabel + " seed=" + ToString(storySeed));
 
             while gameState <= 4
             {
@@ -492,11 +611,15 @@ world TavernCampaignWorld
 
                 Blank();
                 Broadcast("== " + PhaseName(gameState) + " ==");
+                Broadcast("[StateEnter] " + PhaseName(gameState) + " seed=" + ToString(storySeed) + " cursor=" + ToString(choiceCursor + 1));
                 AnnounceChoice(gameState, rolledChoice);
 
                 if gameState == 0
                 {
+                    Broadcast("[Substate] tavern.arrival");
                     Broadcast("[Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.");
+                    RunSceneBeats(gameState, rolledChoice);
+                    Broadcast("[Substate] tavern.recruitment");
                     Broadcast("[Creation] " + journey.fighter.CreationLine());
                     Broadcast("[Hook] " + journey.fighter.TavernPitch());
                     Broadcast("[Creation] " + journey.fighter.name + " sheet " + journey.fighter.sheet.Summary());
@@ -516,7 +639,9 @@ world TavernCampaignWorld
                     Broadcast("[Tavern] " + clericCard.promise);
                     Broadcast("[Tavern] " + rogueCard.promise);
                     Broadcast("[Tavern] " + mageCard.promise);
+                    Broadcast("[Substate] tavern.scene");
                     journey.TavernScene(fighterCard, clericCard, rogueCard, mageCard);
+                    Broadcast("[Substate] tavern.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
                     day = 1;
                     omen = 1;
@@ -529,8 +654,15 @@ world TavernCampaignWorld
                 else if gameState == 1
                 {
                     let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
+                    Broadcast("[Substate] floor1.briefing");
+                    RunSceneBeats(gameState, rolledChoice);
+                    Broadcast("[Substate] floor1.travel");
                     journey.ResolveFloorOne(CostTownToGate() + floorOneScript.travelBias, floorOneScript);
+                    Broadcast("[Substate] floor1.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
+                    Broadcast("[Substate] floor1.nodes");
+                    RunEncounterNodes(gameState, rolledChoice);
+                    Broadcast("[Substate] floor1.combat");
                     RunSkirmishRounds(gameState, rolledChoice);
                     day = 2;
                     omen = 2;
@@ -543,8 +675,15 @@ world TavernCampaignWorld
                 else if gameState == 2
                 {
                     let floorTwoScript = FloorScriptFor(2, omen, journey.affinityPulse);
+                    Broadcast("[Substate] floor2.briefing");
+                    RunSceneBeats(gameState, rolledChoice);
+                    Broadcast("[Substate] floor2.travel");
                     journey.ResolveFloorTwo(CostFloorOneToTwo() + floorTwoScript.travelBias, floorTwoScript);
+                    Broadcast("[Substate] floor2.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
+                    Broadcast("[Substate] floor2.nodes");
+                    RunEncounterNodes(gameState, rolledChoice);
+                    Broadcast("[Substate] floor2.combat");
                     RunSkirmishRounds(gameState, rolledChoice);
                     day = 3;
                     omen = 3;
@@ -557,8 +696,15 @@ world TavernCampaignWorld
                 else if gameState == 3
                 {
                     let floorThreeScript = FloorScriptFor(3, omen, journey.affinityPulse);
+                    Broadcast("[Substate] floor3.briefing");
+                    RunSceneBeats(gameState, rolledChoice);
+                    Broadcast("[Substate] floor3.travel");
                     journey.ResolveFloorThree(CostFloorTwoToThree() + floorThreeScript.travelBias, floorThreeScript);
+                    Broadcast("[Substate] floor3.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
+                    Broadcast("[Substate] floor3.nodes");
+                    RunEncounterNodes(gameState, rolledChoice);
+                    Broadcast("[Substate] floor3.combat");
                     RunSkirmishRounds(gameState, rolledChoice);
                     day = 4;
                     omen = 2;
@@ -571,9 +717,16 @@ world TavernCampaignWorld
                 else
                 {
                     let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
+                    Broadcast("[Substate] dragon.briefing");
+                    RunSceneBeats(gameState, rolledChoice);
+                    Broadcast("[Substate] dragon.prepare");
                     journey.PrepareDragon(dragonScript);
+                    Broadcast("[Substate] dragon.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
+                    Broadcast("[Substate] dragon.nodes");
+                    RunEncounterNodes(gameState, rolledChoice);
                     Broadcast("[Lair] " + dragonScript.battleCry);
+                    Broadcast("[Substate] dragon.phase_machine");
                     journey.RunDragon(CostFloorThreeToLair(), dragonScript);
                     RunDragonRounds(rolledChoice);
                     day = 5;
@@ -586,6 +739,7 @@ world TavernCampaignWorld
                     LogJourneyState();
                 }
 
+                Broadcast("[StateExit] " + PhaseName(gameState) + " complete");
                 gameState = gameState + 1;
             }
 
@@ -597,7 +751,40 @@ world TavernCampaignWorld
                 + " floor3=" + ToString(floor3Choice)
                 + " dragon=" + ToString(dragonChoice));
             Broadcast("[Story] the party walks out with " + ToString(journey.keyCount) + " seals and " + ToString(journey.treasure) + " ruin gold.");
+            Broadcast("[Camp] " + CampReflection(4, 1));
+            Broadcast("[Camp] " + CampReflection(4, 2));
+            Broadcast("[Camp] " + CampReflection(4, 3));
         }
+    }
+
+    func RunCampaignScripted(self) -> Void
+    {
+        playMode = 0;
+        modeLabel = "SCRIPTED";
+        RunCampaign();
+    }
+
+    func RunCampaignRandom(self, seed: Int) -> Void
+    {
+        playMode = 2;
+        modeLabel = "RANDOM";
+        storySeed = seed;
+        SeedRandom(seed);
+        RunCampaign();
+    }
+
+    func RunCampaignPlayer(self) -> Void
+    {
+        playMode = 1;
+        modeLabel = "PLAYER";
+        let rawSeed: String = Input("campaign seed [blank=19] > ");
+        let parsedSeed = ToInt(rawSeed);
+        if parsedSeed > 0
+        {
+            storySeed = parsedSeed;
+        }
+        SeedRandom(storySeed);
+        RunCampaign();
     }
 
     func LogSnapshot(self) -> Void

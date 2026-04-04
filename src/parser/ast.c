@@ -506,6 +506,8 @@ ASTNode* ast_create_zone_layer_slot(const char* slot_name, const char* layer_typ
     node->data.zone_layer_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.zone_layer_slot.layer_type = layer_type ? pergyra_strdup(layer_type) : NULL;
     node->data.zone_layer_slot.is_relation = is_relation;
+    node->data.zone_layer_slot.is_pool = false;
+    node->data.zone_layer_slot.pool_capacity = 0;
     return node;
 }
 

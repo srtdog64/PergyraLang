@@ -863,6 +863,38 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
     if (target_slot == NULL || target_slot->data.domain_slot.slot_name == NULL)
         return;
 
+    if (layer_slot->data.zone_layer_slot.is_pool) {
+        write_indent(ctx);
+        codebuf_write(out, "{\n");
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(out, "%s _pgy_%s_instance = (%s){0};\n",
+            effect_decl->data.effect_decl.name,
+            layer_slot_name,
+            effect_decl->data.effect_decl.name);
+        write_indent(ctx);
+        codebuf_write(out, "_pgy_%s_instance.%s = self->%s;\n",
+            layer_slot_name,
+            target_slot->data.domain_slot.slot_name,
+            target_slot_name);
+        write_indent(ctx);
+        codebuf_write(out, "%s_sync(&_pgy_%s_instance);\n",
+            effect_decl->data.effect_decl.name,
+            layer_slot_name);
+        write_indent(ctx);
+        codebuf_write(out, "PGY_EFFECT_POOL_APPLY(self->%s, _pgy_%s_instance);\n",
+            layer_slot_name,
+            layer_slot_name);
+        write_indent(ctx);
+        codebuf_write(out, "self->__layer_active_%s = PGY_EFFECT_POOL_ACTIVE_COUNT(self->%s) > 0;\n",
+            layer_slot_name,
+            layer_slot_name);
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(out, "}\n");
+        return;
+    }
+
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
         layer_slot_name,

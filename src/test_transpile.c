@@ -807,7 +807,7 @@ test_expression_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("HasLayer lowers to zone runtime layer field inside zone context");
+    TEST("HasLayer lowers to zone runtime helper inside zone context");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -831,16 +831,55 @@ test_expression_emit(void)
         {
             ASTNode *args[1] = { make_identifier("poison", 1) };
             result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
-            EXPECT(strcmp(result, "self->__layer_active_poison") == 0);
+            EXPECT(strcmp(result, "BattleZone_has_layer_poison(self, __pgy_zone_gen)") == 0);
             free(result);
         }
 
         {
             ASTNode *args[1] = { make_identifier("trust", 1) };
             result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
-            EXPECT(strcmp(result, "self->__layer_active_trust") == 0);
+            EXPECT(strcmp(result, "BattleZone_has_layer_trust(self, __pgy_zone_gen)") == 0);
             free(result);
         }
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone effect pool emits pooled storage and HasLayer helper scaffolding");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect DamageEffect for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect pool damage: DamageEffect capacity 8\n"
+            "    apply damage to player\n"
+            "    func Tick() -> Void {\n"
+            "        if HasLayer(damage) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "struct { DamageEffect items[8]; bool active[8]; uint8_t count; uint8_t cap; } damage;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_EFFECT_POOL_INIT(self->damage);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_EFFECT_POOL_APPLY(self->damage, _pgy_damage_instance);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "static inline bool\nBattleZone_has_layer_damage(BattleZone *self, uint32_t expected_gen)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_ZONE_RDLOCK(self);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_ZONE_GENERATION_WARN_IF_STALE(self, expected_gen, \"BattleZone.damage\")");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__pgy_zone_gen = self->__sync_generation;");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

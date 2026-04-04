@@ -1,0 +1,75 @@
+// concurrent.pgy -- Multi-fiber concurrent stress test
+// Tests: spawn, await, channel, concurrent data flow
+// BSD (Allman) style
+
+func ComputeSum(id: Int, iterations: Int) -> Int
+{
+    let sum = 0;
+    let i = 0;
+    while i < iterations
+    {
+        sum = sum + (id * 1000 + i);
+        i = i + 1;
+    }
+    return sum;
+}
+
+async func RunSpawnTest() -> Void
+{
+    Log("-- Test 2: Spawn 4 workers --");
+    let w0 = spawn ComputeSum(0, 1000);
+    let w1 = spawn ComputeSum(1, 1000);
+    let w2 = spawn ComputeSum(2, 1000);
+    let w3 = spawn ComputeSum(3, 1000);
+
+    let r0 = await w0;
+    let r1 = await w1;
+    let r2 = await w2;
+    let r3 = await w3;
+    let total = r0 + r1 + r2 + r3;
+    Log("  Results: " + ToString(r0) + " " + ToString(r1) + " " + ToString(r2) + " " + ToString(r3));
+    Log("  Total: " + ToString(total));
+}
+
+async func RunHeavyTest() -> Void
+{
+    Log("-- Test 3: 8 heavy spawns (10000 iter each) --");
+    let h0 = spawn ComputeSum(0, 10000);
+    let h1 = spawn ComputeSum(1, 10000);
+    let h2 = spawn ComputeSum(2, 10000);
+    let h3 = spawn ComputeSum(3, 10000);
+    let h4 = spawn ComputeSum(4, 10000);
+    let h5 = spawn ComputeSum(5, 10000);
+    let h6 = spawn ComputeSum(6, 10000);
+    let h7 = spawn ComputeSum(7, 10000);
+
+    let t = (await h0) + (await h1) + (await h2) + (await h3);
+    t = t + (await h4) + (await h5) + (await h6) + (await h7);
+    Log("  Heavy total: " + ToString(t));
+}
+
+Log("=== CONCURRENT STRESS TEST ===");
+Log("");
+
+// Test 1: Channel round-trip stress (synchronous)
+Log("-- Test 1: Channel round-trip (500 cycles) --");
+let ch: Channel<Int> = Channel(1);
+let round_total = 0;
+let r = 0;
+while r < 500
+{
+    ch <- (r * 7 + 3);
+    let val = <-ch;
+    round_total = round_total + val;
+    r = r + 1;
+}
+Log("  Total: " + ToString(round_total));
+Log("");
+
+// Test 2+3: async spawn tests
+RunSpawnTest();
+Log("");
+RunHeavyTest();
+Log("");
+
+Log("=== ALL CONCURRENT TESTS PASSED ===");

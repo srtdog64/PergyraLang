@@ -1,0 +1,92 @@
+func CombatVerb(classCode: Int, pulse: Int) -> String
+{
+    if classCode == 0
+    {
+        if pulse >= 3 { return "crashes forward with the shield edge"; }
+        return "anchors the line and drives steel through the opening";
+    }
+    if classCode == 1
+    {
+        if pulse >= 3 { return "lashes the room with saint-fire prayer"; }
+        return "holds the center with prayer and a measured strike";
+    }
+    if classCode == 2
+    {
+        if pulse >= 3 { return "cuts through the flank under smoke"; }
+        return "slides between threats and opens a soft target";
+    }
+    if pulse >= 3 { return "detonates an ember pattern across the room"; }
+    return "threads arcane fire through the weakest seam";
+}
+
+func CombatTarget(stateId: Int, round: Int, seat: Int) -> String
+{
+    if stateId == 1
+    {
+        if seat == 0 { return "gnoll captain"; }
+        if seat == 1 { return "spore-hound"; }
+        if seat == 2 { return "barrel lurker"; }
+        return "cellar hexer";
+    }
+    if stateId == 2
+    {
+        if seat == 0 { return "mirror knight"; }
+        if seat == 1 { return "saint-glass shade"; }
+        if seat == 2 { return "silver wraith"; }
+        return "echo priest";
+    }
+    if stateId == 3
+    {
+        if seat == 0 { return "cinder marshal"; }
+        if seat == 1 { return "ash chanter"; }
+        if seat == 2 { return "vault sentry"; }
+        return "seal guardian";
+    }
+    if round == 1
+    {
+        if seat == 0 { return "dragon foreclaw"; }
+        if seat == 1 { return "dragon throat"; }
+        if seat == 2 { return "dragon wing root"; }
+        return "dragon eye ridge";
+    }
+    if round == 2
+    {
+        if seat == 0 { return "molten breastplate scales"; }
+        if seat == 1 { return "flame sac"; }
+        if seat == 2 { return "hoard-side tendon"; }
+        return "rune-burn scar";
+    }
+    if seat == 0 { return "exposed heartline"; }
+    if seat == 1 { return "broken horn crown"; }
+    if seat == 2 { return "rear tendon"; }
+    return "ember lung";
+}
+
+func CombatEffectLine(classCode: Int, pulse: Int) -> String
+{
+    if classCode == 0
+    {
+        if pulse >= 3 { return "guard stance rises and enemy footing breaks."; }
+        return "pressure stays on and the line does not fold.";
+    }
+    if classCode == 1
+    {
+        if pulse >= 3 { return "blessing flares across the party at the moment of impact."; }
+        return "fear drops a notch and the wound curve softens.";
+    }
+    if classCode == 2
+    {
+        if pulse >= 3 { return "the target never sees the true angle of the strike."; }
+        return "the party gains space the enemy did not mean to give.";
+    }
+    if pulse >= 3 { return "burn marks spread in a pattern only Sol understands."; }
+    return "arcane pressure bends the room around the cast.";
+}
+
+func BossPhaseName(round: Int) -> String
+{
+    if round == 1 { return "OPENING"; }
+    if round == 2 { return "FLAME TURN"; }
+    if round == 3 { return "BREAKPOINT"; }
+    return "EXECUTION WINDOW";
+}

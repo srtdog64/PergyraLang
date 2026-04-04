@@ -1135,10 +1135,18 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_ZONE_LAYER_SLOT:
-            printf("%sSlot: %s: %s\n",
-                   node->data.zone_layer_slot.is_relation ? "Relation" : "Effect",
-                   node->data.zone_layer_slot.slot_name,
-                   node->data.zone_layer_slot.layer_type);
+            if (node->data.zone_layer_slot.is_pool) {
+                printf("%sPool: %s: %s capacity %d\n",
+                       node->data.zone_layer_slot.is_relation ? "Relation" : "Effect",
+                       node->data.zone_layer_slot.slot_name,
+                       node->data.zone_layer_slot.layer_type,
+                       node->data.zone_layer_slot.pool_capacity);
+            } else {
+                printf("%sSlot: %s: %s\n",
+                       node->data.zone_layer_slot.is_relation ? "Relation" : "Effect",
+                       node->data.zone_layer_slot.slot_name,
+                       node->data.zone_layer_slot.layer_type);
+            }
             break;
 
         case AST_ZONE_APPLY:

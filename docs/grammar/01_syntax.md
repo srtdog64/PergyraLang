@@ -233,7 +233,7 @@ enum Color { Red, Green, Blue }
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `zone`은 `publish dtoSlot from subjectSlot`로 dto projection 갱신을 명시할 수 있다.
 - `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 추론할 수 있다. object slot이면 `refresh`, dto slot이면 `publish`와 같은 semantic 계약으로 해석된다.
-- `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다.
+- `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다. C backend는 generated helper를 통해 zone rdlock과 generation stale-warning을 자동 삽입한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.
 - `world`는 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `activate/deactivate/maintain`, `HasZone(zoneOrState)`, `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, `HasZoneState(zoneSlot, stateName)`를 지원한다.
@@ -586,7 +586,7 @@ world GameWorld {
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
-현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`dto slot`/`refresh`/`publish`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `relation` / `effect` / `zone`은 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
+현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`dto slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 

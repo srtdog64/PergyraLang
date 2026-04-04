@@ -1957,6 +1957,23 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 type_name != NULL ? type_name : "<unknown>",
                 layer_slot->data.zone_layer_slot.slot_name);
         }
+        if (layer_slot->data.zone_layer_slot.is_relation
+            && layer_slot->data.zone_layer_slot.is_pool) {
+            semantic_error(ctx, layer_slot,
+                "Zone relation pool '%s' is not supported yet",
+                layer_slot->data.zone_layer_slot.slot_name != NULL
+                    ? layer_slot->data.zone_layer_slot.slot_name
+                    : "<unknown>");
+        }
+        if (!layer_slot->data.zone_layer_slot.is_relation
+            && layer_slot->data.zone_layer_slot.is_pool
+            && layer_slot->data.zone_layer_slot.pool_capacity <= 0) {
+            semantic_error(ctx, layer_slot,
+                "Zone effect pool '%s' must declare a positive capacity",
+                layer_slot->data.zone_layer_slot.slot_name != NULL
+                    ? layer_slot->data.zone_layer_slot.slot_name
+                    : "<unknown>");
+        }
     }
 
     for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {

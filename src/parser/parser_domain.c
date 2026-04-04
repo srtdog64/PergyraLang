@@ -774,10 +774,18 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                    || parser_match_identifier_keyword(parser, "effect")) {
             bool is_relation = parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "relation") == 0;
-            parser_consume(parser, TOKEN_SLOT,
-                is_relation
-                    ? "Expected 'slot' after 'relation' in zone"
-                    : "Expected 'slot' after 'effect' in zone");
+            bool is_pool = false;
+            if (is_relation) {
+                parser_consume(parser, TOKEN_SLOT,
+                    "Expected 'slot' after 'relation' in zone");
+            } else if (parser_match(parser, TOKEN_SLOT)) {
+                is_pool = false;
+            } else if (parser_match_identifier_keyword(parser, "pool")) {
+                is_pool = true;
+            } else {
+                parser_error(parser,
+                    "Expected 'slot' or 'pool' after 'effect' in zone");
+            }
             Token slot_name = consume_name_token(parser,
                 "Expected slot name");
             parser_consume(parser, TOKEN_COLON,
@@ -787,6 +795,16 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             ASTNode *layer_slot = ast_create_zone_layer_slot(
                 slot_name.text, layer_type.text, is_relation);
+            if (is_pool) {
+                if (!parser_match_identifier_keyword(parser, "capacity")) {
+                    parser_error(parser,
+                        "Expected 'capacity' after effect pool type");
+                }
+                Token capacity = parser_consume(parser, TOKEN_NUMBER,
+                    "Expected numeric capacity after 'capacity'");
+                layer_slot->data.zone_layer_slot.is_pool = true;
+                layer_slot->data.zone_layer_slot.pool_capacity = atoi(capacity.text);
+            }
             layer_slot->line = slot_name.line;
             layer_slot->column = slot_name.column;
 

@@ -1806,6 +1806,30 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_coerce_value_to_string(value, ctx);
     }
 
+    if (strcmp(callee_name, "ToInt") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToInt");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "ToFloat") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "ToFloat");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "Random") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "Random");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
     if (strcmp(callee_name, "WriteFile") == 0
         && node->data.call.arg_count == 2) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_write_file");
@@ -1817,6 +1841,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (strcmp(callee_name, "Input") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_input");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn,
+                node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "SeedRandom") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "SeedRandom");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn,
                 node->data.call.arguments, 1);

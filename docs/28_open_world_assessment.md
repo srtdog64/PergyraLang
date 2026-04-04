@@ -76,6 +76,12 @@ Zone_sync(self):
 
 ## 수정 방향: 4단계
 
+현재 상태 메모:
+- `PGY_ZONE_THREADSAFE`, zone rwlock macro, generation counter, effect pool runtime macro는 이미 runtime에 존재한다.
+- C backend `HasLayer(...)`는 generated helper로 rdlock + generation stale-warning을 감싸도록 올라왔다.
+- `effect pool damage: DamageEffect capacity 8` parser/semantic/C transpile surface는 구현됐다.
+- 남은 큰 공백은 LLVM parity와 더 공격적인 open-world validation이다.
+
 ### Phase 1: 동시성 기본 보호 (Critical)
 
 zone struct 접근에 최소한의 동시성 안전 추가.

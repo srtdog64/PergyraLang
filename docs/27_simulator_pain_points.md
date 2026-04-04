@@ -8,6 +8,10 @@ examples such as the battle simulator and biome simulator.
 - Projection sync is lighter now, but larger framework work still wants a
   richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
   bindings and deeper auto-propagation are the next pressure point.
+- Large story scenarios can now produce compact GM-style transcripts, but they
+  still want a more first-class interactive choice/input surface if the same
+  state machine is expected to run in both deterministic regression mode and
+  actual player-driven mode.
 
 ## Recently Resolved
 
@@ -84,3 +88,7 @@ examples such as the battle simulator and biome simulator.
   both C and LLVM backends with matching stdout and report output.
 - LLVM world `all/any` composed-state queries now match the C backend in
   simulator paths such as `battle_simulator`.
+- DND transcript helpers no longer rely on C-unsafe `String == "literal"`
+  comparisons for class-sensitive flavor text. Campaign dialogue/combat text
+  now keys off stable role/class codes, so dense story transcripts run without
+  backend-specific warnings leaking into stdout.

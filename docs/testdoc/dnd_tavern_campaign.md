@@ -146,6 +146,9 @@ This scenario is likely to expose:
 - Each phase now exposes four numbered options and logs the rolled
   deterministic choice, so the transcript reads like a GM-driven scenario
   instead of a straight-line function dump
+- The transcript is now substantially denser: each major phase emits explicit
+  state-entry/state-exit markers, six scene beats, five node/event beats,
+  and more detailed combat rounds before the final report snapshot
 - The protagonist and companions are built through deterministic DND-style
   sheet/spec factories rather than raw constructor spam
 - Character creation now carries explicit `background`, `intro`, `crest`, and
@@ -169,6 +172,8 @@ This scenario is likely to expose:
   `publish` choices in the scenario body
 - `results.txt` is transcript-first and now captures the entire scenario flow,
   not just a final summary
+- The current transcript/report size is now in the mid-hundreds of lines,
+  which is enough to read like a compact GM transcript instead of a short demo
 - Exact stdout and exact `results.txt` goldens are now part of the regression shape
 
 ## Discovered Pain Points
@@ -220,3 +225,6 @@ This scenario is likely to expose:
   still auto-rolled. A future iteration may want a first-class interactive
   choice/input surface so the exact same state machine can run in both scripted
   regression mode and player-driven mode.
+- The campaign now looks like a state machine in the transcript, but combat is
+  still essentially scripted round resolution rather than a deeper target/
+  initiative/status ordering engine.

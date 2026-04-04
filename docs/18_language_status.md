@@ -32,7 +32,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 고정하는 최소 표면까지 반영됨
-- `zone`은 `relation slot` / `effect slot`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
+- `zone`은 `relation slot` / `effect slot` / fixed-capacity `effect pool`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot` 최소 attachment 표면까지 parser/semantic에 반영됨
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
@@ -45,7 +45,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias를 둘 수 있음
 - `zone` lifecycle/projection 문장은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone` lifecycle 문장은 `apply/link/detach/unlink/maintain <stateName>` shorthand를 지원함
-- `HasLayer(layerSlot)` builtin이 zone method 안에서 선언된 relation/effect layer slot의 활성 여부를 Bool로 읽을 수 있음
+- `HasLayer(layerSlot)` builtin이 zone method 안에서 선언된 relation/effect layer slot의 활성 여부를 Bool로 읽을 수 있고, C backend는 rdlock + generation stale-warning helper로 lowering함
 - `HasState(stateName)` builtin이 zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state-slot 정합성까지 질의할 수 있음
 - `world`는 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `state name: all zoneOrState[, ...]`, `state name: any zoneOrState[, ...]`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 가짐

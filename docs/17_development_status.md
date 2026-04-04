@@ -34,7 +34,7 @@
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 declaration header에 고정할 수 있음
 - `relation` / `effect`는 positional nominal constructor call을 받아 local runtime instance를 만들 수 있고, constructor argument arity/type을 semantic에서 검사함
-- `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
+- `zone`은 `relation slot` / `effect slot` / fixed-capacity `effect pool`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
@@ -47,7 +47,7 @@
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...`로 lifecycle state alias를 선언할 수 있음
 - `zone`의 `apply/link/detach/unlink/refresh/publish/bind/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원함
-- `HasLayer(layerSlot)` builtin은 zone declaration / zone method 안에서 선언된 `relation slot` / `effect slot` 활성 여부를 Bool query로 읽을 수 있음
+- `HasLayer(layerSlot)` builtin은 zone declaration / zone method 안에서 선언된 `relation slot` / `effect slot` / `effect pool` 활성 여부를 Bool query로 읽을 수 있음
 - `HasState(stateName)` builtin은 zone declaration / zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state가 어떤 slot 조합에 붙는지까지 명시적으로 질의할 수 있음
 - `world`는 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `state name: all zoneOrState[, ...]`, `state name: any zoneOrState[, ...]`, `activate/deactivate/maintain zoneOrState` 최소 lifecycle surface를 가짐
@@ -73,7 +73,7 @@
 - `zone` layer slot은 이제 C/LLVM 양쪽에서 `void*` placeholder가 아니라 typed `relation` / `effect` runtime instance로 유지되며, zone sync가 subject slot 값을 overlay endpoint/target에 바인딩한 뒤 `<Layer>_sync(&self->layer)`를 호출함
 - direct `apply/link/detach/unlink`와 `maintain effect/relation/state` 모두 C/LLVM zone sync에서 실제 layer active/state/projection 전파로 연결됨
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM smoke까지 닫혀 있음
-- C backend에서 `HasLayer(...)` / `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__layer_active_*` / `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
+- C backend에서 `HasLayer(...)`는 zone rdlock + generation stale-warning을 감싼 generated helper로 lowering되고, `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 bindable target 수와 타입을 검사하며 object target도 허용함
 - `zone`의 `link/unlink`는 `relation` declaration의 bindable endpoint 수와 타입을 검사하며 object endpoint도 허용함
 - `zone` / `relation` / `effect`의 `refresh`/`publish`/`bind`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
@@ -148,7 +148,7 @@
 
 | 스위트 | 결과 |
 |---|---|
-| concurrency | 4 passed |
+| concurrency | 5 passed |
 | semantic | 450 passed |
 | transpile | 351 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |

@@ -752,6 +752,53 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("effect pool syntax is accepted for positive capacities");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect DamageEffect for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect pool damage: DamageEffect capacity 8\n"
+            "    apply damage to player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect pool rejects non-positive capacities");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect DamageEffect for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect pool damage: DamageEffect capacity 0\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("HasProjection works inside relation/effect/zone methods for declared object and dto slots");
     {
         const char *source =

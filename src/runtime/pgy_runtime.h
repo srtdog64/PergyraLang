@@ -1064,11 +1064,14 @@ static inline void pgy_log_string(char* v)   { printf("%s\n", v ? v : "(null)");
 
 #include <math.h>
 
+static inline int32_t ToInt(const char *s)    { return s == NULL ? 0 : (int32_t)strtol(s, NULL, 10); }
+static inline float   ToFloat(const char *s)  { return s == NULL ? 0.0f : strtof(s, NULL); }
 static inline float  Sqrt(float x)            { return sqrtf(x); }
 static inline float  Pow(float x, float y)    { return powf(x, y); }
 static inline float  Floor(float x)           { return floorf(x); }
 static inline float  Ceil(float x)            { return ceilf(x); }
 static inline int32_t Random(int32_t max)     { return max <= 0 ? 0 : (int32_t)(rand() % max); }
+static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
 
 /* =================================================================
  * Standard Library Helpers
@@ -1140,6 +1143,17 @@ typedef pthread_rwlock_t PgyZoneLock;
 /* Generation counter for stale-state detection */
 #define PGY_ZONE_GENERATION_FIELD  uint32_t __sync_generation;
 #define PGY_ZONE_GENERATION_INC(z) ((z)->__sync_generation++)
+#define PGY_ZONE_GENERATION_WARN_IF_STALE(z, expected, label) do {                 \
+    uint32_t _pgy_expected_gen = (uint32_t)(expected);                             \
+    uint32_t _pgy_actual_gen = (z)->__sync_generation;                             \
+    if (_pgy_actual_gen != _pgy_expected_gen) {                                    \
+        fprintf(stderr,                                                             \
+            "[pgy][warn] stale zone layer read: %s expected=%u actual=%u\n",       \
+            (label),                                                                \
+            (unsigned)_pgy_expected_gen,                                            \
+            (unsigned)_pgy_actual_gen);                                             \
+    }                                                                               \
+} while (0)
 
 /* =================================================================
  * Effect Pool — multiple instances of the same effect type

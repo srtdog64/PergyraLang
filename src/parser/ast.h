@@ -811,6 +811,8 @@ struct ASTNode
             char* slot_name;
             char* layer_type;
             bool is_relation;
+            bool is_pool;
+            int  pool_capacity;
         } zone_layer_slot;
 
         /* Zone effect application */

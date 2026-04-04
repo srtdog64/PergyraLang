@@ -818,6 +818,11 @@ int32_t Random(int32_t max)
     return (int32_t)(rand() % max);
 }
 
+void SeedRandom(int32_t seed)
+{
+    srand((unsigned int)seed);
+}
+
 /* =================================================================
  * Channel — Int (thread-safe with mutex + condvar)
  * ================================================================= */

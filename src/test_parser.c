@@ -892,6 +892,16 @@ main(void)
             4
         },
         {
+            "Zone Effect Pool Declaration",
+            "subject Player { let hp: Int; }\n"
+            "effect DamageEffect for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect pool damage: DamageEffect capacity 8\n"
+            "}\n",
+            3
+        },
+        {
             "Zone Declaration With Vessel Slot",
             "vessel HabitatState {\n"
             "    current: Int;\n"

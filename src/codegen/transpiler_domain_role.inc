@@ -844,9 +844,21 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        codebuf_write(ctx->out, "    %s %s;\n",
-            slot->data.zone_layer_slot.layer_type,
-            slot->data.zone_layer_slot.slot_name);
+        if (slot->data.zone_layer_slot.is_pool) {
+            int cap = slot->data.zone_layer_slot.pool_capacity;
+            if (cap <= 0)
+                cap = 1;
+            codebuf_write(ctx->out,
+                "    struct { %s items[%d]; bool active[%d]; uint8_t count; uint8_t cap; } %s;\n",
+                slot->data.zone_layer_slot.layer_type,
+                cap,
+                cap,
+                slot->data.zone_layer_slot.slot_name);
+        } else {
+            codebuf_write(ctx->out, "    %s %s;\n",
+                slot->data.zone_layer_slot.layer_type,
+                slot->data.zone_layer_slot.slot_name);
+        }
         codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
             slot->data.zone_layer_slot.slot_name);
     }
@@ -869,6 +881,35 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "    PGY_ZONE_LOCK_FIELD\n");
     codebuf_write(ctx->out, "    PGY_ZONE_GENERATION_FIELD\n");
     codebuf_write(ctx->out, "} %s;\n", name);
+
+    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+        const char *slot_name = slot->data.zone_layer_slot.slot_name;
+
+        if (slot_name == NULL)
+            continue;
+
+        codebuf_write(ctx->out,
+            "\nstatic inline bool\n%s_has_layer_%s(%s *self, uint32_t expected_gen)\n{\n",
+            name, slot_name, name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "bool result;\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "PGY_ZONE_RDLOCK(self);\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "PGY_ZONE_GENERATION_WARN_IF_STALE(self, expected_gen, \"%s.%s\");\n",
+            name, slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "result = self->__layer_active_%s;\n", slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "PGY_ZONE_UNLOCK(self);\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "return result;\n");
+        ctx->indent--;
+        codebuf_write(ctx->out, "}\n");
+    }
 
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
@@ -899,6 +940,11 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.layer_slots[i];
+        if (slot->data.zone_layer_slot.is_pool) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "PGY_EFFECT_POOL_INIT(self->%s);\n",
+                slot->data.zone_layer_slot.slot_name);
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
             slot->data.zone_layer_slot.slot_name);
@@ -1248,6 +1294,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            write_indent(ctx);
+            codebuf_write(ctx->out,
+                "uint32_t __attribute__((unused)) __pgy_zone_gen = self->__sync_generation;\n");
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
             write_indent(ctx);
