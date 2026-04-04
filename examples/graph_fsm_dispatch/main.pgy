@@ -1,0 +1,372 @@
+// main.pgy -- Graph + FSM dispatch scenario
+import "couriers.pgy";
+
+zone NodeZone
+{
+    shared nodeId: Int = 0
+    shared queue: Int = 0
+    shared processed: Int = 0
+    shared congestion: Int = 0
+    shared outages: Int = 0
+    shared reserve: Int = 0
+
+    func Label(self) -> String
+    {
+        if nodeId == 0 { return "DEPOT"; }
+        if nodeId == 1 { return "HUB"; }
+        if nodeId == 2 { return "PORT"; }
+        if nodeId == 3 { return "LAB"; }
+        return "NODE?";
+    }
+
+    func Reset(self, id: Int, reserveUnits: Int) -> Void
+    {
+        nodeId = id;
+        queue = 0;
+        processed = 0;
+        congestion = 0;
+        outages = 0;
+        reserve = reserveUnits;
+    }
+
+    func Inject(self, amount: Int, extraCongestion: Int, extraOutage: Int) -> Void
+    {
+        queue = queue + amount;
+        congestion = congestion + extraCongestion;
+        outages = outages + extraOutage;
+    }
+
+    func Drain(self, amount: Int) -> Int
+    {
+        let moved = Min(queue, amount);
+        queue = Max(queue - moved, 0);
+        processed = processed + moved;
+        return moved;
+    }
+
+    func Tick(self) -> Void
+    {
+        congestion = Max(congestion - 1, 0);
+        outages = Max(outages - 1, 0);
+    }
+}
+
+world DispatchWorld
+{
+    zone depot: NodeZone
+    zone hub: NodeZone
+    zone port: NodeZone
+    zone lab: NodeZone
+
+    shared wave: Int = 0
+    shared weather: Int = 0
+    shared totalDelivered: Int = 0
+    shared totalBlocked: Int = 0
+    shared depotHub: Int = 2
+    shared depotPort: Int = 3
+    shared hubPort: Int = 2
+    shared hubLab: Int = 3
+    shared portLab: Int = 2
+
+    activate depot
+    activate hub
+    activate port
+    activate lab
+
+    func ResetGraph(self) -> Void
+    {
+        wave = 0;
+        weather = 0;
+        totalDelivered = 0;
+        totalBlocked = 0;
+
+        depot.Reset(0, 12);
+        hub.Reset(1, 6);
+        port.Reset(2, 4);
+        lab.Reset(3, 5);
+    }
+
+    func PortDirectCost(self) -> Int
+    {
+        return depotPort + port.congestion + port.outages + weather;
+    }
+
+    func PortViaHubCost(self) -> Int
+    {
+        return depotHub + hubPort + hub.congestion + weather;
+    }
+
+    func LabViaHubCost(self) -> Int
+    {
+        return depotHub + hubLab + hub.congestion + lab.outages + weather;
+    }
+
+    func LabViaPortCost(self) -> Int
+    {
+        return depotPort + portLab + port.congestion + weather;
+    }
+
+    func PortPressure(self) -> Int
+    {
+        return port.queue + (port.outages * 2) + port.congestion;
+    }
+
+    func LabPressure(self) -> Int
+    {
+        return lab.queue + (lab.outages * 2) + lab.congestion;
+    }
+
+    func ChooseTarget(self) -> Int
+    {
+        if LabPressure() > PortPressure()
+        {
+            return 3;
+        }
+        return 2;
+    }
+
+    func ChoosePath(self, targetNode: Int) -> Int
+    {
+        if targetNode == 2
+        {
+            if PortDirectCost() <= PortViaHubCost() { return 0; }
+            return 1;
+        }
+
+        if LabViaHubCost() <= LabViaPortCost() { return 1; }
+        return 2;
+    }
+
+    func PathCost(self, targetNode: Int, pathKind: Int) -> Int
+    {
+        if targetNode == 2
+        {
+            if pathKind == 0 { return PortDirectCost(); }
+            return PortViaHubCost();
+        }
+
+        if pathKind == 1 { return LabViaHubCost(); }
+        return LabViaPortCost();
+    }
+
+    func NextHop(self, targetNode: Int, pathKind: Int) -> Int
+    {
+        if targetNode == 2
+        {
+            if pathKind == 0 { return 2; }
+            return 1;
+        }
+
+        if pathKind == 1 { return 1; }
+        return 2;
+    }
+
+    func TargetZone(self, targetNode: Int) -> Int
+    {
+        return targetNode;
+    }
+
+    func DemandFor(self, targetNode: Int) -> Int
+    {
+        if targetNode == 2 { return port.queue; }
+        return lab.queue;
+    }
+
+    func DrainTarget(self, targetNode: Int, amount: Int) -> Int
+    {
+        if targetNode == 2 { return port.Drain(amount); }
+        return lab.Drain(amount);
+    }
+
+    func TickNodes(self) -> Void
+    {
+        depot.Tick();
+        hub.Tick();
+        port.Tick();
+        lab.Tick();
+    }
+
+    func ApplyWave(self) -> Void
+    {
+        if wave == 0
+        {
+            weather = 1;
+            port.Inject(4, 1, 0);
+            lab.Inject(5, 0, 0);
+        }
+        else if wave == 1
+        {
+            weather = 2;
+            port.Inject(6, 2, 1);
+            lab.Inject(4, 1, 0);
+            hub.Inject(0, 1, 0);
+        }
+        else if wave == 2
+        {
+            weather = 3;
+            port.Inject(3, 1, 0);
+            lab.Inject(8, 2, 1);
+            hub.Inject(0, 2, 0);
+        }
+        else if wave == 3
+        {
+            weather = 1;
+            port.Inject(7, 0, 0);
+            lab.Inject(2, 0, 0);
+        }
+        else
+        {
+            weather = 2;
+            port.Inject(2, 1, 0);
+            lab.Inject(6, 1, 1);
+        }
+    }
+
+    func HandleCourier(self, courier: Courier, capacity: Int) -> Void
+    {
+        if courier.core.mode == 5
+        {
+            totalBlocked = totalBlocked + 1;
+            courier.Recover(3);
+            return;
+        }
+
+        if courier.core.battery < 5
+        {
+            courier.Recharge(6);
+            return;
+        }
+
+        let target = ChooseTarget();
+        let demand = DemandFor(target);
+        let load = Min(capacity, demand);
+
+        if load <= 0
+        {
+            courier.Recharge(2);
+            return;
+        }
+
+        let pathKind = ChoosePath(target);
+        let cost = PathCost(target, pathKind);
+        let hop = NextHop(target, pathKind);
+
+        if cost >= 9 || weather + Max(port.outages, lab.outages) >= 4
+        {
+            courier.Block(2);
+            totalBlocked = totalBlocked + 1;
+            return;
+        }
+
+        courier.Load(load, target);
+        courier.Dispatch(hop, pathKind, cost);
+        let delivered = DrainTarget(target, load);
+        courier.Deliver(delivered);
+        totalDelivered = totalDelivered + delivered;
+    }
+
+    func Simulate(self, atlas: Courier, nova: Courier, ember: Courier) -> Void
+    {
+        let tick = 0;
+        while tick < 5
+        {
+            wave = tick;
+            ApplyWave();
+
+            Log("========================================");
+            Log("GRAPH FSM DISPATCH WAVE " + ToString(tick + 1));
+            Log("weather=" + ToString(weather)
+                + " portPressure=" + ToString(PortPressure())
+                + " labPressure=" + ToString(LabPressure()));
+            Log("routes: port direct=" + ToString(PortDirectCost())
+                + " viaHub=" + ToString(PortViaHubCost())
+                + " | lab viaHub=" + ToString(LabViaHubCost())
+                + " viaPort=" + ToString(LabViaPortCost()));
+
+            HandleCourier(atlas, 3);
+            HandleCourier(nova, 2);
+            HandleCourier(ember, 4);
+
+            Log("  [Node] PORT queue=" + ToString(port.queue)
+                + " processed=" + ToString(port.processed)
+                + " congestion=" + ToString(port.congestion)
+                + " outages=" + ToString(port.outages));
+            Log("  [Node] LAB  queue=" + ToString(lab.queue)
+                + " processed=" + ToString(lab.processed)
+                + " congestion=" + ToString(lab.congestion)
+                + " outages=" + ToString(lab.outages));
+
+            Log("  [Courier] " + atlas.StatusLine());
+            Log("  [Courier] " + nova.StatusLine());
+            Log("  [Courier] " + ember.StatusLine());
+            Log("  [World] delivered=" + ToString(totalDelivered)
+                + " blocked=" + ToString(totalBlocked));
+            Log("");
+
+            TickNodes();
+            tick = tick + 1;
+        }
+    }
+
+    func SaveReport(self, path: String, atlas: Courier, nova: Courier, ember: Courier) -> Void
+    {
+        let fd = FileOpen(path, "w");
+        if fd < 0 { return; }
+
+        FileWrite(fd, "=== GRAPH FSM REPORT ===\n");
+        FileWrite(fd, "weather="); FileWrite(fd, ToString(weather)); FileWrite(fd, "\n");
+        FileWrite(fd, "delivered="); FileWrite(fd, ToString(totalDelivered)); FileWrite(fd, "\n");
+        FileWrite(fd, "blocked="); FileWrite(fd, ToString(totalBlocked)); FileWrite(fd, "\n");
+        FileWrite(fd, "portDirect="); FileWrite(fd, ToString(PortDirectCost())); FileWrite(fd, "\n");
+        FileWrite(fd, "labViaHub="); FileWrite(fd, ToString(LabViaHubCost())); FileWrite(fd, "\n");
+        FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- PORT ---\n");
+        FileWrite(fd, "queue="); FileWrite(fd, ToString(port.queue));
+        FileWrite(fd, " processed="); FileWrite(fd, ToString(port.processed));
+        FileWrite(fd, " congestion="); FileWrite(fd, ToString(port.congestion));
+        FileWrite(fd, " outages="); FileWrite(fd, ToString(port.outages)); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- LAB ---\n");
+        FileWrite(fd, "queue="); FileWrite(fd, ToString(lab.queue));
+        FileWrite(fd, " processed="); FileWrite(fd, ToString(lab.processed));
+        FileWrite(fd, " congestion="); FileWrite(fd, ToString(lab.congestion));
+        FileWrite(fd, " outages="); FileWrite(fd, ToString(lab.outages)); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- COURIERS ---\n");
+        FileWrite(fd, atlas.name); FileWrite(fd, " delivered="); FileWrite(fd, ToString(atlas.core.delivered));
+        FileWrite(fd, " blocked="); FileWrite(fd, ToString(atlas.core.blocked));
+        FileWrite(fd, " battery="); FileWrite(fd, ToString(atlas.core.battery)); FileWrite(fd, "\n");
+        FileWrite(fd, nova.name); FileWrite(fd, " delivered="); FileWrite(fd, ToString(nova.core.delivered));
+        FileWrite(fd, " blocked="); FileWrite(fd, ToString(nova.core.blocked));
+        FileWrite(fd, " battery="); FileWrite(fd, ToString(nova.core.battery)); FileWrite(fd, "\n");
+        FileWrite(fd, ember.name); FileWrite(fd, " delivered="); FileWrite(fd, ToString(ember.core.delivered));
+        FileWrite(fd, " blocked="); FileWrite(fd, ToString(ember.core.blocked));
+        FileWrite(fd, " battery="); FileWrite(fd, ToString(ember.core.battery)); FileWrite(fd, "\n");
+
+        FileClose(fd);
+    }
+}
+
+func Main() -> Void
+{
+    Log("=== GRAPH + FSM DISPATCH ===");
+    Log("Depot-to-port/lab routing over a small graph with courier state machines");
+    Log("");
+
+    let world = DispatchWorld(
+        NodeZone(0, 0, 0, 0, 0, 12),
+        NodeZone(1, 0, 0, 0, 0, 6),
+        NodeZone(2, 0, 0, 0, 0, 4),
+        NodeZone(3, 0, 0, 0, 0, 5)
+    );
+    let atlas = Courier("Atlas", "heavy", CourierCore(0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0));
+    let nova = Courier("Nova", "express", CourierCore(0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0));
+    let ember = Courier("Ember", "relay", CourierCore(0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0));
+
+    world.ResetGraph();
+    world.Simulate(atlas, nova, ember);
+
+    Log("SAVING GRAPH FSM REPORT");
+    world.SaveReport("examples/graph_fsm_dispatch/results.txt", atlas, nova, ember);
+}

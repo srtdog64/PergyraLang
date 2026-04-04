@@ -2654,7 +2654,10 @@ test_engine_collections(void)
     }
 }
 
-#include "tests/semantic/test_semantic_runtime.inc"
+#include "tests/semantic/test_semantic_shared_domain.inc"
+#include "tests/semantic/test_semantic_async.inc"
+#include "tests/semantic/test_semantic_effects.inc"
+#include "tests/semantic/test_semantic_misc.inc"
 
 /* -----------------------------------------------------------------
  * Main

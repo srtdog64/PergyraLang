@@ -1836,11 +1836,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     object_count = count_object_domain_slots(node->data.zone_decl.slots,
         node->data.zone_decl.slot_count);
 
-    if (subject_count == 0) {
-        semantic_warning(ctx, node,
-            "Zone '%s' should declare at least one subject slot",
-            node->data.zone_decl.name);
-    } else if (subject_count > 4) {
+    if (subject_count > 4) {
         semantic_warning(ctx, node,
             "Zone '%s' declares %zu subject slots; prefer keeping active subjects to 4 or fewer and model supporting state as objects",
             node->data.zone_decl.name,
@@ -1861,6 +1857,13 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         + node->data.zone_decl.maintained_effect_count
         + node->data.zone_decl.maintained_relation_count
         + node->data.zone_decl.maintained_state_count;
+
+    if (subject_count == 0
+        && (mutation_rule_count > 0 || node->data.zone_decl.authority_count > 0)) {
+        semantic_warning(ctx, node,
+            "Zone '%s' mutates state or declares authority but has no subject slot",
+            node->data.zone_decl.name);
+    }
 
     for (size_t i = 0; i < node->data.zone_decl.authority_count; i++) {
         ASTNode *authority = node->data.zone_decl.authorities[i];
@@ -2559,4 +2562,3 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
 
     return !ctx->has_error;
 }
-

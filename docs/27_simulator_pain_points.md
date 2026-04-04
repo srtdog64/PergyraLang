@@ -12,6 +12,10 @@ examples such as the battle simulator and biome simulator.
   large `world` + embedded `zone` scenarios. The new FSM example stabilizes its
   runtime with an explicit `ResetFactory`/`ResetBaseline` pass after world
   construction, but deeper constructor parity is still worth tightening.
+- LLVM still has a gap between stable slot built-ins and slot method sugar.
+  `Write(slot, value)` / `Read(slot)` are stable and now back the raid graph
+  example, but direct `slot.Write(...)` / `slot.Read()` on local slots remain a
+  separate LLVM bug to close.
 
 ## Recently Resolved
 
@@ -40,3 +44,8 @@ examples such as the battle simulator and biome simulator.
 - Complex simulator scenarios now have a dedicated folder shape with exact
   stdout and `results.txt` goldens. `examples/fsm_factory/` joins battle and
   biome as a regression-grade multi-file scenario rather than an ad hoc sample.
+- The new `raid_graph_fsm` scenario now exercises graph costs, world-owned room
+  topology, slot-based staging, and role-differentiated subject FSM behavior on
+  both C and LLVM backends with matching stdout and report output.
+- LLVM world `all/any` composed-state queries now match the C backend in
+  simulator paths such as `battle_simulator`.

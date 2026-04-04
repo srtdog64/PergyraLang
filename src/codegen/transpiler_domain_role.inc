@@ -579,19 +579,52 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            {
+                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+                if (subj_param)
+                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
+                else
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                free(ptn);
+            }
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
         {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
             const char *saved_relation_name = ctx->current_relation_name;
             ctx->current_relation_name = name;
+            register_typed_var(ctx, "self", name);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *type_name;
+
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0
+                    || p->type == NULL)
+                    continue;
+
+                type_name = render_type_name(p->type);
+                if (type_name != NULL) {
+                    register_typed_var(ctx, p->name, type_name);
+                    if (is_pointer_self_host_type_name(ctx, type_name)) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                        if (entry != NULL)
+                            entry->is_subject_ref = true;
+                    }
+                    free(type_name);
+                }
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
             ctx->current_relation_name = saved_relation_name;
         }
         ctx->indent--;
@@ -709,19 +742,52 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            {
+                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+                if (subj_param)
+                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
+                else
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                free(ptn);
+            }
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
         {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
             const char *saved_effect_name = ctx->current_effect_name;
             ctx->current_effect_name = name;
+            register_typed_var(ctx, "self", name);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *type_name;
+
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0
+                    || p->type == NULL)
+                    continue;
+
+                type_name = render_type_name(p->type);
+                if (type_name != NULL) {
+                    register_typed_var(ctx, p->name, type_name);
+                    if (is_pointer_self_host_type_name(ctx, type_name)) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                        if (entry != NULL)
+                            entry->is_subject_ref = true;
+                    }
+                    free(type_name);
+                }
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
             ctx->current_effect_name = saved_effect_name;
         }
         ctx->indent--;
@@ -1100,19 +1166,52 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            {
+                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+                if (subj_param)
+                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
+                else
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                free(ptn);
+            }
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
         {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
             const char *saved_zone_name = ctx->current_zone_name;
             ctx->current_zone_name = name;
+            register_typed_var(ctx, "self", name);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *type_name;
+
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0
+                    || p->type == NULL)
+                    continue;
+
+                type_name = render_type_name(p->type);
+                if (type_name != NULL) {
+                    register_typed_var(ctx, p->name, type_name);
+                    if (is_pointer_self_host_type_name(ctx, type_name)) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                        if (entry != NULL)
+                            entry->is_subject_ref = true;
+                    }
+                    free(type_name);
+                }
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
             ctx->current_zone_name = saved_zone_name;
         }
         ctx->indent--;
@@ -1365,13 +1464,44 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            {
+                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+                if (subj_param)
+                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
+                else
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                free(ptn);
+            }
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
         {
+            int saved_slot_count = ctx->slot_var_count;
+            int saved_typed_count = ctx->typed_var_count;
             const char *saved_world_name = ctx->current_world_name;
             ctx->current_world_name = name;
+            register_typed_var(ctx, "self", name);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                char *type_name;
+
+                if (p == NULL || p->name == NULL
+                    || strcmp(p->name, "self") == 0
+                    || p->type == NULL)
+                    continue;
+
+                type_name = render_type_name(p->type);
+                if (type_name != NULL) {
+                    register_typed_var(ctx, p->name, type_name);
+                    if (is_pointer_self_host_type_name(ctx, type_name)) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                        if (entry != NULL)
+                            entry->is_subject_ref = true;
+                    }
+                    free(type_name);
+                }
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
@@ -1390,6 +1520,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "self->__world_derived_dirty = true;\n");
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
             ctx->current_world_name = saved_world_name;
         }
         ctx->indent--;
@@ -1715,4 +1847,3 @@ emit_event_unsubscribe(ASTNode *node, TranspilerCtx *ctx)
     free(event_expr);
     free(handler_expr);
 }
-

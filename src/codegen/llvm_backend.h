@@ -44,7 +44,8 @@ LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
  */
 LLVMGenResult *llvm_codegen_to_object(const HIRProgram *hir,
                                        const char *module_name,
-                                       const char *output_path);
+                                       const char *output_path,
+                                       bool release_opt);
 
 /*
  * Free an LLVMGenResult.

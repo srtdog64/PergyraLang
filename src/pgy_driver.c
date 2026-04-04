@@ -20,6 +20,7 @@ parse_args(int argc, char *argv[])
 #else
     f.backend = BACKEND_C;
 #endif
+    f.opt_profile = PGY_OPT_RELEASE;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -37,6 +38,10 @@ parse_args(int argc, char *argv[])
         } else if (strcmp(argv[i], "--emit-llvm") == 0) {
             f.emit_llvm_ir = true;
             f.backend = BACKEND_LLVM;
+        } else if (strcmp(argv[i], "--opt=dev") == 0) {
+            f.opt_profile = PGY_OPT_DEV;
+        } else if (strcmp(argv[i], "--opt=release") == 0) {
+            f.opt_profile = PGY_OPT_RELEASE;
         } else if (strcmp(argv[i], "--run") == 0) {
             f.do_run = true;
         } else if (strcmp(argv[i], "--tokens") == 0) {

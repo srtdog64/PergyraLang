@@ -992,31 +992,34 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 char state_field[256];
                 char active_field[256];
                 int state_idx;
-                int active_idx;
+                int active_idx = -1;
                 LLVMValueRef self_ptr;
                 LLVMValueRef state_ptr;
-                LLVMValueRef active_ptr;
-                LLVMValueRef active_val;
+                LLVMValueRef active_ptr = NULL;
+                LLVMValueRef active_val = LLVMConstInt(ctx->type_i1, 0, 0);
                 LLVMValueRef derived_val = NULL;
                 if (state == NULL || state->type != AST_WORLD_STATE
-                    || state->data.world_state.state_name == NULL
-                    || state->data.world_state.zone_slot_name == NULL)
+                    || state->data.world_state.state_name == NULL)
                     continue;
                 slot_name = state->data.world_state.zone_slot_name;
                 snprintf(state_field, sizeof(state_field), "__zone_state_%s",
                     state->data.world_state.state_name);
-                snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
                 state_idx = llvm_class_field_index(decl_cls, state_field);
-                active_idx = llvm_class_field_index(decl_cls, active_field);
-                if (state_idx < 0 || active_idx < 0)
+                if (state_idx < 0)
                     continue;
                 self_ptr = LLVMGetParam(sync_fn, 0);
                 state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                     self_ptr, (unsigned)state_idx, llvm_tmp_name(ctx));
-                active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-                active_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                    active_ptr, llvm_tmp_name(ctx));
+                if (slot_name != NULL) {
+                    snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+                    active_idx = llvm_class_field_index(decl_cls, active_field);
+                    if (active_idx >= 0) {
+                        active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                            self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+                        active_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                            active_ptr, llvm_tmp_name(ctx));
+                    }
+                }
                 derived_val = active_val;
 
                 if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
@@ -1497,11 +1500,19 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             size_t pidx = 1;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
+                const char *type_name = NULL;
+                LLVMClassTypeEntry *param_cls = NULL;
                 if (p->type == NULL && strcmp(p->name, "self") == 0)
                     continue;
-                ptypes[pidx++] = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
+                if (p->type != NULL && p->type->type == AST_TYPE)
+                    type_name = p->type->data.type.name;
+                param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
+                if (param_cls != NULL && param_cls->is_pointer_self_host)
+                    ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);
+                else
+                    ptypes[pidx++] = (p->type != NULL)
+                        ? ast_type_to_llvm(ctx, p->type)
+                        : ctx->type_i32;
             }
 
             LLVMTypeRef ft = LLVMFunctionType(ret, ptypes,
@@ -2305,16 +2316,27 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             unsigned lpidx = 1;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
+                const char *type_name = NULL;
+                LLVMClassTypeEntry *param_cls = NULL;
+                LLVMTypeRef pt;
                 if (p->type == NULL && strcmp(p->name, "self") == 0)
                     continue;
-                LLVMTypeRef pt = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
+                if (p->type != NULL && p->type->type == AST_TYPE)
+                    type_name = p->type->data.type.name;
+                param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
+                if (param_cls != NULL && param_cls->is_pointer_self_host)
+                    pt = LLVMPointerType(param_cls->struct_type, 0);
+                else
+                    pt = (p->type != NULL)
+                        ? ast_type_to_llvm(ctx, p->type)
+                        : ctx->type_i32;
                 LLVMValueRef a = llvm_create_entry_alloca(
                     ctx, pt, p->name);
                 LLVMBuildStore(ctx->builder,
                     LLVMGetParam(fn, lpidx++), a);
                 llvm_scope_declare(ctx, p->name, a, pt);
+                if (type_name != NULL && param_cls != NULL)
+                    llvm_register_var_class(ctx, p->name, type_name);
             }
 
             if (has_sync) {

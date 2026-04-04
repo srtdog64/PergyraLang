@@ -356,6 +356,118 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
+            && method_name != NULL
+            && (strcmp(method_name, "Write") == 0
+                || strcmp(method_name, "Read") == 0
+                || strcmp(method_name, "Release") == 0)) {
+            const char *slot_name = obj_node->data.identifier.name;
+            const char *inner = llvm_lookup_slot_inner(ctx, slot_name);
+            bool is_secure = llvm_lookup_slot_is_secure(ctx, slot_name);
+            LLVMVarEntry *slot_var = inner != NULL ? llvm_scope_lookup(ctx, slot_name) : NULL;
+            if (inner != NULL && slot_var != NULL) {
+                if (strcmp(method_name, "Write") == 0 && node->data.call.arg_count >= 1) {
+                    LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+                    if (val == NULL)
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                    if (is_secure) {
+                        LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                        if (token_var == NULL)
+                            return LLVMConstInt(ctx->type_i32, 0, 0);
+                        {
+                            char fn_name[64];
+                            LLVMFuncEntry *fn;
+                            snprintf(fn_name, sizeof(fn_name), "pgy_secure_write_%s", inner);
+                            fn = llvm_lookup_function(ctx, fn_name);
+                            if (fn != NULL) {
+                                LLVMValueRef args[] = { slot_var->alloca, val, token_var->alloca };
+                                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+                            } else {
+                                llvm_direct_secure_slot_write(ctx, slot_var, val);
+                            }
+                        }
+                    } else {
+                        char fn_name[64];
+                        LLVMFuncEntry *fn;
+                        snprintf(fn_name, sizeof(fn_name), "pgy_write_%s", inner);
+                        fn = llvm_lookup_function(ctx, fn_name);
+                        if (fn != NULL) {
+                            LLVMValueRef args[] = { slot_var->alloca, val };
+                            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                        } else {
+                            llvm_direct_slot_write(ctx, slot_var, val);
+                        }
+                    }
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                }
+
+                if (strcmp(method_name, "Read") == 0) {
+                    if (is_secure) {
+                        LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                        if (token_var == NULL)
+                            return LLVMConstInt(ctx->type_i32, 0, 0);
+                        {
+                            char fn_name[64];
+                            LLVMFuncEntry *fn;
+                            snprintf(fn_name, sizeof(fn_name), "pgy_secure_read_%s", inner);
+                            fn = llvm_lookup_function(ctx, fn_name);
+                            if (fn != NULL) {
+                                LLVMValueRef args[] = { slot_var->alloca, token_var->alloca };
+                                return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                    args, 2, llvm_tmp_name(ctx));
+                            }
+                            return llvm_direct_secure_slot_read(ctx, slot_var, inner);
+                        }
+                    }
+
+                    {
+                        char fn_name[64];
+                        LLVMFuncEntry *fn;
+                        snprintf(fn_name, sizeof(fn_name), "pgy_read_%s", inner);
+                        fn = llvm_lookup_function(ctx, fn_name);
+                        if (fn != NULL) {
+                            LLVMValueRef args[] = { slot_var->alloca };
+                            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                args, 1, llvm_tmp_name(ctx));
+                        }
+                        return llvm_direct_slot_read(ctx, slot_var, inner);
+                    }
+                }
+
+                if (strcmp(method_name, "Release") == 0) {
+                    if (is_secure) {
+                        LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                        if (token_var == NULL)
+                            return LLVMConstInt(ctx->type_i32, 0, 0);
+                        {
+                            char fn_name[64];
+                            LLVMFuncEntry *fn;
+                            snprintf(fn_name, sizeof(fn_name), "pgy_secure_release_%s", inner);
+                            fn = llvm_lookup_function(ctx, fn_name);
+                            if (fn != NULL) {
+                                LLVMValueRef args[] = { slot_var->alloca, token_var->alloca };
+                                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                            } else {
+                                llvm_direct_secure_slot_release(ctx, slot_var);
+                            }
+                        }
+                    } else {
+                        char fn_name[64];
+                        LLVMFuncEntry *fn;
+                        snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", inner);
+                        fn = llvm_lookup_function(ctx, fn_name);
+                        if (fn != NULL) {
+                            LLVMValueRef args[] = { slot_var->alloca };
+                            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+                        } else {
+                            llvm_direct_slot_release(ctx, slot_var);
+                        }
+                    }
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                }
+            }
+        }
+
+        if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
             && method_name != NULL) {
             if (llvm_is_upper_ident(obj_node)) {
                 char full_name[256];
@@ -390,6 +502,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     snprintf(full_name, sizeof(full_name), "%s_%s",
                              class_name, method_name);
                     LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                    ASTNode *method_decl = llvm_find_nominal_host_method_decl(ctx,
+                        class_name, method_name);
                     if (fn != NULL) {
                         /* subject methods receive a self pointer; class methods a self value */
                         size_t argc = node->data.call.arg_count;
@@ -400,7 +514,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 args[0] = LLVMBuildLoad2(ctx->builder,
                                     var->type, var->alloca, llvm_tmp_name(ctx));
                             } else if (var != NULL) {
-                                args[0] = var->alloca;
+                                if (var->type == LLVMPointerType(cls->struct_type, 0))
+                                    args[0] = LLVMBuildLoad2(ctx->builder,
+                                        var->type, var->alloca, llvm_tmp_name(ctx));
+                                else
+                                    args[0] = var->alloca;
                             } else {
                                 LLVMValueRef base_ptr =
                                     llvm_current_self_base_ptr(ctx, parent_cls);
@@ -424,8 +542,44 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             }
                         }
                         for (size_t i = 0; i < argc; i++) {
-                            args[i + 1] = llvm_emit_expression(
+                            LLVMValueRef arg_val = llvm_emit_expression(
                                 node->data.call.arguments[i], ctx);
+                            if (method_decl != NULL) {
+                                size_t logical_idx = 0;
+                                for (size_t pk = 0;
+                                     pk < method_decl->data.func_decl.param_count; pk++) {
+                                    FuncParam *p = method_decl->data.func_decl.params[pk];
+                                    const char *ptn = NULL;
+                                    LLVMClassTypeEntry *param_cls = NULL;
+                                    if (p->type == NULL
+                                        && strcmp(p->name, "self") == 0) {
+                                        continue;
+                                    }
+                                    if (logical_idx == i) {
+                                        if (p->type != NULL && p->type->type == AST_TYPE)
+                                            ptn = p->type->data.type.name;
+                                        param_cls = ptn != NULL
+                                            ? llvm_lookup_class(ctx, ptn) : NULL;
+                                        if (param_cls != NULL && param_cls->is_pointer_self_host
+                                            && node->data.call.arguments[i] != NULL
+                                            && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                            const char *arg_name =
+                                                node->data.call.arguments[i]->data.identifier.name;
+                                            LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+                                            if (arg_var != NULL) {
+                                                if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                                                    arg_val = LLVMBuildLoad2(ctx->builder,
+                                                        arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
+                                                else
+                                                    arg_val = arg_var->alloca;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                    logical_idx++;
+                                }
+                            }
+                            args[i + 1] = arg_val;
                         }
 
                         LLVMValueRef result;
@@ -472,6 +626,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
                         parent_cls->struct_type, base_ptr, (unsigned)field_idx,
                         llvm_tmp_name(ctx));
+                    ASTNode *method_decl = llvm_find_nominal_host_method_decl(ctx,
+                        class_name, method_name);
 
                     if (llvm_nominal_uses_pointer_self(ctx, class_name))
                         args[0] = field_ptr;
@@ -480,8 +636,44 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             host_cls->struct_type, field_ptr, llvm_tmp_name(ctx));
 
                     for (size_t i = 0; i < argc; i++) {
-                        args[i + 1] = llvm_emit_expression(
+                        LLVMValueRef arg_val = llvm_emit_expression(
                             node->data.call.arguments[i], ctx);
+                        if (method_decl != NULL) {
+                            size_t logical_idx = 0;
+                            for (size_t pk = 0;
+                                 pk < method_decl->data.func_decl.param_count; pk++) {
+                                FuncParam *p = method_decl->data.func_decl.params[pk];
+                                const char *ptn = NULL;
+                                LLVMClassTypeEntry *param_cls = NULL;
+                                if (p->type == NULL
+                                    && strcmp(p->name, "self") == 0) {
+                                    continue;
+                                }
+                                if (logical_idx == i) {
+                                    if (p->type != NULL && p->type->type == AST_TYPE)
+                                        ptn = p->type->data.type.name;
+                                    param_cls = ptn != NULL
+                                        ? llvm_lookup_class(ctx, ptn) : NULL;
+                                    if (param_cls != NULL && param_cls->is_pointer_self_host
+                                        && node->data.call.arguments[i] != NULL
+                                        && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                        const char *arg_name =
+                                            node->data.call.arguments[i]->data.identifier.name;
+                                        LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+                                        if (arg_var != NULL) {
+                                            if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                                                arg_val = LLVMBuildLoad2(ctx->builder,
+                                                    arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
+                                            else
+                                                arg_val = arg_var->alloca;
+                                        }
+                                    }
+                                    break;
+                                }
+                                logical_idx++;
+                            }
+                        }
+                        args[i + 1] = arg_val;
                     }
 
                     LLVMValueRef result;
@@ -570,7 +762,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     {
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee_name);
         if (cls != NULL) {
-            LLVMValueRef object = LLVMGetUndef(cls->struct_type);
+            LLVMValueRef object = LLVMConstNull(cls->struct_type);
             for (size_t i = 0; i < node->data.call.arg_count
                  && i < (size_t)cls->field_count; i++) {
                 LLVMValueRef arg = llvm_emit_expression(
@@ -581,8 +773,46 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
             }
             {
+                ASTNode *relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
+                    callee_name);
+                ASTNode *effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
+                    callee_name);
+                ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
+                    callee_name);
                 ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
                     callee_name);
+                ASTNode **shared_fields = NULL;
+                size_t shared_count = 0;
+                if (relation_decl != NULL) {
+                    shared_fields = relation_decl->data.relation_decl.shared_fields;
+                    shared_count = relation_decl->data.relation_decl.shared_count;
+                } else if (effect_decl != NULL) {
+                    shared_fields = effect_decl->data.effect_decl.shared_fields;
+                    shared_count = effect_decl->data.effect_decl.shared_count;
+                } else if (zone_decl != NULL) {
+                    shared_fields = zone_decl->data.zone_decl.shared_fields;
+                    shared_count = zone_decl->data.zone_decl.shared_count;
+                } else if (world_decl != NULL) {
+                    shared_fields = world_decl->data.world_decl.shared_fields;
+                    shared_count = world_decl->data.world_decl.shared_count;
+                }
+                for (size_t i = 0; i < shared_count; i++) {
+                    ASTNode *shared = shared_fields[i];
+                    int field_idx;
+                    LLVMValueRef init_val;
+                    if (shared == NULL || shared->data.party_shared.name == NULL
+                        || shared->data.party_shared.initializer == NULL) {
+                        continue;
+                    }
+                    field_idx = llvm_class_field_index(cls, shared->data.party_shared.name);
+                    if (field_idx < 0 || (size_t)field_idx < node->data.call.arg_count)
+                        continue;
+                    init_val = llvm_emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (init_val == NULL)
+                        continue;
+                    object = LLVMBuildInsertValue(ctx->builder, object, init_val,
+                        (unsigned)field_idx, llvm_tmp_name(ctx));
+                }
                 if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
                     int derived_idx = llvm_class_field_index(cls, "__world_derived_dirty");
                     if (derived_idx >= 0) {
@@ -726,6 +956,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             ctx->current_class_name);
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
         const char *name = NULL;
+        ASTNode *state_decl = NULL;
         int field_idx = -1;
         LLVMValueRef base_ptr;
         LLVMValueRef gep;
@@ -737,7 +968,42 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             name = node->data.call.arguments[0]->data.string.value;
         if (name == NULL)
             return LLVMConstInt(ctx->type_i1, 0, 0);
-        if (llvm_find_world_state_decl(ctx, world_decl, name) != NULL) {
+        state_decl = llvm_find_world_state_decl(ctx, world_decl, name);
+        if (state_decl != NULL) {
+            if (state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                || state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+                LLVMValueRef result = LLVMConstInt(ctx->type_i1,
+                    state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
+                base_ptr = llvm_current_self_base_ptr(ctx, cls);
+                if (base_ptr == NULL)
+                    return LLVMConstInt(ctx->type_i1, 0, 0);
+                for (size_t i = 0; i < state_decl->data.world_state.input_count; i++) {
+                    const char *input_name = state_decl->data.world_state.input_names[i];
+                    int input_idx = -1;
+                    char field_name[256];
+                    LLVMValueRef input_ptr;
+                    LLVMValueRef input_val;
+                    if (input_name == NULL)
+                        continue;
+                    if (llvm_world_has_zone_slot(world_decl, input_name)) {
+                        snprintf(field_name, sizeof(field_name), "__zone_active_%s", input_name);
+                    } else {
+                        snprintf(field_name, sizeof(field_name), "__zone_state_%s", input_name);
+                    }
+                    input_idx = llvm_class_field_index(cls, field_name);
+                    if (input_idx < 0)
+                        continue;
+                    input_ptr = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+                        (unsigned)input_idx, llvm_tmp_name(ctx));
+                    input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+                        input_ptr, llvm_tmp_name(ctx));
+                    if (state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL)
+                        result = LLVMBuildAnd(ctx->builder, result, input_val, llvm_tmp_name(ctx));
+                    else
+                        result = LLVMBuildOr(ctx->builder, result, input_val, llvm_tmp_name(ctx));
+                }
+                return result;
+            }
             char field_name[256];
             snprintf(field_name, sizeof(field_name), "__zone_state_%s", name);
             field_idx = llvm_class_field_index(cls, field_name);
@@ -1841,8 +2107,39 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (args == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 args[0] = llvm_current_self_call_arg(ctx);
-                for (size_t i = 0; i < argc; i++)
-                    args[i + 1] = llvm_emit_expression(node->data.call.arguments[i], ctx);
+                for (size_t i = 0; i < argc; i++) {
+                    LLVMValueRef arg_val = llvm_emit_expression(node->data.call.arguments[i], ctx);
+                    size_t logical_idx = 0;
+                    for (size_t pk = 0; pk < host_method->data.func_decl.param_count; pk++) {
+                        FuncParam *p = host_method->data.func_decl.params[pk];
+                        const char *ptn = NULL;
+                        LLVMClassTypeEntry *param_cls = NULL;
+                        if (p->type == NULL && strcmp(p->name, "self") == 0)
+                            continue;
+                        if (logical_idx == i) {
+                            if (p->type != NULL && p->type->type == AST_TYPE)
+                                ptn = p->type->data.type.name;
+                            param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
+                            if (param_cls != NULL && param_cls->is_pointer_self_host
+                                && node->data.call.arguments[i] != NULL
+                                && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                const char *arg_name =
+                                    node->data.call.arguments[i]->data.identifier.name;
+                                LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+                                if (arg_var != NULL) {
+                                    if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                                        arg_val = LLVMBuildLoad2(ctx->builder,
+                                            arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
+                                    else
+                                        arg_val = arg_var->alloca;
+                                }
+                            }
+                            break;
+                        }
+                        logical_idx++;
+                    }
+                    args[i + 1] = arg_val;
+                }
                 {
                     LLVMValueRef result;
                     if (fn->ret_type == ctx->type_void) {

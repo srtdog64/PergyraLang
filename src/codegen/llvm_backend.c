@@ -1395,7 +1395,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         const char *suffix = slot_types[i].suffix;
         LLVMTypeRef slot_ty = slot_types[i].slot_ty;
         LLVMTypeRef val_ty  = slot_types[i].val_ty;
-        LLVMTypeRef ptr_ty  = ctx->type_i8ptr; /* opaque ptr */
+        LLVMTypeRef ptr_ty  = LLVMPointerType(slot_ty, 0);
         char fn_name[64];
 
         /* PgySlot_T pgy_claim_T(void) → returns struct by value */
@@ -2493,11 +2493,17 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 static void
 llvm_init_all_targets(void)
 {
+    static bool initialized = false;
+
+    if (initialized)
+        return;
+
     LLVMInitializeAllTargetInfos();
     LLVMInitializeAllTargets();
     LLVMInitializeAllTargetMCs();
     LLVMInitializeAllAsmParsers();
     LLVMInitializeAllAsmPrinters();
+    initialized = true;
 }
 
 static LLVMTargetMachineRef
@@ -2566,35 +2572,32 @@ llvm_create_host_machine(char **triple_out, char **cpu_out, char **features_out)
 }
 
 static void
-llvm_run_optimization(LLVMGenCtx *ctx)
+llvm_apply_target_machine(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
+                          const char *triple)
 {
-    char *triple = NULL;
-    char *cpu = NULL;
-    char *features = NULL;
-    LLVMTargetMachineRef machine = llvm_create_host_machine(&triple, &cpu, &features);
+    if (ctx == NULL || machine == NULL || triple == NULL)
+        return;
 
-    if (machine != NULL) {
-        LLVMTargetDataRef layout = LLVMCreateTargetDataLayout(machine);
-        LLVMSetModuleDataLayout(ctx->module, layout);
-        LLVMSetTarget(ctx->module, triple);
-        LLVMDisposeTargetData(layout);
-    }
+    LLVMTargetDataRef layout = LLVMCreateTargetDataLayout(machine);
+    LLVMSetModuleDataLayout(ctx->module, layout);
+    LLVMSetTarget(ctx->module, triple);
+    LLVMDisposeTargetData(layout);
+}
+
+static void
+llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
+                      const char *triple, bool release_opt)
+{
+    llvm_apply_target_machine(ctx, machine, triple);
 
     /* Run the new pass manager pipeline:
      * default<O3> gives the LLVM backend a fairer comparison with the
      * C backend's aggressive native toolchain path. */
     LLVMPassBuilderOptionsRef opts = LLVMCreatePassBuilderOptions();
-    LLVMRunPasses(ctx->module, "default<O3>", machine, opts);
+    LLVMRunPasses(ctx->module,
+                  release_opt ? "default<O3>" : "default<O1>",
+                  machine, opts);
     LLVMDisposePassBuilderOptions(opts);
-
-    if (machine != NULL)
-        LLVMDisposeTargetMachine(machine);
-    if (triple != NULL)
-        LLVMDisposeMessage(triple);
-    if (cpu != NULL)
-        LLVMDisposeMessage(cpu);
-    if (features != NULL)
-        LLVMDisposeMessage(features);
 }
 
 /* =================================================================
@@ -2648,7 +2651,8 @@ llvm_codegen(const HIRProgram *hir, const char *module_name)
 
 LLVMGenResult *
 llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
-                       const char *output_path)
+                       const char *output_path,
+                       bool release_opt)
 {
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     if (ctx == NULL)
@@ -2682,10 +2686,6 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
     }
     LLVMDisposeMessage(verify_error);
 
-    /* Optimize (also initializes all targets) */
-    llvm_run_optimization(ctx);
-
-    /* Get native target */
     char *triple = NULL;
     char *cpu = NULL;
     char *features = NULL;
@@ -2696,12 +2696,9 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
         return res;
     }
 
-    {
-        LLVMTargetDataRef layout = LLVMCreateTargetDataLayout(machine);
-        LLVMSetModuleDataLayout(ctx->module, layout);
-        LLVMSetTarget(ctx->module, triple);
-        LLVMDisposeTargetData(layout);
-    }
+    /* Optimize and emit with the same native target machine. */
+    llvm_run_optimization(ctx, machine, triple, release_opt);
+    llvm_apply_target_machine(ctx, machine, triple);
 
     /* Emit object file */
     char *emit_error = NULL;

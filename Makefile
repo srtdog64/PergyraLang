@@ -92,6 +92,7 @@ endif
 SRC_DIR      = src
 BUILD_DIR   ?= build
 BIN_DIR     ?= bin
+REPO_BIN_DIR := $(PROJECT_ROOT)/bin
 LEXER_DIR    = $(SRC_DIR)/lexer
 PARSER_DIR   = $(SRC_DIR)/parser
 RUNTIME_DIR  = $(SRC_DIR)/runtime
@@ -218,7 +219,7 @@ PGY_LSP             = $(BIN_DIR)/pgy-lsp
 # -----------------------------------------------------------------
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
-pgy: $(PGY)
+pgy: $(PGY) $(REPO_BIN_DIR)/pgy
 llvm:
 	$(MAKE) LLVM_ENABLED=1 all
 
@@ -230,6 +231,9 @@ llvm:
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread -lm
+
+$(REPO_BIN_DIR)/pgy: $(PGY) | $(REPO_BIN_DIR)
+	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
@@ -283,6 +287,9 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
+$(REPO_BIN_DIR)/pgy-lsp: $(PGY_LSP) | $(REPO_BIN_DIR)
+	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
+
 # -----------------------------------------------------------------
 # Compilation rules
 # -----------------------------------------------------------------
@@ -330,6 +337,9 @@ $(CONFIG_STAMP): | $(BUILD_DIR)
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 	touch -c -r Makefile $(BIN_DIR)
+
+$(REPO_BIN_DIR):
+	mkdir -p $(REPO_BIN_DIR)
 
 # -----------------------------------------------------------------
 # Test execution targets

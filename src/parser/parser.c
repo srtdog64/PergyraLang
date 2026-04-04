@@ -98,6 +98,18 @@ parser_check_contextual_keyword(Parser *parser, const char *keyword)
         && strcmp(parser->current_token.text, keyword) == 0;
 }
 
+static bool
+parser_starts_contextual_declaration(Parser *parser, const char *keyword)
+{
+    Token next;
+
+    if (!parser_check_contextual_keyword(parser, keyword))
+        return false;
+
+    next = parser_peek_next(parser);
+    return next.type == TOKEN_IDENTIFIER;
+}
+
 // 토큰 소비 (필수)
 Token parser_consume(Parser* parser, TokenType type, const char* message) {
     if (parser_check(parser, type)) {
@@ -751,11 +763,13 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // object 선언 (contextual struct alias)
-    if (parser_match_contextual_keyword(parser, "object")) {
+    if (parser_starts_contextual_declaration(parser, "object")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_object_declaration(parser));
     }
 
-    if (parser_match_contextual_keyword(parser, "vessel")) {
+    if (parser_starts_contextual_declaration(parser, "vessel")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_vessel_declaration(parser));
     }
 
@@ -937,27 +951,32 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // systemic 선언
-    if (parser_match_contextual_keyword(parser, "systemic")) {
+    if (parser_starts_contextual_declaration(parser, "systemic")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_systemic_declaration(parser));
     }
 
     // world 선언
-    if (parser_match_contextual_keyword(parser, "world")) {
+    if (parser_starts_contextual_declaration(parser, "world")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_world_declaration(parser));
     }
 
     // relation 선언
-    if (parser_match_contextual_keyword(parser, "relation")) {
+    if (parser_starts_contextual_declaration(parser, "relation")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_relation_declaration(parser));
     }
 
     // effect 선언
-    if (parser_match_contextual_keyword(parser, "effect")) {
+    if (parser_starts_contextual_declaration(parser, "effect")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_effect_declaration(parser));
     }
 
     // zone 선언
-    if (parser_match_contextual_keyword(parser, "zone")) {
+    if (parser_starts_contextual_declaration(parser, "zone")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_zone_declaration(parser));
     }
 
@@ -977,7 +996,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // event 선언 (contextual keyword)
-    if (parser_match_contextual_keyword(parser, "event")) {
+    if (parser_starts_contextual_declaration(parser, "event")) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_event_declaration(parser));
     }
 

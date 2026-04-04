@@ -1,0 +1,526 @@
+// main.pgy -- Graph + FSM raid example with slots, zones, world, and file output
+import "party.pgy";
+
+zone RoomZone
+{
+    shared roomId: Int = 0
+    shared threat: Int = 0
+    shared relics: Int = 0
+    shared wards: Int = 0
+    shared instability: Int = 0
+    shared cleared: Int = 0
+
+    func Label(self) -> String
+    {
+        if roomId == 0 { return "CAMP"; }
+        if roomId == 1 { return "FORGE"; }
+        if roomId == 2 { return "VAULT"; }
+        if roomId == 3 { return "SANCTUM"; }
+        return "ROOM?";
+    }
+
+    func Reset(self, id: Int, relicCount: Int, wardCount: Int) -> Void
+    {
+        roomId = id;
+        threat = 0;
+        relics = relicCount;
+        wards = wardCount;
+        instability = 0;
+        cleared = 0;
+    }
+
+    func Pulse(self, threatDelta: Int, instabilityDelta: Int) -> Void
+    {
+        threat = threat + threatDelta;
+        instability = instability + instabilityDelta;
+    }
+
+    func TakeRelics(self, amount: Int) -> Int
+    {
+        let gained = Min(relics, amount);
+        relics = Max(relics - gained, 0);
+        cleared = cleared + gained;
+        return gained;
+    }
+
+    func CoolDown(self) -> Void
+    {
+        threat = Max(threat - 1, 0);
+        instability = Max(instability - 1, 0);
+        wards = Max(wards - 1, 0);
+    }
+}
+
+world RaidWorld
+{
+    zone camp: RoomZone
+    zone forge: RoomZone
+    zone vault: RoomZone
+    zone sanctum: RoomZone
+
+    shared turn: Int = 0
+    shared storm: Int = 0
+    shared totalRelics: Int = 0
+    shared totalBlocks: Int = 0
+    shared campForge: Int = 2
+    shared campVault: Int = 3
+    shared forgeVault: Int = 2
+    shared forgeSanctum: Int = 3
+    shared vaultSanctum: Int = 2
+
+    activate camp
+    activate forge
+    activate vault
+    activate sanctum
+
+    func ResetRaid(self) -> Void
+    {
+        turn = 0;
+        storm = 0;
+        totalRelics = 0;
+        totalBlocks = 0;
+        campForge = 2;
+        campVault = 3;
+        forgeVault = 2;
+        forgeSanctum = 3;
+        vaultSanctum = 2;
+        camp.Reset(0, 0, 0);
+        forge.Reset(1, 3, 2);
+        vault.Reset(2, 6, 3);
+        sanctum.Reset(3, 8, 4);
+    }
+
+    func ForgeScore(self) -> Int
+    {
+        return forge.relics + forge.threat + forge.instability + storm;
+    }
+
+    func VaultScore(self) -> Int
+    {
+        return vault.relics + (vault.threat * 2) + vault.instability + storm;
+    }
+
+    func SanctumScore(self) -> Int
+    {
+        return sanctum.relics + (sanctum.threat * 2) + sanctum.wards + storm;
+    }
+
+    func CostToForge(self) -> Int
+    {
+        return campForge + forge.threat + storm;
+    }
+
+    func CostToVault(self) -> Int
+    {
+        return campVault + vault.instability + storm;
+    }
+
+    func CostToSanctumViaForge(self) -> Int
+    {
+        return campForge + forgeSanctum + forge.threat + sanctum.wards + storm;
+    }
+
+    func CostToSanctumViaVault(self) -> Int
+    {
+        return campVault + vaultSanctum + vault.instability + sanctum.wards + storm;
+    }
+
+    func ChooseTarget(self) -> Int
+    {
+        if SanctumScore() >= VaultScore() && SanctumScore() >= ForgeScore()
+        {
+            return 3;
+        }
+        if VaultScore() >= ForgeScore()
+        {
+            return 2;
+        }
+        return 1;
+    }
+
+    func PreferredTarget(self, raider: Raider) -> Int
+    {
+        if raider.roleCode == 1
+        {
+            if forge.relics > 0 || forge.threat <= vault.threat
+            {
+                return 1;
+            }
+            if sanctum.wards <= 1
+            {
+                return 3;
+            }
+            return 2;
+        }
+
+        if raider.roleCode == 2
+        {
+            if sanctum.wards <= 2 && SanctumScore() >= 10
+            {
+                return 3;
+            }
+            if vault.relics > 0
+            {
+                return 2;
+            }
+            return 1;
+        }
+
+        if vault.relics >= forge.relics && CostToVault() <= CostToForge() + 2
+        {
+            return 2;
+        }
+        if sanctum.wards == 0 && CostToSanctumViaForge() <= 10
+        {
+            return 3;
+        }
+        return 1;
+    }
+
+    func ChoosePath(self, targetRoom: Int) -> Int
+    {
+        if targetRoom == 1 { return 0; }
+        if targetRoom == 2 { return 1; }
+        if CostToSanctumViaForge() <= CostToSanctumViaVault() { return 0; }
+        return 1;
+    }
+
+    func PathCost(self, targetRoom: Int, pathKind: Int) -> Int
+    {
+        if targetRoom == 1 { return CostToForge(); }
+        if targetRoom == 2 { return CostToVault(); }
+        if pathKind == 0 { return CostToSanctumViaForge(); }
+        return CostToSanctumViaVault();
+    }
+
+    func NextRoom(self, targetRoom: Int, pathKind: Int) -> Int
+    {
+        if targetRoom == 1 { return 1; }
+        if targetRoom == 2 { return 2; }
+        if pathKind == 0 { return 1; }
+        return 2;
+    }
+
+    func LootAt(self, roomId: Int) -> Int
+    {
+        if roomId == 1 { return forge.relics; }
+        if roomId == 2 { return vault.relics; }
+        return sanctum.relics;
+    }
+
+    func TakeLoot(self, roomId: Int, amount: Int) -> Int
+    {
+        if roomId == 1 { return forge.TakeRelics(amount); }
+        if roomId == 2 { return vault.TakeRelics(amount); }
+        return sanctum.TakeRelics(amount);
+    }
+
+    func PulseTurn(self) -> Void
+    {
+        if turn == 0
+        {
+            storm = 1;
+            forge.Pulse(1, 0);
+            vault.Pulse(2, 1);
+            sanctum.Pulse(3, 1);
+        }
+        else if turn == 1
+        {
+            storm = 2;
+            forge.Pulse(2, 1);
+            vault.Pulse(2, 2);
+            sanctum.Pulse(4, 2);
+        }
+        else if turn == 2
+        {
+            storm = 3;
+            forge.Pulse(1, 1);
+            vault.Pulse(3, 2);
+            sanctum.Pulse(5, 3);
+        }
+        else if turn == 3
+        {
+            storm = 1;
+            forge.Pulse(1, 0);
+            vault.Pulse(1, 1);
+            sanctum.Pulse(3, 1);
+        }
+        else
+        {
+            storm = 2;
+            forge.Pulse(1, 0);
+            vault.Pulse(2, 1);
+            sanctum.Pulse(4, 2);
+        }
+    }
+
+    func ResolveRaider(self, raider: Raider, harvestCap: Int) -> Void
+    {
+        if raider.core.mode == 5
+        {
+            totalBlocks = totalBlocks + 1;
+            raider.Recover(3);
+            return;
+        }
+
+        if raider.core.stamina < 5
+        {
+            raider.Recover(4);
+            return;
+        }
+
+        let target = PreferredTarget(raider);
+        let path = ChoosePath(target);
+        let next = NextRoom(target, path);
+        let cost = PathCost(target, path);
+        let pressure = LootAt(target) + storm;
+        let threatBudget = 0;
+        if target == 1 { threatBudget = forge.threat + forge.instability; }
+        else if target == 2 { threatBudget = vault.threat + vault.instability; }
+        else { threatBudget = sanctum.threat + sanctum.wards; }
+
+        if cost + pressure + threatBudget >= 16
+        {
+            raider.Wound(1);
+            totalBlocks = totalBlocks + 1;
+        }
+        else if cost >= 8 && raider.core.stamina <= 9
+        {
+            raider.Recover(2);
+        }
+        else
+        {
+            let gained = TakeLoot(target, harvestCap);
+            raider.Prepare(target);
+            raider.Advance(next, path, cost);
+            raider.Harvest(gained);
+            totalRelics = totalRelics + gained;
+        }
+    }
+
+    func Simulate(self, scout: Raider, guardian: Raider, mystic: Raider) -> Void
+    {
+        let tick = 0;
+        while tick < 5
+        {
+            turn = tick;
+            PulseTurn();
+
+            Log("========================================");
+            Print("RAID TURN ");
+            Print(ToString(tick + 1));
+            Print("\n");
+            Print("storm=");
+            Print(ToString(storm));
+            Print(" forge=");
+            Print(ToString(ForgeScore()));
+            Print(" vault=");
+            Print(ToString(VaultScore()));
+            Print(" sanctum=");
+            Print(ToString(SanctumScore()));
+            Print("\n");
+            Print("paths: forge=");
+            Print(ToString(CostToForge()));
+            Print(" vault=");
+            Print(ToString(CostToVault()));
+            Print(" sanctum(forge)=");
+            Print(ToString(CostToSanctumViaForge()));
+            Print(" sanctum(vault)=");
+            Print(ToString(CostToSanctumViaVault()));
+            Print("\n");
+
+            ResolveRaider(scout, 2);
+            ResolveRaider(guardian, 3);
+            ResolveRaider(mystic, 2);
+
+            Print("  [Room] FORGE threat=");
+            Print(ToString(forge.threat));
+            Print(" relics=");
+            Print(ToString(forge.relics));
+            Print(" instability=");
+            Print(ToString(forge.instability));
+            Print("\n");
+            Print("  [Room] VAULT threat=");
+            Print(ToString(vault.threat));
+            Print(" relics=");
+            Print(ToString(vault.relics));
+            Print(" instability=");
+            Print(ToString(vault.instability));
+            Print("\n");
+            Print("  [Room] SANCTUM threat=");
+            Print(ToString(sanctum.threat));
+            Print(" relics=");
+            Print(ToString(sanctum.relics));
+            Print(" wards=");
+            Print(ToString(sanctum.wards));
+            Print("\n");
+
+            Print("  [Raider] ");
+            Print(scout.name);
+            Print(" [");
+            Print(scout.className);
+            Print("] mode=");
+            Print(scout.ModeName());
+            Print(" room=");
+            Print(scout.RoomName(scout.core.room));
+            Print(" target=");
+            Print(scout.RoomName(scout.core.target));
+            Print(" stamina=");
+            Print(ToString(scout.core.stamina));
+            Print(" relics=");
+            Print(ToString(scout.core.relics));
+            Print(" wounds=");
+            Print(ToString(scout.core.wounds));
+            Print(" stress=");
+            Print(ToString(scout.core.stress));
+            Print(" blocks=");
+            Print(ToString(scout.core.blocks));
+            Print(" path=");
+            Print(scout.PathName());
+            Print(" cost=");
+            Print(ToString(scout.core.lastCost));
+            Print("\n");
+
+            Print("  [Raider] ");
+            Print(guardian.name);
+            Print(" [");
+            Print(guardian.className);
+            Print("] mode=");
+            Print(guardian.ModeName());
+            Print(" room=");
+            Print(guardian.RoomName(guardian.core.room));
+            Print(" target=");
+            Print(guardian.RoomName(guardian.core.target));
+            Print(" stamina=");
+            Print(ToString(guardian.core.stamina));
+            Print(" relics=");
+            Print(ToString(guardian.core.relics));
+            Print(" wounds=");
+            Print(ToString(guardian.core.wounds));
+            Print(" stress=");
+            Print(ToString(guardian.core.stress));
+            Print(" blocks=");
+            Print(ToString(guardian.core.blocks));
+            Print(" path=");
+            Print(guardian.PathName());
+            Print(" cost=");
+            Print(ToString(guardian.core.lastCost));
+            Print("\n");
+
+            Print("  [Raider] ");
+            Print(mystic.name);
+            Print(" [");
+            Print(mystic.className);
+            Print("] mode=");
+            Print(mystic.ModeName());
+            Print(" room=");
+            Print(mystic.RoomName(mystic.core.room));
+            Print(" target=");
+            Print(mystic.RoomName(mystic.core.target));
+            Print(" stamina=");
+            Print(ToString(mystic.core.stamina));
+            Print(" relics=");
+            Print(ToString(mystic.core.relics));
+            Print(" wounds=");
+            Print(ToString(mystic.core.wounds));
+            Print(" stress=");
+            Print(ToString(mystic.core.stress));
+            Print(" blocks=");
+            Print(ToString(mystic.core.blocks));
+            Print(" path=");
+            Print(mystic.PathName());
+            Print(" cost=");
+            Print(ToString(mystic.core.lastCost));
+            Print("\n");
+
+            Print("  [World] relics=");
+            Print(ToString(totalRelics));
+            Print(" blocks=");
+            Print(ToString(totalBlocks));
+            Print("\n");
+            Log("");
+
+            forge.CoolDown();
+            vault.CoolDown();
+            sanctum.CoolDown();
+            tick = tick + 1;
+        }
+    }
+
+    func SaveReport(self, path: String, scout: Raider, guardian: Raider, mystic: Raider) -> Void
+    {
+        let fd = FileOpen(path, "w");
+        if fd < 0 { return; }
+
+        FileWrite(fd, "=== RAID GRAPH FSM REPORT ===\n");
+        FileWrite(fd, "storm="); FileWrite(fd, ToString(storm)); FileWrite(fd, "\n");
+        FileWrite(fd, "relics="); FileWrite(fd, ToString(totalRelics)); FileWrite(fd, "\n");
+        FileWrite(fd, "blocks="); FileWrite(fd, ToString(totalBlocks)); FileWrite(fd, "\n");
+        FileWrite(fd, "forgeCost="); FileWrite(fd, ToString(CostToForge())); FileWrite(fd, "\n");
+        FileWrite(fd, "sanctumViaForge="); FileWrite(fd, ToString(CostToSanctumViaForge())); FileWrite(fd, "\n");
+        FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- FORGE ---\n");
+        FileWrite(fd, "relics="); FileWrite(fd, ToString(forge.relics));
+        FileWrite(fd, " cleared="); FileWrite(fd, ToString(forge.cleared));
+        FileWrite(fd, " threat="); FileWrite(fd, ToString(forge.threat)); FileWrite(fd, "\n");
+        FileWrite(fd, "--- VAULT ---\n");
+        FileWrite(fd, "relics="); FileWrite(fd, ToString(vault.relics));
+        FileWrite(fd, " cleared="); FileWrite(fd, ToString(vault.cleared));
+        FileWrite(fd, " threat="); FileWrite(fd, ToString(vault.threat)); FileWrite(fd, "\n");
+        FileWrite(fd, "--- SANCTUM ---\n");
+        FileWrite(fd, "relics="); FileWrite(fd, ToString(sanctum.relics));
+        FileWrite(fd, " cleared="); FileWrite(fd, ToString(sanctum.cleared));
+        FileWrite(fd, " threat="); FileWrite(fd, ToString(sanctum.threat)); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- RAIDERS ---\n");
+        FileWrite(fd, scout.name); FileWrite(fd, " relics="); FileWrite(fd, ToString(scout.core.relics));
+        FileWrite(fd, " blocks="); FileWrite(fd, ToString(scout.core.blocks));
+        FileWrite(fd, " stamina="); FileWrite(fd, ToString(scout.core.stamina)); FileWrite(fd, "\n");
+        FileWrite(fd, guardian.name); FileWrite(fd, " relics="); FileWrite(fd, ToString(guardian.core.relics));
+        FileWrite(fd, " blocks="); FileWrite(fd, ToString(guardian.core.blocks));
+        FileWrite(fd, " stamina="); FileWrite(fd, ToString(guardian.core.stamina)); FileWrite(fd, "\n");
+        FileWrite(fd, mystic.name); FileWrite(fd, " relics="); FileWrite(fd, ToString(mystic.core.relics));
+        FileWrite(fd, " blocks="); FileWrite(fd, ToString(mystic.core.blocks));
+        FileWrite(fd, " stamina="); FileWrite(fd, ToString(mystic.core.stamina)); FileWrite(fd, "\n");
+
+        FileClose(fd);
+    }
+}
+
+func Main() -> Void
+{
+    Log("=== RAID GRAPH + FSM ===");
+    Log("Slots stage path cost and loot, world owns the graph, raiders run FSM actions");
+    Log("");
+
+    let world = RaidWorld(
+        RoomZone(0, 0, 0, 0, 0, 0),
+        RoomZone(1, 0, 3, 2, 0, 0),
+        RoomZone(2, 0, 6, 3, 0, 0),
+        RoomZone(3, 0, 8, 4, 0, 0)
+    );
+    let scout = Raider("Iris", "scout", 0, RaiderCore(0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0));
+    let guardian = Raider("Brom", "guardian", 1, RaiderCore(0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0));
+    let mystic = Raider("Nyra", "mystic", 2, RaiderCore(0, 0, 0, 13, 0, 0, 0, 0, 0, 0, 0));
+
+    world.ResetRaid();
+    with slot<Int> as openingPressure
+    {
+        Write(openingPressure, world.CostToForge() + world.CostToVault());
+        Print("INITIAL ROUTE PRESSURE=");
+        Print(ToString(Read(openingPressure)));
+        Print("\n");
+    }
+    world.Simulate(scout, guardian, mystic);
+
+    with slot<Int> as raidScore
+    {
+        Write(raidScore, world.totalRelics - world.totalBlocks);
+        Print("FINAL RAID SCORE=");
+        Print(ToString(Read(raidScore)));
+        Print("\n");
+    }
+    Log("SAVING RAID REPORT");
+    world.SaveReport("examples/raid_graph_fsm/results.txt", scout, guardian, mystic);
+}

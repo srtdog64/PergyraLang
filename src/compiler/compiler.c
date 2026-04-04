@@ -157,7 +157,8 @@ CompilerResult *
 compiler_build_native(const HIRProgram *hir,
                       const char *output_c_path,
                       const char *output_binary_path,
-                      bool verbose)
+                      bool verbose,
+                      PgyOptProfile opt_profile)
 {
     char *error_message = NULL;
     int rc = invoke_c_backend(hir, output_c_path, &error_message);
@@ -174,8 +175,9 @@ compiler_build_native(const HIRProgram *hir,
         return compiler_error("Unsafe characters in file path");
     }
 
+    const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
     const char *gcc_argv[] = {
-        "gcc", "-std=c11", "-Wall", "-O2",
+        "gcc", "-std=c11", "-Wall", opt_flag,
         "-fopenmp",
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
@@ -291,13 +293,15 @@ CompilerResult *
 compiler_build_native_llvm(const HIRProgram *hir,
                            const char *output_obj_path,
                            const char *output_binary_path,
-                           bool verbose)
+                           bool verbose,
+                           PgyOptProfile opt_profile)
 {
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
     LLVMGenResult *gen = llvm_codegen_to_object(hir, "pergyra_module",
-                                                 output_obj_path);
+                                                 output_obj_path,
+                                                 opt_profile == PGY_OPT_RELEASE);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -316,8 +320,9 @@ compiler_build_native_llvm(const HIRProgram *hir,
         return compiler_error("Unsafe characters in file path");
     }
 
-    const char *link_argv[] = {
-        "gcc", "-std=c11", "-O3", "-march=native", "-mtune=native", "-fopenmp",
+    const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+    const char *link_argv_release[] = {
+        "gcc", "-std=c11", opt_flag, "-march=native", "-mtune=native", "-fopenmp",
 #ifndef _WIN32
         "-no-pie",
 #endif
@@ -329,6 +334,21 @@ compiler_build_native_llvm(const HIRProgram *hir,
         "-lm",
         NULL
     };
+    const char *link_argv_dev[] = {
+        "gcc", "-std=c11", opt_flag, "-fopenmp",
+#ifndef _WIN32
+        "-no-pie",
+#endif
+        "-DPGY_LLVM_ENABLED",
+        "-I", PGY_SRC_DIR,
+        "-o", output_binary_path, output_obj_path,
+        PGY_RUNTIME_LIB_C,
+        "-lpthread",
+        "-lm",
+        NULL
+    };
+    const char *const *link_argv =
+        (opt_profile == PGY_OPT_RELEASE) ? link_argv_release : link_argv_dev;
 
     int rc = pgy_exec_argv(link_argv, verbose);
     if (rc != 0) {
@@ -370,12 +390,14 @@ CompilerResult *
 compiler_build_native_llvm(const HIRProgram *hir,
                            const char *output_obj_path,
                            const char *output_binary_path,
-                           bool verbose)
+                           bool verbose,
+                           PgyOptProfile opt_profile)
 {
     (void)hir;
     (void)output_obj_path;
     (void)output_binary_path;
     (void)verbose;
+    (void)opt_profile;
     return compiler_error("LLVM backend not available in this build");
 }
 

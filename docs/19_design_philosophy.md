@@ -134,6 +134,8 @@ world    = 전체 시스템의 경계
 `object`는 passive state target이고 helper `func`와 국소 상태를 가질 수 있으며, `dto`는 그보다 더 좁은 transfer/projection form이다.
 즉 projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `ToObject` / `ToDto` / `refresh` / `publish` 같은 투영 동작이다.
 그래서 direct `ToObject` / `ToDto`는 존재하더라도 보조 surface로 남고, 권장 흐름은 domain context 안의 projection wiring과 lifecycle sync다.
+`Void`는 빈 일반 값이라기보다 "결과가 없음"을 나타내는 반환 타입이고, `return`은 그 결과 타입과 별개로 현재 실행을 종료하는 제어 문장이다.
+그래서 `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 값을 돌려주는 종료다.
 
 여기서 설계 우선순위는 다음처럼 보는 것이 맞다.
 

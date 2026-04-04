@@ -49,7 +49,8 @@ llvm_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
         return 1;
     }
 
-    result = compiler_build_native_llvm(hir, obj_path, bin_path, flags->verbose);
+    result = compiler_build_native_llvm(hir, obj_path, bin_path, flags->verbose,
+                                        flags->opt_profile);
     if (result == NULL || !result->success) {
         fprintf(stderr, "pgy: LLVM compile failed: %s\n",
                 result != NULL ? result->error_message : "out of memory");

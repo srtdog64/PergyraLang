@@ -27,7 +27,7 @@ c_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
         char *output_c = flags->output_path != NULL
             ? pergyra_strdup(flags->output_path)
             : path_replace_extension(flags->source_path, ".c");
-        CompilerResult *result;
+CompilerResult *result;
 
         if (output_c == NULL) {
             fprintf(stderr, "pgy: out of memory\n");
@@ -99,7 +99,8 @@ c_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
     if (flags->verbose)
         printf("pgy: generating C → %s\n", tmp_c);
 
-    result = compiler_build_native(hir, tmp_c, bin_path, flags->verbose);
+    result = compiler_build_native(hir, tmp_c, bin_path, flags->verbose,
+                                   flags->opt_profile);
     remove(tmp_c);
 
     if (result == NULL || !result->success) {

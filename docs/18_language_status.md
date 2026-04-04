@@ -91,6 +91,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 projection/value 형식임
 - `subject`는 일반 `func`와 공적 `action`을 모두 가질 수 있음
 - `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
+- `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
+- `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
 - 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨

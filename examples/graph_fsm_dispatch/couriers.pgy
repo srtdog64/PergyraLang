@@ -1,0 +1,144 @@
+// couriers.pgy -- Courier FSM hosts used by the graph dispatch scenario
+
+vessel CourierCore
+{
+    mode: Int;
+    node: Int;
+    target: Int;
+    payload: Int;
+    battery: Int;
+    delivered: Int;
+    blocked: Int;
+    hops: Int;
+    stress: Int;
+    lastPath: Int;
+    lastCost: Int;
+
+    func SetMode(self, nextMode: Int) -> Void
+    {
+        mode = nextMode;
+    }
+}
+
+subject Courier
+{
+    let name: String;
+    let role: String;
+    vessel core: CourierCore;
+
+    func ModeName(self) -> String
+    {
+        if core.mode == 0 { return "idle"; }
+        if core.mode == 1 { return "loading"; }
+        if core.mode == 2 { return "routing"; }
+        if core.mode == 3 { return "delivering"; }
+        if core.mode == 4 { return "charging"; }
+        if core.mode == 5 { return "blocked"; }
+        return "unknown";
+    }
+
+    func NodeName(self, id: Int) -> String
+    {
+        if id == 0 { return "DEPOT"; }
+        if id == 1 { return "HUB"; }
+        if id == 2 { return "PORT"; }
+        if id == 3 { return "LAB"; }
+        return "NODE?";
+    }
+
+    func PathName(self) -> String
+    {
+        if core.lastPath == 0 { return "direct"; }
+        if core.lastPath == 1 { return "via-hub"; }
+        if core.lastPath == 2 { return "via-port"; }
+        return "unset";
+    }
+
+    func StatusLine(self) -> String
+    {
+        return name
+            + " [" + role + "]"
+            + " mode=" + ModeName()
+            + " node=" + NodeName(core.node)
+            + " target=" + NodeName(core.target)
+            + " payload=" + ToString(core.payload)
+            + " battery=" + ToString(core.battery)
+            + " delivered=" + ToString(core.delivered)
+            + " blocked=" + ToString(core.blocked)
+            + " stress=" + ToString(core.stress)
+            + " path=" + PathName()
+            + " cost=" + ToString(core.lastCost);
+    }
+
+    action Load(self, amount: Int, targetNode: Int) -> Int
+        authorized by self
+    {
+        if amount <= 0
+        {
+            core.SetMode(0);
+            core.payload = 0;
+            return 0;
+        }
+
+        core.SetMode(1);
+        core.payload = amount;
+        core.target = targetNode;
+        return amount;
+    }
+
+    action Dispatch(self, nextNode: Int, pathKind: Int, energyCost: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(2);
+        core.node = nextNode;
+        core.lastPath = pathKind;
+        core.lastCost = energyCost;
+        core.hops = core.hops + 1;
+        core.battery = Max(core.battery - energyCost, 0);
+        return core.battery;
+    }
+
+    action Deliver(self, amount: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(3);
+        core.delivered = core.delivered + amount;
+        core.payload = Max(core.payload - amount, 0);
+        core.node = core.target;
+        core.SetMode(0);
+        return amount;
+    }
+
+    action Recharge(self, amount: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(4);
+        core.battery = Min(core.battery + amount, 20);
+        core.stress = Max(core.stress - 1, 0);
+        core.SetMode(0);
+        return core.battery;
+    }
+
+    action Block(self, severity: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(5);
+        core.blocked = core.blocked + 1;
+        core.stress = core.stress + severity;
+        core.battery = Max(core.battery - severity, 0);
+        return core.blocked;
+    }
+
+    action Recover(self, support: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(4);
+        core.stress = Max(core.stress - support, 0);
+        core.battery = Min(core.battery + support, 20);
+        if core.stress == 0
+        {
+            core.SetMode(0);
+        }
+        return core.stress;
+    }
+}

@@ -489,6 +489,71 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *
 }
 
 static ASTNode *
+llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
+                                   const char *method_name)
+{
+    ASTNode *decl = NULL;
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+
+    decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, host_type_name);
+    if (decl == NULL)
+        decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, host_type_name);
+    if (decl == NULL)
+        decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, host_type_name);
+    if (decl == NULL)
+        decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, host_type_name);
+    if (decl == NULL)
+        decl = llvm_find_projection_nominal_decl(ctx, host_type_name);
+
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        methods = decl->data.class_decl.methods;
+        method_count = decl->data.class_decl.method_count;
+        break;
+    case AST_ACTOR_DECL:
+        methods = decl->data.actor_decl.methods;
+        method_count = decl->data.actor_decl.method_count;
+        break;
+    case AST_RELATION_DECL:
+        methods = decl->data.relation_decl.methods;
+        method_count = decl->data.relation_decl.method_count;
+        break;
+    case AST_EFFECT_DECL:
+        methods = decl->data.effect_decl.methods;
+        method_count = decl->data.effect_decl.method_count;
+        break;
+    case AST_ZONE_DECL:
+        methods = decl->data.zone_decl.methods;
+        method_count = decl->data.zone_decl.method_count;
+        break;
+    case AST_WORLD_DECL:
+        methods = decl->data.world_decl.methods;
+        method_count = decl->data.world_decl.method_count;
+        break;
+    default:
+        return NULL;
+    }
+
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods[i];
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            return method;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
 llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl, const char *state_name)
 {
     (void)ctx;

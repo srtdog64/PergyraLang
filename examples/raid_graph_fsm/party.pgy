@@ -1,0 +1,125 @@
+// party.pgy -- Game-like graph+FSM raid hosts
+
+vessel RaiderCore
+{
+    mode: Int;
+    room: Int;
+    target: Int;
+    stamina: Int;
+    relics: Int;
+    wounds: Int;
+    blocks: Int;
+    steps: Int;
+    stress: Int;
+    lastPath: Int;
+    lastCost: Int;
+
+    func SetMode(self, nextMode: Int) -> Void
+    {
+        mode = nextMode;
+    }
+}
+
+subject Raider
+{
+    let name: String;
+    let className: String;
+    let roleCode: Int;
+    vessel core: RaiderCore;
+
+    func ModeName(self) -> String
+    {
+        if core.mode == 0 { return "idle"; }
+        if core.mode == 1 { return "planning"; }
+        if core.mode == 2 { return "moving"; }
+        if core.mode == 3 { return "harvesting"; }
+        if core.mode == 4 { return "recovering"; }
+        if core.mode == 5 { return "blocked"; }
+        return "unknown";
+    }
+
+    func RoomName(self, id: Int) -> String
+    {
+        if id == 0 { return "CAMP"; }
+        if id == 1 { return "FORGE"; }
+        if id == 2 { return "VAULT"; }
+        if id == 3 { return "SANCTUM"; }
+        return "ROOM?";
+    }
+
+    func PathName(self) -> String
+    {
+        if core.lastPath == 0 { return "forge"; }
+        if core.lastPath == 1 { return "vault"; }
+        if core.lastPath == 2 { return "cross"; }
+        return "unset";
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " [" + className + "]"
+            + " mode=" + ModeName()
+            + " room=" + RoomName(core.room)
+            + " target=" + RoomName(core.target)
+            + " stamina=" + ToString(core.stamina)
+            + " relics=" + ToString(core.relics)
+            + " wounds=" + ToString(core.wounds)
+            + " stress=" + ToString(core.stress)
+            + " blocks=" + ToString(core.blocks)
+            + " path=" + PathName()
+            + " cost=" + ToString(core.lastCost);
+    }
+
+    action Prepare(self, roomId: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(1);
+        core.target = roomId;
+        return roomId;
+    }
+
+    action Advance(self, nextRoom: Int, pathKind: Int, cost: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(2);
+        core.room = nextRoom;
+        core.lastPath = pathKind;
+        core.lastCost = cost;
+        core.steps = core.steps + 1;
+        core.stamina = Max(core.stamina - cost, 0);
+        core.SetMode(0);
+        return core.stamina;
+    }
+
+    action Harvest(self, amount: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(3);
+        core.relics = core.relics + amount;
+        core.SetMode(0);
+        return core.relics;
+    }
+
+    action Wound(self, severity: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(5);
+        core.blocks = core.blocks + 1;
+        core.wounds = core.wounds + severity;
+        core.stress = core.stress + severity;
+        core.stamina = Max(core.stamina - severity, 0);
+        return core.blocks;
+    }
+
+    action Recover(self, aid: Int) -> Int
+        authorized by self
+    {
+        core.SetMode(4);
+        core.wounds = Max(core.wounds - aid, 0);
+        core.stress = Max(core.stress - aid, 0);
+        core.stamina = Min(core.stamina + aid + 1, 18);
+        core.SetMode(0);
+        return core.stamina;
+    }
+}

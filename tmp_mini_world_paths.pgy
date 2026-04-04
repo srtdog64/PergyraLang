@@ -1,0 +1,27 @@
+zone RoomZone {
+    shared threat: Int = 0
+    shared instability: Int = 0
+    shared wards: Int = 0
+    shared relics: Int = 0
+}
+world W {
+    zone forge: RoomZone
+    zone vault: RoomZone
+    zone sanctum: RoomZone
+    shared storm: Int = 1
+    shared campForge: Int = 2
+    shared campVault: Int = 3
+    shared forgeSanctum: Int = 3
+    shared vaultSanctum: Int = 2
+    func CostToForge(self) -> Int { return campForge + forge.threat + storm; }
+    func CostToVault(self) -> Int { return campVault + vault.instability + storm; }
+    func CostToSanctumViaForge(self) -> Int { return campForge + forgeSanctum + forge.threat + sanctum.wards + storm; }
+    func CostToSanctumViaVault(self) -> Int { return campVault + vaultSanctum + vault.instability + sanctum.wards + storm; }
+}
+func Main() -> Void {
+    let w = W(RoomZone(1,0,2,3), RoomZone(2,1,3,6), RoomZone(3,1,4,8));
+    Print(ToString(w.CostToForge())); Print("\n");
+    Print(ToString(w.CostToVault())); Print("\n");
+    Print(ToString(w.CostToSanctumViaForge())); Print("\n");
+    Print(ToString(w.CostToSanctumViaVault())); Print("\n");
+}

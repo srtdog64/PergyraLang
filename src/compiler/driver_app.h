@@ -7,6 +7,7 @@
 #define PGY_DRIVER_APP_H
 
 #include <stdbool.h>
+#include "compiler.h"
 
 typedef enum
 {
@@ -27,6 +28,7 @@ typedef struct
     bool        verbose;
     bool        repl;
     BackendKind backend;
+    PgyOptProfile opt_profile;
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);

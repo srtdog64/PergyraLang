@@ -116,6 +116,71 @@ func Add(a: Int, b: Int) -> Int { ... }
 let f = (x: Int) -> Int => { return x + 1; };
 ```
 
+#### `Void`와 `return`
+
+Pergyra에서 `Void`와 `return`은 같은 개념이 아니다.
+
+- `Void`는 **반환 결과가 없음**을 나타내는 결과 타입이다.
+- `return`은 **현재 실행을 즉시 종료하는 제어 문장**이다.
+
+즉:
+
+```pergyra
+func Tick() -> Void {
+    if done {
+        return;
+    }
+}
+```
+
+위 코드는:
+
+- `-> Void`로 인해 "이 hosted func/action은 결과값을 돌려주지 않는다"를 선언하고
+- `return;`으로 인해 "여기서 실행을 끝내고 빠져나간다"를 표현한다.
+
+규칙은 다음처럼 이해하면 된다.
+
+- `-> Void`
+  - 결과 타입이 없다.
+  - 블록 끝 자연 종료가 허용된다.
+- `return;`
+  - 값을 주지 않고 현재 실행만 종료한다.
+  - `Void` 반환 경로에서만 쓴다.
+- `return expr;`
+  - 값을 돌려주면서 현재 실행을 종료한다.
+  - non-`Void` 반환 경로에서만 쓴다.
+
+예:
+
+```pergyra
+func Heal(amount: Int) -> Void {
+    if amount <= 0 {
+        return;
+    }
+    hp = hp + amount;
+}
+
+func Score() -> Int {
+    if hp <= 0 {
+        return 0;
+    }
+    return hp + bonus;
+}
+```
+
+설계 원칙:
+
+- `Void`는 빈 값을 뜻하는 일반 값 타입처럼 취급하지 않는다.
+- `return`은 값의 유무와 무관하게 실행을 종료하는 문장이다.
+- `Void` 함수/func/action에서 `return;`은 **선택적 조기 종료**이고, 블록 끝 자연 종료와 함께 쓸 수 있다.
+- non-`Void` 함수/func/action은 모든 경로가 값을 반환해야 한다.
+
+현재 용어 체계:
+
+- `func` / `action`은 `-> Void` 또는 `-> T`를 가질 수 있다.
+- `action`이라고 해서 자동으로 `Void`인 것은 아니다.
+- `Void`와 `action`은 별도 개념이다. `action`은 공적 행위의 의미론이고, `Void`는 결과 타입이다.
+
 ### 2.3 타입 선언
 
 ```pergyra

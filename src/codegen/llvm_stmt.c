@@ -802,20 +802,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *callee = init->data.call.callee->data.identifier.name;
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
         if (cls != NULL) {
-            /* Allocate struct on stack */
             LLVMValueRef alloca_val = llvm_create_entry_alloca(
                 ctx, cls->struct_type, name);
-
-            /* Store each argument into corresponding field */
-            size_t argc = init->data.call.arg_count;
-            for (size_t i = 0; i < argc && (int)i < cls->field_count; i++) {
-                LLVMValueRef arg = llvm_emit_expression(
-                    init->data.call.arguments[i], ctx);
-                LLVMValueRef gep = LLVMBuildStructGEP2(
-                    ctx->builder, cls->struct_type, alloca_val,
-                    (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, arg, gep);
-            }
+            LLVMValueRef init_val = llvm_emit_expression(init, ctx);
+            if (init_val != NULL)
+                LLVMBuildStore(ctx->builder, init_val, alloca_val);
 
             llvm_scope_declare(ctx, name, alloca_val, cls->struct_type);
             llvm_register_var_class(ctx, name, callee);

@@ -7,16 +7,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- CLI optimization profiles: `--opt=dev|release`
+- `tests/bench_backend.sh` for quick C vs LLVM compile+run timing on a scenario
+- Backend-specific biome simulator result goldens to keep example smoke exact
+  while C/LLVM parity is still being tightened
 - New folder-based complex FSM scenario: `examples/fsm_factory/` with multi-file
   subject/zone/world orchestration, exact stdout goldens, and exact results-file
   golden coverage in example smoke
+- New folder-based raid graph+FSM scenario: `examples/raid_graph_fsm/`
+  with slot-based turn staging, world-owned graph costs, raider subject FSMs,
+  and report-file smoke
 - `src/semantic/type_checker.c` split into a smaller main file plus
   `type_checker_helpers.inc`, `type_checker_operator_expr.inc`, and
   `type_checker_decls.inc` to keep semantic analysis manageable
 - `src/codegen/transpiler.c` split into a smaller main file plus
   `transpiler_helpers.inc` and `transpiler_domain_role.inc`
+- `src/codegen/transpiler_helpers.inc` split again into a smaller core helper
+  include plus `transpiler_expr_emitters.inc`
 - `src/codegen/llvm_expr.c` split into a smaller main file plus
   `src/codegen/llvm_expr_helpers.inc` to keep LLVM expression codegen more manageable
+- `src/tests/semantic/test_semantic_runtime.inc` split into themed semantic test
+  includes to keep the runtime/domain regression corpus readable
 - Folder-based example smoke entries: a path may now point to an example directory with `main.pgy`
 - New multi-file example scenarios: `examples/battle_simulator/` and `examples/biome_simulator/`
 - Richer biome simulator scenario: vegetation pools, species-specific traits, four-creature biome loops, world season/storm aggregation, and file report output
@@ -30,9 +41,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- LLVM world `all/any` derived-state queries now compose correctly for example
+  scenarios such as `battle_simulator`
+- LLVM slot built-ins now use the stable `Write(slot, value)` / `Read(slot)`
+  path for exact scenario parity, and `raid_graph_fsm` now uses that stable
+  slot surface while its richer graph/FSM logic drives real room movement and loot
 - LLVM backend optimization pipeline now uses a host-tuned target machine with
   `default<O3>` passes, and the native link step now compiles the runtime with
   `-march=native -mtune=native` for a fairer comparison against the C backend
+- LLVM object generation now initializes targets once and reuses the same host
+  target machine across optimization and object emission
+- Backend optimization is now profile-driven: `dev` uses lighter codegen/link
+  settings for faster iteration, while `release` keeps aggressive optimization
+- The CLI default optimization profile remains `release` so existing behavior
+  and exact scenario outputs stay stable unless `--opt=dev` is requested
 - `Option<T>` source-level surface: `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`
 - `Option<T>` destructuring in `match` for both C and LLVM backends
 - Semantic destructuring bindings for `Option<T>`, `Result<T>`, and tagged enum variants in `match`

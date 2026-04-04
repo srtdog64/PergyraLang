@@ -782,6 +782,7 @@ driver_print_usage(void)
         "  pgy <source.pgy> --emit-c -o <out.c>\n"
         "  pgy <source.pgy> --emit-llvm -o <out.ll>\n"
         "  pgy <source.pgy> --run        compile + run\n"
+        "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
