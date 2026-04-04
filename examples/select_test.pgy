@@ -1,0 +1,22 @@
+// select_test.pgy — 채널 select (여러 소스 중 수신)
+
+func Main() -> Void {
+    let ch1: Channel<Int> = Channel(4);
+    let ch2: Channel<Int> = Channel(4);
+
+    ch1 <- 10;
+    ch2 <- 20;
+
+    // ChannelReady로 어떤 채널이 준비되었는지 확인
+    if ChannelReady(ch1) {
+        let v: Int = <- ch1;
+        Log(v);
+    }
+    if ChannelReady(ch2) {
+        let v: Int = <- ch2;
+        Log(v);
+    }
+
+    ChannelClose(ch1);
+    ChannelClose(ch2);
+}

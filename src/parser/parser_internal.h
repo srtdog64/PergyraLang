@@ -73,4 +73,9 @@ ASTNode *parse_effect_declaration(Parser *parser);
 ASTNode *parse_zone_declaration(Parser *parser);
 ASTNode *parse_event_declaration(Parser *parser);
 
+/* --- Async / actor declarations (parser_async.c) --- */
+ASTNode *parser_parse_actor_declaration(Parser *parser);
+ASTNode *parser_parse_actor_declaration_with_name(Parser *parser,
+                                                  const char *name);
+
 #endif /* PERGYRA_PARSER_INTERNAL_H */

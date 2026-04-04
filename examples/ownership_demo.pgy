@@ -1,0 +1,11 @@
+// ownership_demo.pgy — Slot 소유권 기본
+
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, 42);
+    Log(Read(s));
+
+    // move: let b = s 후 s는 무효 (Slot은 move-by-default)
+    // Clone: 명시적 복사가 필요하면 Clone() 사용
+    Release(s);
+}

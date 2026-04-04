@@ -31,6 +31,9 @@
 대표 키워드:
 `let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `object`, `dto`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
 
+주의:
+- `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다. 선언 위치에서는 키워드처럼 동작하지만, 지역 변수나 일반 표현식 자리에서는 식별자로 쓸 수 있다.
+
 ## 2. 선언
 
 ### 2.1 값 선언
@@ -106,6 +109,7 @@ enum Color { Red, Green, Blue }
 - `class`
 - `enum`
 - `actor`
+- `subject Name actor { ... }`
 - `relation`
 - `effect`
 - `zone`

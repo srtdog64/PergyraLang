@@ -12,6 +12,8 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
+- `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다.
+  선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - 내장 API와 타입은 PascalCase 기준이다.
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
 - 문장 종료는 세미콜론 `;` 이다.
@@ -418,6 +420,10 @@ world GameWorld {
 
 ```pergyra
 actor Counter {
+    let count: Int;
+}
+
+subject Counter actor {
     let count: Int;
 }
 

@@ -1,0 +1,11 @@
+// defer_test.pgy — defer 기본 동작
+
+func Greet() -> Void {
+    Log("entering");
+    defer { Log("exiting"); };
+    Log("working");
+}
+
+func Main() -> Void {
+    Greet();
+}

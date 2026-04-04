@@ -88,49 +88,38 @@ ASTNode* parser_parse_async_function(Parser* parser)
     return func;
 }
 
-// Parse actor declaration
-ASTNode* parser_parse_actor_declaration(Parser* parser)
+static ASTNode*
+parse_actor_body(Parser *parser, ASTNode *actor)
 {
-    // 'actor' keyword already consumed
-    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected actor name");
-    
-    ASTNode* actor = ast_create_actor(name.text);
-    actor->data.actor_decl.doc_comment = parser_take_pending_doc_comment(parser);
-    
-    // Generic parameters (if any)
-    if (parser_check(parser, TOKEN_LESS)) {
-        // actor->data.actor_decl.generic_params = parse_generic_params(parser);
-    }
-    
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after actor name");
-    
+
     // Parse actor body (fields and methods)
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
         AccessModifier access = ACCESS_PUBLIC;
-        
+
         // Access modifiers
         if (parser_match(parser, TOKEN_PUBLIC)) {
             access = ACCESS_PUBLIC;
         } else if (parser_match(parser, TOKEN_PRIVATE)) {
             access = ACCESS_PRIVATE;
         }
-        
+
         // Fields or methods
         if (parser_check(parser, TOKEN_LET)) {
             parser_advance(parser);
-            
+
             // Field
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected field name");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
             ASTNode* field_type = parse_type(parser);
-            
+
             ClassField* field = calloc(1, sizeof(ClassField));
             field->name = pergyra_strdup(field_name.text);
             field->type = field_type;
             field->access = access;
             field->is_mutable = true;  // Actor fields are mutable by default
-            
+
             // Add field
             actor->data.actor_decl.field_count++;
             actor->data.actor_decl.fields = realloc(
@@ -138,14 +127,14 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
                 actor->data.actor_decl.field_count * sizeof(ClassField*)
             );
             actor->data.actor_decl.fields[actor->data.actor_decl.field_count - 1] = field;
-            
+
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
             parser_discard_pending_doc_comment(parser);
-            
+
         } else if (parser_check(parser, TOKEN_FUNC)) {
             // Method (implicitly async in actors)
             ASTNode* method = parser_finalize_statement(parser, parser_parse_async_function(parser));
-            
+
             // Add method
             actor->data.actor_decl.method_count++;
             actor->data.actor_decl.methods = realloc(
@@ -159,10 +148,31 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
             parser_advance(parser);
         }
     }
-    
+
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after actor body");
-    
+
     return actor;
+}
+
+ASTNode* parser_parse_actor_declaration_with_name(Parser* parser, const char* name)
+{
+    ASTNode* actor = ast_create_actor(name);
+    actor->data.actor_decl.doc_comment = parser_take_pending_doc_comment(parser);
+    
+    // Generic parameters (if any)
+    if (parser_check(parser, TOKEN_LESS)) {
+        // actor->data.actor_decl.generic_params = parse_generic_params(parser);
+    }
+
+    return parse_actor_body(parser, actor);
+}
+
+// Parse actor declaration
+ASTNode* parser_parse_actor_declaration(Parser* parser)
+{
+    // 'actor' keyword already consumed
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected actor name");
+    return parser_parse_actor_declaration_with_name(parser, name.text);
 }
 
 // Parse async block statement

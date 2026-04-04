@@ -1,0 +1,29 @@
+// string_utils.pgy — StringSplit, StringJoin, ToInt, ToFloat
+
+func Main() -> Void {
+    // Split: 문자열을 구분자로 분리
+    let parts: Array<String> = Split("apple,banana,cherry", ",");
+    for fruit in parts {
+        Log(fruit);
+    }
+
+    // Join: 배열을 구분자로 결합
+    let words: Array<String> = ["hello", "world", "pergyra"];
+    let sentence: String = Join(words, " ");
+    Log(sentence);
+
+    // ToInt: 문자열 → 정수
+    let num: Int = ToInt("42");
+    Log(num + 8);
+
+    // ToFloat: 문자열 → 실수
+    let pi: Float = ToFloat("3.14");
+    Log(pi);
+
+    // 실전: CSV 한 줄 파싱
+    let csv_line: String = "100,Alice,true";
+    let (id_str, name, active_str) = Split(csv_line, ",");
+    let id: Int = ToInt(id_str);
+    Log(id);
+    Log(name);
+}

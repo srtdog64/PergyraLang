@@ -4809,6 +4809,32 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("subject actor profile syntax is rejected by subject copy rules");
+    {
+        const char *source =
+            "subject Counter actor {\n"
+            "    let count: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a: Counter = Counter();\n"
+            "    let b: Counter = a;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Subjects cannot be copied into a new binding"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("class method bare field names resolve in class scope");
     {
         const char *source =

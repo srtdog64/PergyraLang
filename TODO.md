@@ -214,7 +214,8 @@
   - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
-  - 남음: actor surface 재배치, relation/projection 중심 surface 고정, deeper runtime propagation
+  - 완료: `subject Name actor { ... }` subject-first actor profile surface
+  - 남음: relation/projection 중심 surface 고정, deeper runtime propagation
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
@@ -223,10 +224,11 @@
   - 완료: subject direct copy/plain value parameter/return 금지, positional constructor
   - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
   - 완료: actor를 subject execution profile로 semantic 정렬
+  - 완료: `subject Name actor { ... }` subject-first actor profile surface
   - 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor 지원
   - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
   - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - 남음: richer object-handle cell propagation, actor surface 재배치
+  - 남음: richer object-handle cell propagation
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure

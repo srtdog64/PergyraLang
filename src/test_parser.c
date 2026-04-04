@@ -708,6 +708,18 @@ main(void)
             1
         },
         {
+            "Domain Keywords As Local Variables",
+            "func Main() -> Void {\n"
+            "    let zone = 1;\n"
+            "    let effect = zone;\n"
+            "    let relation = effect;\n"
+            "    let systemic = relation;\n"
+            "    let world = systemic;\n"
+            "    Log(world);\n"
+            "}",
+            1
+        },
+        {
             "Relation Declaration",
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
@@ -771,6 +783,16 @@ main(void)
         {
             "Actor Declaration",
             "actor Counter {\n"
+            "    let count: Int;\n"
+            "    func Increment() -> Void {\n"
+            "        count = count + 1;\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Subject Actor Profile Declaration",
+            "subject Counter actor {\n"
             "    let count: Int;\n"
             "    func Increment() -> Void {\n"
             "        count = count + 1;\n"

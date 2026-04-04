@@ -114,7 +114,11 @@ void parser_synchronize(Parser* parser) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
         if (parser_check_contextual_keyword(parser, "object")
             || parser_check_contextual_keyword(parser, "dto")
-            || parser_check_contextual_keyword(parser, "world")) {
+            || parser_check_contextual_keyword(parser, "world")
+            || parser_check_contextual_keyword(parser, "systemic")
+            || parser_check_contextual_keyword(parser, "relation")
+            || parser_check_contextual_keyword(parser, "effect")
+            || parser_check_contextual_keyword(parser, "zone")) {
             return;
         }
 
@@ -124,13 +128,9 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
             case TOKEN_LET:
-            case TOKEN_RELATION:
-            case TOKEN_EFFECT:
-            case TOKEN_ZONE:
             case TOKEN_ABILITY:
             case TOKEN_ROLE:
             case TOKEN_PARTY:
-            case TOKEN_SYSTEMIC:
             case TOKEN_NAMESPACE:
             case TOKEN_EXPORT:
             case TOKEN_WITH:
@@ -586,15 +586,15 @@ parser_parse_export_declaration(Parser *parser)
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-    } else if (parser_match(parser, TOKEN_SYSTEMIC))
+    } else if (parser_match_contextual_keyword(parser, "systemic"))
         node = parse_systemic_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "world"))
         node = parse_world_declaration(parser);
-    else if (parser_match(parser, TOKEN_RELATION))
+    else if (parser_match_contextual_keyword(parser, "relation"))
         node = parse_relation_declaration(parser);
-    else if (parser_match(parser, TOKEN_EFFECT))
+    else if (parser_match_contextual_keyword(parser, "effect"))
         node = parse_effect_declaration(parser);
-    else if (parser_match(parser, TOKEN_ZONE))
+    else if (parser_match_contextual_keyword(parser, "zone"))
         node = parse_zone_declaration(parser);
     else if (parser_match(parser, TOKEN_PARTY))
         node = parse_party_declaration(parser);
@@ -883,7 +883,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // systemic 선언
-    if (parser_match(parser, TOKEN_SYSTEMIC)) {
+    if (parser_match_contextual_keyword(parser, "systemic")) {
         return parser_finalize_statement(parser, parse_systemic_declaration(parser));
     }
 
@@ -893,17 +893,17 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // relation 선언
-    if (parser_match(parser, TOKEN_RELATION)) {
+    if (parser_match_contextual_keyword(parser, "relation")) {
         return parser_finalize_statement(parser, parse_relation_declaration(parser));
     }
 
     // effect 선언
-    if (parser_match(parser, TOKEN_EFFECT)) {
+    if (parser_match_contextual_keyword(parser, "effect")) {
         return parser_finalize_statement(parser, parse_effect_declaration(parser));
     }
 
     // zone 선언
-    if (parser_match(parser, TOKEN_ZONE)) {
+    if (parser_match_contextual_keyword(parser, "zone")) {
         return parser_finalize_statement(parser, parse_zone_declaration(parser));
     }
 

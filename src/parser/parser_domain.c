@@ -124,7 +124,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        if (parser_match(parser, TOKEN_SYSTEMIC)) {
+        if (parser_match_identifier_keyword(parser, "systemic")) {
             /* systemic name: SystemicType */
             Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected systemic name");
@@ -148,7 +148,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
 
-        } else if (parser_match(parser, TOKEN_ZONE)) {
+        } else if (parser_match_identifier_keyword(parser, "zone")) {
             Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected zone name");
             parser_consume(parser, TOKEN_COLON,
@@ -223,8 +223,11 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 "Expected world state name after 'state'");
             parser_consume(parser, TOKEN_COLON,
                 "Expected ':' after world state name");
-            parser_consume(parser, TOKEN_ZONE,
-                "Expected 'zone' after ':' in world state");
+            if (!parser_match_identifier_keyword(parser, "zone")) {
+                parser_error(parser, "Expected 'zone' after ':' in world state");
+                parser_advance(parser);
+                continue;
+            }
             Token zone_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected zone slot name after 'zone'");
             ASTNode *state = ast_create_world_state(state_name.text, zone_slot.text);
@@ -647,8 +650,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
-        } else if (parser_match(parser, TOKEN_RELATION) || parser_match(parser, TOKEN_EFFECT)) {
-            bool is_relation = parser->previous_token.type == TOKEN_RELATION;
+        } else if (parser_match_identifier_keyword(parser, "relation")
+                   || parser_match_identifier_keyword(parser, "effect")) {
+            bool is_relation = parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "relation") == 0;
             parser_consume(parser, TOKEN_SLOT,
                 is_relation
                     ? "Expected 'slot' after 'relation' in zone"
@@ -889,7 +894,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_consume(parser, TOKEN_COLON,
                 "Expected ':' after zone state name");
 
-            if (parser_match(parser, TOKEN_EFFECT)) {
+            if (parser_match_identifier_keyword(parser, "effect")) {
                 Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected effect slot name after 'effect'");
                 if (!parser_match_identifier_keyword(parser, "on")) {
@@ -906,7 +911,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
                 append_child_node(&zone->data.zone_decl.states,
                     &zone->data.zone_decl.state_count, state);
-            } else if (parser_match(parser, TOKEN_RELATION)) {
+            } else if (parser_match_identifier_keyword(parser, "relation")) {
                 Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected relation slot name after 'relation'");
                 if (!parser_match_identifier_keyword(parser, "between")) {

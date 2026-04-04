@@ -82,7 +82,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
 - `subject slot`과 `ToObject` / `ToDto` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
-- `actor`는 subject-profile semantic에 편입됐지만, surface syntax는 아직 standalone declaration이라 최종 재배치가 남아 있다
+- `actor`는 subject-profile semantic에 편입됐고 `subject Name actor { ... }` subject-first surface도 추가됐지만, standalone `actor Name { ... }`와의 장기 정리 정책은 아직 남아 있다
 - plain/secure `Slot<subject>`와 `Slot<actor>`는 local object-cell anchor로 동작한다
 - `own/ref Slot<subject-host>`와 `own/ref SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
 - secure boundary slot은 함수 body 안에서 paired `s_token` 심볼을 자동 제공받는다

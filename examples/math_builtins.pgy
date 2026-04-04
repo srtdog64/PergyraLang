@@ -1,0 +1,18 @@
+// math_builtins.pgy — Sqrt, Pow, Floor, Ceil, Random, Abs, Min, Max
+
+func Main() -> Void {
+    // 기본 정수 수학
+    Log(Abs(-42));
+    Log(Min(3, 7));
+    Log(Max(3, 7));
+
+    // 실수 수학
+    Log(Sqrt(16.0));
+    Log(Pow(2.0, 10.0));
+    Log(Floor(3.7));
+    Log(Ceil(3.2));
+
+    // 난수
+    let dice: Int = Random(6);
+    Log(dice);
+}

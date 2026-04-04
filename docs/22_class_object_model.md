@@ -223,6 +223,7 @@ Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에
 - actor는 subject와 병렬인 존재론적 계층이 아니다
 - actor는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
 - 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToDto`, subject copy restriction에 actor를 포함한다
+- 현재 parser surface는 standalone `actor Counter { ... }`와 subject-first `subject Counter actor { ... }`를 모두 받는다
 - 즉 장기 모델에서도 구현 상태에서도 `actor`보다 `subject`가 먼저다
 
 ### systemic / world
@@ -292,7 +293,7 @@ Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에
 - `super`
 - 복잡한 object hierarchy
 - `class`와 `subject`의 deeper behavioral split
-- actor keyword를 subject profile surface로 더 직접 재배치하는 문법
+- standalone `actor Name { ... }`를 언제까지 유지할지에 대한 최종 surface 정책
 - subject/object view 전환을 표면 문법으로 드러낼지 여부
 - richer handle/object-cell propagation semantics
 

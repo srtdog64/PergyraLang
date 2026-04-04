@@ -2149,6 +2149,33 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("subject actor profile syntax lowers through actor codegen");
+    {
+        const char *source =
+            "subject Counter actor {\n"
+            "    let count: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let c: Counter = Counter();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter\n{");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} Counter;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("spawn expression emits wrapper-based task launch");
     {
         ASTNode id_node; memset(&id_node, 0, sizeof(id_node));

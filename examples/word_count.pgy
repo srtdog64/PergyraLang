@@ -1,0 +1,22 @@
+// word_count.pgy — 문자열 단어 수 세기 (Split + for-in + destructuring)
+
+func CountWords(text: String) -> Int {
+    let words: Array<String> = Split(text, " ");
+    return ArrayLength(words);
+}
+
+func Main() -> Void {
+    let text: String = "the quick brown fox jumps over the lazy dog";
+    let count: Int = CountWords(text);
+    Log(count);
+
+    // 각 단어 출력
+    let words: Array<String> = Split(text, " ");
+    for word in words {
+        Log(word);
+    }
+
+    // 첫 세 단어만 추���
+    let (first, second, third) = words;
+    Log(Join([first, second, third], "-"));
+}
