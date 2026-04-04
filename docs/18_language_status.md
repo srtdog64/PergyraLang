@@ -38,6 +38,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone` lifecycle/projection 문장은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone` lifecycle 문장은 `apply/link/detach/unlink/maintain <stateName>` shorthand를 지원함
 - `HasState(stateName)` builtin이 zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
+- `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state-slot 정합성까지 질의할 수 있음
 - `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
 - `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
 - `refresh`는 object slot / subject slot kind와 projection field 정합성을 검사함

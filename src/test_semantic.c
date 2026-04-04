@@ -4993,7 +4993,7 @@ test_misc_grammar_edges(void)
             "    state poisoned: effect poison on player\n"
             "    state allied: relation trust between player, enemy\n"
             "    func Tick() -> Void {\n"
-            "        if HasState(poisoned) || HasState(\"allied\") {\n"
+            "        if HasState(poisoned) || HasState(\"allied\") || HasState(poisoned, player) || HasState(allied, player, enemy) {\n"
             "            Log(1);\n"
             "        }\n"
             "    }\n"
@@ -5005,6 +5005,40 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasState validates state slot arity and endpoint matching");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    relation slot trust: TrustedLink\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
+            "    func Tick() -> Void {\n"
+            "        let a = HasState(poisoned, enemy);\n"
+            "        let b = HasState(allied, player);\n"
+            "        let c = HasState(allied, enemy, player);\n"
+            "        Log(a || b || c);\n"
+            "    }\n"
+            "}\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
 
         semantic_result_destroy(result);
         ast_destroy(program);

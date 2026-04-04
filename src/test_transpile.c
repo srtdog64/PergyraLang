@@ -605,6 +605,20 @@ test_expression_emit(void)
         free(result);
         transpiler_ctx_destroy(ctx);
     }
+
+    TEST("HasState(allied, player, enemy) → zone semantic placeholder");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[3] = {
+            make_identifier("allied", 1),
+            make_identifier("player", 1),
+            make_identifier("enemy", 1)
+        };
+        result = emit_expression(make_call("HasState", args, 3, 1), ctx);
+        EXPECT(strcmp(result, "false /* HasState: zone-semantic query only */") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
 }
 
 /* -----------------------------------------------------------------

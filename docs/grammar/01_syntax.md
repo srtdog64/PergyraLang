@@ -112,6 +112,7 @@ enum Color { Red, Green, Blue }
 - `zone`은 `apply/detach/link/unlink/refresh/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
+- `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.
 - subject/class/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
 
 ### 2.4 모듈/가시성

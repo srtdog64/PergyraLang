@@ -159,6 +159,7 @@ enum Shape {
 - `zone` body는 현재 `subject slot`, `object slot`, `relation slot`, `effect slot`, `authority <subjectSlot>`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
 - `zone`의 `apply/link/detach/unlink/refresh/maintain`은 optional `by <subjectSlot>` authority annotation을 받을 수 있다.
 - `HasState(<stateName>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 zone state alias를 Bool로 조회한다. 인자는 identifier나 string literal을 받을 수 있다.
+- `HasState(<effectState>, <targetSlot>)`와 `HasState(<relationState>, <leftSlot>, <rightSlot>)`는 선언된 state alias와 slot 조합이 정확히 맞는지까지 검증한다.
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
 - `world` body는 `systemic`, `zone`, `shared`, `func`를 지원한다.
 

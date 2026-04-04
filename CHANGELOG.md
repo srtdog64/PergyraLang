@@ -45,6 +45,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods
+- Expanded `HasState` with slot-aware forms for effect targets and relation endpoints
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 

@@ -55,6 +55,25 @@ channel_builtin_recv_result(Type *element_type, const char *name,
     return wrap_constructed(TYPE_OPTION, element_type);
 }
 
+static ASTNode *
+find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.slots[i];
+        if (slot != NULL
+            && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 type_is_future_like(Type *type)
 {
@@ -159,10 +178,18 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 {
     ASTNode *zone;
     ASTNode *arg;
+    ASTNode *state = NULL;
     const char *state_name = NULL;
+    const char *slot_name = NULL;
+    const char *left_slot_name = NULL;
+    const char *right_slot_name = NULL;
 
-    if (!check_call_arity(call, 1, "HasState", ctx))
+    if (call->data.call.arg_count < 1 || call->data.call.arg_count > 3) {
+        semantic_error(ctx, call,
+            "'HasState' expects 1 to 3 argument(s), got %zu",
+            call->data.call.arg_count);
         return TYPE_BOOL;
+    }
 
     zone = ctx->current_zone;
     if (zone == NULL || zone->type != AST_ZONE_DECL) {
@@ -195,18 +222,93 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
 
     for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone->data.zone_decl.states[i];
+        state = zone->data.zone_decl.states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
             && strcmp(state->data.zone_state.state_name, state_name) == 0) {
-            return TYPE_BOOL;
+            break;
         }
+        state = NULL;
     }
 
-    semantic_error(ctx, arg,
-        "Unknown zone state '%s' in HasState(...)",
-        state_name);
+    if (state == NULL) {
+        semantic_error(ctx, arg,
+            "Unknown zone state '%s' in HasState(...)",
+            state_name);
+        return TYPE_BOOL;
+    }
+
+    if (call->data.call.arg_count == 1)
+        return TYPE_BOOL;
+
+    if (call->data.call.arguments[1] == NULL
+        || call->data.call.arguments[1]->type != AST_IDENTIFIER
+        || call->data.call.arguments[1]->data.identifier.name == NULL) {
+        semantic_error(ctx, call->data.call.arguments[1],
+            "HasState(...) slot arguments must be zone slot identifiers");
+        return TYPE_BOOL;
+    }
+    if (find_zone_domain_slot_local(zone,
+            call->data.call.arguments[1]->data.identifier.name) == NULL) {
+        semantic_error(ctx, call->data.call.arguments[1],
+            "Unknown zone slot '%s' in HasState(...)",
+            call->data.call.arguments[1]->data.identifier.name);
+        return TYPE_BOOL;
+    }
+
+    if (!state->data.zone_state.is_relation) {
+        slot_name = call->data.call.arguments[1]->data.identifier.name;
+        if (call->data.call.arg_count != 2) {
+            semantic_error(ctx, call,
+                "Effect state '%s' in HasState(...) accepts at most one zone slot target",
+                state_name);
+            return TYPE_BOOL;
+        }
+        if (strcmp(slot_name, state->data.zone_state.left_or_target_slot_name) != 0) {
+            semantic_error(ctx, call->data.call.arguments[1],
+                "State '%s' is declared on slot '%s', not '%s'",
+                state_name,
+                state->data.zone_state.left_or_target_slot_name,
+                slot_name);
+        }
+        return TYPE_BOOL;
+    }
+
+    if (call->data.call.arg_count != 3) {
+        semantic_error(ctx, call,
+            "Relation state '%s' in HasState(...) requires exactly two endpoint slots",
+            state_name);
+        return TYPE_BOOL;
+    }
+
+    if (call->data.call.arguments[2] == NULL
+        || call->data.call.arguments[2]->type != AST_IDENTIFIER
+        || call->data.call.arguments[2]->data.identifier.name == NULL) {
+        semantic_error(ctx, call->data.call.arguments[2],
+            "HasState(...) relation endpoint arguments must be zone slot identifiers");
+        return TYPE_BOOL;
+    }
+    if (find_zone_domain_slot_local(zone,
+            call->data.call.arguments[2]->data.identifier.name) == NULL) {
+        semantic_error(ctx, call->data.call.arguments[2],
+            "Unknown zone slot '%s' in HasState(...)",
+            call->data.call.arguments[2]->data.identifier.name);
+        return TYPE_BOOL;
+    }
+
+    left_slot_name = call->data.call.arguments[1]->data.identifier.name;
+    right_slot_name = call->data.call.arguments[2]->data.identifier.name;
+    if (strcmp(left_slot_name, state->data.zone_state.left_or_target_slot_name) != 0
+        || strcmp(right_slot_name, state->data.zone_state.right_slot_name) != 0) {
+        semantic_error(ctx, call,
+            "State '%s' is declared between '%s' and '%s', not '%s' and '%s'",
+            state_name,
+            state->data.zone_state.left_or_target_slot_name,
+            state->data.zone_state.right_slot_name,
+            left_slot_name,
+            right_slot_name);
+    }
     return TYPE_BOOL;
 }
 

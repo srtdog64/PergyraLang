@@ -34,6 +34,7 @@
 - `zone`의 `apply/link/detach/unlink/refresh/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원함
 - `HasState(stateName)` builtin은 zone declaration / zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
+- `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state가 어떤 slot 조합에 붙는지까지 명시적으로 질의할 수 있음
 - `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
 - `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
 - `zone`의 `refresh`는 object slot / subject slot kind와 projection field 정합성을 검사함
