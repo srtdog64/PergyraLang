@@ -12,6 +12,7 @@
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음.
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic에 연결됨.
 - `action` clause는 이제 존재 확인을 넘어서 `authorized by` subject-host 검증, `within` zone subject/authority 적합성 검증, `causes` effect target/zone layer 적합성 검증까지 포함함.
+- hosted `func` / `action` body 안의 bare field access와 bare helper call은 이제 subject/class/relation/effect/zone/world 전반에서 implicit `self`로 해석되며, `self.`는 선택적 표기로 남음
 - `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 transfer/projection declaration alias로 동작함.
 - `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
 - `ToDto(TargetDto, subjectBinding)` 최소 dto projection surface가 semantic/C/LLVM backend에 반영됨.

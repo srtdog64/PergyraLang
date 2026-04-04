@@ -27,8 +27,7 @@ subject CrewMember
     func IsOperational(self) -> Bool
     {
         let alive: Bool = vitals.IsAlive();
-        let exhausted: Bool = vitals.IsExhausted();
-        let rested: Bool = !exhausted;
+        let rested: Bool = !vitals.IsExhausted();
         return alive && rested;
     }
 

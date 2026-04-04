@@ -30,6 +30,7 @@ typedef struct
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);
+int  driver_run_scaffold_command(int argc, char *argv[]);
 void driver_print_usage(void);
 
 #endif /* PGY_DRIVER_APP_H */

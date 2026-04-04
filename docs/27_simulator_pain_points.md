@@ -12,14 +12,6 @@ examples such as the battle simulator and biome simulator.
 - Zone ecology/state gets verbose quickly because large shared state must be
   written as many `shared Int` fields. A `zone vessel` or grouped passive state
   holder would make bigger worlds easier to model.
-- `zone`/`world` `shared` fields currently need `self.` inside methods. Bare
-  names that feel natural in larger domain declarations are reported as
-  undefined symbols, which makes big simulation code more brittle than
-  `subject`/`vessel` code.
-- C backend currently handles `zone/world` helper logic more reliably as free
-  functions than as hosted `func` calls like `self.Helper()`. Rich scenario
-  code therefore tends to push ecological/world utility logic outward even when
-  the domain shape suggests keeping it on the host.
 - `world` has been lowered to a contextual keyword for locals, but helper
   function parameter positions can still be fragile. In practice, naming a
   parameter `world` is best avoided until every parser path treats it as a
@@ -33,3 +25,12 @@ examples such as the battle simulator and biome simulator.
   aligned between C and LLVM.
 - Scenario smoke tests are still substring-based. Rich simulators benefit from
   folder-level golden outputs so structural regressions are easier to detect.
+
+## Recently Resolved
+
+- Host-owned fields no longer require mandatory `self.` in hosted `func` /
+  `action` bodies. Bare field access now works across subject/class/relation/
+  effect/zone/world hosts, with `self.` still available as an explicit form.
+- Hosted helper calls such as `PlantMass()`, `SeasonPulse()`, `battle.Tick()`,
+  and `player.Hurt()` now lower correctly without mandatory `self.` on both C
+  and LLVM paths.

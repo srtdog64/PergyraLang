@@ -40,17 +40,19 @@
 
 ## 2. 선언
 
-### 2.1 값 선언
+### 2.1 값 선언 (`let` / `:=`)
 
 ```pergyra
-let x = 42;
-let name: String = "Pergyra";
-let values: Array<Int> = [1, 2, 3];
+let x = 42;                        // let 키워드
+let name: String = "Pergyra";      // 타입 명시
+x := 42;                           // := 단축 선언
 ```
 
-- `let name = expr;`
-- `let name: Type = expr;`
-- 타입 추론과 명시 타입 주석을 둘 다 지원
+- `let name = expr;` — 기본 선언 (타입 추론)
+- `let name: Type = expr;` — 타입 명시
+- `name := expr;` — `let`의 축약 (타입 추론 전용)
+- `let`은 가변(mutable). 재할당 가능.
+- `let`이 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
 
 구조 분해(destructuring):
 

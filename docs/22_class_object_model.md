@@ -307,9 +307,9 @@ object Door {
 - plain subject copy와 plain subject value parameter/return은 시맨틱에서 거부한다
 - class는 plain copy / value parameter / value return을 허용한다
 - actor는 semantic에서 subject-profile로 동작하므로 plain actor copy와 plain actor value parameter/return도 subject와 같은 제약을 따른다
-- subject action/method는 C/LLVM backend에서 `self*` 기반 객체 셀 호출로 lower된다
-- class method는 C/LLVM backend에서 value-self 호출로 lower된다
-- bare field name은 subject/class method 안에서 각각 `self->field` / `self.field`로 해석된다
+- subject func/action은 C/LLVM backend에서 `self*` 기반 객체 셀 호출로 lower된다
+- class func는 C/LLVM backend에서 value-self 호출로 lower된다
+- bare field name과 bare hosted helper call은 subject/class/relation/effect/zone/world body 안에서 각각 현재 host의 `self` 대상으로 해석된다. `self.` 표기는 여전히 선택적으로 허용된다
 - 클래스 생성자는 현재 "필드 순서 기반 positional initialization"으로 동작한다
 - role이 non-subject nominal declaration에 바인딩되면 semantic error를 낸다
 - party role slot은 subject-bound role impl이 없는 ability를 받을 수 없다
@@ -318,8 +318,8 @@ object Door {
 ### 현재 닫힌 범위
 
 - 필드 선언
-- 메서드와 `self`
-- bare field access의 `self` 해석
+- hosted `func` / `action`과 선택적 `self`
+- bare field access / bare helper call의 `self` 해석
 - subject direct copy 금지
 - subject plain value parameter/return 금지
 - class value copy / value parameter / value return 허용

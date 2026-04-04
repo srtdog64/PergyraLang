@@ -81,6 +81,26 @@ parse_args(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
+    if (argc >= 2) {
+        if (strcmp(argv[1], "scaffold") == 0)
+            return driver_run_scaffold_command(argc - 1, argv + 1);
+        if (strcmp(argv[1], "new") == 0) {
+            char **sub_argv = calloc((size_t)argc + 2, sizeof(char *));
+            if (sub_argv == NULL) {
+                fprintf(stderr, "pgy: out of memory\n");
+                return 1;
+            }
+            sub_argv[0] = argv[0];
+            sub_argv[1] = "scaffold";
+            sub_argv[2] = "project";
+            for (int i = 2; i < argc; i++)
+                sub_argv[i + 1] = argv[i];
+            int rc = driver_run_scaffold_command(argc, sub_argv + 1);
+            free(sub_argv);
+            return rc;
+        }
+    }
+
     DriverFlags flags = parse_args(argc, argv);
     if (flags.repl)
         return repl_run();

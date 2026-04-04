@@ -1,112 +1,55 @@
 # Pergyra Pain Points v1 (2026-04-04)
 
-실전 멀티파일 시뮬레이터 (battle_sim, space_station) 구현 과정에서 발견된 코드젠/시맨틱 이슈.
+실전 멀티파일 시뮬레이터 (battle_sim, space_station, biome_simulator) 구현 과정에서 발견된 이슈와 수정 기록.
 
-## #1 `event`가 예약 키워드 (Blocker — 파서)
+## #1 `event`가 예약 키워드 — **수정 완료**
 
-```pergyra
-let event = Random(4);  // 파서 에러: TOKEN_EVENT
-```
+- `event`를 contextual keyword로 변경 (lexer keyword 테이블에서 제거)
+- 파서에서 `parser_match_contextual_keyword(parser, "event")`로 체크
+- 변수명 `event` 사용 가능해짐
 
-- `world`, `systemic`, `relation`, `effect`, `zone`, `vessel`, `action`은 contextual keyword
-- `event`는 `TOKEN_EVENT`로 lexer에 하드코딩되어 있어 변수명 사용 불가
-- **수정**: `event`도 contextual keyword로 변경
+## #2 nested vessel method dispatch — **수정 완료**
 
-## #2 nested vessel method dispatch (Blocker — 코드젠)
+- `resolve_nominal_host_expr_type_name`을 확장하여 `obj.field` 패턴에서 field 타입을 조회
+- `infer_expression_type_name`에 `AST_MEMBER_ACCESS` case 추가
+- `is_nominal_host_type_name`에서 vessel도 nominal host로 인정
 
-```pergyra
-let alive: Bool = rookie.vitals.IsAlive();
-```
+## #3 `!vessel.Method()` 시맨틱 타입 추론 — **수정 완료**
 
-생성된 C (잘못됨):
-```c
-bool alive = rookie.vitals.IsAlive();  // struct에 IsAlive 멤버 없음
-```
+- **근본 원인**: `type_is_nominal_host_type`이 vessel을 nominal host로 인정하지 않아 method call 리턴 타입 해석을 건너뜀
+- **수정**: `!decl->data.class_decl.is_struct`에 `|| decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL` 추가
+- workaround (변수 분리) 없이 `!vessel.Method()` 직접 호출 가능
 
-올바른 C:
-```c
-bool alive = VitalSigns_IsAlive(rookie->vitals);
-```
+## #4 let 변수 String 타입 추론 — **수정 완료**
 
-- `obj.vessel.Method()` 패턴에서 vessel 타입을 인식해 `VesselType_Method(obj->vessel)` 형태로 emit해야 함
-- 현재 member access + call 코드젠 경로가 vessel을 nominal host로 인식하지 못함
-- **근본 원인**: `resolve_nominal_host_expr_type_name`이 nested member access를 추적하지 못함
+- `infer_expression_type_name`에 `AST_MEMBER_ACCESS` case 추가 (field 타입 조회)
+- let 초기화에서 모든 initializer의 타입을 fallback 추론하도록 확장
+- string `+` chain에서 leftmost leaf를 재귀적으로 찾는 로직 추가
 
-## #3 `!vessel.Method()` 시맨틱 타입 추론 실패 (Blocker — 시맨틱)
+## #5 relation/effect C struct 선언 순서 — **수정 완료**
 
-```pergyra
-let rested: Bool = !vitals.IsExhausted();
-// ERROR: '!' operator requires Bool, got '<unknown>'
-```
+- `emit_program`에서 zone emit 전에 relation/effect emit pass (3.75) 추가
+- zone이 relation/effect 필드를 참조할 때 C struct가 이미 정의되어 있도록 보장
 
-- vessel method 호출의 리턴 타입을 시맨틱이 추론 못 함
-- workaround: `let x: Bool = vitals.IsExhausted(); let y: Bool = !x;`
-- **근본 원인**: 시맨틱의 method call 타입 해석이 vessel(struct-like) 타입의 method를 검색하지 못함
+## #6 role method self pointer — **수정 완료**
 
-## #4 let 변수 String 타입 추론 — `+` chain (Known — 코드젠)
+- role method에서 `void *_raw_self` 시그니처 유지 (vtable 호환)
+- body에서 `SubjectType *self = (SubjectType *)_raw_self;` 캐스팅 추가
+- `current_class_name`을 role의 target subject로 설정하여 `self->field` 접근 가능
 
-```pergyra
-let line = "  " + member.name;
-line = line + " HP:" + ToString(hp);  // line 타입을 Int로 추론
-```
+## #7 zone/world bare field access — **수정 완료** (추가 발견)
 
-생성된 C:
-```c
-int32_t line = StringConcat("  ", member->name);  // 타입 불일치
-line = (line + " HP:") + ...;                     // char* + char* = C error
-```
+- zone/world func 안에서 `self.` 없이 bare name으로 shared field 접근
+- **수정**: `type_check_overlay_decl_common`에서 scope_enter 후 shared field + domain slot을 scope에 등록
+- zone의 subject/object slot, world의 zone slot도 등록
 
-- `let x = expr;` 에서 init이 call이면 추론 등록되지만, binary `+`는 Int fallback
-- **부분 수정 완료**: `infer_expression_type_name` fallback 추가했으나, string `+` 시작이 member access일 때 여전히 실패
-- **근본 원인**: `infer_expression_type_name`이 member access의 field 타입을 모름
+## 현재 남아있는 제한 (workaround 필요)
 
-## #5 relation/effect C struct 선언 순서 (Known — 코드젠)
-
-```c
-// zone struct가 relation/effect struct보다 먼저 emit되면 에러
-typedef struct { RadiationExposure radiation; } EngineeringBay;  // RadiationExposure 미정의
-```
-
-- HIR이 type → function → domain 순서로 emit하는데, zone이 relation/effect를 필드로 가지면 선언 순서 충돌
-- **수정**: domain 타입을 HIR type 섹션에서 먼저 forward-declare하거나, emit 순서를 relation/effect → zone 순서로 보장
-
-## #6 role method에서 self가 value-self (Known — 코드젠)
-
-```pergyra
-role Engineer for CrewMember {
-    impl Repairable {
-        func GetRepairPower(self) -> Int {
-            return self.skills.engineering * 2;
-        }
-    }
-}
-```
-
-생성된 C (잘못됨):
-```c
-return (self.skills.engineering * 2);  // self는 CrewMember (subject = pointer)
-```
-
-올바른 C:
-```c
-return (self->skills.engineering * 2);  // subject는 pointer-self
-```
-
-- role은 subject에 바인딩되므로 pointer-self여야 하는데 value-self로 emit
-- **근본 원인**: role method emit 경로가 role의 target subject의 nominal_kind를 확인하지 않음
-
-## 우선순위
-
-| # | 심각도 | 수정 난이도 | 영향 범위 |
-|---|--------|------------|-----------|
-| 1 | Blocker | 쉬움 | lexer 1줄 변경 |
-| 2 | Blocker | 중간 | transpiler method call dispatch |
-| 3 | Blocker | 중간 | semantic method call type resolution |
-| 4 | Known | 중간 | transpiler type inference |
-| 5 | Known | 쉬움 | transpiler emit ordering |
-| 6 | Known | 쉬움 | transpiler role method emit |
+- **deep nested member access 타입 추론**: `self.meadow.grazer.name + " E:"` 같은 3단 이상 member access에서 String 타입 추론 실패. workaround: `FileWrite` 분리 호출
+- **method call 반환 타입 코드젠 추론**: vessel method call의 반환 타입을 코드젠의 `infer_expression_type_name`이 모름. workaround: `let x: Type = obj.Method();`로 타입 어노테이션
 
 ## 발견 경위
 
-- battle_sim.pgy: subject param 불가, vessel mutation 문제, string concat chain → #4 발견
-- space_station 멀티파일: event 키워드 충돌 → #1, nested vessel method → #2, `!` 추론 → #3, struct 순서 → #5, role self → #6
+- battle_sim.pgy: subject param 불가, vessel mutation 문제, string concat chain
+- space_station 멀티파일: event 키워드, nested vessel method, `!` 추론, struct 순서, role self
+- biome_simulator 멀티파일: zone/world bare field access, deep nested string concat

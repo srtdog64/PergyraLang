@@ -939,7 +939,8 @@ type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
 
     decl = find_type_decl_by_name(ctx->program_root, type->name);
     if (decl != NULL)
-        return !decl->data.class_decl.is_struct;
+        return !decl->data.class_decl.is_struct
+            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
     return find_actor_decl_by_name(ctx->program_root, type->name) != NULL;
 }
 

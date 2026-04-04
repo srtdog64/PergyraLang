@@ -108,6 +108,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Zone sync now binds subject slots into embedded relation/effect layer endpoints or targets before calling `<Layer>_sync(&self->layer)`
 - Direct `apply/link/detach/unlink` and `maintain effect/relation/state` now propagate real layer/state runtime changes in LLVM as well as C
 - Added runtime regression coverage for embedded zone overlay projection reads such as `self.poison.view.hp` and `self.trust.packet.name`
+- Added optional `self` lowering for bare field access and bare hosted helper calls across subject/class/relation/effect/zone/world bodies, with LLVM parity for bare host-field nested member chains like `battle.player.name` and `battle.Tick()`
+- Added `pgy scaffold` and `pgy new` CLI support for generating starter `subject`, `vessel`, `object`, `dto`, `zone`, `world`, `simulator`, and `project` templates
 - Added runtime regression coverage for world-to-zone cross-layer queries over embedded projection/layer/state flags
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures

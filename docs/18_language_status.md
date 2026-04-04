@@ -80,6 +80,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
 - `action` clause는 이제 `authorized by` subject-host 확인, `within` zone slot/authority 적합성 확인, `causes` effect target/zone layer 적합성 확인까지 semantic에 반영됨
+- hosted `func` / `action` body 안의 bare field access와 bare helper call은 이제 subject/class/relation/effect/zone/world 전반에서 implicit `self`로 해석되고, C/LLVM 양쪽에서 동일하게 lowering됨
 - zone method 안의 subject `action` call은 이제 C/LLVM 둘 다 matching `effect slot` runtime activation과 embedded effect sync로 이어짐
 - `self.player.Attack()` 같은 nested nominal host method call도 C/LLVM 모두에서 실제 subject/class dispatch로 lowering됨
 - `role`은 non-subject nominal declaration에 바인딩될 수 없고, `party`는 subject-bound role impl이 없는 ability를 협력 슬롯에 둘 수 없음
