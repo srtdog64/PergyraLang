@@ -1,0 +1,211 @@
+// machines.pgy -- Complex FSM factory subjects and projections
+// BSD (Allman) style
+
+vessel MachineCore
+{
+    mode: Int;
+    timer: Int;
+    backlog: Int;
+    completed: Int;
+    faults: Int;
+    energy: Int;
+    quality: Int;
+    heat: Int;
+    alarms: Int;
+
+    func SetMode(self, nextMode: Int) -> Void
+    {
+        mode = nextMode;
+        timer = 0;
+    }
+
+    func Pulse(self, drain: Int) -> Void
+    {
+        timer = timer + 1;
+        energy = Max(energy - drain, 0);
+    }
+}
+
+vessel LineState
+{
+    inbound: Int;
+    heated: Int;
+    sealed: Int;
+    rejects: Int;
+    cycle: Int;
+    alarms: Int;
+    maintenance: Int;
+
+    func RaiseAlarm(self, amount: Int) -> Void
+    {
+        alarms = alarms + amount;
+    }
+
+    func ConsumeMaintenance(self, amount: Int) -> Int
+    {
+        let spend = Min(maintenance, amount);
+        maintenance = Max(maintenance - spend, 0);
+        return spend;
+    }
+}
+
+subject Station
+{
+    let name: String;
+    let stationRole: String;
+    vessel core: MachineCore;
+
+    func Stable(self) -> Bool
+    {
+        return core.mode != 7 && core.energy > 0;
+    }
+
+    func Pressure(self) -> Int
+    {
+        return core.backlog + core.alarms + core.faults;
+    }
+
+    action Boot(self, charge: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        if core.mode == 0
+        {
+            core.energy = Min(core.energy + charge, 24);
+            core.SetMode(1);
+        }
+
+        core.Pulse(0);
+        if core.mode == 1 && core.energy >= 6
+        {
+            core.SetMode(2);
+        }
+        return core.energy;
+    }
+
+    action Feed(self, inbound: Int, support: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        if Stable() == false
+        {
+            return 0;
+        }
+
+        core.backlog = core.backlog + inbound;
+        if core.backlog <= 0
+        {
+            core.Pulse(1);
+            return 0;
+        }
+
+        core.SetMode(3);
+        let moved = Min(core.backlog, 2 + support + core.quality);
+        core.backlog = Max(core.backlog - moved, 0);
+        core.completed = core.completed + moved;
+        core.Pulse(1);
+        core.SetMode(2);
+        return moved;
+    }
+
+    action Heat(self, inbound: Int, power: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        if Stable() == false
+        {
+            return 0;
+        }
+
+        core.backlog = core.backlog + inbound;
+        if core.backlog <= 0
+        {
+            core.Pulse(1);
+            return 0;
+        }
+
+        core.SetMode(4);
+        let heated = Min(core.backlog, power + 1 + core.quality);
+        core.backlog = Max(core.backlog - heated, 0);
+        core.heat = Min(core.heat + heated + power, 40);
+        core.completed = core.completed + heated;
+        core.Pulse(2);
+        if core.heat > 24
+        {
+            core.alarms = core.alarms + 1;
+        }
+        core.SetMode(2);
+        return heated;
+    }
+
+    action Seal(self, inbound: Int, pressure: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        if Stable() == false
+        {
+            return 0;
+        }
+
+        core.backlog = core.backlog + inbound;
+        if core.backlog <= 0
+        {
+            core.Pulse(1);
+            return 0;
+        }
+
+        core.SetMode(5);
+        let sealed = Min(core.backlog, pressure + 1 + core.quality);
+        core.backlog = Max(core.backlog - sealed, 0);
+        core.completed = core.completed + sealed;
+        core.Pulse(1);
+        core.SetMode(2);
+        return sealed;
+    }
+
+    action Trip(self, severity: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        let damage = Max(severity - core.quality, 0);
+        core.faults = core.faults + damage;
+        core.alarms = core.alarms + severity;
+        core.energy = Max(core.energy - damage, 0);
+        core.SetMode(7);
+        return damage;
+    }
+
+    action Recover(self, support: Int) -> Int
+        within AssemblyZone
+        authorized by self {
+        core.SetMode(6);
+        let recovered = Min(core.faults, support + core.quality);
+        core.faults = Max(core.faults - recovered, 0);
+        core.alarms = Max(core.alarms - support, 0);
+        core.energy = Min(core.energy + support, 24);
+        core.heat = Max(core.heat - support, 0);
+        core.Pulse(0);
+        if core.faults == 0
+        {
+            core.SetMode(2);
+        }
+        return recovered;
+    }
+}
+
+object StationView
+{
+    name: String;
+    stationRole: String;
+    mode: Int;
+    backlog: Int;
+    completed: Int;
+    faults: Int;
+    energy: Int;
+    heat: Int;
+}
+
+dto StationPacket
+{
+    name: String;
+    stationRole: String;
+    mode: Int;
+    completed: Int;
+    alarms: Int;
+    quality: Int;
+}

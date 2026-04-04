@@ -13,6 +13,53 @@ fi
 
 BACKENDS="${PGY_EXAMPLE_BACKENDS:-c llvm}"
 
+normalize_output() {
+    sed \
+        -e '/^0 error(s), 0 warning(s)$/d' \
+        -e '/^pgy: compiled/d' \
+        -e '/^pgy: compiled (LLVM)/d' \
+        -e '/^--- output ---$/d' \
+        -e '/^--- end ---$/d'
+}
+
+pick_expected_file() {
+    local base="$1"
+    local backend="$2"
+
+    if [[ -f "${base}.${backend}.txt" ]]; then
+        printf '%s.%s.txt' "$base" "$backend"
+        return 0
+    fi
+    if [[ -f "${base}.txt" ]]; then
+        printf '%s.txt' "$base"
+        return 0
+    fi
+    return 1
+}
+
+run_exact_output_if_present() {
+    local name="$1"
+    local backend="$2"
+    local output="$3"
+    local expected
+    local cleaned_output
+    local cleaned_expected
+
+    if ! expected="$(pick_expected_file "$ROOT_DIR/examples/$name/expected_stdout" "$backend")"; then
+        return 1
+    fi
+
+    cleaned_output="$(printf '%s' "$output" | normalize_output)"
+    cleaned_expected="$(cat "$expected")"
+    if ! diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >/dev/null; then
+        echo "[example-smoke] $name backend=$backend stdout mismatch" >&2
+        diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >&2 || true
+        exit 1
+    fi
+    echo "[example-smoke] $name backend=$backend stdout exact ok"
+    return 0
+}
+
 run_expect_lines() {
     local name="$1"
     local backend="$2"
@@ -30,6 +77,9 @@ run_expect_lines() {
     fi
 
     output="$("$PGY" "$file" --run --backend="$backend" -o "$out_bin" 2>&1)"
+    if run_exact_output_if_present "$name" "$backend" "$output"; then
+        return 0
+    fi
     for expected in "$@"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[example-smoke] $name backend=$backend missing '$expected'" >&2
@@ -44,15 +94,37 @@ run_expect_lines() {
 
 run_expect_file_lines() {
     local name="$1"
-    local file="$2"
-    shift 2
+    local backend="$2"
+    local file="$3"
+    shift 3
     local content
+    local expected
+
+    expected=""
+    if [[ "$file" == "$ROOT_DIR/examples/"*"/results.txt" ]]; then
+        local example_dir
+        example_dir="$(dirname "$file")"
+        if expected="$(pick_expected_file "$example_dir/expected_results" "$backend" 2>/dev/null)"; then
+            :
+        else
+            expected=""
+        fi
+    fi
 
     if [[ ! -f "$file" ]]; then
         echo "[example-smoke] $name missing output file $file" >&2
         exit 1
     fi
     content="$(cat "$file")"
+    if [[ -n "$expected" ]]; then
+        if ! diff -u "$expected" "$file" >/dev/null; then
+            echo "[example-smoke] $name file mismatch" >&2
+            diff -u "$expected" "$file" >&2 || true
+            exit 1
+        fi
+        echo "[example-smoke] $name file exact ok"
+        return 0
+    fi
     for expected in "$@"; do
         if ! grep -Fq "$expected" <<<"$content"; then
             echo "[example-smoke] $name file missing '$expected'" >&2
@@ -75,10 +147,14 @@ run_stable_examples() {
         "$ROOT_DIR/examples/battle_simulator" "BATTLE" "Hero" "Slime" "TOURNAMENT" "14" "true"
     run_expect_lines "biome_simulator" "$backend" \
         "$ROOT_DIR/examples/biome_simulator" "BIOME" "Red Deer" "Grey Wolf" "[World] Total migration pressure" "Day 6" "SAVING REPORT"
+    run_expect_lines "fsm_factory" "$backend" \
+        "$ROOT_DIR/examples/fsm_factory" "PERGYRA FACTORY FSM" "FACTORY SHIFT 1" "ALPHA CELL" "BETA CELL" "SAVING FSM REPORT"
     run_expect_file_lines "battle_simulator" \
-        "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
+        "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \
-        "$ROOT_DIR/examples/biome_simulator/results.txt" "BIOME SIMULATION FINAL REPORT" "Red Deer" "Lynx" "migration:"
+        "$backend" "$ROOT_DIR/examples/biome_simulator/results.txt" "BIOME SIMULATION FINAL REPORT" "Red Deer" "Lynx" "migration:"
+    run_expect_file_lines "fsm_factory" \
+        "$backend" "$ROOT_DIR/examples/fsm_factory/results.txt" "FACTORY FSM REPORT" "ALPHA" "BETA" "projection_ready=true"
 }
 
 run_qubit_example() {

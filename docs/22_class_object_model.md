@@ -102,8 +102,8 @@ vessel HealthState {
 
 - 의사결정, 오케스트레이션, 승인을 담당하는 능동 주체 타입
 - ability를 수행하는 주체
-- `action`의 host
-- 현재 compiler는 subject 안의 legacy `func`를 semantic error로 막고, `action`만 허용한다
+- 일반 `func`와 공적 `action`의 host
+- `func`는 계산/보조 판단/국소 상태 갱신을 담당하고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사다
 - role의 receiver
 - party role slot에 배치되는 대상
 

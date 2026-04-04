@@ -89,8 +89,10 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
 - `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 projection/value 형식임
-- `subject` 안의 legacy `func`는 이제 semantic error이며, subject의 공적 동사는 `action`만 허용됨
-- 현재 회귀 수치: `semantic 442 passed`, `transpile 344 passed`, `llvm-test-smoke` 통과
+- `subject`는 일반 `func`와 공적 `action`을 모두 가질 수 있음
+- `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
+- example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
+- 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
@@ -123,7 +125,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 ## 2026-04-04 기준 확인된 상태
 
-- `make test-semantic` 통과 (`440 passed`)
+- `make test-semantic` 통과 (`450 passed`)
 - `make test-transpile` 통과 (`331 passed`)
 - `make llvm-test-smoke` 통과
 

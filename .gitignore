@@ -8,12 +8,25 @@ bin/
 examples/*.c
 examples/**/*.c
 
-# Compiled example binaries (tracked .pgy files only)
+# Compiled example binaries and build artifacts
 examples/*.exe
 examples/**/*.exe
+examples/**/*.o
 
-# Keep all .pgy source files and subdirectories
-# (battle_simulator/, space_station/, biome_simulator/ etc.)
+# Example runtime output (regenerated on run)
+examples/**/results.txt
+
+# Example expected output — keep ONE canonical expected_stdout.txt per project,
+# ignore backend-specific variants
+examples/**/expected_stdout.c.txt
+examples/**/expected_stdout.llvm.txt
+examples/**/expected_results.c.txt
+examples/**/expected_results.llvm.txt
+
+# Keep tracked:
+#   examples/**/*.pgy              — source files
+#   examples/**/expected_stdout.txt — canonical expected output
+#   examples/**/expected_results.txt — canonical expected results
 
 # Editor / OS
 *.backup

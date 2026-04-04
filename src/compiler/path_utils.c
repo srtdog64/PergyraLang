@@ -55,7 +55,16 @@ char *
 path_replace_extension(const char *path, const char *new_ext)
 {
     const char *dot = strrchr(path, '.');
-    size_t base_len = dot ? (size_t)(dot - path) : strlen(path);
+    const char *last_sep = strrchr(path, '/');
+    const char *last_bsep = strrchr(path, '\\');
+    size_t base_len;
+
+    if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
+        last_sep = last_bsep;
+    if (dot != NULL && last_sep != NULL && dot < last_sep)
+        dot = NULL;
+
+    base_len = dot ? (size_t)(dot - path) : strlen(path);
     size_t new_len = base_len + strlen(new_ext) + 1;
     char *result = malloc(new_len);
     if (result == NULL)

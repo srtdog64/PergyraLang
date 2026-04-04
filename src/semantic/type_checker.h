@@ -61,6 +61,10 @@ struct SemanticContext
     size_t       diagnostic_count;
     size_t       diagnostic_capacity;
 
+    char**       embedded_world_zone_names;
+    size_t       embedded_world_zone_count;
+    size_t       embedded_world_zone_capacity;
+
     bool         has_error;
 };
 

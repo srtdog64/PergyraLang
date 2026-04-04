@@ -837,7 +837,8 @@ llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name)
 LLVMClassTypeEntry *
 llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
                     LLVMTypeRef struct_type,
-                    bool is_subject)
+                    bool is_subject,
+                    bool is_pointer_self_host)
 {
     PGY_DYNARR_ENSURE_RET(ctx->class_types, ctx->class_type_count,
                             ctx->class_type_capacity, LLVMClassTypeEntry);
@@ -846,6 +847,7 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
     entry->class_name  = class_name;
     entry->struct_type = struct_type;
     entry->is_subject  = is_subject;
+    entry->is_pointer_self_host = is_pointer_self_host;
     entry->field_count = 0;
     return entry;
 }
@@ -1905,7 +1907,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMTypeRef enum_ty =
                     LLVMStructCreateNamed(ctx->context, enum_name);
                 LLVMClassTypeEntry *enum_entry =
-                    llvm_register_class(ctx, enum_name, enum_ty, false);
+                    llvm_register_class(ctx, enum_name, enum_ty, false, false);
 
                 enum_fields[0] = ctx->type_i32;
                 if (enum_entry != NULL)
@@ -1942,7 +1944,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                     LLVMClassTypeEntry *payload_entry =
                         llvm_register_class(ctx, pergyra_strdup(payload_name),
-                            payload_ty, false);
+                            payload_ty, false, false);
                     if (payload_entry != NULL) {
                         for (size_t p = 0; p < param_count; p++) {
                             char field_name[32];
@@ -1987,8 +1989,10 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                                (unsigned)fc, 0);
 
             bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+            bool is_pointer_self_host = is_subject
+                || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
             LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-                cls_name, struct_ty, is_subject);
+                cls_name, struct_ty, is_subject, is_pointer_self_host);
             if (entry != NULL) {
                 for (size_t j = 0; j < fc; j++) {
                     ClassField *f = stmt->data.class_decl.fields[j];
@@ -2022,10 +2026,10 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                     user_pc++;
                 }
 
-                /* subject methods receive self by pointer; class methods by value */
+                /* Pointer-self hosts receive self by pointer; plain classes by value. */
                 LLVMTypeRef *param_types = calloc(user_pc + 1,
                                                    sizeof(LLVMTypeRef));
-                param_types[0] = is_subject
+                param_types[0] = is_pointer_self_host
                     ? LLVMPointerType(struct_ty, 0)
                     : struct_ty;
                 size_t pidx = 1;
@@ -2074,7 +2078,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMTypeRef sty = LLVMStructCreateNamed(ctx->context, aname);
         LLVMStructSetBody(sty, ftypes, (unsigned)fc, 0);
 
-        LLVMClassTypeEntry *entry = llvm_register_class(ctx, aname, sty, true);
+        LLVMClassTypeEntry *entry = llvm_register_class(ctx, aname, sty, true, true);
         if (entry != NULL) {
             for (size_t j = 0; j < fc; j++) {
                 ClassField *f = stmt->data.actor_decl.fields[j];
@@ -2235,9 +2239,9 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                 llvm_scope_push(ctx);
 
-                /* subject methods keep a self pointer; class methods keep a self value */
+                /* Pointer-self hosts keep a self pointer; plain classes keep a self value. */
                 LLVMValueRef self_val = LLVMGetParam(fn, 0);
-                if (cls != NULL && cls->is_subject) {
+                if (cls != NULL && cls->is_pointer_self_host) {
                     LLVMTypeRef self_ptr_type = LLVMPointerType(
                         cls->struct_type, 0);
                     LLVMValueRef self_alloca = llvm_create_entry_alloca(
@@ -2487,40 +2491,110 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
  * ================================================================= */
 
 static void
-llvm_run_optimization(LLVMGenCtx *ctx)
+llvm_init_all_targets(void)
 {
-    /* Initialize targets so we can create a target machine */
     LLVMInitializeAllTargetInfos();
     LLVMInitializeAllTargets();
     LLVMInitializeAllTargetMCs();
     LLVMInitializeAllAsmParsers();
     LLVMInitializeAllAsmPrinters();
+}
 
-    char *triple = LLVMGetDefaultTargetTriple();
+static LLVMTargetMachineRef
+llvm_create_host_machine(char **triple_out, char **cpu_out, char **features_out)
+{
+    char *triple;
+    char *cpu;
+    char *features;
     LLVMTargetRef target = NULL;
     char *target_error = NULL;
     LLVMTargetMachineRef machine = NULL;
 
-    if (!LLVMGetTargetFromTriple(triple, &target, &target_error)) {
+    if (triple_out != NULL)
+        *triple_out = NULL;
+    if (cpu_out != NULL)
+        *cpu_out = NULL;
+    if (features_out != NULL)
+        *features_out = NULL;
+
+    llvm_init_all_targets();
+
+    triple = LLVMGetDefaultTargetTriple();
+    cpu = LLVMGetHostCPUName();
+    features = LLVMGetHostCPUFeatures();
+
+    if (triple != NULL && !LLVMGetTargetFromTriple(triple, &target, &target_error)) {
         machine = LLVMCreateTargetMachine(
-            target, triple, "generic", "",
-            LLVMCodeGenLevelDefault,
+            target,
+            triple,
+            cpu != NULL ? cpu : "generic",
+            features != NULL ? features : "",
+            LLVMCodeGenLevelAggressive,
             LLVMRelocDefault,
             LLVMCodeModelDefault);
     }
+
     if (target_error != NULL)
         LLVMDisposeMessage(target_error);
 
+    if (machine == NULL) {
+        if (triple != NULL)
+            LLVMDisposeMessage(triple);
+        if (cpu != NULL)
+            LLVMDisposeMessage(cpu);
+        if (features != NULL)
+            LLVMDisposeMessage(features);
+        return NULL;
+    }
+
+    if (triple_out != NULL)
+        *triple_out = triple;
+    else if (triple != NULL)
+        LLVMDisposeMessage(triple);
+
+    if (cpu_out != NULL)
+        *cpu_out = cpu;
+    else if (cpu != NULL)
+        LLVMDisposeMessage(cpu);
+
+    if (features_out != NULL)
+        *features_out = features;
+    else if (features != NULL)
+        LLVMDisposeMessage(features);
+
+    return machine;
+}
+
+static void
+llvm_run_optimization(LLVMGenCtx *ctx)
+{
+    char *triple = NULL;
+    char *cpu = NULL;
+    char *features = NULL;
+    LLVMTargetMachineRef machine = llvm_create_host_machine(&triple, &cpu, &features);
+
+    if (machine != NULL) {
+        LLVMTargetDataRef layout = LLVMCreateTargetDataLayout(machine);
+        LLVMSetModuleDataLayout(ctx->module, layout);
+        LLVMSetTarget(ctx->module, triple);
+        LLVMDisposeTargetData(layout);
+    }
+
     /* Run the new pass manager pipeline:
-     * default<O2> includes: mem2reg, instcombine, reassociate,
-     * gvn, simplifycfg, inline, etc. */
+     * default<O3> gives the LLVM backend a fairer comparison with the
+     * C backend's aggressive native toolchain path. */
     LLVMPassBuilderOptionsRef opts = LLVMCreatePassBuilderOptions();
-    LLVMRunPasses(ctx->module, "default<O2>", machine, opts);
+    LLVMRunPasses(ctx->module, "default<O3>", machine, opts);
     LLVMDisposePassBuilderOptions(opts);
 
     if (machine != NULL)
         LLVMDisposeTargetMachine(machine);
-    LLVMDisposeMessage(triple);
+    if (triple != NULL)
+        LLVMDisposeMessage(triple);
+    if (cpu != NULL)
+        LLVMDisposeMessage(cpu);
+    if (features != NULL)
+        LLVMDisposeMessage(features);
 }
 
 /* =================================================================
@@ -2612,30 +2686,22 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
     llvm_run_optimization(ctx);
 
     /* Get native target */
-    char *triple = LLVMGetDefaultTargetTriple();
-    LLVMTargetRef target;
-    char *target_error = NULL;
-
-    if (LLVMGetTargetFromTriple(triple, &target, &target_error)) {
-        char msg[1024];
-        snprintf(msg, sizeof(msg), "Cannot get target: %s",
-                 target_error ? target_error : "(unknown)");
-        LLVMDisposeMessage(target_error);
-        LLVMDisposeMessage(triple);
-        LLVMGenResult *res = llvm_result_error(msg);
+    char *triple = NULL;
+    char *cpu = NULL;
+    char *features = NULL;
+    LLVMTargetMachineRef machine = llvm_create_host_machine(&triple, &cpu, &features);
+    if (machine == NULL) {
+        LLVMGenResult *res = llvm_result_error("Cannot create LLVM target machine");
         llvm_ctx_destroy(ctx);
         return res;
     }
 
-    LLVMTargetMachineRef machine = LLVMCreateTargetMachine(
-        target, triple, "generic", "",
-        LLVMCodeGenLevelDefault,
-        LLVMRelocDefault,
-        LLVMCodeModelDefault);
-
-    LLVMSetModuleDataLayout(ctx->module,
-        LLVMCreateTargetDataLayout(machine));
-    LLVMSetTarget(ctx->module, triple);
+    {
+        LLVMTargetDataRef layout = LLVMCreateTargetDataLayout(machine);
+        LLVMSetModuleDataLayout(ctx->module, layout);
+        LLVMSetTarget(ctx->module, triple);
+        LLVMDisposeTargetData(layout);
+    }
 
     /* Emit object file */
     char *emit_error = NULL;
@@ -2647,14 +2713,24 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
                  emit_error ? emit_error : "(unknown)");
         LLVMDisposeMessage(emit_error);
         LLVMDisposeTargetMachine(machine);
-        LLVMDisposeMessage(triple);
+        if (triple != NULL)
+            LLVMDisposeMessage(triple);
+        if (cpu != NULL)
+            LLVMDisposeMessage(cpu);
+        if (features != NULL)
+            LLVMDisposeMessage(features);
         LLVMGenResult *res = llvm_result_error(msg);
         llvm_ctx_destroy(ctx);
         return res;
     }
 
     LLVMDisposeTargetMachine(machine);
-    LLVMDisposeMessage(triple);
+    if (triple != NULL)
+        LLVMDisposeMessage(triple);
+    if (cpu != NULL)
+        LLVMDisposeMessage(cpu);
+    if (features != NULL)
+        LLVMDisposeMessage(features);
 
     LLVMGenResult *res = llvm_result_success(NULL);
     llvm_ctx_destroy(ctx);

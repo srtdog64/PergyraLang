@@ -214,8 +214,8 @@ vessel-action 모델의 상세 설계는 [26_vessel_action_model.md](26_vessel_a
 핵심 요약:
 
 - **vessel**: subject 안에서 상태/자원/행위를 피동적으로 담는 수용체. func를 가진다.
-- **action**: subject 전용 동사. zone/ability/effect와 연동되는 플롯 행위. func와 구분된다.
-- **subject에는 func가 없다.** 현재 compiler도 subject 안의 legacy `func`를 semantic error로 막고, 모든 공적 행위는 `action`만 허용한다.
+- **action**: subject 전용 공적 동사. zone/ability/effect와 연동되는 오케스트레이션 행위다.
+- **subject는 func와 action을 모두 가진다.** `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 공적 행위다.
 
 ## 결정 이력
 

@@ -62,6 +62,7 @@
 - world runtime은 `__zone_dirty_<slot>`와 `__world_derived_dirty`를 유지해 active flag가 바뀐 zone만 다시 sync하고, derived state는 dirty일 때만 다시 계산함
 - world constructor는 embedded zone dirty와 derived dirty를 `true`로 시작시켜 첫 world sync에서 zone projection/layer/state를 빠뜨리지 않음
 - world method는 post-sync 전에 embedded zone dirty를 보수적으로 다시 올려 world-owned zone 교체/갱신이 derived layer까지 전파되게 함
+- world value에 embed된 zone은 바깥의 옛 zone 바인딩을 통해 다시 assignment/hosted `func`/`action`으로 mutate할 수 없고, semantic error로 차단됨
 - C backend는 zone layer slot을 `bool __layer_active_<slot>` 필드로, zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
 - C backend는 relation/effect/zone/world마다 `<Type>_sync(self)` helper를 생성하고, method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
 - C backend는 relation/effect/zone projection slot에 `__projection_ready_*` flag를 두고 `HasProjection(...)`를 현재 domain self field query로 lowering함
@@ -88,7 +89,9 @@
 - `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToDto` source, subject copy restriction에 참여함
 - `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
 - `dto`는 `object`보다 더 좁은 경계 전달/투영 형식으로 유지됨
-- `subject` 안의 legacy `func`는 이제 semantic error이며, subject의 공적 동사는 `action`만 허용됨
+- `subject`는 이제 일반 `func`와 공적 `action`을 모두 가질 수 있음
+- `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
+- example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
 - enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
 - `Option<T>` 표면: `Some/None`, `IsSome/IsNone`, `UnwrapOption`, `match` destructuring이 semantic/C/LLVM 경로에 연결됨
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
@@ -99,7 +102,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 442 passed`, `transpile 344 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -139,8 +142,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 440 passed |
-| transpile | 336 passed |
+| semantic | 450 passed |
+| transpile | 351 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:

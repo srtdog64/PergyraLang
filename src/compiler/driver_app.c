@@ -103,7 +103,7 @@ scaffold_mkdir_p(const char *path)
     for (size_t i = 1; i < len; i++) {
         if (buf[i] == '/') {
             buf[i] = '\0';
-            if (buf[0] != '\0' && mkdir(buf) != 0 && errno != EEXIST) {
+            if (buf[0] != '\0' && mkdir(buf, 0755) != 0 && errno != EEXIST) {
                 fprintf(stderr, "pgy: failed to create directory '%s': %s\n",
                     buf, strerror(errno));
                 free(buf);
@@ -113,7 +113,7 @@ scaffold_mkdir_p(const char *path)
         }
     }
 
-    if (mkdir(buf) != 0 && errno != EEXIST) {
+    if (mkdir(buf, 0755) != 0 && errno != EEXIST) {
         fprintf(stderr, "pgy: failed to create directory '%s': %s\n",
             buf, strerror(errno));
         free(buf);

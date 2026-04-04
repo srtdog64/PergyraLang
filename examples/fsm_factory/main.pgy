@@ -1,0 +1,368 @@
+// main.pgy -- Factory FSM scenario with two assembly cells
+// BSD (Allman) style
+import "machines.pgy";
+
+zone AssemblyZone
+{
+    subject slot supervisor: Station
+    subject slot loader: Station
+    subject slot furnace: Station
+    subject slot packer: Station
+    shared inbound: Int = 0
+    shared heated: Int = 0
+    shared sealed: Int = 0
+    shared rejects: Int = 0
+    shared cycle: Int = 0
+    shared alarms: Int = 0
+    shared maintenance: Int = 6
+    object slot furnaceView: StationView
+    object slot packerView: StationView
+    dto slot supervisorPacket: StationPacket
+    dto slot furnacePacket: StationPacket
+    authority supervisor
+    refresh furnaceView from furnace by supervisor
+    refresh packerView from packer by supervisor
+    publish supervisorPacket from supervisor by supervisor
+    publish furnacePacket from furnace by supervisor
+
+    func RiskLevel(self) -> Int
+    {
+        return alarms + loader.Pressure() + furnace.Pressure() + packer.Pressure();
+    }
+
+    func IntakeOrders(self, pulse: Int) -> Void
+    {
+        inbound = inbound + pulse;
+        loader.core.backlog = loader.core.backlog + pulse;
+    }
+
+    func CycleLabel(self) -> String
+    {
+        return "cycle " + ToString(cycle)
+            + " inbound=" + ToString(inbound)
+            + " heated=" + ToString(heated)
+            + " sealed=" + ToString(sealed)
+            + " alarms=" + ToString(alarms);
+    }
+
+    func RaiseAlarm(self, amount: Int) -> Void
+    {
+        alarms = alarms + amount;
+    }
+
+    func ConsumeMaintenance(self, amount: Int) -> Int
+    {
+        let spend = Min(maintenance, amount);
+        maintenance = Max(maintenance - spend, 0);
+        return spend;
+    }
+
+    func ResetBaseline(self, maintenanceLevel: Int, qualityBias: Int, baseEnergy: Int) -> Void
+    {
+        inbound = 0;
+        heated = 0;
+        sealed = 0;
+        rejects = 0;
+        cycle = 0;
+        alarms = 0;
+        maintenance = maintenanceLevel;
+
+        supervisor.core.mode = 0;
+        supervisor.core.timer = 0;
+        supervisor.core.backlog = 0;
+        supervisor.core.completed = 0;
+        supervisor.core.faults = 0;
+        supervisor.core.energy = baseEnergy;
+        supervisor.core.quality = qualityBias + 1;
+        supervisor.core.heat = 0;
+        supervisor.core.alarms = 0;
+
+        loader.core.mode = 0;
+        loader.core.timer = 0;
+        loader.core.backlog = 0;
+        loader.core.completed = 0;
+        loader.core.faults = 0;
+        loader.core.energy = baseEnergy + 1;
+        loader.core.quality = qualityBias;
+        loader.core.heat = 0;
+        loader.core.alarms = 0;
+
+        furnace.core.mode = 0;
+        furnace.core.timer = 0;
+        furnace.core.backlog = 0;
+        furnace.core.completed = 0;
+        furnace.core.faults = 0;
+        furnace.core.energy = baseEnergy + 2;
+        furnace.core.quality = qualityBias + 1;
+        furnace.core.heat = 0;
+        furnace.core.alarms = 0;
+
+        packer.core.mode = 0;
+        packer.core.timer = 0;
+        packer.core.backlog = 0;
+        packer.core.completed = 0;
+        packer.core.faults = 0;
+        packer.core.energy = baseEnergy;
+        packer.core.quality = qualityBias;
+        packer.core.heat = 0;
+        packer.core.alarms = 0;
+    }
+
+    func Tick(self, orderPulse: Int, powerPulse: Int, turbulence: Int) -> Void
+    {
+        cycle = cycle + 1;
+
+        let support = ConsumeMaintenance(1) + 1;
+        supervisor.Boot(powerPulse + support);
+        loader.Boot(powerPulse);
+        furnace.Boot(powerPulse + 1);
+        packer.Boot(powerPulse);
+
+        IntakeOrders(orderPulse);
+
+        let loaded = loader.Feed(inbound, support);
+        inbound = Max(inbound - loaded, 0);
+
+        let heated = furnace.Heat(loaded, powerPulse + support - turbulence);
+        self.heated = self.heated + heated;
+
+        let sealed = packer.Seal(heated, support + powerPulse);
+        self.heated = Max(self.heated - sealed, 0);
+        self.sealed = self.sealed + sealed;
+
+        if powerPulse <= turbulence + 1
+        {
+            let damage = furnace.Trip(turbulence + 1);
+            rejects = rejects + damage;
+            RaiseAlarm(1);
+        }
+
+        if inbound + loader.core.backlog > 8
+        {
+            let jam = loader.Trip(2);
+            rejects = rejects + jam;
+            RaiseAlarm(1);
+        }
+
+        if furnace.core.heat > 22
+        {
+            let overheating = furnace.Trip(1);
+            rejects = rejects + overheating;
+            RaiseAlarm(1);
+        }
+
+        if packer.core.backlog + self.heated > 5
+        {
+            let sealingJam = packer.Trip(2);
+            rejects = rejects + sealingJam;
+            RaiseAlarm(1);
+        }
+
+        if RiskLevel() > 6
+        {
+            supervisor.Trip(1);
+            RaiseAlarm(1);
+        }
+
+        let recovered = 0;
+        if supervisor.core.mode == 7
+        {
+            recovered = recovered + supervisor.Recover(support + 2);
+        }
+        if loader.core.mode == 7
+        {
+            recovered = recovered + loader.Recover(support + 1);
+        }
+        if furnace.core.mode == 7
+        {
+            recovered = recovered + furnace.Recover(support + 2);
+        }
+        if packer.core.mode == 7
+        {
+            recovered = recovered + packer.Recover(support + 1);
+        }
+
+        if recovered > 0
+        {
+            alarms = Max(alarms - recovered, 0);
+        }
+
+        Log("  [Zone] " + CycleLabel());
+        Log("  [Flow] loaded=" + ToString(loaded) + " heated=" + ToString(heated) + " sealed=" + ToString(sealed) + " rejects=" + ToString(rejects));
+        Log("  [Risk] " + ToString(RiskLevel()) + " | maintenance=" + ToString(maintenance));
+        Log("  [Station] " + supervisor.name + " [" + supervisor.stationRole + "] mode=" + ToString(supervisor.core.mode) + " backlog=" + ToString(supervisor.core.backlog) + " done=" + ToString(supervisor.core.completed) + " faults=" + ToString(supervisor.core.faults) + " energy=" + ToString(supervisor.core.energy) + " heat=" + ToString(supervisor.core.heat));
+        Log("  [Station] " + loader.name + " [" + loader.stationRole + "] mode=" + ToString(loader.core.mode) + " backlog=" + ToString(loader.core.backlog) + " done=" + ToString(loader.core.completed) + " faults=" + ToString(loader.core.faults) + " energy=" + ToString(loader.core.energy) + " heat=" + ToString(loader.core.heat));
+        Log("  [Station] " + furnace.name + " [" + furnace.stationRole + "] mode=" + ToString(furnace.core.mode) + " backlog=" + ToString(furnace.core.backlog) + " done=" + ToString(furnace.core.completed) + " faults=" + ToString(furnace.core.faults) + " energy=" + ToString(furnace.core.energy) + " heat=" + ToString(furnace.core.heat));
+        Log("  [Station] " + packer.name + " [" + packer.stationRole + "] mode=" + ToString(packer.core.mode) + " backlog=" + ToString(packer.core.backlog) + " done=" + ToString(packer.core.completed) + " faults=" + ToString(packer.core.faults) + " energy=" + ToString(packer.core.energy) + " heat=" + ToString(packer.core.heat));
+    }
+}
+
+world FactoryWorld
+{
+    zone alpha: AssemblyZone
+    zone beta: AssemblyZone
+    shared shift: Int = 0
+    shared gridNoise: Int = 1
+    shared totalSealed: Int = 0
+    shared totalRejects: Int = 0
+    state alphaLive: zone alpha
+    state betaLive: zone beta
+    state alphaViewReady: zone alpha projection furnaceView
+    state betaViewReady: zone beta projection furnaceView
+    state alphaPacketReady: zone alpha projection furnacePacket
+    state betaPacketReady: zone beta projection furnacePacket
+    state bothLive: all alphaLive, betaLive
+    state allProjectionReady: all alphaViewReady, betaViewReady
+    state anyPacketReady: any alphaPacketReady, betaPacketReady
+    activate alpha
+    activate beta
+
+    func OrderPulse(self) -> Int
+    {
+        if shift == 0 { return 4; }
+        if shift == 1 { return 6; }
+        if shift == 2 { return 5; }
+        if shift == 3 { return 7; }
+        return 4;
+    }
+
+    func PowerPulse(self) -> Int
+    {
+        if shift == 0 { return 5; }
+        if shift == 1 { return 4; }
+        if shift == 2 { return 3; }
+        if shift == 3 { return 6; }
+        return 4;
+    }
+
+    func AdvanceShift(self) -> Void
+    {
+        shift = shift + 1;
+        if shift > 4 { shift = 0; }
+        gridNoise = (shift % 3) + 1;
+    }
+
+    func ResetFactory(self) -> Void
+    {
+        shift = 0;
+        gridNoise = 1;
+        totalSealed = 0;
+        totalRejects = 0;
+        alpha.ResetBaseline(7, 3, 8);
+        beta.ResetBaseline(5, 2, 7);
+    }
+
+    func Simulate(self) -> Void
+    {
+        let tick = 0;
+        while tick < 5
+        {
+            let orders = OrderPulse();
+            let power = PowerPulse();
+            let alphaTurbulence = gridNoise + (tick % 2);
+            let betaTurbulence = Max(gridNoise - 1, 0);
+
+            Log("========================================");
+            Log("FACTORY SHIFT " + ToString(tick + 1));
+            Log("orders=" + ToString(orders) + " power=" + ToString(power) + " noise=" + ToString(gridNoise));
+            Log("========================================");
+
+            Log("  -- ALPHA CELL --");
+            alpha.Tick(orders, power, alphaTurbulence);
+
+            Log("  -- BETA CELL --");
+            beta.Tick(Max(orders - 1, 1), Max(power - 1, 1), betaTurbulence);
+
+            totalSealed = alpha.sealed + beta.sealed;
+            totalRejects = alpha.rejects + beta.rejects;
+
+            Log("  [World] sealed=" + ToString(totalSealed) + " rejects=" + ToString(totalRejects));
+            if HasZone(allProjectionReady)
+            {
+                Log("  [World] projection_ready=true");
+            }
+            if HasZone(anyPacketReady)
+            {
+                Log("  [World] packet_ready=true");
+            }
+            Log("");
+
+            AdvanceShift();
+            tick = tick + 1;
+        }
+    }
+
+    func SaveReport(self, path: String) -> Void
+    {
+        let fd = FileOpen(path, "w");
+        if fd < 0 { return; }
+
+        FileWrite(fd, "=== FACTORY FSM REPORT ===\n");
+        FileWrite(fd, "shift="); FileWrite(fd, ToString(shift)); FileWrite(fd, "\n");
+        FileWrite(fd, "sealed="); FileWrite(fd, ToString(totalSealed)); FileWrite(fd, "\n");
+        FileWrite(fd, "rejects="); FileWrite(fd, ToString(totalRejects)); FileWrite(fd, "\n");
+        if HasZone(allProjectionReady) { FileWrite(fd, "projection_ready=true\n"); }
+        else { FileWrite(fd, "projection_ready=false\n"); }
+        if HasZone(anyPacketReady) { FileWrite(fd, "packet_ready=true\n"); }
+        else { FileWrite(fd, "packet_ready=false\n"); }
+        FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- ALPHA ---\n");
+        FileWrite(fd, "sealed="); FileWrite(fd, ToString(alpha.sealed));
+        FileWrite(fd, " rejects="); FileWrite(fd, ToString(alpha.rejects));
+        FileWrite(fd, " alarms="); FileWrite(fd, ToString(alpha.alarms)); FileWrite(fd, "\n");
+        FileWrite(fd, "furnaceView mode="); FileWrite(fd, ToString(alpha.furnaceView.mode));
+        FileWrite(fd, " heat="); FileWrite(fd, ToString(alpha.furnaceView.heat));
+        FileWrite(fd, " faults="); FileWrite(fd, ToString(alpha.furnaceView.faults)); FileWrite(fd, "\n");
+        FileWrite(fd, "furnacePacket completed="); FileWrite(fd, ToString(alpha.furnacePacket.completed));
+        FileWrite(fd, " alarms="); FileWrite(fd, ToString(alpha.furnacePacket.alarms));
+        FileWrite(fd, " quality="); FileWrite(fd, ToString(alpha.furnacePacket.quality)); FileWrite(fd, "\n");
+        FileWrite(fd, alpha.loader.name); FileWrite(fd, " backlog="); FileWrite(fd, ToString(alpha.loader.core.backlog));
+        FileWrite(fd, " mode="); FileWrite(fd, ToString(alpha.loader.core.mode)); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- BETA ---\n");
+        FileWrite(fd, "sealed="); FileWrite(fd, ToString(beta.sealed));
+        FileWrite(fd, " rejects="); FileWrite(fd, ToString(beta.rejects));
+        FileWrite(fd, " alarms="); FileWrite(fd, ToString(beta.alarms)); FileWrite(fd, "\n");
+        FileWrite(fd, "furnaceView mode="); FileWrite(fd, ToString(beta.furnaceView.mode));
+        FileWrite(fd, " heat="); FileWrite(fd, ToString(beta.furnaceView.heat));
+        FileWrite(fd, " faults="); FileWrite(fd, ToString(beta.furnaceView.faults)); FileWrite(fd, "\n");
+        FileWrite(fd, "furnacePacket completed="); FileWrite(fd, ToString(beta.furnacePacket.completed));
+        FileWrite(fd, " alarms="); FileWrite(fd, ToString(beta.furnacePacket.alarms));
+        FileWrite(fd, " quality="); FileWrite(fd, ToString(beta.furnacePacket.quality)); FileWrite(fd, "\n");
+        FileWrite(fd, beta.loader.name); FileWrite(fd, " backlog="); FileWrite(fd, ToString(beta.loader.core.backlog));
+        FileWrite(fd, " mode="); FileWrite(fd, ToString(beta.loader.core.mode)); FileWrite(fd, "\n");
+
+        FileClose(fd);
+    }
+}
+
+func Main() -> Void
+{
+    Log("=== PERGYRA FACTORY FSM ===");
+    Log("Two assembly cells, five shifts, explicit machine transitions");
+    Log("");
+
+    let alpha = AssemblyZone(
+        Station("Alpha Supervisor", "supervisor", MachineCore(0, 0, 0, 0, 0, 8, 3, 0, 0)),
+        Station("Alpha Loader", "loader", MachineCore(0, 0, 0, 0, 0, 9, 2, 0, 0)),
+        Station("Alpha Furnace", "furnace", MachineCore(0, 0, 0, 0, 0, 10, 3, 0, 0)),
+        Station("Alpha Packer", "packer", MachineCore(0, 0, 0, 0, 0, 8, 2, 0, 0))
+    );
+    let beta = AssemblyZone(
+        Station("Beta Supervisor", "supervisor", MachineCore(0, 0, 0, 0, 0, 7, 3, 0, 0)),
+        Station("Beta Loader", "loader", MachineCore(0, 0, 0, 0, 0, 8, 2, 0, 0)),
+        Station("Beta Furnace", "furnace", MachineCore(0, 0, 0, 0, 0, 9, 2, 0, 0)),
+        Station("Beta Packer", "packer", MachineCore(0, 0, 0, 0, 0, 7, 2, 0, 0))
+    );
+
+    alpha.maintenance = 7;
+    beta.maintenance = 5;
+
+    let factory = FactoryWorld(alpha, beta);
+    factory.ResetFactory();
+    factory.Simulate();
+
+    Log("SAVING FSM REPORT");
+    factory.SaveReport("examples/fsm_factory/results.txt");
+}

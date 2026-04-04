@@ -7,11 +7,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- New folder-based complex FSM scenario: `examples/fsm_factory/` with multi-file
+  subject/zone/world orchestration, exact stdout goldens, and exact results-file
+  golden coverage in example smoke
+- `src/semantic/type_checker.c` split into a smaller main file plus
+  `type_checker_helpers.inc`, `type_checker_operator_expr.inc`, and
+  `type_checker_decls.inc` to keep semantic analysis manageable
+- `src/codegen/transpiler.c` split into a smaller main file plus
+  `transpiler_helpers.inc` and `transpiler_domain_role.inc`
+- `src/codegen/llvm_expr.c` split into a smaller main file plus
+  `src/codegen/llvm_expr_helpers.inc` to keep LLVM expression codegen more manageable
 - Folder-based example smoke entries: a path may now point to an example directory with `main.pgy`
 - New multi-file example scenarios: `examples/battle_simulator/` and `examples/biome_simulator/`
 - Richer biome simulator scenario: vegetation pools, species-specific traits, four-creature biome loops, world season/storm aggregation, and file report output
 - Practical simulator pain-point tracker: `docs/27_simulator_pain_points.md`
+- Nested vessel-backed projection paths in `ToObject` / `ToDto` and domain `refresh` / `publish`
+- `vessel slot` support inside `zone` declarations for grouped passive state
+- Folder-level exact `expected_results.txt` golden comparison for simulator outputs
+- Backend-aware exact stdout goldens for folder-based simulator smoke scenarios
+- Backend-aware exact `expected_results.<backend>.txt` golden comparison for simulator outputs
+- Wider contextual-keyword identifier support for locals and parameters such as `world`, `zone`, `effect`, and `actor`
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
+
+### Changed
+- LLVM backend optimization pipeline now uses a host-tuned target machine with
+  `default<O3>` passes, and the native link step now compiles the runtime with
+  `-march=native -mtune=native` for a fairer comparison against the C backend
 - `Option<T>` source-level surface: `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`
 - `Option<T>` destructuring in `match` for both C and LLVM backends
 - Semantic destructuring bindings for `Option<T>`, `Result<T>`, and tagged enum variants in `match`
@@ -111,6 +132,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added optional `self` lowering for bare field access and bare hosted helper calls across subject/class/relation/effect/zone/world bodies, with LLVM parity for bare host-field nested member chains like `battle.player.name` and `battle.Tick()`
 - Added `pgy scaffold` and `pgy new` CLI support for generating starter `subject`, `vessel`, `object`, `dto`, `zone`, `world`, `simulator`, and `project` templates
 - Added runtime regression coverage for world-to-zone cross-layer queries over embedded projection/layer/state flags
+- Added LLVM/C vessel pointer-self parity for hosted `vessel func` emission and dispatch
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -192,3 +214,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added incremental world propagation fields (`__zone_dirty_*`, `__world_derived_dirty`) so C/LLVM world sync can re-sync dirty zones and skip unnecessary derived recomputation
 - Initialized world constructors with dirty zone/derived flags and made world methods conservatively invalidate embedded zones before post-sync, with LLVM smoke coverage for world-owned zone replacement propagation
 - Added LLVM/runtime coverage for deeper nested member assignment (`self.zone.subject.field = value`) and secure boundary slot forwarding with paired token propagation
+- semantic: `world` decl lookup helper가 `world/systemic`도 찾도록 보강되어, world value에 embed된 zone을 옛 바인딩으로 다시 mutate하는 경로가 semantic error로 제대로 차단된다
+- build: 초대형 테스트 파일 `src/test_semantic.c`, `src/test_transpile.c`를 include 단위로 분리했고, parser 공용 `ast.c`의 디버그 출력 섹션을 `src/parser/ast_print.c`로 분리해 3000+ 라인 파일을 줄였다
+- build: `src/codegen/llvm_domain.c` 상단 helper 블록도 `llvm_domain_helpers.inc`로 분리해 core codegen 파일 길이를 줄였다

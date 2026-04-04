@@ -5,32 +5,38 @@ examples such as the battle simulator and biome simulator.
 
 ## Current
 
-- Projection currently reads only direct host fields. Large simulations want to
-  project vessel-held state like `cycle.age` or `traits.metabolism`, but today
-  that requires mirroring fields onto the `subject` or narrowing the
-  `object`/`dto` surface.
-- Zone ecology/state gets verbose quickly because large shared state must be
-  written as many `shared Int` fields. A `zone vessel` or grouped passive state
-  holder would make bigger worlds easier to model.
-- `world` has been lowered to a contextual keyword for locals, but helper
-  function parameter positions can still be fragile. In practice, naming a
-  parameter `world` is best avoided until every parser path treats it as a
-  plain identifier outside declarations.
-- Mutating a zone after composing it into a world is still a sharp edge. Rich
-  scenarios are more predictable when zones are fully configured first and only
-  then embedded into the world value.
-- World-level composed-state queries such as `HasZone(allProjectionReady)` still
-  show backend parity gaps in larger scenarios. The biome simulator currently
-  runs on both backends, but composed-state truth values are not yet fully
-  aligned between C and LLVM.
-- Scenario smoke tests are still substring-based. Rich simulators benefit from
-  folder-level golden outputs so structural regressions are easier to detect.
+- Projection sync is still host-field centric. Rich scenarios are usable now,
+  but larger framework work will eventually want higher-level projection/binding
+  surfaces over repeated `refresh` / `publish` wiring.
+- Rich constructor/default-state paths still have backend-sensitive edges in
+  large `world` + embedded `zone` scenarios. The new FSM example stabilizes its
+  runtime with an explicit `ResetFactory`/`ResetBaseline` pass after world
+  construction, but deeper constructor parity is still worth tightening.
 
 ## Recently Resolved
 
+- Projection no longer stops at direct host fields. `ToObject`/`ToDto` and
+  domain-local `refresh`/`publish` now resolve nested vessel-backed fields such
+  as `cycle.age` or `traits.metabolism` automatically.
+- Zone ecology/state no longer has to explode into many `shared Int` fields.
+  `zone vessel` now gives larger scenarios a grouped passive state holder.
+- `world`/`zone`/`effect`/`relation`/`actor`-style names now work in many more
+  plain identifier positions, including local bindings and function parameters.
+- Scenario result files are no longer substring-only. Folder-level
+  `expected_results.txt` goldens now allow exact comparison for simulator
+  outputs such as `battle_simulator/results.txt` and `biome_simulator/results.txt`.
+- Scenario stdout is no longer substring-only. Example smoke now supports
+  backend-aware exact normalized stdout goldens, so richer simulators can pin
+  full console transcripts separately for C and LLVM.
 - Host-owned fields no longer require mandatory `self.` in hosted `func` /
   `action` bodies. Bare field access now works across subject/class/relation/
   effect/zone/world hosts, with `self.` still available as an explicit form.
 - Hosted helper calls such as `PlantMass()`, `SeasonPulse()`, `battle.Tick()`,
   and `player.Hurt()` now lower correctly without mandatory `self.` on both C
   and LLVM paths.
+- Zones embedded into a world value are now frozen outside that world root.
+  Direct assignment or hosted `func` / `action` calls through the old zone
+  binding now produce semantic errors instead of soft warnings.
+- Complex simulator scenarios now have a dedicated folder shape with exact
+  stdout and `results.txt` goldens. `examples/fsm_factory/` joins battle and
+  biome as a regression-grade multi-file scenario rather than an ad hoc sample.

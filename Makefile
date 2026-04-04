@@ -107,6 +107,7 @@ COMMON_DIR   = $(SRC_DIR)/common
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
+                   $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/parser.c \
                    $(PARSER_DIR)/parser_expr.c \
                    $(PARSER_DIR)/parser_stmt.c \

@@ -317,7 +317,7 @@ compiler_build_native_llvm(const HIRProgram *hir,
     }
 
     const char *link_argv[] = {
-        "gcc", "-std=c11", "-O2", "-fopenmp",
+        "gcc", "-std=c11", "-O3", "-march=native", "-mtune=native", "-fopenmp",
 #ifndef _WIN32
         "-no-pie",
 #endif
