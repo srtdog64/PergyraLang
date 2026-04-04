@@ -19,6 +19,11 @@ examples such as the battle simulator and biome simulator.
 
 ## Recently Resolved
 
+- `ToString(Int)` no longer reuses a single static buffer across nested string
+  concatenations. The campaign graph/FSM scenario exposed this sharply on the C
+  backend, where strategic/world report lines collapsed many numbers to the
+  same value. `pgy_int_to_string` now returns a fresh string, so C and LLVM
+  agree on large report-style outputs.
 - Projection no longer stops at direct host fields. `ToObject`/`ToDto` and
   domain-local `refresh`/`publish` now resolve nested vessel-backed fields such
   as `cycle.age` or `traits.metabolism` automatically.

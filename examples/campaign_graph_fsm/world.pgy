@@ -1,0 +1,309 @@
+// world.pgy -- graph + world orchestration host
+
+world CampaignWorld
+{
+    zone watch: SectorZone
+    zone ruins: SectorZone
+    zone vault: SectorZone
+    zone summit: SectorZone
+
+    shared turn: Int = 0
+    shared omen: Int = 0
+    shared salvageBank: Int = 0
+    shared controlScore: Int = 0
+    shared watchRuins: Int = 2
+    shared ruinsVault: Int = 3
+    shared vaultSummit: Int = 4
+    shared summitWatch: Int = 5
+
+    state watchViewReady: zone watch projection captainView
+    state ruinsViewReady: zone ruins projection captainView
+    state vaultViewReady: zone vault projection captainView
+    state summitViewReady: zone summit projection captainView
+
+    state watchPacketReady: zone watch projection wingPacket
+    state ruinsPacketReady: zone ruins projection wingPacket
+    state vaultPacketReady: zone vault projection wingPacket
+    state summitPacketReady: zone summit projection wingPacket
+
+    state allViewsReady: all watchViewReady, ruinsViewReady, vaultViewReady, summitViewReady
+    state anyPacketsReady: any watchPacketReady, ruinsPacketReady, vaultPacketReady, summitPacketReady
+
+    activate watch
+    activate ruins
+    activate vault
+    activate summit
+
+    func ResetWorld(self) -> Void
+    {
+        turn = 0;
+        omen = 0;
+        salvageBank = 0;
+        controlScore = 0;
+        watchRuins = 2;
+        ruinsVault = 3;
+        vaultSummit = 4;
+        summitWatch = 5;
+    }
+
+    func CostWatchToRuins(self) -> Int
+    {
+        return watchRuins + watch.threat + ruins.omen;
+    }
+
+    func CostRuinsToVault(self) -> Int
+    {
+        return ruinsVault + ruins.breach + vault.threat;
+    }
+
+    func CostVaultToSummit(self) -> Int
+    {
+        return vaultSummit + vault.omen + summit.wards;
+    }
+
+    func CostSummitToWatch(self) -> Int
+    {
+        return summitWatch + summit.breach + watch.threat;
+    }
+
+    func PulseWorld(self) -> Void
+    {
+        if turn == 0
+        {
+            omen = 1;
+            watch.Pulse(1, 0, 2);
+            ruins.Pulse(2, 1, 1);
+            vault.Pulse(3, 1, 2);
+            summit.Pulse(2, 2, 0);
+        }
+        else if turn == 1
+        {
+            omen = 2;
+            watch.Pulse(1, 1, 1);
+            ruins.Pulse(2, 1, 2);
+            vault.Pulse(3, 2, 1);
+            summit.Pulse(3, 2, 0);
+        }
+        else if turn == 2
+        {
+            omen = 3;
+            watch.Pulse(2, 1, 1);
+            ruins.Pulse(2, 2, 1);
+            vault.Pulse(4, 2, 1);
+            summit.Pulse(4, 3, 0);
+        }
+        else if turn == 3
+        {
+            omen = 1;
+            watch.Pulse(1, 0, 2);
+            ruins.Pulse(2, 1, 1);
+            vault.Pulse(2, 1, 2);
+            summit.Pulse(3, 2, 1);
+        }
+        else
+        {
+            omen = 2;
+            watch.Pulse(1, 1, 1);
+            ruins.Pulse(2, 1, 2);
+            vault.Pulse(3, 2, 1);
+            summit.Pulse(4, 2, 0);
+        }
+
+        turn = turn + 1;
+        watchRuins = watchRuins + Max(ruins.threat / 6, 0);
+        ruinsVault = ruinsVault + Max(vault.breach / 4, 0);
+        vaultSummit = vaultSummit + Max(summit.omen / 3, 0);
+        summitWatch = summitWatch + Max(watch.threat / 5, 0);
+    }
+
+    func Recount(self) -> Void
+    {
+        salvageBank =
+            watch.yield + ruins.yield + vault.yield + summit.yield
+            + watch.captain.salvage + watch.wing.salvage
+            + ruins.captain.salvage + ruins.wing.salvage
+            + vault.captain.salvage + vault.wing.salvage
+            + summit.captain.salvage + summit.wing.salvage;
+
+        controlScore = watch.control + ruins.control + vault.control + summit.control;
+    }
+
+    func StrategicLine(self) -> String
+    {
+        return "turn=" + ToString(turn)
+            + " omen=" + ToString(omen)
+            + " salvageBank=" + ToString(salvageBank)
+            + " controlScore=" + ToString(controlScore)
+            + " costs="
+            + ToString(CostWatchToRuins()) + "/"
+            + ToString(CostRuinsToVault()) + "/"
+            + ToString(CostVaultToSummit()) + "/"
+            + ToString(CostSummitToWatch());
+    }
+
+    func ViewsReady(self) -> Bool
+    {
+        return HasZone(allViewsReady);
+    }
+
+    func PacketsReady(self) -> Bool
+    {
+        return HasZone(anyPacketsReady);
+    }
+
+    func SaveReport(self, path: String) -> Void
+    {
+        let fd = FileOpen(path, "w");
+        if fd < 0
+        {
+            Log("failed to open " + path);
+            return;
+        }
+
+        FileWrite(fd, "=== CAMPAIGN GRAPH FSM REPORT ===\n");
+        FileWrite(fd, StrategicLine()); FileWrite(fd, "\n");
+        if HasZone(allViewsReady) { FileWrite(fd, "allViewsReady=true\n"); }
+        else { FileWrite(fd, "allViewsReady=false\n"); }
+        if HasZone(anyPacketsReady) { FileWrite(fd, "anyPacketsReady=true\n"); }
+        else { FileWrite(fd, "anyPacketsReady=false\n"); }
+        FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- WATCH ---\n");
+        FileWrite(fd, "threat="); FileWrite(fd, ToString(watch.threat));
+        FileWrite(fd, " control="); FileWrite(fd, ToString(watch.control));
+        FileWrite(fd, " supplies="); FileWrite(fd, ToString(watch.supplies));
+        FileWrite(fd, " wards="); FileWrite(fd, ToString(watch.wards));
+        FileWrite(fd, " breach="); FileWrite(fd, ToString(watch.breach));
+        FileWrite(fd, " yield="); FileWrite(fd, ToString(watch.yield)); FileWrite(fd, "\n");
+        FileWrite(fd, watch.captain.Summary()); FileWrite(fd, "\n");
+        FileWrite(fd, watch.wing.Summary()); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- RUINS ---\n");
+        FileWrite(fd, "threat="); FileWrite(fd, ToString(ruins.threat));
+        FileWrite(fd, " control="); FileWrite(fd, ToString(ruins.control));
+        FileWrite(fd, " supplies="); FileWrite(fd, ToString(ruins.supplies));
+        FileWrite(fd, " wards="); FileWrite(fd, ToString(ruins.wards));
+        FileWrite(fd, " breach="); FileWrite(fd, ToString(ruins.breach));
+        FileWrite(fd, " yield="); FileWrite(fd, ToString(ruins.yield)); FileWrite(fd, "\n");
+        FileWrite(fd, ruins.captain.Summary()); FileWrite(fd, "\n");
+        FileWrite(fd, ruins.wing.Summary()); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- VAULT ---\n");
+        FileWrite(fd, "threat="); FileWrite(fd, ToString(vault.threat));
+        FileWrite(fd, " control="); FileWrite(fd, ToString(vault.control));
+        FileWrite(fd, " supplies="); FileWrite(fd, ToString(vault.supplies));
+        FileWrite(fd, " wards="); FileWrite(fd, ToString(vault.wards));
+        FileWrite(fd, " breach="); FileWrite(fd, ToString(vault.breach));
+        FileWrite(fd, " yield="); FileWrite(fd, ToString(vault.yield)); FileWrite(fd, "\n");
+        FileWrite(fd, vault.captain.Summary()); FileWrite(fd, "\n");
+        FileWrite(fd, vault.wing.Summary()); FileWrite(fd, "\n");
+
+        FileWrite(fd, "--- SUMMIT ---\n");
+        FileWrite(fd, "threat="); FileWrite(fd, ToString(summit.threat));
+        FileWrite(fd, " control="); FileWrite(fd, ToString(summit.control));
+        FileWrite(fd, " supplies="); FileWrite(fd, ToString(summit.supplies));
+        FileWrite(fd, " wards="); FileWrite(fd, ToString(summit.wards));
+        FileWrite(fd, " breach="); FileWrite(fd, ToString(summit.breach));
+        FileWrite(fd, " yield="); FileWrite(fd, ToString(summit.yield)); FileWrite(fd, "\n");
+        FileWrite(fd, summit.captain.Summary()); FileWrite(fd, "\n");
+        FileWrite(fd, summit.wing.Summary()); FileWrite(fd, "\n");
+
+        FileClose(fd);
+    }
+
+    func RunCampaign(self) -> Void
+    {
+        let day = 0;
+
+        with slot<Int> as commandBudget
+        {
+            with slot<Int> as omenLedger
+            {
+                Write(commandBudget, 6);
+                Write(omenLedger, 0);
+
+                while day < 5
+                {
+                    Log("");
+                    Log("== CAMPAIGN DAY " + ToString(day + 1) + " ==");
+
+                    PulseWorld();
+
+                    let budget = Read(commandBudget);
+                    let ledger = Read(omenLedger);
+                    Log("[Slots] budget=" + ToString(budget) + " ledger=" + ToString(ledger));
+
+                    watch.captain.Plan(1, 0, CostWatchToRuins());
+                    watch.wing.Plan(1, 0, CostWatchToRuins() + 1);
+                    if watch.threat + watch.breach > watch.control { watch.Fortify(); }
+                    else if watch.supplies > 4 { watch.Exploit(); }
+                    else { watch.Stabilize(); }
+                    watch.captain.Advance(1, omen);
+                    watch.wing.Advance(1, Max(omen - 1, 0));
+                    watch.StressCrew();
+
+                    ruins.captain.Plan(2, 1, CostRuinsToVault());
+                    ruins.wing.Plan(2, 1, CostRuinsToVault() + 1);
+                    if ruins.threat + ruins.breach > ruins.control { ruins.Fortify(); }
+                    else if ruins.supplies > 4 { ruins.Exploit(); }
+                    else { ruins.Stabilize(); }
+                    ruins.captain.Advance(2, omen + 1);
+                    ruins.wing.Advance(2, omen);
+                    ruins.StressCrew();
+
+                    vault.captain.Plan(3, 2, CostVaultToSummit());
+                    vault.wing.Plan(3, 2, CostVaultToSummit() + 1);
+                    if vault.threat + vault.breach > vault.control { vault.Fortify(); }
+                    else if vault.supplies > 4 { vault.Exploit(); }
+                    else { vault.Stabilize(); }
+                    vault.captain.Advance(3, omen + 1);
+                    vault.wing.Advance(3, omen);
+                    vault.StressCrew();
+
+                    summit.captain.Plan(0, 3, CostSummitToWatch());
+                    summit.wing.Plan(0, 3, CostSummitToWatch() + 1);
+                    if summit.threat + summit.breach > summit.control { summit.Fortify(); }
+                    else if summit.supplies > 4 { summit.Exploit(); }
+                    else { summit.Stabilize(); }
+                    summit.captain.Advance(0, omen);
+                    summit.wing.Advance(0, Max(omen - 1, 0));
+                    summit.StressCrew();
+
+                    Recount();
+
+                    Log("[World] " + StrategicLine());
+                    Log("  [Watch] " + watch.ProjectionLine());
+                    Log("  [Watch] " + watch.PacketLine());
+                    Log("  [Ruins] " + ruins.ProjectionLine());
+                    Log("  [Ruins] " + ruins.PacketLine());
+                    Log("  [Vault] " + vault.ProjectionLine());
+                    Log("  [Vault] " + vault.PacketLine());
+                    Log("  [Summit] " + summit.ProjectionLine());
+                    Log("  [Summit] " + summit.PacketLine());
+
+                    Write(commandBudget, Max(3, budget + controlScore / 20 - omen));
+                    Write(omenLedger, ledger + omen);
+
+                    day = day + 1;
+                }
+            }
+        }
+    }
+
+    func LogSnapshot(self) -> Void
+    {
+        Log(StrategicLine());
+        Log("  watch threat=" + ToString(watch.threat) + " control=" + ToString(watch.control));
+        Log("  watch captain: " + watch.captain.Summary());
+        Log("  watch wing:    " + watch.wing.Summary());
+        Log("  ruins threat=" + ToString(ruins.threat) + " control=" + ToString(ruins.control));
+        Log("  ruins captain: " + ruins.captain.Summary());
+        Log("  ruins wing:    " + ruins.wing.Summary());
+        Log("  vault threat=" + ToString(vault.threat) + " control=" + ToString(vault.control));
+        Log("  vault captain: " + vault.captain.Summary());
+        Log("  vault wing:    " + vault.wing.Summary());
+        Log("  summit threat=" + ToString(summit.threat) + " control=" + ToString(summit.control));
+        Log("  summit captain: " + summit.captain.Summary());
+        Log("  summit wing:    " + summit.wing.Summary());
+    }
+}

@@ -2172,6 +2172,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
+    /* Domain passes: ability, role, party, systemic, relation/effect/zone/world,
+     * event. Runs before standalone function forward declarations so domain
+     * nominal types are visible in free-function signatures. */
+    llvm_emit_domain_passes(hir, ctx);
+
     /* Pass 1: Forward-declare all user functions.
      * Generic functions (with generic_params) are stored as templates
      * for lazy monomorphization — NOT forward-declared as LLVM functions. */
@@ -2194,11 +2199,6 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_forward_declare_func(stmt, ctx);
         }
     }
-
-    /* Domain passes: ability, role, party, systemic, world, event.
-     * Runs before regular function bodies so synthesized operator wrappers
-     * are available during later expression lowering. */
-    llvm_emit_domain_passes(hir, ctx);
 
     /* Pass 2: Emit function bodies (standalone + class methods).
      * Skip generic templates — they are instantiated lazily. */

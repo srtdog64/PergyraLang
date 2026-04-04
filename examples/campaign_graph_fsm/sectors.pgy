@@ -1,0 +1,125 @@
+// sectors.pgy -- zone host for each campaign sector
+
+zone SectorZone
+{
+    subject slot captain: Adventurer
+    subject slot wing: Adventurer
+    object slot captainView: AdventurerView
+    dto slot wingPacket: AdventurerPacket
+    shared sectorId: Int = 0
+    shared threat: Int = 0
+    shared control: Int = 0
+    shared supplies: Int = 0
+    shared wards: Int = 0
+    shared breach: Int = 0
+    shared omen: Int = 0
+    shared yield: Int = 0
+    authority captain requires Scouting, Guarding, Warding
+    refresh captainView from captain by captain
+    publish wingPacket from wing by captain
+
+    func Label(self) -> String
+    {
+        if sectorId == 0 { return "WATCH"; }
+        if sectorId == 1 { return "RUINS"; }
+        if sectorId == 2 { return "VAULT"; }
+        if sectorId == 3 { return "SUMMIT"; }
+        return "SECTOR?";
+    }
+
+    func Reset(self, id: Int, threatBase: Int, controlBase: Int, suppliesBase: Int, wardsBase: Int) -> Void
+    {
+        sectorId = id;
+        threat = threatBase;
+        control = controlBase;
+        supplies = suppliesBase;
+        wards = wardsBase;
+        breach = 0;
+        omen = 0;
+        yield = 0;
+    }
+
+    func Pulse(self, threatRise: Int, omenRise: Int, supplyShift: Int) -> Void
+    {
+        threat = threat + threatRise;
+        omen = omen + omenRise;
+        supplies = Max(supplies + supplyShift, 0);
+        breach = Max(breach + threatRise - wards, 0);
+        control = Max(control - Max(omenRise - 1, 0), 0);
+    }
+
+    func Fortify(self) -> Int
+    {
+        let added = captain.Ward(1) + wing.Repair(1);
+        wards = wards + added;
+        breach = Max(breach - added, 0);
+        control = Min(control + added, 20);
+        return added;
+    }
+
+    func Exploit(self) -> Int
+    {
+        let available = Max(supplies - threat, 0);
+        let taken = Min(available, captain.rank + wing.rank + 1);
+        supplies = Max(supplies - taken, 0);
+        yield = yield + taken;
+        captain.Harvest(taken, 1);
+        wing.Harvest(Max(taken - 1, 0), 1);
+        control = Min(control + 1, 20);
+        return taken;
+    }
+
+    func Stabilize(self) -> Int
+    {
+        captain.Recover(1);
+        wing.Recover(1);
+        let fixed = Min(captain.pack.tools + wing.pack.tools, 2);
+        breach = Max(breach - fixed, 0);
+        control = Min(control + fixed, 20);
+        return fixed;
+    }
+
+    func StressCrew(self) -> Void
+    {
+        captain.Suffer(Max(threat - control / 5 + omen / 2, 0));
+        wing.Suffer(Max(breach + omen - wards, 0));
+    }
+
+    func ProjectionLine(self) -> String
+    {
+        if HasProjection(captainView)
+        {
+            return "view "
+                + captainView.name
+                + " sta=" + ToString(captainView.stamina)
+                + " mor=" + ToString(captainView.morale)
+                + " salvage=" + ToString(captainView.salvage);
+        }
+        return "view pending";
+    }
+
+    func PacketLine(self) -> String
+    {
+        if HasProjection(wingPacket)
+        {
+            return "packet "
+                + wingPacket.name
+                + " sta=" + ToString(wingPacket.stamina)
+                + " salvage=" + ToString(wingPacket.salvage)
+                + " intel=" + ToString(wingPacket.intel);
+        }
+        return "packet pending";
+    }
+
+    func Summary(self) -> String
+    {
+        return Label()
+            + " threat=" + ToString(threat)
+            + " control=" + ToString(control)
+            + " supplies=" + ToString(supplies)
+            + " wards=" + ToString(wards)
+            + " breach=" + ToString(breach)
+            + " omen=" + ToString(omen)
+            + " yield=" + ToString(yield);
+    }
+}

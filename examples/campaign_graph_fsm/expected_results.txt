@@ -1,0 +1,21 @@
+=== CAMPAIGN GRAPH FSM REPORT ===
+turn=5 omen=2 salvageBank=47 controlScore=50 costs=21/22/31/16
+allViewsReady=true
+anyPacketsReady=true
+
+--- WATCH ---
+threat=8 control=17 supplies=8 wards=2 breach=0 yield=8
+Iris [Ranger] mode=pressured sector=RUINS target=RUINS stamina=0 morale=0 salvage=8 intel=8 pressure=27 route=watchline cost=21
+Brom [Banner Knight] mode=pressured sector=RUINS target=RUINS stamina=0 morale=19 salvage=6 intel=6 pressure=5 route=watchline cost=22
+--- RUINS ---
+threat=13 control=14 supplies=11 wards=2 breach=0 yield=4
+Nyra [Ward Mage] mode=pressured sector=VAULT target=VAULT stamina=0 morale=0 salvage=4 intel=9 pressure=57 route=underpass cost=22
+Kesh [Relic Hound] mode=pressured sector=VAULT target=VAULT stamina=0 morale=7 salvage=3 intel=7 pressure=18 route=underpass cost=23
+--- VAULT ---
+threat=19 control=10 supplies=12 wards=6 breach=0 yield=5
+Vera [Shadow Rogue] mode=pressured sector=SUMMIT target=SUMMIT stamina=0 morale=0 salvage=5 intel=4 pressure=80 route=skybridge cost=31
+Toma [Lantern Cleric] mode=pressured sector=SUMMIT target=SUMMIT stamina=0 morale=14 salvage=4 intel=3 pressure=11 route=skybridge cost=32
+--- SUMMIT ---
+threat=21 control=9 supplies=8 wards=10 breach=0 yield=0
+Sera [Storm Druid] mode=pressured sector=WATCH target=WATCH stamina=0 morale=0 salvage=0 intel=5 pressure=87 route=spiral cost=16
+Dain [Iron Paladin] mode=pressured sector=WATCH target=WATCH stamina=0 morale=19 salvage=0 intel=2 pressure=5 route=spiral cost=17

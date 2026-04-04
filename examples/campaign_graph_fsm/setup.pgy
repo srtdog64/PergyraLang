@@ -1,0 +1,171 @@
+// setup.pgy -- named spec factories and builders for the campaign scenario
+
+struct AdventurerSpec
+{
+    let name: String;
+    let archetype: String;
+    let rank: Int;
+    let sector: Int;
+    let stamina: Int;
+    let morale: Int;
+    let salvage: Int;
+    let intel: Int;
+    let mission: MissionCore;
+    let pack: PackState;
+}
+
+func MakeMission(target: Int, route: Int) -> MissionCore
+{
+    return MissionCore(0, target, 0, route, 0, 0, 0, 0);
+}
+
+func MakePack(rations: Int, tools: Int, wards: Int, salvageKits: Int) -> PackState
+{
+    return PackState(rations, tools, wards, salvageKits);
+}
+
+func BuildAdventurerView(unit: Adventurer) -> AdventurerView
+{
+    return AdventurerView(
+        unit.name,
+        unit.archetype,
+        unit.sector,
+        unit.stamina,
+        unit.morale,
+        unit.salvage,
+        unit.intel
+    );
+}
+
+func BuildAdventurerPacket(unit: Adventurer) -> AdventurerPacket
+{
+    return AdventurerPacket(
+        unit.name,
+        unit.archetype,
+        unit.sector,
+        unit.stamina,
+        unit.salvage,
+        unit.intel
+    );
+}
+
+func MakeIrisSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Iris", "Ranger", 2, 0, 16, 12, 0, 3,
+        MakeMission(0, 0),
+        MakePack(4, 2, 2, 1));
+}
+
+func MakeBromSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Brom", "Banner Knight", 3, 0, 17, 13, 0, 1,
+        MakeMission(0, 0),
+        MakePack(5, 3, 1, 1));
+}
+
+func MakeNyraSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Nyra", "Ward Mage", 3, 1, 15, 11, 0, 4,
+        MakeMission(1, 1),
+        MakePack(3, 2, 3, 1));
+}
+
+func MakeKeshSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Kesh", "Relic Hound", 2, 1, 14, 10, 0, 2,
+        MakeMission(1, 1),
+        MakePack(4, 2, 1, 2));
+}
+
+func MakeVeraSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Vera", "Shadow Rogue", 2, 2, 15, 10, 0, 3,
+        MakeMission(2, 2),
+        MakePack(4, 1, 1, 2));
+}
+
+func MakeTomaSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Toma", "Lantern Cleric", 2, 2, 16, 12, 0, 2,
+        MakeMission(2, 2),
+        MakePack(5, 2, 2, 1));
+}
+
+func MakeSeraSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Sera", "Storm Druid", 3, 3, 14, 11, 0, 4,
+        MakeMission(3, 3),
+        MakePack(4, 2, 3, 1));
+}
+
+func MakeDainSpec() -> AdventurerSpec
+{
+    return AdventurerSpec("Dain", "Iron Paladin", 3, 3, 18, 14, 0, 1,
+        MakeMission(3, 3),
+        MakePack(5, 3, 2, 1));
+}
+
+func BuildSector(captainSpec: AdventurerSpec, wingSpec: AdventurerSpec,
+                 sectorId: Int, threat: Int, control: Int,
+                 supplies: Int, wards: Int) -> SectorZone
+{
+    let captain = Adventurer(
+        captainSpec.name,
+        captainSpec.archetype,
+        captainSpec.rank,
+        captainSpec.sector,
+        captainSpec.stamina,
+        captainSpec.morale,
+        captainSpec.salvage,
+        captainSpec.intel,
+        captainSpec.mission,
+        captainSpec.pack
+    );
+    let wing = Adventurer(
+        wingSpec.name,
+        wingSpec.archetype,
+        wingSpec.rank,
+        wingSpec.sector,
+        wingSpec.stamina,
+        wingSpec.morale,
+        wingSpec.salvage,
+        wingSpec.intel,
+        wingSpec.mission,
+        wingSpec.pack
+    );
+
+    return SectorZone(
+        captain,
+        wing,
+        BuildAdventurerView(captain),
+        BuildAdventurerPacket(wing),
+        sectorId,
+        threat,
+        control,
+        supplies,
+        wards,
+        0,
+        0,
+        0
+    );
+}
+
+func BuildWatchSector() -> SectorZone
+{
+    return BuildSector(MakeIrisSpec(), MakeBromSpec(), 0, 2, 12, 9, 2);
+}
+
+func BuildRuinsSector() -> SectorZone
+{
+    return BuildSector(MakeNyraSpec(), MakeKeshSpec(), 1, 3, 10, 8, 2);
+}
+
+func BuildVaultSector() -> SectorZone
+{
+    return BuildSector(MakeVeraSpec(), MakeTomaSpec(), 2, 4, 9, 10, 3);
+}
+
+func BuildSummitSector() -> SectorZone
+{
+    return BuildSector(MakeSeraSpec(), MakeDainSpec(), 3, 5, 8, 7, 4);
+}

@@ -1498,6 +1498,163 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     return NULL;
 }
 
+static ASTNode *
+find_nominal_host_decl_local(TranspilerCtx *ctx, const char *host_type_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || host_type_name == NULL)
+        return NULL;
+
+    decl = find_relation_decl(ctx, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = find_effect_decl(ctx, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = find_zone_decl(ctx, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = find_world_decl(ctx, host_type_name);
+    if (decl != NULL)
+        return decl;
+    decl = find_class_decl(ctx, host_type_name);
+    if (decl != NULL)
+        return decl;
+    return find_actor_decl(ctx, host_type_name);
+}
+
+static const char *
+lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_name,
+                                     const char *member_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || host_type_name == NULL || member_name == NULL)
+        return NULL;
+
+    decl = find_nominal_host_decl_local(ctx, host_type_name);
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+            ClassField *field = decl->data.class_decl.fields[i];
+            if (field != NULL && field->name != NULL
+                && strcmp(field->name, member_name) == 0
+                && field->type != NULL && field->type->type == AST_TYPE) {
+                return field->type->data.type.name;
+            }
+        }
+        break;
+    case AST_ACTOR_DECL:
+        for (size_t i = 0; i < decl->data.actor_decl.field_count; i++) {
+            ClassField *field = decl->data.actor_decl.fields[i];
+            if (field != NULL && field->name != NULL
+                && strcmp(field->name, member_name) == 0
+                && field->type != NULL && field->type->type == AST_TYPE) {
+                return field->type->data.type.name;
+            }
+        }
+        break;
+    case AST_ZONE_DECL: {
+        ASTNode *slot = find_zone_domain_slot(decl, member_name);
+        if (slot != NULL && slot->data.domain_slot.type != NULL
+            && slot->data.domain_slot.type->type == AST_TYPE) {
+            return slot->data.domain_slot.type->data.type.name;
+        }
+        for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
+            ASTNode *layer = decl->data.zone_decl.layer_slots[i];
+            if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
+                && layer->data.zone_layer_slot.slot_name != NULL
+                && strcmp(layer->data.zone_layer_slot.slot_name, member_name) == 0) {
+                return layer->data.zone_layer_slot.layer_type;
+            }
+        }
+        for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
+            ASTNode *shared = decl->data.zone_decl.shared_fields[i];
+            if (shared != NULL && shared->data.party_shared.name != NULL
+                && strcmp(shared->data.party_shared.name, member_name) == 0
+                && shared->data.party_shared.type != NULL
+                && shared->data.party_shared.type->type == AST_TYPE) {
+                return shared->data.party_shared.type->data.type.name;
+            }
+        }
+        break;
+    }
+    case AST_RELATION_DECL:
+        for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
+            ASTNode *slot = decl->data.relation_decl.slots[i];
+            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+                && strcmp(slot->data.domain_slot.slot_name, member_name) == 0
+                && slot->data.domain_slot.type != NULL
+                && slot->data.domain_slot.type->type == AST_TYPE) {
+                return slot->data.domain_slot.type->data.type.name;
+            }
+        }
+        for (size_t i = 0; i < decl->data.relation_decl.shared_count; i++) {
+            ASTNode *shared = decl->data.relation_decl.shared_fields[i];
+            if (shared != NULL && shared->data.party_shared.name != NULL
+                && strcmp(shared->data.party_shared.name, member_name) == 0
+                && shared->data.party_shared.type != NULL
+                && shared->data.party_shared.type->type == AST_TYPE) {
+                return shared->data.party_shared.type->data.type.name;
+            }
+        }
+        break;
+    case AST_EFFECT_DECL:
+        for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
+            ASTNode *slot = decl->data.effect_decl.slots[i];
+            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+                && strcmp(slot->data.domain_slot.slot_name, member_name) == 0
+                && slot->data.domain_slot.type != NULL
+                && slot->data.domain_slot.type->type == AST_TYPE) {
+                return slot->data.domain_slot.type->data.type.name;
+            }
+        }
+        for (size_t i = 0; i < decl->data.effect_decl.shared_count; i++) {
+            ASTNode *shared = decl->data.effect_decl.shared_fields[i];
+            if (shared != NULL && shared->data.party_shared.name != NULL
+                && strcmp(shared->data.party_shared.name, member_name) == 0
+                && shared->data.party_shared.type != NULL
+                && shared->data.party_shared.type->type == AST_TYPE) {
+                return shared->data.party_shared.type->data.type.name;
+            }
+        }
+        break;
+    case AST_WORLD_DECL:
+        for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
+            ASTNode *slot = decl->data.world_decl.systemics[i];
+            if (slot != NULL && slot->data.world_systemic.slot_name != NULL
+                && strcmp(slot->data.world_systemic.slot_name, member_name) == 0) {
+                return slot->data.world_systemic.systemic_type;
+            }
+        }
+        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
+            ASTNode *slot = decl->data.world_decl.zones[i];
+            if (slot != NULL && slot->data.world_zone.slot_name != NULL
+                && strcmp(slot->data.world_zone.slot_name, member_name) == 0) {
+                return slot->data.world_zone.zone_type;
+            }
+        }
+        for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
+            ASTNode *shared = decl->data.world_decl.shared_fields[i];
+            if (shared != NULL && shared->data.party_shared.name != NULL
+                && strcmp(shared->data.party_shared.name, member_name) == 0
+                && shared->data.party_shared.type != NULL
+                && shared->data.party_shared.type->type == AST_TYPE) {
+                return shared->data.party_shared.type->data.type.name;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    return NULL;
+}
+
 static const char *
 resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -1519,28 +1676,13 @@ resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
             && strcmp(expr->data.member.object->data.identifier.name, "self") == 0) {
             return current_field_type_name(ctx, expr->data.member.name);
         }
-        /* obj.field — resolve obj type, then look up field type in that class */
-        const char *obj_type = NULL;
-        if (expr->data.member.object->type == AST_IDENTIFIER)
-            obj_type = lookup_typed_var(ctx, expr->data.member.object->data.identifier.name);
-        if (obj_type != NULL) {
-            ASTNode *obj_decl = find_class_decl(ctx, obj_type);
-            if (obj_decl != NULL) {
-                for (size_t i = 0; i < obj_decl->data.class_decl.field_count; i++) {
-                    ClassField *f = obj_decl->data.class_decl.fields[i];
-                    if (f != NULL && f->name != NULL && f->type != NULL
-                        && strcmp(f->name, expr->data.member.name) == 0) {
-                        char *ft = render_type_name(f->type);
-                        if (ft != NULL) {
-                            /* Copy to static buffer to match return convention */
-                            static char field_type_buf[128];
-                            snprintf(field_type_buf, sizeof(field_type_buf), "%s", ft);
-                            free(ft);
-                            return field_type_buf;
-                        }
-                    }
-                }
-            }
+        {
+            const char *obj_type = resolve_nominal_host_expr_type_name(ctx,
+                expr->data.member.object);
+            const char *member_type = lookup_nominal_host_member_type_name(ctx,
+                obj_type, expr->data.member.name);
+            if (member_type != NULL)
+                return member_type;
         }
     }
 
@@ -2313,6 +2455,24 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     }
     case AST_CALL:
         if (expr->data.call.callee != NULL
+            && expr->data.call.callee->type == AST_MEMBER_ACCESS
+            && expr->data.call.callee->data.member.name != NULL) {
+            ASTNode *method_decl = NULL;
+            const char *receiver_type = resolve_nominal_host_expr_type_name(
+                ctx, expr->data.call.callee->data.member.object);
+            if (receiver_type != NULL) {
+                method_decl = find_nominal_host_method_decl(ctx, receiver_type,
+                    expr->data.call.callee->data.member.name);
+            }
+            if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
+                && method_decl->data.func_decl.return_type != NULL) {
+                char *resolved = render_type_name(method_decl->data.func_decl.return_type);
+                snprintf(inferred_call_type, sizeof(inferred_call_type), "%s", resolved);
+                free(resolved);
+                return inferred_call_type;
+            }
+        }
+        if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *name = expr->data.call.callee->data.identifier.name;
@@ -2431,6 +2591,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || find_zone_decl(ctx, name) != NULL
                 || find_world_decl(ctx, name) != NULL) {
                 return name;
+            }
+
+            {
+                ASTNode *host_method = current_host_method_decl(ctx, name);
+                if (host_method != NULL
+                    && host_method->type == AST_FUNC_DECL
+                    && host_method->data.func_decl.return_type != NULL) {
+                    char *resolved = render_type_name(host_method->data.func_decl.return_type);
+                    snprintf(inferred_call_type, sizeof(inferred_call_type), "%s", resolved);
+                    free(resolved);
+                    return inferred_call_type;
+                }
             }
 
             {

@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- `docs/testdoc/README.md` and `docs/testdoc/campaign_graph_fsm.md` to start a
+  testdoc workflow where large scenarios are kept together with their design
+  notes, discovered pain points, and exact regression coverage
 - CLI optimization profiles: `--opt=dev|release`
 - `tests/bench_backend.sh` for quick C vs LLVM compile+run timing on a scenario
 - Backend-specific biome simulator result goldens to keep example smoke exact
@@ -239,3 +242,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - semantic: `world` decl lookup helper가 `world/systemic`도 찾도록 보강되어, world value에 embed된 zone을 옛 바인딩으로 다시 mutate하는 경로가 semantic error로 제대로 차단된다
 - build: 초대형 테스트 파일 `src/test_semantic.c`, `src/test_transpile.c`를 include 단위로 분리했고, parser 공용 `ast.c`의 디버그 출력 섹션을 `src/parser/ast_print.c`로 분리해 3000+ 라인 파일을 줄였다
 - build: `src/codegen/llvm_domain.c` 상단 helper 블록도 `llvm_domain_helpers.inc`로 분리해 core codegen 파일 길이를 줄였다
+- Fix C/LLVM campaign graph/FSM parity by making `ToString(Int)` allocate a
+  fresh string instead of reusing a single static buffer. Nested report/log
+  concatenation now produces stable values on the C backend, and
+  `examples/campaign_graph_fsm/` is promoted to an exact-golden multi-file
+  scenario with matching stdout/results on both backends.

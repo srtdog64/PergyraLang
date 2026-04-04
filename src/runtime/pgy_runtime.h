@@ -1075,8 +1075,19 @@ static inline int32_t Random(int32_t max)     { return max <= 0 ? 0 : (int32_t)(
  * ================================================================= */
 
 static inline char* pgy_int_to_string(int32_t val) {
-    static char buf[32];
-    snprintf(buf, sizeof(buf), "%d", val);
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 

@@ -1,0 +1,38 @@
+// common.pgy -- shared labels and clamps for the campaign example
+
+func ModeName(mode: Int) -> String
+{
+    if mode == 0 { return "idle"; }
+    if mode == 1 { return "planning"; }
+    if mode == 2 { return "moving"; }
+    if mode == 3 { return "harvesting"; }
+    if mode == 4 { return "warding"; }
+    if mode == 5 { return "repairing"; }
+    if mode == 6 { return "recovering"; }
+    if mode == 7 { return "pressured"; }
+    return "unknown";
+}
+
+func SectorName(id: Int) -> String
+{
+    if id == 0 { return "WATCH"; }
+    if id == 1 { return "RUINS"; }
+    if id == 2 { return "VAULT"; }
+    if id == 3 { return "SUMMIT"; }
+    return "SECTOR?";
+}
+
+func RouteName(route: Int) -> String
+{
+    if route == 0 { return "watchline"; }
+    if route == 1 { return "underpass"; }
+    if route == 2 { return "skybridge"; }
+    if route == 3 { return "spiral"; }
+    return "route?";
+}
+
+func ClampMorale(value: Int) -> Int
+{
+    return Min(Max(value, 0), 20);
+}
+

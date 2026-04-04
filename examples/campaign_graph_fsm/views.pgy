@@ -1,0 +1,23 @@
+// views.pgy -- passive projections for campaign reporting
+
+object AdventurerView
+{
+    name: String;
+    archetype: String;
+    sector: Int;
+    stamina: Int;
+    morale: Int;
+    salvage: Int;
+    intel: Int;
+}
+
+dto AdventurerPacket
+{
+    name: String;
+    archetype: String;
+    sector: Int;
+    stamina: Int;
+    salvage: Int;
+    intel: Int;
+}
+

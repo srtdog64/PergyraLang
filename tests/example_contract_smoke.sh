@@ -151,6 +151,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/fsm_factory" "PERGYRA FACTORY FSM" "FACTORY SHIFT 1" "ALPHA CELL" "BETA CELL" "SAVING FSM REPORT"
     run_expect_lines "raid_graph_fsm" "$backend" \
         "$ROOT_DIR/examples/raid_graph_fsm" "RAID GRAPH + FSM" "RAID TURN 1" "[Raider] Iris" "[Room] VAULT" "SAVING RAID REPORT"
+    run_expect_lines "campaign_graph_fsm" "$backend" \
+        "$ROOT_DIR/examples/campaign_graph_fsm" "PERGYRA CAMPAIGN GRAPH + FSM" "CAMPAIGN DAY 1" "[Watch] view Iris" "FINAL CAMPAIGN SNAPSHOT" "saving examples/campaign_graph_fsm/results.txt"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \
@@ -159,6 +161,8 @@ run_stable_examples() {
         "$backend" "$ROOT_DIR/examples/fsm_factory/results.txt" "FACTORY FSM REPORT" "ALPHA" "BETA" "projection_ready=true"
     run_expect_file_lines "raid_graph_fsm" \
         "$backend" "$ROOT_DIR/examples/raid_graph_fsm/results.txt" "RAID GRAPH FSM REPORT" "FORGE" "SANCTUM" "Iris relics="
+    run_expect_file_lines "campaign_graph_fsm" \
+        "$backend" "$ROOT_DIR/examples/campaign_graph_fsm/results.txt" "CAMPAIGN GRAPH FSM REPORT" "WATCH" "SUMMIT" "allViewsReady=true"
 }
 
 run_qubit_example() {

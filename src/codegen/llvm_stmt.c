@@ -63,6 +63,155 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
     return NULL;
 }
 
+static LLVMClassTypeEntry *
+llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
+{
+    if (ctx == NULL || type == NULL)
+        return NULL;
+
+    for (int i = 0; i < ctx->class_type_count; i++) {
+        if (ctx->class_types[i].struct_type == type)
+            return &ctx->class_types[i];
+    }
+    return NULL;
+}
+
+static const char *
+llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
+{
+    const char *name;
+
+    if (ctx == NULL || init == NULL)
+        return NULL;
+
+    if (init->type == AST_IDENTIFIER && init->data.identifier.name != NULL) {
+        name = init->data.identifier.name;
+        return llvm_lookup_var_class(ctx, name);
+    }
+
+    if (init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && init->data.call.callee->data.identifier.name != NULL) {
+        name = init->data.call.callee->data.identifier.name;
+        if (llvm_lookup_class(ctx, name) != NULL)
+            return name;
+        {
+            LLVMFuncEntry *callee_fn = llvm_lookup_function(ctx, name);
+            LLVMClassTypeEntry *ret_cls = callee_fn != NULL
+                ? llvm_stmt_lookup_class_by_type(ctx, callee_fn->ret_type)
+                : NULL;
+            if (ret_cls != NULL)
+                return ret_cls->class_name;
+        }
+    }
+
+    if (init->type == AST_MEMBER_ACCESS
+        && init->data.member.object != NULL
+        && init->data.member.name != NULL) {
+        const char *base_name = llvm_stmt_infer_nominal_name_from_init(
+            ctx, init->data.member.object);
+        LLVMClassTypeEntry *base_cls = base_name != NULL
+            ? llvm_lookup_class(ctx, base_name) : NULL;
+        if (base_cls != NULL) {
+            int field_idx = llvm_class_field_index(base_cls, init->data.member.name);
+            if (field_idx >= 0) {
+                LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
+                    ctx, base_cls->fields[field_idx].field_type);
+                if (field_cls != NULL)
+                    return field_cls->class_name;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
+{
+    const char *nominal_name;
+    LLVMClassTypeEntry *nominal_cls;
+
+    if (ctx == NULL || expr == NULL)
+        return ctx->type_i32;
+
+    nominal_name = llvm_stmt_infer_nominal_name_from_init(ctx, expr);
+    nominal_cls = nominal_name != NULL ? llvm_lookup_class(ctx, nominal_name) : NULL;
+    if (nominal_cls != NULL)
+        return nominal_cls->struct_type;
+
+    switch (expr->type) {
+    case AST_STRING:
+        return ctx->type_i8ptr;
+    case AST_BOOLEAN:
+        return ctx->type_i1;
+    case AST_NUMBER:
+        return ctx->type_i32;
+    case AST_IDENTIFIER: {
+        LLVMVarEntry *var = llvm_scope_lookup(ctx, expr->data.identifier.name);
+        return var != NULL ? var->type : ctx->type_i32;
+    }
+    case AST_MEMBER_ACCESS: {
+        const char *base_name = llvm_stmt_infer_nominal_name_from_init(
+            ctx, expr->data.member.object);
+        LLVMClassTypeEntry *base_cls = base_name != NULL
+            ? llvm_lookup_class(ctx, base_name) : NULL;
+        if (base_cls != NULL) {
+            int field_idx = llvm_class_field_index(base_cls, expr->data.member.name);
+            if (field_idx >= 0)
+                return base_cls->fields[field_idx].field_type;
+        }
+        return ctx->type_i32;
+    }
+    case AST_CALL:
+        if (expr->data.call.callee != NULL
+            && expr->data.call.callee->type == AST_IDENTIFIER
+            && expr->data.call.callee->data.identifier.name != NULL) {
+            const char *callee = expr->data.call.callee->data.identifier.name;
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
+            if (fn != NULL)
+                return fn->ret_type;
+            if (strcmp(callee, "ToString") == 0
+                || strcmp(callee, "ReadFile") == 0
+                || strcmp(callee, "Input") == 0
+                || strcmp(callee, "Upper") == 0
+                || strcmp(callee, "ToUpper") == 0
+                || strcmp(callee, "Lower") == 0
+                || strcmp(callee, "ToLower") == 0
+                || strcmp(callee, "Concat") == 0
+                || strcmp(callee, "StringConcat") == 0) {
+                return ctx->type_i8ptr;
+            }
+            if (strcmp(callee, "HasZone") == 0
+                || strcmp(callee, "HasState") == 0
+                || strcmp(callee, "HasLayer") == 0
+                || strcmp(callee, "HasProjection") == 0) {
+                return ctx->type_i1;
+            }
+        }
+        return ctx->type_i32;
+    case AST_BINARY: {
+        TokenType op = expr->data.binary.op.type;
+        if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
+            || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
+            || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL
+            || op == TOKEN_AND || op == TOKEN_OR) {
+            return ctx->type_i1;
+        }
+        if (op == TOKEN_PLUS) {
+            LLVMTypeRef left_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.left);
+            LLVMTypeRef right_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.right);
+            if (left_ty == ctx->type_i8ptr || right_ty == ctx->type_i8ptr)
+                return ctx->type_i8ptr;
+        }
+        return ctx->type_i32;
+    }
+    default:
+        return ctx->type_i32;
+    }
+}
+
 static ASTNode *
 llvm_stmt_find_host_method_decl(ASTNode *host_decl, const char *method_name)
 {
@@ -938,6 +1087,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     else if (init != NULL && init->type == AST_SPAWN_EXPR) {
         var_type = ctx->type_task_handle;
         spawn_future_inner = llvm_infer_spawn_future_inner(ctx, init);
+    } else if (init != NULL) {
+        var_type = llvm_stmt_infer_expr_type(ctx, init);
     }
 
     /* Create alloca at function entry */
@@ -1027,6 +1178,13 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             type_ann->data.type.name);
         if (cls != NULL)
             llvm_register_var_class(ctx, name, type_ann->data.type.name);
+    } else if (init != NULL) {
+        const char *nominal_name = llvm_stmt_infer_nominal_name_from_init(ctx, init);
+        LLVMClassTypeEntry *nominal_cls = nominal_name != NULL
+            ? llvm_lookup_class(ctx, nominal_name) : NULL;
+        if (nominal_cls != NULL) {
+            llvm_register_var_class(ctx, name, nominal_name);
+        }
     }
 }
 

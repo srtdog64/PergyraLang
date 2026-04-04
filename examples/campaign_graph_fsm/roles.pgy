@@ -1,0 +1,34 @@
+// roles.pgy -- subject-bound role contracts for Adventurer
+
+role ScoutRole for Adventurer
+{
+    impl ability Scouting
+    {
+        func ScoutMark() -> String
+        {
+            return "scout";
+        }
+    }
+}
+
+role GuardianRole for Adventurer
+{
+    impl ability Guarding
+    {
+        func GuardMark() -> String
+        {
+            return "guard";
+        }
+    }
+}
+
+role ArcanistRole for Adventurer
+{
+    impl ability Warding
+    {
+        func WardMark() -> String
+        {
+            return "ward";
+        }
+    }
+}

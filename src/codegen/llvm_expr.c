@@ -10,6 +10,46 @@
 #include "llvm_internal.h"
 
 #include "llvm_expr_helpers.inc"
+static LLVMValueRef llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
+                                                LLVMTypeRef *out_field_type);
+static LLVMValueRef
+llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
+{
+    LLVMTypeRef value_type;
+    LLVMFuncEntry *fn;
+    LLVMValueRef args[1];
+
+    if (value == NULL || ctx == NULL)
+        return NULL;
+
+    value_type = LLVMTypeOf(value);
+    if (value_type == ctx->type_i8ptr)
+        return value;
+
+    if (LLVMGetTypeKind(value_type) == LLVMIntegerTypeKind) {
+        unsigned width = LLVMGetIntTypeWidth(value_type);
+        if (width == 1) {
+            value = LLVMBuildZExt(ctx->builder, value, ctx->type_i32,
+                llvm_tmp_name(ctx));
+        } else if (width < 32) {
+            value = LLVMBuildSExt(ctx->builder, value, ctx->type_i32,
+                llvm_tmp_name(ctx));
+        } else if (width > 32) {
+            value = LLVMBuildTrunc(ctx->builder, value, ctx->type_i32,
+                llvm_tmp_name(ctx));
+        }
+
+        fn = llvm_lookup_function(ctx, "pgy_int_to_string");
+        if (fn == NULL)
+            return NULL;
+        args[0] = value;
+        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
+            llvm_tmp_name(ctx));
+    }
+
+    return NULL;
+}
+
 static LLVMValueRef
 llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -50,11 +90,17 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    /* String + String → StringConcat */
-    if (left_type == ctx->type_i8ptr && right_type == ctx->type_i8ptr
-        && node->data.binary.op.type == TOKEN_PLUS) {
+    /* String + X / X + String → StringConcat after scalar coercion. */
+    if (node->data.binary.op.type == TOKEN_PLUS
+        && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringConcat");
-        if (fn != NULL) {
+        if (left_type != ctx->type_i8ptr)
+            left = llvm_coerce_value_to_string(left, ctx);
+        if (right_type != ctx->type_i8ptr)
+            right = llvm_coerce_value_to_string(right, ctx);
+        if (fn != NULL && left != NULL && right != NULL
+            && LLVMTypeOf(left) == ctx->type_i8ptr
+            && LLVMTypeOf(right) == ctx->type_i8ptr) {
             LLVMValueRef args[] = { left, right };
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
@@ -592,6 +638,99 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 fn->fn_type, fn->fn, args,
                                 (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         }
+                        free(args);
+                        return result;
+                    }
+                }
+            }
+        }
+
+        if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
+            && method_name != NULL) {
+            const char *class_name = llvm_expr_custom_type_name(obj_node, ctx);
+            LLVMClassTypeEntry *host_cls = class_name != NULL
+                ? llvm_lookup_class(ctx, class_name) : NULL;
+
+            if (host_cls != NULL) {
+                char full_name[256];
+                LLVMFuncEntry *fn;
+                ASTNode *method_decl;
+                size_t argc = node->data.call.arg_count;
+                LLVMValueRef *args;
+                LLVMValueRef self_ptr;
+
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                    class_name, method_name);
+                fn = llvm_lookup_function(ctx, full_name);
+                method_decl = llvm_find_nominal_host_method_decl(ctx,
+                    class_name, method_name);
+                if (fn != NULL) {
+                    args = calloc(argc + 1, sizeof(LLVMValueRef));
+                    self_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
+                    if (self_ptr == NULL) {
+                        free(args);
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                    }
+
+                    if (llvm_nominal_uses_pointer_self(ctx, class_name)) {
+                        args[0] = self_ptr;
+                    } else {
+                        args[0] = LLVMBuildLoad2(ctx->builder,
+                            host_cls->struct_type, self_ptr, llvm_tmp_name(ctx));
+                    }
+
+                    for (size_t i = 0; i < argc; i++) {
+                        LLVMValueRef arg_val = llvm_emit_expression(
+                            node->data.call.arguments[i], ctx);
+                        if (method_decl != NULL) {
+                            size_t logical_idx = 0;
+                            for (size_t pk = 0;
+                                 pk < method_decl->data.func_decl.param_count; pk++) {
+                                FuncParam *p = method_decl->data.func_decl.params[pk];
+                                const char *ptn = NULL;
+                                LLVMClassTypeEntry *param_cls = NULL;
+                                if (p->type == NULL
+                                    && strcmp(p->name, "self") == 0) {
+                                    continue;
+                                }
+                                if (logical_idx == i) {
+                                    if (p->type != NULL && p->type->type == AST_TYPE)
+                                        ptn = p->type->data.type.name;
+                                    param_cls = ptn != NULL
+                                        ? llvm_lookup_class(ctx, ptn) : NULL;
+                                    if (param_cls != NULL && param_cls->is_pointer_self_host
+                                        && node->data.call.arguments[i] != NULL
+                                        && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                        const char *arg_name =
+                                            node->data.call.arguments[i]->data.identifier.name;
+                                        LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+                                        if (arg_var != NULL) {
+                                            if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                                                arg_val = LLVMBuildLoad2(ctx->builder,
+                                                    arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
+                                            else
+                                                arg_val = arg_var->alloca;
+                                        }
+                                    }
+                                    break;
+                                }
+                                logical_idx++;
+                            }
+                        }
+                        args[i + 1] = arg_val;
+                    }
+
+                    if (fn->ret_type == ctx->type_void) {
+                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                            args, (unsigned)(argc + 1), "");
+                        free(args);
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                    }
+
+                    {
+                        LLVMValueRef result = LLVMBuildCall2(ctx->builder,
+                            fn->fn_type, fn->fn, args,
+                            (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         free(args);
                         return result;
                     }

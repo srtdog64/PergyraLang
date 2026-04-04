@@ -1,0 +1,148 @@
+// units.pgy -- active hosts used by the campaign
+
+subject Adventurer
+{
+    let name: String;
+    let archetype: String;
+    let rank: Int;
+    let sector: Int;
+    let stamina: Int;
+    let morale: Int;
+    let salvage: Int;
+    let intel: Int;
+    vessel mission: MissionCore;
+    vessel pack: PackState;
+
+    func ModeLabel(self) -> String
+    {
+        if mission.mode == 0 { return "idle"; }
+        if mission.mode == 1 { return "planning"; }
+        if mission.mode == 2 { return "moving"; }
+        if mission.mode == 3 { return "harvesting"; }
+        if mission.mode == 4 { return "warding"; }
+        if mission.mode == 5 { return "repairing"; }
+        if mission.mode == 6 { return "recovering"; }
+        if mission.mode == 7 { return "pressured"; }
+        return "unknown";
+    }
+
+    func SectorLabel(self, id: Int) -> String
+    {
+        if id == 0 { return "WATCH"; }
+        if id == 1 { return "RUINS"; }
+        if id == 2 { return "VAULT"; }
+        if id == 3 { return "SUMMIT"; }
+        return "SECTOR?";
+    }
+
+    func RouteLabel(self) -> String
+    {
+        if mission.route == 0 { return "watchline"; }
+        if mission.route == 1 { return "underpass"; }
+        if mission.route == 2 { return "skybridge"; }
+        if mission.route == 3 { return "spiral"; }
+        return "route?";
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " [" + archetype + "]"
+            + " mode=" + ModeLabel()
+            + " sector=" + SectorLabel(sector)
+            + " target=" + SectorLabel(mission.target)
+            + " stamina=" + ToString(stamina)
+            + " morale=" + ToString(morale)
+            + " salvage=" + ToString(salvage)
+            + " intel=" + ToString(intel)
+            + " pressure=" + ToString(mission.pressure)
+            + " route=" + RouteLabel()
+            + " cost=" + ToString(mission.lastCost);
+    }
+
+    func Pressure(self) -> Int
+    {
+        return mission.pressure + Max(10 - stamina, 0) + Max(8 - morale, 0);
+    }
+
+    action Plan(self, targetSector: Int, routeKind: Int, routeCost: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(1);
+        mission.target = targetSector;
+        mission.route = routeKind;
+        mission.lastCost = routeCost;
+        morale = Min(Max(morale - 1 + rank, 0), 20);
+        mission.SetMode(0);
+        return routeCost;
+    }
+
+    action Advance(self, nextSector: Int, hazard: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(2);
+        sector = nextSector;
+        mission.steps = mission.steps + 1;
+        mission.pressure = mission.pressure + hazard;
+        stamina = Max(stamina - mission.lastCost - hazard, 0);
+        morale = Min(Max(morale - hazard + 1, 0), 20);
+        mission.SetMode(0);
+        return stamina;
+    }
+
+    action Harvest(self, gain: Int, clue: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(3);
+        salvage = salvage + gain;
+        intel = intel + clue;
+        stamina = Max(stamina - 1, 0);
+        morale = Min(Max(morale + 1, 0), 20);
+        mission.SetMode(0);
+        return salvage;
+    }
+
+    action Ward(self, amount: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(4);
+        let spent = pack.SpendWards(amount);
+        mission.wardsSpent = mission.wardsSpent + spent;
+        morale = Min(Max(morale + spent, 0), 20);
+        mission.SetMode(0);
+        return spent;
+    }
+
+    action Repair(self, amount: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(5);
+        let spent = pack.SpendTools(amount);
+        mission.repairsDone = mission.repairsDone + spent;
+        stamina = Max(stamina - 1, 0);
+        morale = Min(Max(morale + spent, 0), 20);
+        mission.SetMode(0);
+        return spent;
+    }
+
+    action Recover(self, aid: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(6);
+        stamina = Min(stamina + aid + 1, 18);
+        morale = Min(Max(morale + aid, 0), 20);
+        mission.pressure = Max(mission.pressure - aid, 0);
+        mission.SetMode(0);
+        return stamina;
+    }
+
+    action Suffer(self, severity: Int) -> Int
+        authorized by self
+    {
+        mission.SetMode(7);
+        mission.pressure = mission.pressure + severity;
+        stamina = Max(stamina - severity, 0);
+        morale = Min(Max(morale - severity, 0), 20);
+        return mission.pressure;
+    }
+}

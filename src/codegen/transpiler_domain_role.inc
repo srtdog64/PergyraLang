@@ -40,10 +40,14 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
             ctx->current_class_name = subject_name;
         }
         /* Cast void *_raw_self to concrete subject type */
-        if (subject_name != NULL && is_pointer_self_host_type_name(ctx, subject_name))
+        if (subject_name != NULL && is_pointer_self_host_type_name(ctx, subject_name)) {
             codebuf_write(ctx->out, "    %s *self = (%s *)_raw_self;\n", subject_name, subject_name);
-        else if (subject_name != NULL)
+            codebuf_write(ctx->out, "    (void)self;\n");
+        }
+        else if (subject_name != NULL) {
             codebuf_write(ctx->out, "    %s self = *(%s *)_raw_self;\n", subject_name, subject_name);
+            codebuf_write(ctx->out, "    (void)self;\n");
+        }
         else
             codebuf_write(ctx->out, "    (void)_raw_self;\n");
 
@@ -67,7 +71,7 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         return;
 
     codebuf_write(ctx->out,
-        "\nstatic const %s_vtable %s_%s_vtable_instance = {\n",
+        "\nstatic const %s_vtable %s_%s_vtable_instance __attribute__((unused)) = {\n",
         ability_name, role_name, ability_name);
 
     for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {

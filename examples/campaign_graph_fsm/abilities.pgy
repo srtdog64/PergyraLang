@@ -1,0 +1,23 @@
+// abilities.pgy -- role contracts used by the campaign hosts
+
+ability Scouting
+{
+    require intel: Int;
+
+    func ScoutMark() -> String;
+}
+
+ability Guarding
+{
+    require morale: Int;
+
+    func GuardMark() -> String;
+}
+
+ability Warding
+{
+    require salvage: Int;
+
+    func WardMark() -> String;
+}
+

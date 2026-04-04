@@ -728,16 +728,24 @@ llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 }
 
 static const char *
+llvm_current_host_class_name(LLVMGenCtx *ctx)
+{
+    return ctx != NULL ? ctx->current_class_name : NULL;
+}
+
+static const char *
 llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
 {
     LLVMClassTypeEntry *parent_cls;
     LLVMClassTypeEntry *field_cls;
     int field_idx;
+    const char *host_name;
 
-    if (ctx == NULL || ctx->current_class_name == NULL || field_name == NULL)
+    host_name = llvm_current_host_class_name(ctx);
+    if (ctx == NULL || host_name == NULL || field_name == NULL)
         return NULL;
 
-    parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    parent_cls = llvm_lookup_class(ctx, host_name);
     if (parent_cls == NULL)
         return NULL;
 
@@ -785,8 +793,10 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
         return base_ptr;
     }
 
-    if (ctx->current_class_name != NULL) {
-        LLVMClassTypeEntry *parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    {
+        const char *host_name = llvm_current_host_class_name(ctx);
+        LLVMClassTypeEntry *parent_cls = host_name != NULL
+            ? llvm_lookup_class(ctx, host_name) : NULL;
         int parent_field_idx;
         LLVMValueRef self_ptr;
         if (parent_cls == NULL)
@@ -1297,9 +1307,10 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
         const char *class_name = llvm_lookup_var_class(ctx, name);
         if (class_name != NULL)
             return class_name;
-        if (ctx->current_class_name != NULL && strcmp(name, "self") != 0) {
-            LLVMClassTypeEntry *host_cls =
-                llvm_lookup_class(ctx, ctx->current_class_name);
+        if (strcmp(name, "self") != 0) {
+            const char *host_name = llvm_current_host_class_name(ctx);
+            LLVMClassTypeEntry *host_cls = host_name != NULL
+                ? llvm_lookup_class(ctx, host_name) : NULL;
             if (host_cls != NULL) {
                 int field_idx = llvm_class_field_index(host_cls, name);
                 if (field_idx >= 0) {

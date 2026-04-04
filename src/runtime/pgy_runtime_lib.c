@@ -40,8 +40,19 @@ void pgy_log_string(char *v)   { printf("%s\n", v ? v : "(null)"); }
 
 char *pgy_int_to_string(int32_t v)
 {
-    static char buf[32];
-    snprintf(buf, sizeof(buf), "%d", v);
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", v);
+    if (len < 0) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 

@@ -1,0 +1,46 @@
+// vessels.pgy -- passive state carriers for the campaign example
+
+vessel MissionCore
+{
+    mode: Int;
+    target: Int;
+    pressure: Int;
+    route: Int;
+    lastCost: Int;
+    steps: Int;
+    wardsSpent: Int;
+    repairsDone: Int;
+
+    func SetMode(self, nextMode: Int) -> Void
+    {
+        mode = nextMode;
+    }
+
+    func Load(self) -> Int
+    {
+        return pressure + steps + wardsSpent + repairsDone;
+    }
+}
+
+vessel PackState
+{
+    rations: Int;
+    tools: Int;
+    wards: Int;
+    salvageKits: Int;
+
+    func SpendTools(self, amount: Int) -> Int
+    {
+        let spend = Min(tools, amount);
+        tools = tools - spend;
+        return spend;
+    }
+
+    func SpendWards(self, amount: Int) -> Int
+    {
+        let spend = Min(wards, amount);
+        wards = wards - spend;
+        return spend;
+    }
+}
+

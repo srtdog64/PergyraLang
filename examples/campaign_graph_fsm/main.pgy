@@ -1,0 +1,36 @@
+// main.pgy -- 10+ file campaign example with graph + FSM + slots + zones + world
+
+import "common.pgy";
+import "vessels.pgy";
+import "abilities.pgy";
+import "units.pgy";
+import "roles.pgy";
+import "views.pgy";
+import "sectors.pgy";
+import "world.pgy";
+import "setup.pgy";
+import "engine.pgy";
+import "report.pgy";
+
+func Main() -> Void
+{
+    Log("=== PERGYRA CAMPAIGN GRAPH + FSM ===");
+    Log("  4 sectors, 8 adventurers, graph costs, slots, world sync");
+
+    let watch = BuildWatchSector();
+    let ruins = BuildRuinsSector();
+    let vault = BuildVaultSector();
+    let summit = BuildSummitSector();
+
+    let world = CampaignWorld(watch, ruins, vault, summit);
+    world.ResetWorld();
+    world.Recount();
+
+    world.RunCampaign();
+
+    Log("");
+    Log("=== FINAL CAMPAIGN SNAPSHOT ===");
+    world.LogSnapshot();
+    Log("saving examples/campaign_graph_fsm/results.txt");
+    world.SaveReport("examples/campaign_graph_fsm/results.txt");
+}
