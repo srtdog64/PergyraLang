@@ -443,6 +443,8 @@ ASTNode* ast_create_zone_authority(const char* subject_slot_name) {
     ASTNode* node = ast_create_node(AST_ZONE_AUTHORITY);
     node->data.zone_authority.subject_slot_name =
         subject_slot_name ? pergyra_strdup(subject_slot_name) : NULL;
+    node->data.zone_authority.required_abilities = NULL;
+    node->data.zone_authority.ability_count = 0;
     return node;
 }
 
@@ -1357,6 +1359,9 @@ void ast_destroy(ASTNode* node) {
 
         case AST_ZONE_AUTHORITY:
             free(node->data.zone_authority.subject_slot_name);
+            for (size_t i = 0; i < node->data.zone_authority.ability_count; i++)
+                free(node->data.zone_authority.required_abilities[i]);
+            free(node->data.zone_authority.required_abilities);
             break;
 
         case AST_ZONE_STATE:
@@ -2629,6 +2634,16 @@ void ast_print(ASTNode* node, int indent) {
         case AST_ZONE_AUTHORITY:
             printf("Authority: %s\n",
                    node->data.zone_authority.subject_slot_name);
+            if (node->data.zone_authority.ability_count > 0) {
+                print_indent(indent + 1);
+                printf("Requires:");
+                for (size_t i = 0; i < node->data.zone_authority.ability_count; i++) {
+                    printf("%s%s",
+                           i == 0 ? " " : ", ",
+                           node->data.zone_authority.required_abilities[i]);
+                }
+                printf("\n");
+            }
             break;
 
         case AST_ZONE_STATE:

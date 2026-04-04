@@ -42,6 +42,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `maintain effectSlot on targetSlot` and `maintain relationSlot between left, right` as zone lifecycle-rule surfaces
 - Added lifecycle warnings for duplicate or conflicting `maintain` rules versus `detach` / `unlink`
 - Added `authority <subjectSlot>` and optional `by <subjectSlot>` authority annotations for zone lifecycle/projection operations
+- Added `authority <subjectSlot> requires Ability[, ...]` to validate authority subjects against role-implemented abilities
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods

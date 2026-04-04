@@ -109,6 +109,7 @@ enum Color { Red, Green, Blue }
 - `dto`와 `struct`는 현재 같은 value/projection declaration으로 파싱된다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
+- `authority subjectSlot`은 optional `requires Ability[, Ability]` 절을 붙일 수 있다.
 - `zone`은 `apply/detach/link/unlink/refresh/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.

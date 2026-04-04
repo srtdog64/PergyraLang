@@ -793,6 +793,8 @@ struct ASTNode
         /* Zone authority declaration */
         struct {
             char* subject_slot_name;
+            char** required_abilities;
+            size_t ability_count;
         } zone_authority;
 
         /* Zone lifecycle state alias */

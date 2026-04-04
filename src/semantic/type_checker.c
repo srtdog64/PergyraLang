@@ -2432,6 +2432,61 @@ find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t ordinal)
     return NULL;
 }
 
+static bool
+role_decl_has_ability(ASTNode *role, ASTNode *program,
+                      const char *ability_name, int depth)
+{
+    if (role == NULL || role->type != AST_ROLE_DECL
+        || ability_name == NULL || depth > 16) {
+        return false;
+    }
+
+    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+        if (impl != NULL
+            && impl->type == AST_IMPL_ABILITY
+            && impl->data.impl_ability.ability_name != NULL
+            && strcmp(impl->data.impl_ability.ability_name, ability_name) == 0) {
+            return true;
+        }
+    }
+
+    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
+        ASTNode *inc = role->data.role_decl.includes[i];
+        ASTNode *included = find_role_decl_in_program(program,
+            inc != NULL ? inc->data.include_stmt.role_name : NULL);
+        if (role_decl_has_ability(included, program, ability_name, depth + 1))
+            return true;
+    }
+
+    return false;
+}
+
+static bool
+subject_type_has_ability(ASTNode *program, const char *type_name,
+                         const char *ability_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM
+        || type_name == NULL || ability_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_ROLE_DECL
+            || stmt->data.role_decl.for_type == NULL
+            || stmt->data.role_decl.for_type->type != AST_TYPE
+            || stmt->data.role_decl.for_type->data.type.name == NULL
+            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
+            continue;
+        }
+        if (role_decl_has_ability(stmt, program, ability_name, 0))
+            return true;
+    }
+
+    return false;
+}
+
 static ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name)
 {
@@ -3122,6 +3177,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.zone_decl.authority_count; i++) {
         ASTNode *authority = node->data.zone_decl.authorities[i];
         ASTNode *slot;
+        Type *slot_type;
         if (authority == NULL
             || authority->data.zone_authority.subject_slot_name == NULL) {
             continue;
@@ -3137,6 +3193,31 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error(ctx, authority,
                 "Zone authority '%s' must reference a subject slot",
                 authority->data.zone_authority.subject_slot_name);
+        }
+        slot_type = slot != NULL ? resolve_type_node(slot->data.domain_slot.type, ctx) : NULL;
+        for (size_t j = 0; j < authority->data.zone_authority.ability_count; j++) {
+            const char *ability_name = authority->data.zone_authority.required_abilities[j];
+            Symbol *ab = ability_name != NULL ? scope_lookup(ctx->scope, ability_name) : NULL;
+            if (ability_name == NULL)
+                continue;
+            if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
+                semantic_error(ctx, authority,
+                    "Zone authority '%s' requires unknown ability '%s'",
+                    authority->data.zone_authority.subject_slot_name,
+                    ability_name);
+                continue;
+            }
+            if (slot_type == NULL || slot_type == TYPE_UNKNOWN
+                || slot_type->name == NULL) {
+                continue;
+            }
+            if (!subject_type_has_ability(ctx->program_root, slot_type->name, ability_name)) {
+                semantic_error(ctx, authority,
+                    "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl",
+                    authority->data.zone_authority.subject_slot_name,
+                    ability_name,
+                    slot_type->name);
+            }
         }
         for (size_t j = i + 1; j < node->data.zone_decl.authority_count; j++) {
             ASTNode *other = node->data.zone_decl.authorities[j];

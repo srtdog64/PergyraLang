@@ -34,6 +34,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
 - `zone`은 `authority subjectSlot`으로 승인 주체를 선언할 수 있음
+- `zone` authority는 `requires Ability[, Ability]`를 붙여 subject type의 role impl ability까지 검사할 수 있음
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias를 둘 수 있음
 - `zone` lifecycle/projection 문장은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone` lifecycle 문장은 `apply/link/detach/unlink/maintain <stateName>` shorthand를 지원함

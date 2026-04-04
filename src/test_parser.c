@@ -655,7 +655,7 @@ main(void)
             "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
-            "    authority player\n"
+            "    authority player requires Commandable, Damageable\n"
             "    state poisoned: effect poison on player\n"
             "    state allied: relation trust between player, enemy\n"
             "    apply poison to player by player\n"

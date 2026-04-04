@@ -3098,6 +3098,61 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone authority can require abilities implemented by subject roles");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "ability Commandable { func Command() -> Void; }\n"
+            "ability Damageable { func Hit() -> Void; }\n"
+            "role PlayerCommander for Player {\n"
+            "    impl ability Commandable { func Command() -> Void { Log(1); } }\n"
+            "    impl ability Damageable { func Hit() -> Void { Log(1); } }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player requires Commandable, Damageable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority ability requirements reject missing role impls");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "ability Commandable { func Command() -> Void; }\n"
+            "ability Healable { func Heal() -> Void; }\n"
+            "role PlayerCommander for Player {\n"
+            "    impl ability Commandable { func Command() -> Void { Log(1); } }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player requires Commandable, Healable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone warns when authority exists but mutable rules omit by actor");
     {
         const char *source =

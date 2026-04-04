@@ -30,6 +30,7 @@
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`은 `authority subjectSlot`으로 mutation/projection 승인 주체를 선언할 수 있음
+- `zone` authority는 `authority subjectSlot requires Ability[, Ability]`로 승인 주체가 수행 가능한 ability 계약까지 명시할 수 있음
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...`로 lifecycle state alias를 선언할 수 있음
 - `zone`의 `apply/link/detach/unlink/refresh/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원함

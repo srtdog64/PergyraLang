@@ -696,6 +696,19 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             Token subject_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected subject slot name after 'authority'");
             ASTNode *authority = ast_create_zone_authority(subject_slot.text);
+            if (parser_match_identifier_keyword(parser, "requires")) {
+                do {
+                    Token ability_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                        "Expected ability name after 'requires'");
+                    authority->data.zone_authority.ability_count++;
+                    authority->data.zone_authority.required_abilities = realloc(
+                        authority->data.zone_authority.required_abilities,
+                        authority->data.zone_authority.ability_count * sizeof(char *));
+                    authority->data.zone_authority.required_abilities[
+                        authority->data.zone_authority.ability_count - 1] =
+                        pergyra_strdup(ability_name.text);
+                } while (parser_match(parser, TOKEN_COMMA));
+            }
             authority->line = subject_slot.line;
             authority->column = subject_slot.column;
 
