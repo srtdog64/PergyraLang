@@ -50,8 +50,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `authority <subjectSlot>` and optional `by <subjectSlot>` authority annotations for zone lifecycle/projection operations
 - Added `authority <subjectSlot> requires Ability[, ...]` to validate authority subjects against role-implemented abilities
 - Added world lifecycle surface: `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState`
+- Added derived world-state contracts: `state name: zone zoneSlot projection projectionSlot`, `layer layerSlot`, `state zoneStateName`
 - Added `HasZone(zoneOrState)` as a world lifecycle query surface
 - Added `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, and `HasZoneState(zoneSlot, stateName)` as world-level cross-layer query built-ins
+- Derived world states now lower in C/LLVM to `zone active && embedded zone projection/layer/state flag`
+- Added composed world-state contracts: `state name: all zoneOrState[, ...]` and `state name: any zoneOrState[, ...]`
+- Composed world states now lower in C/LLVM to combined `__zone_active_*` / `__zone_state_*` flag expressions
+- `activate/deactivate/maintain <zoneSlot>` now resolve direct world zone slots consistently in C/LLVM sync paths
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods

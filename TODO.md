@@ -210,7 +210,8 @@
   - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
   - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
-  - 남음: 구조적 inter-layer composition policy, derived world-state contract, richer world-level runtime semantics
+  - 완료: `world`가 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`로 앞서 선언된 zone/state alias를 최소 조합 contract로 합성
+  - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
@@ -229,7 +230,7 @@
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
   - 완료: `subject Name actor { ... }` subject-first actor profile surface
   - 완료: standalone `actor Name { ... }` transitional semantic warning
-  - 남음: relation/projection 중심 surface 고정, derived world-state contract
+  - 남음: relation/projection 중심 surface 고정
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing

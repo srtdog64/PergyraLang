@@ -708,6 +708,18 @@ main(void)
             1
         },
         {
+            "World Derived States",
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state battleReady: zone battle projection playerView\n"
+            "    state battleLinked: zone battle layer poison\n"
+            "    state battlePoisoned: zone battle state poisoned\n"
+            "    state battleVisible: all battleReady, battleLinked\n"
+            "    state battleInteresting: any battleVisible, battlePoisoned\n"
+            "}",
+            1
+        },
+        {
             "Domain Keywords As Local Variables",
             "func Main() -> Void {\n"
             "    let zone = 1;\n"

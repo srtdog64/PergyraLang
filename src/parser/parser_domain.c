@@ -1,6 +1,8 @@
 #include "parser_internal.h"
 
 static bool parser_match_identifier_keyword(Parser *parser, const char *keyword);
+static bool parser_match_identifier_keyword_on_line(Parser *parser, const char *keyword,
+                                                    unsigned line);
 static void append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node);
 
 /* =================================================================
@@ -223,6 +225,37 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 "Expected world state name after 'state'");
             parser_consume(parser, TOKEN_COLON,
                 "Expected ':' after world state name");
+            if (parser_match_identifier_keyword(parser, "all")
+                || parser_match_identifier_keyword(parser, "any")) {
+                WorldStateSourceKind source_kind = WORLD_STATE_SOURCE_ANY;
+                const char **input_names = NULL;
+                size_t input_count = 0;
+                if (parser->previous_token.text != NULL
+                    && strcmp(parser->previous_token.text, "all") == 0) {
+                    source_kind = WORLD_STATE_SOURCE_ALL;
+                }
+
+                do {
+                    Token input = parser_consume(parser, TOKEN_IDENTIFIER,
+                        "Expected world zone/state name in composed world state");
+                    input_names = realloc((void*)input_names,
+                        sizeof(char*) * (input_count + 1));
+                    input_names[input_count++] = input.text;
+                } while (parser_match(parser, TOKEN_COMMA));
+
+                ASTNode *state = ast_create_world_state_compose(
+                    state_name.text, source_kind, input_names, input_count);
+                free((void*)input_names);
+                state->line = state_name.line;
+                state->column = state_name.column;
+
+                append_child_node(&world->data.world_decl.states,
+                    &world->data.world_decl.state_count, state);
+
+                parser_match(parser, TOKEN_SEMICOLON);
+                parser_discard_pending_doc_comment(parser);
+                continue;
+            }
             if (!parser_match_identifier_keyword(parser, "zone")) {
                 parser_error(parser, "Expected 'zone' after ':' in world state");
                 parser_advance(parser);
@@ -230,7 +263,32 @@ ASTNode* parse_world_declaration(Parser* parser) {
             }
             Token zone_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected zone slot name after 'zone'");
-            ASTNode *state = ast_create_world_state(state_name.text, zone_slot.text);
+            WorldStateSourceKind source_kind = WORLD_STATE_SOURCE_ZONE;
+            const char *detail_name = NULL;
+            Token detail;
+
+            if (parser_match_identifier_keyword_on_line(parser, "projection",
+                    zone_slot.line)) {
+                detail = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected projection slot name after 'projection'");
+                source_kind = WORLD_STATE_SOURCE_PROJECTION;
+                detail_name = detail.text;
+            } else if (parser_match_identifier_keyword_on_line(parser, "layer",
+                           zone_slot.line)) {
+                detail = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected layer slot name after 'layer'");
+                source_kind = WORLD_STATE_SOURCE_LAYER;
+                detail_name = detail.text;
+            } else if (parser_match_identifier_keyword_on_line(parser, "state",
+                           zone_slot.line)) {
+                detail = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected zone state name after 'state'");
+                source_kind = WORLD_STATE_SOURCE_STATE;
+                detail_name = detail.text;
+            }
+
+            ASTNode *state = ast_create_world_state(state_name.text, zone_slot.text,
+                source_kind, detail_name);
             state->line = state_name.line;
             state->column = state_name.column;
 
@@ -303,6 +361,16 @@ parser_match_identifier_keyword(Parser *parser, const char *keyword)
 
     parser_advance(parser);
     return true;
+}
+
+static bool
+parser_match_identifier_keyword_on_line(Parser *parser, const char *keyword,
+                                        unsigned line)
+{
+    if (parser == NULL || parser->current_token.line != line)
+        return false;
+
+    return parser_match_identifier_keyword(parser, keyword);
 }
 
 static bool

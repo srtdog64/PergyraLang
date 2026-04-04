@@ -7942,6 +7942,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *state = find_world_state_decl(node, act->data.world_activate.state_name);
             if (state != NULL)
                 slot_name = state->data.world_state.zone_slot_name;
+            else if (world_has_zone_slot(node, act->data.world_activate.state_name))
+                slot_name = act->data.world_activate.state_name;
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -7955,6 +7957,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *state = find_world_state_decl(node, mnt->data.world_maintain.state_name);
             if (state != NULL)
                 slot_name = state->data.world_state.zone_slot_name;
+            else if (world_has_zone_slot(node, mnt->data.world_maintain.state_name))
+                slot_name = mnt->data.world_maintain.state_name;
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -7968,6 +7972,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *state = find_world_state_decl(node, act->data.world_deactivate.state_name);
             if (state != NULL)
                 slot_name = state->data.world_state.zone_slot_name;
+            else if (world_has_zone_slot(node, act->data.world_deactivate.state_name))
+                slot_name = act->data.world_deactivate.state_name;
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -7976,10 +7982,72 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
         ASTNode *state = node->data.world_decl.states[i];
+        const char *expr_fmt = "self->__zone_active_%s";
+        const char *detail_name = state->data.world_state.detail_name;
         write_indent(ctx);
-        codebuf_write(ctx->out, "self->__zone_state_%s = self->__zone_active_%s;\n",
-            state->data.world_state.state_name,
-            state->data.world_state.zone_slot_name);
+        switch (state->data.world_state.source_kind) {
+        case WORLD_STATE_SOURCE_ALL:
+        case WORLD_STATE_SOURCE_ANY: {
+            bool first = true;
+            codebuf_write(ctx->out, "self->__zone_state_%s = ",
+                state->data.world_state.state_name);
+            codebuf_write(ctx->out, "(");
+            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
+                const char *input_name = state->data.world_state.input_names[input_i];
+                if (input_name == NULL)
+                    continue;
+                if (!first) {
+                    codebuf_write(ctx->out,
+                        state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                            ? " && " : " || ");
+                }
+                if (world_has_zone_slot(node, input_name))
+                    codebuf_write(ctx->out, "self->__zone_active_%s", input_name);
+                else
+                    codebuf_write(ctx->out, "self->__zone_state_%s", input_name);
+                first = false;
+            }
+            if (first)
+                codebuf_write(ctx->out,
+                    state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                        ? "true" : "false");
+            codebuf_write(ctx->out, ");\n");
+            break;
+        }
+        case WORLD_STATE_SOURCE_PROJECTION:
+            expr_fmt = "(self->__zone_active_%s && self->%s.__projection_ready_%s)";
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, expr_fmt,
+                state->data.world_state.zone_slot_name,
+                state->data.world_state.zone_slot_name,
+                detail_name != NULL ? detail_name : "");
+            codebuf_write(ctx->out, ";\n");
+            break;
+        case WORLD_STATE_SOURCE_LAYER:
+            expr_fmt = "(self->__zone_active_%s && self->%s.__layer_active_%s)";
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, expr_fmt,
+                state->data.world_state.zone_slot_name,
+                state->data.world_state.zone_slot_name,
+                detail_name != NULL ? detail_name : "");
+            codebuf_write(ctx->out, ";\n");
+            break;
+        case WORLD_STATE_SOURCE_STATE:
+            expr_fmt = "(self->__zone_active_%s && self->%s.__state_%s)";
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, expr_fmt,
+                state->data.world_state.zone_slot_name,
+                state->data.world_state.zone_slot_name,
+                detail_name != NULL ? detail_name : "");
+            codebuf_write(ctx->out, ";\n");
+            break;
+        case WORLD_STATE_SOURCE_ZONE:
+        default:
+            codebuf_write(ctx->out, "self->__zone_state_%s = self->__zone_active_%s;\n",
+                state->data.world_state.state_name,
+                state->data.world_state.zone_slot_name);
+            break;
+        }
     }
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");

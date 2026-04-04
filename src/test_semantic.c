@@ -6042,6 +6042,135 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("world derived states validate zone projection/layer/state contracts");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    refresh playerView from player\n"
+            "    maintain poisoned\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state battleProjected: zone battle projection playerView\n"
+            "    state battleLayered: zone battle layer poison\n"
+            "    state battlePoisoned: zone battle state poisoned\n"
+            "    activate battle\n"
+            "    func Tick() -> Void {\n"
+            "        if HasZone(battleProjected) || HasZone(battleLayered) || HasZone(battlePoisoned) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world derived states reject unknown details and lifecycle actions");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state badProjection: zone battle projection missing\n"
+            "    state badLayer: zone battle layer missing\n"
+            "    state badState: zone battle state missing\n"
+            "    state derivedPoisoned: zone battle state poisoned\n"
+            "    activate derivedPoisoned\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 4);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world composed states validate ordered zone/state composition");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    zone camp: BattleZone\n"
+            "    state battleLive: zone battle\n"
+            "    state campLive: zone camp\n"
+            "    state allLive: all battleLive, campLive\n"
+            "    state anyLive: any allLive, campLive\n"
+            "    func Tick() -> Void {\n"
+            "        if HasZone(allLive) || HasZone(anyLive) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world composed states reject self-reference and forward references");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state looped: any looped, battle\n"
+            "    state later: any definedLater, battle\n"
+            "    state definedLater: zone battle\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* ---- Generic class semantic tests ---- */
 
     TEST("generic class declaration passes semantic check");

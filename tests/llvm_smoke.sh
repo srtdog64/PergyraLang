@@ -412,6 +412,68 @@ func Main() -> Void {
 EOF
 run_case "world_zone_cross_queries" "$TMPDIR/world_zone_cross_queries.pgy" "true" "true" "true"
 
+cat > "$TMPDIR/world_derived_states.pgy" <<'EOF'
+subject Player { let hp: Int; }
+object PlayerView { hp: Int; }
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    effect slot poison: Poisoned
+    state poisoned: effect poison on player
+    refresh playerView from player
+    maintain poisoned
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleProjected: zone battle projection playerView
+    state battleLayered: zone battle layer poison
+    state battlePoisoned: zone battle state poisoned
+    activate battle
+
+    func Show(self) -> Void {
+        Log(HasZone(battleProjected));
+        Log(HasZone(battleLayered));
+        Log(HasZone(battlePoisoned));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    let gameWorld = GameWorld(battle);
+    gameWorld.Show();
+}
+EOF
+run_case "world_derived_states" "$TMPDIR/world_derived_states.pgy" "true" "true" "true"
+
+cat > "$TMPDIR/world_composed_states.pgy" <<'EOF'
+zone BattleZone { }
+
+world GameWorld {
+    zone battle: BattleZone
+    zone camp: BattleZone
+    state battleLive: zone battle
+    state campLive: zone camp
+    state allLive: all battleLive, campLive
+    state anyLive: any allLive, campLive
+    activate battle
+    maintain camp
+
+    func Show(self) -> Void {
+        Log(HasZone(allLive));
+        Log(HasZone(anyLive));
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(), BattleZone());
+    gameWorld.Show();
+}
+EOF
+run_case "world_composed_states" "$TMPDIR/world_composed_states.pgy" "true" "true"
+
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
     let count: Int;

@@ -2338,6 +2338,94 @@ test_systemic_world_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("world derived states lower to embedded zone contracts");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    refresh playerView from player\n"
+            "    maintain poisoned\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state battleProjected: zone battle projection playerView\n"
+            "    state battleLayered: zone battle layer poison\n"
+            "    state battlePoisoned: zone battle state poisoned\n"
+            "    activate battle\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(HasZone(battleProjected));\n"
+            "        Log(HasZone(battleLayered));\n"
+            "        Log(HasZone(battlePoisoned));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleProjected = (self->__zone_active_battle && self->battle.__projection_ready_playerView);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleLayered = (self->__zone_active_battle && self->battle.__layer_active_poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battlePoisoned = (self->__zone_active_battle && self->battle.__state_poisoned);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battleProjected);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battleLayered);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battlePoisoned);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world composed states lower to combined zone/world flags");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    zone camp: BattleZone\n"
+            "    state battleLive: zone battle\n"
+            "    state campLive: zone camp\n"
+            "    state allLive: all battleLive, campLive\n"
+            "    state anyLive: any allLive, campLive\n"
+            "    activate battle\n"
+            "    maintain camp\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(HasZone(allLive));\n"
+            "        Log(HasZone(anyLive));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_allLive = (self->__zone_state_battleLive && self->__zone_state_campLive);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_anyLive = (self->__zone_state_allLive || self->__zone_state_campLive);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_allLive);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_anyLive);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone sync binds typed relation/effect layers before projection reads");
     {
         const char *source =

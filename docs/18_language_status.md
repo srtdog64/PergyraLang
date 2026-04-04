@@ -46,9 +46,12 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `HasLayer(layerSlot)` builtin이 zone method 안에서 선언된 relation/effect layer slot의 활성 여부를 Bool로 읽을 수 있음
 - `HasState(stateName)` builtin이 zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state-slot 정합성까지 질의할 수 있음
-- `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 가짐
+- `world`는 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `state name: all zoneOrState[, ...]`, `state name: any zoneOrState[, ...]`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 가짐
 - `HasZone(zoneOrState)` builtin이 world method 안에서 선언된 zone slot / world state alias를 Bool query로 읽을 수 있음
 - `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)` builtin이 world method 안에서 embedded zone의 projection/layer/state flag를 직접 읽을 수 있음
+- 파생 `world state`는 zone active flag와 embedded zone projection/layer/state flag를 자동 조합하는 읽기 전용 contract로 동작함
+- `all` / `any` 조합 state는 앞서 선언된 zone slot 또는 world state alias를 다시 조합하는 최소 inter-layer composition policy로 동작함
+- direct `activate/deactivate/maintain <zoneSlot>`도 semantic/C/LLVM에서 동일하게 zone slot으로 해석됨
 - C backend는 zone layer를 `__layer_active_*` flag로, zone state를 `__state_*` flag와 `Zone_sync(self)` helper로, world zone lifecycle을 `__zone_active_*` / `__zone_state_*` flag와 `World_sync(self)` helper로 낮춤
 - relation/effect method는 C/LLVM 양쪽에서 sync helper를 전후로 감싸 `refresh`/`publish` projection을 incremental하게 갱신함
 - C backend는 relation/effect constructor를 runtime compound literal instance로 lowering하고, instance method call을 pointer-self로 호출함
@@ -72,6 +75,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
 - `object` / `dto` declaration은 passive projection form으로 제한되며 method를 가질 수 없음
+- 현재 회귀 수치: `semantic 414 passed`, `transpile 306 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
@@ -82,7 +86,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
-- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지지만, cross-layer composition policy와 더 깊은 propagation model은 아직 남아 있다
+- `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state까지 올라왔지만, 더 깊은 propagation model은 아직 남아 있다
 - projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `refresh` / `publish` 흐름이다
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
@@ -101,8 +105,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 ## 2026-04-04 기준 확인된 상태
 
-- `make test-semantic` 통과 (`406 passed`)
-- `make test-transpile` 통과 (`296 passed`)
+- `make test-semantic` 통과 (`414 passed`)
+- `make test-transpile` 통과 (`306 passed`)
 - `make llvm-test-smoke` 통과
 
 ## 다음 기준

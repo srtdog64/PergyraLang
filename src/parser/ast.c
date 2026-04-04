@@ -350,12 +350,42 @@ ASTNode* ast_create_world_maintain(const char* zone_slot_name) {
     return node;
 }
 
-ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name) {
+ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name,
+                                WorldStateSourceKind source_kind,
+                                const char* detail_name) {
     ASTNode* node = ast_create_node(AST_WORLD_STATE);
     node->data.world_state.state_name =
         state_name ? pergyra_strdup(state_name) : NULL;
     node->data.world_state.zone_slot_name =
         zone_slot_name ? pergyra_strdup(zone_slot_name) : NULL;
+    node->data.world_state.source_kind = source_kind;
+    node->data.world_state.detail_name =
+        detail_name ? pergyra_strdup(detail_name) : NULL;
+    node->data.world_state.input_names = NULL;
+    node->data.world_state.input_count = 0;
+    return node;
+}
+
+ASTNode* ast_create_world_state_compose(const char* state_name,
+                                        WorldStateSourceKind source_kind,
+                                        const char** input_names,
+                                        size_t input_count) {
+    ASTNode* node = ast_create_node(AST_WORLD_STATE);
+    node->data.world_state.state_name =
+        state_name ? pergyra_strdup(state_name) : NULL;
+    node->data.world_state.zone_slot_name = NULL;
+    node->data.world_state.source_kind = source_kind;
+    node->data.world_state.detail_name = NULL;
+    node->data.world_state.input_names = NULL;
+    node->data.world_state.input_count = input_count;
+    if (input_count > 0) {
+        node->data.world_state.input_names = calloc(input_count, sizeof(char*));
+        for (size_t i = 0; i < input_count; i++) {
+            node->data.world_state.input_names[i] =
+                input_names != NULL && input_names[i] != NULL
+                    ? pergyra_strdup(input_names[i]) : NULL;
+        }
+    }
     return node;
 }
 
@@ -1348,6 +1378,12 @@ void ast_destroy(ASTNode* node) {
         case AST_WORLD_STATE:
             free(node->data.world_state.state_name);
             free(node->data.world_state.zone_slot_name);
+            free(node->data.world_state.detail_name);
+            if (node->data.world_state.input_names != NULL) {
+                for (size_t i = 0; i < node->data.world_state.input_count; i++)
+                    free(node->data.world_state.input_names[i]);
+                free(node->data.world_state.input_names);
+            }
             break;
 
         case AST_RELATION_DECL:
@@ -2623,9 +2659,34 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_WORLD_STATE:
-            printf("WorldState: %s: zone %s\n",
-                   node->data.world_state.state_name,
-                   node->data.world_state.zone_slot_name);
+            if (node->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                || node->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+                const char *label =
+                    node->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                        ? "all" : "any";
+                printf("WorldState: %s: %s ", node->data.world_state.state_name, label);
+                for (size_t i = 0; i < node->data.world_state.input_count; i++) {
+                    if (i > 0)
+                        printf(", ");
+                    printf("%s", node->data.world_state.input_names[i]);
+                }
+            } else {
+                printf("WorldState: %s: zone %s",
+                       node->data.world_state.state_name,
+                       node->data.world_state.zone_slot_name);
+            }
+            if (node->data.world_state.detail_name != NULL) {
+                const char *label = "zone";
+                switch (node->data.world_state.source_kind) {
+                    case WORLD_STATE_SOURCE_PROJECTION: label = "projection"; break;
+                    case WORLD_STATE_SOURCE_LAYER: label = "layer"; break;
+                    case WORLD_STATE_SOURCE_STATE: label = "state"; break;
+                    case WORLD_STATE_SOURCE_ZONE:
+                    default: break;
+                }
+                printf(" %s %s", label, node->data.world_state.detail_name);
+            }
+            printf("\n");
             break;
 
         case AST_RELATION_DECL:

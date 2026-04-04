@@ -37,6 +37,15 @@ typedef enum {
     NOMINAL_DECL_DTO
 } NominalDeclKind;
 
+typedef enum {
+    WORLD_STATE_SOURCE_ZONE,
+    WORLD_STATE_SOURCE_PROJECTION,
+    WORLD_STATE_SOURCE_LAYER,
+    WORLD_STATE_SOURCE_STATE,
+    WORLD_STATE_SOURCE_ALL,
+    WORLD_STATE_SOURCE_ANY
+} WorldStateSourceKind;
+
 /* Structured comment tags */
 typedef enum {
     DOC_TAG_WHAT,
@@ -709,6 +718,10 @@ struct ASTNode
         struct {
             char* state_name;
             char* zone_slot_name;
+            WorldStateSourceKind source_kind;
+            char* detail_name;
+            char** input_names;
+            size_t input_count;
         } world_state;
 
         /* Relation declaration */
@@ -1009,7 +1022,13 @@ ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type);
 ASTNode* ast_create_world_activate(const char* zone_slot_name);
 ASTNode* ast_create_world_deactivate(const char* zone_slot_name);
 ASTNode* ast_create_world_maintain(const char* zone_slot_name);
-ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name);
+ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name,
+                                WorldStateSourceKind source_kind,
+                                const char* detail_name);
+ASTNode* ast_create_world_state_compose(const char* state_name,
+                                        WorldStateSourceKind source_kind,
+                                        const char** input_names,
+                                        size_t input_count);
 ASTNode* ast_create_relation_declaration(const char* name);
 ASTNode* ast_create_effect_declaration(const char* name);
 ASTNode* ast_create_zone_declaration(const char* name);

@@ -34,6 +34,7 @@
 주의:
 - `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다. 선언 위치에서는 키워드처럼 동작하지만, 지역 변수나 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - `HasProjection(slotName)`는 현재 relation/effect/zone 문맥에서만 유효한 projection sync-ready query다.
+- `world state`의 `projection` / `layer` / `state` suffix는 같은 줄에서만 해석된다. 다음 줄의 `state` 선언 시작을 suffix로 삼키지 않는다.
 
 ## 2. 선언
 
@@ -151,7 +152,7 @@ enum Color { Red, Green, Blue }
 - `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.
-- `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain`, `HasZone(zoneOrState)`, `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, `HasZoneState(zoneSlot, stateName)`를 지원한다.
+- `world`는 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `activate/deactivate/maintain`, `HasZone(zoneOrState)`, `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, `HasZoneState(zoneSlot, stateName)`를 지원한다.
 - subject/class/구조체의 필드/메서드 문법은 존재하지만, 일부 고급 OOP 설계 문법은 아직 문서보다 구현 범위가 좁다.
 
 ### 2.4 모듈/가시성

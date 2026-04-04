@@ -511,6 +511,9 @@ static ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
                          const char *name);
 
+static ASTNode *
+find_zone_domain_slot(ASTNode *zone, const char *slot_name);
+
 static size_t
 subject_host_field_count(ASTNode *decl)
 {
@@ -2620,6 +2623,80 @@ find_world_state_local(ASTNode *world, const char *state_name)
     return NULL;
 }
 
+static ASTNode *
+find_world_state_before_local(ASTNode *world, const char *state_name, size_t limit)
+{
+    if (world == NULL || world->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    if (limit > world->data.world_decl.state_count)
+        limit = world->data.world_decl.state_count;
+
+    for (size_t i = 0; i < limit; i++) {
+        ASTNode *state = world->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+resolve_world_zone_decl_local(ASTNode *world, SemanticContext *ctx, const char *slot_name)
+{
+    ASTNode *slot;
+    if (world == NULL || world->type != AST_WORLD_DECL
+        || ctx == NULL || slot_name == NULL) {
+        return NULL;
+    }
+
+    slot = find_world_zone_slot_local(world, slot_name);
+    if (slot == NULL || slot->data.world_zone.zone_type == NULL)
+        return NULL;
+
+    return find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+        slot->data.world_zone.zone_type);
+}
+
+static ASTNode *
+find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_zone_state_decl_local(ASTNode *zone, const char *state_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
+        ASTNode *state = zone->data.zone_decl.states[i];
+        if (state != NULL && state->type == AST_ZONE_STATE
+            && state->data.zone_state.state_name != NULL
+            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
                          SemanticContext *ctx, const char *action_name,
@@ -2637,6 +2714,13 @@ resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
     if (state == NULL) {
         semantic_error(ctx, site,
             "World %s references unknown zone/state '%s'",
+            action_name, state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+
+    if (state->data.world_state.source_kind != WORLD_STATE_SOURCE_ZONE) {
+        semantic_error(ctx, site,
+            "World %s cannot target derived state '%s'; use the underlying zone slot or a plain 'state name: zone slot' alias",
             action_name, state_name != NULL ? state_name : "<unknown>");
         return false;
     }
@@ -2707,12 +2791,82 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
         ASTNode *state = node->data.world_decl.states[i];
         const char *zone_slot_name = state->data.world_state.zone_slot_name;
-        if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
+        ASTNode *zone_decl = NULL;
+        if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+            || state->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+            if (state->data.world_state.input_count == 0) {
+                semantic_error(ctx, state,
+                    "Composed world state '%s' must reference at least one zone/state input",
+                    state->data.world_state.state_name != NULL
+                        ? state->data.world_state.state_name : "<unknown>");
+            }
+            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
+                const char *input_name = state->data.world_state.input_names[input_i];
+                if (input_name == NULL)
+                    continue;
+                if (state->data.world_state.state_name != NULL
+                    && strcmp(state->data.world_state.state_name, input_name) == 0) {
+                    semantic_error(ctx, state,
+                        "Composed world state '%s' cannot reference itself",
+                        input_name);
+                    continue;
+                }
+                if (find_world_zone_slot_local(node, input_name) != NULL)
+                    continue;
+                if (find_world_state_before_local(node, input_name, i) != NULL)
+                    continue;
+                semantic_error(ctx, state,
+                    "Composed world state '%s' references unknown or later world zone/state '%s'",
+                    state->data.world_state.state_name != NULL
+                        ? state->data.world_state.state_name : "<unknown>",
+                    input_name);
+            }
+        } else if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error(ctx, state,
                 "World state '%s' references unknown zone slot '%s'",
                 state->data.world_state.state_name != NULL
                     ? state->data.world_state.state_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        } else {
+            zone_decl = resolve_world_zone_decl_local(node, ctx, zone_slot_name);
+        }
+
+        if (zone_decl != NULL && state->data.world_state.detail_name != NULL) {
+            const char *detail_name = state->data.world_state.detail_name;
+            ASTNode *detail_decl = NULL;
+
+            if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
+                detail_decl = find_zone_domain_slot(zone_decl, detail_name);
+                if (detail_decl == NULL
+                    || detail_decl->data.domain_slot.is_subject) {
+                    semantic_error(ctx, state,
+                        "World state '%s' references unknown object/dto projection slot '%s' in zone '%s'",
+                        state->data.world_state.state_name != NULL
+                            ? state->data.world_state.state_name : "<unknown>",
+                        detail_name,
+                        zone_slot_name);
+                }
+            } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_LAYER) {
+                detail_decl = find_zone_layer_slot_local(zone_decl, detail_name);
+                if (detail_decl == NULL) {
+                    semantic_error(ctx, state,
+                        "World state '%s' references unknown layer slot '%s' in zone '%s'",
+                        state->data.world_state.state_name != NULL
+                            ? state->data.world_state.state_name : "<unknown>",
+                        detail_name,
+                        zone_slot_name);
+                }
+            } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_STATE) {
+                detail_decl = find_zone_state_decl_local(zone_decl, detail_name);
+                if (detail_decl == NULL) {
+                    semantic_error(ctx, state,
+                        "World state '%s' references unknown zone state '%s' in zone '%s'",
+                        state->data.world_state.state_name != NULL
+                            ? state->data.world_state.state_name : "<unknown>",
+                        detail_name,
+                        zone_slot_name);
+                }
+            }
         }
         for (size_t j = i + 1; j < node->data.world_decl.state_count; j++) {
             ASTNode *other = node->data.world_decl.states[j];
