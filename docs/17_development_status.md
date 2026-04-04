@@ -12,7 +12,7 @@
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음.
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic에 연결됨.
 - `action` clause는 이제 존재 확인을 넘어서 `authorized by` subject-host 검증, `within` zone subject/authority 적합성 검증, `causes` effect target/zone layer 적합성 검증까지 포함함.
-- `object`와 `dto`는 현재 `struct` 호환 projection value declaration alias로 동작하며, passive helper `func`를 가질 수 있음.
+- `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 transfer/projection declaration alias로 동작함.
 - `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
 - `ToDto(TargetDto, subjectBinding)` 최소 dto projection surface가 semantic/C/LLVM backend에 반영됨.
 - relation/effect/zone/world 바깥의 direct `ToObject` / `ToDto`는 여전히 허용되지만 semantic warning으로 낮춰졌고, 권장 경로는 domain-local projection wiring임.
@@ -31,6 +31,7 @@
 - `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 declaration body에서 직접 가질 수 있음
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
+- `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 declaration header에 고정할 수 있음
 - `relation` / `effect`는 positional nominal constructor call을 받아 local runtime instance를 만들 수 있고, constructor argument arity/type을 semantic에서 검사함
 - `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
@@ -70,9 +71,9 @@
 - direct `apply/link/detach/unlink`와 `maintain effect/relation/state` 모두 C/LLVM zone sync에서 실제 layer active/state/projection 전파로 연결됨
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM smoke까지 닫혀 있음
 - C backend에서 `HasLayer(...)` / `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__layer_active_*` / `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
-- `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
-- `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
-- `zone`의 `refresh`/`publish`는 object/dto slot / subject slot kind와 projection field 정합성을 검사함
+- `zone`의 `apply/detach`는 `effect` declaration의 bindable target 수와 타입을 검사하며 object target도 허용함
+- `zone`의 `link/unlink`는 `relation` declaration의 bindable endpoint 수와 타입을 검사하며 object endpoint도 허용함
+- `zone` / `relation` / `effect`의 `refresh`/`publish`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
 - `zone` subject slot은 이제 bare `class`가 아니라 subject host (`subject`, `actor`)만 허용함
 - `ToObject` / `ToDto` source projection은 이제 bare `class`가 아니라 subject host binding만 허용함
 - `role`은 이제 non-subject nominal declaration에 바인딩되면 semantic error를 냄
@@ -84,8 +85,8 @@
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToDto` source, subject copy restriction에 참여함
-- `object`는 별도 코어 타입이 아니라, subject가 transfer/DTO/view 문맥에서 수동적으로 해석된 모습으로 정리됨
-- `object` / `dto` declaration은 passive projection/value 형식으로 유지되지만, helper `func`는 허용됨
+- `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
+- `dto`는 `object`보다 더 좁은 경계 전달/투영 형식으로 유지됨
 - `subject` 안의 legacy `func`는 이제 semantic error이며, subject의 공적 동사는 `action`만 허용됨
 - enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
 - `Option<T>` 표면: `Some/None`, `IsSome/IsNone`, `UnwrapOption`, `match` destructuring이 semantic/C/LLVM 경로에 연결됨
@@ -97,7 +98,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 440 passed`, `transpile 331 passed`, `llvm-test-smoke` 최신 vessel/action 변경 기준 통과
+- 현재 회귀 수치: `semantic 442 passed`, `transpile 344 passed`, `llvm-test-smoke` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -137,15 +138,17 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 406 passed |
-| transpile | 296 passed |
-| llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
+| semantic | 440 passed |
+| transpile | 336 passed |
+| llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:
 - `make test-semantic` 통과
 - `make test-parser` 통과
 - `make test-transpile` 통과
 - `make llvm-test-smoke` 통과 (async, select, tagged-union, RemoteFuture, device slot, generics, channel pressure 등)
+- zone method 안의 subject `action` call은 현재 C/LLVM 모두에서 matching `effect slot` runtime activation과 embedded layer sync까지 연결됨
+- `self.player.Attack()` 같은 nested nominal host method call도 이제 C/LLVM 모두에서 실제 method dispatch로 lowering됨
 
 ## 남은 주요 작업
 

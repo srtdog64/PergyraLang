@@ -408,6 +408,9 @@ llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
     return false;
 }
 
+static LLVMClassTypeEntry *
+llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty);
+
 static bool
 llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 {
@@ -464,6 +467,28 @@ llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     }
 
     return false;
+}
+
+static const char *
+llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
+{
+    LLVMClassTypeEntry *parent_cls;
+    LLVMClassTypeEntry *field_cls;
+    int field_idx;
+
+    if (ctx == NULL || ctx->current_class_name == NULL || field_name == NULL)
+        return NULL;
+
+    parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    if (parent_cls == NULL)
+        return NULL;
+
+    field_idx = llvm_class_field_index(parent_cls, field_name);
+    if (field_idx < 0)
+        return NULL;
+
+    field_cls = llvm_lookup_class_by_type(ctx, parent_cls->fields[field_idx].field_type);
+    return field_cls != NULL ? field_cls->class_name : NULL;
 }
 
 static LLVMValueRef
@@ -1609,6 +1634,61 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         free(args);
                         return result;
                     }
+                }
+            }
+        }
+
+        if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
+            && obj_node->data.member.object != NULL
+            && obj_node->data.member.object->type == AST_IDENTIFIER
+            && obj_node->data.member.object->data.identifier.name != NULL
+            && strcmp(obj_node->data.member.object->data.identifier.name, "self") == 0
+            && obj_node->data.member.name != NULL
+            && method_name != NULL) {
+            const char *field_name = obj_node->data.member.name;
+            const char *class_name = llvm_current_field_class_name(ctx, field_name);
+            LLVMClassTypeEntry *parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            LLVMClassTypeEntry *host_cls = class_name != NULL
+                ? llvm_lookup_class(ctx, class_name) : NULL;
+            int field_idx = parent_cls != NULL
+                ? llvm_class_field_index(parent_cls, field_name) : -1;
+
+            if (parent_cls != NULL && host_cls != NULL && field_idx >= 0) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                         class_name, method_name);
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                if (fn != NULL) {
+                    size_t argc = node->data.call.arg_count;
+                    LLVMValueRef *args = calloc(argc + 1, sizeof(LLVMValueRef));
+                    LLVMValueRef base_ptr = llvm_current_self_base_ptr(ctx, parent_cls);
+                    LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
+                        parent_cls->struct_type, base_ptr, (unsigned)field_idx,
+                        llvm_tmp_name(ctx));
+
+                    if (llvm_nominal_uses_pointer_self(ctx, class_name))
+                        args[0] = field_ptr;
+                    else
+                        args[0] = LLVMBuildLoad2(ctx->builder,
+                            host_cls->struct_type, field_ptr, llvm_tmp_name(ctx));
+
+                    for (size_t i = 0; i < argc; i++) {
+                        args[i + 1] = llvm_emit_expression(
+                            node->data.call.arguments[i], ctx);
+                    }
+
+                    LLVMValueRef result;
+                    if (fn->ret_type == ctx->type_void) {
+                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                            args, (unsigned)(argc + 1), "");
+                        result = LLVMConstInt(ctx->type_i32, 0, 0);
+                    } else {
+                        result = LLVMBuildCall2(ctx->builder,
+                            fn->fn_type, fn->fn, args,
+                            (unsigned)(argc + 1), llvm_tmp_name(ctx));
+                    }
+                    free(args);
+                    return result;
                 }
             }
         }

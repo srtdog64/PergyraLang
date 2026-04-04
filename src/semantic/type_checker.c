@@ -527,6 +527,16 @@ find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
+static bool
+decl_is_projection_source(const ASTNode *decl)
+{
+    if (decl_is_subject_host(decl))
+        return true;
+    return decl != NULL
+        && decl->type == AST_CLASS_DECL
+        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
+}
+
 static ASTNode *
 find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
                          const char *name);
@@ -534,8 +544,26 @@ find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
 static ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name);
 
+static ClassField *
+subject_host_field_at(ASTNode *decl, size_t index)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        if (index < decl->data.class_decl.field_count)
+            return decl->data.class_decl.fields[index];
+        return NULL;
+    }
+    if (decl->type == AST_ACTOR_DECL) {
+        if (index < decl->data.actor_decl.field_count)
+            return decl->data.actor_decl.fields[index];
+        return NULL;
+    }
+    return NULL;
+}
+
 static size_t
-subject_host_field_count(ASTNode *decl)
+projection_source_field_count(ASTNode *decl)
 {
     if (decl == NULL)
         return 0;
@@ -547,7 +575,7 @@ subject_host_field_count(ASTNode *decl)
 }
 
 static ClassField *
-subject_host_field_at(ASTNode *decl, size_t index)
+projection_source_field_at(ASTNode *decl, size_t index)
 {
     if (decl == NULL)
         return NULL;
@@ -3375,15 +3403,39 @@ count_object_domain_slots(ASTNode **slots, size_t slot_count)
     return object_count;
 }
 
-static ASTNode *
-find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t ordinal)
+static size_t
+count_bindable_domain_slots(ASTNode **slots, size_t slot_count,
+                            ASTNode **refreshes, size_t refresh_count)
 {
-    size_t seen = 0;
+    size_t bindable_count = 0;
+    (void)refreshes;
+    (void)refresh_count;
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject) {
+            || !slot->data.domain_slot.is_binding) {
+            continue;
+        }
+        bindable_count++;
+    }
+
+    return bindable_count;
+}
+
+static ASTNode *
+find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
+                              ASTNode **refreshes, size_t refresh_count,
+                              size_t ordinal)
+{
+    size_t seen = 0;
+    (void)refreshes;
+    (void)refresh_count;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_binding) {
             continue;
         }
 
@@ -3791,14 +3843,6 @@ type_check_projection_contract(ASTNode **slots,
             object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
     }
-    if (!source_slot->data.domain_slot.is_subject) {
-        semantic_error(ctx, site,
-            "%s %s source slot '%s' must be a subject slot",
-            owner_label, action_name,
-            source_slot_name != NULL ? source_slot_name : "<unknown>");
-        return true;
-    }
-
     target_type = resolve_type_node(object_slot->data.domain_slot.type, ctx);
     source_type = resolve_type_node(source_slot->data.domain_slot.type, ctx);
     if (target_type == NULL || source_type == NULL
@@ -3832,19 +3876,23 @@ type_check_projection_contract(ASTNode **slots,
         }
     }
 
-    if (!type_is_subject_type(source_type, ctx)) {
+    if (source_slot->data.domain_slot.is_dto) {
         semantic_error(ctx, site,
-            "%s %s source slot '%s' must use a subject type, got '%s'",
+            "%s %s source slot '%s' cannot be a dto slot",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
-            source_type->name != NULL ? source_type->name : "<unknown>");
+            source_type != NULL && source_type->name != NULL
+                ? source_type->name
+                : "<unknown>");
         return true;
     }
 
     source_decl = find_subject_host_decl_by_name(ctx->program_root, source_type->name);
-    if (!decl_is_subject_host(source_decl)) {
+    if (!decl_is_projection_source(source_decl))
+        source_decl = find_named_class_decl_local(ctx->program_root, source_type->name);
+    if (!decl_is_projection_source(source_decl)) {
         semantic_error(ctx, site,
-            "%s %s source slot '%s' must reference a subject declaration",
+            "%s %s source slot '%s' must reference a subject or object declaration",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>");
         return true;
@@ -3862,8 +3910,8 @@ type_check_projection_contract(ASTNode **slots,
         }
 
         source_field = NULL;
-        for (size_t j = 0; j < subject_host_field_count(source_decl); j++) {
-            ClassField *candidate = subject_host_field_at(source_decl, j);
+        for (size_t j = 0; j < projection_source_field_count(source_decl); j++) {
+            ClassField *candidate = projection_source_field_at(source_decl, j);
             if (candidate != NULL && candidate->name != NULL
                 && strcmp(candidate->name, target_field->name) == 0) {
                 source_field = candidate;
@@ -3872,7 +3920,7 @@ type_check_projection_contract(ASTNode **slots,
         }
         if (source_field == NULL || source_field->type == NULL) {
             semantic_error(ctx, site,
-                "%s %s target field '%s' is missing from source subject slot '%s'",
+                "%s %s target field '%s' is missing from source slot '%s'",
                 owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
@@ -3916,7 +3964,7 @@ type_check_zone_effect_contract(ASTNode *zone,
     ASTNode *decl_target;
     Type *target_type;
     Type *decl_target_type;
-    size_t subject_count;
+    size_t target_count;
 
     effect_slot = find_zone_effect_slot(zone, effect_slot_name);
     target_slot = find_zone_domain_slot(zone, target_slot_name);
@@ -3928,21 +3976,25 @@ type_check_zone_effect_contract(ASTNode *zone,
     if (effect_decl == NULL)
         return false;
 
-    subject_count = count_subject_domain_slots(effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count);
-    if (subject_count != 1) {
+    target_count = count_bindable_domain_slots(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count,
+        effect_decl->data.effect_decl.refreshes,
+        effect_decl->data.effect_decl.refresh_count);
+    if (target_count != 1) {
         semantic_error(ctx, apply_like,
-            "Zone %s requires effect '%s' to declare exactly one subject target, found %zu",
+            "Zone %s requires effect '%s' to declare exactly one target slot, found %zu",
             action_name,
             effect_decl->data.effect_decl.name != NULL
                 ? effect_decl->data.effect_decl.name
                 : "<unknown>",
-            subject_count);
+            target_count);
         return true;
     }
 
-    decl_target = find_nth_subject_domain_slot(effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count, 0);
+    decl_target = find_nth_bindable_domain_slot(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count,
+        effect_decl->data.effect_decl.refreshes,
+        effect_decl->data.effect_decl.refresh_count, 0);
     if (decl_target == NULL)
         return false;
 
@@ -3984,7 +4036,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     Type *right_type;
     Type *decl_left_type;
     Type *decl_right_type;
-    size_t subject_count;
+    size_t endpoint_count;
 
     relation_slot = find_zone_relation_slot(zone, relation_slot_name);
     left_slot = find_zone_domain_slot(zone, left_slot_name);
@@ -3997,23 +4049,29 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (relation_decl == NULL)
         return false;
 
-    subject_count = count_subject_domain_slots(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count);
-    if (subject_count != 2) {
+    endpoint_count = count_bindable_domain_slots(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count);
+    if (endpoint_count != 2) {
         semantic_error(ctx, link_like,
-            "Zone %s requires relation '%s' to declare exactly two subject endpoints, found %zu",
+            "Zone %s requires relation '%s' to declare exactly two endpoint slots, found %zu",
             action_name,
             relation_decl->data.relation_decl.name != NULL
                 ? relation_decl->data.relation_decl.name
                 : "<unknown>",
-            subject_count);
+            endpoint_count);
         return true;
     }
 
-    decl_left = find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 0);
-    decl_right = find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 1);
+    decl_left = find_nth_bindable_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 0);
+    decl_right = find_nth_bindable_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 1);
     if (decl_left == NULL || decl_right == NULL)
         return false;
 
@@ -4024,7 +4082,7 @@ type_check_zone_relation_contract(ASTNode *zone,
 
     if (!type_is_assignable(left_type, decl_left_type)) {
         semantic_error(ctx, link_like,
-            "Zone %s left slot '%s' has type '%s' but relation '%s' expects left subject type '%s'",
+            "Zone %s left slot '%s' has type '%s' but relation '%s' expects left endpoint type '%s'",
             action_name,
             left_slot_name != NULL ? left_slot_name : "<unknown>",
             left_type != NULL && left_type->name != NULL ? left_type->name : "<unknown>",
@@ -4038,7 +4096,7 @@ type_check_zone_relation_contract(ASTNode *zone,
 
     if (!type_is_assignable(right_type, decl_right_type)) {
         semantic_error(ctx, link_like,
-            "Zone %s right slot '%s' has type '%s' but relation '%s' expects right subject type '%s'",
+            "Zone %s right slot '%s' has type '%s' but relation '%s' expects right endpoint type '%s'",
             action_name,
             right_slot_name != NULL ? right_slot_name : "<unknown>",
             right_type != NULL && right_type->name != NULL ? right_type->name : "<unknown>",
@@ -4130,16 +4188,18 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             refresh->data.zone_refresh.source_slot_name, ctx,
             refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
     }
-    size_t subject_count = count_subject_domain_slots(
+    size_t endpoint_count = count_bindable_domain_slots(
         node->data.relation_decl.slots,
-        node->data.relation_decl.slot_count);
-    if (subject_count == 0) {
+        node->data.relation_decl.slot_count,
+        node->data.relation_decl.refreshes,
+        node->data.relation_decl.refresh_count);
+    if (endpoint_count == 0) {
         semantic_warning(ctx, node,
-            "Relation '%s' should declare at least one subject endpoint; use 'for name: Type' or 'subject slot ...'",
+            "Relation '%s' should declare at least one endpoint slot; use 'for name: Type' or a bindable subject/object slot",
             node->data.relation_decl.name);
-    } else if (subject_count > 2) {
+    } else if (endpoint_count > 2) {
         semantic_warning(ctx, node,
-            "Relation '%s' currently models a small edge; more than two subject endpoints may be better expressed as party or zone",
+            "Relation '%s' currently models a small edge; more than two endpoint slots may be better expressed as party or zone",
             node->data.relation_decl.name);
     }
     ctx->current_relation = saved_relation;
@@ -4175,16 +4235,18 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
             refresh->data.zone_refresh.source_slot_name, ctx,
             refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
     }
-    size_t subject_count = count_subject_domain_slots(
+    size_t target_count = count_bindable_domain_slots(
         node->data.effect_decl.slots,
-        node->data.effect_decl.slot_count);
-    if (subject_count == 0) {
+        node->data.effect_decl.slot_count,
+        node->data.effect_decl.refreshes,
+        node->data.effect_decl.refresh_count);
+    if (target_count == 0) {
         semantic_warning(ctx, node,
-            "Effect '%s' should declare at least one subject target; use 'for name: Type' or 'subject slot ...'",
+            "Effect '%s' should declare at least one target slot; use 'for name: Type' or a bindable subject/object slot",
             node->data.effect_decl.name);
-    } else if (subject_count > 1) {
+    } else if (target_count > 1) {
         semantic_warning(ctx, node,
-            "Effect '%s' currently expects a small target surface; multiple subject targets may be better expressed via relation or zone",
+            "Effect '%s' currently expects a small target surface; multiple target slots may be better expressed via relation or zone",
             node->data.effect_decl.name);
     }
     ctx->current_effect = saved_effect;
@@ -5143,7 +5205,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     uint32_t prev_effects = ctx->current_function_effects;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
-    bool in_class_scope = (ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS);
     bool has_effect_contract = false;
     uint32_t declared_effects =
         declared_effects_from_function_node(node, ctx, &has_effect_contract);
@@ -5280,7 +5341,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     bool matched = false;
 
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || !slot->data.domain_slot.is_subject
+                        || !slot->data.domain_slot.is_binding
                         || slot->data.domain_slot.type == NULL) {
                         continue;
                     }
@@ -5298,7 +5359,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                                 continue;
                             param_type = resolve_type_node(param->type, ctx);
                             if (param_type != NULL
-                                && type_is_subject_type(param_type, ctx)
                                 && param_type->name != NULL
                                 && strcmp(param_type->name, slot_type->name) == 0) {
                                 matched = true;
@@ -5309,7 +5369,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
                     if (!matched) {
                         semantic_error(ctx, node,
-                            "action '%s' causes effect '%s', but no self/subject parameter matches effect target type '%s'",
+                            "action '%s' causes effect '%s', but no self/parameter matches effect target type '%s'",
                             name != NULL ? name : "<anonymous>",
                             node->data.func_decl.causes_effect,
                             slot_type->name);
@@ -5330,14 +5390,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 }
             }
         }
-    } else if (!node->is_async_decl
-        && enclosing_nominal != NULL
-        && enclosing_nominal->type == AST_CLASS_DECL
-        && enclosing_nominal->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
-        semantic_error(ctx, node,
-            "subject declaration '%s' cannot use 'func'; use 'action' instead",
-            name != NULL ? name : "<anonymous>");
     }
+    /* subject now allows both func (private internal computation)
+     * and action (public plot behavior with zone/effect/authority). */
 
     /* If the function has generic parameters (<T, U, ...>),
      * register them as opaque types in a temporary scope so that
@@ -5422,15 +5477,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "Slot<subject-host> parameters require 'own' or 'ref'; use 'func F(own s: Slot<T>)' or 'func F(ref s: Slot<T>)'");
             }
         }
-        if (type_is_class_object_type(param_types[i], ctx)) {
-            bool is_implicit_self = (param->name != NULL
-                && strcmp(param->name, "self") == 0
-                && in_class_scope);
-            if (!is_implicit_self) {
-                semantic_error(ctx, node,
-                    "Subject parameters are not supported as plain value parameters yet; keep subject interaction on methods/self, or pass an explicit Box<T>/handle once the storage model is fixed");
-            }
-        }
+        /* Subject parameters are passed by reference (pointer) internally.
+         * The language hides pointer semantics from the user — subjects
+         * are identity-bearing types, so reference passing is automatic. */
     }
 
     Type *func_type = type_create_function(param_types, param_count,

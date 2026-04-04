@@ -124,6 +124,7 @@ world (생태계)
       ability (유전형질)
       role (표현형)
       action (플롯 행위)
+      object/dto (피동 대상/투영)
       party (무리)
 ```
 

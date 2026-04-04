@@ -95,6 +95,7 @@ find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 
 static ASTNode *
 find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
+                                  ASTNode **refreshes, size_t refresh_count,
                                   const char *slot_name);
 
 static ASTNode *
@@ -177,7 +178,10 @@ find_zone_projection_slot_local(ASTNode *zone, const char *slot_name)
     if (zone == NULL || zone->type != AST_ZONE_DECL)
         return NULL;
     return find_domain_projection_slot_local(zone->data.zone_decl.slots,
-        zone->data.zone_decl.slot_count, slot_name);
+        zone->data.zone_decl.slot_count,
+        zone->data.zone_decl.refreshes,
+        zone->data.zone_decl.refresh_count,
+        slot_name);
 }
 
 static ASTNode *
@@ -200,6 +204,7 @@ find_zone_state_decl_local_builtin(ASTNode *zone, const char *state_name)
 
 static ASTNode *
 find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
+                                  ASTNode **refreshes, size_t refresh_count,
                                   const char *slot_name)
 {
     if (slots == NULL || slot_name == NULL)
@@ -212,8 +217,19 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
             || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
             continue;
         }
-        if (!slot->data.domain_slot.is_subject)
-            return slot;
+        if (!slot->data.domain_slot.is_subject) {
+            for (size_t j = 0; j < refresh_count; j++) {
+                ASTNode *refresh = refreshes[j];
+                if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
+                    && refresh->data.zone_refresh.object_slot_name != NULL
+                    && strcmp(refresh->data.zone_refresh.object_slot_name,
+                              slot_name) == 0) {
+                    return slot;
+                }
+            }
+            if (slot->data.domain_slot.is_dto)
+                return slot;
+        }
         return NULL;
     }
 
@@ -420,7 +436,9 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     ASTNode *host;
     ASTNode *arg;
     ASTNode **slots = NULL;
+    ASTNode **refreshes = NULL;
     size_t slot_count = 0;
+    size_t refresh_count = 0;
     const char *label = NULL;
     const char *slot_name = NULL;
     ASTNode *slot;
@@ -437,6 +455,16 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         semantic_error(ctx, call,
             "HasProjection(...) is only available inside relation/effect/zone declarations and methods");
         return TYPE_BOOL;
+    }
+    if (host->type == AST_RELATION_DECL) {
+        refreshes = host->data.relation_decl.refreshes;
+        refresh_count = host->data.relation_decl.refresh_count;
+    } else if (host->type == AST_EFFECT_DECL) {
+        refreshes = host->data.effect_decl.refreshes;
+        refresh_count = host->data.effect_decl.refresh_count;
+    } else if (host->type == AST_ZONE_DECL) {
+        refreshes = host->data.zone_decl.refreshes;
+        refresh_count = host->data.zone_decl.refresh_count;
     }
 
     arg = call->data.call.arguments[0];
@@ -462,7 +490,8 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    slot = find_domain_projection_slot_local(slots, slot_count, slot_name);
+    slot = find_domain_projection_slot_local(slots, slot_count,
+        refreshes, refresh_count, slot_name);
     if (slot == NULL) {
         semantic_error(ctx, arg,
             "Unknown %s projection slot '%s' in HasProjection(...)",

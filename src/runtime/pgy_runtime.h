@@ -1059,6 +1059,18 @@ static inline void pgy_log_string(char* v)   { printf("%s\n", v ? v : "(null)");
 )(x)
 
 /* =================================================================
+ * Math / Random Helpers (C backend inline)
+ * ================================================================= */
+
+#include <math.h>
+
+static inline float  Sqrt(float x)            { return sqrtf(x); }
+static inline float  Pow(float x, float y)    { return powf(x, y); }
+static inline float  Floor(float x)           { return floorf(x); }
+static inline float  Ceil(float x)            { return ceilf(x); }
+static inline int32_t Random(int32_t max)     { return max <= 0 ? 0 : (int32_t)(rand() % max); }
+
+/* =================================================================
  * Standard Library Helpers
  * ================================================================= */
 

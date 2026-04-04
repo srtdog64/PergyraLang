@@ -31,6 +31,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` 최소 표면까지 parser/semantic에 반영됨
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
+- `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 고정하는 최소 표면까지 반영됨
 - `zone`은 `relation slot` / `effect slot`, `world`는 `zone` slot 최소 조립 표면까지 parser/semantic에 반영됨
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot` 최소 attachment 표면까지 parser/semantic에 반영됨
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
@@ -66,9 +67,9 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - world constructor는 zone dirty와 world derived-dirty를 `true`로 초기화해 첫 sync에서 embedded zone projection/runtime state를 놓치지 않는다
 - world method는 post-sync 직전에 embedded zone dirty를 다시 세워 world-owned zone 교체가 projection/derived state까지 전파되게 한다
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM runtime smoke로 검증된다
-- `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
-- `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
-- `refresh`/`publish`는 object/dto slot / subject slot kind와 projection field 정합성을 검사함
+- `apply/detach`는 `effect`의 bindable target arity/type와 기본 정합성을 검사하며 object target도 허용함
+- `link/unlink`는 `relation`의 bindable endpoint arity/type와 기본 정합성을 검사하며 object endpoint도 허용함
+- `refresh`/`publish`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
 - `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
 - `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
@@ -79,18 +80,21 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
 - `action` clause는 이제 `authorized by` subject-host 확인, `within` zone slot/authority 적합성 확인, `causes` effect target/zone layer 적합성 확인까지 semantic에 반영됨
+- zone method 안의 subject `action` call은 이제 C/LLVM 둘 다 matching `effect slot` runtime activation과 embedded effect sync로 이어짐
+- `self.player.Attack()` 같은 nested nominal host method call도 C/LLVM 모두에서 실제 subject/class dispatch로 lowering됨
 - `role`은 non-subject nominal declaration에 바인딩될 수 없고, `party`는 subject-bound role impl이 없는 ability를 협력 슬롯에 둘 수 없음
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 타입처럼 parameter/return/copy가 가능함
 - C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
-- `object` / `dto` declaration은 passive projection/value 형식이지만 helper `func`를 가질 수 있음
+- `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 projection/value 형식임
 - `subject` 안의 legacy `func`는 이제 semantic error이며, subject의 공적 동사는 `action`만 허용됨
-- 현재 회귀 수치: `semantic 440 passed`, `transpile 331 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 442 passed`, `transpile 344 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
-- `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 subject의 수동 해석 모드로 정리됨
+- `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
+- `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
 
 ## 현재 한계

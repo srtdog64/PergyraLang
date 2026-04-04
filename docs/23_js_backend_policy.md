@@ -112,7 +112,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 0. 공통 UI IR 우선
    - `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
    - `subject`는 직접 UI node가 아니라 projection source
-   - `object` / `dto` / projection result가 UI 소비 표면
+   - `object` / `dto` / projection surface가 UI 소비 표면
    - `zone` / `world` dirty sync가 UI 갱신 contract
 
 1. 코어 의미론 유지

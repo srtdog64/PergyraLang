@@ -486,14 +486,25 @@ parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_coun
         return;
 
     do {
+        bool is_subject = true;
+        if ((parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_STRUCT))
+            && parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "object") == 0) {
+            parser_advance(parser);
+            is_subject = false;
+        } else if (parser_check(parser, TOKEN_CLASS)) {
+            parser_advance(parser);
+            is_subject = true;
+        }
         Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
-            "Expected subject target name after 'for'");
+            "Expected relation/effect target name after 'for'");
         parser_consume(parser, TOKEN_COLON,
-            "Expected ':' after subject target name");
+            "Expected ':' after relation/effect target name");
         ASTNode *slot_type = parse_type(parser);
 
-        ASTNode *slot = ast_create_domain_slot(slot_name.text, true);
+        ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
         slot->data.domain_slot.type = slot_type;
+        slot->data.domain_slot.is_binding = true;
         slot->line = slot_name.line;
         slot->column = slot_name.column;
         append_domain_slot(slots, slot_count, slot);

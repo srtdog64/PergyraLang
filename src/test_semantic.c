@@ -3057,11 +3057,13 @@ test_shared_memory_features(void)
         const char *source =
             "subject Player { let hp: Int; }\n"
             "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; }\n"
             "zone BrokenZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
             "    refresh player from player\n"
-            "    refresh playerView from playerView\n"
+            "    refresh playerView from packet\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3513,6 +3515,72 @@ test_shared_memory_features(void)
             "}\n"
             "zone BrokenZone {\n"
             "    subject slot player: PlayerView\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone apply and link accept object slots when effect/relation declare object targets");
+    {
+        const char *source =
+            "object Door { hp: Int; }\n"
+            "object Key { id: Int; }\n"
+            "object DoorView { hp: Int; }\n"
+            "effect Highlighted for object target: Door {\n"
+            "    object slot view: DoorView\n"
+            "    refresh view from target\n"
+            "}\n"
+            "relation KeyBinding for object door: Door, object key: Key {\n"
+            "}\n"
+            "zone LockZone {\n"
+            "    object slot door: Door\n"
+            "    object slot key: Key\n"
+            "    effect slot glow: Highlighted\n"
+            "    relation slot binding: KeyBinding\n"
+            "    apply glow to door\n"
+            "    link binding between door, key\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone apply and link enforce object endpoint types");
+    {
+        const char *source =
+            "object Door { hp: Int; }\n"
+            "object Key { id: Int; }\n"
+            "object Coin { value: Int; }\n"
+            "effect Highlighted for object target: Door {\n"
+            "}\n"
+            "relation KeyBinding for object door: Door, object key: Key {\n"
+            "}\n"
+            "zone LockZone {\n"
+            "    object slot door: Door\n"
+            "    object slot coin: Coin\n"
+            "    effect slot glow: Highlighted\n"
+            "    relation slot binding: KeyBinding\n"
+            "    apply glow to coin\n"
+            "    link binding between coin, door\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -4711,7 +4779,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("standalone subject parameter by value is rejected");
+    TEST("subject parameter is accepted (reference semantics)");
     {
         const char *source =
             "subject Vec2 {\n"
@@ -4725,9 +4793,7 @@ test_effect_inference(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Subject parameters are not supported as plain value parameters yet"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5782,11 +5848,15 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject declarations reject legacy func bodies");
+    TEST("subject declarations allow both func and action");
     {
         const char *source =
             "subject Player {\n"
-            "    func Tick(self) -> Void {\n"
+            "    let hp: Int;\n"
+            "    func CalculatePower(self) -> Int {\n"
+            "        return hp * 2;\n"
+            "    }\n"
+            "    action Tick(self) -> Void {\n"
             "        Log(1);\n"
             "    }\n"
             "}\n";
@@ -5796,9 +5866,7 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(
-            result, "cannot use 'func'; use 'action' instead"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

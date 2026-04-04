@@ -18,7 +18,15 @@
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
 - 문장 종료는 세미콜론 `;` 이다.
 - 블록은 `{ ... }` 로 쓴다.
+- **중괄호 스타일은 BSD (Allman) 기본이다.** 여는 중괄호는 같은 줄에 쓸 수도 있고 다음 줄에 내릴 수도 있지만, 파서는 양쪽 모두 허용한다.
 - 현재 구현 기준으로 “문서상 제안만 있고 미구현인 문법”은 이 문서에 실지 않는다.
+
+### 1.1 참조 전달 규칙
+
+- `subject`, `relation`, `effect`, `zone`, `world`는 identity-bearing 타입이다.
+- 이 타입들을 함수 파라미터로 전달하면 **자동으로 reference(참조) 전달**된다.
+- 사용자는 포인터를 의식하지 않아도 된다 -- 언어가 내부적으로 처리한다.
+- `struct`, `vessel`, `class`, `object`, `dto`는 value 타입이다 -- 복사 전달된다.
 
 ## 2. 리터럴과 표현식
 
@@ -101,12 +109,85 @@ let (a, b, c) = Split("x y z", " ");
 
 - 튜플/배열 반환값을 여러 변수에 동시 바인딩할 수 있다.
 
-### 3.2 함수
+### 3.2 함수와 action
+
+Pergyra에는 `method` 키워드가 없다. 함수는 `func`와 `action` 두 가지뿐이다.
+
+#### 용어 정의
+
+| 용어 | 의미 |
+|------|------|
+| **free func** | top-level 함수. 타입에 소속되지 않음 |
+| **hosted func** (귀속 func) | 타입 안에 선언되고 `self`를 받는 func. 해당 타입에 귀속됨 |
+| **general func** | subject 안의 일반 func. 사적 판단, 내부 계산용 |
+| **action** | subject 전용. zone/effect/authority와 연동되는 공적 행위 |
+
+> **"method"라는 단어는 Pergyra에서 쓰지 않는다.**
+> OOP의 "method"가 암시하는 상속/오버라이딩/가상 디스패치와 거리를 두기 위함이다.
 
 ```pergyra
+// free func
 func Add(a: Int, b: Int) -> Int {
     return a + b;
 }
+
+// hosted func (vessel에 귀속)
+vessel HP {
+    func Percentage(self) -> Int {
+        return (current * 100) / max;
+    }
+}
+
+// subject: general func (사적 판단) + action (공적 행위)
+subject Fighter {
+    func IsAlive(self) -> Bool {       // general func
+        return hp > 0;
+    }
+    action Attack(self, target: Fighter) -> Int   // action
+        requires Combatable
+        within BattleZone
+        causes DamageEffect {
+        // ...
+    }
+}
+```
+
+#### func vs action
+
+| 구분 | `func` | `action` |
+|------|--------|----------|
+| 허용 위치 | 어디서든 (top-level, subject, vessel, class, role 등) | subject 전용 |
+| self 바인딩 | 선택 (self가 있으면 hosted func) | 필수 |
+| zone/effect 연동 | 없음 | `requires`, `within`, `causes`, `authorized by` |
+| 소설 비유 | 머릿속 계산 (관객이 안 봄) | 무대 행동 (관객이 봄) |
+| subject 안 용어 | general func | action |
+
+#### action 전용 clause
+
+```pergyra
+action Attack(self, target: Fighter) -> Int
+    requires Combatable              // ability 자격
+    within BattleZone                // zone 제약
+    causes DamageEffect              // effect 선언
+    authorized by self, target {     // 승인 주체
+    // ...
+}
+```
+
+#### 백엔드별 lowering
+
+컴파일러가 free func / hosted func / action을 구분하고, 백엔드별로 적절한 형태로 emit한다:
+
+```
+C 백엔드:
+  free func     -> FuncName(...)
+  hosted func   -> TypeName_FuncName(Type *self, ...)
+  action        -> TypeName_ActionName(Type *self, ...)
+
+JS 백엔드 (미래):
+  free func     -> function FuncName(...) { }
+  hosted func   -> class Type { FuncName() { this.xxx } }
+  action        -> class Type { ActionName() { this.xxx } }
 ```
 
 제네릭과 `where` 절:
@@ -123,7 +204,9 @@ where T: Comparable {
 ```
 
 지원되는 요소:
-- 일반 함수
+- free function (top-level)
+- self-bound function (타입 내부, self 파라미터)
+- action (subject 전용, zone/effect 연동)
 - 제네릭 함수
 - `where` 제약
 - `async func`

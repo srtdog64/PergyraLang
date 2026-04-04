@@ -74,11 +74,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
 - `world`, `systemic`, `relation`, `effect`, and `zone` now behave as contextual keywords so they remain valid local variable names outside declaration positions
+- `relation` / `effect` headers now accept `for object ...` bindable targets/endpoints, and zone contracts accept matching object slots in `apply/link/detach/unlink`
+- Domain-local `refresh` / `publish` now accept object sources as well as subject sources, while still rejecting dto sources
+- Fixed LLVM relation/effect projection-ready struct layout for object-target overlays so `object_layer_binding` no longer corrupts memory during `--emit-llvm`
 - Added `vessel` as a nominal declaration flavor and `subject`-local `vessel name: Type;` field surface
 - Added `action` as a subject-first declaration surface with minimal `requires` / `within` / `causes` / `authorized by` clause parsing and semantic validation
 - Added a hard semantic error for legacy `func` declarations inside `subject`; `action` is now the only public subject verb surface
 - Fixed async `func` / subject `action` flag overlap in the shared AST union so LLVM async entrypoints no longer mis-diagnose as actions
 - Tightened `action` clause validation so `authorized by` requires subject hosts, `within` checks matching zone subject/authority coverage, and `causes` checks effect target compatibility plus zone effect-slot presence
+- Added runtime bridging from zone-local subject `action` calls to matching `effect slot` activation and embedded effect sync in both C and LLVM backends
+- Added C/LLVM lowering for nested nominal host calls such as `self.player.Attack()` so embedded subject/class dispatch no longer falls back to raw member-call syntax
 - `object` / `dto` declarations now allow passive helper methods again
 - Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
 - Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
@@ -112,7 +117,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, `class` remains as a separate nominal surface, and `actor` is positioned as a subject execution profile
 - Actor docs now reflect current implementation state: `actor` is already treated semantically as a subject execution profile, and `subject Name actor { ... }` is now supported alongside transitional standalone actor syntax
 - Vessel/action docs now match implementation more closely: `subject` uses `action` only, while `object` / `dto` keep passive helper `func`
-- Core docs now keep `entity` out of the language ontology and define `object` as a passive interpretation mode of `subject` rather than a separate top-level kind
+- Core docs now define `object` as a passive state target that can hold state and react without initiating intent
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
 - Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface
 - Class/object model docs now describe the first real behavioral split between `subject` and `class` instead of treating them as parser-only flavors

@@ -487,7 +487,8 @@ static bool
 is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
     ASTNode *decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && !decl->data.class_decl.is_struct)
+    if (decl != NULL && (!decl->data.class_decl.is_struct
+        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL))
         return true;
     if (find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
@@ -510,6 +511,7 @@ is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
         return false;
     if (is_subject_type_name(ctx, type_name))
         return true;
+    /* vessel is value-self (no pointer): pure state bundle + read-only computation */
     return find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
         || find_zone_decl(ctx, type_name) != NULL
@@ -521,7 +523,7 @@ current_class_uses_self_cell(TranspilerCtx *ctx)
 {
     return ctx != NULL
         && ctx->current_class_name != NULL
-        && is_subject_type_name(ctx, ctx->current_class_name);
+        && is_pointer_self_host_type_name(ctx, ctx->current_class_name);
 }
 
 static bool
@@ -655,7 +657,14 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
 }
 
 static bool
-domain_has_projection_slot(ASTNode **slots, size_t slot_count, const char *slot_name)
+domain_slot_is_projection_target_local(ASTNode *slot,
+                                       ASTNode **refreshes,
+                                       size_t refresh_count);
+
+static bool
+domain_has_projection_slot(ASTNode **slots, size_t slot_count,
+                           ASTNode **refreshes, size_t refresh_count,
+                           const char *slot_name)
 {
     if (slots == NULL || slot_name == NULL)
         return false;
@@ -667,16 +676,49 @@ domain_has_projection_slot(ASTNode **slots, size_t slot_count, const char *slot_
             || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
             continue;
         }
-        return !slot->data.domain_slot.is_subject;
+        if (slot->data.domain_slot.is_dto)
+            return true;
+        if (slot->data.domain_slot.is_subject)
+            return false;
+        return domain_slot_is_projection_target_local(slot, refreshes, refresh_count);
+    }
+
+    return false;
+}
+
+static bool
+domain_slot_is_projection_target_local(ASTNode *slot,
+                                       ASTNode **refreshes,
+                                       size_t refresh_count)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+        || slot->data.domain_slot.slot_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
+            || refresh->data.zone_refresh.object_slot_name == NULL) {
+            continue;
+        }
+        if (strcmp(slot->data.domain_slot.slot_name,
+                   refresh->data.zone_refresh.object_slot_name) == 0) {
+            return true;
+        }
     }
 
     return false;
 }
 
 static ASTNode *
-find_nth_subject_domain_slot_local(ASTNode **slots, size_t slot_count, size_t nth)
+find_nth_bindable_domain_slot_local(ASTNode **slots, size_t slot_count,
+                                    ASTNode **refreshes, size_t refresh_count,
+                                    size_t nth)
 {
     size_t seen = 0;
+    (void)refreshes;
+    (void)refresh_count;
 
     if (slots == NULL)
         return NULL;
@@ -684,7 +726,7 @@ find_nth_subject_domain_slot_local(ASTNode **slots, size_t slot_count, size_t nt
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject) {
+            || !slot->data.domain_slot.is_binding) {
             continue;
         }
         if (seen == nth)
@@ -701,7 +743,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
 {
     ASTNode *layer_slot;
     ASTNode *effect_decl;
-    ASTNode *subject_slot;
+    ASTNode *target_slot;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || target_slot_name == NULL || ctx == NULL) {
@@ -726,15 +768,17 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
     if (effect_decl == NULL)
         return;
 
-    subject_slot = find_nth_subject_domain_slot_local(effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count, 0);
-    if (subject_slot == NULL || subject_slot->data.domain_slot.slot_name == NULL)
+    target_slot = find_nth_bindable_domain_slot_local(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count,
+        effect_decl->data.effect_decl.refreshes,
+        effect_decl->data.effect_decl.refresh_count, 0);
+    if (target_slot == NULL || target_slot->data.domain_slot.slot_name == NULL)
         return;
 
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
         layer_slot_name,
-        subject_slot->data.domain_slot.slot_name,
+        target_slot->data.domain_slot.slot_name,
         target_slot_name);
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
@@ -749,8 +793,8 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
 {
     ASTNode *layer_slot;
     ASTNode *relation_decl;
-    ASTNode *left_subject;
-    ASTNode *right_subject;
+    ASTNode *left_target;
+    ASTNode *right_target;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
@@ -775,22 +819,26 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     if (relation_decl == NULL)
         return;
 
-    left_subject = find_nth_subject_domain_slot_local(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 0);
-    right_subject = find_nth_subject_domain_slot_local(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 1);
-    if (left_subject == NULL || right_subject == NULL
-        || left_subject->data.domain_slot.slot_name == NULL
-        || right_subject->data.domain_slot.slot_name == NULL) {
+    left_target = find_nth_bindable_domain_slot_local(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 0);
+    right_target = find_nth_bindable_domain_slot_local(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 1);
+    if (left_target == NULL || right_target == NULL
+        || left_target->data.domain_slot.slot_name == NULL
+        || right_target->data.domain_slot.slot_name == NULL) {
         return;
     }
 
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
-        layer_slot_name, left_subject->data.domain_slot.slot_name, left_slot_name);
+        layer_slot_name, left_target->data.domain_slot.slot_name, left_slot_name);
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
-        layer_slot_name, right_subject->data.domain_slot.slot_name, right_slot_name);
+        layer_slot_name, right_target->data.domain_slot.slot_name, right_slot_name);
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
         relation_decl->data.relation_decl.name,
@@ -807,7 +855,9 @@ current_zone_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
     if (decl == NULL)
         return false;
     return domain_has_projection_slot(decl->data.zone_decl.slots,
-        decl->data.zone_decl.slot_count, slot_name);
+        decl->data.zone_decl.slot_count,
+        decl->data.zone_decl.refreshes,
+        decl->data.zone_decl.refresh_count, slot_name);
 }
 
 static bool
@@ -820,7 +870,9 @@ current_relation_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
     if (decl == NULL)
         return false;
     return domain_has_projection_slot(decl->data.relation_decl.slots,
-        decl->data.relation_decl.slot_count, slot_name);
+        decl->data.relation_decl.slot_count,
+        decl->data.relation_decl.refreshes,
+        decl->data.relation_decl.refresh_count, slot_name);
 }
 
 static bool
@@ -833,7 +885,9 @@ current_effect_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
     if (decl == NULL)
         return false;
     return domain_has_projection_slot(decl->data.effect_decl.slots,
-        decl->data.effect_decl.slot_count, slot_name);
+        decl->data.effect_decl.slot_count,
+        decl->data.effect_decl.refreshes,
+        decl->data.effect_decl.refresh_count, slot_name);
 }
 
 static bool
@@ -924,6 +978,176 @@ find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
     return NULL;
 }
 
+static const char *
+zone_subject_slot_type_name(ASTNode *zone_decl, const char *slot_name)
+{
+    ASTNode *slot = find_zone_domain_slot(zone_decl, slot_name);
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+        || !slot->data.domain_slot.is_subject
+        || slot->data.domain_slot.type == NULL
+        || slot->data.domain_slot.type->type != AST_TYPE) {
+        return NULL;
+    }
+    return slot->data.domain_slot.type->data.type.name;
+}
+
+static ASTNode *
+find_subject_host_method_decl(TranspilerCtx *ctx, const char *type_name,
+                              const char *method_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || type_name == NULL || method_name == NULL)
+        return NULL;
+
+    decl = find_class_decl(ctx, type_name);
+    if (decl != NULL && decl->type == AST_CLASS_DECL) {
+        for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
+            ASTNode *method = decl->data.class_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
+    }
+
+    decl = find_actor_decl(ctx, type_name);
+    if (decl != NULL && decl->type == AST_ACTOR_DECL) {
+        for (size_t i = 0; i < decl->data.actor_decl.method_count; i++) {
+            ASTNode *method = decl->data.actor_decl.methods[i];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                return method;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
+                              const char **slot_name_out,
+                              const char **type_name_out)
+{
+    ASTNode *zone_decl;
+    const char *slot_name = NULL;
+    const char *type_name = NULL;
+
+    if (slot_name_out != NULL)
+        *slot_name_out = NULL;
+    if (type_name_out != NULL)
+        *type_name_out = NULL;
+
+    if (ctx == NULL || ctx->current_zone_name == NULL || receiver == NULL)
+        return false;
+
+    zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
+    if (zone_decl == NULL)
+        return false;
+
+    if (receiver->type == AST_IDENTIFIER && receiver->data.identifier.name != NULL) {
+        slot_name = receiver->data.identifier.name;
+        type_name = zone_subject_slot_type_name(zone_decl, slot_name);
+        if (type_name == NULL) {
+            const char *var_type = lookup_typed_var(ctx, slot_name);
+            if (var_type != NULL && is_subject_type_name(ctx, var_type))
+                type_name = var_type;
+            else if (var_type != NULL) {
+                ASTNode *actor_decl = find_actor_decl(ctx, var_type);
+                if (actor_decl != NULL)
+                    type_name = var_type;
+            }
+        }
+    } else if (receiver->type == AST_MEMBER_ACCESS
+               && receiver->data.member.object != NULL
+               && receiver->data.member.object->type == AST_IDENTIFIER
+               && receiver->data.member.object->data.identifier.name != NULL
+               && strcmp(receiver->data.member.object->data.identifier.name, "self") == 0
+               && receiver->data.member.name != NULL) {
+        slot_name = receiver->data.member.name;
+        type_name = zone_subject_slot_type_name(zone_decl, slot_name);
+    }
+
+    if (slot_name == NULL || type_name == NULL)
+        return false;
+
+    if (slot_name_out != NULL)
+        *slot_name_out = slot_name;
+    if (type_name_out != NULL)
+        *type_name_out = type_name;
+    return true;
+}
+
+static void
+emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
+{
+    ASTNode *callee;
+    ASTNode *receiver;
+    ASTNode *zone_decl;
+    ASTNode *method_decl;
+    const char *method_name;
+    const char *receiver_slot_name = NULL;
+    const char *receiver_type_name = NULL;
+    const char *effect_name;
+
+    if (ctx == NULL || ctx->current_zone_name == NULL || call == NULL
+        || call->type != AST_CALL) {
+        return;
+    }
+
+    callee = call->data.call.callee;
+    if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
+        return;
+
+    receiver = callee->data.member.object;
+    method_name = callee->data.member.name;
+    if (receiver == NULL || method_name == NULL)
+        return;
+
+    if (!resolve_zone_subject_receiver(ctx, receiver,
+            &receiver_slot_name, &receiver_type_name)) {
+        return;
+    }
+
+    method_decl = find_subject_host_method_decl(ctx, receiver_type_name, method_name);
+    if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
+        || method_decl->is_async_decl
+        || !method_decl->data.func_decl.is_action
+        || method_decl->data.func_decl.within_zone == NULL
+        || method_decl->data.func_decl.causes_effect == NULL
+        || strcmp(method_decl->data.func_decl.within_zone, ctx->current_zone_name) != 0) {
+        return;
+    }
+
+    zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
+    if (zone_decl == NULL)
+        return;
+
+    effect_name = method_decl->data.func_decl.causes_effect;
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+        const char *layer_name;
+
+        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
+            || layer_slot->data.zone_layer_slot.is_relation
+            || layer_slot->data.zone_layer_slot.layer_type == NULL
+            || strcmp(layer_slot->data.zone_layer_slot.layer_type, effect_name) != 0) {
+            continue;
+        }
+
+        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        if (layer_name == NULL)
+            continue;
+
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
+        emit_zone_bind_effect_layer(ctx->out, zone_decl, layer_name, receiver_slot_name, ctx);
+    }
+}
+
 static ASTNode *
 find_world_state_decl(ASTNode *world_decl, const char *state_name)
 {
@@ -938,6 +1162,143 @@ find_world_state_decl(ASTNode *world_decl, const char *state_name)
             return state;
         }
     }
+    return NULL;
+}
+
+static const char *
+current_field_type_name(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || field_name == NULL)
+        return NULL;
+
+    if (ctx->current_class_name != NULL) {
+        decl = find_class_decl(ctx, ctx->current_class_name);
+        if (decl != NULL && decl->type == AST_CLASS_DECL) {
+            for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+                ClassField *field = decl->data.class_decl.fields[i];
+                if (field != NULL && field->name != NULL
+                    && strcmp(field->name, field_name) == 0
+                    && field->type != NULL && field->type->type == AST_TYPE) {
+                    return field->type->data.type.name;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_zone_name != NULL) {
+        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        if (decl != NULL && decl->type == AST_ZONE_DECL) {
+            ASTNode *slot = find_zone_domain_slot(decl, field_name);
+            if (slot != NULL && slot->data.domain_slot.type != NULL
+                && slot->data.domain_slot.type->type == AST_TYPE) {
+                return slot->data.domain_slot.type->data.type.name;
+            }
+            for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
+                ASTNode *layer = decl->data.zone_decl.layer_slots[i];
+                if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
+                    && layer->data.zone_layer_slot.slot_name != NULL
+                    && strcmp(layer->data.zone_layer_slot.slot_name, field_name) == 0) {
+                    return layer->data.zone_layer_slot.layer_type;
+                }
+            }
+            for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
+                ASTNode *shared = decl->data.zone_decl.shared_fields[i];
+                if (shared != NULL && shared->data.party_shared.name != NULL
+                    && strcmp(shared->data.party_shared.name, field_name) == 0
+                    && shared->data.party_shared.type != NULL
+                    && shared->data.party_shared.type->type == AST_TYPE) {
+                    return shared->data.party_shared.type->data.type.name;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_relation_name != NULL) {
+        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        if (decl != NULL && decl->type == AST_RELATION_DECL) {
+            for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
+                ASTNode *slot = decl->data.relation_decl.slots[i];
+                if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, field_name) == 0
+                    && slot->data.domain_slot.type != NULL
+                    && slot->data.domain_slot.type->type == AST_TYPE) {
+                    return slot->data.domain_slot.type->data.type.name;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_effect_name != NULL) {
+        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+            for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
+                ASTNode *slot = decl->data.effect_decl.slots[i];
+                if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, field_name) == 0
+                    && slot->data.domain_slot.type != NULL
+                    && slot->data.domain_slot.type->type == AST_TYPE) {
+                    return slot->data.domain_slot.type->data.type.name;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_world_name != NULL) {
+        decl = find_world_decl(ctx, ctx->current_world_name);
+        if (decl != NULL && decl->type == AST_WORLD_DECL) {
+            for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
+                ASTNode *slot = decl->data.world_decl.systemics[i];
+                if (slot != NULL && slot->data.world_systemic.slot_name != NULL
+                    && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
+                    return slot->data.world_systemic.systemic_type;
+                }
+            }
+            for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
+                ASTNode *slot = decl->data.world_decl.zones[i];
+                if (slot != NULL && slot->data.world_zone.slot_name != NULL
+                    && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+                    return slot->data.world_zone.zone_type;
+                }
+            }
+            for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
+                ASTNode *shared = decl->data.world_decl.shared_fields[i];
+                if (shared != NULL && shared->data.party_shared.name != NULL
+                    && strcmp(shared->data.party_shared.name, field_name) == 0
+                    && shared->data.party_shared.type != NULL
+                    && shared->data.party_shared.type->type == AST_TYPE) {
+                    return shared->data.party_shared.type->data.type.name;
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
+{
+    if (ctx == NULL || expr == NULL)
+        return NULL;
+
+    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        if (type_name != NULL)
+            return type_name;
+        return current_field_type_name(ctx, expr->data.identifier.name);
+    }
+
+    if (expr->type == AST_MEMBER_ACCESS
+        && expr->data.member.object != NULL
+        && expr->data.member.object->type == AST_IDENTIFIER
+        && expr->data.member.object->data.identifier.name != NULL
+        && strcmp(expr->data.member.object->data.identifier.name, "self") == 0
+        && expr->data.member.name != NULL) {
+        return current_field_type_name(ctx, expr->data.member.name);
+    }
+
     return NULL;
 }
 
@@ -2663,16 +3024,24 @@ binary_op_to_c(TokenType op)
 char *
 emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 {
-    /* String concatenation: "a" + "b" → StringConcat(a, b) */
+    /* String concatenation: "a" + "b" → StringConcat(a, b)
+     * Walk the left spine of chained + to find the leftmost leaf;
+     * if that leaf is String, the whole chain is string concat. */
     if (expr->data.binary.op.type == TOKEN_PLUS) {
         const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        /* Also detect chained string concat: (str + str) + str */
         bool is_string = (lt != NULL && strcmp(lt, "String") == 0);
-        if (!is_string && expr->data.binary.left->type == AST_BINARY
-            && expr->data.binary.left->data.binary.op.type == TOKEN_PLUS) {
-            const char *lt2 = infer_expression_type_name(ctx, expr->data.binary.left->data.binary.left);
-            if (lt2 != NULL && strcmp(lt2, "String") == 0)
-                is_string = true;
+        if (!is_string) {
+            /* Walk left spine of + chain to find leftmost operand */
+            ASTNode *cursor = expr->data.binary.left;
+            while (cursor != NULL && cursor->type == AST_BINARY
+                   && cursor->data.binary.op.type == TOKEN_PLUS) {
+                cursor = cursor->data.binary.left;
+            }
+            if (cursor != NULL) {
+                const char *leaf_t = infer_expression_type_name(ctx, cursor);
+                if (leaf_t != NULL && strcmp(leaf_t, "String") == 0)
+                    is_string = true;
+            }
         }
         if (is_string) {
             char *left  = emit_expression(expr->data.binary.left,  ctx);
@@ -3822,23 +4191,32 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                             || strcmp(method, "Read") == 0
                             || strcmp(method, "Release") == 0);
 
-        if (obj != NULL && obj->type == AST_IDENTIFIER && method != NULL) {
-            const char *var_name = obj->data.identifier.name;
-            const char *type_name = lookup_typed_var(ctx, var_name);
+        if (obj != NULL && method != NULL) {
+            const char *type_name = resolve_nominal_host_expr_type_name(ctx, obj);
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
                 bool use_self_cell = is_pointer_self_host_type_name(ctx, type_name);
-                const char *self_expr = strcmp(var_name, "self") == 0 ? "self" : NULL;
+                bool is_self_ident = (obj->type == AST_IDENTIFIER
+                    && obj->data.identifier.name != NULL
+                    && strcmp(obj->data.identifier.name, "self") == 0);
 
-                if (self_expr == NULL) {
+                if (is_self_ident && use_self_cell) {
+                    codebuf_write(args_buf, "self");
+                } else {
                     char *obj_expr = emit_expression(obj, ctx);
-                    if (use_self_cell)
+                    /* Check if receiver is already a pointer (subject-ref param) */
+                    bool already_pointer = false;
+                    if (obj->type == AST_IDENTIFIER) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx,
+                            obj->data.identifier.name);
+                        if (entry != NULL && entry->is_subject_ref)
+                            already_pointer = true;
+                    }
+                    if (use_self_cell && !already_pointer)
                         codebuf_write(args_buf, "&%s", obj_expr);
                     else
                         codebuf_write(args_buf, "%s", obj_expr);
                     free(obj_expr);
-                } else {
-                    codebuf_write(args_buf, "%s", self_expr);
                 }
 
                 for (size_t i = 0; i < call->data.call.arg_count; i++) {
@@ -3980,8 +4358,34 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             arg = emit_expression(call->data.call.arguments[i], ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
-        if (!handled)
-            codebuf_write(args_buf, "%s", arg);
+        if (!handled) {
+            /* Subject arguments: pass by pointer (reference semantics) */
+            bool is_subject_arg = false;
+            if (param != NULL && param->type != NULL
+                && param->name != NULL && strcmp(param->name, "self") != 0) {
+                char *ptn = render_type_name(param->type);
+                if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
+                    is_subject_arg = true;
+                free(ptn);
+            }
+            if (is_subject_arg) {
+                /* Don't add & if already a pointer (subject-ref param) */
+                bool already_ptr = false;
+                ASTNode *arg_node = call->data.call.arguments[i];
+                if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+                    TypedVarEntry *entry = lookup_typed_entry(ctx,
+                        arg_node->data.identifier.name);
+                    if (entry != NULL && entry->is_subject_ref)
+                        already_ptr = true;
+                }
+                if (already_ptr)
+                    codebuf_write(args_buf, "%s", arg);
+                else
+                    codebuf_write(args_buf, "&%s", arg);
+            } else {
+                codebuf_write(args_buf, "%s", arg);
+            }
+        }
         free(arg);
     }
 
@@ -4307,6 +4711,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 : "%s.%s", obj, node->data.member.name);
             free(obj);
             return result;
+        }
+        /* Subject-ref parameter: use -> for member access */
+        if (node->data.member.object->type == AST_IDENTIFIER) {
+            TypedVarEntry *entry = lookup_typed_entry(ctx,
+                node->data.member.object->data.identifier.name);
+            if (entry != NULL && entry->is_subject_ref) {
+                char *result = strdup_fmt("%s->%s", obj, node->data.member.name);
+                free(obj);
+                return result;
+            }
         }
         char *result = strdup_fmt("%s.%s", obj, node->data.member.name);
         free(obj);
@@ -5012,6 +5426,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     } else if (init != NULL && init->type == AST_CHANNEL_RECV) {
         const char *inner = infer_expression_type_name(ctx, init);
         register_typed_var(ctx, name, inner);
+    } else if (init != NULL) {
+        /* Fallback: infer from any initializer (string literals, binary exprs, etc.) */
+        const char *inferred = infer_expression_type_name(ctx, init);
+        if (inferred != NULL && strcmp(inferred, "Int") != 0) {
+            /* Only register non-default (Int is the fallback, skip to avoid noise) */
+            register_typed_var(ctx, name, inferred);
+        }
     }
 }
 
@@ -5053,6 +5474,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_write(buf, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(buf, ", PgyToken_%s %s_token", inner, p->name);
+        } else if (p->name != NULL && strcmp(p->name, "self") != 0
+                   && type_name != NULL
+                   && is_pointer_self_host_type_name(ctx, type_name)) {
+            codebuf_write(buf, "%s *%s", pt, p->name);
         } else {
             codebuf_write(buf, "%s %s", pt, p->name);
         }
@@ -5118,6 +5543,11 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_write(ctx->out, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(ctx->out, ", PgyToken_%s %s_token", inner, p->name);
+        } else if (p->name != NULL && strcmp(p->name, "self") != 0
+                   && type_name != NULL
+                   && is_pointer_self_host_type_name(ctx, type_name)) {
+            /* Subject parameters are passed by pointer (reference semantics) */
+            codebuf_write(ctx->out, "%s *%s", pt, p->name);
         } else {
             codebuf_write(ctx->out, "%s %s", pt, p->name);
         }
@@ -5137,6 +5567,13 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                                || strncmp(type_name, "SecureSlot<", 11) == 0)
                 && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
             register_typed_var(ctx, p->name, type_name);
+            /* Mark pointer-self parameters (subject/relation/effect/zone/world) for -> access */
+            if (p->name != NULL && strcmp(p->name, "self") != 0
+                && is_pointer_self_host_type_name(ctx, type_name)) {
+                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                if (entry != NULL)
+                    entry->is_subject_ref = true;
+            }
             if (strncmp(type_name, "Slot<", 5) == 0)
                 register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false, boundary_slot);
             else if (strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -5457,7 +5894,15 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            {
+                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
+                if (subj_param)
+                    codebuf_write(ctx->out, ", %s *%s", pt, p->name);
+                else
+                    codebuf_write(ctx->out, ", %s %s", pt, p->name);
+                free(ptn);
+            }
         }
         codebuf_write(ctx->out, ")\n{\n");
 
@@ -5480,6 +5925,11 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 type_name = render_type_name(p->type);
                 if (type_name != NULL) {
                     register_typed_var(ctx, p->name, type_name);
+                    if (is_pointer_self_host_type_name(ctx, type_name)) {
+                        TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                        if (entry != NULL)
+                            entry->is_subject_ref = true;
+                    }
                     free(type_name);
                 }
             }
@@ -6594,6 +7044,8 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         if (expr != NULL && expr[0] != '\0') {
             write_indent(ctx);
             codebuf_write(ctx->out, "%s;\n", expr);
+            if (node->type == AST_CALL)
+                emit_zone_action_effect_runtime(node, ctx);
         }
         free(expr);
         break;
@@ -7290,7 +7742,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.relation_decl.refreshes,
+                node->data.relation_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
         }
@@ -7311,7 +7766,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
         ASTNode *slot = node->data.relation_decl.slots[i];
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.relation_decl.refreshes,
+                node->data.relation_decl.refresh_count)) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
                 slot->data.domain_slot.slot_name);
@@ -7414,7 +7872,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.effect_decl.refreshes,
+                node->data.effect_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
         }
@@ -7435,7 +7896,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
         ASTNode *slot = node->data.effect_decl.slots[i];
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.effect_decl.refreshes,
+                node->data.effect_decl.refresh_count)) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
                 slot->data.domain_slot.slot_name);
@@ -7538,7 +8002,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.zone_decl.refreshes,
+                node->data.zone_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
         }
@@ -7581,7 +8048,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];
-        if (!slot->data.domain_slot.is_subject) {
+        if (slot->data.domain_slot.is_dto
+            || domain_slot_is_projection_target_local(slot,
+                node->data.zone_decl.refreshes,
+                node->data.zone_decl.refresh_count)) {
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
                 slot->data.domain_slot.slot_name);

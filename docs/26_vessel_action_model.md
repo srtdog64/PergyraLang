@@ -24,7 +24,7 @@ subject가 직접 맡지 않는 것:
 
 - 큰 상태 보유 --> vessel로 분리
 - 계산 세부사항 --> vessel의 func로 위임
-- 데이터 변환 --> struct/dto로 위임
+- 데이터 변환과 외부 표면 --> object/dto로 위임
 
 ### vessel은 피동적 수용체다
 
@@ -51,9 +51,15 @@ func   = "어떻게"를 안다 (계산/실행)
 action = "왜, 누구에게, 어디서"를 안다 (의사결정/오케스트레이션)
 ```
 
-### func -- 메서드
+### func -- hosted func (귀속 func)
 
-func는 데이터에 붙은 계산이다. struct, vessel, object, dto, role 안에서 사용된다.
+Pergyra에서 "method"라는 용어는 쓰지 않는다. 타입 안에 선언되고 `self`를 받는 func를 **hosted func (귀속 func)**이라 부른다.
+
+- **free func**: top-level 함수
+- **hosted func**: 타입에 귀속된 func (self 바인딩)
+- **general func**: subject 안의 일반 func (사적 판단)
+
+func는 데이터에 붙은 계산이다. struct, vessel, object, dto, role, subject 안에서 사용된다.
 
 ```pergyra
 vessel HealthState {
@@ -111,14 +117,30 @@ action의 5가지 속성:
 | 키워드 | 동사 | 성격 |
 |--------|------|------|
 | struct / dto | func | 순수 계산 (상태 변이 없음) |
-| object | func | 읽기 전용 계산 |
-| vessel | func | 수동 실행 (호출당해서 상태 변경) |
+| object | func | 피동 반응과 helper 계산 |
+| vessel | func | 읽기 전용 계산 (value-self, mutation 없음) |
 | role | func | ability 이행 (계약의 구체화) |
-| subject | **action** | 능동 선언 (자격+무대+결과 명시) |
+| subject | **func + action** | func = 사적 판단, action = 공적 행위 |
 | ability | func 시그니처 | 계약 (구현 없음) |
 | zone | -- | action의 허용/거부 판정 |
 
-**subject 안에는 func가 없다.** subject의 모든 공적 행위는 action이다.
+**subject는 func와 action을 모두 가진다.**
+
+- `func` = 주인공의 **사적 판단** (관객이 안 본다, 내부 계산, zone/effect 연동 없음)
+- `action` = 주인공의 **공적 행동** (관객이 본다, zone/effect/authority 연동)
+
+주인공이 머릿속으로 계산도 못 하면 소설이 안 된다.
+
+### subject 참조 전달
+
+subject는 identity-bearing 타입이므로, 함수 파라미터로 전달할 때 **언어가 자동으로 reference 전달**한다. 사용자는 포인터를 의식하지 않는다.
+
+```pergyra
+func DoAttack(attacker: Fighter, target: Fighter) -> Void {
+    let dmg = attacker.Attack(target);  // 원본 subject 참조
+    Log(ToString(dmg));
+}
+```
 
 ## 전체 예시
 
@@ -326,14 +348,16 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 | vessel | O | X |
 | role | O (ability 이행) | X |
 | ability | O (시그니처만) | X |
-| subject | X | **O** |
+| subject | **O** (사적 판단) | **O** (공적 행위) |
 | zone | func (내부 규칙 계산) | X |
 
 ## 결정 이력
 
 - 2026-04-04: vessel 키워드 채택 (container, component, cell 비채택)
 - 2026-04-04: action 키워드 채택 (subject 전용, func와 분리)
-- 2026-04-04: subject에서 func 제거, action만 허용
 - 2026-04-04: 5대 피동 축 정의 (상태, 행위, 자원, 투영, 규칙)
-- 근거: god subject 방지, subject-first 유지, 오케스트레이터 패턴
-- 구현 상태: core parser/semantic/C/LLVM surface 반영 완료. `vessel` 선언, subject-local `vessel` field, subject-only `action`, `requires/within/causes/authorized by` clause가 현재 구현에 연결되어 있고, `authorized by` subject-host 검증, `within` zone slot/authority 적합성, `causes` effect target/zone layer 적합성까지 semantic에 반영됨
+- 2026-04-04: subject에 func 재허용 (실전 battle sim 구현 후 Anemic Domain Model 위험 확인)
+- 2026-04-04: subject 참조 전달 허용 (포인터 숨김, 언어가 자동 reference 처리)
+- 2026-04-04: vessel을 value-self로 확정 (순수 상태 묶음 + 읽기 전용 계산, mutation 없음)
+- 근거: god subject 방지, subject-first 유지, 포인터 은닉, 오케스트레이터 패턴
+- 구현 상태: core parser/semantic/C/LLVM surface 반영 완료. `vessel` 선언, subject-local `vessel` field, subject-only `action`, `requires/within/causes/authorized by` clause가 현재 구현에 연결되어 있고, `authorized by` subject-host 검증, `within` zone slot/authority 적합성, `causes` effect target/zone layer 적합성까지 semantic에 반영됨. 또한 zone method 안의 subject `action` call은 현재 C/LLVM에서 matching `effect slot` runtime activation과 embedded layer sync로 이어진다.

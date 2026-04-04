@@ -128,9 +128,10 @@ world    = 전체 시스템의 경계
 
 여기서 `entity`는 코어 언어 존재론 용어로 넣지 않는다.
 그것은 프레임워크나 도메인 모델이 필요할 때 쓸 수 있는 바깥 어휘에 가깝다.
-반대로 `object`는 별도 최상위 타입이 아니라, `subject`가 transfer / relation / zone / DTO / view 문맥에서 수동적으로 다뤄질 때의 해석이다.
+반대로 `object`는 별도 능동 주체가 아니라, 상태를 가질 수 있고 effect를 받을 수 있으며 relation의 대상이 될 수 있지만 스스로 intent를 시작하지 않는 피동 상태 대상이다.
 `dto`는 그 object 표현 중 외부 경계를 넘기기 위한 축약 투영이다.
-현재 구현에서는 `object`와 `dto` keyword를 `struct` 호환 projection value declaration으로 받지만, 둘 다 능동적 본체가 아니라 field-only passive projection form으로 본다.
+현재 구현에서는 `object`와 `dto` keyword를 우선 `struct` 호환 nominal declaration alias로 받지만, 의미론적으로는 둘을 다르게 본다.
+`object`는 passive state target이고 helper `func`와 국소 상태를 가질 수 있으며, `dto`는 그보다 더 좁은 transfer/projection form이다.
 즉 projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `ToObject` / `ToDto` / `refresh` / `publish` 같은 투영 동작이다.
 그래서 direct `ToObject` / `ToDto`는 존재하더라도 보조 surface로 남고, 권장 흐름은 domain context 안의 projection wiring과 lifecycle sync다.
 
@@ -185,7 +186,7 @@ world    = 전체 시스템의 경계
 | `SecureSlot<T>` | 권한이 필요한 자원 점유 |
 | `Channel<T>` | 공유하지 않고 이동시키는 자원 흐름 |
 | `Subject` | 상태와 identity를 가진 주체 |
-| `Object` | subject의 수동 해석 모드 |
+| `Object` | intent를 시작하지 않는 피동 상태 대상 |
 | `DTO` | object의 외부 경계용 축약 투영 |
 | `Actor` | subject의 실행 프로파일 |
 | `Party` | 협력하는 자원 묶음 |

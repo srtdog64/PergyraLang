@@ -2407,6 +2407,54 @@ test_systemic_world_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone action calls activate matching effect layers at runtime");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action Attack(self) -> Void\n"
+            "        within BattleZone\n"
+            "        causes Poisoned\n"
+            "        authorized by self {\n"
+            "        hp = hp - 1;\n"
+            "    }\n"
+            "}\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    refresh view from bearer\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    authority player\n"
+            "    func Tick(self) -> Void {\n"
+            "        self.player.Attack();\n"
+            "        Log(HasLayer(poison));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Player_Attack(&self->player);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__layer_active_poison = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.bearer = self->player;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(&self->poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__layer_active_poison);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("world derived states lower to embedded zone contracts");
     {
         const char *source =
@@ -2612,6 +2660,53 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(&self->trust);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->poison.view.hp);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->trust.packet.name);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone sync binds object-target relation/effect layers before projection reads");
+    {
+        const char *source =
+            "object Door { hp: Int; }\n"
+            "object Key { id: Int; }\n"
+            "object DoorView { hp: Int; }\n"
+            "effect Highlighted for object target: Door {\n"
+            "    object slot view: DoorView\n"
+            "    refresh view from target\n"
+            "}\n"
+            "relation KeyBinding for object door: Door, object key: Key {\n"
+            "}\n"
+            "zone LockZone {\n"
+            "    object slot door: Door\n"
+            "    object slot key: Key\n"
+            "    effect slot glow: Highlighted\n"
+            "    relation slot binding: KeyBinding\n"
+            "    apply glow to door\n"
+            "    link binding between door, key\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(self.glow.view.hp);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Highlighted glow;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "KeyBinding binding;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->glow.target = self->door;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Highlighted_sync(&self->glow);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->binding.door = self->door;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->binding.key = self->key;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "KeyBinding_sync(&self->binding);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->glow.view.hp);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

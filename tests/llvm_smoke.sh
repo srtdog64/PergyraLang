@@ -329,6 +329,46 @@ func Main() -> Void {
 EOF
 run_case "zone_has_layer" "$TMPDIR/zone_has_layer.pgy" "true" "true" "true" "true" "true" "true"
 
+cat > "$TMPDIR/zone_action_effect_runtime.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+
+    action Attack(self) -> Void
+        within BattleZone
+        causes Poisoned
+        authorized by self {
+        hp = hp - 1;
+    }
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer
+}
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    authority player
+
+    func Tick(self) -> Void {
+        self.player.Attack();
+        Log(HasLayer(poison));
+        Log(self.poison.view.hp);
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Tick();
+}
+EOF
+run_case "zone_action_effect_runtime" "$TMPDIR/zone_action_effect_runtime.pgy" "true" "6"
+
 cat > "$TMPDIR/zone_layer_projection_runtime.pgy" <<'EOF'
 subject Player {
     let hp: Int;
@@ -541,6 +581,45 @@ func Main() -> Void {
 }
 EOF
 run_case "world_nested_member_assign" "$TMPDIR/world_nested_member_assign.pgy" "true" "7" "true" "9"
+
+cat > "$TMPDIR/object_layer_binding.pgy" <<'EOF'
+object Door { hp: Int; }
+object DoorView { hp: Int; }
+object Key { id: Int; }
+object KeyView { id: Int; }
+
+effect Highlighted for object target: Door {
+    object slot view: DoorView
+    refresh view from target
+}
+
+relation KeyBinding for object door: Door, object key: Key {
+    object slot snapshot: KeyView
+    refresh snapshot from key
+}
+
+zone LockZone {
+    object slot door: Door
+    object slot key: Key
+    effect slot glow: Highlighted
+    relation slot binding: KeyBinding
+    apply glow to door
+    link binding between door, key
+
+    func Show(self) -> Void {
+        Log(HasLayer(glow));
+        Log(HasLayer(binding));
+        Log(self.glow.view.hp);
+        Log(self.binding.snapshot.id);
+    }
+}
+
+func Main() -> Void {
+    let lock: LockZone = LockZone(Door(5), Key(9));
+    lock.Show();
+}
+EOF
+run_case "object_layer_binding" "$TMPDIR/object_layer_binding.pgy" "true" "true" "5" "9"
 
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {

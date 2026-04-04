@@ -253,8 +253,14 @@ llvm_domain_decl_parts(ASTNode *stmt,
     }
 }
 
+static bool
+llvm_domain_slot_is_projection_target(ASTNode *slot,
+                                      ASTNode **refreshes,
+                                      size_t refresh_count);
+
 static size_t
-llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count)
+llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
+                                   ASTNode **refreshes, size_t refresh_count)
 {
     size_t projection_count = 0;
 
@@ -264,7 +270,8 @@ llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count)
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && !slot->data.domain_slot.is_subject) {
+            && (slot->data.domain_slot.is_dto
+                || llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))) {
             projection_count++;
         }
     }
@@ -272,10 +279,39 @@ llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count)
     return projection_count;
 }
 
+static bool
+llvm_domain_slot_is_projection_target(ASTNode *slot,
+                                      ASTNode **refreshes,
+                                      size_t refresh_count)
+{
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+        || slot->data.domain_slot.slot_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
+            || refresh->data.zone_refresh.object_slot_name == NULL) {
+            continue;
+        }
+        if (strcmp(slot->data.domain_slot.slot_name,
+                   refresh->data.zone_refresh.object_slot_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static ASTNode *
-llvm_find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t nth)
+llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
+                                   ASTNode **refreshes, size_t refresh_count,
+                                   size_t nth)
 {
     size_t seen = 0;
+    (void)refreshes;
+    (void)refresh_count;
 
     if (slots == NULL)
         return NULL;
@@ -283,7 +319,7 @@ llvm_find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t nth
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject) {
+            || !slot->data.domain_slot.is_binding) {
             continue;
         }
         if (seen == nth)
@@ -351,7 +387,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
 {
     ASTNode *layer_slot;
     ASTNode *effect_decl;
-    ASTNode *subject_slot;
+    ASTNode *target_slot;
     LLVMClassTypeEntry *effect_cls;
     int layer_idx;
     int target_idx;
@@ -373,17 +409,19 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         layer_slot->data.zone_layer_slot.layer_type);
     if (effect_decl == NULL)
         return;
-    subject_slot = llvm_find_nth_subject_domain_slot(effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count, 0);
+    target_slot = llvm_find_nth_bindable_domain_slot(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count,
+        effect_decl->data.effect_decl.refreshes,
+        effect_decl->data.effect_decl.refresh_count, 0);
     effect_cls = llvm_lookup_class(ctx, effect_decl->data.effect_decl.name);
-    if (subject_slot == NULL || effect_cls == NULL
-        || subject_slot->data.domain_slot.slot_name == NULL) {
+    if (target_slot == NULL || effect_cls == NULL
+        || target_slot->data.domain_slot.slot_name == NULL) {
         return;
     }
 
     layer_idx = llvm_class_field_index(zone_cls, layer_slot_name);
     target_idx = llvm_class_field_index(zone_cls, target_slot_name);
-    subject_idx = llvm_class_field_index(effect_cls, subject_slot->data.domain_slot.slot_name);
+    subject_idx = llvm_class_field_index(effect_cls, target_slot->data.domain_slot.slot_name);
     if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
         return;
 
@@ -421,8 +459,8 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
 {
     ASTNode *layer_slot;
     ASTNode *relation_decl;
-    ASTNode *left_subject;
-    ASTNode *right_subject;
+    ASTNode *left_target;
+    ASTNode *right_target;
     LLVMClassTypeEntry *relation_cls;
     int layer_idx;
     int left_idx;
@@ -448,22 +486,26 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         layer_slot->data.zone_layer_slot.layer_type);
     if (relation_decl == NULL)
         return;
-    left_subject = llvm_find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 0);
-    right_subject = llvm_find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count, 1);
+    left_target = llvm_find_nth_bindable_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 0);
+    right_target = llvm_find_nth_bindable_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count,
+        relation_decl->data.relation_decl.refreshes,
+        relation_decl->data.relation_decl.refresh_count, 1);
     relation_cls = llvm_lookup_class(ctx, relation_decl->data.relation_decl.name);
-    if (left_subject == NULL || right_subject == NULL || relation_cls == NULL
-        || left_subject->data.domain_slot.slot_name == NULL
-        || right_subject->data.domain_slot.slot_name == NULL) {
+    if (left_target == NULL || right_target == NULL || relation_cls == NULL
+        || left_target->data.domain_slot.slot_name == NULL
+        || right_target->data.domain_slot.slot_name == NULL) {
         return;
     }
 
     layer_idx = llvm_class_field_index(zone_cls, layer_slot_name);
     left_idx = llvm_class_field_index(zone_cls, left_slot_name);
     right_idx = llvm_class_field_index(zone_cls, right_slot_name);
-    left_subject_idx = llvm_class_field_index(relation_cls, left_subject->data.domain_slot.slot_name);
-    right_subject_idx = llvm_class_field_index(relation_cls, right_subject->data.domain_slot.slot_name);
+    left_subject_idx = llvm_class_field_index(relation_cls, left_target->data.domain_slot.slot_name);
+    right_subject_idx = llvm_class_field_index(relation_cls, right_target->data.domain_slot.slot_name);
     if (layer_idx < 0 || left_idx < 0 || right_idx < 0
         || left_subject_idx < 0 || right_subject_idx < 0) {
         return;
@@ -579,7 +621,8 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         LLVMValueRef self_ptr;
         LLVMValueRef flag_ptr;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.is_subject
+            || (!slot->data.domain_slot.is_dto
+                && !llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))
             || slot->data.domain_slot.slot_name == NULL)
             continue;
         snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
@@ -1819,7 +1862,9 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         if (stmt->type == AST_ZONE_DECL) {
             size_t projection_count =
                 llvm_count_domain_projection_slots(stmt->data.zone_decl.slots,
-                    stmt->data.zone_decl.slot_count);
+                    stmt->data.zone_decl.slot_count,
+                    stmt->data.zone_decl.refreshes,
+                    stmt->data.zone_decl.refresh_count);
             fc = stmt->data.zone_decl.slot_count
                 + stmt->data.zone_decl.shared_count
                 + stmt->data.zone_decl.layer_slot_count
@@ -1861,7 +1906,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
                 if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                    || slot->data.domain_slot.is_subject) {
+                    || (!slot->data.domain_slot.is_dto
+                        && !llvm_domain_slot_is_projection_target(slot,
+                            stmt->data.zone_decl.refreshes,
+                            stmt->data.zone_decl.refresh_count))) {
                     continue;
                 }
                 ftypes[idx] = ctx->type_i1;
@@ -1906,7 +1954,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             /* Build struct: { slots..., shared_fields..., vtable_ptrs... } */
             size_t projection_count =
                 (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
-                ? llvm_count_domain_projection_slots(slots, slot_count)
+                ? llvm_count_domain_projection_slots(slots, slot_count,
+                    refreshes, refresh_count)
                 : 0;
             fc = slot_count + shared_count + dyn_slot_count + projection_count;
             ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
@@ -1931,7 +1980,9 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 for (size_t j = 0; j < slot_count; j++) {
                     ASTNode *slot = slots[j];
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || slot->data.domain_slot.is_subject) {
+                        || (!slot->data.domain_slot.is_dto
+                            && !llvm_domain_slot_is_projection_target(slot,
+                                refreshes, refresh_count))) {
                         continue;
                     }
                     ftypes[idx] = ctx->type_i1;
@@ -1985,7 +2036,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     ASTNode *slot = stmt->data.zone_decl.slots[j];
                     char field_name[256];
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || slot->data.domain_slot.is_subject
+                        || (!slot->data.domain_slot.is_dto
+                            && !llvm_domain_slot_is_projection_target(slot,
+                                stmt->data.zone_decl.refreshes,
+                                stmt->data.zone_decl.refresh_count))
                         || slot->data.domain_slot.slot_name == NULL) {
                         continue;
                     }
@@ -2072,7 +2126,9 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                         ASTNode *slot = slots[j];
                         char field_name[256];
                         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                            || slot->data.domain_slot.is_subject
+                            || (!slot->data.domain_slot.is_dto
+                                && !llvm_domain_slot_is_projection_target(slot,
+                                    refreshes, refresh_count))
                             || slot->data.domain_slot.slot_name == NULL) {
                             continue;
                         }

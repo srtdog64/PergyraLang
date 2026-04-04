@@ -23,10 +23,12 @@
 ## 1. 기본 규칙
 
 - 문장 종료는 기본적으로 세미콜론 `;`
-- 블록은 `{ ... }`
+- 블록은 `{ ... }` — **BSD (Allman) 스타일 기본**, K&R도 파서가 허용
 - 키워드는 소문자
 - 타입과 내장 API는 PascalCase
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
+- identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
+- value 타입 (`struct`, `vessel`, `class`, `object`, `dto`)은 복사 전달
 
 대표 키워드:
 `let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `object`, `dto`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
@@ -58,33 +60,45 @@ let (a, b, c) = Split("x y z", " ");
 
 - 튜플/배열 반환값을 여러 변수에 동시 바인딩할 수 있다.
 
-### 2.2 함수
+### 2.2 함수와 action
+
+"method"라는 용어는 Pergyra에서 쓰지 않는다. 용어 체계:
+
+- **free func** -- top-level 함수
+- **hosted func** (귀속 func) -- 타입 안에 선언, `self`를 받음
+- **general func** -- subject 안의 일반 func (사적 판단)
+- **action** -- subject 전용, zone/effect 연동 (공적 행위)
+
+```pergyra
+func Add(a: Int, b: Int) -> Int { return a + b; }   // free func
+
+vessel HP {
+    func Percentage(self) -> Int { ... }              // hosted func
+}
+
+subject Fighter {
+    func IsAlive(self) -> Bool { return hp > 0; }     // general func
+    action Attack(self, target: Fighter) -> Int        // action
+        requires Combatable within BattleZone
+        causes DamageEffect { ... }
+}
+```
 
 `->` 는 함수 반환 타입을 지정하는 문법이다.
 
 ```pergyra
-func Add(a: Int, b: Int) -> Int {
-    return a + b;
-}
-
-func Identity<T>(value: T) -> T {
-    return value;
-}
-
-func Sort<T>(items: Array<T>) -> Array<T>
-where T: Comparable {
-    return items;
-}
+func Identity<T>(value: T) -> T { return value; }
+func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
 ```
 
 지원:
-- 일반 함수
-- 제네릭 함수
-- `where` 제약
+- free func, hosted func, general func, action
+- 제네릭 함수, `where` 제약
 - `async func`
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
+- C lowering: hosted func -> `TypeName_Func(Type *self, ...)`, JS -> `class { Func() { this.xxx } }`
 
 #### `->` 반환 타입 문법
 

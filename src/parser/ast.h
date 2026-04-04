@@ -801,6 +801,7 @@ struct ASTNode
             ASTNode* type;
             bool is_subject;
             bool is_dto;
+            bool is_binding;
             ASTNode* initializer;
         } domain_slot;
 

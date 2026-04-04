@@ -13,7 +13,7 @@
 - `subject`는 `func`가 아닌 `action`으로 행동한다 — action은 zone/ability/effect와 연동되는 플롯 행위다(2026-04-04 추가)
 - 현재 구현 surface는 `subject`와 `class`를 서로 다른 nominal declaration flavor로 기록하고, semantic/lowering도 둘을 점진적으로 다르게 다룬다
 - 현재 구현에서 `actor`는 별도 선언 키워드이지만 semantic에서는 subject execution profile로 취급된다
-- `object`는 별도 본체 타입이 아니라 `subject`가 수동 문맥으로 해석된 모습이다. `object`는 `func`(메서드)를 가질 수 있다.
+- `object`는 intent를 시작하지 않는 피동 상태 대상이다. `object`는 상태와 `func`(메서드)를 가질 수 있다.
 - `ability`는 subject 위의 행위 계약이다
 - 장기 모델에서 `role`은 subject에 ability를 바인딩한다
 - `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
@@ -46,17 +46,21 @@ Pergyra는 도메인 파편화를 줄이기 위해
 ## 2. subject, object, dto, entity
 
 - `subject`는 상태와 identity를 가지고 능동적으로 행위를 수행하는 코어 타입이다
-- `object`는 별도 최상위 타입이라기보다, `subject`가 relation / effect / zone / DTO / view / serialization 문맥에서 수동적으로 다뤄질 때의 해석이다
+- `object`는 intent를 시작하지 않는 피동 상태 대상이다
+- `object`는 상태를 가질 수 있고 effect를 받을 수 있으며 relation의 대상이 될 수 있고 시간에 따라 반응할 수 있다
+- 현재 compiler surface는 `effect Name for object target: T` / `relation Name for object a: A, object b: B`를 받아 object를 직접 layer contract 대상으로 삼을 수 있다
+- 현재 compiler surface는 domain-local `refresh` / `publish`에서 object를 projection source로도 허용한다. 다만 `dto`는 sink이며 source로는 허용하지 않는다
 - `dto`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
 - 현재 compiler surface는 `object` / `dto`를 `struct` 호환 declaration alias로 받는다
-- 현재 compiler surface는 `object`와 `dto`를 passive projection/value 형식으로 취급하지만, helper `func`는 허용한다
+- 현재 compiler surface는 `object`를 passive state/value host로, `dto`를 더 좁은 projection/value 형식으로 취급하며 helper `func`는 허용한다
 - 현재 compiler surface는 `ToObject(TargetObject, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
 - 현재 compiler surface는 `ToDto(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
 - 다만 `ToObject` / `ToDto`를 relation/effect/zone/world 바깥 일반 함수에서 직접 쓰면 semantic warning을 내고, 권장 경로는 domain-local slot + `refresh` / `publish` 흐름이다
 - relation/effect는 현재 subject projection 문맥을 담는 overlay nominal host로도 동작하며, positional constructor와 runtime instance method call이 C/LLVM에 연결돼 있다
-- 즉 subject는 본질적으로 능동적이지만, 특정 문맥에서 object화되면 행동은 피동적으로 소비된다
+- 즉 subject는 본질적으로 능동적이지만, 특정 문맥에서 object화되면 intent 생성 능력을 잃고 피동 상태 대상으로 소비된다
 - `entity`는 이 둘을 묶는 넓은 프레임워크 용어가 될 수는 있지만, Pergyra 코어 존재론에는 넣지 않는다
 - projection의 중심은 `dto` 본체가 아니라 `relation/effect/zone/world` 문맥과 그 안의 `refresh` / `publish` 흐름이다
+- 즉 현재 구현에서 `object`는 단순 projection 결과물이 아니라 passive state host이면서 layer target/source가 될 수 있고, `dto`는 여전히 더 좁은 외부 경계 projection 형식으로 남는다
 
 ## 3. 최종 정의
 
@@ -173,8 +177,8 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - `subject`는 object semantics가 기본이다
 - `subject`는 plain structural copy의 기본 대상으로 보지 않는다
 - `class`는 현재 passive nominal value로서 plain copy / value parameter / value return이 가능하다
-- `object`는 subject와 다른 본체가 아니라, subject를 수동적으로 다루는 문맥적 해석이다
-- `object`와 `dto`는 behavior host가 아니라 projection result다
+- `object`는 subject와 같은 능동 주체는 아니지만, 수동 상태를 담는 host가 될 수 있다
+- `dto`는 `object`보다 더 좁은 경계 전달/투영 형식이다
 
 ### 현재 단계의 권장 해석
 
@@ -193,6 +197,23 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 `subject != plain copied struct`
 
 이다.
+
+### object
+
+- intent를 시작하지 않는 피동 상태 대상
+- 상태를 가질 수 있고 helper `func`로 시간에 따라 반응할 수 있다
+- effect를 받을 수 있고 relation의 대상이 될 수 있다
+- 현재 구현에서는 `struct` 호환 nominal declaration alias로 시작하지만, 장기 의미론은 단순 projection 결과물보다 넓다
+
+```pergyra
+object Door {
+    isOpen: Bool;
+
+    func Toggle(self) -> Void {
+        self.isOpen = !self.isOpen;
+    }
+}
+```
 
 ## 6. subject와 Box / Slot의 관계
 

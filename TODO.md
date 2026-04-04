@@ -219,12 +219,12 @@
   - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
   - 완료: `actor`를 독립 존재론 계층이 아니라 subject의 실행 profile/sugar로 정리
   - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
-  - 완료: `object`는 별도 코어 타입이 아니라 subject의 수동 해석 모드라고 문서화
+  - 완료: `object`는 intent를 시작하지 않는 passive state target이라고 문서화
   - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
   - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
   - 완료: `subject slot`과 `ToObject` / `ToDto` source가 subject host (`subject`, `actor`)만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
-  - 완료: `object` / `dto`를 passive projection/value 형식으로 고정하고 helper method를 허용
+  - 완료: `object`를 passive state/value 형식으로, `dto`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
   - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
   - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
   - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
@@ -233,6 +233,8 @@
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
   - 완료: `subject Name actor { ... }` subject-first actor profile surface
   - 완료: standalone `actor Name { ... }` transitional semantic warning
+  - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
+  - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 dto source는 금지
   - 남음: relation/projection 중심 surface 고정
 
 ### slot 권한 / 자원군 확장
@@ -275,7 +277,7 @@
   - 목적: native / web / mobile이 같은 UI 의미론과 projection 흐름을 공유하게 함
   - 원칙: 기술 기반은 Qt 방향(native shell / render loop), 선언 철학은 WPF식 projection/binding, 최종 정체성은 Pergyra scene/projection UI
   - 범위: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
-  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `dto` / projection result를 UI 소비 표면으로 사용
+  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `dto` / projection surface를 UI 소비 표면으로 사용
   - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
   - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
   - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음

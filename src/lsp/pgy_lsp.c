@@ -350,9 +350,9 @@ main(void)
                     else if (strcmp(word, "struct") == 0)
                         hover_text = "**struct** — Value type (passed by value)";
                     else if (strcmp(word, "object") == 0)
-                        hover_text = "**object** — Passive/projection value type (struct-compatible keyword)";
+                        hover_text = "**object** — Passive state-bearing object type; can react but does not initiate intent";
                     else if (strcmp(word, "dto") == 0)
-                        hover_text = "**dto** — Transfer/projection value type (struct-compatible keyword)";
+                        hover_text = "**dto** — Boundary transfer/projection type (struct-compatible keyword)";
                     else if (strcmp(word, "class") == 0)
                         hover_text = "**class** — Subject declaration (compatibility keyword)";
                     else if (strcmp(word, "subject") == 0)
