@@ -286,6 +286,7 @@ enum Shape {
 
 추가 메모:
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `dto slot`, `refresh`, `publish`, `shared`, `func`의 최소 조합을 지원한다.
+- `shared`는 visibility 키워드가 아니라 host-local contextual state marker다. 즉 `party` / `relation` / `effect` / `zone` / `world`가 문맥 전체에서 공동으로 읽고 갱신하는 상태를 뜻한다.
 - `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/dto projection slot을 Bool로 조회한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
 - `zone` body는 현재 `subject slot`, `object slot`, `dto slot`, `relation slot`, `effect slot`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <dtoSlot> from <subjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
@@ -295,6 +296,7 @@ enum Shape {
 - `HasState(<effectState>, <targetSlot>)`와 `HasState(<relationState>, <leftSlot>, <rightSlot>)`는 선언된 state alias와 slot 조합이 정확히 맞는지까지 검증한다.
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
 - `world` body는 `systemic`, `zone`, `state <name>: zone <zoneSlot>`, `state <name>: zone <zoneSlot> projection <projectionSlot>`, `state <name>: zone <zoneSlot> layer <layerSlot>`, `state <name>: zone <zoneSlot> state <zoneStateName>`, `state <name>: all <zoneOrState>[, ...]`, `state <name>: any <zoneOrState>[, ...]`, `activate <zoneOrState>`, `deactivate <zoneOrState>`, `maintain <zoneOrState>`, `shared`, `func`를 지원한다.
+- `shared`는 프로그램 전역 global이 아니라 해당 host에 귀속된 "local-global" 상태다. 예: `zone`의 `shared round`, `relation`의 `shared trust`, `world`의 `shared season`.
 - `HasZone(<zoneOrState>)`는 world declaration / world method 안에서만 유효하며, 선언된 zone slot 또는 world state alias를 Bool로 조회한다.
 - `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/dto projection slot sync-ready flag를 Bool로 조회한다.
 - `HasZoneLayer(<zoneSlot>, <layerSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 relation/effect layer active flag를 Bool로 조회한다.

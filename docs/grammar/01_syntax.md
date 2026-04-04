@@ -225,6 +225,8 @@ enum Color { Red, Green, Blue }
 - `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
 - `object`, `dto`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `dto slot` / `refresh` / `publish` / `shared` / `func`까지의 최소 body surface를 가진다.
+- `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
+- 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
 - `authority subjectSlot`은 optional `requires Ability[, Ability]` 절을 붙일 수 있다.
 - `zone`은 `apply/detach/link/unlink/refresh/publish/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
@@ -253,6 +255,12 @@ namespace Math {
 - `namespace Name { ... }`
 - `export` 선언
 - `extern "C" { ... }`
+
+가시성과 `shared`의 차이:
+
+- `public/private`는 **누가 볼 수 있는가**를 나타내는 visibility 축이다.
+- `shared`는 **누가 함께 들고 갱신하는가**를 나타내는 contextual-state 축이다.
+- 그래서 `shared`는 `public field`와 같지 않다. `shared round: Int`는 "공개 필드"보다 "`zone` 자체가 유지하는 공용 상태"에 더 가깝다.
 
 ## 3. 타입 계열
 
