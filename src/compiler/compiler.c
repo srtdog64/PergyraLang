@@ -182,6 +182,7 @@ compiler_build_native(const HIRProgram *hir,
         output_c_path,
         "-o", output_binary_path,
         "-lpthread",
+        "-lm",
         NULL
     };
 
@@ -325,6 +326,7 @@ compiler_build_native_llvm(const HIRProgram *hir,
         "-o", output_binary_path, output_obj_path,
         PGY_RUNTIME_LIB_C,
         "-lpthread",
+        "-lm",
         NULL
     };
 

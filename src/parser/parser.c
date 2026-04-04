@@ -70,6 +70,15 @@ parser_match_contextual_keyword(Parser *parser, const char *keyword)
     return true;
 }
 
+static bool
+parser_check_contextual_keyword(Parser *parser, const char *keyword)
+{
+    return parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && keyword != NULL
+        && strcmp(parser->current_token.text, keyword) == 0;
+}
+
 // 토큰 소비 (필수)
 Token parser_consume(Parser* parser, TokenType type, const char* message) {
     if (parser_check(parser, type)) {
@@ -103,10 +112,9 @@ void parser_synchronize(Parser* parser) {
 
     while (!parser_is_at_end(parser)) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
-        if (parser->current_token.type == TOKEN_IDENTIFIER
-            && parser->current_token.text != NULL
-            && (strcmp(parser->current_token.text, "object") == 0
-                || strcmp(parser->current_token.text, "dto") == 0)) {
+        if (parser_check_contextual_keyword(parser, "object")
+            || parser_check_contextual_keyword(parser, "dto")
+            || parser_check_contextual_keyword(parser, "world")) {
             return;
         }
 
@@ -123,7 +131,6 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_ROLE:
             case TOKEN_PARTY:
             case TOKEN_SYSTEMIC:
-            case TOKEN_WORLD:
             case TOKEN_NAMESPACE:
             case TOKEN_EXPORT:
             case TOKEN_WITH:
@@ -581,7 +588,7 @@ parser_parse_export_declaration(Parser *parser)
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
     } else if (parser_match(parser, TOKEN_SYSTEMIC))
         node = parse_systemic_declaration(parser);
-    else if (parser_match(parser, TOKEN_WORLD))
+    else if (parser_match_contextual_keyword(parser, "world"))
         node = parse_world_declaration(parser);
     else if (parser_match(parser, TOKEN_RELATION))
         node = parse_relation_declaration(parser);
@@ -881,7 +888,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // world 선언
-    if (parser_match(parser, TOKEN_WORLD)) {
+    if (parser_match_contextual_keyword(parser, "world")) {
         return parser_finalize_statement(parser, parse_world_declaration(parser));
     }
 
@@ -926,6 +933,33 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
 // let 선언 파싱
 ASTNode* parser_parse_let_declaration(Parser* parser) {
+    /* Destructuring: let (a, b, c) = expr; */
+    if (parser_check(parser, TOKEN_LPAREN)) {
+        parser_advance(parser);  /* consume '(' */
+        ASTNode *node = calloc(1, sizeof(ASTNode));
+        node->type = AST_LET_DESTRUCTURE;
+        node->line = parser->previous_token.line;
+        node->column = parser->previous_token.column;
+        node->data.let_destructure.names = NULL;
+        node->data.let_destructure.name_count = 0;
+        node->data.let_destructure.initializer = NULL;
+
+        while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+            Token var = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variable name in destructuring");
+            size_t n = ++node->data.let_destructure.name_count;
+            node->data.let_destructure.names = realloc(
+                node->data.let_destructure.names, n * sizeof(char *));
+            node->data.let_destructure.names[n - 1] = pergyra_strdup(var.text);
+            if (!parser_match(parser, TOKEN_COMMA))
+                break;
+        }
+        parser_consume(parser, TOKEN_RPAREN, "Expected ')' after destructuring names");
+        parser_consume(parser, TOKEN_ASSIGN, "Expected '=' in let destructuring");
+        node->data.let_destructure.initializer = parser_parse_expression(parser);
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after let destructuring");
+        return node;
+    }
+
     // 변수 이름
     Token name = consume_name_token(parser, "Expected variable name");
 

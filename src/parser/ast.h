@@ -77,6 +77,7 @@ typedef enum
     AST_CLASS_DECL,
     AST_EXTERN_BLOCK,
     AST_LET_DECL,
+    AST_LET_DESTRUCTURE,   /* let (a, b) = expr; */
     AST_TYPE_ALIAS,
     AST_ACTOR_DECL,
     
@@ -302,6 +303,13 @@ struct ASTNode
             ASTNode* initializer;
             bool     is_mutable;
         } let_decl;
+
+        /* let (a, b, c) = expr; — positional destructuring */
+        struct {
+            char**   names;
+            size_t   name_count;
+            ASTNode* initializer;
+        } let_destructure;
         
         /* With statement */
         struct {
@@ -323,6 +331,7 @@ struct ASTNode
             char*    variable;
             ASTNode* range_start;
             ASTNode* range_end;
+            ASTNode* iterable;     /* for-in: the collection expression */
             ASTNode* body;
         } for_loop;
 
@@ -706,6 +715,8 @@ struct ASTNode
             char* name;
             ASTNode** slots;
             size_t slot_count;
+            ASTNode** refreshes;
+            size_t refresh_count;
             ASTNode** shared_fields;
             size_t shared_count;
             ASTNode** methods;
@@ -718,6 +729,8 @@ struct ASTNode
             char* name;
             ASTNode** slots;
             size_t slot_count;
+            ASTNode** refreshes;
+            size_t refresh_count;
             ASTNode** shared_fields;
             size_t shared_count;
             ASTNode** methods;

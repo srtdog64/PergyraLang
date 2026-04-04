@@ -68,16 +68,13 @@ static const KeywordEntry keywords[] = {
     {"super",    TOKEN_SUPER},
     {"secure",   TOKEN_SECURE},
     {"party",    TOKEN_PARTY},
-    {"relation", TOKEN_RELATION},
-    {"effect",   TOKEN_EFFECT},
-    {"zone",     TOKEN_ZONE},
+    
     {"slot",     TOKEN_SLOT},
     {"shared",   TOKEN_SHARED},
     {"context",  TOKEN_CONTEXT},
     {"extends",  TOKEN_EXTENDS},
     {"dyn",      TOKEN_DYN},
-    {"systemic", TOKEN_SYSTEMIC},
-    {"world",    TOKEN_WORLD},
+    
     {"own",      TOKEN_OWN},
     {"ref",      TOKEN_REF},
     {NULL,       TOKEN_EOF}

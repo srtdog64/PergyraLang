@@ -1685,7 +1685,7 @@ test_qubit_slot_semantics(void)
         ast_destroy(call);
     }
 
-    TEST("Slot parameter types are rejected for now");
+    TEST("Slot<Int> parameter types remain rejected");
     {
         SemanticContext *ctx = semantic_context_create();
 
@@ -1704,6 +1704,64 @@ test_qubit_slot_semantics(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
+    }
+
+    TEST("Slot<subject> parameter types are accepted with ref qualifier");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2));\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Slot<Vec2> = Vec2(3, 7);\n"
+            "    Touch(s);\n"
+            "    Release(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot<subject> parameter types are accepted with own qualifier");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Vec2> = Vec2(3, 7);\n"
+            "    Consume(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("Slot return types are rejected for now");
@@ -2806,7 +2864,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
             "    shared trust: Int = 100\n"
@@ -2872,7 +2930,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
@@ -2897,16 +2955,16 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone object slot initializer can project from subject slot");
+    TEST("zone object/dto slot initializer can project from subject slot without direct-projection warning");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "dto PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
-            "    object slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
+            "    dto slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -2926,7 +2984,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
@@ -2998,7 +3056,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "zone BrokenZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
@@ -3023,7 +3081,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "zone BrokenZone {\n"
             "    subject slot player: Player\n"
             "    object slot bad: Int = ToObject(PlayerView, player)\n"
@@ -3143,7 +3201,7 @@ test_shared_memory_features(void)
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
-            "struct PlayerView { hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
@@ -3470,6 +3528,89 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
+    TEST("relation/effect can refresh and publish projection slots from subject slots");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    object slot snapshot: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    refresh snapshot from source\n"
+            "    publish packet from target\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    refresh view from bearer\n"
+            "    publish packet from bearer\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect constructors are type-checked as nominal overlays");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "func Main() -> Void {\n"
+            "    let trust = TrustedLink(Player(7, \"src\"), Player(9, \"dst\"));\n"
+            "    let poison = Poisoned(Player(5, \"bear\"));\n"
+            "    Log(1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect constructors reject mismatched positional field types");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "func Main() -> Void {\n"
+            "    let trust = TrustedLink(1, Player(9, \"dst\"));\n"
+            "    let poison = Poisoned(2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count >= 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+
     TEST("relation/effect/zone reject legacy class in subject slot");
     {
         const char *source =
@@ -3519,6 +3660,7 @@ test_shared_memory_features(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5303,7 +5445,7 @@ test_misc_grammar_edges(void)
         ast_destroy(call);
     }
 
-    TEST("ToDto returns dto/struct type for matching subject fields");
+    TEST("ToDto returns dto projection type but warns outside domain context");
     {
         const char *source =
             "dto PlayerDto { hp: Int; name: String; }\n"
@@ -5344,6 +5486,9 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "direct projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5351,10 +5496,11 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToDto rejects missing fields, non-subject targets, and unnamed sources");
+    TEST("ToDto rejects missing fields, non-dto targets, and unnamed sources");
     {
         const char *source =
             "dto PlayerDto { hp: Int; name: String; }\n"
+            "object PlayerView { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; }\n"
             "class PassivePlayer { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
@@ -5362,6 +5508,7 @@ test_misc_grammar_edges(void)
             "    let passive: PassivePlayer = PassivePlayer();\n"
             "    let missing: PlayerDto = ToDto(PlayerDto, player);\n"
             "    let wrong = ToDto(Player, player);\n"
+            "    let wrongView = ToDto(PlayerView, player);\n"
             "    let anon = ToDto(PlayerDto, Player());\n"
             "    let legacy = ToDto(PlayerDto, passive);\n"
             "}\n";
@@ -5371,7 +5518,7 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 4);
+        EXPECT(result != NULL && result->error_count == 5);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5379,10 +5526,10 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToObject returns passive projection type for matching subject fields");
+    TEST("ToObject returns object projection type but warns outside domain context");
     {
         const char *source =
-            "struct PlayerView { hp: Int; name: String; }\n"
+            "object PlayerView { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
@@ -5395,6 +5542,67 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "direct projection outside relation/effect/zone/world context"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("object and dto declarations reject methods because they are passive projection forms");
+    {
+        const char *source =
+            "object PlayerView {\n"
+            "    hp: Int;\n"
+            "    func Mutate() -> Void {\n"
+            "        Log(hp);\n"
+            "    }\n"
+            "}\n"
+            "dto PlayerDto {\n"
+            "    hp: Int;\n"
+            "    func Export() -> Int {\n"
+            "        return hp;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToObject rejects non-object targets and non-subject sources");
+    {
+        const char *source =
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; }\n"
+            "subject Player { let hp: Int; }\n"
+            "class PassivePlayer { let hp: Int; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let passive: PassivePlayer = PassivePlayer();\n"
+            "    let wrongDto = ToObject(PlayerDto, player);\n"
+            "    let wrongSubject = ToObject(Player, player);\n"
+            "    let legacy = ToObject(PlayerView, passive);\n"
+            "    let anon = ToObject(PlayerView, Player());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 4);
 
         semantic_result_destroy(result);
         ast_destroy(program);

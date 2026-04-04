@@ -539,7 +539,7 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("ToDto(PlayerDto, player) → struct projection literal");
+    TEST("ToDto(PlayerDto, player) → dto projection literal");
     {
         const char *source =
             "dto PlayerDto { hp: Int; name: String; }\n"
@@ -566,10 +566,10 @@ test_expression_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToObject(PlayerView, player) → passive projection literal");
+    TEST("ToObject(PlayerView, player) → object projection literal");
     {
         const char *source =
-            "struct PlayerView { hp: Int; name: String; }\n"
+            "object PlayerView { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
@@ -1475,6 +1475,75 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref Slot<subject> parameter lowers as slot pointer boundary");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2));\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Slot<Vec2> = Vec2(3, 7);\n"
+            "    Touch(s);\n"
+            "    Release(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "void Touch(PgySlot_Vec2 *s)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_write_Vec2(s, (Vec2){ .x = 1, .y = 2 });");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Touch(&s);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own SecureSlot<subject> parameter lowers as secure slot pointer boundary");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Vec2> = Vec2(3, 7);\n"
+            "    Consume(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "void Consume(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_write_Vec2(s, (Vec2){ .x = 1, .y = 2 }, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_release_Vec2(s, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Consume(&s, s_token);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("extern block emits C prototypes");
     {
         ASTNode ext; memset(&ext, 0, sizeof(ext));
@@ -1846,26 +1915,93 @@ test_systemic_world_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("relation/effect declarations emit struct layers");
+    TEST("relation/effect declarations emit struct layers and projection sync helpers");
     {
-        ASTNode relation_node; memset(&relation_node, 0, sizeof(relation_node));
-        relation_node.type = AST_RELATION_DECL;
-        relation_node.data.relation_decl.name = "TrustedLink";
-
-        ASTNode effect_node; memset(&effect_node, 0, sizeof(effect_node));
-        effect_node.type = AST_EFFECT_DECL;
-        effect_node.data.effect_decl.name = "Poisoned";
-
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    object slot snapshot: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    refresh snapshot from source\n"
+            "    publish packet from target\n"
+            "    func Tick() -> Void {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    dto slot packet: PlayerDto\n"
+            "    refresh view from bearer\n"
+            "    publish packet from bearer\n"
+            "    func Tick() -> Void {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_statement(&relation_node, ctx);
-        emit_statement(&effect_node, ctx);
+        ctx->hir = hir;
+        emit_statement(program->data.program.statements[3], ctx);
+        emit_statement(program->data.program.statements[4], ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct TrustedLink");
         EXPECT_STR_CONTAINS(ctx->out->data, "} TrustedLink;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(TrustedLink *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->snapshot = (PlayerView){ .hp = self->source.hp };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->packet = (PlayerDto){ .hp = self->target.hp, .name = self->target.name };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(self);");
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Poisoned");
         EXPECT_STR_CONTAINS(ctx->out->data, "} Poisoned;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(Poisoned *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->view = (PlayerView){ .hp = self->bearer.hp };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->packet = (PlayerDto){ .hp = self->bearer.hp, .name = self->bearer.name };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(self);");
 
         transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect constructors lower to compound literals and pointer-self method calls");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    func Show() -> Void { Log(1); }\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    func Show() -> Void { Log(2); }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let trust = TrustedLink(Player(7, \"src\"), Player(9, \"dst\"));\n"
+            "    let poison = Poisoned(Player(5, \"bear\"));\n"
+            "    trust.Show();\n"
+            "    poison.Show();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink trust = (TrustedLink){ .source = (Player){ .hp = 7, .name = \"src\" }, .target = (Player){ .hp = 9, .name = \"dst\" } };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned poison = (Poisoned){ .bearer = (Player){ .hp = 5, .name = \"bear\" } };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_Show(&trust);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_Show(&poison);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("zone/world emit runtime sync state and projection helpers");
@@ -1918,6 +2054,50 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(&self->battle);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_active_battle = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_liveBattle = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone/world constructors lower to designated runtime instances");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    apply poisoned\n"
+            "    func Show() -> Bool { return HasState(poisoned); }\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "    activate liveBattle\n"
+            "    func Live() -> Bool { return HasZone(liveBattle); }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let battle = BattleZone(Player(7, \"neo\"));\n"
+            "    let world = GameWorld(battle);\n"
+            "    Log(world.Live());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone battle = (BattleZone){ .player = (Player){ .hp = 7, .name = \"neo\" } };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld world = (GameWorld){ .battle = battle };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
 
         transpiler_ctx_destroy(ctx);

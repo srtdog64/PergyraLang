@@ -1,0 +1,14 @@
+// for-in array loop demo
+func Main() -> Void {
+    let nums: Array<Int> = [10, 20, 30, 40, 50];
+
+    // for-in: iterate over array elements
+    for n in nums {
+        Log(n);
+    }
+
+    let names: Array<String> = ["Alice", "Bob", "Charlie"];
+    for name in names {
+        Log(name);
+    }
+}

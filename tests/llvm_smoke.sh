@@ -215,7 +215,7 @@ dto PlayerDto {
     name: String;
 }
 
-struct PlayerView {
+object PlayerView {
     hp: Int;
 }
 
@@ -229,6 +229,54 @@ func Main() -> Void {
 }
 EOF
 run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
+
+cat > "$TMPDIR/relation_effect_projection_sync.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+dto PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+relation TrustedLink for source: Player, target: Player {
+    object slot snapshot: PlayerView
+    dto slot packet: PlayerDto
+    refresh snapshot from source
+    publish packet from target
+
+    func Show(self) -> Void {
+        Log(self.snapshot.hp);
+        Log(self.packet.name);
+    }
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    dto slot packet: PlayerDto
+    refresh view from bearer
+    publish packet from bearer
+
+    func Show(self) -> Void {
+        Log(self.view.hp);
+        Log(self.packet.name);
+    }
+}
+
+func Main() -> Void {
+    let trust = TrustedLink(Player(7, "src"), Player(9, "dst"));
+    let poison = Poisoned(Player(5, "bear"));
+    trust.Show();
+    poison.Show();
+}
+EOF
+run_case "relation_effect_projection_sync" "$TMPDIR/relation_effect_projection_sync.pgy" "7" "dst" "5" "bear"
 
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
@@ -303,6 +351,44 @@ func Main() -> Void {
 }
 EOF
 run_case "secure_slot_actor_cell" "$TMPDIR/secure_slot_actor_cell.pgy" "1"
+
+cat > "$TMPDIR/slot_subject_boundary_ref.pgy" <<'EOF'
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Touch(ref s: Slot<Vec2>) -> Void {
+    Write(s, Vec2(1, 2));
+}
+
+func Main() -> Void {
+    let s: Slot<Vec2> = Vec2(3, 7);
+    Touch(s);
+    Release(s);
+    Log(1);
+}
+EOF
+run_case "slot_subject_boundary_ref" "$TMPDIR/slot_subject_boundary_ref.pgy" "1"
+
+cat > "$TMPDIR/secure_slot_subject_boundary_own.pgy" <<'EOF'
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Consume(own s: SecureSlot<Vec2>) -> Void {
+    Write(s, Vec2(1, 2), s_token);
+    Release(s, s_token);
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Vec2> = Vec2(3, 7);
+    Consume(s);
+    Log(1);
+}
+EOF
+run_case "secure_slot_subject_boundary_own" "$TMPDIR/secure_slot_subject_boundary_own.pgy" "1"
 
 cat > "$TMPDIR/select_ready.pgy" <<'EOF'
 func Main() -> Void {

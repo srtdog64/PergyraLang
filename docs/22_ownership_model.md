@@ -53,6 +53,14 @@ Upload(t);      // own — t 이후 무효
 Log(Read(t));   // 컴파일 에러
 ```
 
+현재 구현 상태는 이 규칙의 전체 일반화가 아니라 일부 닫힌 상태다.
+
+- `QubitSlot` 같은 movable handle은 기존 move 규칙을 따른다
+- anchored handle 중에서는 현재 `Slot<subject-host>` / `SecureSlot<subject-host>`만 `own/ref` 함수 경계를 지원한다
+- 여기서 `subject-host`는 `subject` 또는 `actor`를 뜻한다
+- `Slot<Int>`, `SecureSlot<String>`, `DeviceSlot<T>` 같은 다른 anchored handle은 아직 local-only다
+- 경계 전달 구현은 semantic + C backend + LLVM 경로까지 닫혔다
+
 ### 4. Release는 항상 명시적
 
 ```pergyra

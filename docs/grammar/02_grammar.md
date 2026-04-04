@@ -156,7 +156,7 @@ enum Shape {
 - `extern "C"` block
 
 추가 메모:
-- `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `dto slot`, `shared`, `func`의 최소 조합을 지원한다.
+- `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `dto slot`, `refresh`, `publish`, `shared`, `func`의 최소 조합을 지원한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
 - `zone` body는 현재 `subject slot`, `object slot`, `dto slot`, `relation slot`, `effect slot`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <dtoSlot> from <subjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
 - `zone`의 `apply/link/detach/unlink/refresh/publish/maintain`은 optional `by <subjectSlot>` authority annotation을 받을 수 있다.

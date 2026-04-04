@@ -971,8 +971,24 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     ctx->loop_depth++;
 
+    /* Determine loop variable type:
+     * - Range loop (start..end): variable is Int
+     * - For-in loop (collection): variable is element type of collection */
+    Type *var_type = TYPE_INT;
+    if (node->data.for_loop.iterable != NULL) {
+        Type *coll_type = type_check_expression(node->data.for_loop.iterable, ctx);
+        if (type_is_constructed_named(coll_type, "Array")
+            || type_is_constructed_named(coll_type, "Slice")) {
+            var_type = type_get_constructed_arg(coll_type, 0);
+        } else if (coll_type != NULL && coll_type != TYPE_UNKNOWN) {
+            semantic_error(ctx, node->data.for_loop.iterable,
+                "for-in requires Array<T> or Slice<T>, got '%s'",
+                coll_type->name != NULL ? coll_type->name : "<unknown>");
+        }
+    }
+
     Symbol *loop_var = symbol_create_variable(
-        node->data.for_loop.variable, TYPE_INT, node->line, node->column);
+        node->data.for_loop.variable, var_type, node->line, node->column);
     scope_declare(ctx->scope, loop_var);
 
     if (node->data.for_loop.range_start != NULL) {

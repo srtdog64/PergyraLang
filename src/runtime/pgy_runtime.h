@@ -1006,6 +1006,24 @@ PGY_ARRAY_DEFINE(Double, double)
 PGY_ARRAY_DEFINE(Bool,   bool)
 PGY_ARRAY_DEFINE(String, char*)
 
+/* qsort comparison helpers for ArraySort */
+static inline int pgy_cmp_Int(const void *a, const void *b)
+{ return (*(const int32_t *)a > *(const int32_t *)b)
+       - (*(const int32_t *)a < *(const int32_t *)b); }
+static inline int pgy_cmp_Long(const void *a, const void *b)
+{ return (*(const int64_t *)a > *(const int64_t *)b)
+       - (*(const int64_t *)a < *(const int64_t *)b); }
+static inline int pgy_cmp_Float(const void *a, const void *b)
+{ float fa = *(const float *)a, fb = *(const float *)b;
+  return (fa > fb) - (fa < fb); }
+static inline int pgy_cmp_Double(const void *a, const void *b)
+{ double da = *(const double *)a, db = *(const double *)b;
+  return (da > db) - (da < db); }
+static inline int pgy_cmp_String(const void *a, const void *b)
+{ return strcmp(*(const char *const *)a, *(const char *const *)b); }
+static inline int pgy_cmp_Bool(const void *a, const void *b)
+{ return (int)(*(const bool *)a) - (int)(*(const bool *)b); }
+
 PGY_RC_DEFINE(Int,    int32_t)
 PGY_RC_DEFINE(Long,   int64_t)
 PGY_RC_DEFINE(Float,  float)

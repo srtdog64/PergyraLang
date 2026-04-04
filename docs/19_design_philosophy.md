@@ -128,9 +128,11 @@ world    = 전체 시스템의 경계
 
 여기서 `entity`는 코어 언어 존재론 용어로 넣지 않는다.
 그것은 프레임워크나 도메인 모델이 필요할 때 쓸 수 있는 바깥 어휘에 가깝다.
-반대로 `object`는 별도 최상위 타입이 아니라, `subject`가 transfer / DTO / view 문맥에서 수동적으로 다뤄질 때의 해석이다.
+반대로 `object`는 별도 최상위 타입이 아니라, `subject`가 transfer / relation / zone / DTO / view 문맥에서 수동적으로 다뤄질 때의 해석이다.
 `dto`는 그 object 표현 중 외부 경계를 넘기기 위한 축약 투영이다.
-현재 구현에서는 `object`와 `dto` keyword를 `struct` 호환 projection value declaration으로 받는다.
+현재 구현에서는 `object`와 `dto` keyword를 `struct` 호환 projection value declaration으로 받지만, 둘 다 능동적 본체가 아니라 field-only passive projection form으로 본다.
+즉 projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `ToObject` / `ToDto` / `refresh` / `publish` 같은 투영 동작이다.
+그래서 direct `ToObject` / `ToDto`는 존재하더라도 보조 surface로 남고, 권장 흐름은 domain context 안의 projection wiring과 lifecycle sync다.
 
 여기서 설계 우선순위는 다음처럼 보는 것이 맞다.
 

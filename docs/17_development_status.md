@@ -9,9 +9,10 @@
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
 - 최종 존재론은 `struct`와 `subject`를 분리하며, 현재 surface는 `subject`와 `class`를 별도 nominal declaration flavor로 기록하고 semantic/codegen도 점진적으로 분기함.
-- `object`와 `dto`는 현재 `struct` 호환 projection value declaration alias로 동작함.
-- `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
-- `ToDto(TargetDto, subjectBinding)` 최소 projection surface가 semantic/C/LLVM backend에 반영됨.
+- `object`와 `dto`는 현재 `struct` 호환 projection value declaration alias로 동작하지만, field-only passive projection form으로 제한됨.
+- `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
+- `ToDto(TargetDto, subjectBinding)` 최소 dto projection surface가 semantic/C/LLVM backend에 반영됨.
+- relation/effect/zone/world 바깥의 direct `ToObject` / `ToDto`는 여전히 허용되지만 semantic warning으로 낮춰졌고, 권장 경로는 domain-local projection wiring임.
 - `entity`는 코어 언어 존재론에 넣지 않고, 필요하면 프레임워크/도메인 용어로만 취급함.
 - 상위 레이어로 갈수록 더 덜 구속적인 문맥 계층이라는 원칙을 채택함.
 
@@ -23,8 +24,10 @@
 - `subject`, `class`, `struct`, `object`, `dto` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
 - 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
+- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 declaration body에서 직접 가질 수 있음
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
+- `relation` / `effect`는 positional nominal constructor call을 받아 local runtime instance를 만들 수 있고, constructor argument arity/type을 semantic에서 검사함
 - `zone`은 `relation slot` / `effect slot`으로 overlay type을 참조할 수 있고, `world`는 `zone` slot으로 하위 지역 규칙을 참조할 수 있음
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
@@ -41,7 +44,9 @@
 - `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` 최소 lifecycle surface를 가짐
 - `HasZone(zoneOrState)` builtin은 world declaration / world method 안에서 zone slot 또는 world state alias를 Bool query로 읽을 수 있음
 - C backend는 zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
-- C backend는 zone/world마다 `<Type>_sync(self)` helper를 생성하고, zone/world method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
+- C backend는 relation/effect/zone/world마다 `<Type>_sync(self)` helper를 생성하고, method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
+- C backend는 `relation` / `effect` constructor를 compound literal runtime instance로 lowering하고, instance method call도 pointer-self로 호출함
+- LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
 - C backend에서 `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
 - `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
@@ -58,6 +63,7 @@
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToDto` source, subject copy restriction에 참여함
 - `object`는 별도 코어 타입이 아니라, subject가 transfer/DTO/view 문맥에서 수동적으로 해석된 모습으로 정리됨
+- `object`/`dto` declaration은 이제 method를 가질 수 없고, projection result 형식으로만 유지됨
 - enum/result 패턴 shorthand: `Some(x)`와 `.Some(x)` 둘 다 파싱됨. `case .Ok(v):`, `return .None;` 같은 문서 표기도 현재 파서 기준으로 허용됨
 - `Option<T>` 표면: `Some/None`, `IsSome/IsNone`, `UnwrapOption`, `match` destructuring이 semantic/C/LLVM 경로에 연결됨
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
@@ -69,7 +75,9 @@
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
-- 남은 공백은 cross-boundary transfer와 richer handle/object-cell propagation semantics임
+- `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
+- secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
+- 남은 공백은 richer handle/object-cell propagation semantics임
 - 채널 convenience surface: `TryRecv -> Option<T>`, `RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`, `TrySendStatus/SendTimeoutStatus -> Option<Bool>`이 C/LLVM 경로에 연결됨
 - 채널 backpressure observation surface: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`이 C/LLVM/runtime에 연결됨
 - 현재 `TryRecv/RecvTimeout/TrySend/SendTimeout`은 plain-value channel 중심이며 movable resource channel은 의도적으로 제외됨
@@ -103,8 +111,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 367 passed |
-| transpile | 240 passed |
+| semantic | 387 passed |
+| transpile | 259 passed |
 | llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:
@@ -128,6 +136,7 @@
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
 - partial 완료: `actor`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
 - partial 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor
+- partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화
 - 안정화 문서 갱신 및 표면 문법 정리
@@ -137,6 +146,7 @@
 - toolchain 강화 (formatter, LSP 진단 품질, debugger)
 
 ### 장기
+- JavaScript backend policy 초안 정리 (`docs/23_js_backend_policy.md`)
 - WebAssembly 타겟
 - 패키지 매니저
 - 성능 최적화 (LLVM 쪽 집중)

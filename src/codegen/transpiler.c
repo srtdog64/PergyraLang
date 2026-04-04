@@ -166,6 +166,7 @@ write_indent_to(CodeBuf *buf, int indent)
 }
 
 static TranspilerCtx *g_type_render_ctx = NULL;
+static char *strdup_fmt(const char *fmt, ...);
 
 /* -----------------------------------------------------------------
  * Slot variable tracking
@@ -173,7 +174,7 @@ static TranspilerCtx *g_type_render_ctx = NULL;
 
 static void
 register_slot_var(TranspilerCtx *ctx, const char *name,
-                  const char *inner_type, bool is_secure)
+                  const char *inner_type, bool is_secure, bool is_indirect)
 {
     if (ctx->slot_var_count >= MAX_SLOT_VARS)
         return;
@@ -183,6 +184,7 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
     strncpy(e->inner_type, inner_type, sizeof(e->inner_type) - 1);
     e->inner_type[sizeof(e->inner_type) - 1] = '\0';
     e->is_secure = is_secure;
+    e->is_indirect = is_indirect;
 }
 
 static const char *
@@ -203,6 +205,24 @@ lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name)
             return ctx->slot_vars[i].is_secure;
     }
     return false;
+}
+
+static bool
+lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
+{
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+            return ctx->slot_vars[i].is_indirect;
+    }
+    return false;
+}
+
+static char *
+slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
+{
+    if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
+        return pergyra_strdup(slot_expr);
+    return strdup_fmt("&%s", slot_expr);
 }
 
 static bool
@@ -469,6 +489,11 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     ASTNode *decl = find_class_decl(ctx, type_name);
     if (decl != NULL && !decl->data.class_decl.is_struct)
         return true;
+    if (find_relation_decl(ctx, type_name) != NULL
+        || find_effect_decl(ctx, type_name) != NULL
+        || find_zone_decl(ctx, type_name) != NULL
+        || find_world_decl(ctx, type_name) != NULL)
+        return true;
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {
         if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
             const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
@@ -476,6 +501,19 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
         }
     }
     return false;
+}
+
+static bool
+is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
+{
+    if (type_name == NULL)
+        return false;
+    if (is_subject_type_name(ctx, type_name))
+        return true;
+    return find_relation_decl(ctx, type_name) != NULL
+        || find_effect_decl(ctx, type_name) != NULL
+        || find_zone_decl(ctx, type_name) != NULL
+        || find_world_decl(ctx, type_name) != NULL;
 }
 
 static bool
@@ -1276,7 +1314,6 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
     }
 }
 
-static char *strdup_fmt(const char *fmt, ...);
 static bool resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
                                 const char **inner_out, const char **slot_name_out,
                                 bool *secure_out);
@@ -1495,6 +1532,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 && expr->data.call.arguments[0]->type == AST_IDENTIFIER
                 && expr->data.call.arguments[0]->data.identifier.name != NULL) {
                 return expr->data.call.arguments[0]->data.identifier.name;
+            }
+            if (find_class_decl(ctx, name) != NULL
+                || find_actor_decl(ctx, name) != NULL
+                || find_relation_decl(ctx, name) != NULL
+                || find_effect_decl(ctx, name) != NULL
+                || find_zone_decl(ctx, name) != NULL
+                || find_world_decl(ctx, name) != NULL) {
+                return name;
             }
 
             {
@@ -1833,6 +1878,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
 
     char *result;
@@ -1840,20 +1886,21 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
         /* SecureSlot: Write(slot, value, token) */
         char *token_expr = emit_expression(call->data.call.arguments[2], ctx);
         result = strdup_fmt(
-            "pgy_secure_write_%s(&%s, %s, &%s)",
-            inner, slot_expr, value_expr, token_expr);
+            "pgy_secure_write_%s(%s, %s, &%s)",
+            inner, slot_ref, value_expr, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
         result = strdup_fmt(
-            "pgy_secure_write_%s(&%s, %s, &%s_token)",
-            inner, slot_expr, value_expr, slot_name);
+            "pgy_secure_write_%s(%s, %s, &%s_token)",
+            inner, slot_ref, value_expr, slot_name);
     } else {
         /* Plain slot: Write(slot, value) */
         result = strdup_fmt(
-            "pgy_write_%s(&%s, %s)",
-            inner, slot_expr, value_expr);
+            "pgy_write_%s(%s, %s)",
+            inner, slot_ref, value_expr);
     }
 
+    free(slot_ref);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -1943,21 +1990,23 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
     if (call->data.call.arg_count >= 2) {
         char *token_expr = emit_expression(call->data.call.arguments[1], ctx);
         result = strdup_fmt(
-            "pgy_secure_read_%s(&%s, &%s)",
-            inner, slot_expr, token_expr);
+            "pgy_secure_read_%s(%s, &%s)",
+            inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        result = strdup_fmt("pgy_secure_read_%s(&%s, &%s_token)",
-            inner, slot_expr, slot_name);
+        result = strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
+            inner, slot_ref, slot_name);
     } else {
-        result = strdup_fmt("pgy_read_%s(&%s)", inner, slot_expr);
+        result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
     }
 
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -1979,19 +2028,20 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
     if (call->data.call.arg_count >= 2) {
         char *token_expr = emit_expression(call->data.call.arguments[1], ctx);
         result = strdup_fmt(
-            "pgy_secure_release_%s(&%s, &%s)",
-            inner, slot_expr, token_expr);
+            "pgy_secure_release_%s(%s, &%s)",
+            inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        result = strdup_fmt("pgy_secure_release_%s(&%s, &%s_token)",
-            inner, slot_expr, slot_name);
+        result = strdup_fmt("pgy_secure_release_%s(%s, &%s_token)",
+            inner, slot_ref, slot_name);
     } else {
-        result = strdup_fmt("pgy_release_%s(&%s)", inner, slot_expr);
+        result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
     }
 
     /* Mark slot as explicitly released — prevents auto-release at scope exit */
@@ -2005,6 +2055,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         }
     }
 
+    free(slot_ref);
     free(slot_expr);
     return result;
 }
@@ -2656,6 +2707,124 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             codebuf_destroy(fields);
             return result;
         }
+        {
+            ASTNode *relation_decl = find_relation_decl(ctx, fn);
+            ASTNode *effect_decl = find_effect_decl(ctx, fn);
+            ASTNode *overlay_decl = relation_decl != NULL ? relation_decl : effect_decl;
+            if (overlay_decl != NULL) {
+                size_t argc = call->data.call.arg_count;
+                size_t slot_count = overlay_decl->type == AST_RELATION_DECL
+                    ? overlay_decl->data.relation_decl.slot_count
+                    : overlay_decl->data.effect_decl.slot_count;
+                size_t shared_count = overlay_decl->type == AST_RELATION_DECL
+                    ? overlay_decl->data.relation_decl.shared_count
+                    : overlay_decl->data.effect_decl.shared_count;
+                CodeBuf *fields = codebuf_create();
+                for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
+                    const char *field_name = NULL;
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    if (i < slot_count) {
+                        ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
+                            ? overlay_decl->data.relation_decl.slots[i]
+                            : overlay_decl->data.effect_decl.slots[i];
+                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
+                    } else {
+                        ASTNode *shared = overlay_decl->type == AST_RELATION_DECL
+                            ? overlay_decl->data.relation_decl.shared_fields[i - slot_count]
+                            : overlay_decl->data.effect_decl.shared_fields[i - slot_count];
+                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    }
+                    if (i > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        arg != NULL ? arg : "0");
+                    free(arg);
+                }
+                {
+                    char *result = fields->len > 0
+                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
+                        : strdup_fmt("(%s){0}", fn);
+                    codebuf_destroy(fields);
+                    return result;
+                }
+            }
+        }
+        {
+            ASTNode *zone_decl = find_zone_decl(ctx, fn);
+            if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL) {
+                size_t argc = call->data.call.arg_count;
+                CodeBuf *fields = codebuf_create();
+                for (size_t i = 0; i < argc
+                        && i < zone_decl->data.zone_decl.slot_count
+                               + zone_decl->data.zone_decl.shared_count; i++) {
+                    const char *field_name = NULL;
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    if (i < zone_decl->data.zone_decl.slot_count) {
+                        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
+                    } else {
+                        ASTNode *shared = zone_decl->data.zone_decl.shared_fields[
+                            i - zone_decl->data.zone_decl.slot_count];
+                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    }
+                    if (i > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        arg != NULL ? arg : "0");
+                    free(arg);
+                }
+                {
+                    char *result = fields->len > 0
+                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
+                        : strdup_fmt("(%s){0}", fn);
+                    codebuf_destroy(fields);
+                    return result;
+                }
+            }
+        }
+        {
+            ASTNode *world_decl = find_world_decl(ctx, fn);
+            if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
+                size_t argc = call->data.call.arg_count;
+                CodeBuf *fields = codebuf_create();
+                size_t exposed = world_decl->data.world_decl.systemic_count
+                    + world_decl->data.world_decl.zone_count
+                    + world_decl->data.world_decl.shared_count;
+                for (size_t i = 0; i < argc && i < exposed; i++) {
+                    const char *field_name = NULL;
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    if (i < world_decl->data.world_decl.systemic_count) {
+                        ASTNode *slot = world_decl->data.world_decl.systemics[i];
+                        field_name = slot != NULL ? slot->data.world_systemic.slot_name : "field";
+                    } else if (i < world_decl->data.world_decl.systemic_count
+                                   + world_decl->data.world_decl.zone_count) {
+                        ASTNode *slot = world_decl->data.world_decl.zones[
+                            i - world_decl->data.world_decl.systemic_count];
+                        field_name = slot != NULL ? slot->data.world_zone.slot_name : "field";
+                    } else {
+                        ASTNode *shared = world_decl->data.world_decl.shared_fields[
+                            i - world_decl->data.world_decl.systemic_count
+                              - world_decl->data.world_decl.zone_count];
+                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    }
+                    if (i > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        arg != NULL ? arg : "0");
+                    free(arg);
+                }
+                {
+                    char *result = fields->len > 0
+                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
+                        : strdup_fmt("(%s){0}", fn);
+                    codebuf_destroy(fields);
+                    return result;
+                }
+            }
+        }
 
         const char *qualified = lookup_enum_variant_qualified_name(ctx, fn);
         if (qualified != NULL) {
@@ -2848,6 +3017,64 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(a); free(b);
             return result;
         }
+        /* StringSplit / StringJoin / ToInt / ToFloat / Math */
+        if ((strcmp(fn, "StringSplit") == 0 || strcmp(fn, "Split") == 0)
+            && call->data.call.arg_count == 2) {
+            char *s = emit_expression(call->data.call.arguments[0], ctx);
+            char *d = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("StringSplit(%s, %s)", s, d);
+            free(s); free(d);
+            return result;
+        }
+        if ((strcmp(fn, "StringJoin") == 0 || strcmp(fn, "Join") == 0)
+            && call->data.call.arg_count == 2) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *sep = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("StringJoin(&%s, %s)", arr, sep);
+            free(arr); free(sep);
+            return result;
+        }
+        if (strcmp(fn, "ToInt") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("ToInt(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "ToFloat") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("ToFloat(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Sqrt") == 0 && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("Sqrt(%s)", arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Pow") == 0 && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("Pow(%s, %s)", a, b);
+            free(a); free(b);
+            return result;
+        }
+        if ((strcmp(fn, "Floor") == 0 || strcmp(fn, "Ceil") == 0)
+            && call->data.call.arg_count == 1) {
+            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *result = strdup_fmt("%s(%s)", fn, arg);
+            free(arg);
+            return result;
+        }
+        if (strcmp(fn, "Random") == 0) {
+            if (call->data.call.arg_count >= 1) {
+                char *arg = emit_expression(call->data.call.arguments[0], ctx);
+                char *result = strdup_fmt("Random(%s)", arg);
+                free(arg);
+                return result;
+            }
+            return pergyra_strdup("Random(100)");
+        }
         if (strcmp(fn, "ArrayLength") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("((int32_t)(%s.length))", arg);
@@ -2877,6 +3104,87 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("((%s).length > 0 ? (%s).length-- : 0)",
                 arr, arr);
+            free(arr);
+            return result;
+        }
+        /* ArraySort — in-place qsort on array */
+        if (strcmp(fn, "ArraySort") == 0 && call->data.call.arg_count == 1) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            const char *arr_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            const char *inner = "Int";
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+                inner = slot_inner_type_name(arr_type);
+            char *result = strdup_fmt(
+                "({ qsort((%s).data, (%s).length, sizeof(*(%s).data), "
+                "pgy_cmp_%s); %s; })",
+                arr, arr, arr, inner, arr);
+            free(arr);
+            return result;
+        }
+        /* ArrayMap — apply function to each element, return new array */
+        if (strcmp(fn, "ArrayMap") == 0 && call->data.call.arg_count == 2) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
+            const char *arr_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            const char *inner = "Int";
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+                inner = slot_inner_type_name(arr_type);
+            int tmp_id = ++ctx->tmp_counter;
+            char *result = strdup_fmt(
+                "({ PgyArray_%s _pgy_map_%d = pgy_array_new_%s((%s).length); "
+                "for (size_t _mi = 0; _mi < (%s).length; _mi++) "
+                "pgy_array_push_%s(&_pgy_map_%d, %s((%s).data[_mi])); "
+                "_pgy_map_%d; })",
+                inner, tmp_id, inner, arr,
+                arr,
+                inner, tmp_id, fn_arg, arr,
+                tmp_id);
+            free(arr); free(fn_arg);
+            return result;
+        }
+        /* ArrayFilter — keep elements where predicate returns true */
+        if (strcmp(fn, "ArrayFilter") == 0 && call->data.call.arg_count == 2) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
+            const char *arr_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            const char *inner = "Int";
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+                inner = slot_inner_type_name(arr_type);
+            int tmp_id = ++ctx->tmp_counter;
+            char *result = strdup_fmt(
+                "({ PgyArray_%s _pgy_filt_%d = pgy_array_new_%s((%s).length); "
+                "for (size_t _fi = 0; _fi < (%s).length; _fi++) "
+                "if (%s((%s).data[_fi])) "
+                "pgy_array_push_%s(&_pgy_filt_%d, (%s).data[_fi]); "
+                "_pgy_filt_%d; })",
+                inner, tmp_id, inner, arr,
+                arr,
+                fn_arg, arr,
+                inner, tmp_id, arr,
+                tmp_id);
+            free(arr); free(fn_arg);
+            return result;
+        }
+        /* ArrayReverse — in-place reverse */
+        if (strcmp(fn, "ArrayReverse") == 0 && call->data.call.arg_count == 1) {
+            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+            const char *arr_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            const char *inner = "Int";
+            const char *c_type = "int32_t";
+            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0) {
+                inner = slot_inner_type_name(arr_type);
+                c_type = pergyra_type_to_c(inner);
+            }
+            char *result = strdup_fmt(
+                "({ for (size_t _ri = 0; _ri < (%s).length / 2; _ri++) { "
+                "%s _tmp = (%s).data[_ri]; "
+                "(%s).data[_ri] = (%s).data[(%s).length - 1 - _ri]; "
+                "(%s).data[(%s).length - 1 - _ri] = _tmp; } %s; })",
+                arr, c_type, arr, arr, arr, arr, arr, arr, arr);
             free(arr);
             return result;
         }
@@ -3159,7 +3467,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             const char *type_name = lookup_typed_var(ctx, var_name);
             if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
-                bool use_self_cell = is_subject_type_name(ctx, type_name);
+                bool use_self_cell = is_pointer_self_host_type_name(ctx, type_name);
                 const char *self_expr = strcmp(var_name, "self") == 0 ? "self" : NULL;
 
                 if (self_expr == NULL) {
@@ -3195,42 +3503,46 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ctx->suppress_slot_auto_read = true;
             char *obj_expr = emit_expression(obj, ctx);
             ctx->suppress_slot_auto_read = saved_suppress;
+            char *slot_ref = slot_ref_expr(ctx, obj->data.identifier.name, obj_expr);
 
             if (strcmp(method, "Write") == 0 && call->data.call.arg_count >= 1) {
                 char *val_expr = emit_expression(call->data.call.arguments[0], ctx);
                 char *result;
                 if (is_secure && call->data.call.arg_count >= 2) {
                     char *tok = emit_expression(call->data.call.arguments[1], ctx);
-                    result = strdup_fmt("pgy_secure_write_%s(&%s, %s, &%s)",
-                                        inner, obj_expr, val_expr, tok);
+                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
+                                        inner, slot_ref, val_expr, tok);
                     free(tok);
                 } else if (is_secure) {
-                    result = strdup_fmt("pgy_secure_write_%s(&%s, %s, &%s_token)",
-                                        inner, obj_expr, val_expr, obj_expr);
+                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s_token)",
+                                        inner, slot_ref, val_expr,
+                                        obj->data.identifier.name);
                 } else {
-                    result = strdup_fmt("pgy_write_%s(&%s, %s)",
-                                        inner, obj_expr, val_expr);
+                    result = strdup_fmt("pgy_write_%s(%s, %s)",
+                                        inner, slot_ref, val_expr);
                 }
                 free(val_expr);
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Read") == 0) {
                 char *result;
                 if (is_secure) {
-                    result = strdup_fmt("pgy_secure_read_%s(&%s, &%s_token)",
-                                        inner, obj_expr, obj_expr);
+                    result = strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
+                                        inner, slot_ref, obj->data.identifier.name);
                 } else {
-                    result = strdup_fmt("pgy_read_%s(&%s)", inner, obj_expr);
+                    result = strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
                 }
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             } else if (strcmp(method, "Release") == 0) {
                 char *result;
                 if (is_secure) {
-                    result = strdup_fmt("pgy_secure_release_%s(&%s, &%s_token)",
-                                        inner, obj_expr, obj_expr);
+                    result = strdup_fmt("pgy_secure_release_%s(%s, &%s_token)",
+                                        inner, slot_ref, obj->data.identifier.name);
                 } else {
-                    result = strdup_fmt("pgy_release_%s(&%s)", inner, obj_expr);
+                    result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
                 }
                 /* Mark as released */
                 for (int ri = 0; ri < ctx->slot_var_count; ri++) {
@@ -3240,9 +3552,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         break;
                     }
                 }
+                free(slot_ref);
                 free(obj_expr);
                 return result;
             }
+            free(slot_ref);
             free(obj_expr);
         }
     }
@@ -3262,11 +3576,52 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
 
     /* Build argument list */
     CodeBuf *args_buf = codebuf_create();
+    ASTNode *decl = (callee->type == AST_IDENTIFIER)
+        ? find_function_decl(ctx, callee->data.identifier.name) : NULL;
     for (size_t i = 0; i < call->data.call.arg_count; i++) {
-        char *arg = emit_expression(call->data.call.arguments[i], ctx);
-        if (i > 0)
+        FuncParam *param = (decl != NULL && i < decl->data.func_decl.param_count)
+            ? decl->data.func_decl.params[i] : NULL;
+        bool handled = false;
+        char *arg = NULL;
+
+        if (param != NULL && param->type != NULL
+            && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {
+            char *param_type = render_type_name(param->type);
+            bool slot_param = param_type != NULL
+                && (strncmp(param_type, "Slot<", 5) == 0
+                    || strncmp(param_type, "SecureSlot<", 11) == 0);
+            bool secure_param = param_type != NULL
+                && strncmp(param_type, "SecureSlot<", 11) == 0;
+            if (slot_param) {
+                const char *inner = NULL;
+                const char *slot_name = NULL;
+                bool secure = false;
+                bool saved_suppress = ctx->suppress_slot_auto_read;
+                ctx->suppress_slot_auto_read = true;
+                arg = emit_expression(call->data.call.arguments[i], ctx);
+                ctx->suppress_slot_auto_read = saved_suppress;
+                resolve_slot_target(ctx, call->data.call.arguments[i],
+                    &inner, &slot_name, &secure);
+                if (i > 0)
+                    codebuf_write(args_buf, ", ");
+                if (slot_name != NULL) {
+                    char *slot_ref = slot_ref_expr(ctx, slot_name, arg);
+                    codebuf_write(args_buf, "%s", slot_ref);
+                    free(slot_ref);
+                    if (secure_param)
+                        codebuf_write(args_buf, ", %s_token", slot_name);
+                    handled = true;
+                }
+            }
+            free(param_type);
+        }
+
+        if (!handled)
+            arg = emit_expression(call->data.call.arguments[i], ctx);
+        if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
-        codebuf_write(args_buf, "%s", arg);
+        if (!handled)
+            codebuf_write(args_buf, "%s", arg);
         free(arg);
     }
 
@@ -3545,12 +3900,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             const char *inner = lookup_slot_type(ctx, id_name);
             bool secure = lookup_slot_is_secure(ctx, id_name);
-            if (secure) {
-                return strdup_fmt("pgy_secure_read_%s(&%s, &%s_token)",
-                                  inner, id_name, id_name);
-            } else {
-                return strdup_fmt("pgy_read_%s(&%s)", inner, id_name);
-            }
+            char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
+            char *result = secure
+                ? strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
+                              inner, slot_ref, id_name)
+                : strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
+            free(slot_ref);
+            return result;
         }
         {
             const char *enum_variant = lookup_enum_variant_qualified_name(ctx, id_name);
@@ -3581,7 +3937,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (node->data.member.object->type == AST_IDENTIFIER
             && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
-            char *result = strdup_fmt(current_class_uses_self_cell(ctx)
+            bool self_is_pointer = current_class_uses_self_cell(ctx)
+                || ctx->current_relation_name != NULL
+                || ctx->current_effect_name != NULL
+                || ctx->current_zone_name != NULL
+                || ctx->current_world_name != NULL;
+            char *result = strdup_fmt(self_is_pointer
                 ? "%s->%s"
                 : "%s.%s", obj, node->data.member.name);
             free(obj);
@@ -3633,14 +3994,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 const char *inner = lookup_slot_type(ctx, tgt_name);
                 bool secure = lookup_slot_is_secure(ctx, tgt_name);
                 char *value = emit_expression(node->data.assignment.value, ctx);
+                char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;
                 if (secure) {
-                    result = strdup_fmt("pgy_secure_write_%s(&%s, %s, &%s_token)",
-                        inner, tgt_name, value, tgt_name);
+                    result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s_token)",
+                        inner, slot_ref, value, tgt_name);
                 } else {
-                    result = strdup_fmt("pgy_write_%s(&%s, %s)",
-                        inner, tgt_name, value);
+                    result = strdup_fmt("pgy_write_%s(%s, %s)",
+                        inner, slot_ref, value);
                 }
+                free(slot_ref);
                 free(value);
                 return result;
             }
@@ -3856,7 +4219,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
 
-        register_slot_var(ctx, name, slot_inner, is_secure_slot);
+        register_slot_var(ctx, name, slot_inner, is_secure_slot, false);
 
         write_indent(ctx);
         if (is_secure_slot) {
@@ -4002,7 +4365,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                         codebuf_write(ctx->out, "PgySlot_%s %s = %s;\n",
                             sugar_inner, name, init->data.identifier.name);
                     }
-                    register_slot_var(ctx, name, sugar_inner, sugar_secure);
+                    register_slot_var(ctx, name, sugar_inner, sugar_secure, false);
                     if (ann_type_name != NULL)
                         register_typed_var(ctx, name, ann_type_name);
                     free(ann_type_name);
@@ -4010,7 +4373,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 }
             }
 
-            register_slot_var(ctx, name, sugar_inner, sugar_secure);
+            register_slot_var(ctx, name, sugar_inner, sugar_secure, false);
 
             write_indent(ctx);
             if (sugar_secure) {
@@ -4212,8 +4575,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
         }
         else if (init->type == AST_CALL) {
-            /* Infer from call return type - default to int for now */
-            c_type = "int32_t";
+            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
         }
         else if (init->type == AST_ARRAY_LITERAL)
             c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
@@ -4279,6 +4641,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     if (ann_type_name != NULL) {
         register_typed_var(ctx, name, ann_type_name);
         free(ann_type_name);
+    } else if (init != NULL && init->type == AST_CALL) {
+        register_typed_var(ctx, name, infer_expression_type_name(ctx, init));
     } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
         char *future_type = infer_spawn_return_type_name(ctx, init);
         char *wrapped = strdup_fmt("Future<%s>", future_type);
@@ -4310,11 +4674,29 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = "int32_t";
+        char *type_name = NULL;
+        bool boundary_slot = false;
+        bool secure_slot = false;
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         if (i > 0)
             codebuf_write(buf, ", ");
-        codebuf_write(buf, "%s %s", pt, p->name);
+        if (p->type != NULL)
+            type_name = render_type_name(p->type);
+        boundary_slot = type_name != NULL
+            && (strncmp(type_name, "Slot<", 5) == 0
+                || strncmp(type_name, "SecureSlot<", 11) == 0)
+            && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+        secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+        if (boundary_slot) {
+            const char *inner = slot_inner_type_name(type_name);
+            codebuf_write(buf, "%s *%s", pt, p->name);
+            if (secure_slot)
+                codebuf_write(buf, ", PgyToken_%s %s_token", inner, p->name);
+        } else {
+            codebuf_write(buf, "%s %s", pt, p->name);
+        }
+        free(type_name);
     }
     codebuf_write(buf, ");\n");
     g_type_render_ctx = saved_render_ctx;
@@ -4358,10 +4740,28 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = "int32_t";
+        char *type_name = NULL;
+        bool boundary_slot = false;
+        bool secure_slot = false;
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         if (i > 0) codebuf_write(ctx->out, ", ");
-        codebuf_write(ctx->out, "%s %s", pt, p->name);
+        if (p->type != NULL)
+            type_name = render_type_name(p->type);
+        boundary_slot = type_name != NULL
+            && (strncmp(type_name, "Slot<", 5) == 0
+                || strncmp(type_name, "SecureSlot<", 11) == 0)
+            && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+        secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+        if (boundary_slot) {
+            const char *inner = slot_inner_type_name(type_name);
+            codebuf_write(ctx->out, "%s *%s", pt, p->name);
+            if (secure_slot)
+                codebuf_write(ctx->out, ", PgyToken_%s %s_token", inner, p->name);
+        } else {
+            codebuf_write(ctx->out, "%s %s", pt, p->name);
+        }
+        free(type_name);
     }
     codebuf_write(ctx->out, ")\n");
     codebuf_write(ctx->out, "{\n");
@@ -4373,11 +4773,14 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             continue;
         char *type_name = render_type_name(p->type);
         if (type_name != NULL) {
+            bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
+                               || strncmp(type_name, "SecureSlot<", 11) == 0)
+                && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
             register_typed_var(ctx, p->name, type_name);
             if (strncmp(type_name, "Slot<", 5) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false);
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false, boundary_slot);
             else if (strncmp(type_name, "SecureSlot<", 11) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true);
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true, boundary_slot);
             free(type_name);
         }
     }
@@ -4754,7 +5157,7 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
 
     /* Register alias in slot variable table */
-    register_slot_var(ctx, alias, inner, is_secure);
+    register_slot_var(ctx, alias, inner, is_secure, false);
 
     if (is_secure) {
         write_indent(ctx);
@@ -5082,9 +5485,46 @@ emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 {
+    const char *var = node->data.for_loop.variable;
+
+    /* for-in collection loop: for item in array { } */
+    if (node->data.for_loop.iterable != NULL) {
+        char *coll = emit_expression(node->data.for_loop.iterable, ctx);
+        const char *coll_type = infer_expression_type_name(ctx,
+            node->data.for_loop.iterable);
+        const char *elem_type = "int32_t";
+        if (coll_type != NULL
+            && (strncmp(coll_type, "Array<", 6) == 0
+                || strncmp(coll_type, "Slice<", 6) == 0)) {
+            elem_type = pergyra_type_to_c(slot_inner_type_name(coll_type));
+        }
+
+        int idx_id = ++ctx->tmp_counter;
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "for (size_t _pgy_idx_%d = 0; "
+            "_pgy_idx_%d < %s.count; "
+            "_pgy_idx_%d++)\n",
+            idx_id, idx_id, coll, idx_id);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "{\n");
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s %s = %s.data[_pgy_idx_%d];\n",
+            elem_type, var, coll, idx_id);
+        register_typed_var(ctx, var, slot_inner_type_name(coll_type));
+        if (node->data.for_loop.body != NULL)
+            emit_block(node->data.for_loop.body, ctx);
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+        free(coll);
+        return;
+    }
+
+    /* Range loop: for x in start..end { } */
     char *start = emit_expression(node->data.for_loop.range_start, ctx);
     char *end   = emit_expression(node->data.for_loop.range_end,   ctx);
-    const char *var = node->data.for_loop.variable;
 
     write_indent(ctx);
     codebuf_write(ctx->out,
@@ -5467,6 +5907,37 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_LET_DECL:
         emit_let_decl(node, ctx);
         break;
+    case AST_LET_DESTRUCTURE:
+    {
+        /* let (a, b, c) = expr;
+         * → auto _tmp = expr;
+         *   Type a = _tmp.data[0]; // Array
+         *   Type b = _tmp.data[1]; */
+        ASTNode *init = node->data.let_destructure.initializer;
+        char *init_expr = emit_expression(init, ctx);
+        const char *init_type = infer_expression_type_name(ctx, init);
+        const char *c_init_type = pergyra_type_to_c(init_type);
+        const char *elem_c_type = "int32_t";
+        const char *inner = "Int";
+        if (init_type != NULL
+            && (strncmp(init_type, "Array<", 6) == 0
+                || strncmp(init_type, "Slice<", 6) == 0)) {
+            inner = slot_inner_type_name(init_type);
+            elem_c_type = pergyra_type_to_c(inner);
+        }
+        int tmp_id = ++ctx->tmp_counter;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s _pgy_destr_%d = %s;\n",
+            c_init_type, tmp_id, init_expr);
+        for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s %s = _pgy_destr_%d.data[%zu];\n",
+                elem_c_type, node->data.let_destructure.names[i], tmp_id, i);
+            register_typed_var(ctx, node->data.let_destructure.names[i], inner);
+        }
+        free(init_expr);
+        break;
+    }
     case AST_FUNC_DECL:
         emit_func_decl(node, ctx);
         break;
@@ -6465,6 +6936,50 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
+    codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
+                  name, name);
+    ctx->indent++;
+    for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
+        ASTNode *refresh = node->data.relation_decl.refreshes[i];
+        ASTNode *target_slot = NULL;
+        ASTNode *source_slot = NULL;
+        ASTNode *target_decl = NULL;
+        ASTNode *source_decl = NULL;
+        const char *target_type_name = NULL;
+        const char *source_type_name = NULL;
+        char *literal;
+        for (size_t j = 0; j < node->data.relation_decl.slot_count; j++) {
+            ASTNode *slot = node->data.relation_decl.slots[j];
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.object_slot_name) == 0)
+                target_slot = slot;
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.source_slot_name) == 0)
+                source_slot = slot;
+        }
+        if (target_slot == NULL || source_slot == NULL
+            || target_slot->data.domain_slot.type == NULL
+            || source_slot->data.domain_slot.type == NULL)
+            continue;
+        target_type_name = target_slot->data.domain_slot.type->data.type.name;
+        source_type_name = source_slot->data.domain_slot.type->data.type.name;
+        target_decl = find_class_decl(ctx, target_type_name);
+        source_decl = find_class_decl(ctx, source_type_name);
+        {
+            char *source_expr = strdup_fmt("self->%s",
+                refresh->data.zone_refresh.source_slot_name);
+            literal = emit_projection_literal(target_decl, source_decl,
+                target_type_name, source_expr);
+            free(source_expr);
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->%s = %s;\n",
+            refresh->data.zone_refresh.object_slot_name, literal);
+        free(literal);
+    }
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
+
     for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
         ASTNode *method = node->data.relation_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;
@@ -6488,8 +7003,12 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             const char *saved_relation_name = ctx->current_relation_name;
             ctx->current_relation_name = name;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
             ctx->current_relation_name = saved_relation_name;
         }
         ctx->indent--;
@@ -6523,6 +7042,50 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
+    codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
+                  name, name);
+    ctx->indent++;
+    for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
+        ASTNode *refresh = node->data.effect_decl.refreshes[i];
+        ASTNode *target_slot = NULL;
+        ASTNode *source_slot = NULL;
+        ASTNode *target_decl = NULL;
+        ASTNode *source_decl = NULL;
+        const char *target_type_name = NULL;
+        const char *source_type_name = NULL;
+        char *literal;
+        for (size_t j = 0; j < node->data.effect_decl.slot_count; j++) {
+            ASTNode *slot = node->data.effect_decl.slots[j];
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.object_slot_name) == 0)
+                target_slot = slot;
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.source_slot_name) == 0)
+                source_slot = slot;
+        }
+        if (target_slot == NULL || source_slot == NULL
+            || target_slot->data.domain_slot.type == NULL
+            || source_slot->data.domain_slot.type == NULL)
+            continue;
+        target_type_name = target_slot->data.domain_slot.type->data.type.name;
+        source_type_name = source_slot->data.domain_slot.type->data.type.name;
+        target_decl = find_class_decl(ctx, target_type_name);
+        source_decl = find_class_decl(ctx, source_type_name);
+        {
+            char *source_expr = strdup_fmt("self->%s",
+                refresh->data.zone_refresh.source_slot_name);
+            literal = emit_projection_literal(target_decl, source_decl,
+                target_type_name, source_expr);
+            free(source_expr);
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->%s = %s;\n",
+            refresh->data.zone_refresh.object_slot_name, literal);
+        free(literal);
+    }
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
+
     for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
         ASTNode *method = node->data.effect_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;
@@ -6546,8 +7109,12 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         {
             const char *saved_effect_name = ctx->current_effect_name;
             ctx->current_effect_name = name;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
             ctx->current_effect_name = saved_effect_name;
         }
         ctx->indent--;

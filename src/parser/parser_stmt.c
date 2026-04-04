@@ -1,6 +1,9 @@
 #include "parser_internal.h"
 
 // for 루프 파싱
+// Supports two forms:
+//   for x in start..end { }   — range loop
+//   for item in collection { } — for-in collection loop
 ASTNode* parse_for_loop(Parser* parser) {
     ASTNode* for_loop = ast_create_for_loop();
 
@@ -10,16 +13,23 @@ ASTNode* parse_for_loop(Parser* parser) {
 
     parser_consume(parser, TOKEN_IN, "Expected 'in' in for loop");
 
-    // 범위 표현식 (예: 1..10)
-    ASTNode* start = parser_parse_expression(parser);
-    Token range = parser_consume(parser, TOKEN_DOT, "Expected '..' in range");
-    if (range.length != 2 || strcmp(range.text, "..") != 0) {
-        parser_error(parser, "Expected '..' in range");
-    }
-    ASTNode* end = parser_parse_expression(parser);
+    // Parse the first expression
+    ASTNode* first = parser_parse_expression(parser);
 
-    for_loop->data.for_loop.range_start = start;
-    for_loop->data.for_loop.range_end = end;
+    // Check if this is a range (expr..expr) or collection (expr)
+    if (parser_check(parser, TOKEN_DOT)
+        && parser->current_token.length == 2
+        && parser->current_token.text != NULL
+        && strncmp(parser->current_token.text, "..", 2) == 0) {
+        // Range form: start..end
+        parser_advance(parser);  // consume '..'
+        ASTNode* end = parser_parse_expression(parser);
+        for_loop->data.for_loop.range_start = first;
+        for_loop->data.for_loop.range_end = end;
+    } else {
+        // Collection form: for item in collection { }
+        for_loop->data.for_loop.iterable = first;
+    }
 
     // 루프 본문
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after for loop header");

@@ -168,6 +168,7 @@ ASTNode* ast_create_for_loop(void) {
     node->data.for_loop.variable = NULL;
     node->data.for_loop.range_start = NULL;
     node->data.for_loop.range_end = NULL;
+    node->data.for_loop.iterable = NULL;
     node->data.for_loop.body = NULL;
     return node;
 }
@@ -363,6 +364,8 @@ ASTNode* ast_create_relation_declaration(const char* name) {
     node->data.relation_decl.name = name ? pergyra_strdup(name) : NULL;
     node->data.relation_decl.slots = NULL;
     node->data.relation_decl.slot_count = 0;
+    node->data.relation_decl.refreshes = NULL;
+    node->data.relation_decl.refresh_count = 0;
     node->data.relation_decl.shared_fields = NULL;
     node->data.relation_decl.shared_count = 0;
     node->data.relation_decl.methods = NULL;
@@ -376,6 +379,8 @@ ASTNode* ast_create_effect_declaration(const char* name) {
     node->data.effect_decl.name = name ? pergyra_strdup(name) : NULL;
     node->data.effect_decl.slots = NULL;
     node->data.effect_decl.slot_count = 0;
+    node->data.effect_decl.refreshes = NULL;
+    node->data.effect_decl.refresh_count = 0;
     node->data.effect_decl.shared_fields = NULL;
     node->data.effect_decl.shared_count = 0;
     node->data.effect_decl.methods = NULL;
@@ -1084,7 +1089,14 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.let_decl.type);
             ast_destroy(node->data.let_decl.initializer);
             break;
-            
+
+        case AST_LET_DESTRUCTURE:
+            for (size_t i = 0; i < node->data.let_destructure.name_count; i++)
+                free(node->data.let_destructure.names[i]);
+            free(node->data.let_destructure.names);
+            ast_destroy(node->data.let_destructure.initializer);
+            break;
+
         case AST_WITH_STMT:
             ast_destroy(node->data.with_stmt.slot_type);
             free(node->data.with_stmt.alias);
@@ -1110,6 +1122,7 @@ void ast_destroy(ASTNode* node) {
             free(node->data.for_loop.variable);
             ast_destroy(node->data.for_loop.range_start);
             ast_destroy(node->data.for_loop.range_end);
+            ast_destroy(node->data.for_loop.iterable);
             ast_destroy(node->data.for_loop.body);
             break;
             
@@ -1341,6 +1354,9 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.relation_decl.slot_count; i++)
                 ast_destroy(node->data.relation_decl.slots[i]);
             free(node->data.relation_decl.slots);
+            for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++)
+                ast_destroy(node->data.relation_decl.refreshes[i]);
+            free(node->data.relation_decl.refreshes);
             for (size_t i = 0; i < node->data.relation_decl.shared_count; i++)
                 ast_destroy(node->data.relation_decl.shared_fields[i]);
             free(node->data.relation_decl.shared_fields);
@@ -1355,6 +1371,9 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.effect_decl.slot_count; i++)
                 ast_destroy(node->data.effect_decl.slots[i]);
             free(node->data.effect_decl.slots);
+            for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++)
+                ast_destroy(node->data.effect_decl.refreshes[i]);
+            free(node->data.effect_decl.refreshes);
             for (size_t i = 0; i < node->data.effect_decl.shared_count; i++)
                 ast_destroy(node->data.effect_decl.shared_fields[i]);
             free(node->data.effect_decl.shared_fields);
@@ -2613,6 +2632,9 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
                 ast_print(node->data.relation_decl.slots[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
+                ast_print(node->data.relation_decl.refreshes[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
                 ast_print(node->data.relation_decl.shared_fields[i], indent + 1);
             }
@@ -2625,6 +2647,9 @@ void ast_print(ASTNode* node, int indent) {
             printf("Effect: %s\n", node->data.effect_decl.name);
             for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
                 ast_print(node->data.effect_decl.slots[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
+                ast_print(node->data.effect_decl.refreshes[i], indent + 1);
             }
             for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
                 ast_print(node->data.effect_decl.shared_fields[i], indent + 1);

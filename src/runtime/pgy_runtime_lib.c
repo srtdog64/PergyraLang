@@ -719,6 +719,87 @@ char *StringConcat(const char *a, const char *b)
     return buf;
 }
 
+/* -----------------------------------------------------------------
+ * StringSplit / StringJoin / ToInt / ToFloat / Math
+ * ----------------------------------------------------------------- */
+
+/* StringSplit(str, delim) → Array<String> (caller-allocated PgyArray_String) */
+PgyArray_String StringSplit(const char *s, const char *delim)
+{
+    PgyArray_String result = pgy_array_new_String(8);
+    if (s == NULL || delim == NULL || *delim == '\0') {
+        if (s != NULL)
+            pgy_array_push_String(&result, pgy_runtime_lib_strdup(s));
+        return result;
+    }
+    size_t dlen = strlen(delim);
+    const char *p = s;
+    for (;;) {
+        const char *found = strstr(p, delim);
+        if (found == NULL) {
+            pgy_array_push_String(&result, pgy_runtime_lib_strdup(p));
+            break;
+        }
+        size_t seg = (size_t)(found - p);
+        char *part = (char *)malloc(seg + 1);
+        if (part != NULL) { memcpy(part, p, seg); part[seg] = '\0'; }
+        pgy_array_push_String(&result, part != NULL ? part : pgy_runtime_lib_strdup(""));
+        p = found + dlen;
+    }
+    return result;
+}
+
+/* StringJoin(arr, sep) → String */
+char *StringJoin(PgyArray_String *arr, const char *sep)
+{
+    if (arr == NULL || arr->length == 0)
+        return pgy_runtime_lib_strdup("");
+    size_t slen = (sep != NULL) ? strlen(sep) : 0;
+    size_t total = 0;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (arr->data[i] != NULL) total += strlen(arr->data[i]);
+        if (i > 0) total += slen;
+    }
+    char *buf = (char *)malloc(total + 1);
+    if (buf == NULL) return pgy_runtime_lib_strdup("");
+    char *wp = buf;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (i > 0 && slen > 0) { memcpy(wp, sep, slen); wp += slen; }
+        if (arr->data[i] != NULL) {
+            size_t l = strlen(arr->data[i]);
+            memcpy(wp, arr->data[i], l);
+            wp += l;
+        }
+    }
+    *wp = '\0';
+    return buf;
+}
+
+int32_t ToInt(const char *s)
+{
+    if (s == NULL) return 0;
+    return (int32_t)strtol(s, NULL, 10);
+}
+
+float ToFloat(const char *s)
+{
+    if (s == NULL) return 0.0f;
+    return strtof(s, NULL);
+}
+
+#include <math.h>
+
+float Sqrt(float x)  { return sqrtf(x); }
+float Pow(float x, float y) { return powf(x, y); }
+float Floor(float x) { return floorf(x); }
+float Ceil(float x)  { return ceilf(x); }
+
+int32_t Random(int32_t max)
+{
+    if (max <= 0) return 0;
+    return (int32_t)(rand() % max);
+}
+
 /* =================================================================
  * Channel — Int (thread-safe with mutex + condvar)
  * ================================================================= */

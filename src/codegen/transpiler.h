@@ -58,6 +58,7 @@ typedef struct
     char name[64];         /* variable name, e.g. "msg"     */
     char inner_type[32];   /* Pergyra type, e.g. "String"   */
     bool is_secure;        /* SecureSlot?                    */
+    bool is_indirect;      /* passed/stored as slot pointer  */
     bool released;         /* explicit Release() was called  */
 } SlotVarEntry;
 

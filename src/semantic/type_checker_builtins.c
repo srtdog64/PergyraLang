@@ -119,23 +119,6 @@ find_named_actor_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
-static ClassField *
-find_named_class_field(ASTNode *decl, const char *field_name)
-{
-    if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-        ClassField *field = decl->data.class_decl.fields[i];
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return field;
-        }
-    }
-
-    return NULL;
-}
-
 static bool
 decl_is_subject_nominal(ASTNode *decl)
 {
@@ -956,6 +939,60 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             TYPE_STRING, expr->data.call.arguments[1], ctx);
         return TYPE_STRING;
     }
+    if (strcmp(name, "StringSplit") == 0 || strcmp(name, "Split") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_STRING, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_STRING, expr->data.call.arguments[1], ctx);
+        Type *args[1] = { TYPE_STRING };
+        return type_create_constructed(TYPE_ARRAY, args, 1);
+    }
+    if (strcmp(name, "StringJoin") == 0 || strcmp(name, "Join") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr_type = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr_type, "Array")) {
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "StringJoin requires Array<String> as first argument");
+        }
+        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+            TYPE_STRING, expr->data.call.arguments[1], ctx);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "ToInt") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "ToFloat") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_FLOAT;
+    }
+    /* Math builtins */
+    if (strcmp(name, "Sqrt") == 0 || strcmp(name, "Floor") == 0
+        || strcmp(name, "Ceil") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_FLOAT;
+    }
+    if (strcmp(name, "Pow") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        return TYPE_FLOAT;
+    }
+    if (strcmp(name, "Random") == 0) {
+        if (expr->data.call.arg_count > 0)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
     if (strcmp(name, "ArrayLength") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -1009,6 +1046,47 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             semantic_error(ctx, expr->data.call.arguments[0],
                 "ArrayPop requires Array<T>, got '%s'", arr->name);
         return TYPE_VOID;
+    }
+    if (strcmp(name, "ArraySort") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArraySort requires Array<T>, got '%s'", arr->name);
+        return arr;
+    }
+    if (strcmp(name, "ArrayMap") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayMap requires Array<T> as first argument, got '%s'", arr->name);
+        /* Second arg is a function — type-check it but allow any callable */
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        /* Return type: same Array<T> (element type preserved for now) */
+        return arr;
+    }
+    if (strcmp(name, "ArrayFilter") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayFilter requires Array<T> as first argument, got '%s'", arr->name);
+        /* Second arg is a predicate function */
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        return arr;
+    }
+    if (strcmp(name, "ArrayReverse") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *arr = type_check_expression(expr->data.call.arguments[0], ctx);
+        if (!type_is_constructed_named(arr, "Array"))
+            semantic_error(ctx, expr->data.call.arguments[0],
+                "ArrayReverse requires Array<T>, got '%s'", arr->name);
+        return arr;
     }
     if (strcmp(name, "ToString") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
@@ -1613,7 +1691,11 @@ type_check_box_array_builtin(ASTNode *call, SemanticContext *ctx)
 }
 
 static Type *
-type_check_to_dto(ASTNode *call, SemanticContext *ctx)
+type_check_projection_call(ASTNode *call,
+                           SemanticContext *ctx,
+                           const char *builtin_name,
+                           NominalDeclKind expected_kind,
+                           const char *expected_label)
 {
     ASTNode *target_arg;
     ASTNode *source_arg;
@@ -1621,9 +1703,17 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
     ASTNode *source_decl;
     Symbol *target_sym;
     Type *source_type;
+    bool in_projection_context;
 
-    if (!check_call_arity(call, 2, "ToDto", ctx))
+    if (!check_call_arity(call, 2, builtin_name, ctx))
         return TYPE_UNKNOWN;
+
+    in_projection_context =
+        ctx != NULL
+        && (ctx->current_relation != NULL
+            || ctx->current_effect != NULL
+            || ctx->current_zone != NULL
+            || ctx->current_world != NULL);
 
     target_arg = call->data.call.arguments[0];
     source_arg = call->data.call.arguments[1];
@@ -1631,30 +1721,37 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {
         semantic_error(ctx, call,
-            "ToDto requires the first argument to be a dto/struct type name");
+            "%s requires the first argument to be a %s type name",
+            builtin_name, expected_label);
         return TYPE_UNKNOWN;
     }
 
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER
         || source_arg->data.identifier.name == NULL) {
         semantic_error(ctx, call,
-            "ToDto currently requires a named subject binding as the source");
+            "%s currently requires a named subject binding as the source",
+            builtin_name);
         return TYPE_UNKNOWN;
     }
 
     target_decl = find_named_class_decl(ctx->program_root,
         target_arg->data.identifier.name);
-    if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
+    if (target_decl == NULL
+        || !target_decl->data.class_decl.is_struct
+        || target_decl->data.class_decl.nominal_kind != expected_kind) {
         semantic_error(ctx, target_arg,
-            "ToDto target '%s' must be a dto/struct declaration",
-            target_arg->data.identifier.name);
+            "%s target '%s' must be a %s declaration",
+            builtin_name,
+            target_arg->data.identifier.name,
+            expected_label);
         return TYPE_UNKNOWN;
     }
 
     target_sym = scope_lookup(ctx->scope, target_arg->data.identifier.name);
     if (target_sym == NULL || target_sym->type == NULL) {
         semantic_error(ctx, target_arg,
-            "Unknown dto/struct type '%s'",
+            "Unknown %s type '%s'",
+            expected_label,
             target_arg->data.identifier.name);
         return TYPE_UNKNOWN;
     }
@@ -1665,7 +1762,8 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
 
     if (source_type->kind != TYPE_KIND_CLASS || source_type->name == NULL) {
         semantic_error(ctx, source_arg,
-            "ToDto source must be a subject binding, got '%s'",
+            "%s source must be a subject binding, got '%s'",
+            builtin_name,
             source_type->name != NULL ? source_type->name : "<unknown>");
         return TYPE_UNKNOWN;
     }
@@ -1675,7 +1773,8 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
         source_decl = find_named_actor_decl(ctx->program_root, source_type->name);
     if (!decl_is_subject_nominal(source_decl)) {
         semantic_error(ctx, source_arg,
-            "ToDto source '%s' must be a subject declaration",
+            "%s source '%s' must be a subject declaration",
+            builtin_name,
             source_type->name != NULL ? source_type->name : "<unknown>");
         return TYPE_UNKNOWN;
     }
@@ -1702,7 +1801,8 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
         }
         if (source_field == NULL || source_field->type == NULL) {
             semantic_error(ctx, call,
-                "ToDto target field '%s' is missing from source subject '%s'",
+                "%s target field '%s' is missing from source subject '%s'",
+                builtin_name,
                 target_field->name,
                 source_type->name != NULL ? source_type->name : "<unknown>");
             continue;
@@ -1713,13 +1813,27 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
         require_assignable(source_field_type, target_field_type, call, ctx);
     }
 
+    if (!in_projection_context) {
+        semantic_warning(ctx, call,
+            "%s is being used as a direct projection outside relation/effect/zone/world context; prefer domain-local object/dto slots and refresh/publish flow",
+            builtin_name);
+    }
+
     return target_sym->type;
+}
+
+static Type *
+type_check_to_dto(ASTNode *call, SemanticContext *ctx)
+{
+    return type_check_projection_call(call, ctx, "ToDto",
+        NOMINAL_DECL_DTO, "dto");
 }
 
 static Type *
 type_check_to_object(ASTNode *call, SemanticContext *ctx)
 {
-    return type_check_to_dto(call, ctx);
+    return type_check_projection_call(call, ctx, "ToObject",
+        NOMINAL_DECL_OBJECT, "object");
 }
 
 Type *

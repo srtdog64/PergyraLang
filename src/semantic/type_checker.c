@@ -507,6 +507,10 @@ find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
+static ASTNode *
+find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
+                         const char *name);
+
 static size_t
 subject_host_field_count(ASTNode *decl)
 {
@@ -537,8 +541,167 @@ subject_host_field_at(ASTNode *decl, size_t index)
     return NULL;
 }
 
+static Type *
+create_overlay_nominal_type(const char *name)
+{
+    Type *type = calloc(1, sizeof(Type));
+    if (type == NULL)
+        return TYPE_UNKNOWN;
+    type->kind = TYPE_KIND_CLASS;
+    type->nominal_flavor = TYPE_NOMINAL_CLASS;
+    type->name = pergyra_strdup(name);
+    return type;
+}
+
+static size_t
+overlay_field_count(ASTNode *decl)
+{
+    if (decl == NULL)
+        return 0;
+    switch (decl->type) {
+    case AST_SYSTEMIC_DECL:
+        return decl->data.systemic_decl.party_count
+            + decl->data.systemic_decl.shared_count;
+    case AST_WORLD_DECL:
+        return decl->data.world_decl.systemic_count
+            + decl->data.world_decl.zone_count
+            + decl->data.world_decl.shared_count;
+    case AST_ZONE_DECL:
+        return decl->data.zone_decl.slot_count
+            + decl->data.zone_decl.shared_count;
+    case AST_RELATION_DECL:
+        return decl->data.relation_decl.slot_count
+            + decl->data.relation_decl.shared_count;
+    case AST_EFFECT_DECL:
+        return decl->data.effect_decl.slot_count
+            + decl->data.effect_decl.shared_count;
+    default:
+        return 0;
+    }
+}
+
+static ASTNode *
+overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
+{
+    if (field_name_out != NULL)
+        *field_name_out = NULL;
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_SYSTEMIC_DECL:
+        if (index < decl->data.systemic_decl.party_count)
+            return NULL;
+        index -= decl->data.systemic_decl.party_count;
+        if (index < decl->data.systemic_decl.shared_count) {
+            ASTNode *shared = decl->data.systemic_decl.shared_fields[index];
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = shared->data.party_shared.name;
+            return shared != NULL ? shared->data.party_shared.type : NULL;
+        }
+        break;
+    case AST_WORLD_DECL:
+        if (index < decl->data.world_decl.systemic_count)
+            return NULL;
+        index -= decl->data.world_decl.systemic_count;
+        if (index < decl->data.world_decl.zone_count)
+            return NULL;
+        index -= decl->data.world_decl.zone_count;
+        if (index < decl->data.world_decl.shared_count) {
+            ASTNode *shared = decl->data.world_decl.shared_fields[index];
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = shared->data.party_shared.name;
+            return shared != NULL ? shared->data.party_shared.type : NULL;
+        }
+        break;
+    case AST_ZONE_DECL:
+        if (index < decl->data.zone_decl.slot_count) {
+            ASTNode *slot = decl->data.zone_decl.slots[index];
+            if (field_name_out != NULL && slot != NULL)
+                *field_name_out = slot->data.domain_slot.slot_name;
+            return slot != NULL ? slot->data.domain_slot.type : NULL;
+        }
+        index -= decl->data.zone_decl.slot_count;
+        if (index < decl->data.zone_decl.shared_count) {
+            ASTNode *shared = decl->data.zone_decl.shared_fields[index];
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = shared->data.party_shared.name;
+            return shared != NULL ? shared->data.party_shared.type : NULL;
+        }
+        break;
+    case AST_RELATION_DECL:
+        if (index < decl->data.relation_decl.slot_count) {
+            ASTNode *slot = decl->data.relation_decl.slots[index];
+            if (field_name_out != NULL && slot != NULL)
+                *field_name_out = slot->data.domain_slot.slot_name;
+            return slot != NULL ? slot->data.domain_slot.type : NULL;
+        }
+        index -= decl->data.relation_decl.slot_count;
+        if (index < decl->data.relation_decl.shared_count) {
+            ASTNode *shared = decl->data.relation_decl.shared_fields[index];
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = shared->data.party_shared.name;
+            return shared != NULL ? shared->data.party_shared.type : NULL;
+        }
+        break;
+    case AST_EFFECT_DECL:
+        if (index < decl->data.effect_decl.slot_count) {
+            ASTNode *slot = decl->data.effect_decl.slots[index];
+            if (field_name_out != NULL && slot != NULL)
+                *field_name_out = slot->data.domain_slot.slot_name;
+            return slot != NULL ? slot->data.domain_slot.type : NULL;
+        }
+        index -= decl->data.effect_decl.slot_count;
+        if (index < decl->data.effect_decl.shared_count) {
+            ASTNode *shared = decl->data.effect_decl.shared_fields[index];
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = shared->data.party_shared.name;
+            return shared != NULL ? shared->data.party_shared.type : NULL;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name)
+{
+    if (program == NULL || name == NULL)
+        return NULL;
+
+    switch (kind) {
+    case SYMBOL_CLASS:
+        return find_type_decl_by_name(program, name);
+    case SYMBOL_ACTOR:
+        return find_actor_decl_by_name(program, name);
+    case SYMBOL_SYSTEMIC:
+        return find_domain_decl_by_name(program, AST_SYSTEMIC_DECL, name);
+    case SYMBOL_WORLD:
+        return find_domain_decl_by_name(program, AST_WORLD_DECL, name);
+    case SYMBOL_ZONE:
+        return find_domain_decl_by_name(program, AST_ZONE_DECL, name);
+    case SYMBOL_RELATION:
+        return find_domain_decl_by_name(program, AST_RELATION_DECL, name);
+    case SYMBOL_EFFECT:
+        return find_domain_decl_by_name(program, AST_EFFECT_DECL, name);
+    default:
+        return NULL;
+    }
+}
+
 static bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
+
+static bool
+type_is_subject_host_slot_handle(const Type *type, SemanticContext *ctx)
+{
+    if (!type_is_owned_slot_handle(type) || ctx == NULL)
+        return false;
+    return type_is_subject_type(type->data.slot.inner_type, ctx);
+}
 
 static bool
 type_is_class_object_type(const Type *type, SemanticContext *ctx)
@@ -732,10 +895,12 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY
-        || sym->kind == SYMBOL_ACTOR) {
-        if ((sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_ACTOR)
-            && ctx->program_root != NULL) {
-            ASTNode *decl = find_type_decl_by_name(ctx->program_root, display_name);
+        || sym->kind == SYMBOL_ACTOR || sym->kind == SYMBOL_RELATION
+        || sym->kind == SYMBOL_EFFECT || sym->kind == SYMBOL_SYSTEMIC
+        || sym->kind == SYMBOL_WORLD || sym->kind == SYMBOL_ZONE) {
+        if (ctx->program_root != NULL) {
+            ASTNode *decl = constructor_decl_for_symbol_kind(ctx->program_root,
+                sym->kind, display_name);
             size_t field_count = 0;
             bool decl_is_generic = false;
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
@@ -743,10 +908,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 decl_is_generic =
                     (decl->data.class_decl.generic_params != NULL
                      && decl->data.class_decl.generic_params->count > 0);
-            } else {
-                decl = find_actor_decl_by_name(ctx->program_root, display_name);
-                if (decl != NULL && decl->type == AST_ACTOR_DECL)
-                    field_count = decl->data.actor_decl.field_count;
+            } else if (decl != NULL && decl->type == AST_ACTOR_DECL) {
+                field_count = decl->data.actor_decl.field_count;
+            } else if (decl != NULL
+                       && (decl->type == AST_RELATION_DECL
+                           || decl->type == AST_EFFECT_DECL
+                           || decl->type == AST_SYSTEMIC_DECL
+                           || decl->type == AST_WORLD_DECL
+                           || decl->type == AST_ZONE_DECL)) {
+                field_count = overlay_field_count(decl);
             }
             if (decl != NULL) {
                 size_t provided = expr->data.call.arg_count;
@@ -759,17 +929,27 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         display_name, field_count, provided);
                 } else if (!decl_is_generic) {
                     for (size_t i = 0; i < provided; i++) {
-                        ClassField *field = subject_host_field_at(decl, i);
-                        if (field == NULL || field->type == NULL)
+                        const char *field_name = NULL;
+                        ASTNode *field_type_node = NULL;
+                        if (decl->type == AST_CLASS_DECL || decl->type == AST_ACTOR_DECL) {
+                            ClassField *field = subject_host_field_at(decl, i);
+                            if (field != NULL) {
+                                field_name = field->name;
+                                field_type_node = field->type;
+                            }
+                        } else {
+                            field_type_node = overlay_field_decl_at(decl, i, &field_name);
+                        }
+                        if (field_type_node == NULL)
                             continue;
-                        Type *field_type = resolve_type_node(field->type, ctx);
+                        Type *field_type = resolve_type_node(field_type_node, ctx);
                         Type *arg_type = type_check_expression(expr->data.call.arguments[i], ctx);
                         if (field_type != NULL && arg_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
                             semantic_error(ctx, expr->data.call.arguments[i],
                                 "Constructor '%s' argument %zu initializes field '%s' of type '%s', got '%s'",
                                 display_name, i + 1,
-                                field->name != NULL ? field->name : "<field>",
+                                field_name != NULL ? field_name : "<field>",
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
@@ -2185,7 +2365,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = SYMBOL_ROLE;
-    sym->type = TYPE_VOID;
+    sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
@@ -2269,7 +2449,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = SYMBOL_PARTY;
-    sym->type = TYPE_VOID;
+    sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
@@ -2277,6 +2457,8 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     if (existing != NULL && existing->kind == SYMBOL_CLASS) {
         /* Forward-declared in Pass 1 — update kind */
         existing->kind = SYMBOL_PARTY;
+        if (existing->type == NULL || existing->type == TYPE_VOID)
+            existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of party '%s'", name);
@@ -2347,13 +2529,15 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = SYMBOL_SYSTEMIC;
-    sym->type = TYPE_VOID;
+    sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL && existing->kind == SYMBOL_CLASS) {
         existing->kind = SYMBOL_SYSTEMIC;
+        if (existing->type == NULL || existing->type == TYPE_VOID)
+            existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of systemic '%s'", name);
@@ -2471,13 +2655,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = SYMBOL_WORLD;
-    sym->type = TYPE_VOID;
+    sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL && existing->kind == SYMBOL_CLASS) {
         existing->kind = SYMBOL_WORLD;
+        if (existing->type == NULL || existing->type == TYPE_VOID)
+            existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of world '%s'", name);
@@ -2863,13 +3049,13 @@ any_subject_role_has_ability(ASTNode *program, const char *ability_name)
 }
 
 static ASTNode *
-find_zone_domain_slot(ASTNode *zone, const char *slot_name)
+find_domain_slot_local(ASTNode **slots, size_t slot_count, const char *slot_name)
 {
-    if (zone == NULL || slot_name == NULL)
+    if (slots == NULL || slot_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.slots[i];
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL
             && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.slot_name != NULL
@@ -2878,6 +3064,16 @@ find_zone_domain_slot(ASTNode *zone, const char *slot_name)
         }
     }
     return NULL;
+}
+
+static ASTNode *
+find_zone_domain_slot(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || slot_name == NULL)
+        return NULL;
+
+    return find_domain_slot_local(zone->data.zone_decl.slots,
+        zone->data.zone_decl.slot_count, slot_name);
 }
 
 static ASTNode *
@@ -3124,12 +3320,14 @@ find_named_class_decl_local(ASTNode *program, const char *name)
 }
 
 static bool
-type_check_zone_projection_contract(ASTNode *zone,
-                                    ASTNode *site,
-                                    const char *object_slot_name,
-                                    const char *source_slot_name,
-                                    SemanticContext *ctx,
-                                    const char *action_name)
+type_check_projection_contract(ASTNode **slots,
+                               size_t slot_count,
+                               const char *owner_label,
+                               ASTNode *site,
+                               const char *object_slot_name,
+                               const char *source_slot_name,
+                               SemanticContext *ctx,
+                               const char *action_name)
 {
     ASTNode *object_slot;
     ASTNode *source_slot;
@@ -3138,29 +3336,32 @@ type_check_zone_projection_contract(ASTNode *zone,
     ASTNode *target_decl;
     ASTNode *source_decl;
 
-    object_slot = find_zone_domain_slot(zone, object_slot_name);
-    source_slot = find_zone_domain_slot(zone, source_slot_name);
+    object_slot = find_domain_slot_local(slots, slot_count, object_slot_name);
+    source_slot = find_domain_slot_local(slots, slot_count, source_slot_name);
     if (object_slot == NULL || source_slot == NULL || ctx == NULL)
         return false;
 
     if (object_slot->data.domain_slot.is_subject) {
         semantic_error(ctx, site,
-            "Zone %s target slot '%s' must be an object/dto slot",
-            action_name, object_slot_name != NULL ? object_slot_name : "<unknown>");
+            "%s %s target slot '%s' must be an object/dto slot",
+            owner_label, action_name,
+            object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
     }
     if (site != NULL && site->type == AST_ZONE_REFRESH
         && site->data.zone_refresh.requires_dto
         && !object_slot->data.domain_slot.is_dto) {
         semantic_error(ctx, site,
-            "Zone %s target slot '%s' must be a dto slot",
-            action_name, object_slot_name != NULL ? object_slot_name : "<unknown>");
+            "%s %s target slot '%s' must be a dto slot",
+            owner_label, action_name,
+            object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
     }
     if (!source_slot->data.domain_slot.is_subject) {
         semantic_error(ctx, site,
-            "Zone %s source slot '%s' must be a subject slot",
-            action_name, source_slot_name != NULL ? source_slot_name : "<unknown>");
+            "%s %s source slot '%s' must be a subject slot",
+            owner_label, action_name,
+            source_slot_name != NULL ? source_slot_name : "<unknown>");
         return true;
     }
 
@@ -3174,17 +3375,33 @@ type_check_zone_projection_contract(ASTNode *zone,
     target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
         semantic_error(ctx, site,
-            "Zone %s target slot '%s' must use a dto/struct type, got '%s'",
-            action_name,
+            "%s %s target slot '%s' must use an object/dto projection type, got '%s'",
+            owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             target_type->name != NULL ? target_type->name : "<unknown>");
         return true;
     }
+    if (site != NULL && site->type == AST_ZONE_REFRESH) {
+        NominalDeclKind expected_kind =
+            site->data.zone_refresh.requires_dto ? NOMINAL_DECL_DTO : NOMINAL_DECL_OBJECT;
+        const char *expected_label =
+            site->data.zone_refresh.requires_dto ? "dto" : "object";
+
+        if (target_decl->data.class_decl.nominal_kind != expected_kind) {
+            semantic_error(ctx, site,
+                "%s %s target slot '%s' must use a %s declaration, got '%s'",
+                owner_label, action_name,
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                expected_label,
+                target_type->name != NULL ? target_type->name : "<unknown>");
+            return true;
+        }
+    }
 
     if (!type_is_subject_type(source_type, ctx)) {
         semantic_error(ctx, site,
-            "Zone %s source slot '%s' must use a subject type, got '%s'",
-            action_name,
+            "%s %s source slot '%s' must use a subject type, got '%s'",
+            owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type->name != NULL ? source_type->name : "<unknown>");
         return true;
@@ -3193,8 +3410,8 @@ type_check_zone_projection_contract(ASTNode *zone,
     source_decl = find_subject_host_decl_by_name(ctx->program_root, source_type->name);
     if (!decl_is_subject_host(source_decl)) {
         semantic_error(ctx, site,
-            "Zone %s source slot '%s' must reference a subject declaration",
-            action_name,
+            "%s %s source slot '%s' must reference a subject declaration",
+            owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>");
         return true;
     }
@@ -3221,8 +3438,8 @@ type_check_zone_projection_contract(ASTNode *zone,
         }
         if (source_field == NULL || source_field->type == NULL) {
             semantic_error(ctx, site,
-                "Zone %s target field '%s' is missing from source subject slot '%s'",
-                action_name,
+                "%s %s target field '%s' is missing from source subject slot '%s'",
+                owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
             continue;
@@ -3234,6 +3451,21 @@ type_check_zone_projection_contract(ASTNode *zone,
     }
 
     return true;
+}
+
+static bool
+type_check_zone_projection_contract(ASTNode *zone,
+                                    ASTNode *site,
+                                    const char *object_slot_name,
+                                    const char *source_slot_name,
+                                    SemanticContext *ctx,
+                                    const char *action_name)
+{
+    if (zone == NULL)
+        return false;
+    return type_check_projection_contract(zone->data.zone_decl.slots,
+        zone->data.zone_decl.slot_count, "Zone", site,
+        object_slot_name, source_slot_name, ctx, action_name);
 }
 
 static bool
@@ -3401,13 +3633,15 @@ type_check_overlay_decl_common(ASTNode *node,
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = kind;
-    sym->type = TYPE_VOID;
+    sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL && existing->kind == SYMBOL_CLASS) {
         existing->kind = kind;
+        if (existing->type == NULL || existing->type == TYPE_VOID)
+            existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of %s '%s'", kind_name, name);
@@ -3436,6 +3670,9 @@ type_check_overlay_decl_common(ASTNode *node,
 bool
 type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
 {
+    ASTNode *saved_relation = ctx->current_relation;
+    ctx->current_relation = node;
+
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.relation_decl.name,
         SYMBOL_RELATION,
@@ -3449,6 +3686,16 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         node->data.relation_decl.slot_count, ctx, "Relation") && ok;
     ok = type_check_domain_slot_initializers(node->data.relation_decl.slots,
         node->data.relation_decl.slot_count, ctx, "relation") && ok;
+    for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
+        ASTNode *refresh = node->data.relation_decl.refreshes[i];
+        if (refresh == NULL)
+            continue;
+        ok = type_check_projection_contract(node->data.relation_decl.slots,
+            node->data.relation_decl.slot_count, "Relation", refresh,
+            refresh->data.zone_refresh.object_slot_name,
+            refresh->data.zone_refresh.source_slot_name, ctx,
+            refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
+    }
     size_t subject_count = count_subject_domain_slots(
         node->data.relation_decl.slots,
         node->data.relation_decl.slot_count);
@@ -3461,12 +3708,16 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             "Relation '%s' currently models a small edge; more than two subject endpoints may be better expressed as party or zone",
             node->data.relation_decl.name);
     }
+    ctx->current_relation = saved_relation;
     return ok && !ctx->has_error;
 }
 
 bool
 type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
 {
+    ASTNode *saved_effect = ctx->current_effect;
+    ctx->current_effect = node;
+
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.effect_decl.name,
         SYMBOL_EFFECT,
@@ -3480,6 +3731,16 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         node->data.effect_decl.slot_count, ctx, "Effect") && ok;
     ok = type_check_domain_slot_initializers(node->data.effect_decl.slots,
         node->data.effect_decl.slot_count, ctx, "effect") && ok;
+    for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
+        ASTNode *refresh = node->data.effect_decl.refreshes[i];
+        if (refresh == NULL)
+            continue;
+        ok = type_check_projection_contract(node->data.effect_decl.slots,
+            node->data.effect_decl.slot_count, "Effect", refresh,
+            refresh->data.zone_refresh.object_slot_name,
+            refresh->data.zone_refresh.source_slot_name, ctx,
+            refresh->data.zone_refresh.requires_dto ? "publish" : "refresh") && ok;
+    }
     size_t subject_count = count_subject_domain_slots(
         node->data.effect_decl.slots,
         node->data.effect_decl.slot_count);
@@ -3492,6 +3753,7 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
             "Effect '%s' currently expects a small target surface; multiple subject targets may be better expressed via relation or zone",
             node->data.effect_decl.name);
     }
+    ctx->current_effect = saved_effect;
     return ok && !ctx->has_error;
 }
 
@@ -4332,6 +4594,25 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     switch (node->type) {
     case AST_LET_DECL:
         return type_check_let_decl(node, ctx);
+    case AST_LET_DESTRUCTURE:
+    {
+        /* let (a, b, c) = expr; — destructure struct/array fields by position */
+        ASTNode *init = node->data.let_destructure.initializer;
+        Type *init_type = init != NULL ? type_check_expression(init, ctx) : TYPE_UNKNOWN;
+        for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+            Type *elem_type = TYPE_UNKNOWN;
+            /* Array destructuring: element type from Array<T> */
+            if (type_is_constructed_named(init_type, "Array")
+                || type_is_constructed_named(init_type, "Slice"))
+                elem_type = type_get_constructed_arg(init_type, 0);
+            /* CLASS/struct: field type by position (future — for now use UNKNOWN) */
+            Symbol *s = symbol_create_variable(
+                node->data.let_destructure.names[i], elem_type,
+                node->line, node->column);
+            scope_declare(ctx->scope, s);
+        }
+        return true;
+    }
     case AST_FUNC_DECL:
         return type_check_func_decl(node, ctx);
     case AST_CLASS_DECL:
@@ -4499,8 +4780,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             param_types[i] = resolve_type_node(param->type, ctx);
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
-            semantic_error(ctx, node,
-                "Anchored resource handle parameters (Slot/SecureSlot/DeviceSlot) are not supported yet");
+            bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
+            if (!allowed_subject_slot) {
+                semantic_error(ctx, node,
+                    "Anchored resource handle parameters are only supported for Slot<subject-host>/SecureSlot<subject-host> with explicit own/ref; other anchored handles remain local-only");
+            } else if (param->mode == PARAM_MODE_DEFAULT) {
+                semantic_error(ctx, node,
+                    "Slot<subject-host> parameters require 'own' or 'ref'; use 'func F(own s: Slot<T>)' or 'func F(ref s: Slot<T>)'");
+            }
         }
         if (type_is_class_object_type(param_types[i], ctx)) {
             bool is_implicit_self = (param->name != NULL
@@ -4569,8 +4856,33 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {
         Type *pt = func_type->data.function.param_types[i];
+        const char *param_name = node->data.func_decl.params[i]->name;
+        if (type_is_subject_host_slot_handle(pt, ctx) && param_name != NULL) {
+            char token_name[256];
+            const char *paired_token = NULL;
+            Symbol *slot_sym;
+
+            if (pt->data.slot.is_secure) {
+                snprintf(token_name, sizeof(token_name), "%s_token", param_name);
+                paired_token = token_name;
+            }
+
+            slot_sym = symbol_create_slot(param_name, pt,
+                pt->data.slot.is_secure, paired_token,
+                node->line, node->column);
+            scope_declare(ctx->scope, slot_sym);
+            scope_register_slot(ctx->scope, slot_sym);
+
+            if (pt->data.slot.is_secure) {
+                Symbol *tok = symbol_create_token(token_name, param_name,
+                    node->line, node->column);
+                scope_declare(ctx->scope, tok);
+            }
+            continue;
+        }
+
         Symbol *p = symbol_create_variable(
-            node->data.func_decl.params[i]->name, pt,
+            param_name, pt,
             node->line, node->column);
         scope_declare(ctx->scope, p);
     }
@@ -4610,6 +4922,8 @@ bool
 type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.class_decl.name;
+    bool passive_projection = node->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
+        || node->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
 
     /* If the class has generic parameters (<T, U, ...>), register them
      * as opaque types in a temporary scope so that resolve_type_node("T")
@@ -4708,10 +5022,21 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         if (field_sym != NULL)
             scope_declare(ctx->scope, field_sym);
     }
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++)
-        type_check_func_decl(node->data.class_decl.methods[i], ctx);
+    if (passive_projection && node->data.class_decl.method_count > 0) {
+        semantic_error(ctx, node,
+            "%s '%s' is a passive projection form and cannot declare methods; keep behavior on subjects/roles and project the result into object/dto fields",
+            node->data.class_decl.nominal_kind == NOMINAL_DECL_DTO ? "dto" : "object",
+            name != NULL ? name : "<anonymous>");
+    } else {
+        for (size_t i = 0; i < node->data.class_decl.method_count; i++)
+            type_check_func_decl(node->data.class_decl.methods[i], ctx);
+    }
 
     /* Collect method signatures before the class scope is destroyed */
+    if (passive_projection) {
+        scope_exit(&ctx->scope);
+        return !ctx->has_error;
+    }
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
         if (method == NULL || method->type != AST_FUNC_DECL)

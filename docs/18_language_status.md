@@ -27,6 +27,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
 - `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
+- `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, runtime instance를 직접 만들 수 있음
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` 최소 표면까지 parser/semantic에 반영됨
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
@@ -35,6 +36,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
 - `zone`은 `publish dtoSlot from subjectSlot`으로 dto projection 갱신을 명시할 수 있음
+- `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot` projection sync를 직접 가질 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
 - `zone`은 `authority subjectSlot`으로 승인 주체를 선언할 수 있음
 - `zone` authority는 `requires Ability[, Ability]`를 붙여 subject type의 role impl ability까지 검사할 수 있음
@@ -46,7 +48,10 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 가짐
 - `HasZone(zoneOrState)` builtin이 world method 안에서 선언된 zone slot / world state alias를 Bool query로 읽을 수 있음
 - C backend는 zone state를 `__state_*` flag와 `Zone_sync(self)` helper로, world zone lifecycle을 `__zone_active_*` / `__zone_state_*` flag와 `World_sync(self)` helper로 낮춤
-- zone/world method는 C backend에서 sync helper를 전후로 감싸 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 갱신함
+- relation/effect method는 C/LLVM 양쪽에서 sync helper를 전후로 감싸 `refresh`/`publish` projection을 incremental하게 갱신함
+- C backend는 relation/effect constructor를 runtime compound literal instance로 lowering하고, instance method call을 pointer-self로 호출함
+- LLVM backend도 relation/effect constructor type path와 runtime instance method call parity까지 올라와 있음
+- zone/world lifecycle sync와 `HasState` / `HasZone` query lowering도 이제 LLVM까지 올라와 C/LLVM parity를 가진다
 - `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
 - `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
 - `refresh`/`publish`는 object/dto slot / subject slot kind와 projection field 정합성을 검사함
@@ -62,8 +67,10 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
-- `ToObject(TargetStruct, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
+- `object` / `dto` declaration은 passive projection form으로 제한되며 method를 가질 수 없음
+- `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
+- relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 subject의 수동 해석 모드로 정리됨
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
 
@@ -71,11 +78,15 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
+- projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 `refresh` / `publish` 흐름이다
+- zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
 - `subject slot`과 `ToObject` / `ToDto` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
 - `actor`는 subject-profile semantic에 편입됐지만, surface syntax는 아직 standalone declaration이라 최종 재배치가 남아 있다
 - plain/secure `Slot<subject>`와 `Slot<actor>`는 local object-cell anchor로 동작한다
-- 남은 공백은 cross-boundary transfer와 deeper handle/runtime propagation model이다
+- `own/ref Slot<subject-host>`와 `own/ref SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
+- secure boundary slot은 함수 body 안에서 paired `s_token` 심볼을 자동 제공받는다
+- 남은 공백은 deeper handle/runtime propagation model이다
 - 클래식 OOP 계층(상속, super)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
@@ -83,8 +94,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 ## 2026-04-04 기준 확인된 상태
 
-- `make test-semantic` 통과
-- `make test-transpile` 통과
+- `make test-semantic` 통과 (`387 passed`)
+- `make test-transpile` 통과 (`259 passed`)
 - `make llvm-test-smoke` 통과
 
 ## 다음 기준

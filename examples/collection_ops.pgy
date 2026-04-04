@@ -1,0 +1,38 @@
+// collection_ops.pgy — ArraySort, ArrayMap, ArrayFilter, destructuring
+
+func Double(x: Int) -> Int {
+    return x * 2;
+}
+
+func IsEven(x: Int) -> Bool {
+    return x % 2 == 0;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [5, 3, 1, 4, 2];
+
+    // ArraySort — in-place ascending
+    let sorted: Array<Int> = ArraySort(nums);
+    for n in sorted {
+        Log(n);
+    }
+
+    // ArrayMap — apply function to each element
+    let doubled: Array<Int> = ArrayMap(nums, Double);
+    for d in doubled {
+        Log(d);
+    }
+
+    // ArrayFilter — keep elements matching predicate
+    let evens: Array<Int> = ArrayFilter(nums, IsEven);
+    for e in evens {
+        Log(e);
+    }
+
+    // Destructuring — extract elements from array
+    let parts: Array<String> = Split("hello world foo", " ");
+    let (first, second, third) = parts;
+    Log(first);
+    Log(second);
+    Log(third);
+}

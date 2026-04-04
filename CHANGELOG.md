@@ -38,7 +38,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `zone` now emits warnings for subject-heavy shapes that exceed the recommended small active-subject profile
 - Added `object` keyword as a struct-compatible passive/projection declaration alias
 - Added `dto` keyword as a struct-compatible projection/declaration alias
-- Added `ToObject(TargetStruct, subjectBinding)` as a minimal subject-to-object projection surface
+- Added `ToObject(TargetObject, subjectBinding)` as a minimal subject-to-object projection surface
 - Added `ToDto(TargetDto, subjectBinding)` as a minimal subject-to-dto projection surface
 - Added `dto slot` surface to relation/effect/zone domain bodies
 - Added LLVM lowering parity for `ToObject` / `ToDto` subject projection built-ins
@@ -58,12 +58,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added C backend lowering for zone/world lifecycle state as `__state_*`, `__zone_active_*`, and `__zone_state_*` flags with generated sync helpers
 - Added C backend contextual lowering for `HasState(...)` and `HasZone(...)` inside zone/world methods
 - Added C backend incremental sync semantics so zone/world methods run generated sync helpers before and after body execution, applying `refresh` / `publish` projections and lifecycle flags
+- Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasState(...)` / `HasZone(...)` lowering
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
 - Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
 - Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
 - Added actor-as-subject-profile semantic alignment so `actor` participates in role binding, `subject slot`, `ToObject` / `ToDto`, and subject copy restrictions
 - Added plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor support across semantic, C transpile, and LLVM smoke coverage
 - Added actor constructor compound-literal lowering in the C backend so `actor` values participate in subject-profile object-cell codegen paths
+- Added `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` function-boundary transfer in semantic and C/LLVM backend lowering
+- Added automatic paired-token exposure for secure boundary slot parameters (`s_token` inside function bodies)
+- Added C transpiler regression coverage for subject-host slot boundary lowering
+- Added LLVM smoke coverage for subject-host slot boundary transfer
+- Added semantic restriction that `object` / `dto` declarations are field-only passive projection forms and cannot declare methods
+- `ToObject` now accepts only `object` declarations, `ToDto` only `dto` declarations, and `refresh` / `publish` follow the same nominal projection split
+- Direct `ToObject` / `ToDto` outside relation/effect/zone/world context now emit semantic warnings so domain-local projection flow is the preferred path
+- `relation` / `effect` declarations now support domain-local `refresh` / `publish` projection sync and `<Type>_sync(self)` helpers around methods in both C and LLVM backends
+- `relation` / `effect` positional constructors are now type-checked as nominal overlay instances and lower to runtime instances in both C and LLVM paths
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -79,9 +89,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
 - Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface
 - Class/object model docs now describe the first real behavioral split between `subject` and `class` instead of treating them as parser-only flavors
+- Ownership/object-model docs now describe subject-host slot boundary transfer as a current C/semantic capability and move LLVM parity to remaining work
+- Ownership/object-model and status docs now describe relation/effect runtime instance construction and method-call parity in both C and LLVM backends
+- Added initial JavaScript backend policy doc that keeps inheritance/super out of the core language and prefers delegation/composition in JS lowering
+- Ontology/projection docs now emphasize `subject -> relation/effect/zone/world context -> object/dto projection` instead of treating `dto` as a peer ontology axis
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite
+- Added missing `-lm` linkage in build/runtime native link paths so runtime math helpers link cleanly in tests and LLVM smoke
 
 ## [0.3.0] - 2026-03-31
 

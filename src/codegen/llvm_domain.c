@@ -126,39 +126,779 @@ llvm_find_role_operator_method(const HIRProgram *hir, ASTNode *role,
     return NULL;
 }
 
+static ASTNode *
+llvm_find_world_state_decl(ASTNode *world_decl, const char *state_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
+        ASTNode *state = world_decl->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+static void
+llvm_domain_decl_parts(ASTNode *stmt,
+                       const char **decl_name,
+                       ASTNode ***slots,
+                       size_t *slot_count,
+                       ASTNode ***shared_fields,
+                       size_t *shared_count,
+                       ASTNode ***methods,
+                       size_t *method_count,
+                       ASTNode ***refreshes,
+                       size_t *refresh_count)
+{
+    *decl_name = NULL;
+    *slots = NULL;
+    *slot_count = 0;
+    *shared_fields = NULL;
+    *shared_count = 0;
+    *methods = NULL;
+    *method_count = 0;
+    *refreshes = NULL;
+    *refresh_count = 0;
+
+    if (stmt == NULL)
+        return;
+
+    switch (stmt->type) {
+    case AST_PARTY_DECL:
+        *decl_name = stmt->data.party_decl.name;
+        *shared_fields = stmt->data.party_decl.shared_fields;
+        *shared_count = stmt->data.party_decl.shared_count;
+        *methods = stmt->data.party_decl.methods;
+        *method_count = stmt->data.party_decl.method_count;
+        break;
+    case AST_SYSTEMIC_DECL:
+        *decl_name = stmt->data.systemic_decl.name;
+        *shared_fields = stmt->data.systemic_decl.shared_fields;
+        *shared_count = stmt->data.systemic_decl.shared_count;
+        *methods = stmt->data.systemic_decl.methods;
+        *method_count = stmt->data.systemic_decl.method_count;
+        break;
+    case AST_WORLD_DECL:
+        *decl_name = stmt->data.world_decl.name;
+        *shared_fields = stmt->data.world_decl.shared_fields;
+        *shared_count = stmt->data.world_decl.shared_count;
+        *methods = stmt->data.world_decl.methods;
+        *method_count = stmt->data.world_decl.method_count;
+        break;
+    case AST_RELATION_DECL:
+        *decl_name = stmt->data.relation_decl.name;
+        *slots = stmt->data.relation_decl.slots;
+        *slot_count = stmt->data.relation_decl.slot_count;
+        *shared_fields = stmt->data.relation_decl.shared_fields;
+        *shared_count = stmt->data.relation_decl.shared_count;
+        *methods = stmt->data.relation_decl.methods;
+        *method_count = stmt->data.relation_decl.method_count;
+        *refreshes = stmt->data.relation_decl.refreshes;
+        *refresh_count = stmt->data.relation_decl.refresh_count;
+        break;
+    case AST_EFFECT_DECL:
+        *decl_name = stmt->data.effect_decl.name;
+        *slots = stmt->data.effect_decl.slots;
+        *slot_count = stmt->data.effect_decl.slot_count;
+        *shared_fields = stmt->data.effect_decl.shared_fields;
+        *shared_count = stmt->data.effect_decl.shared_count;
+        *methods = stmt->data.effect_decl.methods;
+        *method_count = stmt->data.effect_decl.method_count;
+        *refreshes = stmt->data.effect_decl.refreshes;
+        *refresh_count = stmt->data.effect_decl.refresh_count;
+        break;
+    case AST_ZONE_DECL:
+        *decl_name = stmt->data.zone_decl.name;
+        *slots = stmt->data.zone_decl.slots;
+        *slot_count = stmt->data.zone_decl.slot_count;
+        *shared_fields = stmt->data.zone_decl.shared_fields;
+        *shared_count = stmt->data.zone_decl.shared_count;
+        *methods = stmt->data.zone_decl.methods;
+        *method_count = stmt->data.zone_decl.method_count;
+        *refreshes = stmt->data.zone_decl.refreshes;
+        *refresh_count = stmt->data.zone_decl.refresh_count;
+        break;
+    default:
+        break;
+    }
+}
+
+static LLVMValueRef
+llvm_build_domain_projection_value(LLVMGenCtx *ctx,
+                                   LLVMClassTypeEntry *target_cls,
+                                   LLVMClassTypeEntry *source_cls,
+                                   LLVMValueRef source_ptr)
+{
+    LLVMValueRef projected;
+
+    if (ctx == NULL || target_cls == NULL || source_cls == NULL || source_ptr == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    projected = LLVMConstNull(target_cls->struct_type);
+    for (int i = 0; i < target_cls->field_count; i++) {
+        LLVMClassFieldInfo *target_field = &target_cls->fields[i];
+        LLVMClassFieldInfo *source_field = NULL;
+        int source_index;
+        LLVMValueRef field_ptr;
+        LLVMValueRef field_value;
+
+        if (target_field->field_name == NULL)
+            continue;
+
+        source_index = llvm_class_field_index(source_cls, target_field->field_name);
+        if (source_index < 0)
+            continue;
+
+        for (int j = 0; j < source_cls->field_count; j++) {
+            if (source_cls->fields[j].index == source_index) {
+                source_field = &source_cls->fields[j];
+                break;
+            }
+        }
+        if (source_field == NULL || source_field->field_type == NULL)
+            continue;
+
+        field_ptr = LLVMBuildStructGEP2(ctx->builder, source_cls->struct_type,
+            source_ptr, (unsigned)source_index, llvm_tmp_name(ctx));
+        field_value = LLVMBuildLoad2(ctx->builder, source_field->field_type,
+            field_ptr, llvm_tmp_name(ctx));
+        projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
+            (unsigned)target_field->index, llvm_tmp_name(ctx));
+    }
+
+    return projected;
+}
+
+static void
+llvm_emit_domain_projection_sync(ASTNode *stmt,
+                                 const char *decl_name,
+                                 LLVMClassTypeEntry *decl_cls,
+                                 LLVMValueRef sync_fn,
+                                 LLVMGenCtx *ctx)
+{
+    ASTNode **refreshes = NULL;
+    size_t refresh_count = 0;
+    const char *unused_name = NULL;
+    ASTNode **slots = NULL;
+    size_t slot_count = 0;
+    ASTNode **unused_shared = NULL;
+    size_t unused_shared_count = 0;
+    ASTNode **unused_methods = NULL;
+    size_t unused_method_count = 0;
+
+    llvm_domain_decl_parts(stmt, &unused_name, &slots, &slot_count,
+        &unused_shared, &unused_shared_count, &unused_methods, &unused_method_count,
+        &refreshes, &refresh_count);
+
+    if (stmt == NULL || decl_name == NULL || decl_cls == NULL || sync_fn == NULL)
+        return;
+
+    {
+        LLVMValueRef saved_fn = ctx->current_function;
+        LLVMTypeRef saved_ret = ctx->current_ret_type;
+        const char *saved_class_name = ctx->current_class_name;
+        LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
+        LLVMPositionBuilderAtEnd(ctx->builder, bb);
+        ctx->current_function = sync_fn;
+        ctx->current_ret_type = ctx->type_void;
+        ctx->current_class_name = decl_name;
+
+        llvm_scope_push(ctx);
+        {
+            LLVMTypeRef self_ptr_t = LLVMPointerType(decl_cls->struct_type, 0);
+            LLVMValueRef sa = llvm_create_entry_alloca(ctx, self_ptr_t, "self.addr");
+            LLVMBuildStore(ctx->builder, LLVMGetParam(sync_fn, 0), sa);
+            llvm_scope_declare(ctx, "self", sa, self_ptr_t);
+            llvm_register_var_class(ctx, "self", decl_name);
+        }
+
+        for (size_t i = 0; i < refresh_count; i++) {
+            ASTNode *refresh = refreshes[i];
+            LLVMClassTypeEntry *target_cls;
+            LLVMClassTypeEntry *source_cls;
+            int target_index;
+            int source_index;
+            LLVMValueRef self_ptr;
+            LLVMValueRef target_ptr;
+            LLVMValueRef source_ptr;
+            LLVMValueRef projected;
+            const char *target_slot_name;
+            const char *source_slot_name;
+            const char *target_type_name;
+            const char *source_type_name;
+            ASTNode *target_slot_decl = NULL;
+            ASTNode *source_slot_decl = NULL;
+
+            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+                continue;
+
+            target_slot_name = refresh->data.zone_refresh.object_slot_name;
+            source_slot_name = refresh->data.zone_refresh.source_slot_name;
+            if (target_slot_name == NULL || source_slot_name == NULL)
+                continue;
+
+            for (size_t j = 0; j < slot_count; j++) {
+                ASTNode *slot = slots[j];
+                if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+                    continue;
+                if (slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, target_slot_name) == 0) {
+                    target_slot_decl = slot;
+                }
+                if (slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, source_slot_name) == 0) {
+                    source_slot_decl = slot;
+                }
+            }
+            if (target_slot_decl == NULL || source_slot_decl == NULL
+                || target_slot_decl->data.domain_slot.type == NULL
+                || source_slot_decl->data.domain_slot.type == NULL
+                || target_slot_decl->data.domain_slot.type->type != AST_TYPE
+                || source_slot_decl->data.domain_slot.type->type != AST_TYPE)
+                continue;
+
+            target_type_name = target_slot_decl->data.domain_slot.type->data.type.name;
+            source_type_name = source_slot_decl->data.domain_slot.type->data.type.name;
+            if (target_type_name == NULL || source_type_name == NULL)
+                continue;
+
+            target_cls = llvm_lookup_class(ctx, target_type_name);
+            source_cls = llvm_lookup_class(ctx, source_type_name);
+            target_index = llvm_class_field_index(decl_cls, target_slot_name);
+            source_index = llvm_class_field_index(decl_cls, source_slot_name);
+            if (target_cls == NULL || source_cls == NULL
+                || target_index < 0 || source_index < 0)
+                continue;
+
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            target_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)target_index, llvm_tmp_name(ctx));
+            source_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)source_index, llvm_tmp_name(ctx));
+            projected = llvm_build_domain_projection_value(ctx, target_cls,
+                source_cls, source_ptr);
+            LLVMBuildStore(ctx->builder, projected, target_ptr);
+        }
+
+        LLVMBuildRetVoid(ctx->builder);
+        llvm_scope_pop(ctx);
+        ctx->current_function = saved_fn;
+        ctx->current_ret_type = saved_ret;
+        ctx->current_class_name = saved_class_name;
+
+        if (saved_fn != NULL) {
+            LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+            if (last != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, last);
+        }
+    }
+}
+
+static void
+llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
+                    LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
+                    LLVMGenCtx *ctx)
+{
+    LLVMValueRef saved_fn;
+    LLVMTypeRef saved_ret;
+    const char *saved_class_name;
+    LLVMBasicBlockRef bb;
+
+    if (stmt == NULL || stmt->type != AST_ZONE_DECL || decl_name == NULL
+        || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
+        return;
+
+    saved_fn = ctx->current_function;
+    saved_ret = ctx->current_ret_type;
+    saved_class_name = ctx->current_class_name;
+    bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
+    LLVMPositionBuilderAtEnd(ctx->builder, bb);
+    ctx->current_function = sync_fn;
+    ctx->current_ret_type = ctx->type_void;
+    ctx->current_class_name = decl_name;
+
+    llvm_scope_push(ctx);
+    {
+        LLVMTypeRef self_ptr_t = LLVMPointerType(decl_cls->struct_type, 0);
+        LLVMValueRef sa = llvm_create_entry_alloca(ctx, self_ptr_t, "self.addr");
+        LLVMBuildStore(ctx->builder, LLVMGetParam(sync_fn, 0), sa);
+        llvm_scope_declare(ctx, "self", sa, self_ptr_t);
+        llvm_register_var_class(ctx, "self", decl_name);
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
+        ASTNode *state = stmt->data.zone_decl.states[i];
+        const char *state_name;
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef state_ptr;
+        if (state == NULL || state->type != AST_ZONE_STATE
+            || state->data.zone_state.state_name == NULL)
+            continue;
+        state_name = state->data.zone_state.state_name;
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+        }
+        if (field_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+    }
+
+    llvm_emit_domain_projection_sync(stmt, decl_name, decl_cls, sync_fn, ctx);
+
+    for (size_t i = 0; i < stmt->data.zone_decl.apply_count; i++) {
+        ASTNode *apply = stmt->data.zone_decl.applies[i];
+        const char *state_name = apply != NULL ? apply->data.zone_apply.state_name : NULL;
+        if (state_name == NULL && apply != NULL) {
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                ASTNode *state = stmt->data.zone_decl.states[j];
+                if (state != NULL && state->type == AST_ZONE_STATE
+                    && !state->data.zone_state.is_relation
+                    && state->data.zone_state.layer_slot_name != NULL
+                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && apply->data.zone_apply.effect_slot_name != NULL
+                    && apply->data.zone_apply.target_slot_name != NULL
+                    && strcmp(state->data.zone_state.layer_slot_name,
+                              apply->data.zone_apply.effect_slot_name) == 0
+                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                              apply->data.zone_apply.target_slot_name) == 0) {
+                    state_name = state->data.zone_state.state_name;
+                    break;
+                }
+            }
+        }
+        if (state_name != NULL) {
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.maintained_state_count; i++) {
+        ASTNode *maintain = stmt->data.zone_decl.maintained_states[i];
+        if (maintain != NULL && maintain->data.zone_maintain_state.state_name != NULL) {
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            snprintf(field_name, sizeof(field_name), "__state_%s",
+                maintain->data.zone_maintain_state.state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.detach_count; i++) {
+        ASTNode *detach = stmt->data.zone_decl.detaches[i];
+        const char *state_name = detach != NULL ? detach->data.zone_detach.state_name : NULL;
+        if (state_name == NULL && detach != NULL) {
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                ASTNode *state = stmt->data.zone_decl.states[j];
+                if (state != NULL && state->type == AST_ZONE_STATE
+                    && !state->data.zone_state.is_relation
+                    && state->data.zone_state.layer_slot_name != NULL
+                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && detach->data.zone_detach.effect_slot_name != NULL
+                    && detach->data.zone_detach.target_slot_name != NULL
+                    && strcmp(state->data.zone_state.layer_slot_name,
+                              detach->data.zone_detach.effect_slot_name) == 0
+                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                              detach->data.zone_detach.target_slot_name) == 0) {
+                    state_name = state->data.zone_state.state_name;
+                    break;
+                }
+            }
+        }
+        if (state_name != NULL) {
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.link_count; i++) {
+        ASTNode *link = stmt->data.zone_decl.links[i];
+        const char *state_name = link != NULL ? link->data.zone_link.state_name : NULL;
+        if (state_name == NULL && link != NULL) {
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                ASTNode *state = stmt->data.zone_decl.states[j];
+                if (state != NULL && state->type == AST_ZONE_STATE
+                    && state->data.zone_state.is_relation
+                    && state->data.zone_state.layer_slot_name != NULL
+                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && state->data.zone_state.right_slot_name != NULL
+                    && link->data.zone_link.relation_slot_name != NULL
+                    && link->data.zone_link.left_slot_name != NULL
+                    && link->data.zone_link.right_slot_name != NULL
+                    && strcmp(state->data.zone_state.layer_slot_name,
+                              link->data.zone_link.relation_slot_name) == 0
+                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                              link->data.zone_link.left_slot_name) == 0
+                    && strcmp(state->data.zone_state.right_slot_name,
+                              link->data.zone_link.right_slot_name) == 0) {
+                    state_name = state->data.zone_state.state_name;
+                    break;
+                }
+            }
+        }
+        if (state_name != NULL) {
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.maintained_relation_count; i++) {
+        ASTNode *maintain = stmt->data.zone_decl.maintained_relations[i];
+        if (maintain == NULL)
+            continue;
+        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+            ASTNode *state = stmt->data.zone_decl.states[j];
+            const char *state_name;
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || !state->data.zone_state.is_relation
+                || state->data.zone_state.layer_slot_name == NULL
+                || state->data.zone_state.left_or_target_slot_name == NULL
+                || state->data.zone_state.right_slot_name == NULL
+                || maintain->data.zone_maintain_relation.relation_slot_name == NULL
+                || maintain->data.zone_maintain_relation.left_slot_name == NULL
+                || maintain->data.zone_maintain_relation.right_slot_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name,
+                          maintain->data.zone_maintain_relation.relation_slot_name) != 0
+                || strcmp(state->data.zone_state.left_or_target_slot_name,
+                          maintain->data.zone_maintain_relation.left_slot_name) != 0
+                || strcmp(state->data.zone_state.right_slot_name,
+                          maintain->data.zone_maintain_relation.right_slot_name) != 0)
+                continue;
+            state_name = state->data.zone_state.state_name;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.unlink_count; i++) {
+        ASTNode *unlink = stmt->data.zone_decl.unlinks[i];
+        const char *state_name = unlink != NULL ? unlink->data.zone_unlink.state_name : NULL;
+        if (state_name == NULL && unlink != NULL) {
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                ASTNode *state = stmt->data.zone_decl.states[j];
+                if (state != NULL && state->type == AST_ZONE_STATE
+                    && state->data.zone_state.is_relation
+                    && state->data.zone_state.layer_slot_name != NULL
+                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && state->data.zone_state.right_slot_name != NULL
+                    && unlink->data.zone_unlink.relation_slot_name != NULL
+                    && unlink->data.zone_unlink.left_slot_name != NULL
+                    && unlink->data.zone_unlink.right_slot_name != NULL
+                    && strcmp(state->data.zone_state.layer_slot_name,
+                              unlink->data.zone_unlink.relation_slot_name) == 0
+                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                              unlink->data.zone_unlink.left_slot_name) == 0
+                    && strcmp(state->data.zone_state.right_slot_name,
+                              unlink->data.zone_unlink.right_slot_name) == 0) {
+                    state_name = state->data.zone_state.state_name;
+                    break;
+                }
+            }
+        }
+        if (state_name != NULL) {
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+        }
+    }
+
+    LLVMBuildRetVoid(ctx->builder);
+    llvm_scope_pop(ctx);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret;
+    ctx->current_class_name = saved_class_name;
+
+    if (saved_fn != NULL) {
+        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+        if (last != NULL)
+            LLVMPositionBuilderAtEnd(ctx->builder, last);
+    }
+}
+
+static void
+llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
+                     LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
+                     LLVMGenCtx *ctx)
+{
+    LLVMValueRef saved_fn;
+    LLVMTypeRef saved_ret;
+    const char *saved_class_name;
+    LLVMBasicBlockRef bb;
+
+    if (stmt == NULL || stmt->type != AST_WORLD_DECL || decl_name == NULL
+        || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
+        return;
+
+    saved_fn = ctx->current_function;
+    saved_ret = ctx->current_ret_type;
+    saved_class_name = ctx->current_class_name;
+    bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
+    LLVMPositionBuilderAtEnd(ctx->builder, bb);
+    ctx->current_function = sync_fn;
+    ctx->current_ret_type = ctx->type_void;
+    ctx->current_class_name = decl_name;
+
+    llvm_scope_push(ctx);
+    {
+        LLVMTypeRef self_ptr_t = LLVMPointerType(decl_cls->struct_type, 0);
+        LLVMValueRef sa = llvm_create_entry_alloca(ctx, self_ptr_t, "self.addr");
+        LLVMBuildStore(ctx->builder, LLVMGetParam(sync_fn, 0), sa);
+        llvm_scope_declare(ctx, "self", sa, self_ptr_t);
+        llvm_register_var_class(ctx, "self", decl_name);
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.zone_count; i++) {
+        ASTNode *zone = stmt->data.world_decl.zones[i];
+        char active_field[256];
+        int active_idx;
+        int zone_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef active_ptr;
+        if (zone == NULL || zone->type != AST_WORLD_ZONE
+            || zone->data.world_zone.slot_name == NULL)
+            continue;
+        snprintf(active_field, sizeof(active_field), "__zone_active_%s",
+            zone->data.world_zone.slot_name);
+        active_idx = llvm_class_field_index(decl_cls, active_field);
+        zone_idx = llvm_class_field_index(decl_cls, zone->data.world_zone.slot_name);
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        if (active_idx >= 0) {
+            active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 0, 0), active_ptr);
+        }
+        if (zone_idx >= 0 && zone->data.world_zone.zone_type != NULL) {
+            LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone->data.world_zone.zone_type);
+            char sync_name[256];
+            LLVMFuncEntry *zone_sync;
+            snprintf(sync_name, sizeof(sync_name), "%s_sync",
+                zone->data.world_zone.zone_type);
+            zone_sync = llvm_lookup_function(ctx, sync_name);
+            if (zone_cls != NULL && zone_sync != NULL) {
+                LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
+                LLVMValueRef args[] = { zone_ptr };
+                LLVMBuildCall2(ctx->builder, zone_sync->fn_type, zone_sync->fn, args, 1, "");
+            }
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.activate_count; i++) {
+        ASTNode *act = stmt->data.world_decl.activations[i];
+        const char *slot_name = act != NULL ? act->data.world_activate.zone_slot_name : NULL;
+        if (slot_name == NULL && act != NULL && act->data.world_activate.state_name != NULL) {
+            ASTNode *state = llvm_find_world_state_decl(stmt, act->data.world_activate.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            char active_field[256];
+            int active_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef active_ptr;
+            snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+            active_idx = llvm_class_field_index(decl_cls, active_field);
+            if (active_idx < 0)
+                continue;
+            active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.maintained_zone_count; i++) {
+        ASTNode *mnt = stmt->data.world_decl.maintained_zones[i];
+        const char *slot_name = mnt != NULL ? mnt->data.world_maintain.zone_slot_name : NULL;
+        if (slot_name == NULL && mnt != NULL && mnt->data.world_maintain.state_name != NULL) {
+            ASTNode *state = llvm_find_world_state_decl(stmt, mnt->data.world_maintain.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            char active_field[256];
+            int active_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef active_ptr;
+            snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+            active_idx = llvm_class_field_index(decl_cls, active_field);
+            if (active_idx < 0)
+                continue;
+            active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.deactivate_count; i++) {
+        ASTNode *act = stmt->data.world_decl.deactivations[i];
+        const char *slot_name = act != NULL ? act->data.world_deactivate.zone_slot_name : NULL;
+        if (slot_name == NULL && act != NULL && act->data.world_deactivate.state_name != NULL) {
+            ASTNode *state = llvm_find_world_state_decl(stmt, act->data.world_deactivate.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            char active_field[256];
+            int active_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef active_ptr;
+            snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+            active_idx = llvm_class_field_index(decl_cls, active_field);
+            if (active_idx < 0)
+                continue;
+            active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 0, 0), active_ptr);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.world_decl.state_count; i++) {
+        ASTNode *state = stmt->data.world_decl.states[i];
+        const char *slot_name;
+        char state_field[256];
+        char active_field[256];
+        int state_idx;
+        int active_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef state_ptr;
+        LLVMValueRef active_ptr;
+        LLVMValueRef active_val;
+        if (state == NULL || state->type != AST_WORLD_STATE
+            || state->data.world_state.state_name == NULL
+            || state->data.world_state.zone_slot_name == NULL)
+            continue;
+        slot_name = state->data.world_state.zone_slot_name;
+        snprintf(state_field, sizeof(state_field), "__zone_state_%s",
+            state->data.world_state.state_name);
+        snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+        state_idx = llvm_class_field_index(decl_cls, state_field);
+        active_idx = llvm_class_field_index(decl_cls, active_field);
+        if (state_idx < 0 || active_idx < 0)
+            continue;
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)state_idx, llvm_tmp_name(ctx));
+        active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
+        active_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            active_ptr, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, active_val, state_ptr);
+    }
+
+    LLVMBuildRetVoid(ctx->builder);
+    llvm_scope_pop(ctx);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret;
+    ctx->current_class_name = saved_class_name;
+
+    if (saved_fn != NULL) {
+        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+        if (last != NULL)
+            LLVMPositionBuilderAtEnd(ctx->builder, last);
+    }
+}
+
 void
 llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
-    /* Pass 0a: Register Party/Systemic/World struct types + methods */
+    /* Pass 0a: Register domain struct types + methods */
     for (size_t i = 0; i < hir->item_count; i++) {
         ASTNode *stmt = hir->items[i].ast;
         if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
+        ASTNode **slots = NULL;
+        size_t slot_count = 0;
         ASTNode **shared_fields = NULL;
         size_t shared_count = 0;
         ASTNode **methods = NULL;
         size_t method_count = 0;
+        ASTNode **refreshes = NULL;
+        size_t refresh_count = 0;
 
-        if (stmt->type == AST_PARTY_DECL) {
-            decl_name    = stmt->data.party_decl.name;
-            shared_fields = stmt->data.party_decl.shared_fields;
-            shared_count  = stmt->data.party_decl.shared_count;
-            methods       = stmt->data.party_decl.methods;
-            method_count  = stmt->data.party_decl.method_count;
-        } else if (stmt->type == AST_SYSTEMIC_DECL) {
-            decl_name    = stmt->data.systemic_decl.name;
-            shared_fields = stmt->data.systemic_decl.shared_fields;
-            shared_count  = stmt->data.systemic_decl.shared_count;
-            methods       = stmt->data.systemic_decl.methods;
-            method_count  = stmt->data.systemic_decl.method_count;
-        } else if (stmt->type == AST_WORLD_DECL) {
-            decl_name    = stmt->data.world_decl.name;
-            shared_fields = stmt->data.world_decl.shared_fields;
-            shared_count  = stmt->data.world_decl.shared_count;
-            methods       = stmt->data.world_decl.methods;
-            method_count  = stmt->data.world_decl.method_count;
-        } else {
+        llvm_domain_decl_parts(stmt, &decl_name, &slots, &slot_count,
+            &shared_fields, &shared_count, &methods, &method_count,
+            &refreshes, &refresh_count);
+        if (decl_name == NULL) {
             continue;
         }
 
@@ -177,20 +917,90 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 dyn_slot_count++;
         }
 
-        /* Build struct: { shared_fields..., vtable_ptrs_for_dyn_slots... } */
-        size_t fc = shared_count + dyn_slot_count;
-        LLVMTypeRef *ftypes = calloc(fc > 0 ? fc : 1,
-                                       sizeof(LLVMTypeRef));
-        for (size_t j = 0; j < shared_count; j++) {
-            ASTNode *sf = shared_fields[j];
-            ASTNode *sf_type = sf->data.party_shared.type;
-            ftypes[j] = (sf_type != NULL)
-                ? ast_type_to_llvm(ctx, sf_type)
-                : ctx->type_i32;
+        size_t fc = 0;
+        LLVMTypeRef *ftypes = NULL;
+        if (stmt->type == AST_ZONE_DECL) {
+            fc = stmt->data.zone_decl.slot_count
+                + stmt->data.zone_decl.shared_count
+                + stmt->data.zone_decl.layer_slot_count
+                + stmt->data.zone_decl.state_count;
+            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
+                ASTNode *slot = stmt->data.zone_decl.slots[j];
+                ASTNode *slot_type = slot->data.domain_slot.type;
+                ftypes[j] = (slot_type != NULL)
+                    ? ast_type_to_llvm(ctx, slot_type)
+                    : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++) {
+                ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
+                ASTNode *sf_type = sf->data.party_shared.type;
+                ftypes[stmt->data.zone_decl.slot_count + j] = (sf_type != NULL)
+                    ? ast_type_to_llvm(ctx, sf_type)
+                    : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++) {
+                size_t idx = stmt->data.zone_decl.slot_count
+                    + stmt->data.zone_decl.shared_count + j;
+                ftypes[idx] = ctx->type_i8ptr;
+            }
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                size_t idx = stmt->data.zone_decl.slot_count
+                    + stmt->data.zone_decl.shared_count
+                    + stmt->data.zone_decl.layer_slot_count + j;
+                ftypes[idx] = ctx->type_i1;
+            }
+        } else if (stmt->type == AST_WORLD_DECL) {
+            fc = stmt->data.world_decl.systemic_count
+                + stmt->data.world_decl.zone_count
+                + stmt->data.world_decl.shared_count
+                + stmt->data.world_decl.zone_count
+                + stmt->data.world_decl.state_count;
+            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            size_t idx = 0;
+            for (size_t j = 0; j < stmt->data.world_decl.systemic_count; j++, idx++) {
+                ASTNode *ws = stmt->data.world_decl.systemics[j];
+                LLVMClassTypeEntry *field_cls = ws != NULL
+                    ? llvm_lookup_class(ctx, ws->data.world_systemic.systemic_type) : NULL;
+                ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++) {
+                ASTNode *wz = stmt->data.world_decl.zones[j];
+                LLVMClassTypeEntry *field_cls = wz != NULL
+                    ? llvm_lookup_class(ctx, wz->data.world_zone.zone_type) : NULL;
+                ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.world_decl.shared_count; j++, idx++) {
+                ASTNode *sf = stmt->data.world_decl.shared_fields[j];
+                ASTNode *sf_type = sf->data.party_shared.type;
+                ftypes[idx] = (sf_type != NULL)
+                    ? ast_type_to_llvm(ctx, sf_type) : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
+                ftypes[idx] = ctx->type_i1;
+            for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, idx++)
+                ftypes[idx] = ctx->type_i1;
+        } else {
+            /* Build struct: { slots..., shared_fields..., vtable_ptrs... } */
+            fc = slot_count + shared_count + dyn_slot_count;
+            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            for (size_t j = 0; j < slot_count; j++) {
+                ASTNode *slot = slots[j];
+                ASTNode *slot_type = slot->data.domain_slot.type;
+                ftypes[j] = (slot_type != NULL)
+                    ? ast_type_to_llvm(ctx, slot_type)
+                    : ctx->type_i32;
+            }
+            for (size_t j = 0; j < shared_count; j++) {
+                ASTNode *sf = shared_fields[j];
+                ASTNode *sf_type = sf->data.party_shared.type;
+                ftypes[slot_count + j] = (sf_type != NULL)
+                    ? ast_type_to_llvm(ctx, sf_type)
+                    : ctx->type_i32;
+            }
+            for (size_t j = 0; j < dyn_slot_count; j++)
+                ftypes[slot_count + shared_count + j] = ctx->type_i8ptr;
         }
-        /* dyn role slots → i8ptr (vtable pointer) */
-        for (size_t j = 0; j < dyn_slot_count; j++)
-            ftypes[shared_count + j] = ctx->type_i8ptr;
 
         LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context,
                                                         decl_name);
@@ -200,29 +1010,106 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMClassTypeEntry *entry = llvm_register_class(ctx,
             decl_name, struct_ty, false);
         if (entry != NULL) {
-            for (size_t j = 0; j < shared_count; j++) {
-                ASTNode *sf = shared_fields[j];
-                llvm_class_add_field(entry,
-                    sf->data.party_shared.name,
-                    ftypes[j], (int)j);
-            }
-            /* Register vtable pointer fields for dyn slots */
-            size_t dyn_idx = 0;
-            for (size_t j = 0; j < role_count; j++) {
-                ASTNode *rs = role_slots[j];
-                if (rs == NULL || rs->type != AST_ROLE_SLOT
-                    || !rs->data.role_slot.is_dynamic)
-                    continue;
-                char vt_field_buf[256];
-                snprintf(vt_field_buf, sizeof(vt_field_buf), "%s_vtable",
-                         rs->data.role_slot.slot_name);
-                llvm_class_add_field(entry, pergyra_strdup(vt_field_buf),
-                    ctx->type_i8ptr,
-                    (int)(shared_count + dyn_idx));
-                dyn_idx++;
+            if (stmt->type == AST_ZONE_DECL) {
+                int field_index = 0;
+                for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.zone_decl.slots[j];
+                    llvm_class_add_field(entry, slot->data.domain_slot.slot_name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, field_index++) {
+                    ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
+                    llvm_class_add_field(entry, sf->data.party_shared.name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
+                    llvm_class_add_field(entry, slot->data.zone_layer_slot.slot_name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.zone_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__state_%s",
+                        state->data.zone_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+            } else if (stmt->type == AST_WORLD_DECL) {
+                int field_index = 0;
+                for (size_t j = 0; j < stmt->data.world_decl.systemic_count; j++, field_index++) {
+                    ASTNode *ws = stmt->data.world_decl.systemics[j];
+                    llvm_class_add_field(entry, ws->data.world_systemic.slot_name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
+                    ASTNode *wz = stmt->data.world_decl.zones[j];
+                    llvm_class_add_field(entry, wz->data.world_zone.slot_name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.shared_count; j++, field_index++) {
+                    ASTNode *sf = stmt->data.world_decl.shared_fields[j];
+                    llvm_class_add_field(entry, sf->data.party_shared.name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
+                    ASTNode *wz = stmt->data.world_decl.zones[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_active_%s",
+                        wz->data.world_zone.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
+                    ASTNode *state = stmt->data.world_decl.states[j];
+                    char field_name[256];
+                    snprintf(field_name, sizeof(field_name), "__zone_state_%s",
+                        state->data.world_state.state_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                }
+            } else {
+                for (size_t j = 0; j < slot_count; j++) {
+                    ASTNode *slot = slots[j];
+                    llvm_class_add_field(entry,
+                        slot->data.domain_slot.slot_name,
+                        ftypes[j], (int)j);
+                }
+                for (size_t j = 0; j < shared_count; j++) {
+                    ASTNode *sf = shared_fields[j];
+                    llvm_class_add_field(entry,
+                        sf->data.party_shared.name,
+                        ftypes[slot_count + j], (int)(slot_count + j));
+                }
+                size_t dyn_idx = 0;
+                for (size_t j = 0; j < role_count; j++) {
+                    ASTNode *rs = role_slots[j];
+                    if (rs == NULL || rs->type != AST_ROLE_SLOT
+                        || !rs->data.role_slot.is_dynamic)
+                        continue;
+                    char vt_field_buf[256];
+                    snprintf(vt_field_buf, sizeof(vt_field_buf), "%s_vtable",
+                             rs->data.role_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(vt_field_buf),
+                        ctx->type_i8ptr,
+                        (int)(slot_count + shared_count + dyn_idx));
+                    dyn_idx++;
+                }
             }
         }
         free(ftypes);
+
+        if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
+            || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL) {
+            char sync_name[256];
+            LLVMTypeRef sync_params[] = { LLVMPointerType(struct_ty, 0) };
+            LLVMTypeRef sync_ft = LLVMFunctionType(ctx->type_void, sync_params, 1, 0);
+            LLVMValueRef sync_fn;
+            snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
+            sync_fn = LLVMAddFunction(ctx->module, sync_name, sync_ft);
+            llvm_register_function(ctx, LLVMGetValueName(sync_fn),
+                sync_fn, sync_ft, ctx->type_void);
+        }
 
         /* Forward-declare methods */
         for (size_t j = 0; j < method_count; j++) {
@@ -961,32 +1848,46 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
-    /* Pass 2c: Emit Party/Systemic/World method bodies */
+    /* Pass 2c: Emit domain sync helpers + method bodies */
     for (size_t i = 0; i < hir->item_count; i++) {
         ASTNode *stmt = hir->items[i].ast;
         if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
+        ASTNode **slots = NULL;
+        size_t slot_count = 0;
         ASTNode **methods = NULL;
         size_t method_count = 0;
+        ASTNode **shared_fields = NULL;
+        size_t shared_count = 0;
+        ASTNode **refreshes = NULL;
+        size_t refresh_count = 0;
 
-        if (stmt->type == AST_PARTY_DECL) {
-            decl_name    = stmt->data.party_decl.name;
-            methods      = stmt->data.party_decl.methods;
-            method_count = stmt->data.party_decl.method_count;
-        } else if (stmt->type == AST_SYSTEMIC_DECL) {
-            decl_name    = stmt->data.systemic_decl.name;
-            methods      = stmt->data.systemic_decl.methods;
-            method_count = stmt->data.systemic_decl.method_count;
-        } else if (stmt->type == AST_WORLD_DECL) {
-            decl_name    = stmt->data.world_decl.name;
-            methods      = stmt->data.world_decl.methods;
-            method_count = stmt->data.world_decl.method_count;
-        } else {
+        llvm_domain_decl_parts(stmt, &decl_name, &slots, &slot_count,
+            &shared_fields, &shared_count, &methods, &method_count,
+            &refreshes, &refresh_count);
+        if (decl_name == NULL) {
             continue;
         }
 
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, decl_name);
+        if ((stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
+             || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL)
+            && cls != NULL) {
+            char sync_name[256];
+            LLVMFuncEntry *sync_entry;
+            snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
+            sync_entry = llvm_lookup_function(ctx, sync_name);
+            if (sync_entry != NULL) {
+                if (stmt->type == AST_ZONE_DECL)
+                    llvm_emit_zone_sync(stmt, decl_name, cls, sync_entry->fn, ctx);
+                else if (stmt->type == AST_WORLD_DECL)
+                    llvm_emit_world_sync(stmt, decl_name, cls, sync_entry->fn, ctx);
+                else
+                    llvm_emit_domain_projection_sync(stmt, decl_name, cls,
+                        sync_entry->fn, ctx);
+            }
+        }
 
         for (size_t j = 0; j < method_count; j++) {
             ASTNode *method = methods[j];
@@ -1004,8 +1905,20 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             LLVMTypeRef ret_type = fentry->ret_type;
             LLVMValueRef saved_fn = ctx->current_function;
             LLVMTypeRef saved_ret = ctx->current_ret_type;
+            const char *saved_class_name = ctx->current_class_name;
+            LLVMFuncEntry *sync_entry = NULL;
+            bool has_sync = false;
             ctx->current_function = fn;
             ctx->current_ret_type = ret_type;
+            ctx->current_class_name = decl_name;
+
+            if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
+                || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL) {
+                char sync_name[256];
+                snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
+                sync_entry = llvm_lookup_function(ctx, sync_name);
+                has_sync = (sync_entry != NULL);
+            }
 
             LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                 ctx->context, fn, "entry");
@@ -1046,11 +1959,28 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_scope_declare(ctx, p->name, a, pt);
             }
 
+            if (has_sync) {
+                LLVMValueRef self_ptr = LLVMBuildLoad2(ctx->builder,
+                    LLVMPointerType(cls->struct_type, 0),
+                    llvm_scope_lookup(ctx, "self")->alloca, llvm_tmp_name(ctx));
+                LLVMValueRef sync_args[] = { self_ptr };
+                LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                    sync_args, 1, "");
+            }
+
             if (method->data.func_decl.body != NULL)
                 llvm_emit_block(method->data.func_decl.body, ctx);
 
             if (LLVMGetBasicBlockTerminator(
                     LLVMGetInsertBlock(ctx->builder)) == NULL) {
+                if (has_sync) {
+                    LLVMValueRef self_ptr = LLVMBuildLoad2(ctx->builder,
+                        LLVMPointerType(cls->struct_type, 0),
+                        llvm_scope_lookup(ctx, "self")->alloca, llvm_tmp_name(ctx));
+                    LLVMValueRef sync_args[] = { self_ptr };
+                    LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                        sync_args, 1, "");
+                }
                 if (ret_type == ctx->type_void)
                     LLVMBuildRetVoid(ctx->builder);
                 else
@@ -1061,6 +1991,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_scope_pop(ctx);
             ctx->current_function = saved_fn;
             ctx->current_ret_type = saved_ret;
+            ctx->current_class_name = saved_class_name;
 
             if (saved_fn != NULL) {
                 LLVMBasicBlockRef last =

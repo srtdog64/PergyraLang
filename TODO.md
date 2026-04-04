@@ -72,8 +72,27 @@
 ### 병렬/채널
 - [x] **select 실체화** — 여러 채널 중 먼저 준비된 것을 처리
 
-### 이터레이터
-- [ ] **이터레이터 프로토콜** — ability 기반 `Iterable<T>` + `for item in collection { }`
+### 언어 완성도 Tier 1 — 범용 필수
+- [x] **for-in 컬렉션 루프** — `for item in array { }` 배열/컬렉션 순회
+  - 완료: Array<T>/Slice<T> 특수화 (index loop lowering), 시맨틱 element type 추론
+  - 남음: ability 기반 Iterable<T> 프로토콜 (Tier 2)
+- [x] **StringSplit / StringJoin** — 문자열 분리/결합 빌트인 실체화
+  - 완료: `Split(s, delim) → Array<String>`, `Join(arr, sep) → String`
+- [x] **ToInt / ToFloat** — 문자열→숫자 변환 빌트인
+- [x] **기본 Math 빌트인** — Sqrt, Pow, Floor, Ceil, Random 추가 (기존 Abs/Min/Max + 신규 5개)
+- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** — 고차 함수 기반 컬렉션 연산
+  - 완료: ArraySort(arr) → qsort, ArrayMap(arr, fn) → 새 배열, ArrayFilter(arr, fn) → 조건 필터, ArrayReverse(arr) → 뒤집기
+  - fn은 함수 이름 또는 람다 (C 함수 포인터로 lowering)
+- [x] **디스트럭처링** — `let (a, b, c) = expr` 배열/컬렉션 positional 바인딩
+  - 완료: Array<T> → 인덱스 기반 추출 (`result.data[0]`, `result.data[1]`, ...)
+
+### 언어 완성도 Tier 2 — 실사용 편의
+- [ ] **sealed ability** — 같은 모듈 내 role만 impl 허용
+- [ ] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증 (파서는 완료)
+- [ ] **OR 패턴** — `case 1 | 2 | 3:` match에서
+- [ ] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
+- [ ] **labeled break/continue** — `outer: while { ... break outer; }`
+- [ ] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
 
 ### ability 차별화
 - [ ] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨
@@ -191,10 +210,11 @@
   - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
   - 완료: `subject slot`과 `ToObject` / `ToDto` source가 subject host (`subject`, `actor`)만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
+  - 완료: `object` / `dto`를 field-only passive projection form으로 제한하고 method를 금지
   - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
-  - 남음: actor surface 재배치, subject/object view surface 고정, deeper runtime propagation
+  - 남음: actor surface 재배치, relation/projection 중심 surface 고정, deeper runtime propagation
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
@@ -204,8 +224,9 @@
   - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
   - 완료: actor를 subject execution profile로 semantic 정렬
   - 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor 지원
+  - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
   - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - 남음: inheritance, `Slot<subject>` cross-boundary transfer/object-handle cell 고도화
+  - 남음: richer object-handle cell propagation, actor surface 재배치
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
@@ -230,7 +251,9 @@
 
 ## P1.8 — 멀티 타겟
 
-- [ ] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
+- [~] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
+  - 완료: 코어 의미론은 inheritance/super 없이 유지하고, JS lowering은 delegation/composition 중심으로 간다는 정책 초안 문서화
+  - 남음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) 설계
 - [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용
 
 ## P2 — 배포 시작 시

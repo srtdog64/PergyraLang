@@ -697,9 +697,23 @@ main(void)
             1
         },
         {
+            "World As Local Variable",
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let world = GameWorld();\n"
+            "    Log(world);\n"
+            "}",
+            1
+        },
+        {
             "Relation Declaration",
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
+            "    dto slot packet: LinkDto\n"
+            "    refresh snapshot from source\n"
+            "    publish packet from target\n"
             "    shared trust: Int = 100\n"
             "    func Refresh() -> Void {\n"
             "        Log(trust);\n"
@@ -711,6 +725,9 @@ main(void)
             "Effect Declaration",
             "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
+            "    dto slot packet: StatusDto\n"
+            "    refresh view from bearer\n"
+            "    publish packet from bearer\n"
             "    shared stacks: Int = 1\n"
             "    func Tick() -> Void {\n"
             "        Log(stacks);\n"
