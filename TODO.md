@@ -183,22 +183,29 @@
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
   - 완료: `subject = 상태와 identity를 가진 주체 타입`으로 문서화
-  - 완료: 현재 `subject`와 `class`가 같은 subject surface라는 점 문서화
+  - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
   - 완료: `actor`를 독립 존재론 계층이 아니라 subject의 실행 profile/sugar로 정리
   - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
   - 완료: `object`는 별도 코어 타입이 아니라 subject의 수동 해석 모드라고 문서화
   - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
-  - 완료: `subject` keyword alias를 parser surface에 반영
+  - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
+  - 완료: `subject slot`과 `ToObject` / `ToDto` source가 subject host (`subject`, `actor`)만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
-  - 남음: `class`와의 장기 alias/deprecation 전략, actor surface 재배치, subject/object view surface 고정
+  - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
+  - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
+  - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
+  - 남음: actor surface 재배치, subject/object view surface 고정, deeper runtime propagation
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
 - [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
-- [~] **class/object model 구현 정렬** — class = ability를 수행하는 identity-bearing object type
-  - 완료: class direct copy 금지, C/LLVM self-cell lowering, positional constructor
+- [~] **subject/class/object model 구현 정렬**
+  - 완료: subject direct copy/plain value parameter/return 금지, positional constructor
+  - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
+  - 완료: actor를 subject execution profile로 semantic 정렬
+  - 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor 지원
   - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - 남음: inheritance, `Slot<class>` object-handle cell 승격
+  - 남음: inheritance, `Slot<subject>` cross-boundary transfer/object-handle cell 고도화
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure

@@ -340,6 +340,24 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
 }
 
 static ASTNode *
+find_actor_decl(TranspilerCtx *ctx, const char *actor_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || actor_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->actor_count; i++) {
+        ASTNode *stmt = ctx->hir->actors[i];
+        if (stmt != NULL && stmt->type == AST_ACTOR_DECL
+            && stmt->data.actor_decl.name != NULL
+            && strcmp(stmt->data.actor_decl.name, actor_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
 find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
 {
     if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
@@ -429,12 +447,28 @@ find_class_field_decl(ASTNode *decl, const char *field_name)
 }
 
 static bool
-is_class_object_type_name(TranspilerCtx *ctx, const char *type_name)
+is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
+{
+    ASTNode *decl = find_class_decl(ctx, type_name);
+    if (decl != NULL && !decl->data.class_decl.is_struct)
+        return decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+    /* Also check monomorphized generic class specializations */
+    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
+            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
+            return orig != NULL && !orig->data.class_decl.is_struct
+                && orig->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+        }
+    }
+    return false;
+}
+
+static bool
+is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
     ASTNode *decl = find_class_decl(ctx, type_name);
     if (decl != NULL && !decl->data.class_decl.is_struct)
         return true;
-    /* Also check monomorphized generic class specializations */
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {
         if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
             const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
@@ -442,6 +476,14 @@ is_class_object_type_name(TranspilerCtx *ctx, const char *type_name)
         }
     }
     return false;
+}
+
+static bool
+current_class_uses_self_cell(TranspilerCtx *ctx)
+{
+    return ctx != NULL
+        && ctx->current_class_name != NULL
+        && is_subject_type_name(ctx, ctx->current_class_name);
 }
 
 static bool
@@ -2571,11 +2613,33 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
         ASTNode *class_decl = find_class_decl(ctx, fn);
+        ASTNode *actor_decl = find_actor_decl(ctx, fn);
         if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
             size_t argc = call->data.call.arg_count;
             CodeBuf *fields = codebuf_create();
             for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
                 ClassField *field = class_decl->data.class_decl.fields[i];
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                if (i > 0)
+                    codebuf_write(fields, ", ");
+                codebuf_write(fields, ".%s = %s",
+                    field != NULL && field->name != NULL ? field->name : "field",
+                    arg != NULL ? arg : "0");
+                free(arg);
+            }
+            char *result;
+            if (fields->len > 0)
+                result = strdup_fmt("(%s){ %s }", fn, fields->data);
+            else
+                result = strdup_fmt("(%s){0}", fn);
+            codebuf_destroy(fields);
+            return result;
+        }
+        if (actor_decl != NULL && actor_decl->type == AST_ACTOR_DECL) {
+            size_t argc = call->data.call.arg_count;
+            CodeBuf *fields = codebuf_create();
+            for (size_t i = 0; i < argc && i < actor_decl->data.actor_decl.field_count; i++) {
+                ClassField *field = actor_decl->data.actor_decl.fields[i];
                 char *arg = emit_expression(call->data.call.arguments[i], ctx);
                 if (i > 0)
                     codebuf_write(fields, ", ");
@@ -3093,13 +3157,17 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         if (obj != NULL && obj->type == AST_IDENTIFIER && method != NULL) {
             const char *var_name = obj->data.identifier.name;
             const char *type_name = lookup_typed_var(ctx, var_name);
-            if (type_name != NULL && is_class_object_type_name(ctx, type_name)) {
+            if (type_name != NULL && is_nominal_host_type_name(ctx, type_name)) {
                 CodeBuf *args_buf = codebuf_create();
+                bool use_self_cell = is_subject_type_name(ctx, type_name);
                 const char *self_expr = strcmp(var_name, "self") == 0 ? "self" : NULL;
 
                 if (self_expr == NULL) {
                     char *obj_expr = emit_expression(obj, ctx);
-                    codebuf_write(args_buf, "&%s", obj_expr);
+                    if (use_self_cell)
+                        codebuf_write(args_buf, "&%s", obj_expr);
+                    else
+                        codebuf_write(args_buf, "%s", obj_expr);
                     free(obj_expr);
                 } else {
                     codebuf_write(args_buf, "%s", self_expr);
@@ -3441,7 +3509,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_class_has_field(ctx, id_name)) {
-            return strdup_fmt("self->%s", id_name);
+            return strdup_fmt(current_class_uses_self_cell(ctx)
+                ? "self->%s"
+                : "self.%s", id_name);
         }
         if (ctx->current_relation_name != NULL
             && strcmp(id_name, "self") != 0
@@ -3511,7 +3581,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (node->data.member.object->type == AST_IDENTIFIER
             && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
-            char *result = strdup_fmt("%s->%s", obj, node->data.member.name);
+            char *result = strdup_fmt(current_class_uses_self_cell(ctx)
+                ? "%s->%s"
+                : "%s.%s", obj, node->data.member.name);
             free(obj);
             return result;
         }
@@ -4479,12 +4551,16 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     /* Container types */
     codebuf_write(ctx->helpers,
         "\nPGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
         "PGY_BOX_DEFINE(%s, %s)\n",
-        spec_name, spec_name, spec_name, spec_name);
+        spec_name, spec_name,
+        spec_name, spec_name,
+        spec_name, spec_name);
 
     /* Methods */
     for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
         ASTNode *method = class_decl->data.class_decl.methods[i];
+        bool use_self_cell = class_decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
         if (method->type != AST_FUNC_DECL)
             continue;
 
@@ -4493,8 +4569,13 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
-        codebuf_write(ctx->helpers, "\n%s\n%s_%s(%s *self",
-                      ret_type, spec_name, method_name, spec_name);
+        if (use_self_cell) {
+            codebuf_write(ctx->helpers, "\n%s\n%s_%s(%s *self",
+                          ret_type, spec_name, method_name, spec_name);
+        } else {
+            codebuf_write(ctx->helpers, "\n%s\n%s_%s(%s self",
+                          ret_type, spec_name, method_name, spec_name);
+        }
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
@@ -4579,12 +4660,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out,
         "\n/* Auto-generated container types for %s */\n"
         "PGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
         "PGY_BOX_DEFINE(%s, %s)\n",
-        name, name, name, name, name);
+        name,
+        name, name,
+        name, name,
+        name, name);
 
-    /* Methods become free functions over the object's self cell. */
+    /* Methods become free functions over a subject self-cell or class value. */
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
+        bool use_self_cell = node->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
         if (method->type != AST_FUNC_DECL)
             continue;
 
@@ -4593,8 +4679,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
+        if (use_self_cell) {
+            codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
+                          ret_type, name, method_name, name);
+        } else {
+            codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
+                          ret_type, name, method_name, name);
+        }
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
@@ -6871,6 +6962,16 @@ emit_actor_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
+
+    codebuf_write(ctx->out,
+        "\n/* Auto-generated container types for actor host %s */\n"
+        "PGY_SLOT_DEFINE(%s, %s)\n"
+        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
+        "PGY_BOX_DEFINE(%s, %s)\n",
+        name,
+        name, name,
+        name, name,
+        name, name);
 
     /* Methods (actor methods are emitted as free functions) */
     for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {

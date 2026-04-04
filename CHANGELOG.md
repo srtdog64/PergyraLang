@@ -24,7 +24,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Source-level effect signature surface: `func F() -> T with effects remote, secure { ... }`
 - `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>` can now serve as the explicit object-handle path for function parameters and returns in the C/semantic surface
-- `subject` keyword now parses as a class-compatible subject declaration alias
+- `subject`, `class`, `struct`, `object`, and `dto` declarations now preserve distinct nominal flavors in the parser AST
+- `subject slot` and `ToObject` / `ToDto` source validation now require `subject` declarations instead of accepting bare `class`
+- `role` declarations now reject non-subject nominal bindings, and `party` role slots now require abilities backed by actual subject-bound role impls
 - `relation`, `effect`, and `zone` now parse as top-level declaration keywords and pass semantic/HIR/codegen no-op handling
 - `relation`, `effect`, and `zone` now support minimal `subject slot` / `object slot` body surface in parser and semantic passes
 - `zone` now supports `relation slot` / `effect slot`, and `world` now supports `zone` slots for minimal layer composition
@@ -57,6 +59,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added C backend contextual lowering for `HasState(...)` and `HasZone(...)` inside zone/world methods
 - Added C backend incremental sync semantics so zone/world methods run generated sync helpers before and after body execution, applying `refresh` / `publish` projections and lifecycle flags
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
+- Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
+- Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
+- Added actor-as-subject-profile semantic alignment so `actor` participates in role binding, `subject slot`, `ToObject` / `ToDto`, and subject copy restrictions
+- Added plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor support across semantic, C transpile, and LLVM smoke coverage
+- Added actor constructor compound-literal lowering in the C backend so `actor` values participate in subject-profile object-cell codegen paths
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -66,10 +73,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Channel non-blocking/timeout built-ins intentionally reject movable resource channels until conditional ownership transfer is modeled explicitly
 - Cancellation is currently best-effort/cooperative rather than preemptive
 - World architecture docs now treat `world` as the final top-level execution boundary and fix the long-term layer model as `ability -> role -> party -> relation -> effect -> zone -> world`
-- Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, current `subject`/`class` syntax is treated as the subject surface, and `actor` is positioned as a subject execution profile
+- Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, `class` remains as a separate nominal surface, and `actor` is positioned as a subject execution profile
+- Actor docs now reflect current implementation state: `actor` is already treated semantically as a subject execution profile, while standalone surface syntax remains transitional
 - Core docs now keep `entity` out of the language ontology and define `object` as a passive interpretation mode of `subject` rather than a separate top-level kind
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
 - Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface
+- Class/object model docs now describe the first real behavioral split between `subject` and `class` instead of treating them as parser-only flavors
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite

@@ -105,7 +105,8 @@ void parser_synchronize(Parser* parser) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
         if (parser->current_token.type == TOKEN_IDENTIFIER
             && parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "object") == 0) {
+            && (strcmp(parser->current_token.text, "object") == 0
+                || strcmp(parser->current_token.text, "dto") == 0)) {
             return;
         }
 
@@ -505,12 +506,21 @@ parser_parse_export_declaration(Parser *parser)
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
     } else if (parser_match(parser, TOKEN_EXTERN))
         node = parse_extern_block(parser);
-    else if (parser_match(parser, TOKEN_CLASS))
-        node = parse_class_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "object"))
-        node = parse_struct_declaration(parser);
-    else if (parser_match(parser, TOKEN_STRUCT))
-        node = parse_struct_declaration(parser);
+    else if (parser_check(parser, TOKEN_CLASS)) {
+        bool is_subject = parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "subject") == 0;
+        parser_advance(parser);
+        node = is_subject ? parse_subject_declaration(parser)
+                          : parse_class_declaration(parser);
+    } else if (parser_match_contextual_keyword(parser, "object"))
+        node = parse_object_declaration(parser);
+    else if (parser_check(parser, TOKEN_STRUCT)) {
+        bool is_dto = parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "dto") == 0;
+        parser_advance(parser);
+        node = is_dto ? parse_dto_declaration(parser)
+                      : parse_struct_declaration(parser);
+    }
     else if (parser_match(parser, TOKEN_LET))
         node = parser_parse_let_declaration(parser);
     else if (parser_match(parser, TOKEN_ENUM)) {
@@ -701,19 +711,29 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_extern_block(parser));
     }
 
-    // 클래스 선언
-    if (parser_match(parser, TOKEN_CLASS)) {
-        return parser_finalize_statement(parser, parse_class_declaration(parser));
+    // 클래스 / subject 선언
+    if (parser_check(parser, TOKEN_CLASS)) {
+        bool is_subject = parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "subject") == 0;
+        parser_advance(parser);
+        return parser_finalize_statement(parser,
+            is_subject ? parse_subject_declaration(parser)
+                       : parse_class_declaration(parser));
     }
 
     // object 선언 (contextual struct alias)
     if (parser_match_contextual_keyword(parser, "object")) {
-        return parser_finalize_statement(parser, parse_struct_declaration(parser));
+        return parser_finalize_statement(parser, parse_object_declaration(parser));
     }
 
-    // 구조체 선언
-    if (parser_match(parser, TOKEN_STRUCT)) {
-        return parser_finalize_statement(parser, parse_struct_declaration(parser));
+    // dto / struct 선언
+    if (parser_check(parser, TOKEN_STRUCT)) {
+        bool is_dto = parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "dto") == 0;
+        parser_advance(parser);
+        return parser_finalize_statement(parser,
+            is_dto ? parse_dto_declaration(parser)
+                   : parse_struct_declaration(parser));
     }
 
     // let 선언

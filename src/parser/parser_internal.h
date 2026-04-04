@@ -55,8 +55,11 @@ ASTNode *parse_function_declaration(Parser *parser);
 void     parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
                                       uint32_t *mask_out);
 ASTNode *parse_class_declaration(Parser *parser);
+ASTNode *parse_subject_declaration(Parser *parser);
 ASTNode *parse_struct_declaration(Parser *parser);
-ASTNode *parse_type_declaration(Parser *parser, bool is_struct);
+ASTNode *parse_object_declaration(Parser *parser);
+ASTNode *parse_dto_declaration(Parser *parser);
+ASTNode *parse_type_declaration(Parser *parser, NominalDeclKind decl_kind);
 ASTNode *parse_extern_block(Parser *parser);
 
 /* --- Domain types (parser_domain.c) --- */

@@ -90,8 +90,8 @@ subject들의 협력 단위다.
 
 현재 구현은 이 철학을 향해 가는 중이지만, 아직 완전히 닫히진 않았다.
 - role slot은 ability 계약을 표현한다
-- role이 `struct` 값 타입에 바인딩되면 시맨틱 경고가 난다
-- 하지만 party instance에 실제 subject를 꽂는 경로를 강하게 검증하는 단계까지는 아직 아니다
+- role이 non-subject nominal declaration에 바인딩되면 semantic error가 난다
+- party role slot은 subject-bound role impl이 실제로 존재하는 ability만 받는다
 - 즉 현재 party는 "subject collaboration model"을 향한 표면과 계약이 먼저 고정된 상태다
 
 ### Party 인스턴스 생성

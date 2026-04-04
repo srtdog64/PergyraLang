@@ -100,6 +100,25 @@ find_named_class_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
+static ASTNode *
+find_named_actor_decl(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_ACTOR_DECL
+            || stmt->data.actor_decl.name == NULL) {
+            continue;
+        }
+        if (strcmp(stmt->data.actor_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
 static ClassField *
 find_named_class_field(ASTNode *decl, const char *field_name)
 {
@@ -114,6 +133,46 @@ find_named_class_field(ASTNode *decl, const char *field_name)
         }
     }
 
+    return NULL;
+}
+
+static bool
+decl_is_subject_nominal(ASTNode *decl)
+{
+    return (decl != NULL
+            && decl->type == AST_CLASS_DECL
+            && !decl->data.class_decl.is_struct
+            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT)
+        || (decl != NULL && decl->type == AST_ACTOR_DECL);
+}
+
+static size_t
+subject_host_field_count(ASTNode *decl)
+{
+    if (decl == NULL)
+        return 0;
+    if (decl->type == AST_CLASS_DECL)
+        return decl->data.class_decl.field_count;
+    if (decl->type == AST_ACTOR_DECL)
+        return decl->data.actor_decl.field_count;
+    return 0;
+}
+
+static ClassField *
+subject_host_field_at(ASTNode *decl, size_t index)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        if (index < decl->data.class_decl.field_count)
+            return decl->data.class_decl.fields[index];
+        return NULL;
+    }
+    if (decl->type == AST_ACTOR_DECL) {
+        if (index < decl->data.actor_decl.field_count)
+            return decl->data.actor_decl.fields[index];
+        return NULL;
+    }
     return NULL;
 }
 
@@ -1606,15 +1665,17 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
 
     if (source_type->kind != TYPE_KIND_CLASS || source_type->name == NULL) {
         semantic_error(ctx, source_arg,
-            "ToDto source must be a subject/class binding, got '%s'",
+            "ToDto source must be a subject binding, got '%s'",
             source_type->name != NULL ? source_type->name : "<unknown>");
         return TYPE_UNKNOWN;
     }
 
     source_decl = find_named_class_decl(ctx->program_root, source_type->name);
-    if (source_decl == NULL || source_decl->data.class_decl.is_struct) {
+    if (source_decl == NULL)
+        source_decl = find_named_actor_decl(ctx->program_root, source_type->name);
+    if (!decl_is_subject_nominal(source_decl)) {
         semantic_error(ctx, source_arg,
-            "ToDto source '%s' must be a subject/class declaration",
+            "ToDto source '%s' must be a subject declaration",
             source_type->name != NULL ? source_type->name : "<unknown>");
         return TYPE_UNKNOWN;
     }
@@ -1630,7 +1691,15 @@ type_check_to_dto(ASTNode *call, SemanticContext *ctx)
             continue;
         }
 
-        source_field = find_named_class_field(source_decl, target_field->name);
+        source_field = NULL;
+        for (size_t j = 0; j < subject_host_field_count(source_decl); j++) {
+            ClassField *candidate = subject_host_field_at(source_decl, j);
+            if (candidate != NULL && candidate->name != NULL
+                && strcmp(candidate->name, target_field->name) == 0) {
+                source_field = candidate;
+                break;
+            }
+        }
         if (source_field == NULL || source_field->type == NULL) {
             semantic_error(ctx, call,
                 "ToDto target field '%s' is missing from source subject '%s'",

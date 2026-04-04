@@ -317,8 +317,14 @@ test_type_mapping(void)
     TEST("Slot<String> → PgySlot_String");
     EXPECT(strcmp(pergyra_type_to_c("Slot<String>"), "PgySlot_String") == 0);
 
+    TEST("Slot<Vec2> → PgySlot_Vec2");
+    EXPECT(strcmp(pergyra_type_to_c("Slot<Vec2>"), "PgySlot_Vec2") == 0);
+
     TEST("SecureSlot<Int> → PgySecureSlot_Int");
     EXPECT(strcmp(pergyra_type_to_c("SecureSlot<Int>"), "PgySecureSlot_Int") == 0);
+
+    TEST("SecureSlot<Vec2> → PgySecureSlot_Vec2");
+    EXPECT(strcmp(pergyra_type_to_c("SecureSlot<Vec2>"), "PgySecureSlot_Vec2") == 0);
 
     TEST("Array<Vertex> → PgyArray_Vertex");
     EXPECT(strcmp(pergyra_type_to_c("Array<Vertex>"), "PgyArray_Vertex") == 0);
@@ -1178,16 +1184,16 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "float x;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float y;");
         EXPECT_STR_CONTAINS(ctx->out->data, "float z;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "float\nVec3_Length(Vec3 self)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
     }
 
-    TEST("class method call lowers to self-cell call");
+    TEST("subject method call lowers to self-cell call");
     {
         const char *source =
-            "class Vec2 {\n"
+            "subject Vec2 {\n"
             "    let x: Int;\n"
             "    func Length(self) -> Int {\n"
             "        return self.x;\n"
@@ -1209,6 +1215,38 @@ test_program_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 *self");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->x");
         EXPECT_STR_CONTAINS(ctx->out->data, "PGY_BOX_DEFINE(Vec2, Vec2)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("class method call lowers by value");
+    {
+        const char *source =
+            "class Vec2 {\n"
+            "    let x: Int;\n"
+            "    func Length(self) -> Int {\n"
+            "        return self.x;\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vec2 = Vec2();\n"
+            "    Log(v.Length());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Vec2_Length(v)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 self");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self.x;");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -1254,10 +1292,38 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("class method bare field access lowers through self cell");
+    TEST("class method bare field access lowers through value self");
     {
         const char *source =
             "class Counter {\n"
+            "    let count: Int;\n"
+            "    func Tick(self, delta: Int) -> Int {\n"
+            "        count = count + delta;\n"
+            "        return count;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "self.count = (self.count + delta);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self.count;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject method bare field access lowers through self cell");
+    {
+        const char *source =
+            "subject Counter {\n"
             "    let count: Int;\n"
             "    func Tick(self, delta: Int) -> Int {\n"
             "        count = count + delta;\n"
@@ -1301,6 +1367,106 @@ test_program_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Vec2 v = { .x = 3, .y = 7 };");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Slot<subject> lowers through generated object-cell slot helpers");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Slot<Vec2> = Vec2(3, 7);\n"
+            "    Write(s, Vec2(1, 2));\n"
+            "    Release(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SLOT_DEFINE(Vec2, Vec2)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySlot_Vec2 s = pgy_claim_Vec2();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_write_Vec2(&s, (Vec2){ .x = 3, .y = 7 });");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_write_Vec2(&s, (Vec2){ .x = 1, .y = 2 });");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_release_Vec2(&s);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot<subject> lowers through generated secure object-cell slot helpers");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Vec2> = Vec2(3, 7);\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SECURE_SLOT_DEFINE(Vec2, Vec2)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Vec2 s_token;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySecureSlot_Vec2 s = pgy_claim_secure_Vec2(&s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_write_Vec2(&s, (Vec2){ .x = 3, .y = 7 }, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_write_Vec2(&s, (Vec2){ .x = 1, .y = 2 }, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_release_Vec2(&s, &s_token);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot<actor> lowers through generated secure object-cell slot helpers");
+    {
+        const char *source =
+            "actor Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Bot> = Bot(7);\n"
+            "    Write(s, Bot(9), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SECURE_SLOT_DEFINE(Bot, Bot)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyToken_Bot s_token;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySecureSlot_Bot s = pgy_claim_secure_Bot(&s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_write_Bot(&s, (Bot){ .hp = 7 }, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_write_Bot(&s, (Bot){ .hp = 9 }, &s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_secure_release_Bot(&s, &s_token);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -1796,6 +1962,9 @@ test_async_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t count");
         EXPECT_STR_CONTAINS(ctx->out->data, "} Counter;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SLOT_DEFINE(Counter, Counter)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_SECURE_SLOT_DEFINE(Counter, Counter)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PGY_BOX_DEFINE(Counter, Counter)");
 
         transpiler_ctx_destroy(ctx);
     }

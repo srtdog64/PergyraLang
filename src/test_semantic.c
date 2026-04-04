@@ -2268,7 +2268,7 @@ test_role_decl(void)
         ast_destroy(role);
     }
 
-    TEST("role bound to struct produces warning");
+    TEST("role bound to non-subject declaration is rejected");
     {
         const char *source =
             "struct Vec2 {\n"
@@ -2282,10 +2282,9 @@ test_role_decl(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(result != NULL && result->error_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "bound to struct 'Vec2'"));
+            "must be bound to a subject or primitive domain"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2377,37 +2376,30 @@ test_party_decl(void)
 {
     printf("\n[party_decl]\n");
 
-    TEST("valid party with role slot and shared field passes");
+    TEST("valid party with subject-backed role slot and shared field passes");
     {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "ability Damageable { func Hit() -> Void; }\n"
+            "role Tank for Player {\n"
+            "    impl ability Damageable { func Hit() -> Void { Log(1); } }\n"
+            "}\n"
+            "party DungeonTeam {\n"
+            "    role slot tank: Damageable\n"
+            "    shared round: Int = 1\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
 
-        /* Register an ability first */
-        ASTNode *ability = ast_create_ability_declaration("Damageable");
-        ability->line = 1; ability->column = 1;
-        type_check_ability_decl(ability, ctx);
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
-        /* Create party */
-        ASTNode *party = ast_create_party_declaration("DungeonTeam");
-        party->line = 3; party->column = 1;
-
-        /* Add role slot */
-        ASTNode *rs = ast_create_role_slot("tank");
-        rs->line = 4; rs->column = 1;
-        ASTNode *ab_type = ast_create_type("Damageable");
-        rs->data.role_slot.ability_count = 1;
-        rs->data.role_slot.required_abilities = malloc(sizeof(ASTNode*));
-        rs->data.role_slot.required_abilities[0] = ab_type;
-        party->data.party_decl.role_count = 1;
-        party->data.party_decl.role_slots = malloc(sizeof(ASTNode*));
-        party->data.party_decl.role_slots[0] = rs;
-
-        type_check_party_decl(party, ctx);
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(ability);
-        ast_destroy(party);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("duplicate party declaration triggers error");
@@ -2427,6 +2419,29 @@ test_party_decl(void)
         semantic_context_destroy(ctx);
         ast_destroy(p1);
         ast_destroy(p2);
+    }
+
+    TEST("party role slot rejects abilities without subject-bound role impl");
+    {
+        const char *source =
+            "ability Damageable { func Hit() -> Void; }\n"
+            "party DungeonTeam {\n"
+            "    role slot tank: Damageable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "no subject-bound role implements it"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 
@@ -3454,6 +3469,62 @@ test_shared_memory_features(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("relation/effect/zone reject legacy class in subject slot");
+    {
+        const char *source =
+            "class PassivePlayer { let hp: Int; }\n"
+            "relation BrokenLink {\n"
+            "    subject slot source: PassivePlayer\n"
+            "}\n"
+            "effect BrokenEffect {\n"
+            "    subject slot bearer: PassivePlayer\n"
+            "}\n"
+            "zone BrokenZone {\n"
+            "    subject slot player: PassivePlayer\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation/effect/zone accept actor types in subject slot");
+    {
+        const char *source =
+            "actor Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "relation ActiveLink {\n"
+            "    subject slot source: Bot\n"
+            "}\n"
+            "effect ActiveEffect {\n"
+            "    subject slot bearer: Bot\n"
+            "}\n"
+            "zone ActiveZone {\n"
+            "    subject slot player: Bot\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------
@@ -3500,6 +3571,30 @@ test_async_system(void)
         semantic_context_destroy(ctx);
         ast_destroy(a1);
         ast_destroy(a2);
+    }
+
+    TEST("role can bind to actor as subject profile");
+    {
+        const char *source =
+            "actor Counter {\n"
+            "    let count: Int;\n"
+            "}\n"
+            "ability Tickable { func Tick() -> Void; }\n"
+            "role CounterRole for Counter {\n"
+            "    impl ability Tickable { func Tick() -> Void { Log(1); } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("await outside async context triggers error");
@@ -4398,10 +4493,10 @@ test_effect_inference(void)
         ast_destroy(release_b);
     }
 
-    TEST("class object copy into new binding is rejected");
+    TEST("subject copy into new binding is rejected");
     {
         const char *source =
-            "class Vec2 {\n"
+            "subject Vec2 {\n"
             "    let x: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -4416,7 +4511,7 @@ test_effect_inference(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Class objects cannot be copied into a new binding"));
+            "Subjects cannot be copied into a new binding"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4449,10 +4544,35 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("standalone class parameter by value is rejected");
+    TEST("class value copy into new binding is allowed");
     {
         const char *source =
             "class Vec2 {\n"
+            "    let x: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a: Vec2 = Vec2();\n"
+            "    let b: Vec2 = a;\n"
+            "    b.x = 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("standalone subject parameter by value is rejected");
+    {
+        const char *source =
+            "subject Vec2 {\n"
             "    let x: Int;\n"
             "}\n"
             "func Use(v: Vec2) -> Void {\n"
@@ -4465,7 +4585,7 @@ test_effect_inference(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Class object parameters are not supported as plain value parameters yet"));
+            "Subject parameters are not supported as plain value parameters yet"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4473,7 +4593,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("class return by value is rejected");
+    TEST("class return by value is allowed");
     {
         const char *source =
             "class Vec2 {\n"
@@ -4488,9 +4608,58 @@ test_effect_inference(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject return by value is rejected");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "}\n"
+            "func Make() -> Vec2 {\n"
+            "    return Vec2();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Returning class objects by value is not supported yet"));
+            "Returning subjects by value is not supported yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("actor copy into new binding is rejected as subject profile");
+    {
+        const char *source =
+            "actor Counter {\n"
+            "    let count: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a: Counter = Counter();\n"
+            "    let b: Counter = a;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Subjects cannot be copied into a new binding"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4574,15 +4743,17 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("Slot<class> is rejected until object handle model is fixed");
+    TEST("Slot<subject> is accepted as a local object-cell anchor");
     {
         const char *source =
-            "class Vec2 {\n"
+            "subject Vec2 {\n"
             "    let x: Int;\n"
             "    let y: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
             "    let s: Slot<Vec2> = Vec2(3, 7);\n"
+            "    Write(s, Vec2(1, 2));\n"
+            "    Release(s);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -4590,9 +4761,83 @@ test_effect_inference(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Slot<class> is not supported yet"));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Slot<actor> is accepted as a local object-cell anchor");
+    {
+        const char *source =
+            "actor Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Slot<Bot> = Bot(7);\n"
+            "    Write(s, Bot(9));\n"
+            "    Release(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot<subject> is accepted as a secure object-cell anchor");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Vec2> = Vec2(3, 7);\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot<actor> is accepted as a secure object-cell anchor");
+    {
+        const char *source =
+            "actor Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Bot> = Bot(7);\n"
+            "    Write(s, Bot(9), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -5081,16 +5326,16 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToDto rejects missing fields, subject targets, and unnamed sources");
+    TEST("ToDto accepts actor source as subject profile");
     {
         const char *source =
-            "dto PlayerDto { hp: Int; name: String; }\n"
-            "subject Player { let hp: Int; }\n"
+            "dto BotDto { hp: Int; }\n"
+            "actor Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
             "func Main() -> Void {\n"
-            "    let player: Player = Player();\n"
-            "    let missing: PlayerDto = ToDto(PlayerDto, player);\n"
-            "    let wrong = ToDto(Player, player);\n"
-            "    let anon = ToDto(PlayerDto, Player());\n"
+            "    let bot: Bot = Bot();\n"
+            "    let snapshot: BotDto = ToDto(BotDto, bot);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -5098,7 +5343,35 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 3);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToDto rejects missing fields, non-subject targets, and unnamed sources");
+    {
+        const char *source =
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "subject Player { let hp: Int; }\n"
+            "class PassivePlayer { let hp: Int; let name: String; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let passive: PassivePlayer = PassivePlayer();\n"
+            "    let missing: PlayerDto = ToDto(PlayerDto, player);\n"
+            "    let wrong = ToDto(Player, player);\n"
+            "    let anon = ToDto(PlayerDto, Player());\n"
+            "    let legacy = ToDto(PlayerDto, passive);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 4);
 
         semantic_result_destroy(result);
         ast_destroy(program);

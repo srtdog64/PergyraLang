@@ -198,7 +198,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                            (unsigned)fc, 0);
 
         LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-            decl_name, struct_ty);
+            decl_name, struct_ty, false);
         if (entry != NULL) {
             for (size_t j = 0; j < shared_count; j++) {
                 ASTNode *sf = shared_fields[j];
@@ -336,7 +336,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         /* Register as class type so it's findable.
          * Must strdup because vt_name is a stack local. */
         LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-            pergyra_strdup(vt_name), vt_struct);
+            pergyra_strdup(vt_name), vt_struct, false);
         if (entry != NULL) {
             for (size_t j = 0; j < mc; j++) {
                 ASTNode *method = stmt->data.ability_decl.methods[j];

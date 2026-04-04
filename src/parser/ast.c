@@ -15,6 +15,24 @@ static void ast_destroy_generic_params(GenericParams* params);
 static void ast_destroy_where_clause(WhereClause* clause);
 void ast_destroy_structured_comment(StructuredComment* comment);
 
+static const char *
+nominal_decl_kind_name(NominalDeclKind kind)
+{
+    switch (kind) {
+    case NOMINAL_DECL_SUBJECT:
+        return "Subject";
+    case NOMINAL_DECL_STRUCT:
+        return "Struct";
+    case NOMINAL_DECL_OBJECT:
+        return "Object";
+    case NOMINAL_DECL_DTO:
+        return "Dto";
+    case NOMINAL_DECL_CLASS:
+    default:
+        return "Class";
+    }
+}
+
 // 기본 노드 생성
 static ASTNode* ast_create_node(ASTNodeType type) {
     ASTNode* node = calloc(1, sizeof(ASTNode));
@@ -60,6 +78,15 @@ ASTNode* ast_create_class(const char* name) {
     node->data.class_decl.generic_params = NULL;
     node->data.class_decl.where_clause = NULL;
     node->data.class_decl.is_struct = false;
+    node->data.class_decl.nominal_kind = NOMINAL_DECL_CLASS;
+    return node;
+}
+
+ASTNode* ast_create_subject(const char* name) {
+    ASTNode* node = ast_create_class(name);
+    if (node) {
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
+    }
     return node;
 }
 
@@ -68,6 +95,23 @@ ASTNode* ast_create_struct(const char* name) {
     ASTNode* node = ast_create_class(name);
     if (node) {
         node->data.class_decl.is_struct = true;
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_STRUCT;
+    }
+    return node;
+}
+
+ASTNode* ast_create_object(const char* name) {
+    ASTNode* node = ast_create_struct(name);
+    if (node) {
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_OBJECT;
+    }
+    return node;
+}
+
+ASTNode* ast_create_dto(const char* name) {
+    ASTNode* node = ast_create_struct(name);
+    if (node) {
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_DTO;
     }
     return node;
 }
@@ -2061,7 +2105,7 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_CLASS_DECL:
             printf("%s: %s\n",
-                node->data.class_decl.is_struct ? "Struct" : "Class",
+                nominal_decl_kind_name(node->data.class_decl.nominal_kind),
                 node->data.class_decl.name);
             if (node->data.class_decl.generic_params) {
                 print_indent(indent + 1);

@@ -275,7 +275,8 @@ run_subject_keyword_alias_test(void)
         goto cleanup;
     }
 
-    if (strcmp(decl->data.class_decl.name, "Player") != 0
+    if (decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT
+        || strcmp(decl->data.class_decl.name, "Player") != 0
         || decl->data.class_decl.field_count != 1
         || decl->data.class_decl.method_count != 1) {
         printf("[FAIL] Subject declaration members were not parsed correctly\n");
@@ -283,7 +284,7 @@ run_subject_keyword_alias_test(void)
         goto cleanup;
     }
 
-    printf("Subject keyword parsed successfully as class-compatible declaration!\n");
+    printf("Subject keyword parsed successfully as subject declaration!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -334,7 +335,8 @@ run_dto_keyword_alias_test(void)
     }
 
     decl = ast->data.program.statements[0];
-    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct) {
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO) {
         printf("[FAIL] Expected 'dto' to parse as struct-compatible declaration\n");
         failed = 1;
         goto cleanup;
@@ -398,7 +400,8 @@ run_object_keyword_alias_test(void)
     }
 
     decl = ast->data.program.statements[0];
-    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct) {
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_OBJECT) {
         printf("[FAIL] Expected 'object' to parse as struct-compatible declaration\n");
         failed = 1;
         goto cleanup;

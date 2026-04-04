@@ -230,6 +230,80 @@ func Main() -> Void {
 EOF
 run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
 
+cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
+subject ActiveCounter {
+    let count: Int;
+
+    func Tick(self, delta: Int) -> Int {
+        count = count + delta;
+        return count;
+    }
+}
+
+class PassiveCounter {
+    let count: Int;
+
+    func Tick(self, delta: Int) -> Int {
+        count = count + delta;
+        return count;
+    }
+}
+
+func Main() -> Void {
+    let active: ActiveCounter = ActiveCounter(1);
+    let passive: PassiveCounter = PassiveCounter(1);
+    Log(active.Tick(2));
+    Log(active.count);
+    Log(passive.Tick(2));
+    Log(passive.count);
+}
+EOF
+run_case "subject_class_dispatch" "$TMPDIR/subject_class_dispatch.pgy" "3" "1"
+
+cat > "$TMPDIR/slot_subject_cell.pgy" <<'EOF'
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Main() -> Void {
+    let s: Slot<Vec2> = Vec2(3, 7);
+    Write(s, Vec2(1, 2));
+    Release(s);
+    Log(1);
+}
+EOF
+run_case "slot_subject_cell" "$TMPDIR/slot_subject_cell.pgy" "1"
+
+cat > "$TMPDIR/secure_slot_subject_cell.pgy" <<'EOF'
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Vec2> = Vec2(3, 7);
+    Write(s, Vec2(1, 2), s_token);
+    Release(s, s_token);
+    Log(1);
+}
+EOF
+run_case "secure_slot_subject_cell" "$TMPDIR/secure_slot_subject_cell.pgy" "1"
+
+cat > "$TMPDIR/secure_slot_actor_cell.pgy" <<'EOF'
+actor Bot {
+    let hp: Int;
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Bot> = Bot(7);
+    Write(s, Bot(9), s_token);
+    Release(s, s_token);
+    Log(1);
+}
+EOF
+run_case "secure_slot_actor_cell" "$TMPDIR/secure_slot_actor_cell.pgy" "1"
+
 cat > "$TMPDIR/select_ready.pgy" <<'EOF'
 func Main() -> Void {
     let ch: Channel<Int> = Channel(4);

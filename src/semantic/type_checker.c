@@ -437,8 +437,117 @@ find_type_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
+static ASTNode *
+find_actor_decl_by_name(ASTNode *program, const char *type_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_ACTOR_DECL)
+            continue;
+        if (stmt->data.actor_decl.name != NULL
+            && strcmp(stmt->data.actor_decl.name, type_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static TypeNominalFlavor
+nominal_flavor_from_decl(const ASTNode *decl)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return TYPE_NOMINAL_NONE;
+
+    switch (decl->data.class_decl.nominal_kind) {
+    case NOMINAL_DECL_SUBJECT:
+        return TYPE_NOMINAL_SUBJECT;
+    case NOMINAL_DECL_STRUCT:
+        return TYPE_NOMINAL_STRUCT;
+    case NOMINAL_DECL_OBJECT:
+        return TYPE_NOMINAL_OBJECT;
+    case NOMINAL_DECL_DTO:
+        return TYPE_NOMINAL_DTO;
+    case NOMINAL_DECL_CLASS:
+    default:
+        return TYPE_NOMINAL_CLASS;
+    }
+}
+
+static bool
+decl_is_subject_type(const ASTNode *decl)
+{
+    return decl != NULL
+        && decl->type == AST_CLASS_DECL
+        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+}
+
+static bool
+decl_is_subject_host(const ASTNode *decl)
+{
+    if (decl == NULL)
+        return false;
+    if (decl->type == AST_ACTOR_DECL)
+        return true;
+    return decl_is_subject_type(decl);
+}
+
+static ASTNode *
+find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
+{
+    ASTNode *decl = find_type_decl_by_name(program, type_name);
+    if (decl_is_subject_host(decl))
+        return decl;
+    decl = find_actor_decl_by_name(program, type_name);
+    if (decl_is_subject_host(decl))
+        return decl;
+    return NULL;
+}
+
+static size_t
+subject_host_field_count(ASTNode *decl)
+{
+    if (decl == NULL)
+        return 0;
+    if (decl->type == AST_CLASS_DECL)
+        return decl->data.class_decl.field_count;
+    if (decl->type == AST_ACTOR_DECL)
+        return decl->data.actor_decl.field_count;
+    return 0;
+}
+
+static ClassField *
+subject_host_field_at(ASTNode *decl, size_t index)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        if (index < decl->data.class_decl.field_count)
+            return decl->data.class_decl.fields[index];
+        return NULL;
+    }
+    if (decl->type == AST_ACTOR_DECL) {
+        if (index < decl->data.actor_decl.field_count)
+            return decl->data.actor_decl.fields[index];
+        return NULL;
+    }
+    return NULL;
+}
+
+static bool
+type_is_subject_type(const Type *type, SemanticContext *ctx);
+
 static bool
 type_is_class_object_type(const Type *type, SemanticContext *ctx)
+{
+    return type_is_subject_type(type, ctx);
+}
+
+static bool
+type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
 {
     ASTNode *decl;
 
@@ -447,7 +556,25 @@ type_is_class_object_type(const Type *type, SemanticContext *ctx)
         return false;
 
     decl = find_type_decl_by_name(ctx->program_root, type->name);
-    return decl != NULL && !decl->data.class_decl.is_struct;
+    if (decl != NULL)
+        return !decl->data.class_decl.is_struct;
+    return find_actor_decl_by_name(ctx->program_root, type->name) != NULL;
+}
+
+static bool
+type_is_subject_type(const Type *type, SemanticContext *ctx)
+{
+    ASTNode *decl;
+
+    if (type == NULL || type->kind != TYPE_KIND_CLASS
+        || type->name == NULL || ctx == NULL)
+        return false;
+
+    if (type->nominal_flavor == TYPE_NOMINAL_SUBJECT)
+        return true;
+
+    decl = find_subject_host_decl_by_name(ctx->program_root, type->name);
+    return decl_is_subject_host(decl);
 }
 
 static bool
@@ -465,7 +592,11 @@ expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
 
     decl = find_type_decl_by_name(ctx->program_root,
         expr->data.call.callee->data.identifier.name);
-    return decl != NULL && !decl->data.class_decl.is_struct;
+    if (decl != NULL)
+        return !decl->data.class_decl.is_struct;
+    decl = find_actor_decl_by_name(ctx->program_root,
+        expr->data.call.callee->data.identifier.name);
+    return decl != NULL;
 }
 
 static bool
@@ -600,25 +731,35 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         return TYPE_UNKNOWN;
     }
 
-    if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY) {
-        if (sym->kind == SYMBOL_CLASS && ctx->program_root != NULL) {
+    if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY
+        || sym->kind == SYMBOL_ACTOR) {
+        if ((sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_ACTOR)
+            && ctx->program_root != NULL) {
             ASTNode *decl = find_type_decl_by_name(ctx->program_root, display_name);
+            size_t field_count = 0;
+            bool decl_is_generic = false;
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                size_t field_count = decl->data.class_decl.field_count;
+                field_count = decl->data.class_decl.field_count;
+                decl_is_generic =
+                    (decl->data.class_decl.generic_params != NULL
+                     && decl->data.class_decl.generic_params->count > 0);
+            } else {
+                decl = find_actor_decl_by_name(ctx->program_root, display_name);
+                if (decl != NULL && decl->type == AST_ACTOR_DECL)
+                    field_count = decl->data.actor_decl.field_count;
+            }
+            if (decl != NULL) {
                 size_t provided = expr->data.call.arg_count;
                 /* Skip field-type validation for generic classes — the
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
-                bool decl_is_generic =
-                    (decl->data.class_decl.generic_params != NULL
-                     && decl->data.class_decl.generic_params->count > 0);
                 if (provided > field_count) {
                     semantic_error(ctx, expr,
                         "Constructor '%s' accepts at most %zu positional field argument(s), got %zu",
                         display_name, field_count, provided);
                 } else if (!decl_is_generic) {
                     for (size_t i = 0; i < provided; i++) {
-                        ClassField *field = decl->data.class_decl.fields[i];
+                        ClassField *field = subject_host_field_at(decl, i);
                         if (field == NULL || field->type == NULL)
                             continue;
                         Type *field_type = resolve_type_node(field->type, ctx);
@@ -1536,7 +1677,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             Type *object_type = type_check_expression(object, ctx);
             ASTNode *class_decl;
 
-            if (type_is_class_object_type(object_type, ctx)
+            if (type_is_nominal_host_type(object_type, ctx)
                 && object_type->name != NULL
                 && method_name != NULL) {
                 class_decl = find_type_decl_by_name(ctx->program_root,
@@ -1675,7 +1816,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     if (type_is_class_object_type(target_type, ctx)
         || type_is_class_object_type(value_type, ctx)) {
         semantic_error(ctx, expr,
-            "Class object assignment is not allowed; classes are identity-bearing objects. Mutate fields or methods on the existing object instead of rebinding it with '='");
+            "Subject assignment is not allowed; subjects are identity-bearing active hosts. Mutate fields or methods on the existing subject instead of rebinding it with '='");
         return target_type;
     }
 
@@ -1733,10 +1874,22 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             } else {
                 slot_type = type_create_slot(TYPE_INT, is_secure);
             }
+            char token_name_buf[256];
+            const char *paired_token = NULL;
+            if (is_secure) {
+                snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
+                paired_token = token_name_buf;
+            }
             Symbol *sym       = symbol_create_slot(name, slot_type,
-                                                    is_secure, NULL,
+                                                    is_secure, paired_token,
                                                     node->line, node->column);
             scope_declare(ctx->scope, sym);
+            if (is_secure) {
+                Symbol *tok = symbol_create_token(paired_token, name,
+                                                  node->line, node->column);
+                if (!scope_declare(ctx->scope, tok))
+                    symbol_destroy(tok);
+            }
             scope_register_slot(ctx->scope, sym);
             return true;
         }
@@ -1788,15 +1941,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         && !expr_is_class_constructor_call(init, ctx)
         && (init->type == AST_IDENTIFIER || init->type == AST_MEMBER_ACCESS)) {
         semantic_error(ctx, node,
-            "Class objects cannot be copied into a new binding. Construct a fresh object or mutate the existing one");
-    }
-
-    if (decl_type != NULL
-        && decl_type->kind == TYPE_KIND_SLOT
-        && decl_type->data.slot.inner_type != NULL
-        && type_is_class_object_type(decl_type->data.slot.inner_type, ctx)) {
-        semantic_error(ctx, node,
-            "Slot<class> is not supported yet. class values are identity-bearing objects, so wrapping them in Slot<T> would blur object vs resource-cell semantics. Keep the object local or introduce an explicit Box<T>/handle layer first");
+            "Subjects cannot be copied into a new binding. Construct a fresh subject or mutate the existing one");
     }
 
     if (type_is_qubit(decl_type)) {
@@ -1877,9 +2022,21 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error(ctx, node,
                 "Anchored resource handles (Slot/SecureSlot/DeviceSlot) cannot be copied into a new binding; use a fresh claim or initialize from an inner value instead");
         }
+        char token_name_buf[256];
+        const char *paired_token = NULL;
+        if (decl_type->data.slot.is_secure) {
+            snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
+            paired_token = token_name_buf;
+        }
         Symbol *sym = symbol_create_slot(name, decl_type,
-            decl_type->data.slot.is_secure, NULL, node->line, node->column);
+            decl_type->data.slot.is_secure, paired_token, node->line, node->column);
         scope_declare(ctx->scope, sym);
+        if (decl_type->data.slot.is_secure) {
+            Symbol *tok = symbol_create_token(paired_token, name,
+                                              node->line, node->column);
+            if (!scope_declare(ctx->scope, tok))
+                symbol_destroy(tok);
+        }
         scope_register_slot(ctx->scope, sym);
         return !ctx->has_error;
     }
@@ -2016,6 +2173,9 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     return !ctx->has_error;
 }
 
+static bool
+any_subject_role_has_ability(ASTNode *program, const char *ability_name);
+
 bool
 type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -2045,11 +2205,13 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.role_decl.for_type->data.type.name != NULL) {
             ASTNode *type_decl = find_type_decl_by_name(
                 ctx->program_root, node->data.role_decl.for_type->data.type.name);
-            if (type_decl != NULL
-                && type_decl->type == AST_CLASS_DECL
-                && type_decl->data.class_decl.is_struct) {
-                semantic_warning(ctx, node->data.role_decl.for_type,
-                    "Role '%s' is bound to struct '%s'. Roles are intended for classes or primitive domains; binding them to value structs weakens object/ability semantics",
+            if (type_decl == NULL) {
+                type_decl = find_actor_decl_by_name(
+                    ctx->program_root, node->data.role_decl.for_type->data.type.name);
+            }
+            if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
+                semantic_error(ctx, node->data.role_decl.for_type,
+                    "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
                     name,
                     node->data.role_decl.for_type->data.type.name);
             }
@@ -2139,12 +2301,20 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
             ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
             if (ab_type != NULL && ab_type->data.type.name != NULL) {
+                const char *ability_name = ab_type->data.type.name;
                 Symbol *ab = scope_lookup(ctx->scope, ab_type->data.type.name);
                 if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
                     semantic_warning(ctx, rs,
                         "Ability '%s' not found for role slot '%s'",
                         ab_type->data.type.name,
                         rs->data.role_slot.slot_name);
+                } else if (ctx->program_root != NULL
+                           && !any_subject_role_has_ability(ctx->program_root,
+                               ability_name)) {
+                    semantic_error(ctx, rs,
+                        "Party role slot '%s' requires ability '%s', but no subject-bound role implements it",
+                        rs->data.role_slot.slot_name,
+                        ability_name);
                 }
             }
         }
@@ -2482,9 +2652,9 @@ type_check_domain_slots(ASTNode **slots,
         ASTNode *slot = slots[i];
         Type *slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
         if (slot->data.domain_slot.is_subject
-            && !type_is_class_object_type(slot_type, ctx)) {
+            && !type_is_subject_type(slot_type, ctx)) {
             semantic_error(ctx, slot,
-                "%s subject slot '%s' requires a subject/class type",
+                "%s subject slot '%s' requires a subject type",
                 kind_name,
                 slot->data.domain_slot.slot_name);
         }
@@ -2653,6 +2823,38 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
             || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
             continue;
         }
+        if (role_decl_has_ability(stmt, program, ability_name, 0))
+            return true;
+    }
+
+    return false;
+}
+
+static bool
+any_subject_role_has_ability(ASTNode *program, const char *ability_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM
+        || ability_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        ASTNode *type_decl;
+        const char *type_name;
+
+        if (stmt == NULL || stmt->type != AST_ROLE_DECL
+            || stmt->data.role_decl.for_type == NULL
+            || stmt->data.role_decl.for_type->type != AST_TYPE
+            || stmt->data.role_decl.for_type->data.type.name == NULL) {
+            continue;
+        }
+
+        type_name = stmt->data.role_decl.for_type->data.type.name;
+        type_decl = find_subject_host_decl_by_name(program, type_name);
+        if (!decl_is_subject_host(type_decl))
+            continue;
+
         if (role_decl_has_ability(stmt, program, ability_name, 0))
             return true;
     }
@@ -2921,23 +3123,6 @@ find_named_class_decl_local(ASTNode *program, const char *name)
     return NULL;
 }
 
-static ClassField *
-find_named_class_field_local(ASTNode *decl, const char *field_name)
-{
-    if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-        ClassField *field = decl->data.class_decl.fields[i];
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return field;
-        }
-    }
-
-    return NULL;
-}
-
 static bool
 type_check_zone_projection_contract(ASTNode *zone,
                                     ASTNode *site,
@@ -2996,19 +3181,19 @@ type_check_zone_projection_contract(ASTNode *zone,
         return true;
     }
 
-    if (!type_is_class_object_type(source_type, ctx)) {
+    if (!type_is_subject_type(source_type, ctx)) {
         semantic_error(ctx, site,
-            "Zone %s source slot '%s' must use a subject/class type, got '%s'",
+            "Zone %s source slot '%s' must use a subject type, got '%s'",
             action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type->name != NULL ? source_type->name : "<unknown>");
         return true;
     }
 
-    source_decl = find_named_class_decl_local(ctx->program_root, source_type->name);
-    if (source_decl == NULL || source_decl->data.class_decl.is_struct) {
+    source_decl = find_subject_host_decl_by_name(ctx->program_root, source_type->name);
+    if (!decl_is_subject_host(source_decl)) {
         semantic_error(ctx, site,
-            "Zone %s source slot '%s' must reference a subject/class declaration",
+            "Zone %s source slot '%s' must reference a subject declaration",
             action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>");
         return true;
@@ -3025,7 +3210,15 @@ type_check_zone_projection_contract(ASTNode *zone,
             continue;
         }
 
-        source_field = find_named_class_field_local(source_decl, target_field->name);
+        source_field = NULL;
+        for (size_t j = 0; j < subject_host_field_count(source_decl); j++) {
+            ClassField *candidate = subject_host_field_at(source_decl, j);
+            if (candidate != NULL && candidate->name != NULL
+                && strcmp(candidate->name, target_field->name) == 0) {
+                source_field = candidate;
+                break;
+            }
+        }
         if (source_field == NULL || source_field->type == NULL) {
             semantic_error(ctx, site,
                 "Zone %s target field '%s' is missing from source subject slot '%s'",
@@ -3894,23 +4087,40 @@ bool
 type_check_actor_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.actor_decl.name;
+    Type *actor_type;
 
     /* Register actor as a symbol */
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
     sym->kind = SYMBOL_ACTOR;
-    sym->type = TYPE_VOID;
+    actor_type = calloc(1, sizeof(Type));
+    if (actor_type != NULL) {
+        actor_type->kind = TYPE_KIND_CLASS;
+        actor_type->nominal_flavor = TYPE_NOMINAL_SUBJECT;
+        actor_type->name = pergyra_strdup(name);
+    }
+    sym->type = actor_type != NULL ? actor_type : TYPE_UNKNOWN;
     sym->decl_line = node->line;
     sym->decl_col  = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL) {
+    if (existing != NULL && existing->kind == SYMBOL_ACTOR
+        && existing->decl_line == node->line
+        && existing->decl_col == node->column) {
+        if (existing->type != NULL && existing->type != TYPE_UNKNOWN) {
+            actor_type = existing->type;
+        } else {
+            existing->type = sym->type;
+        }
+        symbol_destroy(sym);
+    } else if (existing != NULL) {
         semantic_error(ctx, node,
             "Duplicate actor declaration '%s'", name);
         symbol_destroy(sym);
         return false;
+    } else {
+        scope_declare(ctx->scope, sym);
     }
-    scope_declare(ctx->scope, sym);
 
     /* Check fields */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
@@ -3934,8 +4144,9 @@ type_check_actor_decl(ASTNode *node, SemanticContext *ctx)
         if (method) {
             scope_enter(&ctx->scope, SCOPE_FUNCTION);
             /* Register self + params */
-            Symbol *self_sym = symbol_create_variable("self", TYPE_UNKNOWN,
-                                                        node->line, node->column);
+            Symbol *self_sym = symbol_create_variable("self",
+                sym->type != NULL ? sym->type : TYPE_UNKNOWN,
+                node->line, node->column);
             scope_declare(ctx->scope, self_sym);
             for (size_t k = 0; k < method->data.async_func_decl.param_count; k++) {
                 FuncParam *p = method->data.async_func_decl.params[k];
@@ -4260,7 +4471,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error(ctx, node->data.func_decl.return_type,
-            "Returning class objects by value is not supported yet; return a struct value, keep the object local, or use Box<T>/another handle layer explicitly");
+            "Returning subjects by value is not supported yet; return a struct/class value, keep the subject local, or use Box<T>/another handle layer explicitly");
     }
 
     for (size_t i = 0; i < param_count; i++) {
@@ -4297,7 +4508,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 && in_class_scope);
             if (!is_implicit_self) {
                 semantic_error(ctx, node,
-                    "Class object parameters are not supported as plain value parameters yet; keep object interaction on methods/self, or pass an explicit Box<T>/handle once the storage model is fixed");
+                    "Subject parameters are not supported as plain value parameters yet; keep subject interaction on methods/self, or pass an explicit Box<T>/handle once the storage model is fixed");
             }
         }
     }
@@ -4431,6 +4642,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
     class_type->kind = TYPE_KIND_CLASS;
+    class_type->nominal_flavor = nominal_flavor_from_decl(node);
     class_type->name = pergyra_strdup(name);
 
     Symbol *class_sym = symbol_create_function(name, class_type,
@@ -4685,6 +4897,20 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     scope_declare(ctx->scope, s);
                 }
             }
+        } else if (stmt->type == AST_ACTOR_DECL) {
+            const char *aname = stmt->data.actor_decl.name;
+            if (aname != NULL && scope_lookup_current(ctx->scope, aname) == NULL) {
+                Type *t = calloc(1, sizeof(Type));
+                if (t != NULL) {
+                    t->kind = TYPE_KIND_CLASS;
+                    t->nominal_flavor = TYPE_NOMINAL_SUBJECT;
+                    t->name = pergyra_strdup(aname);
+                }
+                Symbol *s = symbol_create_function(aname,
+                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                s->kind = SYMBOL_ACTOR;
+                scope_declare(ctx->scope, s);
+            }
         } else if (stmt->type == AST_PARTY_DECL
                    || stmt->type == AST_SYSTEMIC_DECL
                    || stmt->type == AST_WORLD_DECL
@@ -4710,6 +4936,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 Type *t = calloc(1, sizeof(Type));
                 if (t != NULL) {
                     t->kind = TYPE_KIND_CLASS;
+                    t->nominal_flavor = TYPE_NOMINAL_CLASS;
                     t->name = pergyra_strdup(dname);
                 }
                 Symbol *s = symbol_create_function(dname,

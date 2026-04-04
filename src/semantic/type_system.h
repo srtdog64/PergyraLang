@@ -25,6 +25,16 @@ typedef enum
     TYPE_KIND_ALIAS         /* Type aliases */
 } TypeKind;
 
+typedef enum
+{
+    TYPE_NOMINAL_NONE,
+    TYPE_NOMINAL_CLASS,
+    TYPE_NOMINAL_SUBJECT,
+    TYPE_NOMINAL_STRUCT,
+    TYPE_NOMINAL_OBJECT,
+    TYPE_NOMINAL_DTO
+} TypeNominalFlavor;
+
 /* Inferred function/resource effects.
  * "local" is the zero-effect default: a function with no non-local flags
  * is treated as local-only today. */
@@ -50,6 +60,7 @@ typedef struct Type Type;
 struct Type
 {
     TypeKind kind;
+    TypeNominalFlavor nominal_flavor;
     char* name;
     
     union

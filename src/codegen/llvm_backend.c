@@ -663,7 +663,13 @@ llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_DOUBLE: return ctx->secure_slot_type_Double;
     case PGY_TK_BOOL:   return ctx->secure_slot_type_Bool;
     case PGY_TK_STRING: return ctx->secure_slot_type_String;
-    default:            return ctx->secure_slot_type_Int;
+    default: {
+        LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
+        LLVMTypeRef fields[] = {
+            inner_ty, LLVMInt1TypeInContext(ctx->context), ctx->type_i64
+        };
+        return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
+    }
     }
 }
 
@@ -677,7 +683,10 @@ llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_DOUBLE: return ctx->secure_token_type_Double;
     case PGY_TK_BOOL:   return ctx->secure_token_type_Bool;
     case PGY_TK_STRING: return ctx->secure_token_type_String;
-    default:            return ctx->secure_token_type_Int;
+    default: {
+        LLVMTypeRef fields[] = { ctx->type_i64, ctx->type_i1, ctx->type_i1 };
+        return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
+    }
     }
 }
 
@@ -827,7 +836,8 @@ llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name)
 
 LLVMClassTypeEntry *
 llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
-                    LLVMTypeRef struct_type)
+                    LLVMTypeRef struct_type,
+                    bool is_subject)
 {
     PGY_DYNARR_ENSURE_RET(ctx->class_types, ctx->class_type_count,
                             ctx->class_type_capacity, LLVMClassTypeEntry);
@@ -835,6 +845,7 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
     LLVMClassTypeEntry *entry = &ctx->class_types[ctx->class_type_count++];
     entry->class_name  = class_name;
     entry->struct_type = struct_type;
+    entry->is_subject  = is_subject;
     entry->field_count = 0;
     return entry;
 }
@@ -1892,7 +1903,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMTypeRef enum_ty =
                     LLVMStructCreateNamed(ctx->context, enum_name);
                 LLVMClassTypeEntry *enum_entry =
-                    llvm_register_class(ctx, enum_name, enum_ty);
+                    llvm_register_class(ctx, enum_name, enum_ty, false);
 
                 enum_fields[0] = ctx->type_i32;
                 if (enum_entry != NULL)
@@ -1929,7 +1940,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                     LLVMClassTypeEntry *payload_entry =
                         llvm_register_class(ctx, pergyra_strdup(payload_name),
-                            payload_ty);
+                            payload_ty, false);
                     if (payload_entry != NULL) {
                         for (size_t p = 0; p < param_count; p++) {
                             char field_name[32];
@@ -1973,8 +1984,9 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             LLVMStructSetBody(struct_ty, field_types,
                                (unsigned)fc, 0);
 
+            bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
             LLVMClassTypeEntry *entry = llvm_register_class(ctx,
-                cls_name, struct_ty);
+                cls_name, struct_ty, is_subject);
             if (entry != NULL) {
                 for (size_t j = 0; j < fc; j++) {
                     ClassField *f = stmt->data.class_decl.fields[j];
@@ -2008,10 +2020,12 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                     user_pc++;
                 }
 
-                /* self pointer + user params */
+                /* subject methods receive self by pointer; class methods by value */
                 LLVMTypeRef *param_types = calloc(user_pc + 1,
                                                    sizeof(LLVMTypeRef));
-                param_types[0] = ctx->type_i8ptr; /* self as opaque ptr */
+                param_types[0] = is_subject
+                    ? LLVMPointerType(struct_ty, 0)
+                    : struct_ty;
                 size_t pidx = 1;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p = method->data.func_decl.params[k];
@@ -2058,7 +2072,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMTypeRef sty = LLVMStructCreateNamed(ctx->context, aname);
         LLVMStructSetBody(sty, ftypes, (unsigned)fc, 0);
 
-        LLVMClassTypeEntry *entry = llvm_register_class(ctx, aname, sty);
+        LLVMClassTypeEntry *entry = llvm_register_class(ctx, aname, sty, true);
         if (entry != NULL) {
             for (size_t j = 0; j < fc; j++) {
                 ClassField *f = stmt->data.actor_decl.fields[j];
@@ -2219,15 +2233,24 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 
                 llvm_scope_push(ctx);
 
-                /* self param — store the incoming pointer */
-                LLVMValueRef self_ptr = LLVMGetParam(fn, 0);
-                LLVMTypeRef self_ptr_type = LLVMPointerType(
-                    cls->struct_type, 0);
-                LLVMValueRef self_alloca = llvm_create_entry_alloca(
-                    ctx, self_ptr_type, "self.addr");
-                LLVMBuildStore(ctx->builder, self_ptr, self_alloca);
-                llvm_scope_declare(ctx, "self", self_alloca,
-                                    self_ptr_type);
+                /* subject methods keep a self pointer; class methods keep a self value */
+                LLVMValueRef self_val = LLVMGetParam(fn, 0);
+                if (cls != NULL && cls->is_subject) {
+                    LLVMTypeRef self_ptr_type = LLVMPointerType(
+                        cls->struct_type, 0);
+                    LLVMValueRef self_alloca = llvm_create_entry_alloca(
+                        ctx, self_ptr_type, "self.addr");
+                    LLVMBuildStore(ctx->builder, self_val, self_alloca);
+                    llvm_scope_declare(ctx, "self", self_alloca,
+                                        self_ptr_type);
+                } else {
+                    LLVMValueRef self_alloca = llvm_create_entry_alloca(
+                        ctx, cls != NULL ? cls->struct_type : LLVMTypeOf(self_val),
+                        "self");
+                    LLVMBuildStore(ctx->builder, self_val, self_alloca);
+                    llvm_scope_declare(ctx, "self", self_alloca,
+                                        cls != NULL ? cls->struct_type : LLVMTypeOf(self_val));
+                }
                 llvm_register_var_class(ctx, "self", cls_name);
 
                 /* User params (skip explicit 'self' params) */

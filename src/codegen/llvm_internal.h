@@ -191,6 +191,7 @@ typedef struct
 {
     const char        *class_name;
     LLVMTypeRef        struct_type;
+    bool               is_subject;
     LLVMClassFieldInfo fields[MAX_CLASS_FIELDS];
     int                field_count;
 } LLVMClassTypeEntry;
@@ -463,7 +464,8 @@ const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
  * Class type registry (llvm_backend.c)
  * ================================================================= */
 LLVMClassTypeEntry *llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
-                                          LLVMTypeRef struct_type);
+                                          LLVMTypeRef struct_type,
+                                          bool is_subject);
 void                llvm_class_add_field(LLVMClassTypeEntry *entry,
                                           const char *field_name,
                                           LLVMTypeRef field_type, int index);

@@ -55,8 +55,11 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
-- 장기 존재론 `struct` vs `subject` 분리와 `actor = subject profile` 방향이 문서상 고정됨
-- `subject` keyword alias가 parser surface에 반영되어 `subject`와 `class`가 같은 선언으로 파싱됨
+- `actor`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToDto`, subject copy restriction 경로에 실제로 참여함
+- `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
+- `role`은 non-subject nominal declaration에 바인딩될 수 없고, `party`는 subject-bound role impl이 없는 ability를 협력 슬롯에 둘 수 없음
+- `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 타입처럼 parameter/return/copy가 가능함
+- C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
 - `ToObject(TargetStruct, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
@@ -68,7 +71,11 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
-- `subject` keyword는 alias로 올라왔지만, `class`와의 장기 alias/deprecation policy는 아직 미정
+- `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
+- `subject slot`과 `ToObject` / `ToDto` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
+- `actor`는 subject-profile semantic에 편입됐지만, surface syntax는 아직 standalone declaration이라 최종 재배치가 남아 있다
+- plain/secure `Slot<subject>`와 `Slot<actor>`는 local object-cell anchor로 동작한다
+- 남은 공백은 cross-boundary transfer와 deeper handle/runtime propagation model이다
 - 클래식 OOP 계층(상속, super)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성

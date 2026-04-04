@@ -321,22 +321,65 @@ ASTNode* parse_function_declaration(Parser* parser) {
 
 // 클래스 선언 파싱
 ASTNode* parse_class_declaration(Parser* parser) {
-    return parse_type_declaration(parser, false);
+    return parse_type_declaration(parser, NOMINAL_DECL_CLASS);
+}
+
+ASTNode* parse_subject_declaration(Parser* parser) {
+    return parse_type_declaration(parser, NOMINAL_DECL_SUBJECT);
 }
 
 // 구조체 선언 파싱
 ASTNode* parse_struct_declaration(Parser* parser) {
-    return parse_type_declaration(parser, true);
+    return parse_type_declaration(parser, NOMINAL_DECL_STRUCT);
+}
+
+ASTNode* parse_object_declaration(Parser* parser) {
+    return parse_type_declaration(parser, NOMINAL_DECL_OBJECT);
+}
+
+ASTNode* parse_dto_declaration(Parser* parser) {
+    return parse_type_declaration(parser, NOMINAL_DECL_DTO);
 }
 
 // 클래스/구조체 선언 공통 파싱
-ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
+ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
+    bool is_struct = (decl_kind == NOMINAL_DECL_STRUCT
+        || decl_kind == NOMINAL_DECL_OBJECT
+        || decl_kind == NOMINAL_DECL_DTO);
+    const char *kind_name = "class";
+    ASTNode *class_decl = NULL;
+
+    if (decl_kind == NOMINAL_DECL_SUBJECT)
+        kind_name = "subject";
+    else if (decl_kind == NOMINAL_DECL_STRUCT)
+        kind_name = "struct";
+    else if (decl_kind == NOMINAL_DECL_OBJECT)
+        kind_name = "object";
+    else if (decl_kind == NOMINAL_DECL_DTO)
+        kind_name = "dto";
+
     // 클래스 이름
     Token name = parser_consume(parser, TOKEN_IDENTIFIER,
-        is_struct ? "Expected struct name" : "Expected class name");
+        is_struct ? "Expected value/projection type name" : "Expected nominal type name");
 
-    ASTNode* class_decl = is_struct ? ast_create_struct(name.text)
-                                    : ast_create_class(name.text);
+    switch (decl_kind) {
+    case NOMINAL_DECL_SUBJECT:
+        class_decl = ast_create_subject(name.text);
+        break;
+    case NOMINAL_DECL_STRUCT:
+        class_decl = ast_create_struct(name.text);
+        break;
+    case NOMINAL_DECL_OBJECT:
+        class_decl = ast_create_object(name.text);
+        break;
+    case NOMINAL_DECL_DTO:
+        class_decl = ast_create_dto(name.text);
+        break;
+    case NOMINAL_DECL_CLASS:
+    default:
+        class_decl = ast_create_class(name.text);
+        break;
+    }
     class_decl->data.class_decl.doc_comment = parser_take_pending_doc_comment(parser);
 
     // 제네릭 파라미터
@@ -345,7 +388,11 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
     // where 절
     class_decl->data.class_decl.where_clause = parse_where_clause(parser);
 
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after class name");
+    {
+        char brace_msg[96];
+        snprintf(brace_msg, sizeof(brace_msg), "Expected '{' after %s name", kind_name);
+        parser_consume(parser, TOKEN_LBRACE, brace_msg);
+    }
 
     // 클래스 멤버들
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -403,7 +450,7 @@ ASTNode* parse_type_declaration(Parser* parser, bool is_struct) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser, "Expected %s member declaration",
-                is_struct ? "struct" : "class");
+                kind_name);
             return class_decl;
         }
     }

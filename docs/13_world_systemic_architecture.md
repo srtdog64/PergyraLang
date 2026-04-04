@@ -21,7 +21,8 @@
            ↓
         [STRUCT]   ← 값 타입
 
-현재 surface syntax에서는 `subject`와 `class`가 같은 subject declaration으로 파싱된다.
+현재 surface syntax에서는 `subject`와 `class`가 모두 존재하지만,
+parser/semantic은 둘을 다른 nominal declaration flavor로 기록한다.
 ```
 
 핵심 원칙은 다음이다.
@@ -63,7 +64,8 @@ world GameWorld {
 ```
 
 현재 stable current surface는 대체로 `subject/class / ability / role / party / relation / effect / zone / systemic / world`까지다.
-장기 의미론 이름은 `class`보다 `subject`가 더 정확하다고 본다.
+장기 의미론 중심 이름은 `class`보다 `subject`가 더 정확하다.
+또한 `subject slot`과 `ToObject` / `ToDto` projection source처럼 주체성을 요구하는 표면은 현재 `subject`에만 열려 있다.
 `relation`, `effect`, `zone`은 이제 `for ...` header와 `subject slot` / `object slot` / `dto slot` / `shared` / `func` 수준의 최소 body surface까지 올라왔고, `zone`은 `relation slot` / `effect slot` / `authority subjectSlot` / `authority subjectSlot requires Ability[, Ability]` / `state name: effect ... on ...` / `state name: relation ... between ..., ...` / `apply effectSlot to targetSlot` / `apply stateName` / `detach effectSlot from targetSlot` / `detach stateName` / `link relationSlot between left, right` / `link stateName` / `unlink relationSlot between left, right` / `unlink stateName` / `refresh objectSlot from subjectSlot` / `publish dtoSlot from subjectSlot` / `maintain effectSlot on targetSlot` / `maintain relationSlot between left, right` / `maintain stateName` / `HasState(stateName)` / `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`과 optional `by subjectSlot` authority annotation까지 가진다. `world`는 `zone` slot과 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState`, `HasZone(zoneOrState)`까지 최소 조립/lifecycle surface를 가진다. 또한 `apply/detach`는 `effect`의 subject target contract와, `link/unlink`는 `relation`의 two-endpoint contract와 기본 타입 정합성을 검사하고, `refresh`/`publish`는 projection field 정합성을 검사하며, `maintain`은 duplicate/conflicting lifecycle rule에 warning을 낸다. `authority`는 mutable rule의 승인 주체를 검사하고, 필요하면 그 주체 타입이 특정 ability를 수행할 수 있는 role impl도 검사한다. state shorthand는 kind mismatch를 semantic error로 보고한다. `HasState`는 zone 안에서 선언된 state alias를 Bool로 질의하고, 선택적으로 slot 조합까지 검증한다. `HasZone`은 world 안에서 선언된 zone slot 또는 world state alias를 Bool로 질의한다. 현재 C backend는 zone state를 `__state_*` 플래그와 `<Zone>_sync(self)` helper로, world zone lifecycle을 `__zone_active_*` / `__zone_state_*` 플래그와 `<World>_sync(self)` helper로 낮추며, zone/world method 전후에 sync를 호출해 `refresh`/`publish`와 lifecycle flag를 incremental하게 맞춘다. 다만 deeper propagation semantics와 LLVM parity는 아직 얕다.
 아래 섹션은 최종 목표 계층을 설명하며, 일부 예시는 현재 문법과 다를 수 있다.
 특히 `relation`, `effect`, `zone`의 직접 문법, `actor` profile surface, `&mut self`, `impl Trait`, thread affinity 표기 예시는 현재 stable current surface를 직접 설명하지 않는다.

@@ -111,7 +111,7 @@ enum Color { Red, Green, Blue }
 - `zone`
 
 주의:
-- `subject`와 `class`는 현재 같은 declaration으로 파싱된다.
+- `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
 - `object`, `dto`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `dto slot` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
