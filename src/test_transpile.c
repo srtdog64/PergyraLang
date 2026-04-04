@@ -596,7 +596,7 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("HasState(poisoned) → zone semantic placeholder");
+    TEST("HasState(poisoned) → zone semantic placeholder outside zone context");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("poisoned", 1) };
@@ -606,7 +606,7 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("HasState(allied, player, enemy) → zone semantic placeholder");
+    TEST("HasState(allied, player, enemy) → zone semantic placeholder outside zone context");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[3] = {
@@ -618,6 +618,102 @@ test_expression_emit(void)
         EXPECT(strcmp(result, "false /* HasState: zone-semantic query only */") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("HasZone(battle) → world semantic placeholder outside world context");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("battle", 1) };
+        result = emit_expression(make_call("HasZone", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "false /* HasZone: world-semantic query only */") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("HasState lowers to zone runtime state field inside zone context");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    relation slot trust: TrustedLink\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        ctx->current_zone_name = "BattleZone";
+
+        {
+            ASTNode *args[1] = { make_identifier("poisoned", 1) };
+            result = emit_expression(make_call("HasState", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__state_poisoned") == 0);
+            free(result);
+        }
+
+        {
+            ASTNode *args[3] = {
+                make_identifier("allied", 1),
+                make_identifier("player", 1),
+                make_identifier("enemy", 1)
+            };
+            result = emit_expression(make_call("HasState", args, 3, 1), ctx);
+            EXPECT(strcmp(result, "self->__state_allied") == 0);
+            free(result);
+        }
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasZone lowers to world runtime zone fields inside world context");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        ctx->current_world_name = "GameWorld";
+
+        {
+            ASTNode *args[1] = { make_identifier("liveBattle", 1) };
+            result = emit_expression(make_call("HasZone", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__zone_state_liveBattle") == 0);
+            free(result);
+        }
+
+        {
+            ASTNode *args[1] = { make_identifier("battle", 1) };
+            result = emit_expression(make_call("HasZone", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__zone_active_battle") == 0);
+            free(result);
+        }
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 
@@ -1584,7 +1680,7 @@ test_systemic_world_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("relation/effect/zone declarations are accepted as no-op top-level layers");
+    TEST("relation/effect declarations emit struct layers");
     {
         ASTNode relation_node; memset(&relation_node, 0, sizeof(relation_node));
         relation_node.type = AST_RELATION_DECL;
@@ -1594,19 +1690,75 @@ test_systemic_world_emit(void)
         effect_node.type = AST_EFFECT_DECL;
         effect_node.data.effect_decl.name = "Poisoned";
 
-        ASTNode zone_node; memset(&zone_node, 0, sizeof(zone_node));
-        zone_node.type = AST_ZONE_DECL;
-        zone_node.data.zone_decl.name = "DungeonZone";
-
         TranspilerCtx *ctx = transpiler_ctx_create();
-        size_t before = ctx->out->len;
         emit_statement(&relation_node, ctx);
         emit_statement(&effect_node, ctx);
-        emit_statement(&zone_node, ctx);
 
-        EXPECT(ctx->out->len == before);
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct TrustedLink");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} TrustedLink;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Poisoned");
+        EXPECT_STR_CONTAINS(ctx->out->data, "} Poisoned;");
 
         transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("zone/world emit runtime sync state and projection helpers");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    refresh playerView from player\n"
+            "    publish snapshot from player\n"
+            "    maintain poisoned\n"
+            "    func Tick() -> Bool {\n"
+            "        return HasState(poisoned);\n"
+            "    }\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "    activate liveBattle\n"
+            "    func IsBattleLive() -> Bool {\n"
+            "        return HasZone(liveBattle);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct BattleZone");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __state_poisoned;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(BattleZone *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->playerView = (PlayerView){ .hp = self->player.hp };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->snapshot = (PlayerDto){ .hp = self->player.hp, .name = self->player.name };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__state_poisoned = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __zone_state_liveBattle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync(GameWorld *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(&self->battle);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_active_battle = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_liveBattle = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 
@@ -1780,6 +1932,25 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("TrySendStatus emits Option<Bool> channel status helper");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+
+        ASTNode *args[2] = { make_identifier("ch", 2), make_number(42, 2) };
+        char *result = emit_expression(make_call("TrySendStatus", args, 2, 2), ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(strstr(result, "pgy_channel_try_send_status_Int(&ch, 42)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("Cancel emits pgy_task_cancel");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();
@@ -1934,6 +2105,27 @@ test_async_emit(void)
         char *result = emit_expression(make_call("ChannelClosed", args, 1, 2), ctx);
 
         EXPECT(strstr(result, "pgy_channel_closed_Int(&ch)") != NULL);
+
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("SendTimeoutStatus emits Option<Bool> timed channel status helper");
+    {
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *cap_args[1] = { make_number(4, 1) };
+        emit_statement(
+            make_let("ch", make_type_node("Channel<Int>"),
+                     make_call("Channel", cap_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[3] = {
+            make_identifier("ch", 2),
+            make_number(42, 2),
+            make_number(1000, 2)
+        };
+        char *result = emit_expression(make_call("SendTimeoutStatus", args, 3, 2), ctx);
+
+        EXPECT(strstr(result, "pgy_channel_send_timeout_status_Int(&ch, 42, (uint64_t)(1000))") != NULL);
 
         free(result);
         transpiler_ctx_destroy(ctx);

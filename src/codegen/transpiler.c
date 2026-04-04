@@ -339,6 +339,78 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
     return NULL;
 }
 
+static ASTNode *
+find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
+        if (stmt != NULL && stmt->type == AST_ZONE_DECL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, zone_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_world_decl(TranspilerCtx *ctx, const char *world_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || world_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->world_count; i++) {
+        ASTNode *stmt = ctx->hir->worlds[i];
+        if (stmt != NULL && stmt->type == AST_WORLD_DECL
+            && stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, world_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_relation_decl(TranspilerCtx *ctx, const char *relation_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || relation_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+        ASTNode *stmt = ctx->hir->relations[i];
+        if (stmt != NULL && stmt->type == AST_RELATION_DECL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, relation_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_effect_decl(TranspilerCtx *ctx, const char *effect_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || effect_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL && stmt->type == AST_EFFECT_DECL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, effect_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
 static ClassField *
 find_class_field_decl(ASTNode *decl, const char *field_name)
 {
@@ -398,6 +470,192 @@ current_class_has_field(TranspilerCtx *ctx, const char *field_name)
         ClassField *field = decl->data.class_decl.fields[i];
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || ctx->current_zone_name == NULL || field_name == NULL)
+        return false;
+
+    decl = find_zone_decl(ctx, ctx->current_zone_name);
+    if (decl == NULL)
+        return false;
+
+    for (size_t i = 0; i < decl->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = decl->data.zone_decl.slots[i];
+        if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = decl->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
+        ASTNode *shared = decl->data.zone_decl.shared_fields[i];
+        if (shared != NULL && shared->data.party_shared.name != NULL
+            && strcmp(shared->data.party_shared.name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || ctx->current_relation_name == NULL || field_name == NULL)
+        return false;
+
+    decl = find_relation_decl(ctx, ctx->current_relation_name);
+    if (decl == NULL)
+        return false;
+
+    for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
+        ASTNode *slot = decl->data.relation_decl.slots[i];
+        if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.relation_decl.shared_count; i++) {
+        ASTNode *shared = decl->data.relation_decl.shared_fields[i];
+        if (shared != NULL && shared->data.party_shared.name != NULL
+            && strcmp(shared->data.party_shared.name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || ctx->current_effect_name == NULL || field_name == NULL)
+        return false;
+
+    decl = find_effect_decl(ctx, ctx->current_effect_name);
+    if (decl == NULL)
+        return false;
+
+    for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
+        ASTNode *slot = decl->data.effect_decl.slots[i];
+        if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.effect_decl.shared_count; i++) {
+        ASTNode *shared = decl->data.effect_decl.shared_fields[i];
+        if (shared != NULL && shared->data.party_shared.name != NULL
+            && strcmp(shared->data.party_shared.name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+current_world_has_field(TranspilerCtx *ctx, const char *field_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || ctx->current_world_name == NULL || field_name == NULL)
+        return false;
+
+    decl = find_world_decl(ctx, ctx->current_world_name);
+    if (decl == NULL)
+        return false;
+
+    for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
+        ASTNode *slot = decl->data.world_decl.systemics[i];
+        if (slot != NULL && slot->data.world_systemic.slot_name != NULL
+            && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
+        ASTNode *slot = decl->data.world_decl.zones[i];
+        if (slot != NULL && slot->data.world_zone.slot_name != NULL
+            && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+            return true;
+        }
+    }
+    for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
+        ASTNode *shared = decl->data.world_decl.shared_fields[i];
+        if (shared != NULL && shared->data.party_shared.name != NULL
+            && strcmp(shared->data.party_shared.name, field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static ASTNode *
+find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.state_count; i++) {
+        ASTNode *state = zone_decl->data.zone_decl.states[i];
+        if (state != NULL && state->type == AST_ZONE_STATE
+            && state->data.zone_state.state_name != NULL
+            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+find_world_state_decl(ASTNode *world_decl, const char *state_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
+        ASTNode *state = world_decl->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+    return NULL;
+}
+
+static bool
+world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world_decl->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
             return true;
         }
     }
@@ -466,6 +724,48 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 
     codebuf_write(buf, " }");
     free(source_expr);
+    result = pergyra_strdup(buf->data);
+    codebuf_destroy(buf);
+    return result;
+}
+
+static char *
+emit_projection_literal(ASTNode *target_decl, ASTNode *source_decl,
+                        const char *target_type_name, const char *source_expr)
+{
+    CodeBuf *buf;
+    char *result;
+    bool first = true;
+
+    if (target_decl == NULL || source_decl == NULL
+        || target_type_name == NULL || source_expr == NULL) {
+        return pergyra_strdup("0");
+    }
+
+    buf = codebuf_create();
+    codebuf_write(buf, "(%s){ ", target_type_name);
+
+    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
+        ClassField *target_field = target_decl->data.class_decl.fields[i];
+        ClassField *source_field;
+
+        if (target_field == NULL || target_field->name == NULL)
+            continue;
+
+        source_field = find_class_field_decl(source_decl, target_field->name);
+        if (!first)
+            codebuf_write(buf, ", ");
+        first = false;
+
+        if (source_field != NULL) {
+            codebuf_write(buf, ".%s = %s.%s",
+                target_field->name, source_expr, target_field->name);
+        } else {
+            codebuf_write(buf, ".%s = 0", target_field->name);
+        }
+    }
+
+    codebuf_write(buf, " }");
     result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
     return result;
@@ -1097,12 +1397,19 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "ChannelClose") == 0)
                 return "Void";
             if ((strcmp(name, "TryRecv") == 0
-                 || strcmp(name, "RecvTimeout") == 0)
+                 || strcmp(name, "RecvTimeout") == 0
+                 || strcmp(name, "TrySendStatus") == 0
+                 || strcmp(name, "SendTimeoutStatus") == 0)
                 && expr->data.call.arg_count >= 1) {
                 static char opt_buf[128];
-                const char *inner = channel_inner_type_name(ctx,
-                    expr->data.call.arguments[0]);
-                snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
+                if (strcmp(name, "TrySendStatus") == 0
+                    || strcmp(name, "SendTimeoutStatus") == 0) {
+                    snprintf(opt_buf, sizeof(opt_buf), "Option<Bool>");
+                } else {
+                    const char *inner = channel_inner_type_name(ctx,
+                        expr->data.call.arguments[0]);
+                    snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
+                }
                 return opt_buf;
             }
             if (strcmp(name, "TrySend") == 0
@@ -1110,6 +1417,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "Cancel") == 0
                 || strcmp(name, "IsCancelled") == 0
                 || strcmp(name, "HasState") == 0
+                || strcmp(name, "HasZone") == 0
                 || strcmp(name, "ChannelFull") == 0
                 || strcmp(name, "ChannelClosed") == 0
                 || strcmp(name, "ChannelReady") == 0)
@@ -2141,7 +2449,39 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_TO_DTO:
         return emit_builtin_to_dto(call, ctx);
     case BUILTIN_HAS_STATE:
+        if (ctx->current_zone_name != NULL
+            && call->data.call.arg_count >= 1
+            && call->data.call.arguments[0] != NULL) {
+            ASTNode *zone_decl = find_zone_decl(ctx, ctx->current_zone_name);
+            const char *state_name = NULL;
+            ASTNode *state_decl;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                state_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                state_name = call->data.call.arguments[0]->data.string.value;
+            state_decl = find_zone_state_decl(zone_decl, state_name);
+            if (state_decl != NULL && state_name != NULL)
+                return strdup_fmt("self->__state_%s", state_name);
+        }
         return pergyra_strdup("false /* HasState: zone-semantic query only */");
+    case BUILTIN_HAS_ZONE:
+        if (ctx->current_world_name != NULL
+            && call->data.call.arg_count >= 1
+            && call->data.call.arguments[0] != NULL) {
+            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
+            const char *name = NULL;
+            ASTNode *state_decl;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                name = call->data.call.arguments[0]->data.string.value;
+            state_decl = find_world_state_decl(world_decl, name);
+            if (state_decl != NULL && name != NULL)
+                return strdup_fmt("self->__zone_state_%s", name);
+            if (world_has_zone_slot(world_decl, name))
+                return strdup_fmt("self->__zone_active_%s", name);
+        }
+        return pergyra_strdup("false /* HasZone: world-semantic query only */");
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
@@ -2516,6 +2856,17 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(val);
             return result;
         }
+        if (strcmp(fn, "TrySendStatus") == 0 && call->data.call.arg_count == 2) {
+            char *ch = emit_expression(call->data.call.arguments[0], ctx);
+            char *val = emit_expression(call->data.call.arguments[1], ctx);
+            const char *inner = channel_inner_type_name(ctx,
+                call->data.call.arguments[0]);
+            char *result = strdup_fmt(
+                "pgy_channel_try_send_status_%s(&%s, %s)", inner, ch, val);
+            free(ch);
+            free(val);
+            return result;
+        }
         if (strcmp(fn, "SendTimeout") == 0 && call->data.call.arg_count == 3) {
             char *ch = emit_expression(call->data.call.arguments[0], ctx);
             char *val = emit_expression(call->data.call.arguments[1], ctx);
@@ -2524,6 +2875,20 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 call->data.call.arguments[0]);
             char *result = strdup_fmt(
                 "pgy_channel_send_timeout_%s(&%s, %s, (uint64_t)(%s))",
+                inner, ch, val, timeout);
+            free(ch);
+            free(val);
+            free(timeout);
+            return result;
+        }
+        if (strcmp(fn, "SendTimeoutStatus") == 0 && call->data.call.arg_count == 3) {
+            char *ch = emit_expression(call->data.call.arguments[0], ctx);
+            char *val = emit_expression(call->data.call.arguments[1], ctx);
+            char *timeout = emit_expression(call->data.call.arguments[2], ctx);
+            const char *inner = channel_inner_type_name(ctx,
+                call->data.call.arguments[0]);
+            char *result = strdup_fmt(
+                "pgy_channel_send_timeout_status_%s(&%s, %s, (uint64_t)(%s))",
                 inner, ch, val, timeout);
             free(ch);
             free(val);
@@ -2969,19 +3334,24 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         return pergyra_strdup("/* spawn alloc failed */");
     }
 
-    if (args_type_name == NULL) {
-        codebuf_write(expr, "pgy_async_spawn(%s, NULL)", wrapper_name);
-    } else {
-        codebuf_write(expr,
-            "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
-            "if (_pgy_args == NULL) { PGY_PANIC(\"spawn arg allocation failed\"); } ",
-            args_type_name, args_type_name, args_type_name);
-        for (size_t i = 0; i < arg_count; i++) {
-            char *arg = emit_expression(call->data.call.arguments[i], ctx);
-            codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
-            free(arg);
+    {
+        /* spawn blocking → offload to dedicated blocking pool */
+        const char *spawn_fn = node->data.spawn_expr.is_blocking
+            ? "pgy_spawn_blocking" : "pgy_async_spawn";
+        if (args_type_name == NULL) {
+            codebuf_write(expr, "%s(%s, NULL)", spawn_fn, wrapper_name);
+        } else {
+            codebuf_write(expr,
+                "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
+                "if (_pgy_args == NULL) { PGY_PANIC(\"spawn arg allocation failed\"); } ",
+                args_type_name, args_type_name, args_type_name);
+            for (size_t i = 0; i < arg_count; i++) {
+                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
+                free(arg);
+            }
+            codebuf_write(expr, "%s(%s, _pgy_args); })", spawn_fn, wrapper_name);
         }
-        codebuf_write(expr, "pgy_async_spawn(%s, _pgy_args); })", wrapper_name);
     }
 
     char *result = pergyra_strdup(expr->data);
@@ -3071,6 +3441,34 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_class_has_field(ctx, id_name)) {
+            return strdup_fmt("self->%s", id_name);
+        }
+        if (ctx->current_relation_name != NULL
+            && strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
+            && current_relation_has_field(ctx, id_name)) {
+            return strdup_fmt("self->%s", id_name);
+        }
+        if (ctx->current_effect_name != NULL
+            && strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
+            && current_effect_has_field(ctx, id_name)) {
+            return strdup_fmt("self->%s", id_name);
+        }
+        if (ctx->current_zone_name != NULL
+            && strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
+            && current_zone_has_field(ctx, id_name)) {
+            return strdup_fmt("self->%s", id_name);
+        }
+        if (ctx->current_world_name != NULL
+            && strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
+            && current_world_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
         /* Slot sugar: auto-Read — emit pgy_read_T(&x) instead of x */
@@ -3271,6 +3669,9 @@ void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
 static bool
@@ -5088,9 +5489,13 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_world_decl(node, ctx);
         break;
     case AST_RELATION_DECL:
+        emit_relation_decl(node, ctx);
+        break;
     case AST_EFFECT_DECL:
+        emit_effect_decl(node, ctx);
+        break;
     case AST_ZONE_DECL:
-        /* Declaration-only for now; reserved top-level domain layers. */
+        emit_zone_decl(node, ctx);
         break;
     case AST_EVENT_DECL:
         emit_event_decl(node, ctx);
@@ -5379,6 +5784,10 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Pass 3.7: systemics (struct + methods) */
     for (size_t i = 0; i < hir->systemic_count; i++)
         emit_systemic_decl(hir->systemics[i], ctx);
+
+    /* Pass 3.8: zones (struct + methods + sync helpers) */
+    for (size_t i = 0; i < hir->zone_count; i++)
+        emit_zone_decl(hir->zones[i], ctx);
 
     /* Pass 3.9: worlds (struct + methods) */
     for (size_t i = 0; i < hir->world_count; i++)
@@ -5940,6 +6349,366 @@ emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx)
 }
 
 void
+emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *name = node->data.relation_decl.name;
+
+    codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
+    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
+
+    for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
+        ASTNode *slot = node->data.relation_decl.slots[i];
+        const char *ft = "int32_t";
+        if (slot->data.domain_slot.type != NULL)
+            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+    }
+
+    for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
+        ASTNode *shared = node->data.relation_decl.shared_fields[i];
+        const char *ft = "int32_t";
+        if (shared->data.party_shared.type != NULL)
+            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+    }
+
+    codebuf_write(ctx->out, "} %s;\n", name);
+
+    for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+        ASTNode *method = node->data.relation_decl.methods[i];
+        if (method->type != AST_FUNC_DECL) continue;
+
+        const char *method_name = method->data.func_decl.name;
+        const char *ret_type = "void";
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
+                      ret_type, name, method_name, name);
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            const char *pt = "int32_t";
+            if (p->type != NULL)
+                pt = pergyra_ast_type_to_c(p->type);
+            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+        }
+        codebuf_write(ctx->out, ")\n{\n");
+        ctx->indent++;
+        {
+            const char *saved_relation_name = ctx->current_relation_name;
+            ctx->current_relation_name = name;
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            ctx->current_relation_name = saved_relation_name;
+        }
+        ctx->indent--;
+        codebuf_write(ctx->out, "}\n");
+    }
+}
+
+void
+emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *name = node->data.effect_decl.name;
+
+    codebuf_write(ctx->out, "\n/* Effect: %s */\n", name);
+    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
+
+    for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
+        ASTNode *slot = node->data.effect_decl.slots[i];
+        const char *ft = "int32_t";
+        if (slot->data.domain_slot.type != NULL)
+            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+    }
+
+    for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
+        ASTNode *shared = node->data.effect_decl.shared_fields[i];
+        const char *ft = "int32_t";
+        if (shared->data.party_shared.type != NULL)
+            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+    }
+
+    codebuf_write(ctx->out, "} %s;\n", name);
+
+    for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+        ASTNode *method = node->data.effect_decl.methods[i];
+        if (method->type != AST_FUNC_DECL) continue;
+
+        const char *method_name = method->data.func_decl.name;
+        const char *ret_type = "void";
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
+                      ret_type, name, method_name, name);
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            const char *pt = "int32_t";
+            if (p->type != NULL)
+                pt = pergyra_ast_type_to_c(p->type);
+            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+        }
+        codebuf_write(ctx->out, ")\n{\n");
+        ctx->indent++;
+        {
+            const char *saved_effect_name = ctx->current_effect_name;
+            ctx->current_effect_name = name;
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            ctx->current_effect_name = saved_effect_name;
+        }
+        ctx->indent--;
+        codebuf_write(ctx->out, "}\n");
+    }
+}
+
+void
+emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *name = node->data.zone_decl.name;
+
+    codebuf_write(ctx->out, "\n/* Zone: %s */\n", name);
+    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
+
+    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.slots[i];
+        const char *ft = "int32_t";
+        if (slot->data.domain_slot.type != NULL)
+            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+        codebuf_write(ctx->out, "    void *%s;\n",
+            slot->data.zone_layer_slot.slot_name);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
+        ASTNode *shared = node->data.zone_decl.shared_fields[i];
+        const char *ft = "int32_t";
+        if (shared->data.party_shared.type != NULL)
+            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
+        ASTNode *state = node->data.zone_decl.states[i];
+        codebuf_write(ctx->out, "    bool __state_%s;\n",
+            state->data.zone_state.state_name);
+    }
+
+    codebuf_write(ctx->out, "} %s;\n", name);
+
+    codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
+                  name, name);
+    ctx->indent++;
+
+    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
+        ASTNode *state = node->data.zone_decl.states[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__state_%s = false;\n",
+            state->data.zone_state.state_name);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
+        ASTNode *refresh = node->data.zone_decl.refreshes[i];
+        ASTNode *target_slot = NULL;
+        ASTNode *source_slot = NULL;
+        ASTNode *target_decl = NULL;
+        ASTNode *source_decl = NULL;
+        const char *target_type_name = NULL;
+        const char *source_type_name = NULL;
+        char *literal;
+        for (size_t j = 0; j < node->data.zone_decl.slot_count; j++) {
+            ASTNode *slot = node->data.zone_decl.slots[j];
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.object_slot_name) == 0)
+                target_slot = slot;
+            if (strcmp(slot->data.domain_slot.slot_name,
+                       refresh->data.zone_refresh.source_slot_name) == 0)
+                source_slot = slot;
+        }
+        if (target_slot == NULL || source_slot == NULL
+            || target_slot->data.domain_slot.type == NULL
+            || source_slot->data.domain_slot.type == NULL)
+            continue;
+        target_type_name = target_slot->data.domain_slot.type->data.type.name;
+        source_type_name = source_slot->data.domain_slot.type->data.type.name;
+        target_decl = find_class_decl(ctx, target_type_name);
+        source_decl = find_class_decl(ctx, source_type_name);
+        {
+            char *source_expr = strdup_fmt("self->%s",
+                refresh->data.zone_refresh.source_slot_name);
+            literal = emit_projection_literal(target_decl, source_decl,
+                target_type_name, source_expr);
+            free(source_expr);
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->%s = %s;\n",
+            refresh->data.zone_refresh.object_slot_name, literal);
+        free(literal);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
+        ASTNode *apply = node->data.zone_decl.applies[i];
+        if (apply->data.zone_apply.state_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                apply->data.zone_apply.state_name);
+            continue;
+        }
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (!state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          apply->data.zone_apply.effect_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          apply->data.zone_apply.target_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++) {
+        ASTNode *maintain = node->data.zone_decl.maintained_states[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__state_%s = true;\n",
+            maintain->data.zone_maintain_state.state_name);
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
+        ASTNode *detach = node->data.zone_decl.detaches[i];
+        if (detach->data.zone_detach.state_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__state_%s = false;\n",
+                detach->data.zone_detach.state_name);
+            continue;
+        }
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (!state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          detach->data.zone_detach.effect_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          detach->data.zone_detach.target_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = false;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
+        ASTNode *link = node->data.zone_decl.links[i];
+        if (link->data.zone_link.state_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                link->data.zone_link.state_name);
+            continue;
+        }
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          link->data.zone_link.relation_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          link->data.zone_link.left_slot_name) == 0
+                && strcmp(state->data.zone_state.right_slot_name,
+                          link->data.zone_link.right_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++) {
+        ASTNode *maintain = node->data.zone_decl.maintained_relations[i];
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          maintain->data.zone_maintain_relation.relation_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          maintain->data.zone_maintain_relation.left_slot_name) == 0
+                && strcmp(state->data.zone_state.right_slot_name,
+                          maintain->data.zone_maintain_relation.right_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
+        ASTNode *unlink = node->data.zone_decl.unlinks[i];
+        if (unlink->data.zone_unlink.state_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__state_%s = false;\n",
+                unlink->data.zone_unlink.state_name);
+            continue;
+        }
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          unlink->data.zone_unlink.relation_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          unlink->data.zone_unlink.left_slot_name) == 0
+                && strcmp(state->data.zone_state.right_slot_name,
+                          unlink->data.zone_unlink.right_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = false;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
+
+    for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+        ASTNode *method = node->data.zone_decl.methods[i];
+        if (method->type != AST_FUNC_DECL) continue;
+
+        const char *method_name = method->data.func_decl.name;
+        const char *ret_type = "void";
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
+                      ret_type, name, method_name, name);
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            const char *pt = "int32_t";
+            if (p->type != NULL)
+                pt = pergyra_ast_type_to_c(p->type);
+            codebuf_write(ctx->out, ", %s %s", pt, p->name);
+        }
+        codebuf_write(ctx->out, ")\n{\n");
+        ctx->indent++;
+        {
+            const char *saved_zone_name = ctx->current_zone_name;
+            ctx->current_zone_name = name;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->current_zone_name = saved_zone_name;
+        }
+        ctx->indent--;
+        codebuf_write(ctx->out, "}\n");
+    }
+}
+
+void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.world_decl.name;
@@ -5961,6 +6730,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s %s;\n",
             wz->data.world_zone.zone_type,
             wz->data.world_zone.slot_name);
+        codebuf_write(ctx->out, "    bool __zone_active_%s;\n",
+            wz->data.world_zone.slot_name);
     }
 
     /* Shared fields */
@@ -5972,7 +6743,74 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
+    for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
+        ASTNode *state = node->data.world_decl.states[i];
+        codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
+            state->data.world_state.state_name);
+    }
+
     codebuf_write(ctx->out, "} %s;\n", name);
+
+    codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
+                  name, name);
+    ctx->indent++;
+    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+        ASTNode *wz = node->data.world_decl.zones[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__zone_active_%s = false;\n",
+            wz->data.world_zone.slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s_sync(&self->%s);\n",
+            wz->data.world_zone.zone_type, wz->data.world_zone.slot_name);
+    }
+    for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
+        ASTNode *act = node->data.world_decl.activations[i];
+        const char *slot_name = act->data.world_activate.zone_slot_name;
+        if (slot_name == NULL && act->data.world_activate.state_name != NULL) {
+            ASTNode *state = find_world_state_decl(node, act->data.world_activate.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__zone_active_%s = true;\n", slot_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
+        ASTNode *mnt = node->data.world_decl.maintained_zones[i];
+        const char *slot_name = mnt->data.world_maintain.zone_slot_name;
+        if (slot_name == NULL && mnt->data.world_maintain.state_name != NULL) {
+            ASTNode *state = find_world_state_decl(node, mnt->data.world_maintain.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__zone_active_%s = true;\n", slot_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
+        ASTNode *act = node->data.world_decl.deactivations[i];
+        const char *slot_name = act->data.world_deactivate.zone_slot_name;
+        if (slot_name == NULL && act->data.world_deactivate.state_name != NULL) {
+            ASTNode *state = find_world_state_decl(node, act->data.world_deactivate.state_name);
+            if (state != NULL)
+                slot_name = state->data.world_state.zone_slot_name;
+        }
+        if (slot_name != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__zone_active_%s = false;\n", slot_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
+        ASTNode *state = node->data.world_decl.states[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__zone_state_%s = self->__zone_active_%s;\n",
+            state->data.world_state.state_name,
+            state->data.world_state.zone_slot_name);
+    }
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
 
     /* Methods */
     for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
@@ -5995,8 +6833,17 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
-        if (method->data.func_decl.body != NULL)
-            emit_block(method->data.func_decl.body, ctx);
+        {
+            const char *saved_world_name = ctx->current_world_name;
+            ctx->current_world_name = name;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            if (method->data.func_decl.body != NULL)
+                emit_block(method->data.func_decl.body, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", name);
+            ctx->current_world_name = saved_world_name;
+        }
         ctx->indent--;
         codebuf_write(ctx->out, "}\n");
     }

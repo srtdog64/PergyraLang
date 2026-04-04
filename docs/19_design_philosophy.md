@@ -130,7 +130,7 @@ world    = 전체 시스템의 경계
 그것은 프레임워크나 도메인 모델이 필요할 때 쓸 수 있는 바깥 어휘에 가깝다.
 반대로 `object`는 별도 최상위 타입이 아니라, `subject`가 transfer / DTO / view 문맥에서 수동적으로 다뤄질 때의 해석이다.
 `dto`는 그 object 표현 중 외부 경계를 넘기기 위한 축약 투영이다.
-현재 구현에서는 `dto` keyword를 `struct` 호환 projection value declaration으로 받는다.
+현재 구현에서는 `object`와 `dto` keyword를 `struct` 호환 projection value declaration으로 받는다.
 
 여기서 설계 우선순위는 다음처럼 보는 것이 맞다.
 

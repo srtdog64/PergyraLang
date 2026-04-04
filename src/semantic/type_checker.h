@@ -45,6 +45,7 @@ struct SemanticContext
     Scope*       scope;          /* Current scope                  */
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
+    ASTNode*     current_world;  /* Enclosing world decl when any  */
     Type*        current_return; /* Expected return type of func   */
     uint32_t     current_function_effects; /* Inferred effect mask    */
     bool         tracking_function_effects; /* Only inside function body */
@@ -238,6 +239,7 @@ typedef enum
     BUILTIN_TO_OBJECT,
     BUILTIN_TO_DTO,
     BUILTIN_HAS_STATE,
+    BUILTIN_HAS_ZONE,
     BUILTIN_PARALLEL,
     /* I/O built-ins */
     BUILTIN_FILE_OPEN,

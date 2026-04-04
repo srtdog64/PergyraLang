@@ -1539,6 +1539,17 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
                                 fn, ft, ctx->type_task_handle);
     }
 
+    /* PgyTaskHandle pgy_spawn_blocking_export(i8*, i8*) */
+    {
+        LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
+        LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle,
+                                           params, 2, 0);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                                           "pgy_spawn_blocking_export", ft);
+        llvm_register_function(ctx, "pgy_spawn_blocking_export",
+                                fn, ft, ctx->type_task_handle);
+    }
+
     /* void pgy_async_detach_export(PgyTaskHandle) */
     {
         LLVMTypeRef params[] = { ctx->type_task_handle };

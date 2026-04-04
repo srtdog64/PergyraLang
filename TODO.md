@@ -161,18 +161,24 @@
   - 완료: `dto` keyword를 `struct` 호환 projection alias로 추가
   - 완료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface를 semantic/C backend에 연결
   - 완료: `ToDto(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
+  - 완료: `relation/effect/zone`에 `dto slot` surface를 연결
   - 완료: `relation/effect/zone`의 domain slot에 optional initializer를 연결해 `object slot view: View = ToObject(View, subject)` 같은 projection wiring을 직접 표현 가능하게 함
   - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
+  - 완료: `zone`의 `publish dtoSlot from subjectSlot` surface로 dto projection 갱신 흐름을 parser/semantic에 연결
   - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
   - 완료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추가
   - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
   - 완료: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface를 parser/semantic에 연결
   - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
   - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
-  - 완료: `HasState(stateName)` zone query builtin을 parser/semantic/transpiler placeholder surface에 연결
+  - 완료: `HasState(stateName)` zone query builtin을 parser/semantic에 연결하고 C backend에서 zone state field query로 lowering
   - 완료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query를 semantic에 연결
+  - 완료: `world`의 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 parser/semantic에 연결
+  - 완료: `HasZone(zoneOrState)` world query builtin을 parser/semantic에 연결하고 C backend에서 world zone-state/active field query로 lowering
+  - 완료: C backend가 zone/world마다 sync helper를 생성하고 method 전후에 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 동기화
+  - 부분 완료: `relation`, `effect` declaration이 C backend에서 struct + method wrapper로 codegen됨
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
-  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, runtime/codegen surface, inter-layer composition
+  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, richer runtime propagation, LLVM parity, inter-layer composition
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
@@ -183,6 +189,7 @@
   - 완료: `object`는 별도 코어 타입이 아니라 subject의 수동 해석 모드라고 문서화
   - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
   - 완료: `subject` keyword alias를 parser surface에 반영
+  - 완료: `object` keyword alias를 parser/LSP surface에 반영
   - 남음: `class`와의 장기 alias/deprecation 전략, actor surface 재배치, subject/object view surface 고정
 
 ### slot 권한 / 자원군 확장
@@ -196,6 +203,7 @@
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
   - 부분 완료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
+  - 부분 완료: `TrySendStatus/SendTimeoutStatus -> Option<Bool>`로 full/timeout vs closed를 값으로 구분
   - 부분 완료: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`
   - 부분 완료: `select` round-robin 시작 인덱스 fairness
   - 부분 완료: `Cancel(task)` / `IsCancelled()` cooperative cancellation

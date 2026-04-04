@@ -2228,9 +2228,75 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
+type_check_world_decl(ASTNode *node, SemanticContext *ctx);
+
+static ASTNode *
+find_world_zone_slot_local(ASTNode *world, const char *slot_name)
+{
+    if (world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            return zone;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_world_state_local(ASTNode *world, const char *state_name)
+{
+    if (world == NULL || world->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world->data.world_decl.state_count; i++) {
+        ASTNode *state = world->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
+                         SemanticContext *ctx, const char *action_name,
+                         const char **zone_slot_name_out)
+{
+    ASTNode *state = find_world_state_local(world, state_name);
+    if (state == NULL) {
+        ASTNode *zone = find_world_zone_slot_local(world, state_name);
+        if (zone != NULL) {
+            if (zone_slot_name_out != NULL)
+                *zone_slot_name_out = zone->data.world_zone.slot_name;
+            return true;
+        }
+    }
+    if (state == NULL) {
+        semantic_error(ctx, site,
+            "World %s references unknown zone/state '%s'",
+            action_name, state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+
+    if (zone_slot_name_out != NULL)
+        *zone_slot_name_out = state->data.world_state.zone_slot_name;
+    return true;
+}
+
+bool
 type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.world_decl.name;
+    ASTNode *saved_world = ctx->current_world;
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -2250,6 +2316,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     } else {
         scope_declare(ctx->scope, sym);
     }
+
+    ctx->current_world = node;
 
     /* Check systemic references */
     for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
@@ -2280,6 +2348,110 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
+        ASTNode *state = node->data.world_decl.states[i];
+        const char *zone_slot_name = state->data.world_state.zone_slot_name;
+        if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
+            semantic_error(ctx, state,
+                "World state '%s' references unknown zone slot '%s'",
+                state->data.world_state.state_name != NULL
+                    ? state->data.world_state.state_name : "<unknown>",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        }
+        for (size_t j = i + 1; j < node->data.world_decl.state_count; j++) {
+            ASTNode *other = node->data.world_decl.states[j];
+            if (other != NULL
+                && other->data.world_state.state_name != NULL
+                && state->data.world_state.state_name != NULL
+                && strcmp(other->data.world_state.state_name,
+                          state->data.world_state.state_name) == 0) {
+                semantic_error(ctx, other,
+                    "Redeclaration of world state '%s'",
+                    state->data.world_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
+        ASTNode *activate = node->data.world_decl.activations[i];
+        const char *zone_slot_name = activate->data.world_activate.zone_slot_name;
+        if (activate->data.world_activate.state_name != NULL) {
+            if (!resolve_world_zone_state(node, activate,
+                    activate->data.world_activate.state_name, ctx, "activate",
+                    &zone_slot_name)) {
+                continue;
+            }
+        }
+        if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
+            semantic_error(ctx, activate,
+                "World activate references unknown zone slot '%s'",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        }
+    }
+
+    for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
+        ASTNode *deactivate = node->data.world_decl.deactivations[i];
+        const char *zone_slot_name = deactivate->data.world_deactivate.zone_slot_name;
+        if (deactivate->data.world_deactivate.state_name != NULL) {
+            if (!resolve_world_zone_state(node, deactivate,
+                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    &zone_slot_name)) {
+                continue;
+            }
+        }
+        if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
+            semantic_error(ctx, deactivate,
+                "World deactivate references unknown zone slot '%s'",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        }
+    }
+
+    for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
+        ASTNode *maintain = node->data.world_decl.maintained_zones[i];
+        const char *zone_slot_name = maintain->data.world_maintain.zone_slot_name;
+        const char *state_name = maintain->data.world_maintain.state_name;
+        if (state_name != NULL) {
+            if (!resolve_world_zone_state(node, maintain, state_name, ctx, "maintain",
+                    &zone_slot_name)) {
+                continue;
+            }
+        }
+        if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
+            semantic_error(ctx, maintain,
+                "World maintain references unknown zone slot '%s'",
+                zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        }
+        for (size_t j = i + 1; j < node->data.world_decl.maintained_zone_count; j++) {
+            ASTNode *other = node->data.world_decl.maintained_zones[j];
+            const char *other_zone = other->data.world_maintain.zone_slot_name;
+            if (other->data.world_maintain.state_name != NULL) {
+                resolve_world_zone_state(node, other,
+                    other->data.world_maintain.state_name, ctx, "maintain", &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, other,
+                    "World '%s' maintains zone '%s' more than once",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
+        for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
+            ASTNode *deactivate = node->data.world_decl.deactivations[j];
+            const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
+            if (deactivate->data.world_deactivate.state_name != NULL) {
+                resolve_world_zone_state(node, deactivate,
+                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, maintain,
+                    "World '%s' both maintains and deactivates zone '%s'; choose one lifecycle direction",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
+    }
+
     /* Check shared fields */
     for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
         ASTNode *shared = node->data.world_decl.shared_fields[i];
@@ -2296,6 +2468,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_exit(&ctx->scope);
 
+    ctx->current_world = saved_world;
     return !ctx->has_error;
 }
 
@@ -2787,7 +2960,15 @@ type_check_zone_projection_contract(ASTNode *zone,
 
     if (object_slot->data.domain_slot.is_subject) {
         semantic_error(ctx, site,
-            "Zone %s target slot '%s' must be an object slot",
+            "Zone %s target slot '%s' must be an object/dto slot",
+            action_name, object_slot_name != NULL ? object_slot_name : "<unknown>");
+        return true;
+    }
+    if (site != NULL && site->type == AST_ZONE_REFRESH
+        && site->data.zone_refresh.requires_dto
+        && !object_slot->data.domain_slot.is_dto) {
+        semantic_error(ctx, site,
+            "Zone %s target slot '%s' must be a dto slot",
             action_name, object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
     }
@@ -3403,23 +3584,27 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
         const char *actor_slot_name = refresh->data.zone_refresh.actor_slot_name;
+        const char *action_name = refresh->data.zone_refresh.requires_dto ? "publish" : "refresh";
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error(ctx, refresh,
-                "Zone refresh references unknown object slot '%s'",
+                "Zone %s references unknown target slot '%s'",
+                action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>");
         }
         if (find_zone_domain_slot(node, source_slot_name) == NULL) {
             semantic_error(ctx, refresh,
-                "Zone refresh references unknown source slot '%s'",
+                "Zone %s references unknown source slot '%s'",
+                action_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
         }
         type_check_zone_projection_contract(node, refresh,
-            object_slot_name, source_slot_name, ctx, "refresh");
+            object_slot_name, source_slot_name, ctx, action_name);
         if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
             semantic_warning(ctx, refresh,
-                "Zone refresh should specify 'by <subjectSlot>' when authority is declared");
+                "Zone %s should specify 'by <subjectSlot>' when authority is declared",
+                action_name);
         }
-        type_check_zone_actor_authority(node, refresh, actor_slot_name, ctx, "refresh");
+        type_check_zone_actor_authority(node, refresh, actor_slot_name, ctx, action_name);
     }
 
     for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {

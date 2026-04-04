@@ -152,6 +152,10 @@ typedef struct
 
     /* Current class method emission context for implicit self-field access. */
     const char *current_class_name;
+    const char *current_relation_name;
+    const char *current_effect_name;
+    const char *current_zone_name;
+    const char *current_world_name;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

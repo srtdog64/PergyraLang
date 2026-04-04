@@ -1390,6 +1390,29 @@ pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
     return true; \
 } \
 \
+/* Non-blocking try_send with status. Some(true)=sent, Some(false)=closed, None=full. */ \
+static inline PgyOption_Bool \
+pgy_channel_try_send_status_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
+{ \
+    if (ch == NULL) \
+        return Some_Bool(false); \
+    pthread_mutex_lock(&ch->mutex); \
+    if (ch->closed) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return Some_Bool(false); \
+    } \
+    if (ch->count >= ch->cap) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return None_Bool(); \
+    } \
+    ch->buf[ch->tail] = value; \
+    ch->tail = (ch->tail + 1) % ch->cap; \
+    ch->count++; \
+    pthread_cond_signal(&ch->cond_not_empty); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return Some_Bool(true); \
+} \
+\
 /* Blocking send with timeout. Returns false on timeout or closed. */ \
 static inline bool \
 pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
@@ -1414,6 +1437,34 @@ pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
     pthread_cond_signal(&ch->cond_not_empty); \
     pthread_mutex_unlock(&ch->mutex); \
     return true; \
+} \
+\
+/* Timed send with status. Some(true)=sent, Some(false)=closed, None=timeout. */ \
+static inline PgyOption_Bool \
+pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
+                                             CType value, uint64_t timeout_ns) \
+{ \
+    if (ch == NULL) \
+        return Some_Bool(false); \
+    struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
+    pthread_mutex_lock(&ch->mutex); \
+    while (ch->count >= ch->cap && !ch->closed) { \
+        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline) \
+            == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
+            pthread_mutex_unlock(&ch->mutex); \
+            return None_Bool(); \
+        } \
+    } \
+    if (ch->closed) { \
+        pthread_mutex_unlock(&ch->mutex); \
+        return Some_Bool(false); \
+    } \
+    ch->buf[ch->tail] = value; \
+    ch->tail = (ch->tail + 1) % ch->cap; \
+    ch->count++; \
+    pthread_cond_signal(&ch->cond_not_empty); \
+    pthread_mutex_unlock(&ch->mutex); \
+    return Some_Bool(true); \
 } \
 \
 /* Blocking recv. Returns false if channel closed and empty. */ \
@@ -1568,6 +1619,141 @@ pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
 
 PGY_CHANNEL_DEFINE(Int, int32_t)
 PGY_CHANNEL_DEFINE(String, char*)
+
+/* =================================================================
+ * Lock-free SPSC Channel (Single-Producer Single-Consumer)
+ *
+ * For the common case where one producer feeds one consumer, this
+ * avoids all mutex overhead.  Uses atomic load/store with appropriate
+ * memory ordering on head (consumer) and tail (producer).
+ *
+ * Usage:
+ *   PGY_CHANNEL_SPSC_DEFINE(Int, int32_t)
+ *   PgyChannelSPSC_Int ch; pgy_spsc_init_Int(&ch, 16);
+ *   pgy_spsc_send_Int(&ch, 42);   // false if full
+ *   int32_t v; bool ok = pgy_spsc_recv_Int(&ch, &v); // false if empty
+ *   pgy_spsc_close_Int(&ch);
+ *   pgy_spsc_destroy_Int(&ch);
+ * ================================================================= */
+
+#ifndef __STDC_NO_ATOMICS__
+#include <stdatomic.h>
+
+#define PGY_CHANNEL_SPSC_DEFINE(SuffixName, CType) \
+\
+typedef struct \
+{ \
+    CType          *buf; \
+    size_t          cap; \
+    atomic_size_t   head;        /* consumer reads here  */ \
+    atomic_size_t   tail;        /* producer writes here */ \
+    atomic_bool     closed; \
+} PgyChannelSPSC_##SuffixName; \
+\
+static inline void \
+pgy_spsc_init_##SuffixName(PgyChannelSPSC_##SuffixName *ch, size_t capacity) \
+{ \
+    ch->buf = (CType *)calloc(capacity, sizeof(CType)); \
+    ch->cap = capacity; \
+    atomic_init(&ch->head, 0); \
+    atomic_init(&ch->tail, 0); \
+    atomic_init(&ch->closed, false); \
+} \
+\
+static inline void \
+pgy_spsc_destroy_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
+{ \
+    free(ch->buf); \
+    ch->buf = NULL; \
+} \
+\
+static inline void \
+pgy_spsc_close_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
+{ \
+    atomic_store_explicit(&ch->closed, true, memory_order_release); \
+} \
+\
+/* Returns true on success, false if full or closed. */ \
+static inline bool \
+pgy_spsc_try_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
+{ \
+    if (atomic_load_explicit(&ch->closed, memory_order_acquire)) \
+        return false; \
+    size_t t = atomic_load_explicit(&ch->tail, memory_order_relaxed); \
+    size_t h = atomic_load_explicit(&ch->head, memory_order_acquire); \
+    if (t - h >= ch->cap) \
+        return false;  /* full */ \
+    ch->buf[t % ch->cap] = val; \
+    atomic_store_explicit(&ch->tail, t + 1, memory_order_release); \
+    return true; \
+} \
+\
+/* Blocking send: spins with yield until space available or closed. */ \
+static inline bool \
+pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
+{ \
+    for (;;) { \
+        if (pgy_spsc_try_send_##SuffixName(ch, val)) \
+            return true; \
+        if (atomic_load_explicit(&ch->closed, memory_order_acquire)) \
+            return false; \
+        if (pgy_async_in_coroutine()) \
+            pgy_async_yield(); \
+        else \
+            sched_yield(); \
+    } \
+} \
+\
+/* Returns true on success, false if empty or closed. */ \
+static inline bool \
+pgy_spsc_try_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
+{ \
+    size_t h = atomic_load_explicit(&ch->head, memory_order_relaxed); \
+    size_t t = atomic_load_explicit(&ch->tail, memory_order_acquire); \
+    if (h >= t) \
+        return false;  /* empty */ \
+    *out = ch->buf[h % ch->cap]; \
+    atomic_store_explicit(&ch->head, h + 1, memory_order_release); \
+    return true; \
+} \
+\
+/* Blocking recv: spins with yield until data available or closed+empty. */ \
+static inline bool \
+pgy_spsc_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
+{ \
+    for (;;) { \
+        if (pgy_spsc_try_recv_##SuffixName(ch, out)) \
+            return true; \
+        if (atomic_load_explicit(&ch->closed, memory_order_acquire)) { \
+            /* Drain remaining items after close */ \
+            return pgy_spsc_try_recv_##SuffixName(ch, out); \
+        } \
+        if (pgy_async_in_coroutine()) \
+            pgy_async_yield(); \
+        else \
+            sched_yield(); \
+    } \
+} \
+\
+static inline size_t \
+pgy_spsc_space_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
+{ \
+    size_t t = atomic_load_explicit(&ch->tail, memory_order_relaxed); \
+    size_t h = atomic_load_explicit(&ch->head, memory_order_acquire); \
+    size_t used = (t >= h) ? (t - h) : 0; \
+    return (ch->cap > used) ? (ch->cap - used) : 0; \
+} \
+\
+static inline bool \
+pgy_spsc_closed_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
+{ \
+    return atomic_load_explicit(&ch->closed, memory_order_acquire); \
+}
+
+PGY_CHANNEL_SPSC_DEFINE(Int, int32_t)
+PGY_CHANNEL_SPSC_DEFINE(String, char*)
+
+#endif /* __STDC_NO_ATOMICS__ */
 
 /* =================================================================
  * I/O Built-ins (platform-independent via C stdio)

@@ -119,7 +119,8 @@ find_named_class_field(ASTNode *decl, const char *field_name)
 
 static Type *
 type_check_channel_send_builtin(ASTNode *expr, const char *name,
-                                bool has_timeout, SemanticContext *ctx)
+                                bool has_timeout, bool detailed_status,
+                                SemanticContext *ctx)
 {
     if (!check_call_arity(expr, has_timeout ? 3 : 2, name, ctx))
         return TYPE_UNKNOWN;
@@ -133,15 +134,18 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             TYPE_INT, expr->data.call.arguments[2], ctx);
     }
 
-    if (element_type == TYPE_UNKNOWN)
-        return TYPE_BOOL;
+    if (element_type == TYPE_UNKNOWN) {
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
 
     if (type_is_anchored_resource_handle(element_type)
         || type_is_anchored_resource_handle(value_type)) {
         semantic_error(ctx, expr->data.call.arguments[1],
             "%s cannot transport anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; send the inner value or keep the handle local",
             name);
-        return TYPE_BOOL;
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
     }
 
     if (type_is_movable_resource_handle(element_type)
@@ -149,11 +153,13 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         semantic_error(ctx, expr->data.call.arguments[1],
             "%s does not support movable resource sends yet; use blocking 'ch <- value' so ownership transfer stays explicit",
             name);
-        return TYPE_BOOL;
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
     }
 
     require_assignable(value_type, element_type, expr->data.call.arguments[1], ctx);
-    return TYPE_BOOL;
+    return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                           : TYPE_BOOL;
 }
 
 static Type *
@@ -312,6 +318,73 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     return TYPE_BOOL;
 }
 
+static Type *
+type_check_has_zone(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *world;
+    ASTNode *arg;
+    const char *name = NULL;
+
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call,
+            "'HasZone' expects exactly 1 argument, got %zu",
+            call->data.call.arg_count);
+        return TYPE_BOOL;
+    }
+
+    world = ctx->current_world;
+    if (world == NULL || world->type != AST_WORLD_DECL) {
+        semantic_error(ctx, call,
+            "HasZone(...) is only available inside world declarations and world methods");
+        return TYPE_BOOL;
+    }
+
+    arg = call->data.call.arguments[0];
+    if (arg == NULL) {
+        semantic_error(ctx, call, "HasZone(...) requires a zone slot or world state name");
+        return TYPE_BOOL;
+    }
+
+    if (arg->type == AST_IDENTIFIER) {
+        name = arg->data.identifier.name;
+    } else if (arg->type == AST_STRING) {
+        name = arg->data.string.value;
+    } else {
+        semantic_error(ctx, arg,
+            "HasZone(...) expects a zone/state identifier or string literal");
+        return TYPE_BOOL;
+    }
+
+    if (name == NULL) {
+        semantic_error(ctx, arg,
+            "HasZone(...) requires a valid zone/state name");
+        return TYPE_BOOL;
+    }
+
+    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, name) == 0) {
+            return TYPE_BOOL;
+        }
+    }
+
+    for (size_t i = 0; i < world->data.world_decl.state_count; i++) {
+        ASTNode *state = world->data.world_decl.states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && state->data.world_state.state_name != NULL
+            && strcmp(state->data.world_state.state_name, name) == 0) {
+            return TYPE_BOOL;
+        }
+    }
+
+    semantic_error(ctx, arg,
+        "Unknown world zone/state '%s' in HasZone(...)",
+        name);
+    return TYPE_BOOL;
+}
+
 BuiltinKind
 builtin_resolve(const char *name)
 {
@@ -349,6 +422,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
     if (strcmp(name, "ToDto")           == 0) return BUILTIN_TO_DTO;
     if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
+    if (strcmp(name, "HasZone")         == 0) return BUILTIN_HAS_ZONE;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
@@ -1028,10 +1102,16 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return type_check_channel_recv_builtin(expr, name, true, ctx);
     }
     if (strcmp(name, "TrySend") == 0) {
-        return type_check_channel_send_builtin(expr, name, false, ctx);
+        return type_check_channel_send_builtin(expr, name, false, false, ctx);
     }
     if (strcmp(name, "SendTimeout") == 0) {
-        return type_check_channel_send_builtin(expr, name, true, ctx);
+        return type_check_channel_send_builtin(expr, name, true, false, ctx);
+    }
+    if (strcmp(name, "TrySendStatus") == 0) {
+        return type_check_channel_send_builtin(expr, name, false, true, ctx);
+    }
+    if (strcmp(name, "SendTimeoutStatus") == 0) {
+        return type_check_channel_send_builtin(expr, name, true, true, ctx);
     }
     if (strcmp(name, "ChannelLength") == 0
         || strcmp(name, "ChannelCapacity") == 0
@@ -1646,6 +1726,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_to_dto(call, ctx);
     case BUILTIN_HAS_STATE:
         return type_check_has_state(call, ctx);
+    case BUILTIN_HAS_ZONE:
+        return type_check_has_zone(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
     case BUILTIN_FILE_OPEN:

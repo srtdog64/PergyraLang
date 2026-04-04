@@ -54,6 +54,22 @@ bool parser_match(Parser* parser, TokenType type) {
     return true;
 }
 
+static bool
+parser_match_contextual_keyword(Parser *parser, const char *keyword)
+{
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL
+        || keyword == NULL) {
+        return false;
+    }
+
+    if (strcmp(parser->current_token.text, keyword) != 0)
+        return false;
+
+    parser_advance(parser);
+    return true;
+}
+
 // 토큰 소비 (필수)
 Token parser_consume(Parser* parser, TokenType type, const char* message) {
     if (parser_check(parser, type)) {
@@ -87,6 +103,11 @@ void parser_synchronize(Parser* parser) {
 
     while (!parser_is_at_end(parser)) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
+        if (parser->current_token.type == TOKEN_IDENTIFIER
+            && parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "object") == 0) {
+            return;
+        }
 
         switch (parser->current_token.type) {
             case TOKEN_CLASS:
@@ -486,6 +507,8 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_extern_block(parser);
     else if (parser_match(parser, TOKEN_CLASS))
         node = parse_class_declaration(parser);
+    else if (parser_match_contextual_keyword(parser, "object"))
+        node = parse_struct_declaration(parser);
     else if (parser_match(parser, TOKEN_STRUCT))
         node = parse_struct_declaration(parser);
     else if (parser_match(parser, TOKEN_LET))
@@ -681,6 +704,11 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // 클래스 선언
     if (parser_match(parser, TOKEN_CLASS)) {
         return parser_finalize_statement(parser, parse_class_declaration(parser));
+    }
+
+    // object 선언 (contextual struct alias)
+    if (parser_match_contextual_keyword(parser, "object")) {
+        return parser_finalize_statement(parser, parse_struct_declaration(parser));
     }
 
     // 구조체 선언

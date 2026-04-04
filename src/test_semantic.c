@@ -2761,6 +2761,9 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
+    printf("\n[domain_layer]\n");
+    fflush(stdout);
+
     TEST("relation/effect/zone declarations pass");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2921,6 +2924,54 @@ test_shared_memory_features(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone dto slot and publish project dto from subject slot");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    dto slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
+            "    publish snapshot from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone publish requires dto slot target");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot view: PlayerView\n"
+            "    publish view from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3855,6 +3906,50 @@ test_async_system(void)
         ASTNode *call = make_call("ChannelClosed", call_args, 1, 1);
         Type *t = type_check_expression(call, ctx);
         EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("TrySendStatus(Channel<Int>, Int) returns Option<Bool>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = { make_identifier("ch", 1), make_number(7, 1) };
+        ASTNode *call = make_call("TrySendStatus", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && t != NULL
+               && strcmp(t->name, "Option<Bool>") == 0);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("SendTimeoutStatus(Channel<Int>, Int, Int) returns Option<Bool>");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *args[1] = { TYPE_INT };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[3] = {
+            make_identifier("ch", 1),
+            make_number(7, 1),
+            make_number(1000, 1)
+        };
+        ASTNode *call = make_call("SendTimeoutStatus", call_args, 3, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(!ctx->has_error && t != NULL
+               && strcmp(t->name, "Option<Bool>") == 0);
 
         semantic_context_destroy(ctx);
         ast_destroy(call);
@@ -5118,6 +5213,64 @@ test_misc_grammar_edges(void)
             "effect Poisoned for bearer: Player { }\n"
             "func Main() -> Void {\n"
             "    let active = HasState(\"poisoned\");\n"
+            "    Log(active);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasZone works inside world methods for declared zone states");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "    activate liveBattle\n"
+            "    maintain battle\n"
+            "    func Tick() -> Void {\n"
+            "        if HasZone(liveBattle) || HasZone(\"battle\") {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasZone rejects unknown names and use outside world");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    func Tick() -> Void {\n"
+            "        let active = HasZone(missing);\n"
+            "        Log(active);\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let active = HasZone(\"battle\");\n"
             "    Log(active);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

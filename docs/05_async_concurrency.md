@@ -78,6 +78,8 @@ func Poll(ch: Channel<Int>) -> Void {
     let timed: Option<Int> = RecvTimeout(ch, 1_000_000);
     let ok: Bool = TrySend(ch, 7);
     let sent: Bool = SendTimeout(ch, 9, 1_000_000);
+    let tryStatus: Option<Bool> = TrySendStatus(ch, 7);
+    let timeoutStatus: Option<Bool> = SendTimeoutStatus(ch, 9, 1_000_000);
     let len: Int = ChannelLength(ch);
     let cap: Int = ChannelCapacity(ch);
     let space: Int = ChannelSpace(ch);
@@ -152,11 +154,18 @@ func Main() -> Void {
 - `Channel<T>`, `select`, `parallel`
 - `TryRecv/RecvTimeout -> Option<T>`
 - `TrySend/SendTimeout -> Bool`
+- `TrySendStatus/SendTimeoutStatus -> Option<Bool>`
 - `ChannelLength/ChannelCapacity/ChannelSpace -> Int`
 - `ChannelFull/ChannelClosed -> Bool`
 - `Cancel(task)` / `IsCancelled()` cooperative cancellation
 - spawned descendant에 대한 cancellation propagation
 - `RemoteFuture<T>` → `Result<T>`
+
+`TrySendStatus/SendTimeoutStatus`는 send 실패를 한 가지 `false`로 뭉개지 않고 값으로 분리한다.
+
+- `Some(true)` = send 성공
+- `Some(false)` = channel closed
+- `None` = 아직 열려 있지만 full 또는 timeout
 
 미지원 또는 비공식:
 - `await for`, `TaskGroup`, `CancellationToken` 같은 구조화된 동시성 API

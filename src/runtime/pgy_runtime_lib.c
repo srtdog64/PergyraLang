@@ -725,6 +725,12 @@ char *StringConcat(const char *a, const char *b)
 
 #include <pthread.h>
 
+/* PgyOption_Bool — needed for try_send_status / send_timeout_status.
+ * Must match PGY_OPTION_DEFINE(Bool, bool) in pgy_runtime.h. */
+typedef struct { int tag; bool value; } PgyOption_Bool;
+static inline PgyOption_Bool Some_Bool(bool v) { return (PgyOption_Bool){ 1, v }; }
+static inline PgyOption_Bool None_Bool(void)   { return (PgyOption_Bool){ 0, false }; }
+
 typedef struct {
     int32_t        *buffer;
     size_t          capacity;
@@ -1394,6 +1400,11 @@ void pgy_async_detach_export(PgyTaskHandle h)
 void *pgy_await_export(PgyTaskHandle h)
 {
     return pgy_await(h);
+}
+
+PgyTaskHandle pgy_spawn_blocking_export(void *(*fn)(void *), void *arg)
+{
+    return pgy_spawn_blocking(fn, arg);
 }
 
 bool pgy_task_cancel_export(PgyTaskHandle h)

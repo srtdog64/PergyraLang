@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Redundancy warnings for duplicate covered variants and redundant `default` in variant-style matches
 - Semantic effect-contract checking for explicit `/// @effects ...` declarations versus inferred function body effects
 - Channel convenience built-ins: `TryRecv -> Option<T>`, `RecvTimeout -> Option<T>`, `TrySend`, `SendTimeout`
+- Channel status built-ins: `TrySendStatus -> Option<Bool>`, `SendTimeoutStatus -> Option<Bool>`
 - Channel backpressure observation built-ins: `ChannelLength`, `ChannelCapacity`, `ChannelFull`
 - Channel backpressure observation built-ins expanded with `ChannelSpace` and `ChannelClosed`
 - `select` round-robin starting-point fairness in both C and LLVM backends
@@ -33,20 +34,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `zone` now supports `detach effectSlot from targetSlot` and `unlink relationSlot between left, right` for minimal release semantics
 - `zone` apply/detach and link/unlink now validate effect/relation endpoint arity and basic subject-type compatibility
 - `zone` now emits warnings for subject-heavy shapes that exceed the recommended small active-subject profile
+- Added `object` keyword as a struct-compatible passive/projection declaration alias
 - Added `dto` keyword as a struct-compatible projection/declaration alias
 - Added `ToObject(TargetStruct, subjectBinding)` as a minimal subject-to-object projection surface
 - Added `ToDto(TargetDto, subjectBinding)` as a minimal subject-to-dto projection surface
+- Added `dto slot` surface to relation/effect/zone domain bodies
 - Added LLVM lowering parity for `ToObject` / `ToDto` subject projection built-ins
 - Added optional domain-slot initializers so `object slot view: PlayerView = ToObject(PlayerView, player)` can be modeled directly in `relation` / `effect` / `zone`
 - Added `refresh objectSlot from subjectSlot` as an explicit zone projection-refresh surface
+- Added `publish dtoSlot from subjectSlot` as an explicit zone dto-projection surface
 - Added `maintain effectSlot on targetSlot` and `maintain relationSlot between left, right` as zone lifecycle-rule surfaces
 - Added lifecycle warnings for duplicate or conflicting `maintain` rules versus `detach` / `unlink`
 - Added `authority <subjectSlot>` and optional `by <subjectSlot>` authority annotations for zone lifecycle/projection operations
 - Added `authority <subjectSlot> requires Ability[, ...]` to validate authority subjects against role-implemented abilities
+- Added world lifecycle surface: `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState`
+- Added `HasZone(zoneOrState)` as a world lifecycle query surface
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods
 - Expanded `HasState` with slot-aware forms for effect targets and relation endpoints
+- Added C backend lowering for zone/world lifecycle state as `__state_*`, `__zone_active_*`, and `__zone_state_*` flags with generated sync helpers
+- Added C backend contextual lowering for `HasState(...)` and `HasZone(...)` inside zone/world methods
+- Added C backend incremental sync semantics so zone/world methods run generated sync helpers before and after body execution, applying `refresh` / `publish` projections and lifecycle flags
+- Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 

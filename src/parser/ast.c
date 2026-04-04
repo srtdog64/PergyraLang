@@ -252,6 +252,14 @@ ASTNode* ast_create_world_declaration(const char* name) {
     node->data.world_decl.shared_count = 0;
     node->data.world_decl.methods = NULL;
     node->data.world_decl.method_count = 0;
+    node->data.world_decl.activations = NULL;
+    node->data.world_decl.activate_count = 0;
+    node->data.world_decl.deactivations = NULL;
+    node->data.world_decl.deactivate_count = 0;
+    node->data.world_decl.maintained_zones = NULL;
+    node->data.world_decl.maintained_zone_count = 0;
+    node->data.world_decl.states = NULL;
+    node->data.world_decl.state_count = 0;
     node->data.world_decl.doc_comment = NULL;
     return node;
 }
@@ -270,6 +278,39 @@ ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type) {
     node->data.world_zone.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.world_zone.zone_type = zone_type ? pergyra_strdup(zone_type) : NULL;
     node->data.world_zone.initializer = NULL;
+    return node;
+}
+
+ASTNode* ast_create_world_activate(const char* zone_slot_name) {
+    ASTNode* node = ast_create_node(AST_WORLD_ACTIVATE);
+    node->data.world_activate.zone_slot_name =
+        zone_slot_name ? pergyra_strdup(zone_slot_name) : NULL;
+    node->data.world_activate.state_name = NULL;
+    return node;
+}
+
+ASTNode* ast_create_world_deactivate(const char* zone_slot_name) {
+    ASTNode* node = ast_create_node(AST_WORLD_DEACTIVATE);
+    node->data.world_deactivate.zone_slot_name =
+        zone_slot_name ? pergyra_strdup(zone_slot_name) : NULL;
+    node->data.world_deactivate.state_name = NULL;
+    return node;
+}
+
+ASTNode* ast_create_world_maintain(const char* zone_slot_name) {
+    ASTNode* node = ast_create_node(AST_WORLD_MAINTAIN);
+    node->data.world_maintain.zone_slot_name =
+        zone_slot_name ? pergyra_strdup(zone_slot_name) : NULL;
+    node->data.world_maintain.state_name = NULL;
+    return node;
+}
+
+ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name) {
+    ASTNode* node = ast_create_node(AST_WORLD_STATE);
+    node->data.world_state.state_name =
+        state_name ? pergyra_strdup(state_name) : NULL;
+    node->data.world_state.zone_slot_name =
+        zone_slot_name ? pergyra_strdup(zone_slot_name) : NULL;
     return node;
 }
 
@@ -339,6 +380,7 @@ ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject) {
     node->data.domain_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
     node->data.domain_slot.type = NULL;
     node->data.domain_slot.is_subject = is_subject;
+    node->data.domain_slot.is_dto = false;
     node->data.domain_slot.initializer = NULL;
     return node;
 }
@@ -406,6 +448,7 @@ ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* sourc
     node->data.zone_refresh.source_slot_name =
         source_slot_name ? pergyra_strdup(source_slot_name) : NULL;
     node->data.zone_refresh.actor_slot_name = NULL;
+    node->data.zone_refresh.requires_dto = false;
     return node;
 }
 
@@ -1202,6 +1245,18 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.world_decl.method_count; i++)
                 ast_destroy(node->data.world_decl.methods[i]);
             free(node->data.world_decl.methods);
+            for (size_t i = 0; i < node->data.world_decl.activate_count; i++)
+                ast_destroy(node->data.world_decl.activations[i]);
+            free(node->data.world_decl.activations);
+            for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++)
+                ast_destroy(node->data.world_decl.deactivations[i]);
+            free(node->data.world_decl.deactivations);
+            for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++)
+                ast_destroy(node->data.world_decl.maintained_zones[i]);
+            free(node->data.world_decl.maintained_zones);
+            for (size_t i = 0; i < node->data.world_decl.state_count; i++)
+                ast_destroy(node->data.world_decl.states[i]);
+            free(node->data.world_decl.states);
             ast_destroy_structured_comment(node->data.world_decl.doc_comment);
             break;
 
@@ -1215,6 +1270,26 @@ void ast_destroy(ASTNode* node) {
             free(node->data.world_zone.slot_name);
             free(node->data.world_zone.zone_type);
             ast_destroy(node->data.world_zone.initializer);
+            break;
+
+        case AST_WORLD_ACTIVATE:
+            free(node->data.world_activate.zone_slot_name);
+            free(node->data.world_activate.state_name);
+            break;
+
+        case AST_WORLD_DEACTIVATE:
+            free(node->data.world_deactivate.zone_slot_name);
+            free(node->data.world_deactivate.state_name);
+            break;
+
+        case AST_WORLD_MAINTAIN:
+            free(node->data.world_maintain.zone_slot_name);
+            free(node->data.world_maintain.state_name);
+            break;
+
+        case AST_WORLD_STATE:
+            free(node->data.world_state.state_name);
+            free(node->data.world_state.zone_slot_name);
             break;
 
         case AST_RELATION_DECL:
@@ -2420,6 +2495,18 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
                 ast_print(node->data.world_decl.zones[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
+                ast_print(node->data.world_decl.activations[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
+                ast_print(node->data.world_decl.deactivations[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
+                ast_print(node->data.world_decl.maintained_zones[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
+                ast_print(node->data.world_decl.states[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
                 ast_print(node->data.world_decl.shared_fields[i], indent + 1);
             }
@@ -2448,6 +2535,33 @@ void ast_print(ASTNode* node, int indent) {
                 ast_print_inline(node->data.world_zone.initializer);
             }
             printf("\n");
+            break;
+
+        case AST_WORLD_ACTIVATE:
+            if (node->data.world_activate.state_name != NULL)
+                printf("ActivateState: %s\n", node->data.world_activate.state_name);
+            else
+                printf("ActivateZone: %s\n", node->data.world_activate.zone_slot_name);
+            break;
+
+        case AST_WORLD_DEACTIVATE:
+            if (node->data.world_deactivate.state_name != NULL)
+                printf("DeactivateState: %s\n", node->data.world_deactivate.state_name);
+            else
+                printf("DeactivateZone: %s\n", node->data.world_deactivate.zone_slot_name);
+            break;
+
+        case AST_WORLD_MAINTAIN:
+            if (node->data.world_maintain.state_name != NULL)
+                printf("MaintainZoneState: %s\n", node->data.world_maintain.state_name);
+            else
+                printf("MaintainZone: %s\n", node->data.world_maintain.zone_slot_name);
+            break;
+
+        case AST_WORLD_STATE:
+            printf("WorldState: %s: zone %s\n",
+                   node->data.world_state.state_name,
+                   node->data.world_state.zone_slot_name);
             break;
 
         case AST_RELATION_DECL:
@@ -2521,7 +2635,8 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_DOMAIN_SLOT:
             printf("%sSlot: %s",
-                   node->data.domain_slot.is_subject ? "Subject" : "Object",
+                   node->data.domain_slot.is_subject ? "Subject"
+                   : (node->data.domain_slot.is_dto ? "Dto" : "Object"),
                    node->data.domain_slot.slot_name);
             if (node->data.domain_slot.type != NULL) {
                 printf(": ");
@@ -2596,7 +2711,8 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_ZONE_REFRESH:
-            printf("Refresh: %s from %s",
+            printf("%s: %s from %s",
+                   node->data.zone_refresh.requires_dto ? "Publish" : "Refresh",
                    node->data.zone_refresh.object_slot_name,
                    node->data.zone_refresh.source_slot_name);
             if (node->data.zone_refresh.actor_slot_name != NULL)

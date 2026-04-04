@@ -349,6 +349,8 @@ main(void)
                         hover_text = "**let** — Variable declaration";
                     else if (strcmp(word, "struct") == 0)
                         hover_text = "**struct** — Value type (passed by value)";
+                    else if (strcmp(word, "object") == 0)
+                        hover_text = "**object** — Passive/projection value type (struct-compatible keyword)";
                     else if (strcmp(word, "dto") == 0)
                         hover_text = "**dto** — Transfer/projection value type (struct-compatible keyword)";
                     else if (strcmp(word, "class") == 0)

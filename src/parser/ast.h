@@ -136,6 +136,10 @@ typedef enum
     AST_WORLD_DECL,
     AST_WORLD_SYSTEMIC,
     AST_WORLD_ZONE,
+    AST_WORLD_ACTIVATE,
+    AST_WORLD_DEACTIVATE,
+    AST_WORLD_MAINTAIN,
+    AST_WORLD_STATE,
     AST_RELATION_DECL,
     AST_EFFECT_DECL,
     AST_ZONE_DECL,
@@ -490,6 +494,7 @@ struct ASTNode
             ASTNode* function;
             ASTNode** arguments;
             size_t arg_count;
+            bool is_blocking;   /* spawn_blocking: offload to blocking pool */
         } spawn_expr;
         
         /* Channel type */
@@ -638,6 +643,14 @@ struct ASTNode
             size_t shared_count;
             ASTNode** methods;         /* World methods */
             size_t method_count;
+            ASTNode** activations;
+            size_t activate_count;
+            ASTNode** deactivations;
+            size_t deactivate_count;
+            ASTNode** maintained_zones;
+            size_t maintained_zone_count;
+            ASTNode** states;
+            size_t state_count;
             StructuredComment* doc_comment;
         } world_decl;
         
@@ -654,6 +667,30 @@ struct ASTNode
             char* zone_type;
             ASTNode* initializer;      /* Optional initialization */
         } world_zone;
+
+        /* World zone activation */
+        struct {
+            char* zone_slot_name;
+            char* state_name;
+        } world_activate;
+
+        /* World zone deactivation */
+        struct {
+            char* zone_slot_name;
+            char* state_name;
+        } world_deactivate;
+
+        /* World zone maintenance */
+        struct {
+            char* zone_slot_name;
+            char* state_name;
+        } world_maintain;
+
+        /* World zone state alias */
+        struct {
+            char* state_name;
+            char* zone_slot_name;
+        } world_state;
 
         /* Relation declaration */
         struct {
@@ -718,6 +755,7 @@ struct ASTNode
             char* slot_name;
             ASTNode* type;
             bool is_subject;
+            bool is_dto;
             ASTNode* initializer;
         } domain_slot;
 
@@ -767,6 +805,7 @@ struct ASTNode
             char* object_slot_name;
             char* source_slot_name;
             char* actor_slot_name;
+            bool requires_dto;
         } zone_refresh;
 
         /* Zone effect maintenance rule */
@@ -941,6 +980,10 @@ ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type)
 ASTNode* ast_create_world_declaration(const char* name);
 ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type);
 ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type);
+ASTNode* ast_create_world_activate(const char* zone_slot_name);
+ASTNode* ast_create_world_deactivate(const char* zone_slot_name);
+ASTNode* ast_create_world_maintain(const char* zone_slot_name);
+ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name);
 ASTNode* ast_create_relation_declaration(const char* name);
 ASTNode* ast_create_effect_declaration(const char* name);
 ASTNode* ast_create_zone_declaration(const char* name);

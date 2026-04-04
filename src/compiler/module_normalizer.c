@@ -408,6 +408,14 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
                 normalize_node_refs(node->data.world_decl.systemics[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
                 normalize_node_refs(node->data.world_decl.zones[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.activate_count; i++)
+                normalize_node_refs(node->data.world_decl.activations[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++)
+                normalize_node_refs(node->data.world_decl.deactivations[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++)
+                normalize_node_refs(node->data.world_decl.maintained_zones[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.state_count; i++)
+                normalize_node_refs(node->data.world_decl.states[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.shared_count; i++)
                 normalize_node_refs(node->data.world_decl.shared_fields[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.method_count; i++)
@@ -469,6 +477,10 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
             return;
 
         case AST_WORLD_ZONE:
+        case AST_WORLD_ACTIVATE:
+        case AST_WORLD_DEACTIVATE:
+        case AST_WORLD_MAINTAIN:
+        case AST_WORLD_STATE:
         case AST_ZONE_LAYER_SLOT:
         case AST_ZONE_APPLY:
         case AST_ZONE_LINK:

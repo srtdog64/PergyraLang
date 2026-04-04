@@ -356,6 +356,70 @@ cleanup:
     return failed;
 }
 
+static int
+run_object_keyword_alias_test(void)
+{
+    const char *code =
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "    name: String;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+
+    printf("\n=== Test: Object Keyword Alias ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct) {
+        printf("[FAIL] Expected 'object' to parse as struct-compatible declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (strcmp(decl->data.class_decl.name, "PlayerView") != 0
+        || decl->data.class_decl.field_count != 2) {
+        printf("[FAIL] Object declaration members were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Object keyword parsed successfully as struct-compatible declaration!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
 int
 main(void)
 {
@@ -618,6 +682,10 @@ main(void)
             "world GameWorld {\n"
             "    systemic combat: CombatSystem\n"
             "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "    activate liveBattle\n"
+            "    maintain battle\n"
+            "    deactivate liveBattle\n"
             "    shared tick: Int = 0\n"
             "    func Update() -> Void {\n"
             "        Log(tick);\n"
@@ -653,6 +721,7 @@ main(void)
             "    subject slot player: Player\n"
             "    subject slot enemy: Player\n"
             "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
+            "    dto slot playerDto: PlayerDto = ToDto(PlayerDto, player)\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
             "    authority player requires Commandable, Damageable\n"
@@ -667,6 +736,7 @@ main(void)
             "    unlink trust between player, enemy by player\n"
             "    unlink allied by player\n"
             "    refresh playerView from player by player\n"
+            "    publish playerDto from player by player\n"
             "    maintain poison on player by player\n"
             "    maintain trust between player, enemy by player\n"
             "    maintain poisoned by player\n"
@@ -794,6 +864,8 @@ main(void)
     failures += run_subject_keyword_alias_test();
     printf("\n");
     failures += run_dto_keyword_alias_test();
+    printf("\n");
+    failures += run_object_keyword_alias_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

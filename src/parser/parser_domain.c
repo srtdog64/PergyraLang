@@ -1,5 +1,8 @@
 #include "parser_internal.h"
 
+static bool parser_match_identifier_keyword(Parser *parser, const char *keyword);
+static void append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node);
+
 /* =================================================================
  * Systemic/World system parsing functions
  * ================================================================= */
@@ -167,6 +170,73 @@ ASTNode* parse_world_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
 
+        } else if (parser_match_identifier_keyword(parser, "activate")) {
+            Token zone_or_state = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone slot name or world state name after 'activate'");
+            ASTNode *activate = ast_create_world_activate(zone_or_state.text);
+            activate->data.world_activate.state_name = pergyra_strdup(zone_or_state.text);
+            free(activate->data.world_activate.zone_slot_name);
+            activate->data.world_activate.zone_slot_name = NULL;
+            activate->line = zone_or_state.line;
+            activate->column = zone_or_state.column;
+
+            append_child_node(&world->data.world_decl.activations,
+                &world->data.world_decl.activate_count, activate);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+
+        } else if (parser_match_identifier_keyword(parser, "deactivate")) {
+            Token zone_or_state = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone slot name or world state name after 'deactivate'");
+            ASTNode *deactivate = ast_create_world_deactivate(zone_or_state.text);
+            deactivate->data.world_deactivate.state_name = pergyra_strdup(zone_or_state.text);
+            free(deactivate->data.world_deactivate.zone_slot_name);
+            deactivate->data.world_deactivate.zone_slot_name = NULL;
+            deactivate->line = zone_or_state.line;
+            deactivate->column = zone_or_state.column;
+
+            append_child_node(&world->data.world_decl.deactivations,
+                &world->data.world_decl.deactivate_count, deactivate);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+
+        } else if (parser_match_identifier_keyword(parser, "maintain")) {
+            Token zone_or_state = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone slot name or world state name after 'maintain'");
+            ASTNode *maintain = ast_create_world_maintain(zone_or_state.text);
+            maintain->data.world_maintain.state_name = pergyra_strdup(zone_or_state.text);
+            free(maintain->data.world_maintain.zone_slot_name);
+            maintain->data.world_maintain.zone_slot_name = NULL;
+            maintain->line = zone_or_state.line;
+            maintain->column = zone_or_state.column;
+
+            append_child_node(&world->data.world_decl.maintained_zones,
+                &world->data.world_decl.maintained_zone_count, maintain);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+
+        } else if (parser_match_identifier_keyword(parser, "state")) {
+            Token state_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected world state name after 'state'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after world state name");
+            parser_consume(parser, TOKEN_ZONE,
+                "Expected 'zone' after ':' in world state");
+            Token zone_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone slot name after 'zone'");
+            ASTNode *state = ast_create_world_state(state_name.text, zone_slot.text);
+            state->line = state_name.line;
+            state->column = state_name.column;
+
+            append_child_node(&world->data.world_decl.states,
+                &world->data.world_decl.state_count, state);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+
         } else if (parser_match(parser, TOKEN_SHARED)) {
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected field name after 'shared'");
@@ -207,7 +277,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'systemic', 'zone', 'shared', or 'func' in world body");
+                "Expected 'systemic', 'zone', 'activate', 'deactivate', 'maintain', 'state', 'shared', or 'func' in world body");
             parser_advance(parser);
         }
     }
@@ -233,17 +303,37 @@ parser_match_identifier_keyword(Parser *parser, const char *keyword)
 }
 
 static bool
-parser_match_domain_slot_kind(Parser *parser, bool *is_subject)
+parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_dto)
 {
     if (parser_match(parser, TOKEN_CLASS)) {
         if (is_subject != NULL)
             *is_subject = true;
+        if (is_dto != NULL)
+            *is_dto = false;
         return true;
     }
 
-    if (parser_match_identifier_keyword(parser, "object")) {
+    if ((parser_check(parser, TOKEN_IDENTIFIER)
+         || parser_check(parser, TOKEN_STRUCT))
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "dto") == 0) {
+        parser_advance(parser);
         if (is_subject != NULL)
             *is_subject = false;
+        if (is_dto != NULL)
+            *is_dto = true;
+        return true;
+    }
+
+    if ((parser_check(parser, TOKEN_IDENTIFIER)
+         || parser_check(parser, TOKEN_STRUCT))
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "object") == 0) {
+        parser_advance(parser);
+        if (is_subject != NULL)
+            *is_subject = false;
+        if (is_dto != NULL)
+            *is_dto = false;
         return true;
     }
 
@@ -254,13 +344,16 @@ static ASTNode *
 parse_domain_slot_entry(Parser *parser, const char *owner_name)
 {
     bool is_subject = false;
-    if (!parser_match_domain_slot_kind(parser, &is_subject))
+    bool is_dto = false;
+    if (!parser_match_domain_slot_kind(parser, &is_subject, &is_dto))
         return NULL;
 
     parser_consume(parser, TOKEN_SLOT,
         is_subject
             ? "Expected 'slot' after 'subject' in domain body"
-            : "Expected 'slot' after 'object' in domain body");
+            : (is_dto
+                ? "Expected 'slot' after 'dto' in domain body"
+                : "Expected 'slot' after 'object' in domain body"));
     Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected slot name");
     parser_consume(parser, TOKEN_COLON,
@@ -268,6 +361,7 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
     ASTNode *slot_type = parse_type(parser);
 
     ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
+    slot->data.domain_slot.is_dto = is_dto;
     slot->data.domain_slot.type = slot_type;
     if (parser_match(parser, TOKEN_ASSIGN))
         slot->data.domain_slot.initializer = parser_parse_expression(parser);
@@ -396,7 +490,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'shared', or 'func' in relation body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'shared', or 'func' in relation body");
             parser_advance(parser);
         }
     }
@@ -464,7 +558,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'shared', or 'func' in effect body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'shared', or 'func' in effect body");
             parser_advance(parser);
         }
     }
@@ -624,11 +718,20 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
-        } else if (parser_match_identifier_keyword(parser, "refresh")) {
+        } else if (parser_match_identifier_keyword(parser, "refresh")
+                   || parser_match_identifier_keyword(parser, "publish")) {
+            bool requires_dto =
+                parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected object slot name after 'refresh'");
+                requires_dto
+                    ? "Expected dto slot name after 'publish'"
+                    : "Expected object slot name after 'refresh'");
             if (!parser_match_identifier_keyword(parser, "from")) {
-                parser_error(parser, "Expected 'from' after object slot name in refresh");
+                parser_error(parser,
+                    requires_dto
+                        ? "Expected 'from' after dto slot name in publish"
+                        : "Expected 'from' after object slot name in refresh");
                 parser_advance(parser);
                 continue;
             }
@@ -637,6 +740,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             ASTNode *refresh = ast_create_zone_refresh(
                 object_slot.text, source_slot.text);
+            refresh->data.zone_refresh.requires_dto = requires_dto;
             refresh->data.zone_refresh.actor_slot_name =
                 parse_optional_zone_actor_name(parser);
             refresh->line = object_slot.line;
@@ -807,7 +911,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'dto slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
     }

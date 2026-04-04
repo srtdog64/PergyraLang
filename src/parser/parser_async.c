@@ -235,31 +235,46 @@ ASTNode* parser_parse_channel_expression(Parser* parser)
 ASTNode* parser_parse_spawn_expression(Parser* parser)
 {
     // 'spawn' keyword already consumed
-    
+
+    // Check for 'spawn blocking <expr>' — offload to blocking thread pool
+    bool is_blocking = false;
+    if (parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "blocking") == 0) {
+        parser_advance(parser);
+        is_blocking = true;
+    }
+
     // Can be either:
     // 1. spawn func_call()
     // 2. spawn async func() { ... }
-    
-    if (parser_match(parser, TOKEN_ASYNC)) {
+    // 3. spawn blocking func_call()
+
+    ASTNode *result;
+    if (!is_blocking && parser_match(parser, TOKEN_ASYNC)) {
         parser_match(parser, TOKEN_FUNC);  // Optional 'func' keyword
-        
+
         // Anonymous async function
         parser_consume(parser, TOKEN_LPAREN, "Expected '(' for spawn function");
         parser_consume(parser, TOKEN_RPAREN, "Expected ')' for spawn function");
-        
+
         parser_consume(parser, TOKEN_LBRACE, "Expected '{' for spawn body");
         ASTNode* body = parser_parse_block(parser);
-        
+
         // Create anonymous function
         ASTNode* anon_func = ast_create_async_function("__anon", true);
         anon_func->data.async_func_decl.body = body;
-        
-        return ast_create_spawn_expression(anon_func);
+
+        result = ast_create_spawn_expression(anon_func);
     } else {
         // Regular function call
         ASTNode* func_call = parser_parse_expression(parser);
-        return ast_create_spawn_expression(func_call);
+        result = ast_create_spawn_expression(func_call);
     }
+
+    if (result != NULL)
+        result->data.spawn_expr.is_blocking = is_blocking;
+    return result;
 }
 
 // Parse select statement
