@@ -183,6 +183,8 @@ enum Shape {
 - `HasZoneLayer(<zoneSlot>, <layerSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 relation/effect layer active flag를 Bool로 조회한다.
 - `HasZoneState(<zoneSlot>, <stateName>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 state alias flag를 Bool로 조회한다.
 - 파생 world state는 읽기 전용 contract이며 `activate/deactivate/maintain` 대상으로는 plain `state <name>: zone <zoneSlot>` alias만 허용한다.
+- `all` / `any` 조합 state는 duplicate input과 direct zone slot + plain zone alias 중복을 semantic warning으로 정리한다.
+- `all` / `any` 조합 state는 raw zone slot을 직접 입력으로 받는 것도 warning으로 정리하며, plain world state alias를 통한 조합을 권장한다.
 - `projection` / `layer` / `state` suffix는 같은 줄에서만 world-state source modifier로 해석된다.
 
 미지원:

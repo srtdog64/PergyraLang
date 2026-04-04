@@ -2661,6 +2661,26 @@ resolve_world_zone_decl_local(ASTNode *world, SemanticContext *ctx, const char *
         slot->data.world_zone.zone_type);
 }
 
+static const char *
+resolve_world_plain_zone_input_name(ASTNode *world, const char *input_name)
+{
+    ASTNode *state;
+
+    if (world == NULL || world->type != AST_WORLD_DECL || input_name == NULL)
+        return NULL;
+
+    if (find_world_zone_slot_local(world, input_name) != NULL)
+        return input_name;
+
+    state = find_world_state_local(world, input_name);
+    if (state != NULL && state->type == AST_WORLD_STATE
+        && state->data.world_state.source_kind == WORLD_STATE_SOURCE_ZONE) {
+        return state->data.world_state.zone_slot_name;
+    }
+
+    return NULL;
+}
+
 static ASTNode *
 find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 {
@@ -2794,6 +2814,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *zone_decl = NULL;
         if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
             || state->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+            bool saw_direct_zone_input = false;
+            bool saw_state_input = false;
             if (state->data.world_state.input_count == 0) {
                 semantic_error(ctx, state,
                     "Composed world state '%s' must reference at least one zone/state input",
@@ -2812,14 +2834,66 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     continue;
                 }
                 if (find_world_zone_slot_local(node, input_name) != NULL)
+                {
+                    saw_direct_zone_input = true;
                     continue;
+                }
                 if (find_world_state_before_local(node, input_name, i) != NULL)
+                {
+                    saw_state_input = true;
                     continue;
+                }
                 semantic_error(ctx, state,
                     "Composed world state '%s' references unknown or later world zone/state '%s'",
                     state->data.world_state.state_name != NULL
                         ? state->data.world_state.state_name : "<unknown>",
                     input_name);
+            }
+            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
+                const char *input_name = state->data.world_state.input_names[input_i];
+                const char *input_plain_zone;
+                if (input_name == NULL)
+                    continue;
+                input_plain_zone = resolve_world_plain_zone_input_name(node, input_name);
+                for (size_t prev_i = 0; prev_i < input_i; prev_i++) {
+                    const char *prev_name = state->data.world_state.input_names[prev_i];
+                    const char *prev_plain_zone;
+                    if (prev_name == NULL)
+                        continue;
+                    if (strcmp(prev_name, input_name) == 0) {
+                        semantic_warning(ctx, state,
+                            "Composed world state '%s' repeats input '%s'",
+                            state->data.world_state.state_name != NULL
+                                ? state->data.world_state.state_name : "<unknown>",
+                            input_name);
+                        break;
+                    }
+                    prev_plain_zone = resolve_world_plain_zone_input_name(node, prev_name);
+                    if (input_plain_zone != NULL && prev_plain_zone != NULL
+                        && strcmp(input_plain_zone, prev_plain_zone) == 0) {
+                        semantic_warning(ctx, state,
+                            "Composed world state '%s' redundantly mixes zone slot '%s' with plain alias/input '%s'",
+                            state->data.world_state.state_name != NULL
+                                ? state->data.world_state.state_name : "<unknown>",
+                            prev_name,
+                            input_name);
+                        break;
+                    }
+                }
+                if (find_world_zone_slot_local(node, input_name) != NULL) {
+                    semantic_warning(ctx, state,
+                        "Composed world state '%s' directly references zone slot '%s'; prefer a plain 'state name: zone %s' alias so command and derived layers stay separate",
+                        state->data.world_state.state_name != NULL
+                            ? state->data.world_state.state_name : "<unknown>",
+                        input_name,
+                        input_name);
+                }
+            }
+            if (saw_direct_zone_input && saw_state_input) {
+                semantic_warning(ctx, state,
+                    "Composed world state '%s' mixes direct zone-slot inputs with world-state inputs; prefer composing from world-state aliases only",
+                    state->data.world_state.state_name != NULL
+                        ? state->data.world_state.state_name : "<unknown>");
             }
         } else if (find_world_zone_slot_local(node, zone_slot_name) == NULL) {
             semantic_error(ctx, state,
@@ -2897,6 +2971,51 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 "World activate references unknown zone slot '%s'",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
+        for (size_t j = i + 1; j < node->data.world_decl.activate_count; j++) {
+            ASTNode *other = node->data.world_decl.activations[j];
+            const char *other_zone = other->data.world_activate.zone_slot_name;
+            if (other->data.world_activate.state_name != NULL) {
+                resolve_world_zone_state(node, other,
+                    other->data.world_activate.state_name, ctx, "activate",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, other,
+                    "World '%s' activates zone '%s' more than once",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
+        for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
+            ASTNode *deactivate = node->data.world_decl.deactivations[j];
+            const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
+            if (deactivate->data.world_deactivate.state_name != NULL) {
+                resolve_world_zone_state(node, deactivate,
+                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, activate,
+                    "World '%s' both activates and deactivates zone '%s'; choose one lifecycle direction",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
+        for (size_t j = 0; j < node->data.world_decl.maintained_zone_count; j++) {
+            ASTNode *maintain = node->data.world_decl.maintained_zones[j];
+            const char *other_zone = maintain->data.world_maintain.zone_slot_name;
+            if (maintain->data.world_maintain.state_name != NULL) {
+                resolve_world_zone_state(node, maintain,
+                    maintain->data.world_maintain.state_name, ctx, "maintain",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, activate,
+                    "World '%s' both activates and maintains zone '%s'; maintain already implies the continuing direction",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
     }
 
     for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
@@ -2913,6 +3032,21 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error(ctx, deactivate,
                 "World deactivate references unknown zone slot '%s'",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
+        }
+        for (size_t j = i + 1; j < node->data.world_decl.deactivate_count; j++) {
+            ASTNode *other = node->data.world_decl.deactivations[j];
+            const char *other_zone = other->data.world_deactivate.zone_slot_name;
+            if (other->data.world_deactivate.state_name != NULL) {
+                resolve_world_zone_state(node, other,
+                    other->data.world_deactivate.state_name, ctx, "deactivate",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, other,
+                    "World '%s' deactivates zone '%s' more than once",
+                    node->data.world_decl.name, zone_slot_name);
+            }
         }
     }
 
@@ -2957,6 +3091,21 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 && strcmp(zone_slot_name, other_zone) == 0) {
                 semantic_warning(ctx, maintain,
                     "World '%s' both maintains and deactivates zone '%s'; choose one lifecycle direction",
+                    node->data.world_decl.name, zone_slot_name);
+            }
+        }
+        for (size_t j = 0; j < node->data.world_decl.activate_count; j++) {
+            ASTNode *activate = node->data.world_decl.activations[j];
+            const char *other_zone = activate->data.world_activate.zone_slot_name;
+            if (activate->data.world_activate.state_name != NULL) {
+                resolve_world_zone_state(node, activate,
+                    activate->data.world_activate.state_name, ctx, "activate",
+                    &other_zone);
+            }
+            if (zone_slot_name != NULL && other_zone != NULL
+                && strcmp(zone_slot_name, other_zone) == 0) {
+                semantic_warning(ctx, maintain,
+                    "World '%s' both maintains and activates zone '%s'; maintain already implies the continuing direction",
                     node->data.world_decl.name, zone_slot_name);
             }
         }

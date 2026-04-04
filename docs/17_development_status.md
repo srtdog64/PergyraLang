@@ -48,8 +48,15 @@
 - `HasZone(zoneOrState)` builtin은 world declaration / world method 안에서 zone slot 또는 world state alias를 Bool query로 읽을 수 있음
 - `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)` builtin은 world declaration / world method 안에서 embedded zone의 projection/layer/state flag를 직접 Bool query로 읽을 수 있음
 - 파생 `world state`는 zone active flag와 embedded zone projection/layer/state flag를 자동 조합해 계산되며, 조합 state는 `all`/`any`로 앞선 zone/state alias를 다시 합성할 수 있음
+- 조합 `world state`는 duplicate input과 direct zone slot + plain zone alias 중복을 semantic warning으로 보고함
+- 조합 `world state`는 raw zone slot을 직접 입력으로 받으면 warning을 내고, plain world state alias를 통한 파생층 입력을 권장함
 - direct `activate/deactivate/maintain` 대상은 plain `state name: zone zoneSlot` alias만 허용함
+- `world` lifecycle도 이제 duplicate `activate` / `deactivate`, conflicting `activate` + `deactivate`, redundant `activate` + `maintain`를 semantic warning으로 보고함
 - `activate/deactivate/maintain battle`처럼 direct zone slot 이름을 쓰는 표면도 C/LLVM world sync 경로에서 semantic과 동일하게 해석됨
+- C/LLVM world sync는 이제 `command pass(reset/directives) -> zone sync pass -> derived pass` 순서로 고정됨
+- world runtime은 `__zone_dirty_<slot>`와 `__world_derived_dirty`를 유지해 active flag가 바뀐 zone만 다시 sync하고, derived state는 dirty일 때만 다시 계산함
+- world constructor는 embedded zone dirty와 derived dirty를 `true`로 시작시켜 첫 world sync에서 zone projection/layer/state를 빠뜨리지 않음
+- world method는 post-sync 전에 embedded zone dirty를 보수적으로 다시 올려 world-owned zone 교체/갱신이 derived layer까지 전파되게 함
 - C backend는 zone layer slot을 `bool __layer_active_<slot>` 필드로, zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
 - C backend는 relation/effect/zone/world마다 `<Type>_sync(self)` helper를 생성하고, method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
 - C backend는 relation/effect/zone projection slot에 `__projection_ready_*` flag를 두고 `HasProjection(...)`를 현재 domain self field query로 lowering함
@@ -86,11 +93,13 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 414 passed`, `transpile 306 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 423 passed`, `transpile 329 passed`, `llvm-test-smoke` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
-- 남은 공백은 richer handle/object-cell propagation semantics임
+- secure boundary slot은 helper를 한 번 더 거치는 forwarding call에서도 paired token이 함께 전달됨
+- LLVM backend는 `self.battle.player.hp = hp` 같은 deeper nested member assignment도 world/zone/object-cell 경로에서 실제로 갱신함
+- 남은 공백은 richer handle/object-cell propagation semantics의 더 복잡한 경계 조합임
 - 채널 convenience surface: `TryRecv -> Option<T>`, `RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`, `TrySendStatus/SendTimeoutStatus -> Option<Bool>`이 C/LLVM 경로에 연결됨
 - 채널 backpressure observation surface: `ChannelLength/ChannelCapacity/ChannelSpace -> Int`, `ChannelFull/ChannelClosed -> Bool`이 C/LLVM/runtime에 연결됨
 - 현재 `TryRecv/RecvTimeout/TrySend/SendTimeout`은 plain-value channel 중심이며 movable resource channel은 의도적으로 제외됨

@@ -286,6 +286,8 @@ Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에
 - actor를 subject host로 인식하는 semantic predeclaration / constructor / projection / domain check
 - plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달
+- secure boundary forwarding call에서 paired token 전파
+- LLVM nested member assignment (`self.zone.subject.field = value`) runtime parity
 - actor constructor가 C backend에서도 compound literal로 lowering됨
 
 ### 아직 닫히지 않은 범위

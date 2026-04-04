@@ -3162,6 +3162,20 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
+                for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+                    ASTNode *zone = world_decl->data.world_decl.zones[i];
+                    const char *slot_name = zone != NULL
+                        ? zone->data.world_zone.slot_name
+                        : NULL;
+                    if (slot_name == NULL)
+                        continue;
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".__zone_dirty_%s = true", slot_name);
+                }
+                if (fields->len > 0)
+                    codebuf_write(fields, ", ");
+                codebuf_write(fields, ".__world_derived_dirty = true");
                 {
                     char *result = fields->len > 0
                         ? strdup_fmt("(%s){ %s }", fn, fields->data)
@@ -7157,6 +7171,9 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -7242,6 +7259,9 @@ emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -7354,6 +7374,9 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -7475,6 +7498,9 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -7857,6 +7883,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -7904,6 +7933,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             wz->data.world_zone.slot_name);
         codebuf_write(ctx->out, "    bool __zone_active_%s;\n",
             wz->data.world_zone.slot_name);
+        codebuf_write(ctx->out, "    bool __zone_dirty_%s;\n",
+            wz->data.world_zone.slot_name);
     }
 
     /* Shared fields */
@@ -7920,21 +7951,28 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
             state->data.world_state.state_name);
     }
+    codebuf_write(ctx->out, "    bool __world_derived_dirty;\n");
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "/* world command pass: reset */\n");
     for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
         ASTNode *wz = node->data.world_decl.zones[i];
         write_indent(ctx);
+        codebuf_write(ctx->out, "bool _pgy_prev_active_%s = self->__zone_active_%s;\n",
+            wz->data.world_zone.slot_name, wz->data.world_zone.slot_name);
+        write_indent(ctx);
         codebuf_write(ctx->out, "self->__zone_active_%s = false;\n",
             wz->data.world_zone.slot_name);
-        write_indent(ctx);
-        codebuf_write(ctx->out, "%s_sync(&self->%s);\n",
-            wz->data.world_zone.zone_type, wz->data.world_zone.slot_name);
     }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "bool _pgy_world_needs_derived = self->__world_derived_dirty;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "/* world command pass: directives */\n");
     for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
         ASTNode *act = node->data.world_decl.activations[i];
         const char *slot_name = act->data.world_activate.zone_slot_name;
@@ -7980,6 +8018,45 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "self->__zone_active_%s = false;\n", slot_name);
         }
     }
+    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+        ASTNode *wz = node->data.world_decl.zones[i];
+        const char *slot_name = wz->data.world_zone.slot_name;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__zone_active_%s != _pgy_prev_active_%s) {\n",
+            slot_name, slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__zone_dirty_%s = true;\n", slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_world_needs_derived = true;\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "/* world zone sync pass */\n");
+    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
+        ASTNode *wz = node->data.world_decl.zones[i];
+        const char *slot_name = wz->data.world_zone.slot_name;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__zone_dirty_%s) {\n", slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s_sync(&self->%s);\n",
+            wz->data.world_zone.zone_type, slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__zone_dirty_%s = false;\n", slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_world_needs_derived = true;\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "/* world derived pass */\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "if (_pgy_world_needs_derived) {\n");
+    ctx->indent++;
     for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
         ASTNode *state = node->data.world_decl.states[i];
         const char *expr_fmt = "self->__zone_active_%s";
@@ -8049,6 +8126,11 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             break;
         }
     }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "self->__world_derived_dirty = false;\n");
+    ctx->indent--;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "}\n");
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
@@ -8066,6 +8148,9 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);
@@ -8080,6 +8165,18 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             if (method->data.func_decl.body != NULL)
                 emit_block(method->data.func_decl.body, ctx);
+            for (size_t j = 0; j < node->data.world_decl.zone_count; j++) {
+                ASTNode *zone = node->data.world_decl.zones[j];
+                const char *slot_name = zone != NULL
+                    ? zone->data.world_zone.slot_name
+                    : NULL;
+                if (slot_name == NULL)
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__zone_dirty_%s = true;\n", slot_name);
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__world_derived_dirty = true;\n");
             write_indent(ctx);
             codebuf_write(ctx->out, "%s_sync(self);\n", name);
             ctx->current_world_name = saved_world_name;
@@ -8136,6 +8233,9 @@ emit_actor_decl(ASTNode *node, TranspilerCtx *ctx)
                       ret_type, name, method_name, name);
         for (size_t j = 0; j < method->data.async_func_decl.param_count; j++) {
             FuncParam *p = method->data.async_func_decl.params[j];
+            if (p != NULL && p->type == NULL && p->name != NULL
+                && strcmp(p->name, "self") == 0)
+                continue;
             const char *pt = "int32_t";
             if (p->type != NULL)
                 pt = pergyra_ast_type_to_c(p->type);

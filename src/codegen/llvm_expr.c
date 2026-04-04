@@ -1693,6 +1693,35 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 object = LLVMBuildInsertValue(ctx->builder, object, arg,
                     (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
             }
+            {
+                ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
+                    callee_name);
+                if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
+                    int derived_idx = llvm_class_field_index(cls, "__world_derived_dirty");
+                    if (derived_idx >= 0) {
+                        object = LLVMBuildInsertValue(ctx->builder, object,
+                            LLVMConstInt(ctx->type_i1, 1, 0),
+                            (unsigned)derived_idx, llvm_tmp_name(ctx));
+                    }
+                    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+                        ASTNode *zone = world_decl->data.world_decl.zones[i];
+                        char dirty_field[256];
+                        int dirty_idx;
+                        const char *slot_name = zone != NULL
+                            ? zone->data.world_zone.slot_name
+                            : NULL;
+                        if (slot_name == NULL)
+                            continue;
+                        snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s", slot_name);
+                        dirty_idx = llvm_class_field_index(cls, dirty_field);
+                        if (dirty_idx < 0)
+                            continue;
+                        object = LLVMBuildInsertValue(ctx->builder, object,
+                            LLVMConstInt(ctx->type_i1, 1, 0),
+                            (unsigned)dirty_idx, llvm_tmp_name(ctx));
+                    }
+                }
+            }
             return object;
         }
     }
@@ -2957,6 +2986,62 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 }
 
 static LLVMValueRef
+llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx, LLVMTypeRef *out_field_type)
+{
+    ASTNode *obj_node;
+    const char *field_name;
+    const char *class_name;
+    LLVMClassTypeEntry *cls;
+    LLVMValueRef base_ptr = NULL;
+    int field_idx;
+
+    if (out_field_type != NULL)
+        *out_field_type = NULL;
+    if (node == NULL || node->type != AST_MEMBER_ACCESS)
+        return NULL;
+
+    obj_node = node->data.member.object;
+    field_name = node->data.member.name;
+    if (obj_node == NULL || field_name == NULL)
+        return NULL;
+
+    class_name = llvm_expr_custom_type_name(obj_node, ctx);
+    if (class_name == NULL)
+        return NULL;
+
+    cls = llvm_lookup_class(ctx, class_name);
+    if (cls == NULL)
+        return NULL;
+
+    if (obj_node->type == AST_IDENTIFIER) {
+        const char *var_name = obj_node->data.identifier.name;
+        LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
+        if (var == NULL)
+            return NULL;
+        base_ptr = var->alloca;
+        if (var->type == LLVMPointerType(cls->struct_type, 0)) {
+            base_ptr = LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
+                llvm_tmp_name(ctx));
+        }
+    } else if (obj_node->type == AST_MEMBER_ACCESS) {
+        base_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
+        if (base_ptr == NULL)
+            return NULL;
+    } else {
+        return NULL;
+    }
+
+    field_idx = llvm_class_field_index(cls, field_name);
+    if (field_idx < 0)
+        return NULL;
+
+    if (out_field_type != NULL)
+        *out_field_type = cls->fields[field_idx].field_type;
+    return LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+        (unsigned)field_idx, llvm_tmp_name(ctx));
+}
+
+static LLVMValueRef
 llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 {
     if (node->data.assignment.target == NULL)
@@ -2986,43 +3071,31 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Member assignment: obj.field = value */
     if (node->data.assignment.target->type == AST_MEMBER_ACCESS) {
-        ASTNode *member_node = node->data.assignment.target;
-        ASTNode *obj_node = member_node->data.member.object;
-        const char *field_name = member_node->data.member.name;
-
-        if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
-            && field_name != NULL) {
-            const char *var_name = obj_node->data.identifier.name;
-            LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
-            const char *class_name = llvm_lookup_var_class(ctx, var_name);
-
-            if (var != NULL && class_name != NULL) {
-                LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, class_name);
-                if (cls != NULL) {
-                    int field_idx = llvm_class_field_index(cls, field_name);
-                    if (field_idx >= 0) {
-                        LLVMValueRef val = llvm_emit_expression(
-                            node->data.assignment.value, ctx);
-                        if (val == NULL)
-                            return LLVMConstInt(ctx->type_i32, 0, 0);
-
-                        /* self: alloca holds pointer-to-struct */
-                        LLVMValueRef base = var->alloca;
-                        if (var->type == LLVMPointerType(
-                                cls->struct_type, 0)) {
-                            base = LLVMBuildLoad2(ctx->builder,
-                                var->type, var->alloca,
-                                llvm_tmp_name(ctx));
-                        }
-                        LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
-                            cls->struct_type, base,
-                            (unsigned)field_idx, llvm_tmp_name(ctx));
-                        LLVMBuildStore(ctx->builder, val, gep);
-                        return val;
-                    }
-                }
+        LLVMTypeRef field_type = NULL;
+        LLVMValueRef gep = llvm_emit_member_lvalue_ptr(
+            node->data.assignment.target, ctx, &field_type);
+        LLVMValueRef val;
+        if (gep == NULL || field_type == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        val = llvm_emit_expression(node->data.assignment.value, ctx);
+        if (val == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(val) != field_type) {
+            if ((field_type == ctx->type_i32 || field_type == ctx->type_i64)
+                && (LLVMTypeOf(val) == ctx->type_f32 || LLVMTypeOf(val) == ctx->type_f64)) {
+                val = LLVMBuildFPToSI(ctx->builder, val, field_type, llvm_tmp_name(ctx));
+            } else if ((field_type == ctx->type_f32 || field_type == ctx->type_f64)
+                && (LLVMTypeOf(val) == ctx->type_i32 || LLVMTypeOf(val) == ctx->type_i64)) {
+                val = LLVMBuildSIToFP(ctx->builder, val, field_type, llvm_tmp_name(ctx));
+            } else if ((field_type == ctx->type_i32 || field_type == ctx->type_i64)
+                && (LLVMTypeOf(val) == ctx->type_i32 || LLVMTypeOf(val) == ctx->type_i64)) {
+                val = (LLVMGetIntTypeWidth(field_type) > LLVMGetIntTypeWidth(LLVMTypeOf(val)))
+                    ? LLVMBuildSExt(ctx->builder, val, field_type, llvm_tmp_name(ctx))
+                    : LLVMBuildTrunc(ctx->builder, val, field_type, llvm_tmp_name(ctx));
             }
         }
+        LLVMBuildStore(ctx->builder, val, gep);
+        return val;
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 

@@ -6171,6 +6171,92 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("world composed states warn on duplicate and redundant plain zone inputs");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state battleLive: zone battle\n"
+            "    state noisy: all battle, battleLive, battle\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world lifecycle warns on duplicate and conflicting zone directions");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state liveBattle: zone battle\n"
+            "    activate battle\n"
+            "    activate liveBattle\n"
+            "    deactivate battle\n"
+            "    deactivate liveBattle\n"
+            "    maintain battle\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 6);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world composed states warn when raw zone slots are used as derived inputs");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    zone camp: BattleZone\n"
+            "    state campLive: zone camp\n"
+            "    state mixed: any battle, campLive\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* ---- Generic class semantic tests ---- */
 
     TEST("generic class declaration passes semantic check");

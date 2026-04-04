@@ -56,6 +56,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Derived world states now lower in C/LLVM to `zone active && embedded zone projection/layer/state flag`
 - Added composed world-state contracts: `state name: all zoneOrState[, ...]` and `state name: any zoneOrState[, ...]`
 - Composed world states now lower in C/LLVM to combined `__zone_active_*` / `__zone_state_*` flag expressions
+- Composed world states now warn on duplicate inputs and redundant mixing of a direct zone slot with its plain `state name: zone zoneSlot` alias
+- World lifecycle now warns on duplicate `activate` / `deactivate` directives and conflicting `activate` + `deactivate` on the same underlying zone
+- World lifecycle now also warns when `activate` and `maintain` redundantly target the same underlying zone
+- Composed world states now warn when they directly reference raw world zone slots instead of plain world-state aliases
 - `activate/deactivate/maintain <zoneSlot>` now resolve direct world zone slots consistently in C/LLVM sync paths
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
@@ -167,3 +171,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parallel blocks with task spawning
 - Event system with subscribe/unsubscribe
 - 165 unit tests (65 semantic + 100 transpile)
+- Fixed world sync lowering to run as `command pass(reset/directives) -> zone sync pass -> derived pass` in both C and LLVM backends, and added transpile coverage for the emitted phase order
+- Added incremental world propagation fields (`__zone_dirty_*`, `__world_derived_dirty`) so C/LLVM world sync can re-sync dirty zones and skip unnecessary derived recomputation
+- Initialized world constructors with dirty zone/derived flags and made world methods conservatively invalidate embedded zones before post-sync, with LLVM smoke coverage for world-owned zone replacement propagation
+- Added LLVM/runtime coverage for deeper nested member assignment (`self.zone.subject.field = value`) and secure boundary slot forwarding with paired token propagation

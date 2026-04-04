@@ -474,6 +474,74 @@ func Main() -> Void {
 EOF
 run_case "world_composed_states" "$TMPDIR/world_composed_states.pgy" "true" "true"
 
+cat > "$TMPDIR/world_zone_mutation_dirty.pgy" <<'EOF'
+subject Player { let hp: Int; }
+object PlayerView { hp: Int; }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    refresh playerView from player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleProjected: zone battle projection playerView
+    activate battle
+
+    func Mutate(self, hp: Int) -> Void {
+        self.battle = BattleZone(Player(hp));
+    }
+
+    func Show(self) -> Void {
+        Log(HasZone(battleProjected));
+        Log(self.battle.playerView.hp);
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+    gameWorld.Mutate(9);
+    gameWorld.Show();
+}
+EOF
+run_case "world_zone_mutation_dirty" "$TMPDIR/world_zone_mutation_dirty.pgy" "true" "7" "true" "9"
+
+cat > "$TMPDIR/world_nested_member_assign.pgy" <<'EOF'
+subject Player { let hp: Int; }
+object PlayerView { hp: Int; }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    refresh playerView from player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleProjected: zone battle projection playerView
+    activate battle
+
+    func Mutate(self, hp: Int) -> Void {
+        self.battle.player.hp = hp;
+    }
+
+    func Show(self) -> Void {
+        Log(HasZone(battleProjected));
+        Log(self.battle.playerView.hp);
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+    gameWorld.Mutate(9);
+    gameWorld.Show();
+}
+EOF
+run_case "world_nested_member_assign" "$TMPDIR/world_nested_member_assign.pgy" "true" "7" "true" "9"
+
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
     let count: Int;
@@ -585,6 +653,29 @@ func Main() -> Void {
 }
 EOF
 run_case "secure_slot_subject_boundary_own" "$TMPDIR/secure_slot_subject_boundary_own.pgy" "1"
+
+cat > "$TMPDIR/secure_slot_subject_boundary_forward_own.pgy" <<'EOF'
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func ConsumeInner(own s: SecureSlot<Vec2>) -> Void {
+    Write(s, Vec2(1, 2), s_token);
+    Release(s, s_token);
+}
+
+func ConsumeOuter(own s: SecureSlot<Vec2>) -> Void {
+    ConsumeInner(s);
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Vec2> = Vec2(3, 7);
+    ConsumeOuter(s);
+    Log(1);
+}
+EOF
+run_case "secure_slot_subject_boundary_forward_own" "$TMPDIR/secure_slot_subject_boundary_forward_own.pgy" "1"
 
 cat > "$TMPDIR/select_ready.pgy" <<'EOF'
 func Main() -> Void {

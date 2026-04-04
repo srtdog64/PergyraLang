@@ -1724,6 +1724,38 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("secure boundary forwarding preserves paired token through helper call");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func ConsumeInner(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n"
+            "func ConsumeOuter(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    ConsumeInner(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeInner(s, s_token);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("extern block emits C prototypes");
     {
         ASTNode ext; memset(&ext, 0, sizeof(ext));
@@ -2238,9 +2270,17 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __zone_dirty_battle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __zone_state_liveBattle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __world_derived_dirty;");
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync(GameWorld *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_active_battle = self->__zone_active_battle;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_needs_derived = self->__world_derived_dirty;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (self->__zone_dirty_battle) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(&self->battle);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = false;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (_pgy_world_needs_derived) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_active_battle = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_liveBattle = self->__zone_active_battle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
@@ -2285,7 +2325,7 @@ test_systemic_world_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone battle = (BattleZone){ .player = (Player){ .hp = 7, .name = \"neo\" } };");
-        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld world = (GameWorld){ .battle = battle };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld world = (GameWorld){ .battle = battle, .__zone_dirty_battle = true, .__world_derived_dirty = true };");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
 
@@ -2418,6 +2458,80 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_anyLive = (self->__zone_state_allLive || self->__zone_state_campLive);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_allLive);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_anyLive);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world sync emits command, zone, and derived phases in order");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    state battleLive: zone battle\n"
+            "    activate battle\n"
+            "}\n";
+        const char *reset_pos;
+        const char *directives_pos;
+        const char *zone_sync_pos;
+        const char *derived_pos;
+        const char *battle_sync_pos;
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        reset_pos = strstr(ctx->out->data, "/* world command pass: reset */");
+        directives_pos = strstr(ctx->out->data, "/* world command pass: directives */");
+        zone_sync_pos = strstr(ctx->out->data, "/* world zone sync pass */");
+        derived_pos = strstr(ctx->out->data, "/* world derived pass */");
+        battle_sync_pos = strstr(ctx->out->data, "BattleZone_sync(&self->battle);");
+        EXPECT(reset_pos != NULL);
+        EXPECT(directives_pos != NULL);
+        EXPECT(zone_sync_pos != NULL);
+        EXPECT(derived_pos != NULL);
+        EXPECT(battle_sync_pos != NULL);
+        EXPECT(strstr(ctx->out->data, "bool __zone_dirty_battle;") != NULL);
+        EXPECT(strstr(ctx->out->data, "bool __world_derived_dirty;") != NULL);
+        EXPECT(reset_pos < directives_pos);
+        EXPECT(directives_pos < zone_sync_pos);
+        EXPECT(zone_sync_pos < battle_sync_pos);
+        EXPECT(battle_sync_pos < derived_pos);
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world methods conservatively invalidate embedded zones before post-sync");
+    {
+        const char *source =
+            "zone BattleZone { }\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    func Touch(self) -> Void { Log(1); }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "void\nGameWorld_Touch(GameWorld *self)\n{");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = true;\n    self->__world_derived_dirty = true;\n    GameWorld_sync(self);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
