@@ -62,6 +62,7 @@ let y = Validate(x)?;
 - 채널 송수신
 - 파이프 `|>`
 - postfix `?` (Result<T> unwrap + early return)
+- `${}` 문자열 보간: `"hello ${name}"`
 
 ### 2.3 우선순위
 
@@ -75,7 +76,8 @@ let y = Validate(x)?;
 6. 동등 `== !=`
 7. 논리 `&&`
 8. 논리 `||`
-9. 할당 `=`
+9. 파이프 `|>`
+10. 할당 `=`
 
 ## 3. 선언
 
@@ -90,6 +92,14 @@ let values: Array<Int> = [1, 2, 3];
 - 타입 주석은 선택 사항이다.
 - 일부 자원 타입은 `let` 초기화 규칙이 더 엄격하다.
   예: `QubitSlot`, `DeviceSlot`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`
+
+구조 분해(destructuring):
+
+```pergyra
+let (a, b, c) = Split("x y z", " ");
+```
+
+- 튜플/배열 반환값을 여러 변수에 동시 바인딩할 수 있다.
 
 ### 3.2 함수
 
@@ -159,9 +169,11 @@ enum Shape {
 
 추가 메모:
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `dto slot`, `refresh`, `publish`, `shared`, `func`의 최소 조합을 지원한다.
+- `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/dto projection slot을 Bool로 조회한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
 - `zone` body는 현재 `subject slot`, `object slot`, `dto slot`, `relation slot`, `effect slot`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <dtoSlot> from <subjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
 - `zone`의 `apply/link/detach/unlink/refresh/publish/maintain`은 optional `by <subjectSlot>` authority annotation을 받을 수 있다.
+- `HasLayer(<layerSlot>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 relation/effect layer slot을 Bool로 조회한다.
 - `HasState(<stateName>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 zone state alias를 Bool로 조회한다. 인자는 identifier나 string literal을 받을 수 있다.
 - `HasState(<effectState>, <targetSlot>)`와 `HasState(<relationState>, <leftSlot>, <rightSlot>)`는 선언된 state alias와 slot 조합이 정확히 맞는지까지 검증한다.
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
@@ -221,12 +233,18 @@ Box<Array<Int>>
 Allocator
 ```
 
+```pergyra
+Option<Int>
+Result<Int>
+```
+
 현재 구현이 해석하는 대표 타입군:
 - 배열/슬라이스
 - 채널/퓨처
 - 슬롯 계열
 - 양자/디바이스 자원
 - 공유 소유권/박스/할당기
+- Option/Result 타입
 
 ## 5. 제어문
 
@@ -247,6 +265,10 @@ for i in 0..10 {
     Log(i);
 }
 
+for item in array {
+    Log(item);
+}
+
 while cond {
     if stop { break; }
     continue;
@@ -255,6 +277,7 @@ while cond {
 
 지원:
 - `for i in start..end`
+- `for name in collection` (배열 등 컬렉션 순회)
 - `while`
 - `break`
 - `continue`
@@ -357,8 +380,16 @@ async func Fetch() -> Int {
 ```
 
 - `spawn`은 `Future<T>` 계열을 만든다.
+- `spawn blocking`은 블로킹 작업을 별도 스레드에서 실행한다.
 - `await`는 async 문맥 안에서 사용한다.
 - 현재 구현은 코루틴 런타임 경로를 사용한다.
+
+`spawn blocking` 예시:
+
+```pergyra
+let task = spawn blocking HeavyWork();
+let result: Int = await task;
+```
 
 `RemoteFuture<T>`는 `await` 결과가 `Result<T>`가 된다.
 
@@ -449,9 +480,13 @@ defer {
 };
 ```
 
+```pergyra
+bind team.fighter = Warrior;
+```
+
 주의:
 - `unsafe`와 `defer`는 시맨틱/백엔드 경로가 존재하며 회귀 테스트로 검증된다.
-- `bind`는 파서/시맨틱/코드젠 경로가 있으나 의미론은 얕다 (동적 바인딩 확인 수준).
+- `bind`는 파서/시맨틱/코드젠 경로가 있으며, role slot에 구체 타입을 동적으로 바인딩하는 데 사용한다.
 
 ## 10. 상태 구분
 

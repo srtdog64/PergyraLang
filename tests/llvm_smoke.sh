@@ -278,6 +278,39 @@ func Main() -> Void {
 EOF
 run_case "relation_effect_projection_sync" "$TMPDIR/relation_effect_projection_sync.pgy" "7" "dst" "5" "bear"
 
+cat > "$TMPDIR/zone_has_layer.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+relation TrustedLink for source: Player, target: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    subject slot enemy: Player
+    effect slot poison: Poisoned
+    relation slot trust: TrustedLink
+    state poisoned: effect poison on player
+    state allied: relation trust between player, enemy
+    maintain poisoned
+    maintain allied
+
+    func Show() -> Void {
+        Log(HasLayer(poison));
+        Log(HasLayer("trust"));
+        Log(HasState(poisoned));
+        Log(HasState(allied));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7), Player(9));
+    battle.Show();
+}
+EOF
+run_case "zone_has_layer" "$TMPDIR/zone_has_layer.pgy" "true" "true" "true" "true"
+
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
     let count: Int;

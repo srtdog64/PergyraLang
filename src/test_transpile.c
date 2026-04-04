@@ -636,6 +636,139 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("HasLayer(poison) → zone semantic placeholder outside zone context");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("poison", 1) };
+        result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "false /* HasLayer: zone-semantic query only */") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("HasProjection(snapshot) → domain semantic placeholder outside domain context");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("snapshot", 1) };
+        result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "false /* HasProjection: domain-semantic query only */") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("HasProjection lowers to relation/effect/zone runtime projection flag inside domain context");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    subject slot left: Player\n"
+            "    subject slot right: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from left\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    subject slot player: Player\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    publish snapshot from player\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    refresh playerView from player\n"
+            "    publish snapshot from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        ctx->current_relation_name = "TrustedLink";
+        {
+            ASTNode *args[1] = { make_identifier("playerView", 1) };
+            result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__projection_ready_playerView") == 0);
+            free(result);
+        }
+        ctx->current_relation_name = NULL;
+
+        ctx->current_effect_name = "Poisoned";
+        {
+            ASTNode *args[1] = { make_identifier("snapshot", 1) };
+            result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__projection_ready_snapshot") == 0);
+            free(result);
+        }
+        ctx->current_effect_name = NULL;
+
+        ctx->current_zone_name = "BattleZone";
+        {
+            ASTNode *args[1] = { make_identifier("snapshot", 1) };
+            result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__projection_ready_snapshot") == 0);
+            free(result);
+        }
+        {
+            ASTNode *args[1] = { make_identifier("playerView", 1) };
+            result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__projection_ready_playerView") == 0);
+            free(result);
+        }
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasLayer lowers to zone runtime layer field inside zone context");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    relation slot trust: TrustedLink\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        ctx->current_zone_name = "BattleZone";
+
+        {
+            ASTNode *args[1] = { make_identifier("poison", 1) };
+            result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__layer_active_poison") == 0);
+            free(result);
+        }
+
+        {
+            ASTNode *args[1] = { make_identifier("trust", 1) };
+            result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
+            EXPECT(strcmp(result, "self->__layer_active_trust") == 0);
+            free(result);
+        }
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("HasState lowers to zone runtime state field inside zone context");
     {
         const char *source =
@@ -2041,10 +2174,19 @@ test_systemic_world_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct BattleZone");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_playerView;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_snapshot;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __layer_active_poison;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(BattleZone *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_ready_playerView = false;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_ready_snapshot = false;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__layer_active_poison = false;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->playerView = (PlayerView){ .hp = self->player.hp };");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->snapshot = (PlayerDto){ .hp = self->player.hp, .name = self->player.name };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_ready_playerView = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__projection_ready_snapshot = true;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->__layer_active_poison = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__state_poisoned = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct GameWorld");

@@ -1637,6 +1637,76 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_emit_subject_projection(node, ctx);
     }
 
+    if (strcmp(callee_name, "HasProjection") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
+            ctx->current_class_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        const char *slot_name = NULL;
+        int field_idx;
+        LLVMValueRef base_ptr;
+        LLVMValueRef gep;
+        if (decl == NULL) {
+            decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
+                ctx->current_class_name);
+        }
+        if (decl == NULL) {
+            decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
+                ctx->current_class_name);
+        }
+        if (decl == NULL || cls == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        if (node->data.call.arguments[0]->type == AST_IDENTIFIER)
+            slot_name = node->data.call.arguments[0]->data.identifier.name;
+        else if (node->data.call.arguments[0]->type == AST_STRING)
+            slot_name = node->data.call.arguments[0]->data.string.value;
+        if (slot_name == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__projection_ready_%s", slot_name);
+            field_idx = llvm_class_field_index(cls, field_name);
+        }
+        if (field_idx < 0)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        base_ptr = llvm_current_self_base_ptr(ctx, cls);
+        if (base_ptr == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+            (unsigned)field_idx, llvm_tmp_name(ctx));
+        return LLVMBuildLoad2(ctx->builder, ctx->type_i1, gep, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "HasLayer") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
+            ctx->current_class_name);
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        const char *layer_name = NULL;
+        int field_idx;
+        LLVMValueRef base_ptr;
+        LLVMValueRef gep;
+        if (zone_decl == NULL || cls == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        if (node->data.call.arguments[0]->type == AST_IDENTIFIER)
+            layer_name = node->data.call.arguments[0]->data.identifier.name;
+        else if (node->data.call.arguments[0]->type == AST_STRING)
+            layer_name = node->data.call.arguments[0]->data.string.value;
+        if (layer_name == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        {
+            char field_name[256];
+            snprintf(field_name, sizeof(field_name), "__layer_active_%s", layer_name);
+            field_idx = llvm_class_field_index(cls, field_name);
+        }
+        if (field_idx < 0)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        base_ptr = llvm_current_self_base_ptr(ctx, cls);
+        if (base_ptr == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+            (unsigned)field_idx, llvm_tmp_name(ctx));
+        return LLVMBuildLoad2(ctx->builder, ctx->type_i1, gep, llvm_tmp_name(ctx));
+    }
+
     if (strcmp(callee_name, "HasState") == 0 && node->data.call.arg_count >= 1) {
         ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
             ctx->current_class_name);

@@ -363,7 +363,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
         is_struct ? "Expected value/projection type name" : "Expected nominal type name");
 
     if (decl_kind == NOMINAL_DECL_SUBJECT && parser_match(parser, TOKEN_ACTOR))
-        return parser_parse_actor_declaration_with_name(parser, name.text);
+        return parser_parse_actor_declaration_with_name(parser, name.text, true);
 
     switch (decl_kind) {
     case NOMINAL_DECL_SUBJECT:

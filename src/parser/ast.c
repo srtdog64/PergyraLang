@@ -844,6 +844,7 @@ ASTNode* ast_create_actor(const char* name) {
     node->data.actor_decl.methods = NULL;
     node->data.actor_decl.method_count = 0;
     node->data.actor_decl.generic_params = NULL;
+    node->data.actor_decl.from_subject_profile_surface = false;
     node->data.actor_decl.doc_comment = NULL;
     return node;
 }
@@ -2957,4 +2958,3 @@ void ast_print(ASTNode* node, int indent) {
     if (indent == 0 || ast_print_needs_trailing_newline(node->type))
         printf("\n");
 }
-

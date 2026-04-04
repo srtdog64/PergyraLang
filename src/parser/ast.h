@@ -461,6 +461,7 @@ struct ASTNode
             ASTNode**      methods;
             size_t         method_count;
             GenericParams* generic_params;
+            bool           from_subject_profile_surface;
             StructuredComment* doc_comment;
         } actor_decl;
         

@@ -4351,6 +4351,12 @@ type_check_actor_decl(ASTNode *node, SemanticContext *ctx)
     const char *name = node->data.actor_decl.name;
     Type *actor_type;
 
+    if (!node->data.actor_decl.from_subject_profile_surface) {
+        semantic_warning(ctx, node,
+            "Standalone actor syntax is transitional; prefer 'subject %s actor { ... }'",
+            name != NULL ? name : "<Actor>");
+    }
+
     /* Register actor as a symbol */
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);

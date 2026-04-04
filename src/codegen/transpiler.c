@@ -655,6 +655,64 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
 }
 
 static bool
+domain_has_projection_slot(ASTNode **slots, size_t slot_count, const char *slot_name)
+{
+    if (slots == NULL || slot_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || slot->data.domain_slot.slot_name == NULL
+            || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
+            continue;
+        }
+        return !slot->data.domain_slot.is_subject;
+    }
+
+    return false;
+}
+
+static bool
+current_zone_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
+{
+    ASTNode *decl;
+    if (ctx == NULL || ctx->current_zone_name == NULL || slot_name == NULL)
+        return false;
+    decl = find_zone_decl(ctx, ctx->current_zone_name);
+    if (decl == NULL)
+        return false;
+    return domain_has_projection_slot(decl->data.zone_decl.slots,
+        decl->data.zone_decl.slot_count, slot_name);
+}
+
+static bool
+current_relation_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
+{
+    ASTNode *decl;
+    if (ctx == NULL || ctx->current_relation_name == NULL || slot_name == NULL)
+        return false;
+    decl = find_relation_decl(ctx, ctx->current_relation_name);
+    if (decl == NULL)
+        return false;
+    return domain_has_projection_slot(decl->data.relation_decl.slots,
+        decl->data.relation_decl.slot_count, slot_name);
+}
+
+static bool
+current_effect_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
+{
+    ASTNode *decl;
+    if (ctx == NULL || ctx->current_effect_name == NULL || slot_name == NULL)
+        return false;
+    decl = find_effect_decl(ctx, ctx->current_effect_name);
+    if (decl == NULL)
+        return false;
+    return domain_has_projection_slot(decl->data.effect_decl.slots,
+        decl->data.effect_decl.slot_count, slot_name);
+}
+
+static bool
 current_world_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
@@ -1495,6 +1553,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "SendTimeout") == 0
                 || strcmp(name, "Cancel") == 0
                 || strcmp(name, "IsCancelled") == 0
+                || strcmp(name, "HasProjection") == 0
+                || strcmp(name, "HasLayer") == 0
                 || strcmp(name, "HasState") == 0
                 || strcmp(name, "HasZone") == 0
                 || strcmp(name, "ChannelFull") == 0
@@ -2541,6 +2601,34 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_to_dto(call, ctx);
     case BUILTIN_TO_DTO:
         return emit_builtin_to_dto(call, ctx);
+    case BUILTIN_HAS_PROJECTION:
+        if (call->data.call.arg_count == 1 && call->data.call.arguments[0] != NULL) {
+            const char *slot_name = NULL;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                slot_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                slot_name = call->data.call.arguments[0]->data.string.value;
+            if (slot_name != NULL
+                && (current_relation_has_projection_slot(ctx, slot_name)
+                    || current_effect_has_projection_slot(ctx, slot_name)
+                    || current_zone_has_projection_slot(ctx, slot_name))) {
+                return strdup_fmt("self->__projection_ready_%s", slot_name);
+            }
+        }
+        return pergyra_strdup("false /* HasProjection: domain-semantic query only */");
+    case BUILTIN_HAS_LAYER:
+        if (ctx->current_zone_name != NULL
+            && call->data.call.arg_count == 1
+            && call->data.call.arguments[0] != NULL) {
+            const char *layer_name = NULL;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                layer_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                layer_name = call->data.call.arguments[0]->data.string.value;
+            if (layer_name != NULL)
+                return strdup_fmt("self->__layer_active_%s", layer_name);
+        }
+        return pergyra_strdup("false /* HasLayer: zone-semantic query only */");
     case BUILTIN_HAS_STATE:
         if (ctx->current_zone_name != NULL
             && call->data.call.arg_count >= 1
@@ -6924,6 +7012,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+        if (!slot->data.domain_slot.is_subject) {
+            codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
+                slot->data.domain_slot.slot_name);
+        }
     }
 
     for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
@@ -6939,6 +7031,14 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+    for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
+        ASTNode *slot = node->data.relation_decl.slots[i];
+        if (!slot->data.domain_slot.is_subject) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+                slot->data.domain_slot.slot_name);
+        }
+    }
     for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.relation_decl.refreshes[i];
         ASTNode *target_slot = NULL;
@@ -6975,6 +7075,9 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
+            refresh->data.zone_refresh.object_slot_name);
         free(literal);
     }
     ctx->indent--;
@@ -7030,6 +7133,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+        if (!slot->data.domain_slot.is_subject) {
+            codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
+                slot->data.domain_slot.slot_name);
+        }
     }
 
     for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
@@ -7045,6 +7152,14 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+    for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
+        ASTNode *slot = node->data.effect_decl.slots[i];
+        if (!slot->data.domain_slot.is_subject) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+                slot->data.domain_slot.slot_name);
+        }
+    }
     for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.effect_decl.refreshes[i];
         ASTNode *target_slot = NULL;
@@ -7081,6 +7196,9 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
+            refresh->data.zone_refresh.object_slot_name);
         free(literal);
     }
     ctx->indent--;
@@ -7136,11 +7254,17 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
+        if (!slot->data.domain_slot.is_subject) {
+            codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
+                slot->data.domain_slot.slot_name);
+        }
     }
 
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.layer_slots[i];
         codebuf_write(ctx->out, "    void *%s;\n",
+            slot->data.zone_layer_slot.slot_name);
+        codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
             slot->data.zone_layer_slot.slot_name);
     }
 
@@ -7169,6 +7293,20 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__state_%s = false;\n",
             state->data.zone_state.state_name);
+    }
+    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.slots[i];
+        if (!slot->data.domain_slot.is_subject) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+                slot->data.domain_slot.slot_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
+            slot->data.zone_layer_slot.slot_name);
     }
 
     for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
@@ -7207,6 +7345,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
+            refresh->data.zone_refresh.object_slot_name);
         free(literal);
     }
 
@@ -7216,8 +7357,21 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = true;\n",
                 apply->data.zone_apply.state_name);
+            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+                ASTNode *state = node->data.zone_decl.states[j];
+                if (!state->data.zone_state.is_relation
+                    && strcmp(state->data.zone_state.state_name,
+                              apply->data.zone_apply.state_name) == 0) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+                        state->data.zone_state.layer_slot_name);
+                }
+            }
             continue;
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+            apply->data.zone_apply.effect_slot_name);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (!state->data.zone_state.is_relation
@@ -7237,6 +7391,15 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__state_%s = true;\n",
             maintain->data.zone_maintain_state.state_name);
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (strcmp(state->data.zone_state.state_name,
+                       maintain->data.zone_maintain_state.state_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+                    state->data.zone_state.layer_slot_name);
+            }
+        }
     }
 
     for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
@@ -7245,8 +7408,21 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = false;\n",
                 detach->data.zone_detach.state_name);
+            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+                ASTNode *state = node->data.zone_decl.states[j];
+                if (!state->data.zone_state.is_relation
+                    && strcmp(state->data.zone_state.state_name,
+                              detach->data.zone_detach.state_name) == 0) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
+                        state->data.zone_state.layer_slot_name);
+                }
+            }
             continue;
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
+            detach->data.zone_detach.effect_slot_name);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (!state->data.zone_state.is_relation
@@ -7267,8 +7443,21 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = true;\n",
                 link->data.zone_link.state_name);
+            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+                ASTNode *state = node->data.zone_decl.states[j];
+                if (state->data.zone_state.is_relation
+                    && strcmp(state->data.zone_state.state_name,
+                              link->data.zone_link.state_name) == 0) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+                        state->data.zone_state.layer_slot_name);
+                }
+            }
             continue;
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+            link->data.zone_link.relation_slot_name);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation
@@ -7287,6 +7476,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++) {
         ASTNode *maintain = node->data.zone_decl.maintained_relations[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+            maintain->data.zone_maintain_relation.relation_slot_name);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation
@@ -7309,8 +7501,21 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "self->__state_%s = false;\n",
                 unlink->data.zone_unlink.state_name);
+            for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+                ASTNode *state = node->data.zone_decl.states[j];
+                if (state->data.zone_state.is_relation
+                    && strcmp(state->data.zone_state.state_name,
+                              unlink->data.zone_unlink.state_name) == 0) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
+                        state->data.zone_state.layer_slot_name);
+                }
+            }
             continue;
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = false;\n",
+            unlink->data.zone_unlink.relation_slot_name);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation

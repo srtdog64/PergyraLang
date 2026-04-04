@@ -54,17 +54,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods
+- Added `HasLayer(layerSlot)` as a zone-layer query builtin for declared `relation slot` / `effect slot` names
+- Added `HasProjection(slotName)` as a relation/effect/zone projection-query builtin for declared `object slot` / `dto slot` names
 - Expanded `HasState` with slot-aware forms for effect targets and relation endpoints
 - Added C backend lowering for zone/world lifecycle state as `__state_*`, `__zone_active_*`, and `__zone_state_*` flags with generated sync helpers
-- Added C backend contextual lowering for `HasState(...)` and `HasZone(...)` inside zone/world methods
+- Added C backend contextual lowering for `HasLayer(...)`, `HasState(...)`, and `HasZone(...)` inside zone/world methods
+- Added C backend contextual lowering for `HasProjection(...)` inside relation/effect/zone methods
 - Added C backend incremental sync semantics so zone/world methods run generated sync helpers before and after body execution, applying `refresh` / `publish` projections and lifecycle flags
-- Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasState(...)` / `HasZone(...)` lowering
+- Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
 - `world`, `systemic`, `relation`, `effect`, and `zone` now behave as contextual keywords so they remain valid local variable names outside declaration positions
 - Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
 - Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
 - Added actor-as-subject-profile semantic alignment so `actor` participates in role binding, `subject slot`, `ToObject` / `ToDto`, and subject copy restrictions
 - Added `subject Name actor { ... }` as a subject-first actor profile surface that lowers through the existing actor pipeline
+- Added a semantic warning on standalone `actor Name { ... }` declarations so `subject Name actor { ... }` becomes the preferred actor surface
 - Added plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor support across semantic, C transpile, and LLVM smoke coverage
 - Added actor constructor compound-literal lowering in the C backend so `actor` values participate in subject-profile object-cell codegen paths
 - Added `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` function-boundary transfer in semantic and C/LLVM backend lowering
@@ -95,6 +99,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Ownership/object-model and status docs now describe relation/effect runtime instance construction and method-call parity in both C and LLVM backends
 - Added initial JavaScript backend policy doc that keeps inheritance/super out of the core language and prefers delegation/composition in JS lowering
 - Ontology/projection docs now emphasize `subject -> relation/effect/zone/world context -> object/dto projection` instead of treating `dto` as a peer ontology axis
+- `HasProjection(...)` is currently a semantic/C-backed relation/effect/zone query surface; LLVM/runtime parity for zone object/dto projection state remains follow-up work
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite

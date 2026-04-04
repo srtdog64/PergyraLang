@@ -74,6 +74,94 @@ find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
     return NULL;
 }
 
+static ASTNode *
+find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL
+            && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
+                                  const char *slot_name)
+{
+    if (slots == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || slot->data.domain_slot.slot_name == NULL
+            || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
+            continue;
+        }
+        if (!slot->data.domain_slot.is_subject)
+            return slot;
+        return NULL;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+current_projection_host_decl(SemanticContext *ctx, const char **label_out,
+                             ASTNode ***slots_out, size_t *slot_count_out)
+{
+    if (label_out != NULL)
+        *label_out = NULL;
+    if (slots_out != NULL)
+        *slots_out = NULL;
+    if (slot_count_out != NULL)
+        *slot_count_out = 0;
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->current_relation != NULL
+        && ctx->current_relation->type == AST_RELATION_DECL) {
+        if (label_out != NULL)
+            *label_out = "relation";
+        if (slots_out != NULL)
+            *slots_out = ctx->current_relation->data.relation_decl.slots;
+        if (slot_count_out != NULL)
+            *slot_count_out = ctx->current_relation->data.relation_decl.slot_count;
+        return ctx->current_relation;
+    }
+
+    if (ctx->current_effect != NULL
+        && ctx->current_effect->type == AST_EFFECT_DECL) {
+        if (label_out != NULL)
+            *label_out = "effect";
+        if (slots_out != NULL)
+            *slots_out = ctx->current_effect->data.effect_decl.slots;
+        if (slot_count_out != NULL)
+            *slot_count_out = ctx->current_effect->data.effect_decl.slot_count;
+        return ctx->current_effect;
+    }
+
+    if (ctx->current_zone != NULL && ctx->current_zone->type == AST_ZONE_DECL) {
+        if (label_out != NULL)
+            *label_out = "zone";
+        if (slots_out != NULL)
+            *slots_out = ctx->current_zone->data.zone_decl.slots;
+        if (slot_count_out != NULL)
+            *slot_count_out = ctx->current_zone->data.zone_decl.slot_count;
+        return ctx->current_zone;
+    }
+    return NULL;
+}
+
 static bool
 type_is_future_like(Type *type)
 {
@@ -219,6 +307,121 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
     }
     return channel_builtin_recv_result(
         element_type, name, expr->data.call.arguments[0], ctx);
+}
+
+static Type *
+type_check_has_projection(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *host;
+    ASTNode *arg;
+    ASTNode **slots = NULL;
+    size_t slot_count = 0;
+    const char *label = NULL;
+    const char *slot_name = NULL;
+    ASTNode *slot;
+
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call,
+            "'HasProjection' expects exactly 1 argument, got %zu",
+            call->data.call.arg_count);
+        return TYPE_BOOL;
+    }
+
+    host = current_projection_host_decl(ctx, &label, &slots, &slot_count);
+    if (host == NULL) {
+        semantic_error(ctx, call,
+            "HasProjection(...) is only available inside relation/effect/zone declarations and methods");
+        return TYPE_BOOL;
+    }
+
+    arg = call->data.call.arguments[0];
+    if (arg == NULL) {
+        semantic_error(ctx, call,
+            "HasProjection(...) requires an object/dto slot name");
+        return TYPE_BOOL;
+    }
+
+    if (arg->type == AST_IDENTIFIER) {
+        slot_name = arg->data.identifier.name;
+    } else if (arg->type == AST_STRING) {
+        slot_name = arg->data.string.value;
+    } else {
+        semantic_error(ctx, arg,
+            "HasProjection(...) expects an object/dto slot identifier or string literal");
+        return TYPE_BOOL;
+    }
+
+    if (slot_name == NULL) {
+        semantic_error(ctx, arg,
+            "HasProjection(...) requires a valid object/dto slot name");
+        return TYPE_BOOL;
+    }
+
+    slot = find_domain_projection_slot_local(slots, slot_count, slot_name);
+    if (slot == NULL) {
+        semantic_error(ctx, arg,
+            "Unknown %s projection slot '%s' in HasProjection(...)",
+            label != NULL ? label : "domain", slot_name);
+        return TYPE_BOOL;
+    }
+
+    return TYPE_BOOL;
+}
+
+static Type *
+type_check_has_layer(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *zone;
+    ASTNode *arg;
+    const char *slot_name = NULL;
+    ASTNode *layer_slot;
+
+    if (call->data.call.arg_count != 1) {
+        semantic_error(ctx, call,
+            "'HasLayer' expects exactly 1 argument, got %zu",
+            call->data.call.arg_count);
+        return TYPE_BOOL;
+    }
+
+    zone = ctx->current_zone;
+    if (zone == NULL || zone->type != AST_ZONE_DECL) {
+        semantic_error(ctx, call,
+            "HasLayer(...) is only available inside zone declarations and zone methods");
+        return TYPE_BOOL;
+    }
+
+    arg = call->data.call.arguments[0];
+    if (arg == NULL) {
+        semantic_error(ctx, call,
+            "HasLayer(...) requires a relation/effect slot name");
+        return TYPE_BOOL;
+    }
+
+    if (arg->type == AST_IDENTIFIER) {
+        slot_name = arg->data.identifier.name;
+    } else if (arg->type == AST_STRING) {
+        slot_name = arg->data.string.value;
+    } else {
+        semantic_error(ctx, arg,
+            "HasLayer(...) expects a layer-slot identifier or string literal");
+        return TYPE_BOOL;
+    }
+
+    if (slot_name == NULL) {
+        semantic_error(ctx, arg,
+            "HasLayer(...) requires a valid relation/effect slot name");
+        return TYPE_BOOL;
+    }
+
+    layer_slot = find_zone_layer_slot_local(zone, slot_name);
+    if (layer_slot == NULL) {
+        semantic_error(ctx, arg,
+            "Unknown zone layer slot '%s' in HasLayer(...)",
+            slot_name);
+        return TYPE_BOOL;
+    }
+
+    return TYPE_BOOL;
 }
 
 static Type *
@@ -463,6 +666,8 @@ builtin_resolve(const char *name)
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
     if (strcmp(name, "ToDto")           == 0) return BUILTIN_TO_DTO;
+    if (strcmp(name, "HasProjection")   == 0) return BUILTIN_HAS_PROJECTION;
+    if (strcmp(name, "HasLayer")        == 0) return BUILTIN_HAS_LAYER;
     if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
     if (strcmp(name, "HasZone")         == 0) return BUILTIN_HAS_ZONE;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
@@ -1907,6 +2112,10 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_to_object(call, ctx);
     case BUILTIN_TO_DTO:
         return type_check_to_dto(call, ctx);
+    case BUILTIN_HAS_PROJECTION:
+        return type_check_has_projection(call, ctx);
+    case BUILTIN_HAS_LAYER:
+        return type_check_has_layer(call, ctx);
     case BUILTIN_HAS_STATE:
         return type_check_has_state(call, ctx);
     case BUILTIN_HAS_ZONE:

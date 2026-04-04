@@ -34,21 +34,25 @@
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
 - `zone`은 `publish dtoSlot from subjectSlot`으로 subject -> dto projection 갱신을 명시할 수 있음
+- `HasProjection(slotName)` builtin은 relation/effect/zone declaration / method 안에서 선언된 object/dto projection slot의 sync-ready 여부를 Bool query로 읽을 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`은 `authority subjectSlot`으로 mutation/projection 승인 주체를 선언할 수 있음
 - `zone` authority는 `authority subjectSlot requires Ability[, Ability]`로 승인 주체가 수행 가능한 ability 계약까지 명시할 수 있음
 - `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...`로 lifecycle state alias를 선언할 수 있음
 - `zone`의 `apply/link/detach/unlink/refresh/maintain`은 optional `by subjectSlot`을 받아 authority와 연결됨
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원함
+- `HasLayer(layerSlot)` builtin은 zone declaration / zone method 안에서 선언된 `relation slot` / `effect slot` 활성 여부를 Bool query로 읽을 수 있음
 - `HasState(stateName)` builtin은 zone declaration / zone method 안에서 선언된 state alias를 Bool query로 읽을 수 있음
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state가 어떤 slot 조합에 붙는지까지 명시적으로 질의할 수 있음
 - `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` 최소 lifecycle surface를 가짐
 - `HasZone(zoneOrState)` builtin은 world declaration / world method 안에서 zone slot 또는 world state alias를 Bool query로 읽을 수 있음
-- C backend는 zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
+- C backend는 zone layer slot을 `bool __layer_active_<slot>` 필드로, zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
 - C backend는 relation/effect/zone/world마다 `<Type>_sync(self)` helper를 생성하고, method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
+- C backend는 relation/effect/zone projection slot에 `__projection_ready_*` flag를 두고 `HasProjection(...)`를 현재 domain self field query로 lowering함
 - C backend는 `relation` / `effect` constructor를 compound literal runtime instance로 lowering하고, instance method call도 pointer-self로 호출함
-- LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
-- C backend에서 `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
+- LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
+- `HasProjection(...)`는 현재 relation/effect/zone 문맥에서 semantic/C surface로 닫혀 있고, LLVM runtime parity는 follow-up으로 남아 있음
+- C backend에서 `HasLayer(...)` / `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__layer_active_*` / `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
 - `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
 - `zone`의 `refresh`/`publish`는 object/dto slot / subject slot kind와 projection field 정합성을 검사함
@@ -112,8 +116,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 387 passed |
-| transpile | 259 passed |
+| semantic | 402 passed |
+| transpile | 282 passed |
 | llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:
@@ -137,6 +141,7 @@
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
 - partial 완료: `actor`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
 - partial 완료: `subject Name actor { ... }` subject-first actor profile surface
+- partial 완료: standalone `actor Name { ... }`를 transitional syntax로 경고
 - partial 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor
 - partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)

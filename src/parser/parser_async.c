@@ -154,9 +154,11 @@ parse_actor_body(Parser *parser, ASTNode *actor)
     return actor;
 }
 
-ASTNode* parser_parse_actor_declaration_with_name(Parser* parser, const char* name)
+ASTNode* parser_parse_actor_declaration_with_name(Parser* parser, const char* name,
+                                                  bool from_subject_profile_surface)
 {
     ASTNode* actor = ast_create_actor(name);
+    actor->data.actor_decl.from_subject_profile_surface = from_subject_profile_surface;
     actor->data.actor_decl.doc_comment = parser_take_pending_doc_comment(parser);
     
     // Generic parameters (if any)
@@ -172,7 +174,7 @@ ASTNode* parser_parse_actor_declaration(Parser* parser)
 {
     // 'actor' keyword already consumed
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected actor name");
-    return parser_parse_actor_declaration_with_name(parser, name.text);
+    return parser_parse_actor_declaration_with_name(parser, name.text, false);
 }
 
 // Parse async block statement

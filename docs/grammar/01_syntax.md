@@ -33,6 +33,7 @@
 
 주의:
 - `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다. 선언 위치에서는 키워드처럼 동작하지만, 지역 변수나 일반 표현식 자리에서는 식별자로 쓸 수 있다.
+- `HasProjection(slotName)`는 현재 relation/effect/zone 문맥에서만 유효한 projection sync-ready query다.
 
 ## 2. 선언
 
@@ -48,7 +49,17 @@ let values: Array<Int> = [1, 2, 3];
 - `let name: Type = expr;`
 - 타입 추론과 명시 타입 주석을 둘 다 지원
 
+구조 분해(destructuring):
+
+```pergyra
+let (a, b, c) = Split("x y z", " ");
+```
+
+- 튜플/배열 반환값을 여러 변수에 동시 바인딩할 수 있다.
+
 ### 2.2 함수
+
+`->` 는 함수 반환 타입을 지정하는 문법이다.
 
 ```pergyra
 func Add(a: Int, b: Int) -> Int {
@@ -73,6 +84,20 @@ where T: Comparable {
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
+
+#### `->` 반환 타입 문법
+
+`->`는 함수/람다의 반환 타입을 지정한다.
+
+```pergyra
+func Add(a: Int, b: Int) -> Int { ... }
+```
+
+람다 반환 타입 주석에도 사용된다:
+
+```pergyra
+let f = (x: Int) -> Int => { return x + 1; };
+```
 
 ### 2.3 타입 선언
 
@@ -123,6 +148,7 @@ enum Color { Red, Green, Blue }
 - `zone`은 `apply/detach/link/unlink/refresh/publish/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `zone`은 `publish dtoSlot from subjectSlot`로 dto projection 갱신을 명시할 수 있다.
+- `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.
 - `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain`, `HasZone(zoneOrState)`를 지원한다.
@@ -176,6 +202,8 @@ DeviceSlot<Int>
 Channel<Int>
 Future<Int>
 RemoteFuture<Int>
+Option<Int>
+Result<Int>
 ```
 
 ## 4. 표현식
@@ -202,6 +230,9 @@ await pending
 - `spawn`
 - `await`
 - 채널 송수신 연산자
+- `|>` 파이프 연산자: `data |> Transform |> Validate`
+- `?` postfix try: `let val = riskyFunc()?;` (Result<T> unwrap + early return)
+- `${}` 문자열 보간: `"hello ${name}"`
 
 연산자 우선순위는 대체로 다음과 같다.
 1. 호출 / 멤버 접근 / 인덱싱
@@ -212,7 +243,8 @@ await pending
 6. 동등 `== !=`
 7. 논리 `&&`
 8. 논리 `||`
-9. 할당 `=`
+9. 파이프 `|>`
+10. 할당 `=`
 
 ## 5. 제어문
 
@@ -229,6 +261,10 @@ for i in 0..10 {
     Log(i);
 }
 
+for item in array {
+    Log(item);
+}
+
 while running {
     if stop { break; }
     continue;
@@ -239,6 +275,7 @@ while running {
 - `if / else`
 - `else if` 체인
 - `for name in start..end`
+- `for name in collection` (배열 등 컬렉션 순회)
 - `while`
 - `break`
 - `continue`
@@ -264,6 +301,19 @@ match value {
 - `case`
 - `default`
 - guard가 있는 `case value if cond:`
+
+### 5.3 Option 패턴 매칭
+
+`Option<T>` 타입은 `match`에서 `Some`/`None` 패턴으로 분해할 수 있다.
+
+```pergyra
+match opt {
+    case Some(v):
+        Log(v);
+    case None:
+        Log("empty");
+}
+```
 
 ## 6. 슬롯과 view
 
@@ -340,8 +390,16 @@ async {
 지원:
 - `async func`
 - `spawn expr`
+- `spawn blocking expr`
 - `await expr`
 - `async { ... }` 블록
+
+`spawn blocking`은 블로킹 작업을 별도 스레드에서 실행한다:
+
+```pergyra
+let task = spawn blocking HeavyWork();
+let result: Int = await task;
+```
 
 ### 7.3 채널 / select
 
@@ -447,7 +505,7 @@ world GameWorld {
 - 파일명: `snake_case.pgy`
 
 대표 내장 API:
-`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`
+`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`, `Split`, `Join`, `ToInt`, `ToFloat`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse`, `ArrayLength`, `ArrayPush`, `ArrayPop`, `ArraySet`, `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`, `ChannelSpace`, `ChannelFull`, `ChannelClosed`, `ChannelLength`, `ChannelCapacity`, `ChannelReady`, `TryRecv`, `TrySend`, `Cancel`, `IsCancelled`, `SpawnBlocking`, `ToObject`, `ToDto`, `HasState`, `HasZone`
 
 ## 10. 문서 사용법
 

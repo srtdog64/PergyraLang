@@ -224,6 +224,7 @@ Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에
 - actor는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
 - 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToDto`, subject copy restriction에 actor를 포함한다
 - 현재 parser surface는 standalone `actor Counter { ... }`와 subject-first `subject Counter actor { ... }`를 모두 받는다
+- standalone `actor Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter actor { ... }`다
 - 즉 장기 모델에서도 구현 상태에서도 `actor`보다 `subject`가 먼저다
 
 ### systemic / world

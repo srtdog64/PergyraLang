@@ -3641,7 +3641,7 @@ test_shared_memory_features(void)
     TEST("relation/effect/zone accept actor types in subject slot");
     {
         const char *source =
-            "actor Bot {\n"
+            "subject Bot actor {\n"
             "    let hp: Int;\n"
             "}\n"
             "relation ActiveLink {\n"
@@ -4809,6 +4809,29 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("standalone actor syntax warns to prefer subject-first surface");
+    {
+        const char *source =
+            "actor Counter {\n"
+            "    let count: Int;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Standalone actor syntax is transitional; prefer 'subject Counter actor { ... }'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("subject actor profile syntax is rejected by subject copy rules");
     {
         const char *source =
@@ -4940,7 +4963,7 @@ test_effect_inference(void)
     TEST("Slot<actor> is accepted as a local object-cell anchor");
     {
         const char *source =
-            "actor Bot {\n"
+            "subject Bot actor {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -4991,7 +5014,7 @@ test_effect_inference(void)
     TEST("SecureSlot<actor> is accepted as a secure object-cell anchor");
     {
         const char *source =
-            "actor Bot {\n"
+            "subject Bot actor {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -5498,7 +5521,7 @@ test_misc_grammar_edges(void)
     {
         const char *source =
             "dto BotDto { hp: Int; }\n"
-            "actor Bot {\n"
+            "subject Bot actor {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -5729,6 +5752,154 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasLayer works inside zone methods for declared relation and effect slots");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    func Tick() -> Void {\n"
+            "        if HasLayer(trust) || HasLayer(\"poison\") {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasLayer rejects unknown names and use outside zone");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    func Tick() -> Void {\n"
+            "        if HasLayer(missing) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let active = HasLayer(\"poison\");\n"
+            "    Log(active);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasProjection works inside relation/effect/zone methods for declared object and dto slots");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    subject slot left: Player\n"
+            "    subject slot right: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from left\n"
+            "    func Inspect() -> Void {\n"
+            "        if HasProjection(playerView) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    subject slot player: Player\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    publish snapshot from player\n"
+            "    func Tick() -> Void {\n"
+            "        if HasProjection(\"snapshot\") {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    refresh playerView from player\n"
+            "    publish snapshot from player\n"
+            "    func Update() -> Void {\n"
+            "        if HasProjection(playerView) || HasProjection(\"snapshot\") {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasProjection rejects subject slots, unknown names, and use outside domain context");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot snapshot: PlayerView\n"
+            "    func Show() -> Void {\n"
+            "        let a = HasProjection(player);\n"
+            "        let b = HasProjection(missing);\n"
+            "        Log(a || b);\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let active = HasProjection(\"snapshot\");\n"
+            "    Log(active);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 3);
 
         semantic_result_destroy(result);
         ast_destroy(program);

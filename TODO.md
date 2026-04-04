@@ -86,8 +86,12 @@
 - [x] **디스트럭처링** — `let (a, b, c) = expr` 배열/컬렉션 positional 바인딩
   - 완료: Array<T> → 인덱스 기반 추출 (`result.data[0]`, `result.data[1]`, ...)
 
+### 메타프로그래밍 입장 (결정 완료)
+- [x] **TMP 비채택** — 제네릭 monomorphization + ability dispatch로 95% 커버. 문서: `docs/23_metaprogramming_position.md`
+- [ ] **향후 코드 생성 필요 시** — 컴파일 타임 플러그인 (proc_macro 모델) 또는 소스 생성기 검토
+
 ### 언어 완성도 Tier 2 — 실사용 편의
-- [ ] **sealed ability** — 같은 모듈 내 role만 impl 허용
+- [ ] **innate ability** — 같은 모듈 내 role만 impl 허용 (sealed 대신 innate 채택. 문서: `docs/24_visibility_model.md`)
 - [ ] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증 (파서는 완료)
 - [ ] **OR 패턴** — `case 1 | 2 | 3:` match에서
 - [ ] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
@@ -114,6 +118,11 @@
 - [ ] **World 경계 = 실패 도메인 경계** — 크로스 World 통신은 Channel만
   - World 시맨틱 체커 구현 (현재 파싱만 완료)
   - World 코드젠 (C 백엔드 우선)
+
+### Projection / Domain Query
+- [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 여부를 질의
+  - 완료: semantic + C lowering
+  - 남음: LLVM runtime parity를 zone object/dto propagation 경로와 함께 안정화
   - World 내부의 Slot은 로컬 (zero-cost), World 간은 Channel (명시적 비용)
 
 ### 스케일링 대응 (레드팀 피드백 기반)
@@ -191,13 +200,14 @@
   - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
   - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
   - 완료: `HasState(stateName)` zone query builtin을 parser/semantic에 연결하고 C backend에서 zone state field query로 lowering
+  - 완료: `HasLayer(layerSlot)` zone query builtin을 parser/semantic에 연결하고 C/LLVM backend에서 zone layer field query로 lowering
   - 완료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query를 semantic에 연결
   - 완료: `world`의 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 parser/semantic에 연결
   - 완료: `HasZone(zoneOrState)` world query builtin을 parser/semantic에 연결하고 C backend에서 world zone-state/active field query로 lowering
   - 완료: C backend가 zone/world마다 sync helper를 생성하고 method 전후에 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 동기화
   - 부분 완료: `relation`, `effect` declaration이 C backend에서 struct + method wrapper로 codegen됨
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
-  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, richer runtime propagation, LLVM parity, inter-layer composition
+  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, richer runtime propagation, inter-layer composition
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
@@ -215,6 +225,7 @@
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
   - 완료: `subject Name actor { ... }` subject-first actor profile surface
+  - 완료: standalone `actor Name { ... }` transitional semantic warning
   - 남음: relation/projection 중심 surface 고정, deeper runtime propagation
 
 ### slot 권한 / 자원군 확장
