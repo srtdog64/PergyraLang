@@ -727,6 +727,53 @@ test_expression_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("LLVM domain layouts include projection-ready flags for relation/effect/zone");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { hp: Int; name: String; }\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    subject slot left: Player\n"
+            "    subject slot right: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    refresh playerView from left\n"
+            "    publish snapshot from right\n"
+            "}\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    refresh playerView from player\n"
+            "    publish snapshot from player\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    dto slot snapshot: PlayerDto\n"
+            "    refresh playerView from player\n"
+            "    publish snapshot from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+
+        ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_playerView;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_snapshot;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("HasLayer lowers to zone runtime layer field inside zone context");
     {
         const char *source =
@@ -2241,6 +2288,99 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld world = (GameWorld){ .battle = battle };");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("world cross-layer queries lower to embedded zone runtime flags");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    refresh playerView from player\n"
+            "    maintain poisoned\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(HasZoneProjection(battle, playerView));\n"
+            "        Log(HasZoneLayer(battle, poison));\n"
+            "        Log(HasZoneState(battle, poisoned));\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__projection_ready_playerView);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__layer_active_poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__state_poisoned);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone sync binds typed relation/effect layers before projection reads");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "dto PlayerDto { name: String; }\n"
+            "effect Poisoned for bearer: Player {\n"
+            "    object slot view: PlayerView\n"
+            "    refresh view from bearer\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player {\n"
+            "    dto slot packet: PlayerDto\n"
+            "    publish packet from target\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    relation slot trust: TrustedLink\n"
+            "    apply poison to player\n"
+            "    link trust between player, enemy\n"
+            "    func Show(self) -> Void {\n"
+            "        Log(self.poison.view.hp);\n"
+            "        Log(self.trust.packet.name);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned poison;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink trust;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.bearer = self->player;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(&self->poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->trust.source = self->player;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "self->trust.target = self->enemy;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(&self->trust);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->poison.view.hp);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->trust.packet.name);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

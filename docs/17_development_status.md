@@ -46,12 +46,16 @@
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`로 state가 어떤 slot 조합에 붙는지까지 명시적으로 질의할 수 있음
 - `world`는 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` 최소 lifecycle surface를 가짐
 - `HasZone(zoneOrState)` builtin은 world declaration / world method 안에서 zone slot 또는 world state alias를 Bool query로 읽을 수 있음
+- `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)` builtin은 world declaration / world method 안에서 embedded zone의 projection/layer/state flag를 직접 Bool query로 읽을 수 있음
 - C backend는 zone layer slot을 `bool __layer_active_<slot>` 필드로, zone state alias를 `bool __state_<name>` 필드로, world zone lifecycle을 `bool __zone_active_<slot>` / `bool __zone_state_<name>` 필드로 낮춤
 - C backend는 relation/effect/zone/world마다 `<Type>_sync(self)` helper를 생성하고, method 실행 전후에 호출해 `refresh`/`publish` projection과 state/lifecycle flag를 incremental하게 동기화함
 - C backend는 relation/effect/zone projection slot에 `__projection_ready_*` flag를 두고 `HasProjection(...)`를 현재 domain self field query로 lowering함
 - C backend는 `relation` / `effect` constructor를 compound literal runtime instance로 lowering하고, instance method call도 pointer-self로 호출함
-- LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
-- `HasProjection(...)`는 현재 relation/effect/zone 문맥에서 semantic/C surface로 닫혀 있고, LLVM runtime parity는 follow-up으로 남아 있음
+- LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasProjection(...)` / `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
+- `HasProjection(...)`는 현재 relation/effect/zone 문맥에서 semantic/C/LLVM runtime parity까지 닫혀 있음
+- `zone` layer slot은 이제 C/LLVM 양쪽에서 `void*` placeholder가 아니라 typed `relation` / `effect` runtime instance로 유지되며, zone sync가 subject slot 값을 overlay endpoint/target에 바인딩한 뒤 `<Layer>_sync(&self->layer)`를 호출함
+- direct `apply/link/detach/unlink`와 `maintain effect/relation/state` 모두 C/LLVM zone sync에서 실제 layer active/state/projection 전파로 연결됨
+- zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM smoke까지 닫혀 있음
 - C backend에서 `HasLayer(...)` / `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__layer_active_*` / `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 subject target 수와 타입을 검사함
 - `zone`의 `link/unlink`는 `relation` declaration의 subject endpoint 수와 타입을 검사함
@@ -116,8 +120,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 4 passed |
-| semantic | 402 passed |
-| transpile | 282 passed |
+| semantic | 406 passed |
+| transpile | 296 passed |
 | llvm smoke | 통과 (`cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:

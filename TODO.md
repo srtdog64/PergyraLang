@@ -121,8 +121,7 @@
 
 ### Projection / Domain Query
 - [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 여부를 질의
-  - 완료: semantic + C lowering
-  - 남음: LLVM runtime parity를 zone object/dto propagation 경로와 함께 안정화
+  - 완료: semantic + C/LLVM lowering
   - World 내부의 Slot은 로컬 (zero-cost), World 간은 Channel (명시적 비용)
 
 ### 스케일링 대응 (레드팀 피드백 기반)
@@ -205,9 +204,13 @@
   - 완료: `world`의 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 parser/semantic에 연결
   - 완료: `HasZone(zoneOrState)` world query builtin을 parser/semantic에 연결하고 C backend에서 world zone-state/active field query로 lowering
   - 완료: C backend가 zone/world마다 sync helper를 생성하고 method 전후에 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 동기화
-  - 부분 완료: `relation`, `effect` declaration이 C backend에서 struct + method wrapper로 codegen됨
+  - 완료: `relation`, `effect` declaration이 C/LLVM backend에서 struct + method wrapper로 codegen되고 runtime instance constructor/method path가 연결됨
+  - 완료: `zone` layer slot이 C/LLVM에서 typed overlay runtime instance로 유지되고 sync가 subject slot을 layer endpoint/target에 바인딩한 뒤 projection sync까지 수행
+  - 완료: direct `apply/link/detach/unlink`와 `maintain effect/relation/state`가 C/LLVM zone sync에서 실제 layer/state propagation으로 연결됨
+  - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
+  - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
-  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, richer runtime propagation, inter-layer composition
+  - 남음: 구조적 inter-layer composition policy, derived world-state contract, richer world-level runtime semantics
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
@@ -226,7 +229,7 @@
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
   - 완료: `subject Name actor { ... }` subject-first actor profile surface
   - 완료: standalone `actor Name { ... }` transitional semantic warning
-  - 남음: relation/projection 중심 surface 고정, deeper runtime propagation
+  - 남음: relation/projection 중심 surface 고정, derived world-state contract
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing

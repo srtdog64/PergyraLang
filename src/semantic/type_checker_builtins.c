@@ -95,6 +95,111 @@ find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 
 static ASTNode *
 find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
+                                  const char *slot_name);
+
+static ASTNode *
+find_world_zone_slot_local_builtin(ASTNode *world, const char *slot_name)
+{
+    if (world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world->data.world_decl.zones[i];
+        if (zone != NULL
+            && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            return zone;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_program_domain_decl_local(ASTNode *program, ASTNodeType decl_type, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != decl_type)
+            continue;
+        switch (decl_type) {
+        case AST_ZONE_DECL:
+            if (stmt->data.zone_decl.name != NULL
+                && strcmp(stmt->data.zone_decl.name, name) == 0)
+                return stmt;
+            break;
+        case AST_RELATION_DECL:
+            if (stmt->data.relation_decl.name != NULL
+                && strcmp(stmt->data.relation_decl.name, name) == 0)
+                return stmt;
+            break;
+        case AST_EFFECT_DECL:
+            if (stmt->data.effect_decl.name != NULL
+                && strcmp(stmt->data.effect_decl.name, name) == 0)
+                return stmt;
+            break;
+        case AST_WORLD_DECL:
+            if (stmt->data.world_decl.name != NULL
+                && strcmp(stmt->data.world_decl.name, name) == 0)
+                return stmt;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+resolve_world_zone_decl_local(SemanticContext *ctx, ASTNode *world, const char *slot_name)
+{
+    ASTNode *zone_slot;
+
+    if (ctx == NULL || world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
+        return NULL;
+
+    zone_slot = find_world_zone_slot_local_builtin(world, slot_name);
+    if (zone_slot == NULL || zone_slot->data.world_zone.zone_type == NULL)
+        return NULL;
+
+    return find_program_domain_decl_local(ctx->program_root, AST_ZONE_DECL,
+        zone_slot->data.world_zone.zone_type);
+}
+
+static ASTNode *
+find_zone_projection_slot_local(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL)
+        return NULL;
+    return find_domain_projection_slot_local(zone->data.zone_decl.slots,
+        zone->data.zone_decl.slot_count, slot_name);
+}
+
+static ASTNode *
+find_zone_state_decl_local_builtin(ASTNode *zone, const char *state_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
+        ASTNode *state = zone->data.zone_decl.states[i];
+        if (state != NULL && state->type == AST_ZONE_STATE
+            && state->data.zone_state.state_name != NULL
+            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
                                   const char *slot_name)
 {
     if (slots == NULL || slot_name == NULL)
@@ -630,6 +735,92 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     return TYPE_BOOL;
 }
 
+static Type *
+type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
+                                 const char *builtin_name,
+                                 ASTNode *(*resolver)(ASTNode *, const char *),
+                                 const char *detail_label)
+{
+    ASTNode *world;
+    ASTNode *zone_decl;
+    ASTNode *zone_arg;
+    ASTNode *detail_arg;
+    const char *zone_slot_name = NULL;
+    const char *detail_name = NULL;
+    ASTNode *detail_decl;
+
+    if (call->data.call.arg_count != 2) {
+        semantic_error(ctx, call,
+            "'%s' expects exactly 2 argument(s), got %zu",
+            builtin_name, call->data.call.arg_count);
+        return TYPE_BOOL;
+    }
+
+    world = ctx->current_world;
+    if (world == NULL || world->type != AST_WORLD_DECL) {
+        semantic_error(ctx, call,
+            "%s(...) is only available inside world declarations and world methods",
+            builtin_name);
+        return TYPE_BOOL;
+    }
+
+    zone_arg = call->data.call.arguments[0];
+    detail_arg = call->data.call.arguments[1];
+    if (zone_arg == NULL || detail_arg == NULL) {
+        semantic_error(ctx, call,
+            "%s(...) requires a world zone slot and zone %s name",
+            builtin_name, detail_label);
+        return TYPE_BOOL;
+    }
+
+    if (zone_arg->type == AST_IDENTIFIER)
+        zone_slot_name = zone_arg->data.identifier.name;
+    else if (zone_arg->type == AST_STRING)
+        zone_slot_name = zone_arg->data.string.value;
+    else {
+        semantic_error(ctx, zone_arg,
+            "%s(...) expects a world zone-slot identifier or string literal as the first argument",
+            builtin_name);
+        return TYPE_BOOL;
+    }
+
+    if (detail_arg->type == AST_IDENTIFIER)
+        detail_name = detail_arg->data.identifier.name;
+    else if (detail_arg->type == AST_STRING)
+        detail_name = detail_arg->data.string.value;
+    else {
+        semantic_error(ctx, detail_arg,
+            "%s(...) expects a zone %s identifier or string literal as the second argument",
+            builtin_name, detail_label);
+        return TYPE_BOOL;
+    }
+
+    if (zone_slot_name == NULL || detail_name == NULL) {
+        semantic_error(ctx, call,
+            "%s(...) requires valid zone-slot and %s names",
+            builtin_name, detail_label);
+        return TYPE_BOOL;
+    }
+
+    zone_decl = resolve_world_zone_decl_local(ctx, world, zone_slot_name);
+    if (zone_decl == NULL) {
+        semantic_error(ctx, zone_arg,
+            "Unknown world zone slot '%s' in %s(...)",
+            zone_slot_name, builtin_name);
+        return TYPE_BOOL;
+    }
+
+    detail_decl = resolver(zone_decl, detail_name);
+    if (detail_decl == NULL) {
+        semantic_error(ctx, detail_arg,
+            "Unknown zone %s '%s' in %s(%s, ...)",
+            detail_label, detail_name, builtin_name, zone_slot_name);
+        return TYPE_BOOL;
+    }
+
+    return TYPE_BOOL;
+}
+
 BuiltinKind
 builtin_resolve(const char *name)
 {
@@ -670,6 +861,9 @@ builtin_resolve(const char *name)
     if (strcmp(name, "HasLayer")        == 0) return BUILTIN_HAS_LAYER;
     if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
     if (strcmp(name, "HasZone")         == 0) return BUILTIN_HAS_ZONE;
+    if (strcmp(name, "HasZoneProjection") == 0) return BUILTIN_HAS_ZONE_PROJECTION;
+    if (strcmp(name, "HasZoneLayer")    == 0) return BUILTIN_HAS_ZONE_LAYER;
+    if (strcmp(name, "HasZoneState")    == 0) return BUILTIN_HAS_ZONE_STATE;
     if (strcmp(name, "StringSplit")     == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringJoin")      == 0) return BUILTIN_NOT_BUILTIN;
     if (strcmp(name, "StringContains")  == 0) return BUILTIN_NOT_BUILTIN;
@@ -2120,6 +2314,15 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_has_state(call, ctx);
     case BUILTIN_HAS_ZONE:
         return type_check_has_zone(call, ctx);
+    case BUILTIN_HAS_ZONE_PROJECTION:
+        return type_check_has_world_zone_detail(call, ctx, "HasZoneProjection",
+            find_zone_projection_slot_local, "projection slot");
+    case BUILTIN_HAS_ZONE_LAYER:
+        return type_check_has_world_zone_detail(call, ctx, "HasZoneLayer",
+            find_zone_layer_slot_local, "layer slot");
+    case BUILTIN_HAS_ZONE_STATE:
+        return type_check_has_world_zone_detail(call, ctx, "HasZoneState",
+            find_zone_state_decl_local_builtin, "state");
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
     case BUILTIN_FILE_OPEN:

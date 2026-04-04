@@ -51,6 +51,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `authority <subjectSlot> requires Ability[, ...]` to validate authority subjects against role-implemented abilities
 - Added world lifecycle surface: `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState`
 - Added `HasZone(zoneOrState)` as a world lifecycle query surface
+- Added `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, and `HasZoneState(zoneSlot, stateName)` as world-level cross-layer query built-ins
 - Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
 - Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Added `HasState(stateName)` as a zone-state query builtin for zone declarations and zone methods
@@ -80,6 +81,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Direct `ToObject` / `ToDto` outside relation/effect/zone/world context now emit semantic warnings so domain-local projection flow is the preferred path
 - `relation` / `effect` declarations now support domain-local `refresh` / `publish` projection sync and `<Type>_sync(self)` helpers around methods in both C and LLVM backends
 - `relation` / `effect` positional constructors are now type-checked as nominal overlay instances and lower to runtime instances in both C and LLVM paths
+- Zone layer slots now lower as typed `relation` / `effect` runtime instances in both C and LLVM backends instead of placeholder pointers
+- Zone sync now binds subject slots into embedded relation/effect layer endpoints or targets before calling `<Layer>_sync(&self->layer)`
+- Direct `apply/link/detach/unlink` and `maintain effect/relation/state` now propagate real layer/state runtime changes in LLVM as well as C
+- Added runtime regression coverage for embedded zone overlay projection reads such as `self.poison.view.hp` and `self.trust.packet.name`
+- Added runtime regression coverage for world-to-zone cross-layer queries over embedded projection/layer/state flags
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -99,7 +105,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Ownership/object-model and status docs now describe relation/effect runtime instance construction and method-call parity in both C and LLVM backends
 - Added initial JavaScript backend policy doc that keeps inheritance/super out of the core language and prefers delegation/composition in JS lowering
 - Ontology/projection docs now emphasize `subject -> relation/effect/zone/world context -> object/dto projection` instead of treating `dto` as a peer ontology axis
-- `HasProjection(...)` is currently a semantic/C-backed relation/effect/zone query surface; LLVM/runtime parity for zone object/dto projection state remains follow-up work
+- `HasProjection(...)` now has semantic/C/LLVM runtime parity across relation/effect/zone projection-state queries
+- World-level cross-layer queries now lower to embedded zone runtime flags in both C and LLVM backends
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite

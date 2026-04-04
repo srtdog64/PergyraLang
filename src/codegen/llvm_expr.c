@@ -280,6 +280,14 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *
         ASTNode *stmt = ctx->hir->items[i].ast;
         if (stmt == NULL || stmt->type != decl_type)
             continue;
+        if (decl_type == AST_RELATION_DECL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, name) == 0)
+            return stmt;
+        if (decl_type == AST_EFFECT_DECL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, name) == 0)
+            return stmt;
         if (decl_type == AST_ZONE_DECL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, name) == 0)
@@ -322,6 +330,63 @@ llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl, const char *sta
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0) {
             return state;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world_decl->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            return zone;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl, const char *slot_name)
+{
+    ASTNode *zone_slot = llvm_find_world_zone_slot_decl(world_decl, slot_name);
+    if (ctx == NULL || zone_slot == NULL || zone_slot->data.world_zone.zone_type == NULL)
+        return NULL;
+    return llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, zone_slot->data.world_zone.zone_type);
+}
+
+static ASTNode *
+llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_zone_layer_slot_decl(ASTNode *zone_decl, const char *slot_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
         }
     }
     return NULL;
@@ -1771,6 +1836,77 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (base_ptr == NULL)
             return LLVMConstInt(ctx->type_i1, 0, 0);
         gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+            (unsigned)field_idx, llvm_tmp_name(ctx));
+        return LLVMBuildLoad2(ctx->builder, ctx->type_i1, gep, llvm_tmp_name(ctx));
+    }
+
+    if ((strcmp(callee_name, "HasZoneProjection") == 0
+         || strcmp(callee_name, "HasZoneLayer") == 0
+         || strcmp(callee_name, "HasZoneState") == 0)
+        && node->data.call.arg_count == 2) {
+        ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL,
+            ctx->current_class_name);
+        LLVMClassTypeEntry *world_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+        const char *zone_name = NULL;
+        const char *detail_name = NULL;
+        ASTNode *zone_decl;
+        LLVMClassTypeEntry *zone_cls;
+        int zone_idx;
+        int field_idx = -1;
+        LLVMValueRef world_ptr;
+        LLVMValueRef zone_ptr;
+        LLVMValueRef gep;
+
+        if (world_decl == NULL || world_cls == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        if (node->data.call.arguments[0]->type == AST_IDENTIFIER)
+            zone_name = node->data.call.arguments[0]->data.identifier.name;
+        else if (node->data.call.arguments[0]->type == AST_STRING)
+            zone_name = node->data.call.arguments[0]->data.string.value;
+        if (node->data.call.arguments[1]->type == AST_IDENTIFIER)
+            detail_name = node->data.call.arguments[1]->data.identifier.name;
+        else if (node->data.call.arguments[1]->type == AST_STRING)
+            detail_name = node->data.call.arguments[1]->data.string.value;
+        if (zone_name == NULL || detail_name == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+
+        zone_decl = llvm_resolve_world_zone_decl(ctx, world_decl, zone_name);
+        zone_cls = zone_decl != NULL && zone_decl->data.zone_decl.name != NULL
+            ? llvm_lookup_class(ctx, zone_decl->data.zone_decl.name)
+            : NULL;
+        zone_idx = llvm_class_field_index(world_cls, zone_name);
+        if (zone_decl == NULL || zone_cls == NULL || zone_idx < 0)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+
+        if (strcmp(callee_name, "HasZoneProjection") == 0) {
+            ASTNode *slot = llvm_find_zone_domain_slot_decl(zone_decl, detail_name);
+            if (slot != NULL && !slot->data.domain_slot.is_subject) {
+                char field_name[256];
+                snprintf(field_name, sizeof(field_name), "__projection_ready_%s", detail_name);
+                field_idx = llvm_class_field_index(zone_cls, field_name);
+            }
+        } else if (strcmp(callee_name, "HasZoneLayer") == 0) {
+            if (llvm_find_zone_layer_slot_decl(zone_decl, detail_name) != NULL) {
+                char field_name[256];
+                snprintf(field_name, sizeof(field_name), "__layer_active_%s", detail_name);
+                field_idx = llvm_class_field_index(zone_cls, field_name);
+            }
+        } else {
+            if (llvm_find_zone_state_decl(ctx, zone_decl, detail_name) != NULL) {
+                char field_name[256];
+                snprintf(field_name, sizeof(field_name), "__state_%s", detail_name);
+                field_idx = llvm_class_field_index(zone_cls, field_name);
+            }
+        }
+
+        if (field_idx < 0)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        world_ptr = llvm_current_self_base_ptr(ctx, world_cls);
+        if (world_ptr == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        zone_ptr = LLVMBuildStructGEP2(ctx->builder, world_cls->struct_type, world_ptr,
+            (unsigned)zone_idx, llvm_tmp_name(ctx));
+        gep = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,
             (unsigned)field_idx, llvm_tmp_name(ctx));
         return LLVMBuildLoad2(ctx->builder, ctx->type_i1, gep, llvm_tmp_name(ctx));
     }

@@ -229,6 +229,256 @@ llvm_domain_decl_parts(ASTNode *stmt,
     }
 }
 
+static size_t
+llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count)
+{
+    size_t projection_count = 0;
+
+    if (slots == NULL)
+        return 0;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+            && !slot->data.domain_slot.is_subject) {
+            projection_count++;
+        }
+    }
+
+    return projection_count;
+}
+
+static ASTNode *
+llvm_find_nth_subject_domain_slot(ASTNode **slots, size_t slot_count, size_t nth)
+{
+    size_t seen = 0;
+
+    if (slots == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject) {
+            continue;
+        }
+        if (seen == nth)
+            return slot;
+        seen++;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_named_domain_decl_local(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
+{
+    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt == NULL || stmt->type != decl_type)
+            continue;
+        if (decl_type == AST_RELATION_DECL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, name) == 0)
+            return stmt;
+        if (decl_type == AST_EFFECT_DECL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, name) == 0)
+            return stmt;
+        if (decl_type == AST_ZONE_DECL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, name) == 0)
+            return stmt;
+        if (decl_type == AST_WORLD_DECL
+            && stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name, bool is_relation)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.is_relation == is_relation
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
+static void
+llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
+                            LLVMValueRef sync_fn, LLVMGenCtx *ctx,
+                            const char *layer_slot_name, const char *target_slot_name)
+{
+    ASTNode *layer_slot;
+    ASTNode *effect_decl;
+    ASTNode *subject_slot;
+    LLVMClassTypeEntry *effect_cls;
+    int layer_idx;
+    int target_idx;
+    int subject_idx;
+    LLVMValueRef self_ptr;
+    LLVMValueRef layer_ptr;
+    LLVMValueRef target_ptr;
+    LLVMValueRef target_value;
+
+    if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
+        || layer_slot_name == NULL || target_slot_name == NULL) {
+        return;
+    }
+
+    layer_slot = llvm_find_zone_layer_slot(zone_decl, layer_slot_name, false);
+    if (layer_slot == NULL)
+        return;
+    effect_decl = llvm_find_named_domain_decl_local(ctx, AST_EFFECT_DECL,
+        layer_slot->data.zone_layer_slot.layer_type);
+    if (effect_decl == NULL)
+        return;
+    subject_slot = llvm_find_nth_subject_domain_slot(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count, 0);
+    effect_cls = llvm_lookup_class(ctx, effect_decl->data.effect_decl.name);
+    if (subject_slot == NULL || effect_cls == NULL
+        || subject_slot->data.domain_slot.slot_name == NULL) {
+        return;
+    }
+
+    layer_idx = llvm_class_field_index(zone_cls, layer_slot_name);
+    target_idx = llvm_class_field_index(zone_cls, target_slot_name);
+    subject_idx = llvm_class_field_index(effect_cls, subject_slot->data.domain_slot.slot_name);
+    if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
+        return;
+
+    self_ptr = LLVMGetParam(sync_fn, 0);
+    layer_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+    target_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_ptr, (unsigned)target_idx, llvm_tmp_name(ctx));
+    target_value = LLVMBuildLoad2(ctx->builder,
+        zone_cls->fields[target_idx].field_type, target_ptr, llvm_tmp_name(ctx));
+    {
+        LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
+            layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, target_value, subject_ptr);
+    }
+    {
+        char sync_name[256];
+        LLVMFuncEntry *sync_entry;
+        snprintf(sync_name, sizeof(sync_name), "%s_sync", effect_decl->data.effect_decl.name);
+        sync_entry = llvm_lookup_function(ctx, sync_name);
+        if (sync_entry != NULL) {
+            LLVMValueRef sync_args[] = { layer_ptr };
+            LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                sync_args, 1, "");
+        }
+    }
+}
+
+static void
+llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
+                              LLVMValueRef sync_fn, LLVMGenCtx *ctx,
+                              const char *layer_slot_name,
+                              const char *left_slot_name,
+                              const char *right_slot_name)
+{
+    ASTNode *layer_slot;
+    ASTNode *relation_decl;
+    ASTNode *left_subject;
+    ASTNode *right_subject;
+    LLVMClassTypeEntry *relation_cls;
+    int layer_idx;
+    int left_idx;
+    int right_idx;
+    int left_subject_idx;
+    int right_subject_idx;
+    LLVMValueRef self_ptr;
+    LLVMValueRef layer_ptr;
+    LLVMValueRef left_ptr;
+    LLVMValueRef right_ptr;
+    LLVMValueRef left_value;
+    LLVMValueRef right_value;
+
+    if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
+        || layer_slot_name == NULL || left_slot_name == NULL || right_slot_name == NULL) {
+        return;
+    }
+
+    layer_slot = llvm_find_zone_layer_slot(zone_decl, layer_slot_name, true);
+    if (layer_slot == NULL)
+        return;
+    relation_decl = llvm_find_named_domain_decl_local(ctx, AST_RELATION_DECL,
+        layer_slot->data.zone_layer_slot.layer_type);
+    if (relation_decl == NULL)
+        return;
+    left_subject = llvm_find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 0);
+    right_subject = llvm_find_nth_subject_domain_slot(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 1);
+    relation_cls = llvm_lookup_class(ctx, relation_decl->data.relation_decl.name);
+    if (left_subject == NULL || right_subject == NULL || relation_cls == NULL
+        || left_subject->data.domain_slot.slot_name == NULL
+        || right_subject->data.domain_slot.slot_name == NULL) {
+        return;
+    }
+
+    layer_idx = llvm_class_field_index(zone_cls, layer_slot_name);
+    left_idx = llvm_class_field_index(zone_cls, left_slot_name);
+    right_idx = llvm_class_field_index(zone_cls, right_slot_name);
+    left_subject_idx = llvm_class_field_index(relation_cls, left_subject->data.domain_slot.slot_name);
+    right_subject_idx = llvm_class_field_index(relation_cls, right_subject->data.domain_slot.slot_name);
+    if (layer_idx < 0 || left_idx < 0 || right_idx < 0
+        || left_subject_idx < 0 || right_subject_idx < 0) {
+        return;
+    }
+
+    self_ptr = LLVMGetParam(sync_fn, 0);
+    layer_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+    left_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_ptr, (unsigned)left_idx, llvm_tmp_name(ctx));
+    right_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_ptr, (unsigned)right_idx, llvm_tmp_name(ctx));
+    left_value = LLVMBuildLoad2(ctx->builder,
+        zone_cls->fields[left_idx].field_type, left_ptr, llvm_tmp_name(ctx));
+    right_value = LLVMBuildLoad2(ctx->builder,
+        zone_cls->fields[right_idx].field_type, right_ptr, llvm_tmp_name(ctx));
+    {
+        LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, relation_cls->struct_type,
+            layer_ptr, (unsigned)left_subject_idx, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, left_value, subject_ptr);
+    }
+    {
+        LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, relation_cls->struct_type,
+            layer_ptr, (unsigned)right_subject_idx, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, right_value, subject_ptr);
+    }
+    {
+        char sync_name[256];
+        LLVMFuncEntry *sync_entry;
+        snprintf(sync_name, sizeof(sync_name), "%s_sync", relation_decl->data.relation_decl.name);
+        sync_entry = llvm_lookup_function(ctx, sync_name);
+        if (sync_entry != NULL) {
+            LLVMValueRef sync_args[] = { layer_ptr };
+            LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                sync_args, 1, "");
+        }
+    }
+}
+
 static LLVMValueRef
 llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *target_cls,
@@ -588,8 +838,107 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                     }
+                    if (apply->data.zone_apply.target_slot_name != NULL) {
+                        llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+                            layer_name, apply->data.zone_apply.target_slot_name);
+                    } else {
+                        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                            ASTNode *state = stmt->data.zone_decl.states[j];
+                            if (state != NULL && state->type == AST_ZONE_STATE
+                                && !state->data.zone_state.is_relation
+                                && state->data.zone_state.state_name != NULL
+                                && strcmp(state->data.zone_state.state_name, state_name) == 0
+                                && state->data.zone_state.left_or_target_slot_name != NULL) {
+                                llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+                                    layer_name,
+                                    state->data.zone_state.left_or_target_slot_name);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
+        } else if (apply != NULL
+                   && apply->data.zone_apply.effect_slot_name != NULL
+                   && apply->data.zone_apply.target_slot_name != NULL) {
+            char layer_field[256];
+            int layer_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef layer_ptr;
+            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
+                apply->data.zone_apply.effect_slot_name);
+            layer_idx = llvm_class_field_index(decl_cls, layer_field);
+            if (layer_idx >= 0) {
+                layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+            }
+            llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+                apply->data.zone_apply.effect_slot_name,
+                apply->data.zone_apply.target_slot_name);
+        }
+    }
+
+    for (size_t i = 0; i < stmt->data.zone_decl.maintained_effect_count; i++) {
+        ASTNode *maintain = stmt->data.zone_decl.maintained_effects[i];
+        if (maintain == NULL
+            || maintain->data.zone_maintain_effect.effect_slot_name == NULL
+            || maintain->data.zone_maintain_effect.target_slot_name == NULL) {
+            continue;
+        }
+        {
+            char layer_field[256];
+            int layer_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef layer_ptr;
+            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
+                maintain->data.zone_maintain_effect.effect_slot_name);
+            layer_idx = llvm_class_field_index(decl_cls, layer_field);
+            if (layer_idx >= 0) {
+                layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+            }
+            if (maintain->data.zone_maintain_relation.left_slot_name != NULL
+                && maintain->data.zone_maintain_relation.right_slot_name != NULL) {
+                llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
+                    maintain->data.zone_maintain_relation.relation_slot_name,
+                    maintain->data.zone_maintain_relation.left_slot_name,
+                    maintain->data.zone_maintain_relation.right_slot_name);
+            }
+        }
+        llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+            maintain->data.zone_maintain_effect.effect_slot_name,
+            maintain->data.zone_maintain_effect.target_slot_name);
+        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+            ASTNode *state = stmt->data.zone_decl.states[j];
+            const char *state_name;
+            char field_name[256];
+            int field_idx;
+            LLVMValueRef self_ptr;
+            LLVMValueRef state_ptr;
+            if (state == NULL || state->type != AST_ZONE_STATE
+                || state->data.zone_state.is_relation
+                || state->data.zone_state.layer_slot_name == NULL
+                || state->data.zone_state.left_or_target_slot_name == NULL
+                || strcmp(state->data.zone_state.layer_slot_name,
+                          maintain->data.zone_maintain_effect.effect_slot_name) != 0
+                || strcmp(state->data.zone_state.left_or_target_slot_name,
+                          maintain->data.zone_maintain_effect.target_slot_name) != 0) {
+                continue;
+            }
+            state_name = state->data.zone_state.state_name;
+            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            field_idx = llvm_class_field_index(decl_cls, field_name);
+            if (field_idx < 0)
+                continue;
+            self_ptr = LLVMGetParam(sync_fn, 0);
+            state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
         }
     }
 
@@ -627,6 +976,16 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+                    }
+                    if (!state->data.zone_state.is_relation) {
+                        llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
+                            state->data.zone_state.layer_slot_name,
+                            state->data.zone_state.left_or_target_slot_name);
+                    } else if (state->data.zone_state.right_slot_name != NULL) {
+                        llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
+                            state->data.zone_state.layer_slot_name,
+                            state->data.zone_state.left_or_target_slot_name,
+                            state->data.zone_state.right_slot_name);
                     }
                     break;
                 }
@@ -697,6 +1056,20 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     }
                 }
             }
+        } else if (detach != NULL && detach->data.zone_detach.effect_slot_name != NULL) {
+            char layer_field[256];
+            int layer_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef layer_ptr;
+            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
+                detach->data.zone_detach.effect_slot_name);
+            layer_idx = llvm_class_field_index(decl_cls, layer_field);
+            if (layer_idx >= 0) {
+                layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
+            }
         }
     }
 
@@ -765,8 +1138,52 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                     }
+                    if (link->data.zone_link.left_slot_name != NULL
+                        && link->data.zone_link.right_slot_name != NULL) {
+                        llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
+                            layer_name,
+                            link->data.zone_link.left_slot_name,
+                            link->data.zone_link.right_slot_name);
+                    } else {
+                        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
+                            ASTNode *state = stmt->data.zone_decl.states[j];
+                            if (state != NULL && state->type == AST_ZONE_STATE
+                                && state->data.zone_state.is_relation
+                                && state->data.zone_state.state_name != NULL
+                                && strcmp(state->data.zone_state.state_name, state_name) == 0
+                                && state->data.zone_state.left_or_target_slot_name != NULL
+                                && state->data.zone_state.right_slot_name != NULL) {
+                                llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
+                                    layer_name,
+                                    state->data.zone_state.left_or_target_slot_name,
+                                    state->data.zone_state.right_slot_name);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
+        } else if (link != NULL
+                   && link->data.zone_link.relation_slot_name != NULL
+                   && link->data.zone_link.left_slot_name != NULL
+                   && link->data.zone_link.right_slot_name != NULL) {
+            char layer_field[256];
+            int layer_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef layer_ptr;
+            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
+                link->data.zone_link.relation_slot_name);
+            layer_idx = llvm_class_field_index(decl_cls, layer_field);
+            if (layer_idx >= 0) {
+                layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
+            }
+            llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
+                link->data.zone_link.relation_slot_name,
+                link->data.zone_link.left_slot_name,
+                link->data.zone_link.right_slot_name);
         }
     }
 
@@ -890,6 +1307,20 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                             LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
                     }
                 }
+            }
+        } else if (unlink != NULL && unlink->data.zone_unlink.relation_slot_name != NULL) {
+            char layer_field[256];
+            int layer_idx;
+            LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
+            LLVMValueRef layer_ptr;
+            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
+                unlink->data.zone_unlink.relation_slot_name);
+            layer_idx = llvm_class_field_index(decl_cls, layer_field);
+            if (layer_idx >= 0) {
+                layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+                    self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder,
+                    LLVMConstInt(ctx->type_i1, 0, 0), layer_ptr);
             }
         }
     }
@@ -1137,43 +1568,55 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         size_t fc = 0;
         LLVMTypeRef *ftypes = NULL;
         if (stmt->type == AST_ZONE_DECL) {
+            size_t projection_count =
+                llvm_count_domain_projection_slots(stmt->data.zone_decl.slots,
+                    stmt->data.zone_decl.slot_count);
             fc = stmt->data.zone_decl.slot_count
                 + stmt->data.zone_decl.shared_count
                 + stmt->data.zone_decl.layer_slot_count
                 + stmt->data.zone_decl.layer_slot_count
-                + stmt->data.zone_decl.state_count;
+                + stmt->data.zone_decl.state_count
+                + projection_count;
             ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
-            for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
+            size_t idx = 0;
+            for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, idx++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
                 ASTNode *slot_type = slot->data.domain_slot.type;
-                ftypes[j] = (slot_type != NULL)
+                ftypes[idx] = (slot_type != NULL)
                     ? ast_type_to_llvm(ctx, slot_type)
                     : ctx->type_i32;
             }
-            for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++) {
+            for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, idx++) {
                 ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[stmt->data.zone_decl.slot_count + j] = (sf_type != NULL)
+                ftypes[idx] = (sf_type != NULL)
                     ? ast_type_to_llvm(ctx, sf_type)
                     : ctx->type_i32;
             }
-            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++) {
-                size_t idx = stmt->data.zone_decl.slot_count
-                    + stmt->data.zone_decl.shared_count + j;
-                ftypes[idx] = ctx->type_i8ptr;
+            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
+                ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
+                LLVMClassTypeEntry *layer_cls = NULL;
+                if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+                    && slot->data.zone_layer_slot.layer_type != NULL) {
+                    layer_cls = llvm_lookup_class(ctx,
+                        slot->data.zone_layer_slot.layer_type);
+                }
+                ftypes[idx] = layer_cls != NULL ? layer_cls->struct_type : ctx->type_i8ptr;
             }
-            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++) {
-                size_t idx = stmt->data.zone_decl.slot_count
-                    + stmt->data.zone_decl.shared_count
-                    + stmt->data.zone_decl.layer_slot_count + j;
+            for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
                 ftypes[idx] = ctx->type_i1;
             }
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                size_t idx = stmt->data.zone_decl.slot_count
-                    + stmt->data.zone_decl.shared_count
-                    + stmt->data.zone_decl.layer_slot_count
-                    + stmt->data.zone_decl.layer_slot_count + j;
+            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, idx++) {
                 ftypes[idx] = ctx->type_i1;
+            }
+            for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
+                ASTNode *slot = stmt->data.zone_decl.slots[j];
+                if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+                    || slot->data.domain_slot.is_subject) {
+                    continue;
+                }
+                ftypes[idx] = ctx->type_i1;
+                idx++;
             }
         } else if (stmt->type == AST_WORLD_DECL) {
             fc = stmt->data.world_decl.systemic_count
@@ -1207,24 +1650,40 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 ftypes[idx] = ctx->type_i1;
         } else {
             /* Build struct: { slots..., shared_fields..., vtable_ptrs... } */
-            fc = slot_count + shared_count + dyn_slot_count;
+            size_t projection_count =
+                (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
+                ? llvm_count_domain_projection_slots(slots, slot_count)
+                : 0;
+            fc = slot_count + shared_count + dyn_slot_count + projection_count;
             ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
-            for (size_t j = 0; j < slot_count; j++) {
+            size_t idx = 0;
+            for (size_t j = 0; j < slot_count; j++, idx++) {
                 ASTNode *slot = slots[j];
                 ASTNode *slot_type = slot->data.domain_slot.type;
-                ftypes[j] = (slot_type != NULL)
+                ftypes[idx] = (slot_type != NULL)
                     ? ast_type_to_llvm(ctx, slot_type)
                     : ctx->type_i32;
             }
-            for (size_t j = 0; j < shared_count; j++) {
+            for (size_t j = 0; j < shared_count; j++, idx++) {
                 ASTNode *sf = shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
-                ftypes[slot_count + j] = (sf_type != NULL)
+                ftypes[idx] = (sf_type != NULL)
                     ? ast_type_to_llvm(ctx, sf_type)
                     : ctx->type_i32;
             }
-            for (size_t j = 0; j < dyn_slot_count; j++)
-                ftypes[slot_count + shared_count + j] = ctx->type_i8ptr;
+            for (size_t j = 0; j < dyn_slot_count; j++, idx++)
+                ftypes[idx] = ctx->type_i8ptr;
+            if (projection_count > 0) {
+                for (size_t j = 0; j < slot_count; j++) {
+                    ASTNode *slot = slots[j];
+                    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+                        || slot->data.domain_slot.is_subject) {
+                        continue;
+                    }
+                    ftypes[idx] = ctx->type_i1;
+                    idx++;
+                }
+            }
         }
 
         LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context,
@@ -1268,6 +1727,20 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
                 }
+                for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
+                    ASTNode *slot = stmt->data.zone_decl.slots[j];
+                    char field_name[256];
+                    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+                        || slot->data.domain_slot.is_subject
+                        || slot->data.domain_slot.slot_name == NULL) {
+                        continue;
+                    }
+                    snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+                        slot->data.domain_slot.slot_name);
+                    llvm_class_add_field(entry, pergyra_strdup(field_name),
+                        ftypes[field_index], field_index);
+                    field_index++;
+                }
             } else if (stmt->type == AST_WORLD_DECL) {
                 int field_index = 0;
                 for (size_t j = 0; j < stmt->data.world_decl.systemic_count; j++, field_index++) {
@@ -1302,17 +1775,18 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                         ftypes[field_index], field_index);
                 }
             } else {
-                for (size_t j = 0; j < slot_count; j++) {
+                int field_index = 0;
+                for (size_t j = 0; j < slot_count; j++, field_index++) {
                     ASTNode *slot = slots[j];
                     llvm_class_add_field(entry,
                         slot->data.domain_slot.slot_name,
-                        ftypes[j], (int)j);
+                        ftypes[field_index], field_index);
                 }
-                for (size_t j = 0; j < shared_count; j++) {
+                for (size_t j = 0; j < shared_count; j++, field_index++) {
                     ASTNode *sf = shared_fields[j];
                     llvm_class_add_field(entry,
                         sf->data.party_shared.name,
-                        ftypes[slot_count + j], (int)(slot_count + j));
+                        ftypes[field_index], field_index);
                 }
                 size_t dyn_idx = 0;
                 for (size_t j = 0; j < role_count; j++) {
@@ -1325,8 +1799,25 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                              rs->data.role_slot.slot_name);
                     llvm_class_add_field(entry, pergyra_strdup(vt_field_buf),
                         ctx->type_i8ptr,
-                        (int)(slot_count + shared_count + dyn_idx));
+                        field_index);
                     dyn_idx++;
+                    field_index++;
+                }
+                if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL) {
+                    for (size_t j = 0; j < slot_count; j++) {
+                        ASTNode *slot = slots[j];
+                        char field_name[256];
+                        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+                            || slot->data.domain_slot.is_subject
+                            || slot->data.domain_slot.slot_name == NULL) {
+                            continue;
+                        }
+                        snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
+                            slot->data.domain_slot.slot_name);
+                        llvm_class_add_field(entry, pergyra_strdup(field_name),
+                            ftypes[field_index], field_index);
+                        field_index++;
+                    }
                 }
             }
         }

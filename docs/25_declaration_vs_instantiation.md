@@ -1,5 +1,9 @@
 # Pergyra 선언과 인스턴스화 모델
 
+## 첫 번째 질문
+
+> **"함수부터 만들자"가 아니라 "이 프로그램에서 움직이는 존재는 누구인가?"부터 시작한다.**
+
 ## 핵심 원칙
 
 > **타입은 종(種)이고, slot은 개체(個體)다. zone은 서식지(棲息地)다.**
@@ -139,20 +143,37 @@ zone 내부:
 
 ## subject-first 원칙
 
-Pergyra는 **subject-first** 언어다. 구조적으로 world가 최상위이지만, **설계의 출발점은 항상 subject**다.
+Pergyra는 **subject-first** 언어다. 프로그램 설계는 소설을 쓰는 것과 같다.
+
+**subject는 주인공이다.** 모든 것은 주인공에서 시작한다:
 
 ```
-"이 세계에 어떤 존재가 있는가?"          → subject
-"이 존재는 무엇을 할 수 있는가?"         → ability
-"구체적으로 어떻게 하는가?"              → role
-"누구와 협력하는가?"                     → party
-"존재 간에 어떤 관계가 있는가?"          → relation
-"환경이 존재에 어떤 영향을 주는가?"       → effect
-"어디서 일어나는가?"                     → zone
-"전체 생태계는 무엇인가?"               → world
+subject  = 주인공 (상태와 정체성을 가진 존재)
+ability  = 주인공의 재능/자질 (선천적 자격)
+role     = 주인공이 맡는 역할 (전사, 치유사, 상인)
+party    = 주인공의 일행 (협력 단위)
+
+object   = 주인공에 의해 영향받는 존재/사물 (수동 투영)
+dto      = 외부에 전달되는 주인공의 소식/평판 (경계 투영)
+
+relation = 주인공과 다른 주인공 사이의 관계 (동맹, 적대, 사제)
+effect   = 주인공에게 닥치는 시련/축복 (독, 저주, 강화)
+
+zone     = 이야기의 무대/장(章) (전투, 교역, 탐험)
+world    = 소설 전체
 ```
 
-world가 컨테이너이고 zone이 구역이지만, 이것들은 **subject를 담기 위해 존재한다.** 집을 지을 때 도시 계획(world)이 상위이지만, 설계는 "누가 살 것인가(subject)"에서 시작하는 것과 같다.
+설계 순서는 이 서사를 따른다:
+
+1. **주인공을 만든다** -- `subject Player { ... }`
+2. **주인공에게 자질을 부여한다** -- `ability Combatable { ... }`
+3. **자질을 구체적 역할로 발현한다** -- `role Warrior for Player impl Combatable { ... }`
+4. **주인공에게 시련과 관계를 부여한다** -- `effect Poisoned { ... }`, `relation Alliance { ... }`
+5. **주인공이 영향을 미치는 존재를 정의한다** -- `object PlayerView { ... }`
+6. **이야기의 무대를 연다** -- `zone BattleZone { subject slot player: Player; ... }`
+7. **소설을 완성한다** -- `world GameWorld { zone battle: BattleZone; ... }`
+
+**world가 컨테이너이고 zone이 무대이지만, 이것들은 주인공(subject)의 이야기를 담기 위해 존재한다.** 무대 없는 주인공은 가능하지만, 주인공 없는 무대는 의미가 없다.
 
 ## 이 설계의 장점
 

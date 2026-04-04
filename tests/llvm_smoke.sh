@@ -252,6 +252,8 @@ relation TrustedLink for source: Player, target: Player {
     publish packet from target
 
     func Show(self) -> Void {
+        Log(HasProjection(snapshot));
+        Log(HasProjection(packet));
         Log(self.snapshot.hp);
         Log(self.packet.name);
     }
@@ -264,6 +266,8 @@ effect Poisoned for bearer: Player {
     publish packet from bearer
 
     func Show(self) -> Void {
+        Log(HasProjection(view));
+        Log(HasProjection(packet));
         Log(self.view.hp);
         Log(self.packet.name);
     }
@@ -276,11 +280,19 @@ func Main() -> Void {
     poison.Show();
 }
 EOF
-run_case "relation_effect_projection_sync" "$TMPDIR/relation_effect_projection_sync.pgy" "7" "dst" "5" "bear"
+run_case "relation_effect_projection_sync" "$TMPDIR/relation_effect_projection_sync.pgy" "true" "true" "7" "dst" "true" "true" "5" "bear"
 
 cat > "$TMPDIR/zone_has_layer.pgy" <<'EOF'
 subject Player {
     let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+dto PlayerDto {
+    hp: Int;
 }
 
 effect Poisoned for bearer: Player { }
@@ -289,14 +301,20 @@ relation TrustedLink for source: Player, target: Player { }
 zone BattleZone {
     subject slot player: Player
     subject slot enemy: Player
+    object slot playerView: PlayerView
+    dto slot snapshot: PlayerDto
     effect slot poison: Poisoned
     relation slot trust: TrustedLink
     state poisoned: effect poison on player
     state allied: relation trust between player, enemy
+    refresh playerView from player
+    publish snapshot from player
     maintain poisoned
     maintain allied
 
     func Show() -> Void {
+        Log(HasProjection(playerView));
+        Log(HasProjection(snapshot));
         Log(HasLayer(poison));
         Log(HasLayer("trust"));
         Log(HasState(poisoned));
@@ -309,7 +327,90 @@ func Main() -> Void {
     battle.Show();
 }
 EOF
-run_case "zone_has_layer" "$TMPDIR/zone_has_layer.pgy" "true" "true" "true" "true"
+run_case "zone_has_layer" "$TMPDIR/zone_has_layer.pgy" "true" "true" "true" "true" "true" "true"
+
+cat > "$TMPDIR/zone_layer_projection_runtime.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+dto PlayerDto {
+    name: String;
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer
+}
+
+relation TrustedLink for source: Player, target: Player {
+    dto slot packet: PlayerDto
+    publish packet from target
+}
+
+zone BattleZone {
+    subject slot player: Player
+    subject slot enemy: Player
+    effect slot poison: Poisoned
+    relation slot trust: TrustedLink
+    apply poison to player
+    link trust between player, enemy
+
+    func Show(self) -> Void {
+        Log(self.poison.view.hp);
+        Log(self.trust.packet.name);
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7, "src"), Player(9, "dst"));
+    battle.Show();
+}
+EOF
+run_case "zone_layer_projection_runtime" "$TMPDIR/zone_layer_projection_runtime.pgy" "7" "dst"
+
+cat > "$TMPDIR/world_zone_cross_queries.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    effect slot poison: Poisoned
+    state poisoned: effect poison on player
+    refresh playerView from player
+    maintain poisoned
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        Log(HasZoneProjection(battle, playerView));
+        Log(HasZoneLayer(battle, poison));
+        Log(HasZoneState(battle, poisoned));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    let gameWorld = GameWorld(battle);
+    gameWorld.Show();
+}
+EOF
+run_case "world_zone_cross_queries" "$TMPDIR/world_zone_cross_queries.pgy" "true" "true" "true"
 
 cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {

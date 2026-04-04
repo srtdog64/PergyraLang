@@ -673,6 +673,130 @@ domain_has_projection_slot(ASTNode **slots, size_t slot_count, const char *slot_
     return false;
 }
 
+static ASTNode *
+find_nth_subject_domain_slot_local(ASTNode **slots, size_t slot_count, size_t nth)
+{
+    size_t seen = 0;
+
+    if (slots == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject) {
+            continue;
+        }
+        if (seen == nth)
+            return slot;
+        seen++;
+    }
+
+    return NULL;
+}
+
+static void
+emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_name,
+                            const char *target_slot_name, TranspilerCtx *ctx)
+{
+    ASTNode *layer_slot;
+    ASTNode *effect_decl;
+    ASTNode *subject_slot;
+
+    if (out == NULL || zone == NULL || layer_slot_name == NULL
+        || target_slot_name == NULL || ctx == NULL) {
+        return;
+    }
+
+    layer_slot = NULL;
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && !slot->data.zone_layer_slot.is_relation
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, layer_slot_name) == 0) {
+            layer_slot = slot;
+            break;
+        }
+    }
+    if (layer_slot == NULL)
+        return;
+
+    effect_decl = find_effect_decl(ctx, layer_slot->data.zone_layer_slot.layer_type);
+    if (effect_decl == NULL)
+        return;
+
+    subject_slot = find_nth_subject_domain_slot_local(effect_decl->data.effect_decl.slots,
+        effect_decl->data.effect_decl.slot_count, 0);
+    if (subject_slot == NULL || subject_slot->data.domain_slot.slot_name == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(out, "self->%s.%s = self->%s;\n",
+        layer_slot_name,
+        subject_slot->data.domain_slot.slot_name,
+        target_slot_name);
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(&self->%s);\n",
+        effect_decl->data.effect_decl.name,
+        layer_slot_name);
+}
+
+static void
+emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_name,
+                              const char *left_slot_name, const char *right_slot_name,
+                              TranspilerCtx *ctx)
+{
+    ASTNode *layer_slot;
+    ASTNode *relation_decl;
+    ASTNode *left_subject;
+    ASTNode *right_subject;
+
+    if (out == NULL || zone == NULL || layer_slot_name == NULL
+        || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
+        return;
+    }
+
+    layer_slot = NULL;
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.is_relation
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, layer_slot_name) == 0) {
+            layer_slot = slot;
+            break;
+        }
+    }
+    if (layer_slot == NULL)
+        return;
+
+    relation_decl = find_relation_decl(ctx, layer_slot->data.zone_layer_slot.layer_type);
+    if (relation_decl == NULL)
+        return;
+
+    left_subject = find_nth_subject_domain_slot_local(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 0);
+    right_subject = find_nth_subject_domain_slot_local(relation_decl->data.relation_decl.slots,
+        relation_decl->data.relation_decl.slot_count, 1);
+    if (left_subject == NULL || right_subject == NULL
+        || left_subject->data.domain_slot.slot_name == NULL
+        || right_subject->data.domain_slot.slot_name == NULL) {
+        return;
+    }
+
+    write_indent(ctx);
+    codebuf_write(out, "self->%s.%s = self->%s;\n",
+        layer_slot_name, left_subject->data.domain_slot.slot_name, left_slot_name);
+    write_indent(ctx);
+    codebuf_write(out, "self->%s.%s = self->%s;\n",
+        layer_slot_name, right_subject->data.domain_slot.slot_name, right_slot_name);
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(&self->%s);\n",
+        relation_decl->data.relation_decl.name,
+        layer_slot_name);
+}
+
 static bool
 current_zone_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
 {
@@ -767,6 +891,40 @@ find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
 }
 
 static ASTNode *
+find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && slot->data.zone_layer_slot.slot_name != NULL
+            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
 find_world_state_decl(ASTNode *world_decl, const char *state_name)
 {
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
@@ -799,6 +957,33 @@ world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
     }
 
     return false;
+}
+
+static ASTNode *
+find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+        ASTNode *zone = world_decl->data.world_decl.zones[i];
+        if (zone != NULL && zone->type == AST_WORLD_ZONE
+            && zone->data.world_zone.slot_name != NULL
+            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            return zone;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl, const char *slot_name)
+{
+    ASTNode *zone_slot = find_world_zone_slot_decl(world_decl, slot_name);
+    if (ctx == NULL || zone_slot == NULL || zone_slot->data.world_zone.zone_type == NULL)
+        return NULL;
+    return find_zone_decl(ctx, zone_slot->data.world_zone.zone_type);
 }
 
 static char *
@@ -2663,6 +2848,79 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->__zone_active_%s", name);
         }
         return pergyra_strdup("false /* HasZone: world-semantic query only */");
+    case BUILTIN_HAS_ZONE_PROJECTION:
+        if (ctx->current_world_name != NULL
+            && call->data.call.arg_count == 2
+            && call->data.call.arguments[0] != NULL
+            && call->data.call.arguments[1] != NULL) {
+            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
+            const char *zone_name = NULL;
+            const char *slot_name = NULL;
+            ASTNode *zone_decl;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                zone_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                zone_name = call->data.call.arguments[0]->data.string.value;
+            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                slot_name = call->data.call.arguments[1]->data.identifier.name;
+            else if (call->data.call.arguments[1]->type == AST_STRING)
+                slot_name = call->data.call.arguments[1]->data.string.value;
+            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+            if (zone_decl != NULL && slot_name != NULL
+                && find_zone_domain_slot(zone_decl, slot_name) != NULL
+                && !find_zone_domain_slot(zone_decl, slot_name)->data.domain_slot.is_subject) {
+                return strdup_fmt("self->%s.__projection_ready_%s", zone_name, slot_name);
+            }
+        }
+        return pergyra_strdup("false /* HasZoneProjection: world-semantic query only */");
+    case BUILTIN_HAS_ZONE_LAYER:
+        if (ctx->current_world_name != NULL
+            && call->data.call.arg_count == 2
+            && call->data.call.arguments[0] != NULL
+            && call->data.call.arguments[1] != NULL) {
+            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
+            const char *zone_name = NULL;
+            const char *layer_name = NULL;
+            ASTNode *zone_decl;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                zone_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                zone_name = call->data.call.arguments[0]->data.string.value;
+            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                layer_name = call->data.call.arguments[1]->data.identifier.name;
+            else if (call->data.call.arguments[1]->type == AST_STRING)
+                layer_name = call->data.call.arguments[1]->data.string.value;
+            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+            if (zone_decl != NULL && layer_name != NULL
+                && find_zone_layer_slot(zone_decl, layer_name) != NULL) {
+                return strdup_fmt("self->%s.__layer_active_%s", zone_name, layer_name);
+            }
+        }
+        return pergyra_strdup("false /* HasZoneLayer: world-semantic query only */");
+    case BUILTIN_HAS_ZONE_STATE:
+        if (ctx->current_world_name != NULL
+            && call->data.call.arg_count == 2
+            && call->data.call.arguments[0] != NULL
+            && call->data.call.arguments[1] != NULL) {
+            ASTNode *world_decl = find_world_decl(ctx, ctx->current_world_name);
+            const char *zone_name = NULL;
+            const char *state_name = NULL;
+            ASTNode *zone_decl;
+            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
+                zone_name = call->data.call.arguments[0]->data.identifier.name;
+            else if (call->data.call.arguments[0]->type == AST_STRING)
+                zone_name = call->data.call.arguments[0]->data.string.value;
+            if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
+                state_name = call->data.call.arguments[1]->data.identifier.name;
+            else if (call->data.call.arguments[1]->type == AST_STRING)
+                state_name = call->data.call.arguments[1]->data.string.value;
+            zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_name);
+            if (zone_decl != NULL && state_name != NULL
+                && find_zone_state_decl(zone_decl, state_name) != NULL) {
+                return strdup_fmt("self->%s.__state_%s", zone_name, state_name);
+            }
+        }
+        return pergyra_strdup("false /* HasZoneState: world-semantic query only */");
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
@@ -7262,7 +7520,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.layer_slots[i];
-        codebuf_write(ctx->out, "    void *%s;\n",
+        codebuf_write(ctx->out, "    %s %s;\n",
+            slot->data.zone_layer_slot.layer_type,
             slot->data.zone_layer_slot.slot_name);
         codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
             slot->data.zone_layer_slot.slot_name);
@@ -7365,6 +7624,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_zone_bind_effect_layer(ctx->out, node,
+                        state->data.zone_state.layer_slot_name,
+                        state->data.zone_state.left_or_target_slot_name, ctx);
                 }
             }
             continue;
@@ -7372,6 +7634,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             apply->data.zone_apply.effect_slot_name);
+        emit_zone_bind_effect_layer(ctx->out, node,
+            apply->data.zone_apply.effect_slot_name,
+            apply->data.zone_apply.target_slot_name, ctx);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (!state->data.zone_state.is_relation
@@ -7379,6 +7644,28 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                           apply->data.zone_apply.effect_slot_name) == 0
                 && strcmp(state->data.zone_state.left_or_target_slot_name,
                           apply->data.zone_apply.target_slot_name) == 0) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "self->__state_%s = true;\n",
+                    state->data.zone_state.state_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
+        ASTNode *maintain = node->data.zone_decl.maintained_effects[i];
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
+            maintain->data.zone_maintain_effect.effect_slot_name);
+        emit_zone_bind_effect_layer(ctx->out, node,
+            maintain->data.zone_maintain_effect.effect_slot_name,
+            maintain->data.zone_maintain_effect.target_slot_name, ctx);
+        for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *state = node->data.zone_decl.states[j];
+            if (!state->data.zone_state.is_relation
+                && strcmp(state->data.zone_state.layer_slot_name,
+                          maintain->data.zone_maintain_effect.effect_slot_name) == 0
+                && strcmp(state->data.zone_state.left_or_target_slot_name,
+                          maintain->data.zone_maintain_effect.target_slot_name) == 0) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__state_%s = true;\n",
                     state->data.zone_state.state_name);
@@ -7398,6 +7685,16 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 write_indent(ctx);
                 codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                     state->data.zone_state.layer_slot_name);
+                if (!state->data.zone_state.is_relation) {
+                    emit_zone_bind_effect_layer(ctx->out, node,
+                        state->data.zone_state.layer_slot_name,
+                        state->data.zone_state.left_or_target_slot_name, ctx);
+                } else {
+                    emit_zone_bind_relation_layer(ctx->out, node,
+                        state->data.zone_state.layer_slot_name,
+                        state->data.zone_state.left_or_target_slot_name,
+                        state->data.zone_state.right_slot_name, ctx);
+                }
             }
         }
     }
@@ -7451,6 +7748,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                     write_indent(ctx);
                     codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
                         state->data.zone_state.layer_slot_name);
+                    emit_zone_bind_relation_layer(ctx->out, node,
+                        state->data.zone_state.layer_slot_name,
+                        state->data.zone_state.left_or_target_slot_name,
+                        state->data.zone_state.right_slot_name, ctx);
                 }
             }
             continue;
@@ -7458,6 +7759,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             link->data.zone_link.relation_slot_name);
+        emit_zone_bind_relation_layer(ctx->out, node,
+            link->data.zone_link.relation_slot_name,
+            link->data.zone_link.left_slot_name,
+            link->data.zone_link.right_slot_name, ctx);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation
@@ -7479,6 +7784,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n",
             maintain->data.zone_maintain_relation.relation_slot_name);
+        emit_zone_bind_relation_layer(ctx->out, node,
+            maintain->data.zone_maintain_relation.relation_slot_name,
+            maintain->data.zone_maintain_relation.left_slot_name,
+            maintain->data.zone_maintain_relation.right_slot_name, ctx);
         for (size_t j = 0; j < node->data.zone_decl.state_count; j++) {
             ASTNode *state = node->data.zone_decl.states[j];
             if (state->data.zone_state.is_relation

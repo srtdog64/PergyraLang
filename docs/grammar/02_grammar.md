@@ -179,6 +179,9 @@ enum Shape {
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
 - `world` body는 `systemic`, `zone`, `state <name>: zone <zoneSlot>`, `activate <zoneOrState>`, `deactivate <zoneOrState>`, `maintain <zoneOrState>`, `shared`, `func`를 지원한다.
 - `HasZone(<zoneOrState>)`는 world declaration / world method 안에서만 유효하며, 선언된 zone slot 또는 world state alias를 Bool로 조회한다.
+- `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/dto projection slot sync-ready flag를 Bool로 조회한다.
+- `HasZoneLayer(<zoneSlot>, <layerSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 relation/effect layer active flag를 Bool로 조회한다.
+- `HasZoneState(<zoneSlot>, <stateName>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 state alias flag를 Bool로 조회한다.
 
 미지원:
 - `type` alias (파서/시맨틱 미구현)

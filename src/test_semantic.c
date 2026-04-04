@@ -5965,6 +5965,83 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("HasZoneProjection/HasZoneLayer/HasZoneState work inside world methods");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "    refresh playerView from player\n"
+            "    maintain poisoned\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    func Tick() -> Void {\n"
+            "        if HasZoneProjection(battle, playerView) || HasZoneLayer(battle, poison) || HasZoneState(battle, poisoned) {\n"
+            "            Log(1);\n"
+            "        }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HasZoneProjection/HasZoneLayer/HasZoneState reject unknown names and use outside world");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "effect Poisoned for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    effect slot poison: Poisoned\n"
+            "    state poisoned: effect poison on player\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "    func Tick() -> Void {\n"
+            "        let a = HasZoneProjection(battle, missing);\n"
+            "        let b = HasZoneLayer(battle, missing);\n"
+            "        let c = HasZoneState(battle, missing);\n"
+            "        Log(a); Log(b); Log(c);\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let a = HasZoneProjection(\"battle\", \"playerView\");\n"
+            "    let b = HasZoneLayer(\"battle\", \"poison\");\n"
+            "    let c = HasZoneState(\"battle\", \"poisoned\");\n"
+            "    Log(a); Log(b); Log(c);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 6);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     /* ---- Generic class semantic tests ---- */
 
     TEST("generic class declaration passes semantic check");
