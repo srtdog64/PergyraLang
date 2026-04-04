@@ -2517,6 +2517,164 @@ find_zone_relation_slot(ASTNode *zone, const char *slot_name)
 }
 
 static ASTNode *
+find_zone_authority(ASTNode *zone, const char *slot_name)
+{
+    if (zone == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.authority_count; i++) {
+        ASTNode *authority = zone->data.zone_decl.authorities[i];
+        if (authority != NULL
+            && authority->type == AST_ZONE_AUTHORITY
+            && authority->data.zone_authority.subject_slot_name != NULL
+            && strcmp(authority->data.zone_authority.subject_slot_name, slot_name) == 0) {
+            return authority;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_zone_state(ASTNode *zone, const char *state_name)
+{
+    if (zone == NULL || state_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
+        ASTNode *state = zone->data.zone_decl.states[i];
+        if (state != NULL
+            && state->type == AST_ZONE_STATE
+            && state->data.zone_state.state_name != NULL
+            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            return state;
+        }
+    }
+
+    return NULL;
+}
+
+static bool
+resolve_zone_effect_state(ASTNode *zone,
+                          ASTNode *site,
+                          const char *state_name,
+                          SemanticContext *ctx,
+                          const char *action_name,
+                          const char **effect_slot_name,
+                          const char **target_slot_name)
+{
+    ASTNode *state = find_zone_state(zone, state_name);
+
+    if (effect_slot_name != NULL)
+        *effect_slot_name = NULL;
+    if (target_slot_name != NULL)
+        *target_slot_name = NULL;
+
+    if (state == NULL) {
+        semantic_error(ctx, site,
+            "Zone %s references unknown state '%s'",
+            action_name,
+            state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+    if (state->data.zone_state.is_relation) {
+        semantic_error(ctx, site,
+            "Zone %s state '%s' is a relation state and cannot be used as an effect state",
+            action_name,
+            state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+
+    if (effect_slot_name != NULL)
+        *effect_slot_name = state->data.zone_state.layer_slot_name;
+    if (target_slot_name != NULL)
+        *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+    return true;
+}
+
+static bool
+resolve_zone_relation_state(ASTNode *zone,
+                            ASTNode *site,
+                            const char *state_name,
+                            SemanticContext *ctx,
+                            const char *action_name,
+                            const char **relation_slot_name,
+                            const char **left_slot_name,
+                            const char **right_slot_name)
+{
+    ASTNode *state = find_zone_state(zone, state_name);
+
+    if (relation_slot_name != NULL)
+        *relation_slot_name = NULL;
+    if (left_slot_name != NULL)
+        *left_slot_name = NULL;
+    if (right_slot_name != NULL)
+        *right_slot_name = NULL;
+
+    if (state == NULL) {
+        semantic_error(ctx, site,
+            "Zone %s references unknown state '%s'",
+            action_name,
+            state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+    if (!state->data.zone_state.is_relation) {
+        semantic_error(ctx, site,
+            "Zone %s state '%s' is an effect state and cannot be used as a relation state",
+            action_name,
+            state_name != NULL ? state_name : "<unknown>");
+        return false;
+    }
+
+    if (relation_slot_name != NULL)
+        *relation_slot_name = state->data.zone_state.layer_slot_name;
+    if (left_slot_name != NULL)
+        *left_slot_name = state->data.zone_state.left_or_target_slot_name;
+    if (right_slot_name != NULL)
+        *right_slot_name = state->data.zone_state.right_slot_name;
+    return true;
+}
+
+static bool
+type_check_zone_actor_authority(ASTNode *zone,
+                                ASTNode *site,
+                                const char *actor_slot_name,
+                                SemanticContext *ctx,
+                                const char *action_name)
+{
+    ASTNode *actor_slot;
+    ASTNode *authority;
+
+    if (zone == NULL || ctx == NULL || actor_slot_name == NULL)
+        return false;
+
+    actor_slot = find_zone_domain_slot(zone, actor_slot_name);
+    if (actor_slot == NULL) {
+        semantic_error(ctx, site,
+            "Zone %s references unknown authority subject slot '%s'",
+            action_name, actor_slot_name);
+        return true;
+    }
+
+    if (!actor_slot->data.domain_slot.is_subject) {
+        semantic_error(ctx, site,
+            "Zone %s authority '%s' must be a subject slot",
+            action_name, actor_slot_name);
+        return true;
+    }
+
+    authority = find_zone_authority(zone, actor_slot_name);
+    if (zone->data.zone_decl.authority_count > 0 && authority == NULL) {
+        semantic_error(ctx, site,
+            "Zone %s actor '%s' is not declared in zone authority set",
+            action_name, actor_slot_name);
+        return true;
+    }
+
+    return true;
+}
+
+static ASTNode *
 find_named_class_decl_local(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -2913,6 +3071,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
     size_t subject_count;
     size_t object_count;
+    size_t mutation_rule_count;
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.zone_decl.name,
         SYMBOL_ZONE,
@@ -2948,6 +3107,54 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             node->data.zone_decl.name);
     }
 
+    mutation_rule_count = node->data.zone_decl.apply_count
+        + node->data.zone_decl.link_count
+        + node->data.zone_decl.detach_count
+        + node->data.zone_decl.unlink_count
+        + node->data.zone_decl.refresh_count
+        + node->data.zone_decl.maintained_effect_count
+        + node->data.zone_decl.maintained_relation_count
+        + node->data.zone_decl.maintained_state_count;
+
+    for (size_t i = 0; i < node->data.zone_decl.authority_count; i++) {
+        ASTNode *authority = node->data.zone_decl.authorities[i];
+        ASTNode *slot;
+        if (authority == NULL
+            || authority->data.zone_authority.subject_slot_name == NULL) {
+            continue;
+        }
+        slot = find_zone_domain_slot(node, authority->data.zone_authority.subject_slot_name);
+        if (slot == NULL) {
+            semantic_error(ctx, authority,
+                "Zone authority references unknown subject slot '%s'",
+                authority->data.zone_authority.subject_slot_name);
+            continue;
+        }
+        if (!slot->data.domain_slot.is_subject) {
+            semantic_error(ctx, authority,
+                "Zone authority '%s' must reference a subject slot",
+                authority->data.zone_authority.subject_slot_name);
+        }
+        for (size_t j = i + 1; j < node->data.zone_decl.authority_count; j++) {
+            ASTNode *other = node->data.zone_decl.authorities[j];
+            if (other != NULL
+                && other->data.zone_authority.subject_slot_name != NULL
+                && strcmp(authority->data.zone_authority.subject_slot_name,
+                          other->data.zone_authority.subject_slot_name) == 0) {
+                semantic_warning(ctx, other,
+                    "Zone '%s' declares authority '%s' more than once",
+                    node->data.zone_decl.name,
+                    authority->data.zone_authority.subject_slot_name);
+            }
+        }
+    }
+
+    if (mutation_rule_count > 0 && node->data.zone_decl.authority_count == 0) {
+        semantic_warning(ctx, node,
+            "Zone '%s' has lifecycle-changing rules but no explicit authority set",
+            node->data.zone_decl.name);
+    }
+
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *layer_slot = node->data.zone_decl.layer_slots[i];
         const char *type_name = layer_slot->data.zone_layer_slot.layer_type;
@@ -2971,6 +3178,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *apply = node->data.zone_decl.applies[i];
         const char *effect_slot_name = apply->data.zone_apply.effect_slot_name;
         const char *target_slot_name = apply->data.zone_apply.target_slot_name;
+        const char *state_name = apply->data.zone_apply.state_name;
+        const char *actor_slot_name = apply->data.zone_apply.actor_slot_name;
+        bool state_ok = true;
+        if (state_name != NULL) {
+            state_ok = resolve_zone_effect_state(node, apply, state_name, ctx, "apply",
+                &effect_slot_name, &target_slot_name);
+        }
+        if (!state_ok)
+            continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, apply,
                 "Zone apply references unknown effect slot '%s'",
@@ -2983,6 +3199,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, apply,
+                "Zone apply should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, apply, actor_slot_name, ctx, "apply");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
@@ -2990,6 +3211,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *relation_slot_name = link->data.zone_link.relation_slot_name;
         const char *left_slot_name = link->data.zone_link.left_slot_name;
         const char *right_slot_name = link->data.zone_link.right_slot_name;
+        const char *state_name = link->data.zone_link.state_name;
+        const char *actor_slot_name = link->data.zone_link.actor_slot_name;
+        bool state_ok = true;
+        if (state_name != NULL) {
+            state_ok = resolve_zone_relation_state(node, link, state_name, ctx, "link",
+                &relation_slot_name, &left_slot_name, &right_slot_name);
+        }
+        if (!state_ok)
+            continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, link,
                 "Zone link references unknown relation slot '%s'",
@@ -3007,12 +3237,26 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, link,
+                "Zone link should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, link, actor_slot_name, ctx, "link");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
         ASTNode *detach = node->data.zone_decl.detaches[i];
         const char *effect_slot_name = detach->data.zone_detach.effect_slot_name;
         const char *target_slot_name = detach->data.zone_detach.target_slot_name;
+        const char *state_name = detach->data.zone_detach.state_name;
+        const char *actor_slot_name = detach->data.zone_detach.actor_slot_name;
+        bool state_ok = true;
+        if (state_name != NULL) {
+            state_ok = resolve_zone_effect_state(node, detach, state_name, ctx, "detach",
+                &effect_slot_name, &target_slot_name);
+        }
+        if (!state_ok)
+            continue;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, detach,
                 "Zone detach references unknown effect slot '%s'",
@@ -3025,6 +3269,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, detach,
+                "Zone detach should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, detach, actor_slot_name, ctx, "detach");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
@@ -3032,6 +3281,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
         const char *left_slot_name = unlink->data.zone_unlink.left_slot_name;
         const char *right_slot_name = unlink->data.zone_unlink.right_slot_name;
+        const char *state_name = unlink->data.zone_unlink.state_name;
+        const char *actor_slot_name = unlink->data.zone_unlink.actor_slot_name;
+        bool state_ok = true;
+        if (state_name != NULL) {
+            state_ok = resolve_zone_relation_state(node, unlink, state_name, ctx, "unlink",
+                &relation_slot_name, &left_slot_name, &right_slot_name);
+        }
+        if (!state_ok)
+            continue;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, unlink,
                 "Zone unlink references unknown relation slot '%s'",
@@ -3049,12 +3307,18 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, unlink,
+                "Zone unlink should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, unlink, actor_slot_name, ctx, "unlink");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.zone_decl.refreshes[i];
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
+        const char *actor_slot_name = refresh->data.zone_refresh.actor_slot_name;
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error(ctx, refresh,
                 "Zone refresh references unknown object slot '%s'",
@@ -3067,12 +3331,18 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_projection_contract(node, refresh,
             object_slot_name, source_slot_name, ctx, "refresh");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, refresh,
+                "Zone refresh should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, refresh, actor_slot_name, ctx, "refresh");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
         ASTNode *maintain = node->data.zone_decl.maintained_effects[i];
         const char *effect_slot_name = maintain->data.zone_maintain_effect.effect_slot_name;
         const char *target_slot_name = maintain->data.zone_maintain_effect.target_slot_name;
+        const char *actor_slot_name = maintain->data.zone_maintain_effect.actor_slot_name;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, maintain,
                 "Zone maintain references unknown effect slot '%s'",
@@ -3085,6 +3355,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, maintain,
+                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_effect_count; j++) {
             ASTNode *other = node->data.zone_decl.maintained_effects[j];
@@ -3099,8 +3374,17 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < node->data.zone_decl.detach_count; j++) {
             ASTNode *detach = node->data.zone_decl.detaches[j];
-            if (strcmp(effect_slot_name, detach->data.zone_detach.effect_slot_name) == 0
-                && strcmp(target_slot_name, detach->data.zone_detach.target_slot_name) == 0) {
+            const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
+            const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
+            if (detach->data.zone_detach.state_name != NULL) {
+                resolve_zone_effect_state(node, detach,
+                    detach->data.zone_detach.state_name, ctx, "detach",
+                    &detach_effect_slot_name, &detach_target_slot_name);
+            }
+            if (detach_effect_slot_name != NULL
+                && detach_target_slot_name != NULL
+                && strcmp(effect_slot_name, detach_effect_slot_name) == 0
+                && strcmp(target_slot_name, detach_target_slot_name) == 0) {
                 semantic_warning(ctx, maintain,
                     "Zone '%s' both maintains and detaches effect '%s' on '%s'; choose one lifecycle direction",
                     node->data.zone_decl.name,
@@ -3115,6 +3399,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *relation_slot_name = maintain->data.zone_maintain_relation.relation_slot_name;
         const char *left_slot_name = maintain->data.zone_maintain_relation.left_slot_name;
         const char *right_slot_name = maintain->data.zone_maintain_relation.right_slot_name;
+        const char *actor_slot_name = maintain->data.zone_maintain_relation.actor_slot_name;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, maintain,
                 "Zone maintain references unknown relation slot '%s'",
@@ -3132,6 +3417,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, maintain,
+                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_relation_count; j++) {
             ASTNode *other = node->data.zone_decl.maintained_relations[j];
@@ -3148,15 +3438,177 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < node->data.zone_decl.unlink_count; j++) {
             ASTNode *unlink = node->data.zone_decl.unlinks[j];
-            if (strcmp(relation_slot_name, unlink->data.zone_unlink.relation_slot_name) == 0
-                && strcmp(left_slot_name, unlink->data.zone_unlink.left_slot_name) == 0
-                && strcmp(right_slot_name, unlink->data.zone_unlink.right_slot_name) == 0) {
+            const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
+            const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
+            const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
+            if (unlink->data.zone_unlink.state_name != NULL) {
+                resolve_zone_relation_state(node, unlink,
+                    unlink->data.zone_unlink.state_name, ctx, "unlink",
+                    &unlink_relation_slot_name, &unlink_left_slot_name, &unlink_right_slot_name);
+            }
+            if (unlink_relation_slot_name != NULL
+                && unlink_left_slot_name != NULL
+                && unlink_right_slot_name != NULL
+                && strcmp(relation_slot_name, unlink_relation_slot_name) == 0
+                && strcmp(left_slot_name, unlink_left_slot_name) == 0
+                && strcmp(right_slot_name, unlink_right_slot_name) == 0) {
                 semantic_warning(ctx, maintain,
                     "Zone '%s' both maintains and unlinks relation '%s' between '%s' and '%s'; choose one lifecycle direction",
                     node->data.zone_decl.name,
                     relation_slot_name,
                     left_slot_name,
                     right_slot_name);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++) {
+        ASTNode *maintain = node->data.zone_decl.maintained_states[i];
+        ASTNode *state;
+        const char *state_name = maintain->data.zone_maintain_state.state_name;
+        const char *actor_slot_name = maintain->data.zone_maintain_state.actor_slot_name;
+        state = find_zone_state(node, state_name);
+        if (state == NULL) {
+            semantic_error(ctx, maintain,
+                "Zone maintain references unknown state '%s'",
+                state_name != NULL ? state_name : "<unknown>");
+        } else if (state->data.zone_state.is_relation) {
+            const char *relation_slot_name = state->data.zone_state.layer_slot_name;
+            const char *left_slot_name = state->data.zone_state.left_or_target_slot_name;
+            const char *right_slot_name = state->data.zone_state.right_slot_name;
+            type_check_zone_relation_contract(node, maintain,
+                relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
+            for (size_t j = i + 1; j < node->data.zone_decl.maintained_state_count; j++) {
+                ASTNode *other = node->data.zone_decl.maintained_states[j];
+                if (other != NULL
+                    && other->data.zone_maintain_state.state_name != NULL
+                    && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
+                    semantic_warning(ctx, other,
+                        "Zone '%s' maintains state '%s' more than once",
+                        node->data.zone_decl.name,
+                        state_name);
+                }
+            }
+            for (size_t j = 0; j < node->data.zone_decl.unlink_count; j++) {
+                ASTNode *unlink = node->data.zone_decl.unlinks[j];
+                const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
+                const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
+                const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
+                if (unlink->data.zone_unlink.state_name != NULL) {
+                    resolve_zone_relation_state(node, unlink,
+                        unlink->data.zone_unlink.state_name, ctx, "unlink",
+                        &unlink_relation_slot_name, &unlink_left_slot_name, &unlink_right_slot_name);
+                }
+                if (unlink_relation_slot_name != NULL
+                    && unlink_left_slot_name != NULL
+                    && unlink_right_slot_name != NULL
+                    && strcmp(relation_slot_name, unlink_relation_slot_name) == 0
+                    && strcmp(left_slot_name, unlink_left_slot_name) == 0
+                    && strcmp(right_slot_name, unlink_right_slot_name) == 0) {
+                    semantic_warning(ctx, maintain,
+                        "Zone '%s' both maintains and unlinks state '%s'; choose one lifecycle direction",
+                        node->data.zone_decl.name,
+                        state_name);
+                }
+            }
+        } else {
+            const char *effect_slot_name = state->data.zone_state.layer_slot_name;
+            const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+            type_check_zone_effect_contract(node, maintain,
+                effect_slot_name, target_slot_name, ctx, "maintain");
+            for (size_t j = i + 1; j < node->data.zone_decl.maintained_state_count; j++) {
+                ASTNode *other = node->data.zone_decl.maintained_states[j];
+                if (other != NULL
+                    && other->data.zone_maintain_state.state_name != NULL
+                    && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
+                    semantic_warning(ctx, other,
+                        "Zone '%s' maintains state '%s' more than once",
+                        node->data.zone_decl.name,
+                        state_name);
+                }
+            }
+            for (size_t j = 0; j < node->data.zone_decl.detach_count; j++) {
+                ASTNode *detach = node->data.zone_decl.detaches[j];
+                const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
+                const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
+                if (detach->data.zone_detach.state_name != NULL) {
+                    resolve_zone_effect_state(node, detach,
+                        detach->data.zone_detach.state_name, ctx, "detach",
+                        &detach_effect_slot_name, &detach_target_slot_name);
+                }
+                if (detach_effect_slot_name != NULL
+                    && detach_target_slot_name != NULL
+                    && strcmp(effect_slot_name, detach_effect_slot_name) == 0
+                    && strcmp(target_slot_name, detach_target_slot_name) == 0) {
+                    semantic_warning(ctx, maintain,
+                        "Zone '%s' both maintains and detaches state '%s'; choose one lifecycle direction",
+                        node->data.zone_decl.name,
+                        state_name);
+                }
+            }
+        }
+        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+            semantic_warning(ctx, maintain,
+                "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
+        }
+        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
+    }
+
+    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
+        ASTNode *state = node->data.zone_decl.states[i];
+        const char *state_name = state->data.zone_state.state_name;
+        if (state->data.zone_state.is_relation) {
+            const char *relation_slot_name = state->data.zone_state.layer_slot_name;
+            const char *left_slot_name = state->data.zone_state.left_or_target_slot_name;
+            const char *right_slot_name = state->data.zone_state.right_slot_name;
+            if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
+                semantic_error(ctx, state,
+                    "Zone state '%s' references unknown relation slot '%s'",
+                    state_name != NULL ? state_name : "<unknown>",
+                    relation_slot_name != NULL ? relation_slot_name : "<unknown>");
+            }
+            if (find_zone_domain_slot(node, left_slot_name) == NULL) {
+                semantic_error(ctx, state,
+                    "Zone state '%s' references unknown left slot '%s'",
+                    state_name != NULL ? state_name : "<unknown>",
+                    left_slot_name != NULL ? left_slot_name : "<unknown>");
+            }
+            if (find_zone_domain_slot(node, right_slot_name) == NULL) {
+                semantic_error(ctx, state,
+                    "Zone state '%s' references unknown right slot '%s'",
+                    state_name != NULL ? state_name : "<unknown>",
+                    right_slot_name != NULL ? right_slot_name : "<unknown>");
+            }
+            type_check_zone_relation_contract(node, state,
+                relation_slot_name, left_slot_name, right_slot_name, ctx, "state");
+        } else {
+            const char *effect_slot_name = state->data.zone_state.layer_slot_name;
+            const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+            if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
+                semantic_error(ctx, state,
+                    "Zone state '%s' references unknown effect slot '%s'",
+                    state_name != NULL ? state_name : "<unknown>",
+                    effect_slot_name != NULL ? effect_slot_name : "<unknown>");
+            }
+            if (find_zone_domain_slot(node, target_slot_name) == NULL) {
+                semantic_error(ctx, state,
+                    "Zone state '%s' references unknown target slot '%s'",
+                    state_name != NULL ? state_name : "<unknown>",
+                    target_slot_name != NULL ? target_slot_name : "<unknown>");
+            }
+            type_check_zone_effect_contract(node, state,
+                effect_slot_name, target_slot_name, ctx, "state");
+        }
+
+        for (size_t j = i + 1; j < node->data.zone_decl.state_count; j++) {
+            ASTNode *other = node->data.zone_decl.states[j];
+            if (state_name != NULL
+                && other != NULL
+                && other->data.zone_state.state_name != NULL
+                && strcmp(state_name, other->data.zone_state.state_name) == 0) {
+                semantic_error(ctx, other,
+                    "Redeclaration of zone state '%s'",
+                    state_name);
             }
         }
     }

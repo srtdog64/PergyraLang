@@ -33,10 +33,16 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
+- `zone`은 `authority subjectSlot`으로 승인 주체를 선언할 수 있음
+- `zone`은 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias를 둘 수 있음
+- `zone` lifecycle/projection 문장은 optional `by subjectSlot`을 받아 authority와 연결됨
+- `zone` lifecycle 문장은 `apply/link/detach/unlink/maintain <stateName>` shorthand를 지원함
 - `apply/detach`는 `effect`의 subject target arity/type와 기본 정합성을 검사함
 - `link/unlink`는 `relation`의 subject endpoint arity/type와 기본 정합성을 검사함
 - `refresh`는 object slot / subject slot kind와 projection field 정합성을 검사함
 - `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
+- `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
+- `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
 - 장기 존재론 `struct` vs `subject` 분리와 `actor = subject profile` 방향이 문서상 고정됨
@@ -50,14 +56,14 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 ## 현재 한계
 
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
-- `relation`, `effect`, `zone`은 declaration keyword를 넘어서 최소 slot surface까지 올라왔지만 구조적 semantics와 codegen surface는 아직 얕음
+- `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand까지 올라왔지만 구조적 semantics와 codegen surface는 아직 얕음
 - `subject` keyword는 alias로 올라왔지만, `class`와의 장기 alias/deprecation policy는 아직 미정
 - 클래식 OOP 계층(상속, super)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
 - backpressure는 관측 surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
 - cancellation은 cooperative + descendant propagation 수준, fairness는 round-robin 시작 인덱스 수준까지 올라온 상태
 
-## 2026-04-03 기준 확인된 상태
+## 2026-04-04 기준 확인된 상태
 
 - `make test-semantic` 통과
 - `make test-transpile` 통과

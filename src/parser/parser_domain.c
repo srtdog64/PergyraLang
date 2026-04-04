@@ -300,6 +300,19 @@ append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node)
     (*nodes)[*count - 1] = node;
 }
 
+static char *
+parse_optional_zone_actor_name(Parser *parser)
+{
+    Token actor_slot;
+
+    if (!parser_match_identifier_keyword(parser, "by"))
+        return NULL;
+
+    actor_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+        "Expected subject slot name after 'by'");
+    return pergyra_strdup(actor_slot.text);
+}
+
 static void
 parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_count,
                              const char *owner_kind)
@@ -503,17 +516,21 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "apply")) {
             Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected effect slot name after 'apply'");
-            if (!parser_match_identifier_keyword(parser, "to")) {
-                parser_error(parser, "Expected 'to' after effect slot name in apply");
-                parser_advance(parser);
-                continue;
-            }
-            Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected target slot name after 'to'");
+                "Expected effect slot name or state name after 'apply'");
+            ASTNode *apply = NULL;
 
-            ASTNode *apply = ast_create_zone_apply(
-                effect_slot.text, target_slot.text);
+            if (parser_match_identifier_keyword(parser, "to")) {
+                Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected target slot name after 'to'");
+                apply = ast_create_zone_apply(
+                    effect_slot.text, target_slot.text);
+            } else {
+                apply = ast_create_zone_apply(NULL, NULL);
+                apply->data.zone_apply.state_name = pergyra_strdup(effect_slot.text);
+            }
+
+            apply->data.zone_apply.actor_slot_name =
+                parse_optional_zone_actor_name(parser);
             apply->line = effect_slot.line;
             apply->column = effect_slot.column;
 
@@ -524,21 +541,26 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "link")) {
             Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected relation slot name after 'link'");
-            if (!parser_match_identifier_keyword(parser, "between")) {
-                parser_error(parser, "Expected 'between' after relation slot name in link");
-                parser_advance(parser);
-                continue;
-            }
-            Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected left slot name after 'between'");
-            parser_consume(parser, TOKEN_COMMA,
-                "Expected ',' between linked slot names");
-            Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected right slot name after ','");
+                "Expected relation slot name or state name after 'link'");
+            ASTNode *link = NULL;
 
-            ASTNode *link = ast_create_zone_link(
-                relation_slot.text, left_slot.text, right_slot.text);
+            if (parser_match_identifier_keyword(parser, "between")) {
+                Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected left slot name after 'between'");
+                parser_consume(parser, TOKEN_COMMA,
+                    "Expected ',' between linked slot names");
+                Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected right slot name after ','");
+
+                link = ast_create_zone_link(
+                    relation_slot.text, left_slot.text, right_slot.text);
+            } else {
+                link = ast_create_zone_link(NULL, NULL, NULL);
+                link->data.zone_link.state_name = pergyra_strdup(relation_slot.text);
+            }
+
+            link->data.zone_link.actor_slot_name =
+                parse_optional_zone_actor_name(parser);
             link->line = relation_slot.line;
             link->column = relation_slot.column;
 
@@ -549,17 +571,21 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "detach")) {
             Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected effect slot name after 'detach'");
-            if (!parser_match_identifier_keyword(parser, "from")) {
-                parser_error(parser, "Expected 'from' after effect slot name in detach");
-                parser_advance(parser);
-                continue;
-            }
-            Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected target slot name after 'from'");
+                "Expected effect slot name or state name after 'detach'");
+            ASTNode *detach = NULL;
 
-            ASTNode *detach = ast_create_zone_detach(
-                effect_slot.text, target_slot.text);
+            if (parser_match_identifier_keyword(parser, "from")) {
+                Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected target slot name after 'from'");
+                detach = ast_create_zone_detach(
+                    effect_slot.text, target_slot.text);
+            } else {
+                detach = ast_create_zone_detach(NULL, NULL);
+                detach->data.zone_detach.state_name = pergyra_strdup(effect_slot.text);
+            }
+
+            detach->data.zone_detach.actor_slot_name =
+                parse_optional_zone_actor_name(parser);
             detach->line = effect_slot.line;
             detach->column = effect_slot.column;
 
@@ -570,21 +596,26 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "unlink")) {
             Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected relation slot name after 'unlink'");
-            if (!parser_match_identifier_keyword(parser, "between")) {
-                parser_error(parser, "Expected 'between' after relation slot name in unlink");
-                parser_advance(parser);
-                continue;
-            }
-            Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected left slot name after 'between'");
-            parser_consume(parser, TOKEN_COMMA,
-                "Expected ',' between unlinked slot names");
-            Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected right slot name after ','");
+                "Expected relation slot name or state name after 'unlink'");
+            ASTNode *unlink = NULL;
 
-            ASTNode *unlink = ast_create_zone_unlink(
-                relation_slot.text, left_slot.text, right_slot.text);
+            if (parser_match_identifier_keyword(parser, "between")) {
+                Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected left slot name after 'between'");
+                parser_consume(parser, TOKEN_COMMA,
+                    "Expected ',' between unlinked slot names");
+                Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected right slot name after ','");
+
+                unlink = ast_create_zone_unlink(
+                    relation_slot.text, left_slot.text, right_slot.text);
+            } else {
+                unlink = ast_create_zone_unlink(NULL, NULL, NULL);
+                unlink->data.zone_unlink.state_name = pergyra_strdup(relation_slot.text);
+            }
+
+            unlink->data.zone_unlink.actor_slot_name =
+                parse_optional_zone_actor_name(parser);
             unlink->line = relation_slot.line;
             unlink->column = relation_slot.column;
 
@@ -606,6 +637,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             ASTNode *refresh = ast_create_zone_refresh(
                 object_slot.text, source_slot.text);
+            refresh->data.zone_refresh.actor_slot_name =
+                parse_optional_zone_actor_name(parser);
             refresh->line = object_slot.line;
             refresh->column = object_slot.column;
 
@@ -616,13 +649,15 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "maintain")) {
             Token layer_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected effect or relation slot name after 'maintain'");
+                "Expected effect slot, relation slot, or state name after 'maintain'");
 
             if (parser_match_identifier_keyword(parser, "on")) {
                 Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected target slot name after 'on'");
                 ASTNode *maintain = ast_create_zone_maintain_effect(
                     layer_slot.text, target_slot.text);
+                maintain->data.zone_maintain_effect.actor_slot_name =
+                    parse_optional_zone_actor_name(parser);
                 maintain->line = layer_slot.line;
                 maintain->column = layer_slot.column;
 
@@ -637,14 +672,85 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                     "Expected right slot name after ','");
                 ASTNode *maintain = ast_create_zone_maintain_relation(
                     layer_slot.text, left_slot.text, right_slot.text);
+                maintain->data.zone_maintain_relation.actor_slot_name =
+                    parse_optional_zone_actor_name(parser);
                 maintain->line = layer_slot.line;
                 maintain->column = layer_slot.column;
 
                 append_child_node(&zone->data.zone_decl.maintained_relations,
                     &zone->data.zone_decl.maintained_relation_count, maintain);
             } else {
+                ASTNode *maintain = ast_create_zone_maintain_state(layer_slot.text);
+                maintain->data.zone_maintain_state.actor_slot_name =
+                    parse_optional_zone_actor_name(parser);
+                maintain->line = layer_slot.line;
+                maintain->column = layer_slot.column;
+
+                append_child_node(&zone->data.zone_decl.maintained_states,
+                    &zone->data.zone_decl.maintained_state_count, maintain);
+            }
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "authority")) {
+            Token subject_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected subject slot name after 'authority'");
+            ASTNode *authority = ast_create_zone_authority(subject_slot.text);
+            authority->line = subject_slot.line;
+            authority->column = subject_slot.column;
+
+            append_child_node(&zone->data.zone_decl.authorities,
+                &zone->data.zone_decl.authority_count, authority);
+
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "state")) {
+            Token state_name = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected state name after 'state'");
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after zone state name");
+
+            if (parser_match(parser, TOKEN_EFFECT)) {
+                Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected effect slot name after 'effect'");
+                if (!parser_match_identifier_keyword(parser, "on")) {
+                    parser_error(parser, "Expected 'on' after effect slot name in state");
+                    parser_advance(parser);
+                    continue;
+                }
+                Token target_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected target slot name after 'on'");
+                ASTNode *state = ast_create_zone_state(
+                    state_name.text, false, effect_slot.text, target_slot.text, NULL);
+                state->line = state_name.line;
+                state->column = state_name.column;
+
+                append_child_node(&zone->data.zone_decl.states,
+                    &zone->data.zone_decl.state_count, state);
+            } else if (parser_match(parser, TOKEN_RELATION)) {
+                Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected relation slot name after 'relation'");
+                if (!parser_match_identifier_keyword(parser, "between")) {
+                    parser_error(parser, "Expected 'between' after relation slot name in state");
+                    parser_advance(parser);
+                    continue;
+                }
+                Token left_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected left slot name after 'between'");
+                parser_consume(parser, TOKEN_COMMA,
+                    "Expected ',' between state relation slots");
+                Token right_slot = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected right slot name after ','");
+                ASTNode *state = ast_create_zone_state(
+                    state_name.text, true, relation_slot.text, left_slot.text, right_slot.text);
+                state->line = state_name.line;
+                state->column = state_name.column;
+
+                append_child_node(&zone->data.zone_decl.states,
+                    &zone->data.zone_decl.state_count, state);
+            } else {
                 parser_error(parser,
-                    "Expected 'on' or 'between' after slot name in maintain");
+                    "Expected 'effect' or 'relation' after ':' in zone state");
                 parser_advance(parser);
                 continue;
             }
@@ -688,7 +794,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'maintain', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
     }

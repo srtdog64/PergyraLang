@@ -451,6 +451,12 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
                 normalize_node_refs(node->data.zone_decl.maintained_effects[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++)
                 normalize_node_refs(node->data.zone_decl.maintained_relations[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++)
+                normalize_node_refs(node->data.zone_decl.maintained_states[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.authority_count; i++)
+                normalize_node_refs(node->data.zone_decl.authorities[i], scope, shadow);
+            for (size_t i = 0; i < node->data.zone_decl.state_count; i++)
+                normalize_node_refs(node->data.zone_decl.states[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
                 normalize_node_refs(node->data.zone_decl.shared_fields[i], scope, shadow);
             for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
@@ -471,6 +477,9 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
         case AST_ZONE_REFRESH:
         case AST_ZONE_MAINTAIN_EFFECT:
         case AST_ZONE_MAINTAIN_RELATION:
+        case AST_ZONE_MAINTAIN_STATE:
+        case AST_ZONE_AUTHORITY:
+        case AST_ZONE_STATE:
             return;
 
         case AST_EVENT_DECL:

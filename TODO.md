@@ -165,8 +165,11 @@
   - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
   - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
   - 완료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추가
+  - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
+  - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
+  - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
   - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
-  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론과 inter-layer composition
+  - 남음: `relation`, 구조적 `effect`, `zone`의 깊은 계층 의미론, runtime/codegen surface, inter-layer composition
 
 ### 존재론 모델
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`

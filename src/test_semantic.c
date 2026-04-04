@@ -2985,8 +2985,11 @@ test_shared_memory_features(void)
             "    subject slot enemy: Player\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
-            "    maintain poison on player\n"
-            "    maintain trust between player, enemy\n"
+            "    authority player\n"
+            "    maintain poison on player by player\n"
+            "    maintain trust between player, enemy by player\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
             "}\n"
             "relation TrustedLink for source: Player, target: Player { }\n"
             "effect Poisoned for bearer: Player { }\n";
@@ -3004,6 +3007,123 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone lifecycle statements can reference declared state aliases");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    authority player\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
+            "    apply poisoned by player\n"
+            "    link allied by player\n"
+            "    detach poisoned by player\n"
+            "    unlink allied by player\n"
+            "    maintain poisoned by player\n"
+            "    maintain allied by player\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone lifecycle state aliases reject wrong verb kind");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot enemy: Player\n"
+            "    relation slot trust: TrustedLink\n"
+            "    effect slot poison: Poisoned\n"
+            "    authority player\n"
+            "    state poisoned: effect poison on player\n"
+            "    state allied: relation trust between player, enemy\n"
+            "    apply allied by player\n"
+            "    link poisoned by player\n"
+            "}\n"
+            "relation TrustedLink for source: Player, target: Player { }\n"
+            "effect Poisoned for bearer: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority requires declared subject slots and explicit by actors");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "struct PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    authority playerView\n"
+            "    refresh playerView from player by playerView\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 2);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone warns when authority exists but mutable rules omit by actor");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot poison: Poisoned\n"
+            "    authority player\n"
+            "    apply poison to player\n"
+            "}\n"
+            "effect Poisoned for bearer: Player { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 1);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone maintain warns on duplicate and conflicting lifecycle rules");
     {
         const char *source =
@@ -3013,12 +3133,13 @@ test_shared_memory_features(void)
             "    subject slot enemy: Player\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
-            "    maintain poison on player\n"
-            "    maintain poison on player\n"
-            "    detach poison from player\n"
-            "    maintain trust between player, enemy\n"
-            "    maintain trust between player, enemy\n"
-            "    unlink trust between player, enemy\n"
+            "    authority player\n"
+            "    maintain poison on player by player\n"
+            "    maintain poison on player by player\n"
+            "    detach poison from player by player\n"
+            "    maintain trust between player, enemy by player\n"
+            "    maintain trust between player, enemy by player\n"
+            "    unlink trust between player, enemy by player\n"
             "}\n"
             "relation TrustedLink for source: Player, target: Player { }\n"
             "effect Poisoned for bearer: Player { }\n";

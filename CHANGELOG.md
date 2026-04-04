@@ -41,6 +41,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `refresh objectSlot from subjectSlot` as an explicit zone projection-refresh surface
 - Added `maintain effectSlot on targetSlot` and `maintain relationSlot between left, right` as zone lifecycle-rule surfaces
 - Added lifecycle warnings for duplicate or conflicting `maintain` rules versus `detach` / `unlink`
+- Added `authority <subjectSlot>` and optional `by <subjectSlot>` authority annotations for zone lifecycle/projection operations
+- Added `state name: effect ... on ...` / `state name: relation ... between ..., ...` as zone lifecycle state aliases
+- Added zone lifecycle shorthand forms `apply/link/detach/unlink/maintain <stateName>`
 - Loop resource-state flow restoration now avoids restoring through transient loop-body scopes
 - `type_create_function` no longer performs `memcpy` on zero-parameter function signatures
 
@@ -53,6 +56,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, current `subject`/`class` syntax is treated as the subject surface, and `actor` is positioned as a subject execution profile
 - Core docs now keep `entity` out of the language ontology and define `object` as a passive interpretation mode of `subject` rather than a separate top-level kind
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
+- Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface
 
 ### Fixed
 - Restored the missing builtin-name argument in `ChannelLength/ChannelCapacity/ChannelFull` semantic diagnostics, fixing the optimizer-sensitive `test-semantic` crash in the async-system suite

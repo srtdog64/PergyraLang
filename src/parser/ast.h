@@ -148,6 +148,9 @@ typedef enum
     AST_ZONE_REFRESH,
     AST_ZONE_MAINTAIN_EFFECT,
     AST_ZONE_MAINTAIN_RELATION,
+    AST_ZONE_MAINTAIN_STATE,
+    AST_ZONE_AUTHORITY,
+    AST_ZONE_STATE,
 
     /* Event system (C# style) */
     AST_EVENT_DECL,
@@ -697,6 +700,12 @@ struct ASTNode
             size_t maintained_effect_count;
             ASTNode** maintained_relations;
             size_t maintained_relation_count;
+            ASTNode** maintained_states;
+            size_t maintained_state_count;
+            ASTNode** authorities;
+            size_t authority_count;
+            ASTNode** states;
+            size_t state_count;
             ASTNode** shared_fields;
             size_t shared_count;
             ASTNode** methods;
@@ -723,6 +732,8 @@ struct ASTNode
         struct {
             char* effect_slot_name;
             char* target_slot_name;
+            char* state_name;
+            char* actor_slot_name;
         } zone_apply;
 
         /* Zone relation link */
@@ -730,12 +741,16 @@ struct ASTNode
             char* relation_slot_name;
             char* left_slot_name;
             char* right_slot_name;
+            char* state_name;
+            char* actor_slot_name;
         } zone_link;
 
         /* Zone effect detachment */
         struct {
             char* effect_slot_name;
             char* target_slot_name;
+            char* state_name;
+            char* actor_slot_name;
         } zone_detach;
 
         /* Zone relation unlink */
@@ -743,18 +758,22 @@ struct ASTNode
             char* relation_slot_name;
             char* left_slot_name;
             char* right_slot_name;
+            char* state_name;
+            char* actor_slot_name;
         } zone_unlink;
 
         /* Zone object refresh */
         struct {
             char* object_slot_name;
             char* source_slot_name;
+            char* actor_slot_name;
         } zone_refresh;
 
         /* Zone effect maintenance rule */
         struct {
             char* effect_slot_name;
             char* target_slot_name;
+            char* actor_slot_name;
         } zone_maintain_effect;
 
         /* Zone relation maintenance rule */
@@ -762,7 +781,28 @@ struct ASTNode
             char* relation_slot_name;
             char* left_slot_name;
             char* right_slot_name;
+            char* actor_slot_name;
         } zone_maintain_relation;
+
+        /* Zone lifecycle state maintenance rule */
+        struct {
+            char* state_name;
+            char* actor_slot_name;
+        } zone_maintain_state;
+
+        /* Zone authority declaration */
+        struct {
+            char* subject_slot_name;
+        } zone_authority;
+
+        /* Zone lifecycle state alias */
+        struct {
+            char* state_name;
+            bool is_relation;
+            char* layer_slot_name;
+            char* left_or_target_slot_name;
+            char* right_slot_name;
+        } zone_state;
 
         /* Event declaration */
         struct {
@@ -911,6 +951,12 @@ ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left
 ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* source_slot_name);
 ASTNode* ast_create_zone_maintain_effect(const char* effect_slot_name, const char* target_slot_name);
 ASTNode* ast_create_zone_maintain_relation(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
+ASTNode* ast_create_zone_maintain_state(const char* state_name);
+ASTNode* ast_create_zone_authority(const char* subject_slot_name);
+ASTNode* ast_create_zone_state(const char* state_name, bool is_relation,
+                               const char* layer_slot_name,
+                               const char* left_or_target_slot_name,
+                               const char* right_slot_name);
 
 /* Party system AST creation functions */
 ASTNode* ast_create_party_declaration(const char* name);
