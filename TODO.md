@@ -224,7 +224,10 @@
   - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
   - 완료: `subject slot`과 `ToObject` / `ToDto` source가 subject host (`subject`, `actor`)만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
-  - 완료: `object` / `dto`를 field-only passive projection form으로 제한하고 method를 금지
+  - 완료: `object` / `dto`를 passive projection/value 형식으로 고정하고 helper method를 허용
+  - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
+  - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
+  - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
   - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
   - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
@@ -268,9 +271,21 @@
 
 ## P1.8 — 멀티 타겟
 
+- [ ] **공통 UI IR 고정** — Kotlin/Android 개별 백엔드보다 먼저, 모든 플랫폼이 공유하는 scene/projection UI IR을 정의
+  - 목적: native / web / mobile이 같은 UI 의미론과 projection 흐름을 공유하게 함
+  - 원칙: 기술 기반은 Qt 방향(native shell / render loop), 선언 철학은 WPF식 projection/binding, 최종 정체성은 Pergyra scene/projection UI
+  - 범위: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
+  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `dto` / projection result를 UI 소비 표면으로 사용
+  - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
+  - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
+  - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음
 - [~] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
   - 완료: 코어 의미론은 inheritance/super 없이 유지하고, JS lowering은 delegation/composition 중심으로 간다는 정책 초안 문서화
+  - 완료: Kotlin backend보다 공통 UI IR이 우선이라는 멀티플랫폼 정책 문서화
   - 남음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) 설계
+- [ ] **mobile shell 전략** — Android/iOS는 우선 공통 UI IR consumer로 접근
+  - 원칙: 초기 mobile 대응은 JS/web-compatible UI backend 또는 native shell bridge를 우선 검토
+  - 남음: Android 전용 Kotlin backend는 공통 UI IR + web/native backend 검증 뒤 필요성을 재평가
 - [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용
 
 ## P2 — 배포 시작 시

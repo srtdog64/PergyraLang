@@ -456,6 +456,24 @@ find_actor_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
+static ASTNode *
+find_ability_decl_by_name(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_ABILITY_DECL
+            || stmt->data.ability_decl.name == NULL)
+            continue;
+        if (strcmp(stmt->data.ability_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
 static TypeNominalFlavor
 nominal_flavor_from_decl(const ASTNode *decl)
 {
@@ -465,6 +483,8 @@ nominal_flavor_from_decl(const ASTNode *decl)
     switch (decl->data.class_decl.nominal_kind) {
     case NOMINAL_DECL_SUBJECT:
         return TYPE_NOMINAL_SUBJECT;
+    case NOMINAL_DECL_VESSEL:
+        return TYPE_NOMINAL_VESSEL;
     case NOMINAL_DECL_STRUCT:
         return TYPE_NOMINAL_STRUCT;
     case NOMINAL_DECL_OBJECT:
@@ -741,6 +761,117 @@ type_is_subject_type(const Type *type, SemanticContext *ctx)
 
     decl = find_subject_host_decl_by_name(ctx->program_root, type->name);
     return decl_is_subject_host(decl);
+}
+
+static const char *
+find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
+                              SemanticContext *ctx, const char *binding_name)
+{
+    if (func == NULL || func->type != AST_FUNC_DECL || ctx == NULL
+        || binding_name == NULL) {
+        return NULL;
+    }
+
+    if (strcmp(binding_name, "self") == 0) {
+        return enclosing_nominal != NULL
+            && enclosing_nominal->type == AST_CLASS_DECL
+            && enclosing_nominal->data.class_decl.name != NULL
+                ? enclosing_nominal->data.class_decl.name
+                : NULL;
+    }
+
+    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
+        FuncParam *param = func->data.func_decl.params[i];
+        Type *param_type;
+        if (param == NULL || param->name == NULL
+            || strcmp(param->name, binding_name) != 0) {
+            continue;
+        }
+        if (param->type == NULL)
+            return NULL;
+        param_type = resolve_type_node(param->type, ctx);
+        if (param_type == NULL || !type_is_subject_type(param_type, ctx))
+            return NULL;
+        return param_type->name;
+    }
+
+    return NULL;
+}
+
+static bool
+domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
+                             SemanticContext *ctx, const char *type_name)
+{
+    if (slots == NULL || ctx == NULL || type_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        Type *slot_type;
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject
+            || slot->data.domain_slot.type == NULL) {
+            continue;
+        }
+        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        if (slot_type != NULL && slot_type->name != NULL
+            && strcmp(slot_type->name, type_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
+                                    const char *type_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || ctx == NULL
+        || type_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < zone->data.zone_decl.authority_count; i++) {
+        ASTNode *authority = zone->data.zone_decl.authorities[i];
+        ASTNode *slot;
+        Type *slot_type;
+        if (authority == NULL
+            || authority->data.zone_authority.subject_slot_name == NULL) {
+            continue;
+        }
+        slot = find_zone_domain_slot(zone,
+            authority->data.zone_authority.subject_slot_name);
+        if (slot == NULL || slot->data.domain_slot.type == NULL)
+            continue;
+        slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+        if (slot_type != NULL && slot_type->name != NULL
+            && strcmp(slot_type->name, type_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
+{
+    if (zone == NULL || zone->type != AST_ZONE_DECL || effect_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || slot->data.zone_layer_slot.layer_type == NULL
+            || slot->data.zone_layer_slot.is_relation) {
+            continue;
+        }
+        if (strcmp(slot->data.zone_layer_slot.layer_type, effect_name) == 0)
+            return true;
+    }
+
+    return false;
 }
 
 static bool
@@ -5007,6 +5138,8 @@ bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.func_decl.name;
+    bool is_action = (!node->is_async_decl && node->data.func_decl.is_action);
+    ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     uint32_t prev_effects = ctx->current_function_effects;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
@@ -5014,6 +5147,197 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool has_effect_contract = false;
     uint32_t declared_effects =
         declared_effects_from_function_node(node, ctx, &has_effect_contract);
+
+    if (is_action) {
+        const char *subject_name = NULL;
+
+        if (enclosing_nominal == NULL
+            || enclosing_nominal->type != AST_CLASS_DECL
+            || enclosing_nominal->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+            semantic_error(ctx, node,
+                "action '%s' is only supported inside subject declarations",
+                name != NULL ? name : "<anonymous>");
+        } else {
+            subject_name = enclosing_nominal->data.class_decl.name;
+        }
+
+        for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
+            const char *ability = node->data.func_decl.required_abilities[i];
+            if (find_ability_decl_by_name(ctx->program_root, ability) == NULL) {
+                semantic_error(ctx, node,
+                    "action '%s' requires unknown ability '%s'",
+                    name != NULL ? name : "<anonymous>",
+                    ability != NULL ? ability : "<ability>");
+                continue;
+            }
+            if (subject_name != NULL
+                && !subject_type_has_ability(ctx->program_root, subject_name, ability)) {
+                semantic_error(ctx, node,
+                    "action '%s' requires ability '%s' but subject '%s' does not implement it",
+                    name != NULL ? name : "<anonymous>",
+                    ability != NULL ? ability : "<ability>",
+                    subject_name);
+            }
+        }
+
+        if (node->data.func_decl.within_zone != NULL
+            && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                node->data.func_decl.within_zone) == NULL) {
+            semantic_error(ctx, node,
+                "action '%s' references unknown zone '%s'",
+                name != NULL ? name : "<anonymous>",
+                node->data.func_decl.within_zone);
+        }
+
+        if (node->data.func_decl.causes_effect != NULL
+            && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+                node->data.func_decl.causes_effect) == NULL) {
+            semantic_error(ctx, node,
+                "action '%s' references unknown effect '%s'",
+                name != NULL ? name : "<anonymous>",
+                node->data.func_decl.causes_effect);
+        }
+
+        for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
+            const char *auth_name = node->data.func_decl.authorized_by[i];
+            bool found = auth_name != NULL && strcmp(auth_name, "self") == 0;
+            const char *auth_type_name = NULL;
+
+            for (size_t j = 0; !found && j < node->data.func_decl.param_count; j++) {
+                FuncParam *param = node->data.func_decl.params[j];
+                if (param != NULL && param->name != NULL
+                    && strcmp(param->name, auth_name) == 0) {
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                semantic_error(ctx, node,
+                    "action '%s' authorized subject '%s' must be 'self' or one of the action parameters",
+                    name != NULL ? name : "<anonymous>",
+                    auth_name != NULL ? auth_name : "<subject>");
+                continue;
+            }
+
+            auth_type_name = find_action_binding_type_name(
+                node, enclosing_nominal, ctx, auth_name);
+            if (auth_type_name == NULL) {
+                semantic_error(ctx, node,
+                    "action '%s' authorized subject '%s' must be a subject host",
+                    name != NULL ? name : "<anonymous>",
+                    auth_name != NULL ? auth_name : "<subject>");
+            }
+        }
+
+        if (node->data.func_decl.within_zone != NULL) {
+            ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                node->data.func_decl.within_zone);
+            if (zone_decl != NULL && subject_name != NULL
+                && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
+                    zone_decl->data.zone_decl.slot_count, ctx, subject_name)) {
+                semantic_error(ctx, node,
+                    "action '%s' references zone '%s', but that zone has no subject slot for '%s'",
+                    name != NULL ? name : "<anonymous>",
+                    node->data.func_decl.within_zone,
+                    subject_name);
+            }
+
+            if (zone_decl != NULL) {
+                for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
+                    const char *auth_name = node->data.func_decl.authorized_by[i];
+                    const char *auth_type_name = find_action_binding_type_name(
+                        node, enclosing_nominal, ctx, auth_name);
+                    if (auth_type_name == NULL) {
+                        continue;
+                    }
+                    if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
+                            zone_decl->data.zone_decl.slot_count, ctx, auth_type_name)) {
+                        semantic_error(ctx, node,
+                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot",
+                            name != NULL ? name : "<anonymous>",
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_type_name,
+                            node->data.func_decl.within_zone);
+                    } else if (!zone_has_authority_for_subject_type(zone_decl, ctx, auth_type_name)) {
+                        semantic_error(ctx, node,
+                            "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority",
+                            name != NULL ? name : "<anonymous>",
+                            auth_name != NULL ? auth_name : "<subject>",
+                            auth_type_name,
+                            node->data.func_decl.within_zone);
+                    }
+                }
+            }
+        }
+
+        if (node->data.func_decl.causes_effect != NULL) {
+            ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+                node->data.func_decl.causes_effect);
+            if (effect_decl != NULL) {
+                for (size_t i = 0; i < effect_decl->data.effect_decl.slot_count; i++) {
+                    ASTNode *slot = effect_decl->data.effect_decl.slots[i];
+                    Type *slot_type;
+                    bool matched = false;
+
+                    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+                        || !slot->data.domain_slot.is_subject
+                        || slot->data.domain_slot.type == NULL) {
+                        continue;
+                    }
+                    slot_type = resolve_type_node(slot->data.domain_slot.type, ctx);
+                    if (slot_type == NULL || slot_type->name == NULL)
+                        continue;
+
+                    if (subject_name != NULL && strcmp(subject_name, slot_type->name) == 0) {
+                        matched = true;
+                    } else {
+                        for (size_t j = 0; j < node->data.func_decl.param_count; j++) {
+                            FuncParam *param = node->data.func_decl.params[j];
+                            Type *param_type;
+                            if (param == NULL || param->type == NULL)
+                                continue;
+                            param_type = resolve_type_node(param->type, ctx);
+                            if (param_type != NULL
+                                && type_is_subject_type(param_type, ctx)
+                                && param_type->name != NULL
+                                && strcmp(param_type->name, slot_type->name) == 0) {
+                                matched = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!matched) {
+                        semantic_error(ctx, node,
+                            "action '%s' causes effect '%s', but no self/subject parameter matches effect target type '%s'",
+                            name != NULL ? name : "<anonymous>",
+                            node->data.func_decl.causes_effect,
+                            slot_type->name);
+                    }
+                }
+            }
+
+            if (node->data.func_decl.within_zone != NULL) {
+                ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                    node->data.func_decl.within_zone);
+                if (zone_decl != NULL
+                    && !zone_has_effect_layer_type(zone_decl, node->data.func_decl.causes_effect)) {
+                    semantic_warning(ctx, node,
+                        "action '%s' causes effect '%s', but zone '%s' has no matching effect slot",
+                        name != NULL ? name : "<anonymous>",
+                        node->data.func_decl.causes_effect,
+                        node->data.func_decl.within_zone);
+                }
+            }
+        }
+    } else if (!node->is_async_decl
+        && enclosing_nominal != NULL
+        && enclosing_nominal->type == AST_CLASS_DECL
+        && enclosing_nominal->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
+        semantic_error(ctx, node,
+            "subject declaration '%s' cannot use 'func'; use 'action' instead",
+            name != NULL ? name : "<anonymous>");
+    }
 
     /* If the function has generic parameters (<T, U, ...>),
      * register them as opaque types in a temporary scope so that
@@ -5231,8 +5555,7 @@ bool
 type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.class_decl.name;
-    bool passive_projection = node->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
-        || node->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
+    ASTNode *saved_nominal = ctx->current_nominal_decl;
 
     /* If the class has generic parameters (<T, U, ...>), register them
      * as opaque types in a temporary scope so that resolve_type_node("T")
@@ -5297,6 +5620,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
      * then register the mangled name (ClassName_MethodName) in the
      * parent scope so that callers can find it. */
     scope_enter(&ctx->scope, SCOPE_CLASS);
+    ctx->current_nominal_decl = node;
 
     /* Re-register generic type params inside the class scope */
     if (has_generics) {
@@ -5326,26 +5650,28 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         field_type = resolve_type_node(field->type, ctx);
+        if (field->is_vessel_field) {
+            ASTNode *field_decl = NULL;
+            if (field_type != NULL && field_type->kind == TYPE_KIND_CLASS
+                && field_type->name != NULL) {
+                field_decl = find_type_decl_by_name(ctx->program_root, field_type->name);
+            }
+            if (field_decl == NULL
+                || field_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+                semantic_error(ctx, field->type,
+                    "subject vessel field '%s' must reference a vessel type",
+                    field->name != NULL ? field->name : "<field>");
+            }
+        }
         field_sym = symbol_create_variable(field->name, field_type,
             node->line, node->column);
         if (field_sym != NULL)
             scope_declare(ctx->scope, field_sym);
     }
-    if (passive_projection && node->data.class_decl.method_count > 0) {
-        semantic_error(ctx, node,
-            "%s '%s' is a passive projection form and cannot declare methods; keep behavior on subjects/roles and project the result into object/dto fields",
-            node->data.class_decl.nominal_kind == NOMINAL_DECL_DTO ? "dto" : "object",
-            name != NULL ? name : "<anonymous>");
-    } else {
-        for (size_t i = 0; i < node->data.class_decl.method_count; i++)
-            type_check_func_decl(node->data.class_decl.methods[i], ctx);
-    }
+    for (size_t i = 0; i < node->data.class_decl.method_count; i++)
+        type_check_func_decl(node->data.class_decl.methods[i], ctx);
 
     /* Collect method signatures before the class scope is destroyed */
-    if (passive_projection) {
-        scope_exit(&ctx->scope);
-        return !ctx->has_error;
-    }
     for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
         ASTNode *method = node->data.class_decl.methods[i];
         if (method == NULL || method->type != AST_FUNC_DECL)
@@ -5382,6 +5708,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     scope_exit(&ctx->scope);
+    ctx->current_nominal_decl = saved_nominal;
 
     return !ctx->has_error;
 }

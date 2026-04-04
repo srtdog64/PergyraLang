@@ -2,6 +2,20 @@
 #include "../semantic/type_system.h"
 
 static bool
+parser_decl_match_contextual_keyword(Parser *parser, const char *keyword)
+{
+    if (parser == NULL || keyword == NULL
+        || !parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL
+        || strcmp(parser->current_token.text, keyword) != 0) {
+        return false;
+    }
+
+    parser_advance(parser);
+    return true;
+}
+
+static bool
 parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
 {
     if (mask_out == NULL)
@@ -229,13 +243,14 @@ void skip_generic_arguments(Parser* parser) {
 }
 
 // 함수 선언 파싱
-ASTNode* parse_function_declaration(Parser* parser) {
+static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) {
     // 함수 이름
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected function name");
 
     ASTNode* func = ast_create_function(name.text);
     parser->last_func_decl_async = false;
     func->data.func_decl.doc_comment = parser_take_pending_doc_comment(parser);
+    func->data.func_decl.is_action = is_action;
 
     // 제네릭 파라미터
     func->data.func_decl.generic_params = parse_generic_params(parser);
@@ -297,6 +312,52 @@ ASTNode* parse_function_declaration(Parser* parser) {
                 &func->data.func_decl.declared_effects);
             continue;
         }
+        if (is_action && parser_decl_match_contextual_keyword(parser, "requires")) {
+            do {
+                Token ability = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected ability name after 'requires'");
+                size_t next = func->data.func_decl.required_ability_count + 1;
+                func->data.func_decl.required_abilities = realloc(
+                    func->data.func_decl.required_abilities,
+                    next * sizeof(char *));
+                func->data.func_decl.required_abilities[next - 1] =
+                    pergyra_strdup(ability.text);
+                func->data.func_decl.required_ability_count = next;
+            } while (parser_match(parser, TOKEN_COMMA));
+            continue;
+        }
+        if (is_action && parser_decl_match_contextual_keyword(parser, "within")) {
+            Token zone = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected zone name after 'within'");
+            free(func->data.func_decl.within_zone);
+            func->data.func_decl.within_zone = pergyra_strdup(zone.text);
+            continue;
+        }
+        if (is_action && parser_decl_match_contextual_keyword(parser, "causes")) {
+            Token effect = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected effect name after 'causes'");
+            free(func->data.func_decl.causes_effect);
+            func->data.func_decl.causes_effect = pergyra_strdup(effect.text);
+            continue;
+        }
+        if (is_action && parser_decl_match_contextual_keyword(parser, "authorized")) {
+            if (!parser_decl_match_contextual_keyword(parser, "by")) {
+                parser_error(parser, "Expected 'by' after 'authorized'");
+                return func;
+            }
+            do {
+                Token actor = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected subject name after 'authorized by'");
+                size_t next = func->data.func_decl.authorized_by_count + 1;
+                func->data.func_decl.authorized_by = realloc(
+                    func->data.func_decl.authorized_by,
+                    next * sizeof(char *));
+                func->data.func_decl.authorized_by[next - 1] =
+                    pergyra_strdup(actor.text);
+                func->data.func_decl.authorized_by_count = next;
+            } while (parser_match(parser, TOKEN_COMMA));
+            continue;
+        }
         break;
     }
 
@@ -319,6 +380,14 @@ ASTNode* parse_function_declaration(Parser* parser) {
     return func;
 }
 
+ASTNode* parse_function_declaration(Parser* parser) {
+    return parse_function_like_declaration(parser, false);
+}
+
+ASTNode* parse_action_declaration(Parser* parser) {
+    return parse_function_like_declaration(parser, true);
+}
+
 // 클래스 선언 파싱
 ASTNode* parse_class_declaration(Parser* parser) {
     return parse_type_declaration(parser, NOMINAL_DECL_CLASS);
@@ -326,6 +395,10 @@ ASTNode* parse_class_declaration(Parser* parser) {
 
 ASTNode* parse_subject_declaration(Parser* parser) {
     return parse_type_declaration(parser, NOMINAL_DECL_SUBJECT);
+}
+
+ASTNode* parse_vessel_declaration(Parser* parser) {
+    return parse_type_declaration(parser, NOMINAL_DECL_VESSEL);
 }
 
 // 구조체 선언 파싱
@@ -344,6 +417,7 @@ ASTNode* parse_dto_declaration(Parser* parser) {
 // 클래스/구조체 선언 공통 파싱
 ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     bool is_struct = (decl_kind == NOMINAL_DECL_STRUCT
+        || decl_kind == NOMINAL_DECL_VESSEL
         || decl_kind == NOMINAL_DECL_OBJECT
         || decl_kind == NOMINAL_DECL_DTO);
     const char *kind_name = "class";
@@ -351,6 +425,8 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
 
     if (decl_kind == NOMINAL_DECL_SUBJECT)
         kind_name = "subject";
+    else if (decl_kind == NOMINAL_DECL_VESSEL)
+        kind_name = "vessel";
     else if (decl_kind == NOMINAL_DECL_STRUCT)
         kind_name = "struct";
     else if (decl_kind == NOMINAL_DECL_OBJECT)
@@ -368,6 +444,9 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     switch (decl_kind) {
     case NOMINAL_DECL_SUBJECT:
         class_decl = ast_create_subject(name.text);
+        break;
+    case NOMINAL_DECL_VESSEL:
+        class_decl = ast_create_vessel(name.text);
         break;
     case NOMINAL_DECL_STRUCT:
         class_decl = ast_create_struct(name.text);
@@ -411,9 +490,26 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
 
         // 클래스 필드 또는 구조체 bare field / let field
         if (parser_check(parser, TOKEN_LET) ||
+            (decl_kind == NOMINAL_DECL_SUBJECT
+             && parser_check(parser, TOKEN_IDENTIFIER)
+             && parser->current_token.text != NULL
+             && strcmp(parser->current_token.text, "vessel") == 0) ||
             (is_struct && parser_check(parser, TOKEN_IDENTIFIER))) {
             bool has_let = parser_match(parser, TOKEN_LET);
+            bool is_vessel_field = false;
+            if (!has_let && decl_kind == NOMINAL_DECL_SUBJECT) {
+                is_vessel_field = parser_decl_match_contextual_keyword(parser, "vessel");
+            }
             if (!has_let && !is_struct) {
+                if (is_vessel_field) {
+                    /* handled below */
+                } else {
+                    parser_error(parser, "Expected field or method declaration");
+                    return class_decl;
+                }
+            }
+
+            if (!has_let && !is_struct && !is_vessel_field) {
                 parser_error(parser, "Expected field or method declaration");
                 return class_decl;
             }
@@ -427,6 +523,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             field->name = pergyra_strdup(field_name.text);
             field->type = field_type;
             field->access = access;
+            field->is_vessel_field = is_vessel_field;
 
             // 필드 추가
             class_decl->data.class_decl.field_count++;
@@ -444,6 +541,17 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             method->data.func_decl.access = access;
 
             // 메서드 추가
+            class_decl->data.class_decl.method_count++;
+            class_decl->data.class_decl.methods = realloc(
+                class_decl->data.class_decl.methods,
+                class_decl->data.class_decl.method_count * sizeof(ASTNode*)
+            );
+            class_decl->data.class_decl.methods[class_decl->data.class_decl.method_count - 1] = method;
+        } else if (decl_kind == NOMINAL_DECL_SUBJECT
+            && parser_decl_match_contextual_keyword(parser, "action")) {
+            ASTNode* method = parser_finalize_statement(parser, parse_action_declaration(parser));
+            method->data.func_decl.access = access;
+
             class_decl->data.class_decl.method_count++;
             class_decl->data.class_decl.methods = realloc(
                 class_decl->data.class_decl.methods,

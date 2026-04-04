@@ -74,6 +74,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
 - `world`, `systemic`, `relation`, `effect`, and `zone` now behave as contextual keywords so they remain valid local variable names outside declaration positions
+- Added `vessel` as a nominal declaration flavor and `subject`-local `vessel name: Type;` field surface
+- Added `action` as a subject-first declaration surface with minimal `requires` / `within` / `causes` / `authorized by` clause parsing and semantic validation
+- Added a hard semantic error for legacy `func` declarations inside `subject`; `action` is now the only public subject verb surface
+- Fixed async `func` / subject `action` flag overlap in the shared AST union so LLVM async entrypoints no longer mis-diagnose as actions
+- Tightened `action` clause validation so `authorized by` requires subject hosts, `within` checks matching zone subject/authority coverage, and `causes` checks effect target compatibility plus zone effect-slot presence
+- `object` / `dto` declarations now allow passive helper methods again
 - Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
 - Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
 - Added actor-as-subject-profile semantic alignment so `actor` participates in role binding, `subject slot`, `ToObject` / `ToDto`, and subject copy restrictions
@@ -85,7 +91,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added automatic paired-token exposure for secure boundary slot parameters (`s_token` inside function bodies)
 - Added C transpiler regression coverage for subject-host slot boundary lowering
 - Added LLVM smoke coverage for subject-host slot boundary transfer
-- Added semantic restriction that `object` / `dto` declarations are field-only passive projection forms and cannot declare methods
 - `ToObject` now accepts only `object` declarations, `ToDto` only `dto` declarations, and `refresh` / `publish` follow the same nominal projection split
 - Direct `ToObject` / `ToDto` outside relation/effect/zone/world context now emit semantic warnings so domain-local projection flow is the preferred path
 - `relation` / `effect` declarations now support domain-local `refresh` / `publish` projection sync and `<Type>_sync(self)` helpers around methods in both C and LLVM backends
@@ -106,6 +111,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - World architecture docs now treat `world` as the final top-level execution boundary and fix the long-term layer model as `ability -> role -> party -> relation -> effect -> zone -> world`
 - Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, `class` remains as a separate nominal surface, and `actor` is positioned as a subject execution profile
 - Actor docs now reflect current implementation state: `actor` is already treated semantically as a subject execution profile, and `subject Name actor { ... }` is now supported alongside transitional standalone actor syntax
+- Vessel/action docs now match implementation more closely: `subject` uses `action` only, while `object` / `dto` keep passive helper `func`
 - Core docs now keep `entity` out of the language ontology and define `object` as a passive interpretation mode of `subject` rather than a separate top-level kind
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
 - Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface

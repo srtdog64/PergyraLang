@@ -46,6 +46,7 @@ struct SemanticContext
     ASTNode*     program_root;   /* Root AST for cross-decl lookup */
     ASTNode*     current_relation; /* Enclosing relation decl       */
     ASTNode*     current_effect;   /* Enclosing effect decl         */
+    ASTNode*     current_nominal_decl; /* Enclosing nominal decl      */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
     ASTNode*     current_world;  /* Enclosing world decl when any  */
     Type*        current_return; /* Expected return type of func   */

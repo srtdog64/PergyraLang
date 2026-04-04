@@ -1500,12 +1500,12 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject method bare field access lowers through self cell");
+    TEST("subject action bare field access lowers through self cell");
     {
         const char *source =
             "subject Counter {\n"
             "    let count: Int;\n"
-            "    func Tick(self, delta: Int) -> Int {\n"
+            "    action Tick(self, delta: Int) -> Int {\n"
             "        count = count + delta;\n"
             "        return count;\n"
             "    }\n"
@@ -1520,6 +1520,35 @@ test_program_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->count = (self->count + delta);");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->count;");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("vessel methods lower like passive value receivers");
+    {
+        const char *source =
+            "vessel HealthState {\n"
+            "    current: Int;\n"
+            "    func IsDead(self) -> Bool {\n"
+            "        return current <= 0;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT(strstr(ctx->out->data, "HealthState_IsDead(HealthState self)") != NULL
+            || strstr(ctx->helpers->data, "HealthState_IsDead(HealthState self)") != NULL);
+        EXPECT(strstr(ctx->out->data, "return (self.current <= 0);") != NULL
+            || strstr(ctx->helpers->data, "return (self.current <= 0);") != NULL);
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

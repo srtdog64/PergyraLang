@@ -32,6 +32,7 @@ typedef enum {
 typedef enum {
     NOMINAL_DECL_CLASS,
     NOMINAL_DECL_SUBJECT,
+    NOMINAL_DECL_VESSEL,
     NOMINAL_DECL_STRUCT,
     NOMINAL_DECL_OBJECT,
     NOMINAL_DECL_DTO
@@ -246,6 +247,7 @@ struct ClassField {
     ASTNode*       type;
     AccessModifier access;
     bool           is_mutable;
+    bool           is_vessel_field;
 };
 
 /*
@@ -281,6 +283,13 @@ struct ASTNode
             bool           has_effects_clause;
             uint32_t       declared_effects;
             AccessModifier access;
+            bool           is_action;
+            char**         required_abilities;
+            size_t         required_ability_count;
+            char*          within_zone;
+            char*          causes_effect;
+            char**         authorized_by;
+            size_t         authorized_by_count;
             StructuredComment* doc_comment;  /* Attached documentation */
         } func_decl;
         
@@ -955,6 +964,7 @@ ASTNode* ast_create_program(void);
 ASTNode* ast_create_function(const char* name);
 ASTNode* ast_create_class(const char* name);
 ASTNode* ast_create_subject(const char* name);
+ASTNode* ast_create_vessel(const char* name);
 ASTNode* ast_create_struct(const char* name);
 ASTNode* ast_create_object(const char* name);
 ASTNode* ast_create_dto(const char* name);

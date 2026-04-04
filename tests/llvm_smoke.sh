@@ -546,7 +546,7 @@ cat > "$TMPDIR/subject_class_dispatch.pgy" <<'EOF'
 subject ActiveCounter {
     let count: Int;
 
-    func Tick(self, delta: Int) -> Int {
+    action Tick(self, delta: Int) -> Int {
         count = count + delta;
         return count;
     }

@@ -76,13 +76,17 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
 - `actor`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToDto`, subject copy restriction 경로에 실제로 참여함
 - `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
+- `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
+- `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
+- `action` clause는 이제 `authorized by` subject-host 확인, `within` zone slot/authority 적합성 확인, `causes` effect target/zone layer 적합성 확인까지 semantic에 반영됨
 - `role`은 non-subject nominal declaration에 바인딩될 수 없고, `party`는 subject-bound role impl이 없는 ability를 협력 슬롯에 둘 수 없음
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 타입처럼 parameter/return/copy가 가능함
 - C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
 - `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
-- `object` / `dto` declaration은 passive projection form으로 제한되며 method를 가질 수 없음
-- 현재 회귀 수치: `semantic 420 passed`, `transpile 306 passed`, `llvm-test-smoke` 통과
+- `object` / `dto` declaration은 passive projection/value 형식이지만 helper `func`를 가질 수 있음
+- `subject` 안의 legacy `func`는 이제 semantic error이며, subject의 공적 동사는 `action`만 허용됨
+- 현재 회귀 수치: `semantic 440 passed`, `transpile 331 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 `refresh` / `publish`임
@@ -114,8 +118,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 ## 2026-04-04 기준 확인된 상태
 
-- `make test-semantic` 통과 (`414 passed`)
-- `make test-transpile` 통과 (`306 passed`)
+- `make test-semantic` 통과 (`440 passed`)
+- `make test-transpile` 통과 (`331 passed`)
 - `make llvm-test-smoke` 통과
 
 ## 다음 기준

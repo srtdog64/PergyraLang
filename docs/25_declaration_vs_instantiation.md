@@ -78,7 +78,9 @@ zone TradeZone {
 
 | 선언 | 역할 | 비유 |
 |------|------|------|
-| `subject Player { ... }` | 개체 타입 | 종(種) 정의 |
+| `struct Vec2 { ... }` | 순수 값 타입 | 광물/분자 |
+| `vessel HealthState { ... }` | 피동 상태 수용체 | 기관(organ) |
+| `subject Player { ... }` | 능동 오케스트레이터 | 유기체/종(種) |
 | `ability Combatable { ... }` | 자격 조건 | 유전형질 |
 | `role Warrior for Player { ... }` | 자격의 구체적 이행 | 표현형 |
 | `party Team { ... }` | 협력 단위 조합 | 무리/군집 구조 |
@@ -117,19 +119,26 @@ world (생태계)
   zone (바이옴)
     relation (개체 간 관계)
     effect (환경 효과)
-    subject (개체)
+    subject (유기체/오케스트레이터)
+      vessel (기관/수용체)
       ability (유전형질)
       role (표현형)
+      action (플롯 행위)
       party (무리)
 ```
 
 코드 구조 (실제 구현):
 ```
 프로그램 최상위:
+  struct, vessel                       -- 값/수용체 선언
   subject, ability, role, party        -- 개체 계층 선언
   relation, effect                     -- 상호작용 선언
   zone, systemic                       -- 구역/시스템 선언
   world                                -- 생태계 선언
+
+subject 내부:
+  vessel slot                          -- 피동 수용체 소유
+  action                               -- 플롯 행위 선언 (func 아님)
 
 world 내부:
   systemic slot, zone slot             -- 인스턴스화
@@ -148,9 +157,11 @@ Pergyra는 **subject-first** 언어다. 프로그램 설계는 소설을 쓰는 
 **subject는 주인공이다.** 모든 것은 주인공에서 시작한다:
 
 ```
-subject  = 주인공 (상태와 정체성을 가진 존재)
+subject  = 주인공 (의사결정, 오케스트레이션, 승인)
+vessel   = 주인공의 내면/소지품/신체 기관 (피동적 수용체)
 ability  = 주인공의 재능/자질 (선천적 자격)
 role     = 주인공이 맡는 역할 (전사, 치유사, 상인)
+action   = 주인공의 행동 (플롯 비트, zone/effect와 연동)
 party    = 주인공의 일행 (협력 단위)
 
 object   = 주인공에 의해 영향받는 존재/사물 (수동 투영)
@@ -166,12 +177,14 @@ world    = 소설 전체
 설계 순서는 이 서사를 따른다:
 
 1. **주인공을 만든다** -- `subject Player { ... }`
-2. **주인공에게 자질을 부여한다** -- `ability Combatable { ... }`
-3. **자질을 구체적 역할로 발현한다** -- `role Warrior for Player impl Combatable { ... }`
-4. **주인공에게 시련과 관계를 부여한다** -- `effect Poisoned { ... }`, `relation Alliance { ... }`
-5. **주인공이 영향을 미치는 존재를 정의한다** -- `object PlayerView { ... }`
-6. **이야기의 무대를 연다** -- `zone BattleZone { subject slot player: Player; ... }`
-7. **소설을 완성한다** -- `world GameWorld { zone battle: BattleZone; ... }`
+2. **주인공의 내면을 구성한다** -- `vessel HealthState { ... }`, `vessel Inventory { ... }`
+3. **주인공에게 자질을 부여한다** -- `ability Combatable { ... }`
+4. **자질을 구체적 역할로 발현한다** -- `role Warrior for Player impl Combatable { ... }`
+5. **주인공의 행동을 선언한다** -- `action Attack(self, target) requires Combatable within BattleZone { ... }`
+6. **주인공에게 시련과 관계를 부여한다** -- `effect Poisoned { ... }`, `relation Alliance { ... }`
+7. **주인공이 영향을 미치는 존재를 정의한다** -- `object PlayerView { ... }`
+8. **이야기의 무대를 연다** -- `zone BattleZone { subject slot player: Player; ... }`
+9. **소설을 완성한다** -- `world GameWorld { zone battle: BattleZone; ... }`
 
 **world가 컨테이너이고 zone이 무대이지만, 이것들은 주인공(subject)의 이야기를 담기 위해 존재한다.** 무대 없는 주인공은 가능하지만, 주인공 없는 무대는 의미가 없다.
 
@@ -193,8 +206,19 @@ world    = 소설 전체
 - zone = 사바나, 심해, 열대우림 (서식 환경)
 - systemic = 먹이 사슬 시스템, 번식 시스템, 이주 시스템 (생태 순환)
 
+## vessel과 action의 위치 (참조: docs/26)
+
+vessel-action 모델의 상세 설계는 [26_vessel_action_model.md](26_vessel_action_model.md)에 정리되어 있다.
+
+핵심 요약:
+
+- **vessel**: subject 안에서 상태/자원/행위를 피동적으로 담는 수용체. func를 가진다.
+- **action**: subject 전용 동사. zone/ability/effect와 연동되는 플롯 행위. func와 구분된다.
+- **subject에는 func가 없다.** 현재 compiler도 subject 안의 legacy `func`를 semantic error로 막고, 모든 공적 행위는 `action`만 허용한다.
+
 ## 결정 이력
 
-- 설계: 선언 + 참조 모델 채택, 중첩 모델 비채택
+- 선언 + 참조 모델 채택, 중첩 모델 비채택
 - 근거: 재사용성, 관심사 분리, 컴파일 타임 계약 검증
 - 비유: "타입은 종이고, slot은 개체다. zone은 서식지다."
+- 2026-04-04: vessel, action 키워드 채택 (god subject 방지, subject-first 유지)

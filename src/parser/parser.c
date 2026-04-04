@@ -113,6 +113,7 @@ void parser_synchronize(Parser* parser) {
     while (!parser_is_at_end(parser)) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
         if (parser_check_contextual_keyword(parser, "object")
+            || parser_check_contextual_keyword(parser, "vessel")
             || parser_check_contextual_keyword(parser, "dto")
             || parser_check_contextual_keyword(parser, "world")
             || parser_check_contextual_keyword(parser, "systemic")
@@ -521,6 +522,8 @@ parser_parse_export_declaration(Parser *parser)
                           : parse_class_declaration(parser);
     } else if (parser_match_contextual_keyword(parser, "object"))
         node = parse_object_declaration(parser);
+    else if (parser_match_contextual_keyword(parser, "vessel"))
+        node = parse_vessel_declaration(parser);
     else if (parser_check(parser, TOKEN_STRUCT)) {
         bool is_dto = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "dto") == 0;
@@ -731,6 +734,10 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // object 선언 (contextual struct alias)
     if (parser_match_contextual_keyword(parser, "object")) {
         return parser_finalize_statement(parser, parse_object_declaration(parser));
+    }
+
+    if (parser_match_contextual_keyword(parser, "vessel")) {
+        return parser_finalize_statement(parser, parse_vessel_declaration(parser));
     }
 
     // dto / struct 선언

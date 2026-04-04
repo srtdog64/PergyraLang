@@ -5601,18 +5601,18 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("object and dto declarations reject methods because they are passive projection forms");
+    TEST("object and dto declarations may carry passive helper funcs");
     {
         const char *source =
             "object PlayerView {\n"
             "    hp: Int;\n"
-            "    func Mutate() -> Void {\n"
-            "        Log(hp);\n"
+            "    func Label(self) -> Int {\n"
+            "        return hp;\n"
             "    }\n"
             "}\n"
             "dto PlayerDto {\n"
             "    hp: Int;\n"
-            "    func Export() -> Int {\n"
+            "    func Export(self) -> Int {\n"
             "        return hp;\n"
             "    }\n"
             "}\n";
@@ -5622,7 +5622,183 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("vessel declarations and subject vessel fields are accepted");
+    {
+        const char *source =
+            "vessel HealthState {\n"
+            "    current: Int;\n"
+            "    func IsDead(self) -> Bool {\n"
+            "        return current <= 0;\n"
+            "    }\n"
+            "}\n"
+            "subject Player {\n"
+            "    vessel health: HealthState;\n"
+            "    action TakeDamage(self, amount: Int) -> Void {\n"
+            "        Log(amount);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject vessel fields reject non-vessel target types");
+    {
+        const char *source =
+            "object PlayerView { hp: Int; }\n"
+            "subject Player {\n"
+            "    vessel view: PlayerView;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "must reference a vessel type"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject action validates requires within causes and authorized by clauses");
+    {
+        const char *source =
+            "vessel CombatStats { power: Int; }\n"
+            "subject Player {\n"
+            "    vessel combat: CombatStats;\n"
+            "    action Attack(self, amount: Int) -> Void\n"
+            "        requires Combatable\n"
+            "        within BattleZone\n"
+            "        causes DamageEffect\n"
+            "        authorized by self {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n"
+            "ability Combatable { func Strike() -> Void; }\n"
+            "role Warrior for Player {\n"
+            "    impl ability Combatable { func Strike() -> Void { Log(1); } }\n"
+            "}\n"
+            "effect DamageEffect for target: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    effect slot damage: DamageEffect\n"
+            "    authority player requires Combatable\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject action authorized by requires subject-host parameters and matching zone authority");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    action Trade(self, amount: Int) -> Void\n"
+            "        within TradeZone\n"
+            "        authorized by amount {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n"
+            "zone TradeZone {\n"
+            "    subject slot buyer: Player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "must be a subject host"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject action causes effect and within zone enforce target compatibility");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    action Attack(self) -> Void\n"
+            "        within BattleZone\n"
+            "        causes DamageEffect\n"
+            "        authorized by self {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n"
+            "effect DamageEffect for bearer: Player { }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "has no matching effect slot"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject declarations reject legacy func bodies");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    func Tick(self) -> Void {\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "cannot use 'func'; use 'action' instead"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

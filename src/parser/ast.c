@@ -21,6 +21,8 @@ nominal_decl_kind_name(NominalDeclKind kind)
     switch (kind) {
     case NOMINAL_DECL_SUBJECT:
         return "Subject";
+    case NOMINAL_DECL_VESSEL:
+        return "Vessel";
     case NOMINAL_DECL_STRUCT:
         return "Struct";
     case NOMINAL_DECL_OBJECT:
@@ -64,6 +66,13 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.has_effects_clause = false;
     node->data.func_decl.declared_effects = 0;
     node->data.func_decl.access = ACCESS_PUBLIC;
+    node->data.func_decl.is_action = false;
+    node->data.func_decl.required_abilities = NULL;
+    node->data.func_decl.required_ability_count = 0;
+    node->data.func_decl.within_zone = NULL;
+    node->data.func_decl.causes_effect = NULL;
+    node->data.func_decl.authorized_by = NULL;
+    node->data.func_decl.authorized_by_count = 0;
     return node;
 }
 
@@ -86,6 +95,14 @@ ASTNode* ast_create_subject(const char* name) {
     ASTNode* node = ast_create_class(name);
     if (node) {
         node->data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
+    }
+    return node;
+}
+
+ASTNode* ast_create_vessel(const char* name) {
+    ASTNode* node = ast_create_struct(name);
+    if (node) {
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_VESSEL;
     }
     return node;
 }
@@ -849,6 +866,17 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     if (!node) return NULL;
     node->is_async_decl = is_async;
 
+    /* AST_FUNC_DECL uses a shared union for sync/async declarations.
+     * Initialize action-only fields explicitly so async funcs never
+     * inherit stale subject-action metadata through overlapping storage. */
+    node->data.func_decl.is_action = false;
+    node->data.func_decl.required_abilities = NULL;
+    node->data.func_decl.required_ability_count = 0;
+    node->data.func_decl.within_zone = NULL;
+    node->data.func_decl.causes_effect = NULL;
+    node->data.func_decl.authorized_by = NULL;
+    node->data.func_decl.authorized_by_count = 0;
+
     node->data.async_func_decl.name = pergyra_strdup(name);
     node->data.async_func_decl.params = NULL;
     node->data.async_func_decl.param_count = 0;
@@ -1087,6 +1115,14 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.func_decl.body);
             ast_destroy_generic_params(node->data.func_decl.generic_params);
             ast_destroy_where_clause(node->data.func_decl.where_clause);
+            for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++)
+                free(node->data.func_decl.required_abilities[i]);
+            free(node->data.func_decl.required_abilities);
+            free(node->data.func_decl.within_zone);
+            free(node->data.func_decl.causes_effect);
+            for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++)
+                free(node->data.func_decl.authorized_by[i]);
+            free(node->data.func_decl.authorized_by);
             ast_destroy_structured_comment(node->data.func_decl.doc_comment);
             break;
             
@@ -2130,7 +2166,10 @@ void ast_print(ASTNode* node, int indent) {
             break;
             
         case AST_FUNC_DECL:
-            printf("Function: %s\n", node->data.func_decl.name);
+            printf("%s: %s\n",
+                   (!node->is_async_decl && node->data.func_decl.is_action)
+                       ? "Action" : "Function",
+                   node->data.func_decl.name);
             if (node->data.func_decl.generic_params) {
                 print_indent(indent + 1);
                 printf("Generic params: ");
@@ -2150,6 +2189,36 @@ void ast_print(ASTNode* node, int indent) {
                 print_indent(indent + 1);
                 printf("Returns: ");
                 ast_print_inline(node->data.func_decl.return_type);
+                printf("\n");
+            }
+            if (!node->is_async_decl
+                && node->data.func_decl.required_ability_count > 0) {
+                print_indent(indent + 1);
+                printf("Requires:");
+                for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
+                    printf("%s%s", i == 0 ? " " : ", ",
+                           node->data.func_decl.required_abilities[i]);
+                }
+                printf("\n");
+            }
+            if (!node->is_async_decl
+                && node->data.func_decl.within_zone != NULL) {
+                print_indent(indent + 1);
+                printf("Within: %s\n", node->data.func_decl.within_zone);
+            }
+            if (!node->is_async_decl
+                && node->data.func_decl.causes_effect != NULL) {
+                print_indent(indent + 1);
+                printf("Causes: %s\n", node->data.func_decl.causes_effect);
+            }
+            if (!node->is_async_decl
+                && node->data.func_decl.authorized_by_count > 0) {
+                print_indent(indent + 1);
+                printf("Authorized by:");
+                for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
+                    printf("%s%s", i == 0 ? " " : ", ",
+                           node->data.func_decl.authorized_by[i]);
+                }
                 printf("\n");
             }
             if (node->data.func_decl.body) {

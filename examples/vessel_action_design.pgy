@@ -1,0 +1,314 @@
+// vessel_action_design.pgy
+// Pergyra vessel-action model design example
+// NOTE: vessel/action core parser surface now exists, but this file still
+// demonstrates the fuller design direction beyond the currently stabilized subset.
+
+// ============================================================
+// 1. struct -- pure value (no identity, no side effects)
+// ============================================================
+
+struct Vec2 {
+    x: Float;
+    y: Float;
+}
+
+struct Item {
+    name: String;
+    weight: Int;
+    value: Int;
+}
+
+// ============================================================
+// 2. vessel -- passive receptacle (state + methods, no decisions)
+// ============================================================
+
+// State passive: HP, status
+vessel HealthState {
+    current: Int;
+    max: Int;
+
+    func ApplyDamage(self, amount: Int) -> Void {
+        self.current = Max(self.current - amount, 0);
+    }
+
+    func Heal(self, amount: Int) -> Void {
+        self.current = Min(self.current + amount, self.max);
+    }
+
+    func IsDead(self) -> Bool {
+        return self.current <= 0;
+    }
+
+    func Percentage(self) -> Float {
+        return ToFloat(self.current) / ToFloat(self.max);
+    }
+}
+
+// State passive: inventory management
+vessel Inventory {
+    items: Array<Item>;
+    capacity: Int;
+
+    func Add(self, item: Item) -> Result<Void> {
+        if Len(self.items) >= self.capacity {
+            return Err("inventory full");
+        }
+        ArrayPush(self.items, item);
+        return Ok(());
+    }
+
+    func Remove(self, name: String) -> Result<Item> {
+        for i in 0..Len(self.items) {
+            if self.items[i].name == name {
+                let item = self.items[i];
+                ArrayRemoveAt(self.items, i);
+                return Ok(item);
+            }
+        }
+        return Err("item not found");
+    }
+
+    func IsFull(self) -> Bool {
+        return Len(self.items) >= self.capacity;
+    }
+
+    func TotalWeight(self) -> Int {
+        let total = 0;
+        for item in self.items {
+            total = total + item.weight;
+        }
+        return total;
+    }
+}
+
+// Behavior passive: combat calculations (no state mutation)
+vessel CombatEngine {
+    base_power: Int;
+    base_defense: Int;
+
+    func CalculateDamage(self, target_def: Int) -> Int {
+        return Max(self.base_power - target_def, 0);
+    }
+
+    func CriticalHit(self, target_def: Int) -> Int {
+        return self.CalculateDamage(target_def) * 2;
+    }
+}
+
+// Resource passive: connection/handle holder
+vessel NetworkSession {
+    connection: Slot<Connection>;
+    timeout: Int;
+
+    func Send(self, data: String) -> Result<Void> {
+        let conn = Read(self.connection);
+        return conn.Write(data);
+    }
+
+    func Close(self) -> Void {
+        Release(self.connection);
+    }
+}
+
+// ============================================================
+// 3. ability -- behavioral contract (signatures only)
+// ============================================================
+
+ability Combatable {
+    func GetPower(self) -> Int;
+    func GetDefense(self) -> Int;
+}
+
+ability Tradeable {
+    func CanTrade(self) -> Bool;
+    func GetTradeValue(self, item: Item) -> Int;
+}
+
+ability Healable {
+    func CanHeal(self) -> Bool;
+    func GetHealPower(self) -> Int;
+}
+
+// ============================================================
+// 4. role -- ability implementation (qualified composition)
+// ============================================================
+
+role Warrior for Player impl Combatable {
+    func GetPower(self) -> Int {
+        return self.combat.base_power;
+    }
+
+    func GetDefense(self) -> Int {
+        return self.combat.base_defense;
+    }
+}
+
+role Merchant for Player impl Tradeable {
+    func CanTrade(self) -> Bool {
+        return !self.inventory.IsFull();
+    }
+
+    func GetTradeValue(self, item: Item) -> Int {
+        return item.value;
+    }
+}
+
+// ============================================================
+// 5. subject -- active orchestrator (action, not func)
+// ============================================================
+
+subject Player {
+    // vessel ownership (state lives here, not in subject directly)
+    vessel health: HealthState;
+    vessel inventory: Inventory;
+    vessel combat: CombatEngine;
+
+    // identity
+    let name: String;
+    let level: Int;
+
+    // action: plot-level behavior (zone + ability + effect aware)
+    action Attack(self, target: Player) -> Result<Void>
+        requires Combatable
+        within BattleZone
+        causes DamageEffect {
+
+        let dmg = self.combat.CalculateDamage(target.combat.base_defense);
+        target.health.ApplyDamage(dmg);
+
+        if target.health.IsDead() {
+            Log("${target.name} has fallen.");
+        }
+    }
+
+    action Trade(self, other: Player, item_name: String) -> Result<Void>
+        requires Tradeable
+        within TradeZone
+        authorized by self, other {
+
+        let item = self.inventory.Remove(item_name)?;
+        other.inventory.Add(item)?;
+        Log("${self.name} traded ${item_name} to ${other.name}.");
+    }
+
+    action Heal(self, target: Player, amount: Int) -> Result<Void>
+        requires Healable
+        within BattleZone {
+
+        target.health.Heal(amount);
+        Log("${self.name} healed ${target.name} for ${amount}.");
+    }
+
+    // subject has NO func -- only action
+    // all computation is delegated to vessels and roles
+}
+
+// ============================================================
+// 6. object / dto -- projection (passive view)
+// ============================================================
+
+object PlayerView {
+    name: String;
+    health_pct: Float;
+    level: Int;
+
+    func DisplayName(self) -> String {
+        return "${self.name} (Lv.${self.level})";
+    }
+}
+
+dto PlayerProfile {
+    name: String;
+    level: Int;
+    item_count: Int;
+}
+
+// ============================================================
+// 7. effect / relation -- trials and bonds
+// ============================================================
+
+effect DamageEffect for target: Player {
+    shared damage: Int;
+    shared source_name: String;
+}
+
+effect PoisonEffect for target: Player {
+    shared damage_per_turn: Int;
+    shared remaining_turns: Int;
+}
+
+relation Alliance for source: Player, dest: Player {
+    shared trust: Int;
+    shared formed_at: Int;
+}
+
+relation Rivalry for source: Player, dest: Player {
+    shared intensity: Int;
+}
+
+// ============================================================
+// 8. zone -- stage where actions are permitted
+// ============================================================
+
+zone BattleZone {
+    subject slot attacker: Player;
+    subject slot defender: Player;
+
+    effect slot damage: DamageEffect;
+    effect slot poison: PoisonEffect;
+    relation slot alliance: Alliance;
+    relation slot rivalry: Rivalry;
+
+    authority attacker requires Combatable;
+    authority defender requires Combatable;
+
+    apply damage to defender;
+    link rivalry between attacker, defender;
+}
+
+zone TradeZone {
+    subject slot buyer: Player;
+    subject slot seller: Player;
+
+    relation slot alliance: Alliance;
+
+    authority buyer requires Tradeable;
+    authority seller requires Tradeable;
+
+    link alliance between buyer, seller;
+}
+
+// ============================================================
+// 9. world -- the entire novel
+// ============================================================
+
+world GameWorld {
+    zone battle: BattleZone;
+    zone trade: TradeZone;
+
+    systemic combat: CombatSystem;
+}
+
+// ============================================================
+// Summary of the ontology:
+//
+//   struct    = pure value          (mineral / molecule)
+//   vessel    = passive receptacle  (organ)
+//   subject   = active orchestrator (organism / protagonist)
+//   object    = read-only view      (shadow / snapshot)
+//   dto       = boundary projection (letter / rumor)
+//   ability   = behavioral contract (genetic trait)
+//   role      = ability fulfillment (phenotype)
+//   action    = plot behavior       (protagonist's deed)
+//   relation  = inter-subject bond  (species interaction)
+//   effect    = environmental trial (trial / blessing)
+//   zone      = stage / chapter     (biome)
+//   world     = entire ecosystem    (the novel)
+//
+// Key principle:
+//   func  = "how" (computation / passive execution)
+//   action = "why, who, where" (orchestration / plot)
+//
+//   subject has action, not func.
+//   vessel/object/struct/dto/role have func, not action.
+// ============================================================

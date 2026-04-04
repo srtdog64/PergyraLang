@@ -231,7 +231,11 @@ run_subject_keyword_alias_test(void)
     const char *code =
         "subject Player {\n"
         "    let hp: Int;\n"
-        "    func TakeDamage(amount: Int) -> Void {\n"
+        "    action TakeDamage(amount: Int) -> Void\n"
+        "        requires Damageable\n"
+        "        within BattleZone\n"
+        "        causes DamageEffect\n"
+        "        authorized by self {\n"
         "        hp = hp - amount;\n"
         "    }\n"
         "}\n";
@@ -278,13 +282,87 @@ run_subject_keyword_alias_test(void)
     if (decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT
         || strcmp(decl->data.class_decl.name, "Player") != 0
         || decl->data.class_decl.field_count != 1
-        || decl->data.class_decl.method_count != 1) {
+        || decl->data.class_decl.method_count != 1
+        || !decl->data.class_decl.methods[0]->data.func_decl.is_action
+        || decl->data.class_decl.methods[0]->data.func_decl.required_ability_count != 1
+        || decl->data.class_decl.methods[0]->data.func_decl.within_zone == NULL
+        || decl->data.class_decl.methods[0]->data.func_decl.causes_effect == NULL
+        || decl->data.class_decl.methods[0]->data.func_decl.authorized_by_count != 1) {
         printf("[FAIL] Subject declaration members were not parsed correctly\n");
         failed = 1;
         goto cleanup;
     }
 
     printf("Subject keyword parsed successfully as subject declaration!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_vessel_keyword_alias_test(void)
+{
+    const char *code =
+        "vessel HealthState {\n"
+        "    current: Int;\n"
+        "    max: Int;\n"
+        "    func IsDead(self) -> Bool {\n"
+        "        return current <= 0;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+
+    printf("\n=== Test: Vessel Keyword Alias ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+        printf("[FAIL] Expected 'vessel' to parse as vessel declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (strcmp(decl->data.class_decl.name, "HealthState") != 0
+        || decl->data.class_decl.field_count != 2
+        || decl->data.class_decl.method_count != 1) {
+        printf("[FAIL] Vessel declaration members were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Vessel keyword parsed successfully as vessel declaration!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -920,6 +998,8 @@ main(void)
     failures += run_dto_keyword_alias_test();
     printf("\n");
     failures += run_object_keyword_alias_test();
+    printf("\n");
+    failures += run_vessel_keyword_alias_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

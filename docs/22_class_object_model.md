@@ -8,13 +8,16 @@
 핵심 전제는 다음과 같다.
 
 - `struct`는 최소 값 타입이다
-- `subject`는 상태와 identity를 가진 주체 타입이다
+- `vessel`은 subject 안에서 상태/자원을 피동적으로 담는 수용체다 (2026-04-04 추가)
+- `subject`는 의사결정과 오케스트레이션을 담당하는 능동 주체 타입이다
+- `subject`는 `func`가 아닌 `action`으로 행동한다 — action은 zone/ability/effect와 연동되는 플롯 행위다(2026-04-04 추가)
 - 현재 구현 surface는 `subject`와 `class`를 서로 다른 nominal declaration flavor로 기록하고, semantic/lowering도 둘을 점진적으로 다르게 다룬다
 - 현재 구현에서 `actor`는 별도 선언 키워드이지만 semantic에서는 subject execution profile로 취급된다
-- `object`는 별도 본체 타입이 아니라 `subject`가 수동 문맥으로 해석된 모습이다
+- `object`는 별도 본체 타입이 아니라 `subject`가 수동 문맥으로 해석된 모습이다. `object`는 `func`(메서드)를 가질 수 있다.
 - `ability`는 subject 위의 행위 계약이다
 - 장기 모델에서 `role`은 subject에 ability를 바인딩한다
 - `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
+- 상세 설계: [26_vessel_action_model.md](26_vessel_action_model.md)
 
 현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, actor subject-profile semantic, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
 role/ability/party 중심 객체 모델은 아직 이행 중이다.
@@ -46,7 +49,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - `object`는 별도 최상위 타입이라기보다, `subject`가 relation / effect / zone / DTO / view / serialization 문맥에서 수동적으로 다뤄질 때의 해석이다
 - `dto`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
 - 현재 compiler surface는 `object` / `dto`를 `struct` 호환 declaration alias로 받는다
-- 현재 compiler surface는 `object`와 `dto`를 field-only passive projection form으로 취급하고, 메서드는 허용하지 않는다
+- 현재 compiler surface는 `object`와 `dto`를 passive projection/value 형식으로 취급하지만, helper `func`는 허용한다
 - 현재 compiler surface는 `ToObject(TargetObject, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
 - 현재 compiler surface는 `ToDto(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
 - 다만 `ToObject` / `ToDto`를 relation/effect/zone/world 바깥 일반 함수에서 직접 쓰면 semantic warning을 내고, 권장 경로는 domain-local slot + `refresh` / `publish` 흐름이다
@@ -63,6 +66,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - 복사/비교 중심
 - identity 없음
 - 좌표, 설정값, 스냅샷, 작은 데이터 묶음에 적합
+- `func` (메서드) 허용
 
 ```pergyra
 struct Vec3 {
@@ -72,11 +76,31 @@ struct Vec3 {
 }
 ```
 
+### vessel (2026-04-04 추가)
+
+- subject 안에서 상태/자원/행위를 피동적으로 담는 수용체
+- `func` (메서드) 허용 -- 수동 실행 (호출당해서 상태 변경)
+- 스스로 의사결정하지 않음
+- 5대 피동 축: 상태, 행위, 자원, 투영, 규칙
+
+```pergyra
+vessel HealthState {
+    current: Int;
+    max: Int;
+
+    func ApplyDamage(self, amount: Int) -> Void {
+        self.current = Max(self.current - amount, 0);
+    }
+}
+```
+
 ### subject
 
-- 상태와 identity를 가지는 객체 타입
+- 의사결정, 오케스트레이션, 승인을 담당하는 능동 주체 타입
 - ability를 수행하는 주체
-- method와 role의 receiver
+- `action`의 host
+- 현재 compiler는 subject 안의 legacy `func`를 semantic error로 막고, `action`만 허용한다
+- role의 receiver
 - party role slot에 배치되는 대상
 
 현재 surface syntax에서는 `subject`와 `class`가 모두 허용되지만, 둘은 더 이상 같은 declaration으로 기록되지 않는다.
@@ -120,7 +144,7 @@ role PlayerDamageable for Player {
 
 ## 4. subject와 self cell
 
-Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에서 실행된다.
+Pergyra에서 subject action/method는 개념적으로 항상 `self object cell` 위에서 실행된다.
 
 즉:
 
@@ -262,7 +286,7 @@ Pergyra에서 subject method는 개념적으로 항상 `self object cell` 위에
 - plain subject copy와 plain subject value parameter/return은 시맨틱에서 거부한다
 - class는 plain copy / value parameter / value return을 허용한다
 - actor는 semantic에서 subject-profile로 동작하므로 plain actor copy와 plain actor value parameter/return도 subject와 같은 제약을 따른다
-- subject method는 C/LLVM backend에서 `self*` 기반 객체 셀 호출로 lower된다
+- subject action/method는 C/LLVM backend에서 `self*` 기반 객체 셀 호출로 lower된다
 - class method는 C/LLVM backend에서 value-self 호출로 lower된다
 - bare field name은 subject/class method 안에서 각각 `self->field` / `self.field`로 해석된다
 - 클래스 생성자는 현재 "필드 순서 기반 positional initialization"으로 동작한다
