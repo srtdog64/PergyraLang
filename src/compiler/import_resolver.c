@@ -242,6 +242,7 @@ import_resolver_load_internal(const char *source_path,
                               ImportStack *loaded,
                               size_t *import_module_counter,
                               bool imported,
+                              bool is_stdlib_module,
                               const char *private_prefix,
                               char **error_message)
 {
@@ -255,7 +256,7 @@ import_resolver_load_internal(const char *source_path,
         return NULL;
     }
 
-    if (imported && import_stack_contains(loaded, canonical_source)) {
+    if (is_stdlib_module && imported && import_stack_contains(loaded, canonical_source)) {
         free(canonical_source);
         return ast_create_program();
     }
@@ -280,7 +281,7 @@ import_resolver_load_internal(const char *source_path,
         goto fail;
     }
 
-    if (!import_stack_push(loaded, canonical_source)) {
+    if (is_stdlib_module && !import_stack_push(loaded, canonical_source)) {
         set_error(error_message, "out of memory while tracking loaded modules");
         goto fail;
     }
@@ -327,6 +328,12 @@ import_resolver_load_internal(const char *source_path,
             full_path = canonical_full_path;
         }
 
+        if (import_stack_contains(stack, full_path)) {
+            set_error(error_message, "circular import detected at '%s'", full_path);
+            free(full_path);
+            goto fail;
+        }
+
         {
             char nested_prefix[64];
             snprintf(nested_prefix, sizeof(nested_prefix),
@@ -336,6 +343,7 @@ import_resolver_load_internal(const char *source_path,
                                                     loaded,
                                                     import_module_counter,
                                                     true,
+                                                    stmt->type == AST_USE_DECL,
                                                     nested_prefix,
                                                     error_message);
         }
@@ -409,6 +417,7 @@ import_resolver_load_program(const char *source_path, char **error_message)
                                             &stack,
                                             &loaded,
                                             &import_module_counter,
+                                            false,
                                             false,
                                             "",
                                             error_message);
