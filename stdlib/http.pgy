@@ -11,9 +11,30 @@ class HttpResponse {
     let body: String;
 }
 
+dto HttpIntentRequest
+{
+    let intentName: String;
+    let actorKey: String;
+    let request: HttpRequest;
+}
+
+dto HttpIntentResponse
+{
+    let ok: Bool;
+    let intentName: String;
+    let handle: Int;
+    let failed: Bool;
+    let stepCount: Int;
+    let response: HttpResponse;
+}
+
 class RouteSpec {
     let method: String;
     let path: String;
+}
+
+func PostJson(path: String, body: String, traceId: Int) -> HttpRequest {
+    return HttpRequest("POST", path, body, traceId);
 }
 
 func OkResponse(body: String) -> HttpResponse {
@@ -28,6 +49,38 @@ func JsonResponse(body: String) -> HttpResponse {
     return HttpResponse(200, "application/json", body);
 }
 
+func BuildIntentRequest(intentName: String, actorKey: String, request: HttpRequest) -> HttpIntentRequest
+{
+    return HttpIntentRequest(intentName, actorKey, request);
+}
+
+func BuildIntentResponse(
+    ok: Bool,
+    intentName: String,
+    handle: Int,
+    failed: Bool,
+    stepCount: Int,
+    response: HttpResponse
+) -> HttpIntentResponse
+{
+    return HttpIntentResponse(ok, intentName, handle, failed, stepCount, response);
+}
+
 func RequestMatches(request: HttpRequest, route: RouteSpec) -> Bool {
     return request.method == route.method && request.path == route.path;
+}
+
+func RenderHttpRequest(request: HttpRequest) -> String
+{
+    return "[HTTP] " + request.method
+        + " " + request.path
+        + " trace=" + ToString(request.traceId)
+        + " body=" + request.body;
+}
+
+func RenderHttpResponse(response: HttpResponse) -> String
+{
+    return "[HTTP] status=" + ToString(response.status)
+        + " type=" + response.contentType
+        + " body=" + response.body;
 }

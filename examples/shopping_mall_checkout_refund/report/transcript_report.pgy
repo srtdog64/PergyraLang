@@ -1,3 +1,5 @@
+use storage;
+
 func BuildCommerceReport(
     route: String,
     flowState: String,
@@ -34,17 +36,22 @@ func SaveCommerceReport(
     payment: PaymentZone,
     refund: RefundZone,
     account: AccountZone
-) -> Void
+) -> StorageWrite
 {
-    WriteFile(path, BuildCommerceReport(
-        route,
-        flowState,
-        transcript,
-        buyer,
-        merchant,
-        cart,
-        payment,
-        refund,
-        account
-    ));
+    return SaveTextSnapshot(
+        path,
+        "SHOPPING CHECKOUT + REFUND REPORT",
+        1,
+        BuildCommerceReport(
+            route,
+            flowState,
+            transcript,
+            buyer,
+            merchant,
+            cart,
+            payment,
+            refund,
+            account
+        )
+    );
 }

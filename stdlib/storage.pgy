@@ -8,6 +8,11 @@ class SnapshotRecord {
     let payload: String;
 }
 
+class StorageWrite {
+    let path: String;
+    let record: SnapshotRecord;
+}
+
 func StorageSave(meta: SnapshotMeta, payload: String) -> SnapshotRecord {
     return SnapshotRecord(meta, payload);
 }
@@ -21,4 +26,29 @@ func StorageAppendLog(base: String, line: String) -> String {
         return line;
     }
     return base + "\n" + line;
+}
+
+func StorageWriteRecord(path: String, record: SnapshotRecord) -> StorageWrite
+{
+    WriteFile(path, record.payload);
+    return StorageWrite(path, record);
+}
+
+func SaveTextSnapshot(path: String, key: String, version: Int, payload: String) -> StorageWrite
+{
+    let record = StorageSave(SnapshotMeta(key, version), payload);
+    return StorageWriteRecord(path, record);
+}
+
+func SaveTranscript(path: String, title: String, body: String) -> StorageWrite
+{
+    let payload = "=== " + title + " ===\n" + body;
+    return SaveTextSnapshot(path, title, 1, payload);
+}
+
+func RenderStorageWrite(write: StorageWrite) -> String
+{
+    return "saving " + write.path
+        + " key=" + write.record.meta.key
+        + " version=" + ToString(write.record.meta.version);
 }

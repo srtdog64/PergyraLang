@@ -2,14 +2,17 @@
 pages project surfaces; zones enforce execution; intents move the customer.
 
 [Scene] storefront opens with a JS cart page over a Pergyra backend.
-[JS] mount /cart
+[Page] mount /cart title=Cart
+[Action] checkout -> /api/intents/CheckoutPurchase
+[PageMessage] info cart page is a projection over CartZone.
 [Page /cart] Hana sees Ember Lantern qty=2 subtotal=$84 coupon=$7 total=$77 status=browsing
   [CartZone] /cart total=77 coupon=7 buyer=Hana
 
-[API] POST /api/intents/CheckoutPurchase
+[HTTP] POST /api/intents/CheckoutPurchase trace=4101 body={"route":"/cart","shipping":6}
 [Adapter] CheckoutPurchase ok=true handle=1 failed=false steps=2
   [Runtime] name=CheckoutPurchase handle=1 failed=false
   [Runtime] steps=2
+  [HTTP] status=200 type=application/json body={"ok":true,"intent":"CheckoutPurchase","handle":1,"steps":2}
   [Step] ReviewCart @ CartZone ok=true
   [Step] MoveToPayment @ PaymentZone ok=true
   [Trace] [intent] enter CheckoutPurchase
@@ -26,17 +29,19 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] merchant: CartZone.merchant -> PaymentZone.merchant
 [step] ok MoveToPayment
 
-[JS] navigate /checkout
+[Page] navigate /checkout title=Checkout
+[Action] refund -> /api/intents/RefundPurchase
 [API /checkout] Hana payment=VISA ****-1024 order=4101 amount=$83 state=paid
   [PaymentZone] /checkout order=4101 captured=83 shipped=1 state=captured
   [Link] Hana to Northwind Store via web
   [Effect] Hana payment sealed $83
   [State] paidReady=true linked=true
 
-[API] POST /api/intents/RefundPurchase
+[HTTP] POST /api/intents/RefundPurchase trace=4102 body={"route":"/checkout","ticketSeed":8831}
 [Adapter] RefundPurchase ok=true handle=2 failed=false steps=1
   [Runtime] name=RefundPurchase handle=2 failed=false
   [Runtime] steps=1
+  [HTTP] status=200 type=application/json body={"ok":true,"intent":"RefundPurchase","handle":2,"steps":1}
   [Step] MoveToRefund @ RefundZone ok=true
   [Trace] [intent] enter RefundPurchase
 [step] begin MoveToRefund @ RefundZone
@@ -48,17 +53,19 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] merchant: PaymentZone.merchant -> RefundZone.merchant
 [step] ok MoveToRefund
 
-[JS] navigate /refund
+[Page] navigate /refund title=Refund
+[Action] sync-profile -> /api/intents/SyncAccountProfile
 [Page /refund] Hana ticket=RF-8831 amount=$83 status=approved merchant=Northwind Store
   [RefundZone] /refund requested=83 approved=83 state=approved
   [Link] Hana to Northwind Store via web
   [Effect] Hana refund issued $83
   [State] refundReady=true linked=true
 
-[API] POST /api/intents/SyncAccountProfile
+[HTTP] POST /api/intents/SyncAccountProfile trace=4103 body={"route":"/refund","marketing":1}
 [Adapter] SyncAccountProfile ok=true handle=3 failed=false steps=1
   [Runtime] name=SyncAccountProfile handle=3 failed=false
   [Runtime] steps=1
+  [HTTP] status=200 type=application/json body={"ok":true,"intent":"SyncAccountProfile","handle":3,"steps":1}
   [Step] MoveToAccount @ AccountZone ok=true
   [Trace] [intent] enter SyncAccountProfile
 [step] begin MoveToAccount @ AccountZone
@@ -67,7 +74,8 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] buyer: RefundZone.buyer -> AccountZone.buyer
 [step] ok MoveToAccount
 
-[JS] navigate /account/profile
+[Page] navigate /account/profile title=Account
+[PageMessage] success profile sync completed through AccountZone.
 [API /account/profile] Hana email=hana@pergyra.shop privacy=1 marketing=1 lastPage=/account/profile refunded=$83
   [AccountZone] /account/profile privacy=1 marketing=1 last=profile-updated
 
@@ -78,4 +86,4 @@ cart=/cart total=77 coupon=7 buyer=Hana
 payment=/checkout order=4101 captured=83 shipped=1 state=captured
 refund=/refund requested=83 approved=83 state=approved
 account=/account/profile privacy=1 marketing=1 last=profile-updated
-saving examples/shopping_mall_checkout_refund/results.txt
+saving examples/shopping_mall_checkout_refund/results.txt key=SHOPPING CHECKOUT + REFUND REPORT version=1

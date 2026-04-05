@@ -208,6 +208,7 @@ cleanup:
 static ASTNode *
 import_resolver_load_internal(const char *source_path,
                               ImportStack *stack,
+                              ImportStack *loaded,
                               size_t *import_module_counter,
                               bool imported,
                               const char *private_prefix,
@@ -215,6 +216,10 @@ import_resolver_load_internal(const char *source_path,
 {
     ASTNode *ast = NULL;
     char *base_dir = NULL;
+
+    if (imported && import_stack_contains(loaded, source_path)) {
+        return ast_create_program();
+    }
 
     if (import_stack_contains(stack, source_path)) {
         set_error(error_message, "circular import detected at '%s'", source_path);
@@ -231,6 +236,11 @@ import_resolver_load_internal(const char *source_path,
 
     if (!module_normalize_ast(ast, imported, private_prefix)) {
         set_error(error_message, "failed to normalize module '%s'", source_path);
+        goto fail;
+    }
+
+    if (!import_stack_push(loaded, source_path)) {
+        set_error(error_message, "out of memory while tracking loaded modules");
         goto fail;
     }
 
@@ -271,6 +281,7 @@ import_resolver_load_internal(const char *source_path,
                      "__imp%zu_", (*import_module_counter)++);
             imp_ast = import_resolver_load_internal(full_path,
                                                     stack,
+                                                    loaded,
                                                     import_module_counter,
                                                     true,
                                                     nested_prefix,
@@ -333,6 +344,7 @@ ASTNode *
 import_resolver_load_program(const char *source_path, char **error_message)
 {
     ImportStack stack = {0};
+    ImportStack loaded = {0};
     size_t import_module_counter = 0;
     ASTNode *program;
 
@@ -341,10 +353,12 @@ import_resolver_load_program(const char *source_path, char **error_message)
 
     program = import_resolver_load_internal(source_path,
                                             &stack,
+                                            &loaded,
                                             &import_module_counter,
                                             false,
                                             "",
                                             error_message);
     import_stack_destroy(&stack);
+    import_stack_destroy(&loaded);
     return program;
 }

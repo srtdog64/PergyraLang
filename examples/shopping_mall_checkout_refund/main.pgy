@@ -1,3 +1,7 @@
+use http;
+use storage;
+use page;
+
 import "common.pgy";
 import "subjects/vessels.pgy";
 import "subjects/abilities.pgy";
@@ -30,8 +34,8 @@ func Main() -> Void
     world.Blank();
 
     world.flowState = "checkout";
-    world.Broadcast("[API] POST /api/intents/CheckoutPurchase");
     let checkoutReq = BuildCheckoutIntentRequest(world.cart, 6);
+    world.Broadcast(RenderHttpRequest(checkoutReq.transport.request));
     let checkoutRes = HandleCheckoutIntent(world.cart, world.payment, world.cart.buyer, world.cart.merchant, checkoutReq);
     world.BroadcastIntentApi(checkoutRes);
     world.BroadcastIntentHistory();
@@ -39,8 +43,8 @@ func Main() -> Void
     world.Blank();
 
     world.flowState = "refund";
-    world.Broadcast("[API] POST /api/intents/RefundPurchase");
     let refundReq = BuildRefundIntentRequest(world.payment, 8831);
+    world.Broadcast(RenderHttpRequest(refundReq.transport.request));
     let refundRes = HandleRefundIntent(world.payment, world.refund, world.cart.buyer, world.cart.merchant, refundReq);
     world.BroadcastIntentApi(refundRes);
     world.BroadcastIntentHistory();
@@ -48,8 +52,8 @@ func Main() -> Void
     world.Blank();
 
     world.flowState = "account";
-    world.Broadcast("[API] POST /api/intents/SyncAccountProfile");
     let profileReq = BuildProfileSyncRequest(world.refund, 1);
+    world.Broadcast(RenderHttpRequest(profileReq.transport.request));
     let profileRes = HandleProfileSyncIntent(world.refund, world.account, world.cart.buyer, profileReq);
     world.BroadcastIntentApi(profileRes);
     world.BroadcastIntentHistory();
@@ -58,8 +62,7 @@ func Main() -> Void
 
     world.Broadcast("[Summary] all page routes are projections; all state changes went through intents and zones.");
     world.FinalSnapshot();
-    Log("saving examples/shopping_mall_checkout_refund/results.txt");
-    SaveCommerceReport(
+    let saved = SaveCommerceReport(
         "examples/shopping_mall_checkout_refund/results.txt",
         world.route,
         world.flowState,
@@ -71,4 +74,5 @@ func Main() -> Void
         world.refund,
         world.account
     );
+    world.Broadcast(RenderStorageWrite(saved));
 }

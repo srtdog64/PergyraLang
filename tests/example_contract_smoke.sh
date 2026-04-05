@@ -30,7 +30,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 normalize_output() {
-    sed \
+    tr -d '\r' | sed \
         -e '/^0 error(s), 0 warning(s)$/d' \
         -e '/^pgy: compiled/d' \
         -e '/^pgy: compiled (LLVM)/d' \
@@ -38,19 +38,9 @@ normalize_output() {
         -e '/^--- end ---$/d' | awk 'seen || length($0) > 0 { print; seen = 1 }'
 }
 
-pick_expected_file() {
-    local base="$1"
-    local backend="$2"
-
-    if [[ -f "${base}.${backend}.txt" ]]; then
-        printf '%s.%s.txt' "$base" "$backend"
-        return 0
-    fi
-    if [[ -f "${base}.txt" ]]; then
-        printf '%s.txt' "$base"
-        return 0
-    fi
-    return 1
+normalize_text_file() {
+    local input="$1"
+    tr -d '\r' < "$input"
 }
 
 files_equal() {
@@ -110,6 +100,21 @@ PY
     cat "$left"
     echo "--- actual ---"
     cat "$right"
+}
+
+pick_expected_file() {
+    local base="$1"
+    local backend="$2"
+
+    if [[ -f "${base}.${backend}.txt" ]]; then
+        printf '%s.%s.txt' "$base" "$backend"
+        return 0
+    fi
+    if [[ -f "${base}.txt" ]]; then
+        printf '%s.txt' "$base"
+        return 0
+    fi
+    return 1
 }
 
 run_exact_output_if_present() {
@@ -198,9 +203,15 @@ run_expect_file_lines() {
     fi
     content="$(cat "$file")"
     if [[ -n "$expected" ]]; then
-        if ! files_equal "$expected" "$file"; then
+        local expected_file
+        local actual_file
+        expected_file="$(mktemp "$WORK_DIR/${name}_${backend}_expected_file.XXXXXX")"
+        actual_file="$(mktemp "$WORK_DIR/${name}_${backend}_actual_file.XXXXXX")"
+        normalize_text_file "$expected" > "$expected_file"
+        normalize_text_file "$file" > "$actual_file"
+        if ! files_equal "$expected_file" "$actual_file"; then
             echo "[example-smoke] $name file mismatch" >&2
-            show_diff "$expected" "$file" >&2
+            show_diff "$expected_file" "$actual_file" >&2
             exit 1
         fi
         echo "[example-smoke] $name file exact ok"

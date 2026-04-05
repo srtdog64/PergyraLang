@@ -1,3 +1,6 @@
+use http;
+use page;
+
 world CommerceWorld
 {
     zone cart: CartZone
@@ -69,15 +72,18 @@ world CommerceWorld
     func BroadcastIntentApi(self, response: IntentApiResponse) -> Void
     {
         Broadcast(RenderIntentApiResponse(response));
-        Broadcast("  [Runtime] name=" + response.intentName + " handle=" + ToString(response.handle) + " failed=" + ToString(response.failed));
-        Broadcast("  [Runtime] steps=" + ToString(response.stepCount));
+        Broadcast("  [Runtime] name=" + response.transport.intentName + " handle=" + ToString(response.transport.handle) + " failed=" + ToString(response.transport.failed));
+        Broadcast("  [Runtime] steps=" + ToString(response.transport.stepCount));
+        Broadcast("  " + RenderHttpResponse(response.transport.response));
     }
 
     func ShowCart(self) -> Void
     {
         route = cart.route;
         let page = BuildCartPage(cart.buyer, cart.merchant, cart.route);
-        Broadcast("[JS] mount " + route);
+        Broadcast(MountPage(CartRoute()));
+        Broadcast(BindAction(CheckoutAction()));
+        Broadcast(RenderMessage(PageMessage("info", "cart page is a projection over CartZone.")));
         Broadcast(RenderCartPage(page));
         Broadcast("  [CartZone] " + cart.Snapshot());
     }
@@ -86,7 +92,8 @@ world CommerceWorld
     {
         route = payment.route;
         let packet = BuildCheckoutPacket(cart.buyer, payment.route, payment.orderId, payment.captured);
-        Broadcast("[JS] navigate " + route);
+        Broadcast(NavigatePage(CheckoutRoute()));
+        Broadcast(BindAction(RefundAction()));
         Broadcast(RenderCheckoutPacket(packet));
         Broadcast("  [PaymentZone] " + payment.Snapshot());
         Broadcast("  [Link] " + payment.link.Label());
@@ -98,7 +105,8 @@ world CommerceWorld
     {
         route = refund.route;
         let page = BuildRefundPage(cart.buyer, cart.merchant, refund.route);
-        Broadcast("[JS] navigate " + route);
+        Broadcast(NavigatePage(RefundRoute()));
+        Broadcast(BindAction(ProfileSyncAction()));
         Broadcast(RenderRefundPage(page));
         Broadcast("  [RefundZone] " + refund.Snapshot());
         Broadcast("  [Link] " + refund.link.Label());
@@ -110,7 +118,8 @@ world CommerceWorld
     {
         route = account.route;
         let packet = BuildProfilePacket(cart.buyer, account.route);
-        Broadcast("[JS] navigate " + route);
+        Broadcast(NavigatePage(ProfileRoute()));
+        Broadcast(RenderMessage(PageMessage("success", "profile sync completed through AccountZone.")));
         Broadcast(RenderProfilePacket(packet));
         Broadcast("  [AccountZone] " + account.Snapshot());
     }

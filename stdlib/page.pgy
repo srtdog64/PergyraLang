@@ -17,8 +17,16 @@ func MountPage(route: PageRoute) -> String {
     return "[Page] mount " + route.path + " title=" + route.title;
 }
 
+func NavigatePage(route: PageRoute) -> String {
+    return "[Page] navigate " + route.path + " title=" + route.title;
+}
+
 func BindAction(action: PageAction) -> String {
     return "[Action] " + action.name + " -> " + action.endpoint;
+}
+
+func RenderMessage(message: PageMessage) -> String {
+    return "[PageMessage] " + message.level + " " + message.body;
 }
 
 func RenderSection(title: String, body: String) -> String {

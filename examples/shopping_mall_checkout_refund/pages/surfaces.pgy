@@ -1,3 +1,5 @@
+use page;
+
 object BuyerZoneView
 {
     let name: String;
@@ -58,6 +60,41 @@ dto ProfilePacket
     let marketingOptIn: Int;
     let lastPage: String;
     let refundTotal: Int;
+}
+
+func CartRoute() -> PageRoute
+{
+    return PageRoute("/cart", "Cart");
+}
+
+func CheckoutRoute() -> PageRoute
+{
+    return PageRoute("/checkout", "Checkout");
+}
+
+func RefundRoute() -> PageRoute
+{
+    return PageRoute("/refund", "Refund");
+}
+
+func ProfileRoute() -> PageRoute
+{
+    return PageRoute("/account/profile", "Account");
+}
+
+func CheckoutAction() -> PageAction
+{
+    return PageAction("checkout", "/api/intents/CheckoutPurchase");
+}
+
+func RefundAction() -> PageAction
+{
+    return PageAction("refund", "/api/intents/RefundPurchase");
+}
+
+func ProfileSyncAction() -> PageAction
+{
+    return PageAction("sync-profile", "/api/intents/SyncAccountProfile");
 }
 
 func BuildBuyerZoneView(buyer: Member) -> BuyerZoneView
