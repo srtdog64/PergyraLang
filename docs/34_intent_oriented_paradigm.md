@@ -183,7 +183,10 @@ priority        → Int여야 함
 또 failed step은 reverse-order `compensate:` expression을 실행하고,
 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` /
 `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()`로
-마지막 실행 기록의 핵심 요약을 읽을 수 있다.
+마지막 실행 기록의 핵심 요약을 읽을 수 있고,
+`IntentHistoryCount()` / `IntentHistoryStepName(i)` /
+`IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` /
+`IntentHistoryStepFailure(i)`로 step-level typed history를 읽을 수 있다.
 `using:` bound zone이 있으면 현재 `who` actor를 matching subject slot에
 실제로 materialize한 뒤 sync를 돈다.
 즉 v0.3의 intent는 **실행 가능한 declaration + conflict scheduler +
@@ -226,7 +229,8 @@ intent Purchase
     //
     // 현재:
     // failure 시 reverse-order compensate 실행
-    // last trace / last failure / last handle / last step count 조회 가능
+// last trace / last failure / last handle / last step count 조회 가능
+// step-level typed history 조회 가능
     // using zoneAlias가 있으면 actor -> zone subject slot materialization 수행
     //
     // 다음 단계:
@@ -242,7 +246,7 @@ intent가 `where: PaymentZone`으로 zone 타입을 참조하면, 그 zone 안�
 현재는 `who`/`authorized by`와 zone subject slot 타입 적합성, `requires` 능력 구현 여부,
 `causes` effect 존재까지는 정적으로 묶이고, runtime은 실제 `who -> zone subject slot`
 materialization과 trace line까지 수행한다.
-다만 cross-world transfer, structured trace id/history model,
+다만 cross-world transfer, richer trace id/history model,
 rollback policy는 아직 완전히 명세되지 않았다.
 
 구체적으로 다음이 정의되어야 한다:
@@ -273,7 +277,7 @@ causes ✓                     intent 성공/실패 판정
   step ↔ zone action 바인딩
   step ↔ concrete zone instance 바인딩 (`using:` + actor-slot materialization 있음)
   step ↔ step 상태 전달
-  typed trace/history API
+  typed trace/history API (v1 step surface는 구현됨)
 ```
 
 ---

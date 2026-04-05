@@ -179,6 +179,7 @@ Purchase(hero, merchant);
 - `on:`은 여러 번 선언할 수 있고 현재 lowering은 선언 순서대로 실행한다
 - `compensate:`는 여러 번 선언할 수 있고, failure 시 reverse-order로 실행된다
 - `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` builtin으로 마지막 intent 실행 기록 요약을 읽을 수 있다
+- `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다

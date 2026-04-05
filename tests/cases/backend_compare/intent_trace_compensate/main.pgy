@@ -51,6 +51,11 @@ func Main() -> Void {
     Log("last.handle=" + ToString(IntentLastHandle()));
     Log("last.steps=" + ToString(IntentLastStepCount()));
     Log("last.failed=" + ToString(IntentLastFailed()));
+    Log("history.count=" + ToString(IntentHistoryCount()));
+    Log("history[0].name=" + IntentHistoryStepName(0));
+    Log("history[0].zone=" + IntentHistoryStepZone(0));
+    Log("history[0].ok=" + ToString(IntentHistoryStepOk(0)));
+    Log("history[0].failure=" + IntentHistoryStepFailure(0));
     Log("failure=" + IntentLastFailure());
     Log("trace:");
     Log(IntentLastTrace());

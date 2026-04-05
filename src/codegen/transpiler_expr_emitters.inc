@@ -958,6 +958,32 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_intent_last_step_count_export()");
     case BUILTIN_INTENT_LAST_FAILED:
         return pergyra_strdup("pgy_intent_last_failed_export()");
+    case BUILTIN_INTENT_HISTORY_COUNT:
+        return pergyra_strdup("pgy_intent_history_count_export()");
+    case BUILTIN_INTENT_HISTORY_STEP_NAME: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_name_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_ZONE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_zone_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_OK: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_ok_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_FAILURE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_failure_export(%s)", index);
+        free(index);
+        return result;
+    }
     default:
         break;
     }

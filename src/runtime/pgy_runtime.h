@@ -62,6 +62,15 @@ pgy_runtime_strdup(const char *src)
     return copy;
 }
 
+#define PGY_INTENT_ACTIVE_MAX 256
+
+typedef struct {
+    char *name;
+    char *zone;
+    bool ok;
+    char *failure_reason;
+} PgyIntentHistoryStep;
+
 typedef struct {
     int32_t handle;
     char   *name;
@@ -73,10 +82,9 @@ typedef struct {
     char   *failure_reason;
     int32_t step_count;
     bool    failed;
+    PgyIntentHistoryStep steps[PGY_INTENT_ACTIVE_MAX];
     bool    active;
 } PgyIntentActiveEntry;
-
-#define PGY_INTENT_ACTIVE_MAX 256
 
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -87,6 +95,8 @@ static char *pgy_intent_last_name = NULL;
 static int32_t pgy_intent_last_handle = 0;
 static int32_t pgy_intent_last_step_count = 0;
 static bool pgy_intent_last_failed = false;
+static PgyIntentHistoryStep pgy_intent_last_steps[PGY_INTENT_ACTIVE_MAX];
+static int32_t pgy_intent_last_history_count = 0;
 
 static inline void
 pgy_intent_append_line(char **dst, const char *line)
@@ -217,6 +227,16 @@ pgy_intent_trace_step_export(int32_t handle, const char *step_name, const char *
             step_name != NULL ? step_name : "<step>",
             zone_name != NULL ? zone_name : "<zone>");
         pgy_intent_append_line(&entry->trace, line);
+        if (entry->step_count < PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count;
+            free(entry->steps[index].name);
+            free(entry->steps[index].zone);
+            free(entry->steps[index].failure_reason);
+            entry->steps[index].name = pgy_runtime_strdup(step_name != NULL ? step_name : "");
+            entry->steps[index].zone = pgy_runtime_strdup(zone_name != NULL ? zone_name : "");
+            entry->steps[index].ok = false;
+            entry->steps[index].failure_reason = pgy_runtime_strdup("");
+        }
         entry->step_count++;
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -264,6 +284,8 @@ pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");
         pgy_intent_append_line(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX)
+            entry->steps[entry->step_count - 1].ok = true;
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -278,6 +300,11 @@ pgy_intent_trace_fail_export(int32_t handle, const char *reason)
         free(entry->failure_reason);
         entry->failure_reason = pgy_runtime_strdup(reason != NULL ? reason : "");
         entry->failed = true;
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            free(entry->steps[index].failure_reason);
+            entry->steps[index].failure_reason = pgy_runtime_strdup(reason != NULL ? reason : "");
+        }
         snprintf(line, sizeof(line), "[fail] %s\n",
             reason != NULL ? reason : "<failure>");
         pgy_intent_append_line(&entry->trace, line);
@@ -321,6 +348,45 @@ pgy_intent_last_failed_export(void)
     return pgy_intent_last_failed;
 }
 
+static inline int32_t
+pgy_intent_history_count_export(void)
+{
+    return pgy_intent_last_history_count;
+}
+
+static inline char *
+pgy_intent_history_step_name_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].name != NULL ? pgy_intent_last_steps[index].name : "";
+}
+
+static inline char *
+pgy_intent_history_step_zone_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].zone != NULL ? pgy_intent_last_steps[index].zone : "";
+}
+
+static inline bool
+pgy_intent_history_step_ok_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return false;
+    return pgy_intent_last_steps[index].ok;
+}
+
+static inline char *
+pgy_intent_history_step_failure_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].failure_reason != NULL
+        ? pgy_intent_last_steps[index].failure_reason : "";
+}
+
 static inline void
 pgy_intent_exit_export(int32_t handle)
 {
@@ -337,6 +403,15 @@ pgy_intent_exit_export(int32_t handle)
         free(pgy_intent_last_trace);
         free(pgy_intent_last_failure);
         free(pgy_intent_last_name);
+        for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
+            free(pgy_intent_last_steps[j].name);
+            free(pgy_intent_last_steps[j].zone);
+            free(pgy_intent_last_steps[j].failure_reason);
+            pgy_intent_last_steps[j].name = NULL;
+            pgy_intent_last_steps[j].zone = NULL;
+            pgy_intent_last_steps[j].failure_reason = NULL;
+            pgy_intent_last_steps[j].ok = false;
+        }
         pgy_intent_last_trace = entry->trace != NULL
             ? pgy_runtime_strdup(entry->trace) : pgy_runtime_strdup("");
         pgy_intent_last_failure = entry->failure_reason != NULL
@@ -346,10 +421,31 @@ pgy_intent_exit_export(int32_t handle)
         pgy_intent_last_handle = entry->handle;
         pgy_intent_last_step_count = entry->step_count;
         pgy_intent_last_failed = entry->failed;
+        pgy_intent_last_history_count = entry->step_count;
+        if (pgy_intent_last_history_count > PGY_INTENT_ACTIVE_MAX)
+            pgy_intent_last_history_count = PGY_INTENT_ACTIVE_MAX;
+        for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
+            pgy_intent_last_steps[j].name = pgy_runtime_strdup(
+                entry->steps[j].name != NULL ? entry->steps[j].name : "");
+            pgy_intent_last_steps[j].zone = pgy_runtime_strdup(
+                entry->steps[j].zone != NULL ? entry->steps[j].zone : "");
+            pgy_intent_last_steps[j].ok = entry->steps[j].ok;
+            pgy_intent_last_steps[j].failure_reason = pgy_runtime_strdup(
+                entry->steps[j].failure_reason != NULL ? entry->steps[j].failure_reason : "");
+        }
         free(entry->name);
         free(entry->subjects);
         free(entry->trace);
         free(entry->failure_reason);
+        for (int32_t j = 0; j < entry->step_count && j < PGY_INTENT_ACTIVE_MAX; j++) {
+            free(entry->steps[j].name);
+            free(entry->steps[j].zone);
+            free(entry->steps[j].failure_reason);
+            entry->steps[j].name = NULL;
+            entry->steps[j].zone = NULL;
+            entry->steps[j].failure_reason = NULL;
+            entry->steps[j].ok = false;
+        }
         entry->handle = 0;
         entry->name = NULL;
         entry->subjects = NULL;

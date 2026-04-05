@@ -278,9 +278,9 @@
     - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함
     - intent declaration이 필요한 subject/zone/ability/effect TODO를 역산하는 workflow 예시 포함
   - 남음: intent runtime follow-up
-    - flat string 기반 `IntentLastTrace()`를 typed trace/history surface로 올리기
     - rollback policy를 current reverse-order `compensate` beyond v1로 확장하기
     - intent의 cross-world transfer / identity handoff semantics 설계 및 구현
+    - current last-intent typed history를 trace id / stream / multi-instance observability로 확장하기
 
 ### 대표 프로그램
 - [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명

@@ -102,7 +102,7 @@ projection/state propagation은 아직 수작업이 많다.
 
 - cross-world transfer
 - richer rollback policy
-- typed trace/history
+- typed trace/history beyond the current last-intent step surface
 - long-running intent instance orchestration
 
 즉 “선언 + 실행”은 되었지만,

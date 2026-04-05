@@ -20,10 +20,13 @@ examples such as the battle simulator and biome simulator.
   reverse-order `compensate:` rollback works, and `IntentLastTrace()` /
   `IntentLastFailure()` plus `IntentLastName()` / `IntentLastHandle()` /
   `IntentLastStepCount()` / `IntentLastFailed()` expose minimal history.
+  `IntentHistoryCount()` / `IntentHistoryStep*()` also expose typed
+  step-level history for the last completed intent.
   `using: zoneAlias;` now gives intent steps a live concrete zone instance and
   now also materializes bound `who` actors into matching zone subject slots
   before sync. The remaining gaps are structured trace/history data instead of
-  flat strings, richer rollback policy, and cross-world transfer semantics.
+  richer trace ids beyond the current last-intent surface, richer rollback
+  policy, and cross-world transfer semantics.
 
 ## Recently Resolved
 

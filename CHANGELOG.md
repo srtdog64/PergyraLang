@@ -411,6 +411,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - intent runtime history now exposes `IntentLastName()`,
   `IntentLastHandle()`, `IntentLastStepCount()`, and `IntentLastFailed()`
   alongside existing trace/failure builtins
+- intent runtime now also exposes structured step-level history through
+  `IntentHistoryCount()` / `IntentHistoryStepName()` /
+  `IntentHistoryStepZone()` / `IntentHistoryStepOk()` /
+  `IntentHistoryStepFailure()`
 - added `pgy_intent_trace_materialize_export(...)` runtime trace lines so
   intent traces now record actor-to-zone-slot materialization explicitly
 - strengthened backend parity coverage for intent trace/rollback/materialize

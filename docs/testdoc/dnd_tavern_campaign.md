@@ -260,10 +260,11 @@ This scenario is likely to expose:
   `IntentLastTrace()` / `IntentLastFailure()` /
   `IntentLastName()` / `IntentLastHandle()` /
   `IntentLastStepCount()` / `IntentLastFailed()` now expose minimal execution
-  history. `using: journey;` now provides live concrete zone-instance binding
-  and actor-to-zone-slot materialization for scenario intents. The remaining
-  gaps are structured trace ids/history, richer rollback policy, and true
-  cross-world transfer semantics.
+  history, and `IntentHistoryCount()` / `IntentHistoryStep*()` expose the last
+  completed intent's step-level typed history. `using: journey;` now provides
+  live concrete zone-instance binding and actor-to-zone-slot materialization
+  for scenario intents. The remaining gaps are richer trace ids, richer
+  rollback policy, and true cross-world transfer semantics.
 - Runtime hashmap helpers used raw `strdup(...)`, which leaked portability
   warnings into larger example builds. The runtime now routes those copies
   through `pgy_runtime_strdup(...)` instead.
