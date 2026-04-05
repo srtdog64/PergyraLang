@@ -113,6 +113,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_expr.c \
                    $(PARSER_DIR)/parser_stmt.c \
                    $(PARSER_DIR)/parser_decl.c \
+                   $(PARSER_DIR)/parser_intent.c \
                    $(PARSER_DIR)/parser_domain.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \

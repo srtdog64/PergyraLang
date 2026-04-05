@@ -120,6 +120,11 @@ world TavernCampaignWorld
         Record(line);
     }
 
+    func BroadcastIntent(self, label: String, ok: Bool) -> Void
+    {
+        Broadcast("[Intent] " + label + " ok=" + ToString(ok));
+    }
+
     func Blank(self) -> Void
     {
         Log("");
@@ -760,6 +765,7 @@ world TavernCampaignWorld
                     Broadcast("[Tavern] " + mageCard.promise);
                     Broadcast("[Substate] tavern.scene");
                     journey.TavernScene(fighterCard, clericCard, rogueCard, mageCard);
+                    BroadcastIntent("TavernRecruitment", TavernRecruitment(journey.fighter, journey.cleric, journey.rogue, journey.mage));
                     Broadcast("[Substate] tavern.choice_resolution");
                     ApplyChoice(gameState, rolledChoice);
                     day = 1;
@@ -775,6 +781,7 @@ world TavernCampaignWorld
                     let floorOneScript = FloorScriptFor(1, omen, journey.affinityPulse);
                     Broadcast("[Substate] floor1.briefing");
                     RunSceneBeats(gameState, rolledChoice);
+                    BroadcastIntent("DelveThreeFloors", DelveThreeFloors(journey.fighter, journey.cleric, journey.rogue, journey.mage));
                     Broadcast("[Substate] floor1.travel");
                     journey.ResolveFloorOne(CostTownToGate() + floorOneScript.travelBias, floorOneScript);
                     Broadcast("[Substate] floor1.choice_resolution");
@@ -838,6 +845,7 @@ world TavernCampaignWorld
                     let dragonScript = DragonScriptFor(omen, journey.affinityPulse);
                     Broadcast("[Substate] dragon.briefing");
                     RunSceneBeats(gameState, rolledChoice);
+                    BroadcastIntent("SlayDragon", SlayDragon(journey.fighter, journey.cleric, journey.rogue, journey.mage));
                     Broadcast("[Substate] dragon.prepare");
                     journey.PrepareDragon(dragonScript);
                     Broadcast("[Substate] dragon.choice_resolution");

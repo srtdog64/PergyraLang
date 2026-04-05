@@ -238,7 +238,29 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         return type_create_slot(inner, false);
     }
 
+    if (strcmp(name, "HashMap") == 0) {
+        if (node->data.type.generic_args == NULL
+            || node->data.type.generic_args->count != 2) {
+            semantic_error(ctx, node,
+                "HashMap requires exactly two type arguments");
+            return TYPE_UNKNOWN;
+        }
+
+        Type *key = resolve_generic_type_arg(
+            node->data.type.generic_args->params[0], ctx, node);
+        Type *value = resolve_generic_type_arg(
+            node->data.type.generic_args->params[1], ctx, node);
+        if (!type_equals(key, TYPE_STRING)) {
+            semantic_error(ctx, node,
+                "HashMap currently requires String keys");
+            return TYPE_UNKNOWN;
+        }
+        Type *args[2] = { key, value };
+        return type_create_constructed(TYPE_HASHMAP, args, 2);
+    }
+
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
+        || strcmp(name, "List") == 0 || strcmp(name, "Queue") == 0
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
         || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
         || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
@@ -256,6 +278,8 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         Type *constructor = TYPE_UNKNOWN;
         if (strcmp(name, "Array") == 0) constructor = TYPE_ARRAY;
         else if (strcmp(name, "Slice") == 0) constructor = TYPE_SLICE;
+        else if (strcmp(name, "List") == 0) constructor = TYPE_LIST;
+        else if (strcmp(name, "Queue") == 0) constructor = TYPE_QUEUE;
         else if (strcmp(name, "Box") == 0) constructor = TYPE_BOX;
         else if (strcmp(name, "Rc") == 0) constructor = TYPE_RC;
         else if (strcmp(name, "Weak") == 0) constructor = TYPE_WEAK;
@@ -1474,6 +1498,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_systemic_decl(node, ctx);
     case AST_WORLD_DECL:
         return type_check_world_decl(node, ctx);
+    case AST_INTENT_DECL:
+        return type_check_intent_decl(node, ctx);
     case AST_RELATION_DECL:
         return type_check_relation_decl(node, ctx);
     case AST_EFFECT_DECL:
@@ -2237,6 +2263,35 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 Symbol *s = symbol_create_function(aname,
                     t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
                 s->kind = SYMBOL_ACTOR;
+                scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_INTENT_DECL) {
+            const char *iname = stmt->data.intent_decl.name;
+            if (iname != NULL && scope_lookup_current(ctx->scope, iname) == NULL) {
+                size_t ipc = stmt->data.intent_decl.involve_count;
+                Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
+                for (size_t j = 0; j < ipc; j++) {
+                    ASTNode *involves = stmt->data.intent_decl.involves[j];
+                    if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                        && involves->data.intent_involves.subject_type != NULL) {
+                        size_t saved_diag = ctx->diagnostic_count;
+                        bool saved_err = ctx->has_error;
+                        ptypes[j] = resolve_type_node(
+                            involves->data.intent_involves.subject_type, ctx);
+                        if (ctx->diagnostic_count > saved_diag) {
+                            ctx->diagnostic_count = saved_diag;
+                            ctx->has_error = saved_err;
+                            ptypes[j] = TYPE_UNKNOWN;
+                        }
+                    } else {
+                        ptypes[j] = TYPE_UNKNOWN;
+                    }
+                }
+                Type *ft = type_create_function(ptypes, ipc, TYPE_BOOL);
+                free(ptypes);
+                Symbol *s = symbol_create_function(iname,
+                    ft != NULL ? ft : TYPE_UNKNOWN, stmt->line, stmt->column);
+                s->kind = SYMBOL_INTENT;
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_PARTY_DECL

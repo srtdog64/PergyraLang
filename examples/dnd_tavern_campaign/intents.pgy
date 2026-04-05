@@ -1,0 +1,167 @@
+intent TavernRecruitment(fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+{
+    exclusive;
+    priority: 5;
+
+    step Toast
+    {
+        where: JourneyZone;
+        who: fighter, cleric, rogue, mage;
+        on: fighter.Toast(1, 1);
+        on: cleric.Toast(1, 1);
+        on: rogue.Toast(2, 1);
+        on: mage.Toast(1, 1);
+        authorized by: fighter, cleric, rogue, mage;
+        causes: BattleBless;
+        pre: fighter.stats.hp >= 0;
+        guard: rogue.bond.affinity >= 0;
+        post: fighter.stats.focus >= 0;
+        invariant: mage.quest.bossPhase >= 0;
+        expect: fighter.bond.affinity >= 0;
+    }
+
+    step BondEvent
+    {
+        where: JourneyZone;
+        who: fighter, cleric, rogue, mage;
+        on: fighter.BondEvent(1, 1);
+        on: cleric.BondEvent(1, 1);
+        on: rogue.BondEvent(1, 1);
+        on: mage.BondEvent(1, 1);
+        authorized by: fighter, cleric, rogue, mage;
+        causes: BattleBless;
+        guard: cleric.bond.affinity >= 0;
+        post: rogue.bond.trust >= 0;
+        invariant: fighter.quest.monstersSlain >= 0;
+        expect: rogue.bond.trust >= 0;
+    }
+
+    success: mage.effects.bless >= 0;
+    failure: false;
+}
+
+intent DelveThreeFloors(fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+{
+    exclusive;
+    priority: 10;
+
+    step Explore
+    {
+        where: JourneyZone;
+        who: fighter, cleric, rogue, mage;
+        on: fighter.Explore(1, 0);
+        on: cleric.Explore(1, 1);
+        on: rogue.Explore(1, 0);
+        on: mage.Explore(1, 1);
+        requires: Scouting;
+        authorized by: rogue;
+        pre: rogue.stats.stamina >= 0;
+        guard: rogue.stats.focus >= 0;
+        post: rogue.stats.focus >= 0;
+        invariant: fighter.quest.monstersSlain >= 0;
+        expect: rogue.stats.stamina >= 0;
+    }
+
+    step HitTrap
+    {
+        where: JourneyZone;
+        who: rogue;
+        on: rogue.HitTrap(2, 1, 0);
+        authorized by: rogue;
+        causes: BattleBless;
+        guard: rogue.effects.poison >= 0;
+        post: rogue.effects.poison >= 0;
+        invariant: rogue.stats.hp >= 0;
+        expect: rogue.effects.poison >= 0;
+    }
+
+    step Fight
+    {
+        where: JourneyZone;
+        who: fighter, cleric, rogue, mage;
+        on: fighter.Fight(2, 1, 3);
+        on: cleric.Fight(1, 1, 2);
+        on: rogue.Fight(2, 2, 3);
+        on: mage.Fight(2, 2, 3);
+        requires: Striking;
+        authorized by: fighter;
+        causes: BattleBless;
+        guard: fighter.stats.focus >= 0;
+        post: fighter.stats.level >= 1;
+        invariant: cleric.stats.hp >= 0;
+        expect: fighter.stats.level >= 1;
+    }
+
+    step DrinkPotion
+    {
+        where: JourneyZone;
+        who: cleric, mage;
+        on: cleric.DrinkPotion(2);
+        on: mage.DrinkPotion(2);
+        requires: Healing;
+        authorized by: cleric;
+        guard: mage.stats.hp >= 0;
+        post: cleric.stats.hp >= 0;
+        invariant: mage.stats.hp >= 0;
+        expect: cleric.stats.hp >= 0;
+    }
+
+    success: fighter.quest.monstersSlain >= 0;
+    failure: false;
+}
+
+intent SlayDragon(fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+{
+    exclusive;
+    priority: 20;
+
+    step FaceDragon
+    {
+        where: JourneyZone;
+        who: fighter, cleric, rogue, mage;
+        on: fighter.FaceDragon(3, 0, 4);
+        on: cleric.FaceDragon(2, 0, 3);
+        on: rogue.FaceDragon(2, 1, 4);
+        on: mage.FaceDragon(3, 1, 4);
+        authorized by: fighter, cleric, rogue, mage;
+        causes: BattleBless;
+        pre: fighter.quest.bossPhase >= 0;
+        guard: mage.effects.bless >= 0;
+        post: fighter.quest.bossPhase >= 0;
+        invariant: fighter.quest.dragonSeen >= 0;
+        expect: fighter.quest.bossPhase >= 0;
+    }
+
+    step Fight
+    {
+        where: JourneyZone;
+        who: fighter, rogue, mage;
+        on: fighter.Fight(3, 1, 4);
+        on: rogue.Fight(2, 1, 4);
+        on: mage.Fight(3, 2, 4);
+        requires: Striking;
+        authorized by: fighter;
+        causes: BattleBless;
+        guard: fighter.stats.stamina >= 0;
+        post: fighter.quest.dragonWounds >= 0;
+        invariant: rogue.stats.hp >= 0;
+        expect: fighter.quest.dragonWounds >= 0;
+    }
+
+    step BondEvent
+    {
+        where: JourneyZone;
+        who: cleric, rogue;
+        on: cleric.BondEvent(1, 1);
+        on: rogue.BondEvent(1, 1);
+        authorized by: cleric;
+        causes: BattleBless;
+        guard: rogue.bond.trust >= 0;
+        post: cleric.bond.affinity >= 0;
+        invariant: cleric.stats.hp >= 0;
+        expect: cleric.bond.affinity >= 0;
+    }
+
+    success: fighter.quest.dragonSeen >= 0;
+    failure: false;
+}

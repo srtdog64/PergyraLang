@@ -1335,6 +1335,8 @@ llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty)
 
 /* Forward declarations for recursive emit */
 void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
+static void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
+static void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
 
 /* =================================================================
  * Utility: create alloca at function entry
@@ -1355,6 +1357,372 @@ llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
     LLVMValueRef alloca = LLVMBuildAlloca(tmp_builder, type, name);
     LLVMDisposeBuilder(tmp_builder);
     return alloca;
+}
+
+static ASTNode *
+llvm_find_intent_actor_local(ASTNode *intent, const char *alias)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
+        return NULL;
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+            && involves->data.intent_involves.alias != NULL
+            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
+            return involves;
+        }
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_find_subject_action_decl(LLVMGenCtx *ctx, const char *subject_name, const char *action_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || subject_name == NULL || action_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *decl = ctx->hir->types[i];
+        if (decl == NULL || decl->type != AST_CLASS_DECL
+            || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT
+            || decl->data.class_decl.name == NULL
+            || strcmp(decl->data.class_decl.name, subject_name) != 0) {
+            continue;
+        }
+        for (size_t j = 0; j < decl->data.class_decl.method_count; j++) {
+            ASTNode *method = decl->data.class_decl.methods[j];
+            if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.is_action
+                && method->data.func_decl.name != NULL
+                && strcmp(method->data.func_decl.name, action_name) == 0) {
+                return method;
+            }
+        }
+    }
+    return NULL;
+}
+
+static bool
+llvm_intent_action_has_only_self(ASTNode *action_decl)
+{
+    size_t real_pc = 0;
+    if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
+        return false;
+    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
+        FuncParam *p = action_decl->data.func_decl.params[i];
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (p->type == NULL && strcmp(p->name, "self") == 0)
+            continue;
+        real_pc++;
+    }
+    return real_pc == 0;
+}
+
+static void
+llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
+{
+    const char *name;
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef fn_type;
+    LLVMValueRef fn;
+
+    if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
+        return;
+    name = node->data.intent_decl.name;
+    if (name == NULL || llvm_lookup_function(ctx, name) != NULL)
+        return;
+
+    if (node->data.intent_decl.involve_count > 0) {
+        param_types = calloc(node->data.intent_decl.involve_count, sizeof(LLVMTypeRef));
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+            ASTNode *involves = node->data.intent_decl.involves[i];
+            LLVMTypeRef pt = ctx->type_i32;
+            if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+                pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                pt = LLVMPointerType(pt, 0);
+            }
+            param_types[i] = pt;
+        }
+    }
+
+    fn_type = LLVMFunctionType(ctx->type_i1, param_types,
+        (unsigned)node->data.intent_decl.involve_count, 0);
+    fn = LLVMAddFunction(ctx->module, name, fn_type);
+    llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+    free(param_types);
+}
+
+static void
+llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
+{
+    LLVMFuncEntry *entry;
+    LLVMFuncEntry *enter_fn;
+    LLVMFuncEntry *exit_fn;
+    LLVMValueRef fn;
+    LLVMValueRef saved_fn;
+    LLVMTypeRef saved_ret_type;
+    LLVMBasicBlockRef entry_bb;
+    LLVMBasicBlockRef run_bb;
+    LLVMBasicBlockRef fail_enter_bb;
+    LLVMBasicBlockRef fail_bb;
+    LLVMBasicBlockRef cleanup_bb;
+    LLVMBasicBlockRef exit_bb;
+    LLVMBasicBlockRef ret_bb;
+    LLVMValueRef result_alloca;
+    LLVMValueRef handle_alloca;
+    LLVMValueRef subjects_ptr;
+
+    if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
+        return;
+    entry = llvm_lookup_function(ctx, node->data.intent_decl.name);
+    if (entry == NULL)
+        return;
+    enter_fn = llvm_lookup_function(ctx, "pgy_intent_enter_export");
+    exit_fn = llvm_lookup_function(ctx, "pgy_intent_exit_export");
+    if (enter_fn == NULL || exit_fn == NULL)
+        return;
+
+    fn = entry->fn;
+    saved_fn = ctx->current_function;
+    saved_ret_type = ctx->current_ret_type;
+    ctx->current_function = fn;
+    ctx->current_ret_type = ctx->type_i1;
+
+    entry_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
+    run_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.run");
+    fail_enter_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.fail.enter");
+    fail_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.fail");
+    cleanup_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.cleanup");
+    exit_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.exit");
+    ret_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.ret");
+    LLVMPositionBuilderAtEnd(ctx->builder, entry_bb);
+    llvm_scope_push(ctx);
+
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = node->data.intent_decl.involves[i];
+        const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
+        const char *type_name = (involves != NULL
+            && involves->data.intent_involves.subject_type != NULL
+            && involves->data.intent_involves.subject_type->type == AST_TYPE)
+            ? involves->data.intent_involves.subject_type->data.type.name : NULL;
+        LLVMTypeRef pt = (involves != NULL && involves->data.intent_involves.subject_type != NULL)
+            ? LLVMPointerType(ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type), 0)
+            : ctx->type_i8ptr;
+        LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "actor");
+        LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), a);
+        llvm_scope_declare(ctx, alias != NULL ? alias : "actor", a, pt);
+        if (type_name != NULL)
+            llvm_register_var_class(ctx, alias, type_name);
+    }
+
+    result_alloca = llvm_create_entry_alloca(ctx, ctx->type_i1, "__intent_result");
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), result_alloca);
+    handle_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, "__intent_handle");
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), handle_alloca);
+
+    if (node->data.intent_decl.involve_count > 0) {
+        LLVMTypeRef subject_array_type = LLVMArrayType(ctx->type_i8ptr,
+            (unsigned)node->data.intent_decl.involve_count);
+        LLVMValueRef subjects_alloca = llvm_create_entry_alloca(ctx,
+            subject_array_type, "__intent_subjects");
+        LLVMValueRef zero = LLVMConstInt(ctx->type_i32, 0, 0);
+
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+            ASTNode *involves = node->data.intent_decl.involves[i];
+            const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
+            LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "actor");
+            LLVMValueRef actor_ptr = actor_var != NULL
+                ? LLVMBuildLoad2(ctx->builder, actor_var->type, actor_var->alloca, llvm_tmp_name(ctx))
+                : LLVMConstPointerNull(ctx->type_i8ptr);
+            LLVMValueRef cast_actor = LLVMBuildBitCast(ctx->builder, actor_ptr,
+                ctx->type_i8ptr, llvm_tmp_name(ctx));
+            LLVMValueRef indices[] = {
+                zero,
+                LLVMConstInt(ctx->type_i32, (unsigned)i, 0)
+            };
+            LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder, subject_array_type,
+                subjects_alloca, indices, 2, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, cast_actor, elem_ptr);
+        }
+
+        {
+            LLVMValueRef indices[] = { zero, zero };
+            subjects_ptr = LLVMBuildGEP2(ctx->builder, subject_array_type,
+                subjects_alloca, indices, 2, llvm_tmp_name(ctx));
+        }
+    } else {
+        subjects_ptr = LLVMConstPointerNull(LLVMPointerType(ctx->type_i8ptr, 0));
+    }
+
+    {
+        LLVMValueRef priority = node->data.intent_decl.priority_expr != NULL
+            ? llvm_emit_expression(node->data.intent_decl.priority_expr, ctx)
+            : LLVMConstInt(ctx->type_i32, 0, 0);
+        LLVMValueRef enter_args[] = {
+            LLVMBuildGlobalStringPtr(ctx->builder, node->data.intent_decl.name,
+                llvm_tmp_name(ctx)),
+            subjects_ptr,
+            LLVMConstInt(ctx->type_i32, (unsigned)node->data.intent_decl.involve_count, 0),
+            LLVMConstInt(ctx->type_i1, node->data.intent_decl.is_concurrent ? 1 : 0, 0),
+            priority
+        };
+        LLVMValueRef handle = LLVMBuildCall2(ctx->builder, enter_fn->fn_type, enter_fn->fn,
+            enter_args, 5, llvm_tmp_name(ctx));
+        LLVMValueRef entered = LLVMBuildICmp(ctx->builder, LLVMIntNE, handle,
+            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, handle, handle_alloca);
+        LLVMBuildCondBr(ctx->builder, entered, run_bb, fail_enter_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_enter_bb);
+    {
+        LLVMValueRef failure = node->data.intent_decl.failure_expr != NULL
+            ? llvm_emit_expression(node->data.intent_decl.failure_expr, ctx)
+            : LLVMConstInt(ctx->type_i1, 0, 0);
+        LLVMBuildStore(ctx->builder, failure, result_alloca);
+        LLVMBuildBr(ctx->builder, cleanup_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, run_bb);
+
+    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
+        ASTNode *step = node->data.intent_decl.steps[i];
+        if (step == NULL || step->type != AST_INTENT_STEP)
+            continue;
+
+        if (step->data.intent_step.pre_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.pre.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.pre_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+
+        if (step->data.intent_step.invariant_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.pre.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.invariant_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+
+        if (step->data.intent_step.on_expr_count > 0) {
+            for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
+                if (step->data.intent_step.on_exprs[j] != NULL)
+                    (void)llvm_emit_expression(step->data.intent_step.on_exprs[j], ctx);
+            }
+        } else {
+            for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+                const char *alias = step->data.intent_step.who_names[j];
+                ASTNode *involves = llvm_find_intent_actor_local(node, alias);
+                const char *subject_name = (involves != NULL
+                    && involves->data.intent_involves.subject_type != NULL
+                    && involves->data.intent_involves.subject_type->type == AST_TYPE)
+                    ? involves->data.intent_involves.subject_type->data.type.name : NULL;
+                ASTNode *action_decl = llvm_find_subject_action_decl(ctx, subject_name,
+                    step->data.intent_step.name);
+                if (subject_name != NULL && action_decl != NULL
+                    && llvm_intent_action_has_only_self(action_decl)) {
+                    char full_name[256];
+                    LLVMFuncEntry *action_fn;
+                    LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias);
+                    snprintf(full_name, sizeof(full_name), "%s_%s",
+                        subject_name, step->data.intent_step.name);
+                    action_fn = llvm_lookup_function(ctx, full_name);
+                    if (action_fn != NULL && actor_var != NULL) {
+                        LLVMValueRef actor_ptr = LLVMBuildLoad2(ctx->builder,
+                            actor_var->type, actor_var->alloca, llvm_tmp_name(ctx));
+                        LLVMValueRef args[] = { actor_ptr };
+                        if (action_fn->ret_type == ctx->type_void) {
+                            LLVMBuildCall2(ctx->builder, action_fn->fn_type, action_fn->fn,
+                                args, 1, "");
+                        } else {
+                            (void)LLVMBuildCall2(ctx->builder, action_fn->fn_type, action_fn->fn,
+                                args, 1, llvm_tmp_name(ctx));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (step->data.intent_step.guard_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.guard.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.guard_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+
+        if (step->data.intent_step.expect_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.expect.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.expect_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+
+        if (step->data.intent_step.post_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.post.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.post_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+
+        if (step->data.intent_step.invariant_expr != NULL) {
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.post.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.invariant_expr, ctx);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        }
+    }
+
+    {
+        LLVMValueRef success = node->data.intent_decl.success_expr != NULL
+            ? llvm_emit_expression(node->data.intent_decl.success_expr, ctx)
+            : LLVMConstInt(ctx->type_i1, 1, 0);
+        LLVMBuildStore(ctx->builder, success, result_alloca);
+        LLVMBuildBr(ctx->builder, cleanup_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    {
+        LLVMValueRef failure = node->data.intent_decl.failure_expr != NULL
+            ? llvm_emit_expression(node->data.intent_decl.failure_expr, ctx)
+            : LLVMConstInt(ctx->type_i1, 0, 0);
+        LLVMBuildStore(ctx->builder, failure, result_alloca);
+        LLVMBuildBr(ctx->builder, cleanup_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, cleanup_bb);
+    {
+        LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            handle_alloca, llvm_tmp_name(ctx));
+        LLVMValueRef entered = LLVMBuildICmp(ctx->builder, LLVMIntNE, handle,
+            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+        LLVMBuildCondBr(ctx->builder, entered, exit_bb, ret_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
+    {
+        LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+            handle_alloca, llvm_tmp_name(ctx));
+        LLVMValueRef exit_args[] = { handle };
+        LLVMBuildCall2(ctx->builder, exit_fn->fn_type, exit_fn->fn, exit_args, 1, "");
+        LLVMBuildBr(ctx->builder, ret_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ret_bb);
+    {
+        LLVMValueRef result = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            result_alloca, llvm_tmp_name(ctx));
+        LLVMBuildRet(ctx->builder, result);
+    }
+
+    llvm_scope_pop(ctx);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret_type;
+
+    if (saved_fn != NULL) {
+        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+        if (last != NULL)
+            LLVMPositionBuilderAtEnd(ctx->builder, last);
+    }
 }
 
 /* =================================================================
@@ -1400,7 +1768,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         struct {
             const char *name;
             LLVMTypeRef ret;
-            LLVMTypeRef params[3];
+            LLVMTypeRef params[5];
             unsigned param_count;
         } builtins[] = {
             { "StringContains", ctx->type_i1,
@@ -1426,6 +1794,10 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             { "Random", ctx->type_i32,
               { ctx->type_i32 }, 1 },
             { "pgy_int_to_string", ctx->type_i8ptr,
+              { ctx->type_i32 }, 1 },
+            { "pgy_intent_enter_export", ctx->type_i32,
+              { ctx->type_i8ptr, LLVMPointerType(ctx->type_i8ptr, 0), ctx->type_i32, ctx->type_i1, ctx->type_i32 }, 5 },
+            { "pgy_intent_exit_export", ctx->type_void,
               { ctx->type_i32 }, 1 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
@@ -2302,6 +2674,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_forward_declare_func(stmt, ctx);
         }
     }
+    for (size_t i = 0; i < hir->intent_count; i++)
+        llvm_forward_declare_intent(hir->intents[i], ctx);
 
     /* Pass 2: Emit function bodies (standalone + class methods).
      * Skip generic templates — they are instantiated lazily. */
@@ -2310,6 +2684,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         if (stmt != NULL && stmt->type == AST_FUNC_DECL
             && llvm_lookup_generic_template(ctx, stmt->data.func_decl.name) == NULL)
             llvm_emit_func_decl(stmt, ctx);
+        else if (stmt != NULL && stmt->type == AST_INTENT_DECL)
+            llvm_emit_intent_decl(stmt, ctx);
         else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             /* Emit method bodies */
             const char *cls_name = stmt->data.class_decl.name;

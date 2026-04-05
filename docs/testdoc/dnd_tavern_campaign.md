@@ -67,6 +67,7 @@ Current source/golden layout:
 - `abilities.pgy`
 - `roles.pgy`
 - `layers.pgy`
+- `intents.pgy`
 - `views.pgy`
 - `units.pgy`
 - `tables.pgy`
@@ -187,6 +188,15 @@ This scenario is likely to expose:
 - The campaign now also exercises live `relation` / `effect` runtime wiring via
   party-bond links and battle-blessing layers, with `HasZoneLayer(...)` /
   `HasZoneState(...)` showing up in the final report path
+- The campaign now also carries first-class `intent` declarations in
+  `intents.pgy`, and those intents are now actually invoked from the live
+  world state machine. Tavern recruitment, floor delving, and dragon-slaying
+  are no longer just static contracts; they execute as generated intent
+  functions on top of the same live `JourneyZone` / `Adventurer` runtime model
+- DND intent steps now use repeated `on:` clauses plus `guard` / `invariant`,
+  so a single declarative
+  step can orchestrate multiple subject actions in order without dropping to a
+  free-function wrapper
 - Those layers now affect actual campaign math: tavern morale, route pressure,
   trap pressure, and dragon preparation all change based on bond/blessing state
 - Combat resolution is now driven by game-layer factories and strategy cards.
@@ -236,6 +246,14 @@ This scenario is likely to expose:
   still create backend-sensitive behavior. The campaign hit this when the new
   FSM choice fields were added; the fix was to make the root world constructor
   explicit about every trailing shared field used by the state machine.
+- Intent is no longer declaration-only. The campaign now calls
+  `TavernRecruitment(...)`, `DelveThreeFloors(...)`, and `SlayDragon(...)`
+  directly from the world state machine, and those calls lower to generated
+  runtime functions on both C and LLVM.
+- The remaining intent gap is now narrower: basic runtime conflict
+  arbitration now exists for `exclusive` / `concurrent` / `priority`, so the
+  remaining gaps are trace/history, rollback/compensation, and richer
+  `step -> zone slot` instance binding.
 - Runtime hashmap helpers used raw `strdup(...)`, which leaked portability
   warnings into larger example builds. The runtime now routes those copies
   through `pgy_runtime_strdup(...)` instead.

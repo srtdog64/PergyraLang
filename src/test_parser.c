@@ -798,6 +798,42 @@ main(void)
             1
         },
         {
+            "Intent Declaration",
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action pay(self) -> Void { return; }\n"
+            "}\n"
+            "subject Merchant {\n"
+            "    let trust: Int;\n"
+            "}\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "effect PaymentEffect for bearer: Player { }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Player\n"
+            "}\n"
+            "intent Purchase(buyer: Player, seller: Merchant) {\n"
+            "    exclusive;\n"
+            "    priority: 10;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        who: buyer;\n"
+            "        on: buyer.pay();\n"
+            "        on: buyer.pay();\n"
+            "        pre: buyer.hp >= 0;\n"
+            "        guard: buyer.hp >= 0;\n"
+            "        requires: Payable;\n"
+            "        authorized by: buyer;\n"
+            "        causes: PaymentEffect;\n"
+            "        post: buyer.hp >= 0;\n"
+            "        invariant: buyer.hp >= 0;\n"
+            "        expect: buyer.hp >= 0;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}",
+            1
+        },
+        {
             "Domain Keywords As Local Variables",
             "func Main() -> Void {\n"
             "    let zone = 1;\n"

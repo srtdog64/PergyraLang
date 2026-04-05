@@ -49,11 +49,12 @@
 
 | 키워드 | 용도 |
 |--------|------|
-| `world`, `systemic`, `zone`, `relation`, `effect` | 도메인 선언 |
+| `world`, `systemic`, `zone`, `relation`, `effect`, `intent` | 도메인/intent 선언 |
 | `vessel` | 피동 수용체 선언 |
 | `event` | 이벤트 선언 |
 | `action` | subject 전용 플롯 행위 |
-| `requires`, `within`, `causes`, `authorized`, `by` | action clause |
+| `requires`, `within`, `causes`, `authorized`, `by` | action / intent step clause |
+| `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
 
 주의:
 - `context`는 현재 전역 예약어가 아니다. 일반 로컬 변수, 파라미터, 필드 이름으로 사용할 수 있다.
@@ -131,6 +132,56 @@ func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
 - 제네릭 함수, `where` 제약
 - `async func`
 - `subject`는 일반 field로 `class`를 값 소유할 수 있다 (`let weapon: Item;`)
+
+### 2.2.1 intent 선언
+
+`intent`는 world/zone/action 계약을 참조하는 **실행 가능한 오케스트레이션 선언**이다.
+현재 구현은 parser/semantic/HIR/codegen까지 들어와 있고, `Intent(args...)` 호출은 generated runtime function으로 lowering된다.
+
+```pergyra
+intent Purchase(buyer: Player, seller: Merchant) {
+    exclusive;
+    priority: 10;
+
+    step pay {
+        where: PaymentZone;
+        who: buyer;
+        on: buyer.Pay();
+        on: buyer.LogReceipt();
+        requires: Payable;
+        authorized by: buyer;
+        causes: PaymentEffect;
+        pre: buyer.hp >= 0;
+        guard: buyer.hp >= 0;
+        post: buyer.hp >= 0;
+        invariant: buyer.hp >= 0;
+        expect: buyer.hp >= 0;
+    }
+
+    success: true;
+    failure: false;
+}
+
+Purchase(hero, merchant);
+```
+
+현재 컴파일러가 검사하는 것:
+- `intent Name(args...)`와 legacy `involves` 둘 다 파싱되며, 현재 권장 표면은 파라미터형 선언이다
+- `involves` 타입은 subject여야 한다
+- `where`는 선언된 zone type이어야 한다
+- `who` / `authorized by`는 선언된 `involves` alias여야 한다
+- `requires`는 선언된 ability여야 한다
+- `causes`는 선언된 effect여야 한다
+- `pre` / `post` / `expect` / `success` / `failure`는 `Bool`이어야 한다
+- `priority`는 `Int`여야 한다
+- `on:`은 여러 번 선언할 수 있고 현재 lowering은 선언 순서대로 실행한다
+
+현재 한계:
+- `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
+- 같은 subject에 대해 `exclusive` intent가 이미 active면 새 intent는 기본적으로 거부된다
+- 새 intent와 active intent가 모두 `concurrent`이면 병행 가능하다
+- 새 intent의 `priority`가 더 높으면 낮은 priority active intent 위로 중첩 진입할 수 있다
+- step ordering, trace/history, rollback/compensation은 아직 다음 단계다
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.

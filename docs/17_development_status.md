@@ -1,6 +1,6 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-04
+마지막 업데이트: 2026-04-05
 
 ## 요약
 
@@ -12,6 +12,8 @@
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음.
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic에 연결됨.
 - `action` clause는 이제 존재 확인을 넘어서 `authorized by` subject-host 검증, `within` zone subject/authority 적합성 검증, `causes` effect target/zone layer 적합성 검증까지 포함함.
+- `intent` declaration이 parser/AST/semantic/HIR/codegen에 반영되어 `intent Name(args...)`, legacy `involves`, `step`, `exclusive`/`concurrent`, `priority`, `where`, `who`, repeated `on`, `pre`, `post`, `requires`, `authorized by`, `causes`, `expect`, `success`, `failure`를 검증하고 executable generated function으로 lowering함
+- `intent` runtime은 이제 same-subject conflict registry를 가져서 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행함. step-level `guard` / `invariant`도 실행되며, trace/history, rollback/compensation은 아직 미구현임
 - hosted `func` / `action` body 안의 bare field access와 bare helper call은 이제 subject/class/relation/effect/zone/world 전반에서 implicit `self`로 해석되며, `self.`는 선택적 표기로 남음
 - `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 transfer/projection declaration alias로 동작함.
 - `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
@@ -71,6 +73,7 @@
 - LLVM backend도 relation/effect/zone/world declaration에 대해 `<Type>_sync(self)` helper와 method 전후 sync 호출 parity를 가지며, contextual `HasProjection(...)` / `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering과 constructor/runtime instance path까지 연결됨
 - `HasProjection(...)`는 현재 relation/effect/zone 문맥에서 semantic/C/LLVM runtime parity까지 닫혀 있음
 - `zone` layer slot은 이제 C/LLVM 양쪽에서 `void*` placeholder가 아니라 typed `relation` / `effect` runtime instance로 유지되며, zone sync가 subject slot 값을 overlay endpoint/target에 바인딩한 뒤 `<Layer>_sync(&self->layer)`를 호출함
+- LLVM backend의 `effect pool`도 이제 실제 `{items, active, count, cap}` storage로 lowering되어 `apply poolName to slotName`와 `HasLayer(poolName)`이 semantic-only가 아니라 concrete runtime path를 가진다
 - direct `apply/link/detach/unlink`와 `maintain effect/relation/state` 모두 C/LLVM zone sync에서 실제 layer active/state/projection 전파로 연결됨
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM smoke까지 닫혀 있음
 - C backend에서 `HasLayer(...)`는 zone rdlock + generation stale-warning을 감싼 generated helper로 lowering되고, `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
@@ -103,7 +106,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 474 passed`, `transpile 381 passed`, `llvm-test-smoke` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -149,8 +152,8 @@
 | 스위트 | 결과 |
 |---|---|
 | concurrency | 5 passed |
-| semantic | 450 passed |
-| transpile | 351 passed |
+| semantic | 474 passed |
+| transpile | 381 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:

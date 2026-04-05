@@ -1747,34 +1747,64 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             char *v = emit_expression(call->data.call.arguments[2], ctx);
-            char *result = strdup_fmt("pgy_map_set_int(&%s, %s, %s)", m, k, v);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_set_%s(&%s, %s, %s)",
+                collection_runtime_suffix(value), m, k, v);
             free(m); free(k); free(v);
             return result;
         }
         if (strcmp(fn, "MapGet") == 0 && call->data.call.arg_count == 2) {
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *result = strdup_fmt("pgy_map_get_int(&%s, %s)", m, k);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_get_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
         }
         if (strcmp(fn, "MapHas") == 0 && call->data.call.arg_count == 2) {
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *result = strdup_fmt("pgy_map_has_int(&%s, %s)", m, k);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_has_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
         }
         if (strcmp(fn, "MapRemove") == 0 && call->data.call.arg_count == 2) {
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *result = strdup_fmt("pgy_map_remove_int(&%s, %s)", m, k);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_remove_%s(&%s, %s)",
+                collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
         }
         if (strcmp(fn, "MapSize") == 0 && call->data.call.arg_count == 1) {
             char *m = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("pgy_map_size_int(&%s)", m);
+            const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 1)
+                : "Int";
+            ensure_collection_specialization(ctx, "Map", value);
+            char *result = strdup_fmt("pgy_map_size_%s(&%s)",
+                collection_runtime_suffix(value), m);
             free(m);
             return result;
         }
@@ -1784,31 +1814,61 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         if (strcmp(fn, "ListPush") == 0 && call->data.call.arg_count == 2) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
             char *v = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_list_push_int(&%s, %s)", l, v);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_push_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, v);
             free(l); free(v); return r;
         }
         if (strcmp(fn, "ListGet") == 0 && call->data.call.arg_count == 2) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
             char *i = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_list_get_int(&%s, %s)", l, i);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_get_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, i);
             free(l); free(i); return r;
         }
         if (strcmp(fn, "ListSet") == 0 && call->data.call.arg_count == 3) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
             char *i = emit_expression(call->data.call.arguments[1], ctx);
             char *v = emit_expression(call->data.call.arguments[2], ctx);
-            char *r = strdup_fmt("pgy_list_set_int(&%s, %s, %s)", l, i, v);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_set_%s(&%s, %s, %s)",
+                collection_runtime_suffix(inner), l, i, v);
             free(l); free(i); free(v); return r;
         }
         if (strcmp(fn, "ListSize") == 0 && call->data.call.arg_count == 1) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
-            char *r = strdup_fmt("pgy_list_size_int(&%s)", l);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_size_%s(&%s)",
+                collection_runtime_suffix(inner), l);
             free(l); return r;
         }
         if (strcmp(fn, "ListRemove") == 0 && call->data.call.arg_count == 2) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
             char *i = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_list_remove_int(&%s, %s)", l, i);
+            const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                ? slot_inner_type_name(list_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            char *r = strdup_fmt("pgy_list_remove_%s(&%s, %s)",
+                collection_runtime_suffix(inner), l, i);
             free(l); free(i); return r;
         }
         /* Set builtins */
@@ -1843,22 +1903,46 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         if (strcmp(fn, "QueuePush") == 0 && call->data.call.arg_count == 2) {
             char *q = emit_expression(call->data.call.arguments[0], ctx);
             char *v = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_queue_push_int(&%s, %s)", q, v);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_push_%s(&%s, %s)",
+                collection_runtime_suffix(inner), q, v);
             free(q); free(v); return r;
         }
         if (strcmp(fn, "QueuePop") == 0 && call->data.call.arg_count == 1) {
             char *q = emit_expression(call->data.call.arguments[0], ctx);
-            char *r = strdup_fmt("pgy_queue_pop_int(&%s)", q);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_pop_%s(&%s)",
+                collection_runtime_suffix(inner), q);
             free(q); return r;
         }
         if (strcmp(fn, "QueueSize") == 0 && call->data.call.arg_count == 1) {
             char *q = emit_expression(call->data.call.arguments[0], ctx);
-            char *r = strdup_fmt("pgy_queue_size_int(&%s)", q);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_size_%s(&%s)",
+                collection_runtime_suffix(inner), q);
             free(q); return r;
         }
         if (strcmp(fn, "QueueEmpty") == 0 && call->data.call.arg_count == 1) {
             char *q = emit_expression(call->data.call.arguments[0], ctx);
-            char *r = strdup_fmt("pgy_queue_empty_int(&%s)", q);
+            const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *inner = (queue_type != NULL && strncmp(queue_type, "Queue<", 6) == 0)
+                ? slot_inner_type_name(queue_type)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            char *r = strdup_fmt("pgy_queue_empty_%s(&%s)",
+                collection_runtime_suffix(inner), q);
             free(q); return r;
         }
         /* FSM builtins */
@@ -2235,10 +2319,15 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     /* Build argument list */
     CodeBuf *args_buf = codebuf_create();
     ASTNode *decl = (callee->type == AST_IDENTIFIER)
-        ? find_function_decl(ctx, callee->data.identifier.name) : NULL;
+        ? find_callable_decl(ctx, callee->data.identifier.name) : NULL;
     for (size_t i = 0; i < call->data.call.arg_count; i++) {
-        FuncParam *param = (decl != NULL && i < decl->data.func_decl.param_count)
+        FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
+                            && i < decl->data.func_decl.param_count)
             ? decl->data.func_decl.params[i] : NULL;
+        ASTNode *intent_param_type = (decl != NULL && decl->type == AST_INTENT_DECL
+                                      && i < decl->data.intent_decl.involve_count
+                                      && decl->data.intent_decl.involves[i] != NULL)
+            ? decl->data.intent_decl.involves[i]->data.intent_involves.subject_type : NULL;
         bool handled = false;
         char *arg = NULL;
 
@@ -2284,6 +2373,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (param != NULL && param->type != NULL
                 && param->name != NULL && strcmp(param->name, "self") != 0) {
                 char *ptn = render_type_name(param->type);
+                if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
+                    is_subject_arg = true;
+                free(ptn);
+            }
+            if (!is_subject_arg && intent_param_type != NULL) {
+                char *ptn = render_type_name(intent_param_type);
                 if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
                     is_subject_arg = true;
                 free(ptn);

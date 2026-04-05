@@ -112,6 +112,8 @@ main() {
         "tests/cases/backend_compare/module_namespace"
         "tests/cases/backend_compare/role_operator"
         "tests/cases/backend_compare/host_method_class_return"
+        "tests/cases/backend_compare/intent_decl_overlay"
+        "tests/cases/backend_compare/intent_conflict_runtime"
     )
 
     if [[ "$#" -gt 0 ]]; then

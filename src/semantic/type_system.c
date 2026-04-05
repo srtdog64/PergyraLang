@@ -26,6 +26,9 @@ Type *TYPE_VOID   = NULL;
 Type *TYPE_UNKNOWN = NULL; /* Sentinel for error recovery */
 Type *TYPE_ARRAY  = NULL;
 Type *TYPE_SLICE  = NULL;
+Type *TYPE_LIST   = NULL;
+Type *TYPE_QUEUE  = NULL;
+Type *TYPE_HASHMAP = NULL;
 Type *TYPE_BOX    = NULL;
 Type *TYPE_RC     = NULL;
 Type *TYPE_WEAK   = NULL;
@@ -54,6 +57,9 @@ type_system_init(void)
     TYPE_UNKNOWN = type_create_primitive("<unknown>", 0, false);
     TYPE_ARRAY  = type_create_primitive("Array",  0, false);
     TYPE_SLICE  = type_create_primitive("Slice",  0, false);
+    TYPE_LIST   = type_create_primitive("List",   0, false);
+    TYPE_QUEUE  = type_create_primitive("Queue",  0, false);
+    TYPE_HASHMAP = type_create_primitive("HashMap", 0, false);
     TYPE_BOX    = type_create_primitive("Box",    0, false);
     TYPE_RC     = type_create_primitive("Rc",     0, false);
     TYPE_WEAK   = type_create_primitive("Weak",   0, false);
@@ -80,6 +86,9 @@ type_system_cleanup(void)
     free(TYPE_UNKNOWN->name);free(TYPE_UNKNOWN);
     free(TYPE_ARRAY->name);  free(TYPE_ARRAY);
     free(TYPE_SLICE->name);  free(TYPE_SLICE);
+    free(TYPE_LIST->name);   free(TYPE_LIST);
+    free(TYPE_QUEUE->name);  free(TYPE_QUEUE);
+    free(TYPE_HASHMAP->name); free(TYPE_HASHMAP);
     free(TYPE_BOX->name);    free(TYPE_BOX);
     free(TYPE_RC->name);     free(TYPE_RC);
     free(TYPE_WEAK->name);   free(TYPE_WEAK);
@@ -93,8 +102,8 @@ type_system_cleanup(void)
 
     TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
     TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
-    TYPE_ARRAY = TYPE_SLICE = TYPE_BOX = TYPE_RC =
-    TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
+    TYPE_ARRAY = TYPE_SLICE = TYPE_LIST = TYPE_QUEUE = TYPE_HASHMAP = TYPE_BOX = TYPE_RC =
+        TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
     TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = TYPE_OPTION = NULL;
 }
 

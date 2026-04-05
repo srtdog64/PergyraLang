@@ -1,0 +1,123 @@
+subject Driver {
+    let counter: Int;
+
+    action Step(self) -> Void {
+        counter = counter + 1;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent Probe(driver: Driver) {
+    exclusive;
+    priority: 5;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: driver.Step();
+        post: driver.counter == 1;
+        expect: driver.counter == 1;
+    }
+
+    success: driver.counter == 1;
+    failure: false;
+}
+
+intent Blocker(driver: Driver) {
+    exclusive;
+    priority: 5;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: Probe(driver);
+        post: driver.counter == 0;
+        expect: driver.counter == 0;
+    }
+
+    success: driver.counter == 0;
+    failure: false;
+}
+
+intent Scan(driver: Driver) {
+    concurrent;
+    priority: 1;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: driver.Step();
+        post: driver.counter == 1;
+        expect: driver.counter == 1;
+    }
+
+    success: driver.counter == 1;
+    failure: false;
+}
+
+intent Watch(driver: Driver) {
+    concurrent;
+    priority: 1;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: Scan(driver);
+        post: driver.counter == 1;
+        expect: driver.counter == 1;
+    }
+
+    success: driver.counter == 1;
+    failure: false;
+}
+
+intent High(driver: Driver) {
+    exclusive;
+    priority: 10;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: driver.Step();
+        post: driver.counter == 1;
+        expect: driver.counter == 1;
+    }
+
+    success: driver.counter == 1;
+    failure: false;
+}
+
+intent Low(driver: Driver) {
+    exclusive;
+    priority: 1;
+
+    step Step {
+        where: CockpitZone;
+        who: driver;
+        on: High(driver);
+        post: driver.counter == 1;
+        expect: driver.counter == 1;
+    }
+
+    success: driver.counter == 1;
+    failure: false;
+}
+
+func Main() -> Void {
+    let blockedDriver = Driver(0);
+    let concurrentDriver = Driver(0);
+    let priorityDriver = Driver(0);
+    let blockedOk = Blocker(blockedDriver);
+    let concurrentOk = Watch(concurrentDriver);
+    let priorityOk = Low(priorityDriver);
+
+    Log("exclusive blocked=" + ToString(blockedOk)
+        + " counter=" + ToString(blockedDriver.counter));
+    Log("concurrent ok=" + ToString(concurrentOk)
+        + " counter=" + ToString(concurrentDriver.counter));
+    Log("priority override=" + ToString(priorityOk)
+        + " counter=" + ToString(priorityDriver.counter));
+}

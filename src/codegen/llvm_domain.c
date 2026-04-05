@@ -80,6 +80,28 @@ llvm_operator_method_name_matches(TokenType op, const char *name)
 
 #include "llvm_domain_helpers.inc"
 
+static LLVMTypeRef
+llvm_zone_effect_pool_struct_type(LLVMGenCtx *ctx, LLVMTypeRef effect_ty, int capacity)
+{
+    LLVMTypeRef fields[4];
+    LLVMTypeRef i8_ty;
+    unsigned cap;
+
+    if (ctx == NULL || effect_ty == NULL)
+        return NULL;
+
+    if (capacity <= 0)
+        capacity = 1;
+    cap = (unsigned)capacity;
+    i8_ty = LLVMInt8TypeInContext(ctx->context);
+
+    fields[0] = LLVMArrayType(effect_ty, cap);
+    fields[1] = LLVMArrayType(ctx->type_i1, cap);
+    fields[2] = i8_ty;
+    fields[3] = i8_ty;
+    return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
+}
+
 static void
 llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
@@ -134,6 +156,51 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder,
             LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
+    }
+    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
+        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+        int field_idx;
+        LLVMValueRef self_ptr;
+        LLVMValueRef pool_ptr;
+        LLVMTypeRef pool_ty;
+        LLVMValueRef items_ptr;
+        LLVMValueRef active_ptr;
+        LLVMValueRef count_ptr;
+        LLVMValueRef cap_ptr;
+        LLVMTypeRef i8_ty;
+
+        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
+            || !slot->data.zone_layer_slot.is_pool
+            || slot->data.zone_layer_slot.slot_name == NULL)
+            continue;
+
+        field_idx = llvm_class_field_index(decl_cls,
+            slot->data.zone_layer_slot.slot_name);
+        if (field_idx < 0)
+            continue;
+
+        self_ptr = LLVMGetParam(sync_fn, 0);
+        pool_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
+            self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
+        pool_ty = decl_cls->fields[field_idx].field_type;
+        i8_ty = LLVMInt8TypeInContext(ctx->context);
+
+        items_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, pool_ptr, 0, llvm_tmp_name(ctx));
+        active_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, pool_ptr, 1, llvm_tmp_name(ctx));
+        count_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, pool_ptr, 2, llvm_tmp_name(ctx));
+        cap_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, pool_ptr, 3, llvm_tmp_name(ctx));
+
+        LLVMBuildStore(ctx->builder,
+            LLVMConstNull(LLVMStructGetTypeAtIndex(pool_ty, 0)), items_ptr);
+        LLVMBuildStore(ctx->builder,
+            LLVMConstNull(LLVMStructGetTypeAtIndex(pool_ty, 1)), active_ptr);
+        LLVMBuildStore(ctx->builder, LLVMConstInt(i8_ty, 0, 0), count_ptr);
+        LLVMBuildStore(ctx->builder,
+            LLVMConstInt(i8_ty,
+                slot->data.zone_layer_slot.pool_capacity > 0
+                    ? (unsigned)slot->data.zone_layer_slot.pool_capacity : 1,
+                0),
+            cap_ptr);
     }
     for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
@@ -1212,7 +1279,15 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     layer_cls = llvm_lookup_class(ctx,
                         slot->data.zone_layer_slot.layer_type);
                 }
-                ftypes[idx] = layer_cls != NULL ? layer_cls->struct_type : ctx->type_i8ptr;
+                if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+                    && slot->data.zone_layer_slot.is_pool
+                    && layer_cls != NULL) {
+                    ftypes[idx] = llvm_zone_effect_pool_struct_type(ctx,
+                        layer_cls->struct_type,
+                        slot->data.zone_layer_slot.pool_capacity);
+                } else {
+                    ftypes[idx] = layer_cls != NULL ? layer_cls->struct_type : ctx->type_i8ptr;
+                }
             }
             for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
                 ftypes[idx] = ctx->type_i1;

@@ -57,6 +57,22 @@ llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
     return llvm_lookup_generic_template(ctx, name);
 }
 
+static ASTNode *
+llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < ctx->hir->intent_count; i++) {
+        ASTNode *stmt = ctx->hir->intents[i];
+        if (stmt != NULL && stmt->type == AST_INTENT_DECL
+            && stmt->data.intent_decl.name != NULL
+            && strcmp(stmt->data.intent_decl.name, name) == 0) {
+            return stmt;
+        }
+    }
+    return NULL;
+}
+
 static LLVMValueRef *
 llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                               ASTNode **arg_nodes, size_t argc,

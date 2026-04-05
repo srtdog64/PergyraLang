@@ -935,3 +935,27 @@ async func Main() -> Void {
 }
 EOF
 run_case "string_spawn" "$TMPDIR/string_spawn.pgy" "hi"
+
+cat > "$TMPDIR/zone_effect_pool_runtime.pgy" <<'EOF'
+subject Player {
+    let hp: Int;
+}
+
+effect DamageEffect for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect pool damage: DamageEffect capacity 4
+    apply damage to player
+
+    func Show() -> Void {
+        Log(HasLayer(damage));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Show();
+}
+EOF
+run_case "zone_effect_pool_runtime" "$TMPDIR/zone_effect_pool_runtime.pgy" "true"

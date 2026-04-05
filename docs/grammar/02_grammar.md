@@ -13,7 +13,7 @@
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
 - 예약 키워드 (57개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `dto`, `object`
-- 컨텍스트 키워드 (14개): `world`, `systemic`, `zone`, `relation`, `effect`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`
+- 컨텍스트 키워드: `world`, `systemic`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
   선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
@@ -304,6 +304,8 @@ enum Shape {
 - `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/dto projection slot sync-ready flag를 Bool로 조회한다.
 - `HasZoneLayer(<zoneSlot>, <layerSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 relation/effect layer active flag를 Bool로 조회한다.
 - `HasZoneState(<zoneSlot>, <stateName>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 state alias flag를 Bool로 조회한다.
+- `intent`는 parser/semantic/HIR/codegen이 직접 이해하는 orchestration declaration이다. 현재는 `intent Name(args...)`, legacy `involves`, `step`, `exclusive`/`concurrent`, `priority`, `where`, `who`, repeated `on`, `pre`, `guard`, `post`, `invariant`, `requires`, `authorized by`, `causes`, `expect`, `success`, `failure`를 파싱하고 검증하며, `Intent(args...)` 호출은 C/LLVM generated function으로 lowering된다.
+- 현재 runtime은 executable intent function + basic conflict scheduler다. `exclusive` 충돌 차단, `concurrent` 병행 허용, higher-`priority` nested override까지는 구현되어 있다. trace/history, rollback/compensation은 아직 다음 단계다.
 - 파생 world state는 읽기 전용 contract이며 `activate/deactivate/maintain` 대상으로는 plain `state <name>: zone <zoneSlot>` alias만 허용한다.
 - `all` / `any` 조합 state는 duplicate input과 direct zone slot + plain zone alias 중복을 semantic warning으로 정리한다.
 - `all` / `any` 조합 state는 raw zone slot을 직접 입력으로 받는 것도 warning으로 정리하며, plain world state alias를 통한 조합을 권장한다.

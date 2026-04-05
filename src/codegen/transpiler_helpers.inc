@@ -311,6 +311,33 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
 }
 
 static ASTNode *
+find_intent_decl(TranspilerCtx *ctx, const char *intent_name)
+{
+    if (ctx == NULL || ctx->hir == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->intent_count; i++) {
+        ASTNode *stmt = ctx->hir->intents[i];
+        if (stmt->type == AST_INTENT_DECL
+            && stmt->data.intent_decl.name != NULL
+            && strcmp(stmt->data.intent_decl.name, intent_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_callable_decl(TranspilerCtx *ctx, const char *name)
+{
+    ASTNode *decl = find_function_decl(ctx, name);
+    if (decl != NULL)
+        return decl;
+    return find_intent_decl(ctx, name);
+}
+
+static ASTNode *
 find_party_decl(TranspilerCtx *ctx, const char *party_name)
 {
     if (ctx == NULL || ctx->hir == NULL || party_name == NULL)
@@ -2209,9 +2236,89 @@ channel_inner_type_name(TranspilerCtx *ctx, ASTNode *expr)
     return "Int";
 }
 
+static void
+sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
+{
+    size_t out = 0;
+
+    if (buf_size == 0)
+        return;
+
+    if (type_name == NULL || *type_name == '\0') {
+        snprintf(buf, buf_size, "Int");
+        return;
+    }
+
+    for (size_t i = 0; type_name[i] != '\0' && out + 1 < buf_size; i++) {
+        unsigned char ch = (unsigned char)type_name[i];
+        if ((ch >= 'a' && ch <= 'z')
+            || (ch >= 'A' && ch <= 'Z')
+            || (ch >= '0' && ch <= '9')) {
+            buf[out++] = (char)ch;
+        } else {
+            buf[out++] = '_';
+        }
+    }
+    buf[out] = '\0';
+}
+
+static const char *
+constructed_arg_name_at(const char *type_name, int arg_index)
+{
+    static char buf[128];
+    const char *lt;
+    int current = 0;
+    int depth = 0;
+    size_t out = 0;
+
+    if (type_name == NULL || arg_index < 0)
+        return "Int";
+
+    lt = strchr(type_name, '<');
+    if (lt == NULL)
+        return "Int";
+    lt++;
+
+    for (const char *p = lt; *p != '\0'; p++) {
+        char ch = *p;
+        if (ch == '<') {
+            if (current == arg_index && out + 1 < sizeof(buf))
+                buf[out++] = ch;
+            depth++;
+            continue;
+        }
+        if (ch == '>') {
+            if (depth == 0)
+                break;
+            if (current == arg_index && out + 1 < sizeof(buf))
+                buf[out++] = ch;
+            depth--;
+            continue;
+        }
+        if (ch == ',' && depth == 0) {
+            if (current == arg_index)
+                break;
+            current++;
+            continue;
+        }
+        if (current == arg_index) {
+            if (!(out == 0 && ch == ' ') && out + 1 < sizeof(buf))
+                buf[out++] = ch;
+        }
+    }
+
+    while (out > 0 && buf[out - 1] == ' ')
+        out--;
+    buf[out] = '\0';
+    return out > 0 ? buf : "Int";
+}
+
 const char *
 pergyra_type_to_c(const char *name)
 {
+    static char buf[128];
+    char suffix[96];
+
     if (strcmp(name, "HashMap") == 0)
         return "PgyHashMap_Int";
     if (strcmp(name, "HashMapStr") == 0)
@@ -2232,6 +2339,21 @@ pergyra_type_to_c(const char *name)
         return "PgyCooldown";
     if (strcmp(name, "Allocator") == 0)
         return "PgyAllocator";
+    if (strncmp(name, "List<", 5) == 0) {
+        sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
+        snprintf(buf, sizeof(buf), "PgyList_%s", suffix);
+        return buf;
+    }
+    if (strncmp(name, "HashMap<", 8) == 0) {
+        sanitize_c_suffix(constructed_arg_name_at(name, 1), suffix, sizeof(suffix));
+        snprintf(buf, sizeof(buf), "PgyHashMap_%s", suffix);
+        return buf;
+    }
+    if (strncmp(name, "Queue<", 6) == 0) {
+        sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
+        snprintf(buf, sizeof(buf), "PgyQueue_%s", suffix);
+        return buf;
+    }
     if (strncmp(name, "RemoteFuture<", 13) == 0)
         return "PgyTaskHandle";
     if (strncmp(name, "Future<", 7) == 0)
@@ -2415,6 +2537,80 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
     return result;
 }
 
+static void
+ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
+                                 const char *inner_type)
+{
+    char suffix[128];
+    const char *ctype;
+
+    if (ctx == NULL || kind == NULL || inner_type == NULL)
+        return;
+
+    if ((strcmp(kind, "List") == 0 || strcmp(kind, "Queue") == 0)
+        && (strcmp(inner_type, "Int") == 0 || strcmp(inner_type, "String") == 0))
+        return;
+    if (strcmp(kind, "Map") == 0
+        && (strcmp(inner_type, "Int") == 0 || strcmp(inner_type, "String") == 0))
+        return;
+
+    sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
+    for (int i = 0; i < ctx->collection_spec_count; i++) {
+        if (strcmp(ctx->collection_specs[i].kind, kind) == 0
+            && strcmp(ctx->collection_specs[i].suffix, suffix) == 0) {
+            return;
+        }
+    }
+
+    if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS)
+        return;
+
+    ctype = pergyra_type_to_c(inner_type);
+    if (ctype == NULL)
+        return;
+
+    snprintf(ctx->collection_specs[ctx->collection_spec_count].kind,
+             sizeof(ctx->collection_specs[ctx->collection_spec_count].kind),
+             "%s", kind);
+    snprintf(ctx->collection_specs[ctx->collection_spec_count].suffix,
+             sizeof(ctx->collection_specs[ctx->collection_spec_count].suffix),
+             "%s", suffix);
+    ctx->collection_spec_count++;
+
+    if (strcmp(kind, "List") == 0) {
+        codebuf_write(ctx->helpers,
+            "\n/* PGY_COLLECTION_LIST_%s */\n"
+            "PGY_LIST_DEFINE(%s, %s)\n",
+            suffix, suffix, ctype);
+    } else if (strcmp(kind, "Queue") == 0) {
+        codebuf_write(ctx->helpers,
+            "\n/* PGY_COLLECTION_QUEUE_%s */\n"
+            "PGY_QUEUE_DEFINE(%s, %s)\n",
+            suffix, suffix, ctype);
+    } else if (strcmp(kind, "Map") == 0) {
+        codebuf_write(ctx->helpers,
+            "\n/* PGY_COLLECTION_MAP_%s */\n"
+            "PGY_HASHMAP_DEFINE(%s, %s)\n",
+            suffix, suffix, ctype);
+    }
+}
+
+static const char *
+collection_runtime_suffix(const char *inner_type)
+{
+    static char suffix[128];
+
+    if (inner_type == NULL)
+        return "int";
+    if (strcmp(inner_type, "Int") == 0)
+        return "int";
+    if (strcmp(inner_type, "String") == 0)
+        return "string";
+
+    sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
+    return suffix;
+}
+
 static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -2586,6 +2782,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             const char *name = expr->data.call.callee->data.identifier.name;
             if (strcmp(name, "MapNew") == 0)
                 return "HashMap";
+            if (strcmp(name, "MapGet") == 0 && expr->data.call.arg_count >= 1) {
+                const char *map_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                    return constructed_arg_name_at(map_type, 1);
+                return "Int";
+            }
             if (strcmp(name, "ListNew") == 0)
                 return "List";
             if (strcmp(name, "SetNew") == 0)
@@ -2689,6 +2892,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "SendTimeout") == 0
                 || strcmp(name, "Cancel") == 0
                 || strcmp(name, "IsCancelled") == 0
+                || strcmp(name, "MapHas") == 0
                 || strcmp(name, "HasProjection") == 0
                 || strcmp(name, "HasLayer") == 0
                 || strcmp(name, "HasState") == 0

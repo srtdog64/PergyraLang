@@ -62,6 +62,126 @@ pgy_runtime_strdup(const char *src)
     return copy;
 }
 
+typedef struct {
+    int32_t handle;
+    char   *name;
+    void  **subjects;
+    int32_t subject_count;
+    bool    is_concurrent;
+    int32_t priority;
+    bool    active;
+} PgyIntentActiveEntry;
+
+#define PGY_INTENT_ACTIVE_MAX 256
+
+static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
+static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int32_t pgy_intent_next_handle = 1;
+
+static inline bool
+pgy_intent_subjects_overlap(void **lhs, int32_t lhs_count,
+                            void **rhs, int32_t rhs_count)
+{
+    for (int32_t i = 0; i < lhs_count; i++) {
+        if (lhs == NULL || lhs[i] == NULL)
+            continue;
+        for (int32_t j = 0; j < rhs_count; j++) {
+            if (rhs == NULL || rhs[j] == NULL)
+                continue;
+            if (lhs[i] == rhs[j])
+                return true;
+        }
+    }
+    return false;
+}
+
+static inline int32_t
+pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
+                        bool is_concurrent, int32_t priority)
+{
+    int free_index = -1;
+    int32_t handle = 0;
+    void **subject_copy = NULL;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
+        if (!entry->active)
+            continue;
+        if (!pgy_intent_subjects_overlap(entry->subjects, entry->subject_count,
+                                         subjects, subject_count))
+            continue;
+        if (entry->is_concurrent && is_concurrent)
+            continue;
+        if (priority > entry->priority)
+            continue;
+        pthread_mutex_unlock(&pgy_intent_registry_mutex);
+        return 0;
+    }
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (!pgy_intent_active_registry[i].active) {
+            free_index = i;
+            break;
+        }
+    }
+
+    if (free_index < 0) {
+        pthread_mutex_unlock(&pgy_intent_registry_mutex);
+        return 0;
+    }
+
+    if (subject_count > 0) {
+        subject_copy = (void **)malloc(sizeof(void *) * (size_t)subject_count);
+        if (subject_copy == NULL) {
+            pthread_mutex_unlock(&pgy_intent_registry_mutex);
+            return 0;
+        }
+        memcpy(subject_copy, subjects, sizeof(void *) * (size_t)subject_count);
+    }
+
+    handle = pgy_intent_next_handle++;
+    pgy_intent_active_registry[free_index].handle = handle;
+    pgy_intent_active_registry[free_index].name = pgy_runtime_strdup(name);
+    pgy_intent_active_registry[free_index].subjects = subject_copy;
+    pgy_intent_active_registry[free_index].subject_count = subject_count;
+    pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
+    pgy_intent_active_registry[free_index].priority = priority;
+    pgy_intent_active_registry[free_index].active = true;
+
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return handle;
+}
+
+static inline void
+pgy_intent_exit_export(int32_t handle)
+{
+    if (handle == 0)
+        return;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
+        if (!entry->active || entry->handle != handle)
+            continue;
+
+        free(entry->name);
+        free(entry->subjects);
+        entry->handle = 0;
+        entry->name = NULL;
+        entry->subjects = NULL;
+        entry->subject_count = 0;
+        entry->is_concurrent = false;
+        entry->priority = 0;
+        entry->active = false;
+        break;
+    }
+
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
 static inline struct timespec
 pgy_timespec_after_ns(uint64_t timeout_ns)
 {
@@ -1121,6 +1241,123 @@ static inline uint32_t pgy_hash_string(const char *s)
     return h;
 }
 
+#define PGY_HASHMAP_DEFINE(SuffixName, CType) \
+typedef struct \
+{ \
+    char    **keys; \
+    CType    *values; \
+    uint8_t  *occupied; \
+    size_t    count; \
+    size_t    capacity; \
+} PgyHashMap_##SuffixName; \
+\
+static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
+{ \
+    PgyHashMap_##SuffixName m; \
+    m.capacity = PGY_HASHMAP_INIT_CAP; \
+    m.count = 0; \
+    m.keys = (char **)calloc(m.capacity, sizeof(char *)); \
+    m.values = (CType *)calloc(m.capacity, sizeof(CType)); \
+    m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t)); \
+    return m; \
+} \
+\
+static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
+{ \
+    size_t old_cap = m->capacity; \
+    char **old_keys = m->keys; \
+    CType *old_vals = m->values; \
+    uint8_t *old_occ = m->occupied; \
+    m->capacity *= 2; \
+    m->keys = (char **)calloc(m->capacity, sizeof(char *)); \
+    m->values = (CType *)calloc(m->capacity, sizeof(CType)); \
+    m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t)); \
+    m->count = 0; \
+    for (size_t i = 0; i < old_cap; i++) { \
+        if (old_occ[i]) { \
+            uint32_t h = pgy_hash_string(old_keys[i]) % (uint32_t)m->capacity; \
+            while (m->occupied[h]) h = (h + 1) % (uint32_t)m->capacity; \
+            m->keys[h] = old_keys[i]; \
+            m->values[h] = old_vals[i]; \
+            m->occupied[h] = 1; \
+            m->count++; \
+        } \
+    } \
+    free(old_keys); free(old_vals); free(old_occ); \
+} \
+\
+static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
+{ \
+    if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) \
+        pgy_map_grow_##SuffixName(m); \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    while (m->occupied[h]) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+            m->values[h] = val; \
+            return; \
+        } \
+        h = (h + 1) % (uint32_t)m->capacity; \
+    } \
+    m->keys[h] = pgy_runtime_strdup(key); \
+    m->values[h] = val; \
+    m->occupied[h] = 1; \
+    m->count++; \
+} \
+\
+static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    CType zero_value; \
+    memset(&zero_value, 0, sizeof(CType)); \
+    if (m->count == 0) return zero_value; \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+            return m->values[h]; \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+    return zero_value; \
+} \
+\
+static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    if (m->count == 0) return false; \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+            return true; \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+    return false; \
+} \
+\
+static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
+{ \
+    if (m->count == 0) return; \
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+            free(m->keys[h]); \
+            m->keys[h] = NULL; \
+            memset(&m->values[h], 0, sizeof(CType)); \
+            m->occupied[h] = 0; \
+            m->count--; \
+            return; \
+        } \
+        h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
+    } \
+} \
+\
+static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
+{ \
+    return (int32_t)m->count; \
+}
+
 static inline PgyHashMap_Int pgy_map_new_int(void)
 {
     PgyHashMap_Int m;
@@ -1310,6 +1547,55 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
  * List<Int> — dynamic array (grows automatically)
  * ================================================================= */
 
+#define PGY_LIST_DEFINE(SuffixName, CType) \
+typedef struct \
+{ \
+    CType   *data; \
+    size_t   count; \
+    size_t   capacity; \
+} PgyList_##SuffixName; \
+\
+static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
+{ \
+    PgyList_##SuffixName l; \
+    l.capacity = 16; \
+    l.count = 0; \
+    l.data = (CType *)calloc(l.capacity, sizeof(CType)); \
+    return l; \
+} \
+\
+static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
+{ \
+    if (l->count >= l->capacity) { \
+        l->capacity *= 2; \
+        l->data = (CType *)realloc(l->data, l->capacity * sizeof(CType)); \
+    } \
+    l->data[l->count++] = val; \
+} \
+\
+static inline CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
+{ \
+    CType zero_value; \
+    memset(&zero_value, 0, sizeof(CType)); \
+    if (index < 0 || (size_t)index >= l->count) return zero_value; \
+    return l->data[index]; \
+} \
+\
+static inline void pgy_list_set_##SuffixName(PgyList_##SuffixName *l, int32_t index, CType val) \
+{ \
+    if (index >= 0 && (size_t)index < l->count) l->data[index] = val; \
+} \
+\
+static inline int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) { return (int32_t)l->count; } \
+\
+static inline void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
+{ \
+    if (index < 0 || (size_t)index >= l->count) return; \
+    for (size_t i = (size_t)index; i < l->count - 1; i++) \
+        l->data[i] = l->data[i + 1]; \
+    l->count--; \
+}
+
 typedef struct
 {
     int32_t *data;
@@ -1462,6 +1748,54 @@ static inline int32_t pgy_set_size_string(PgySet_String *s) { return (int32_t)s-
 /* =================================================================
  * Queue<Int> — ring buffer FIFO
  * ================================================================= */
+
+#define PGY_QUEUE_DEFINE(SuffixName, CType) \
+typedef struct \
+{ \
+    CType   *data; \
+    size_t   head; \
+    size_t   tail; \
+    size_t   count; \
+    size_t   capacity; \
+} PgyQueue_##SuffixName; \
+\
+static inline PgyQueue_##SuffixName pgy_queue_new_##SuffixName(void) \
+{ \
+    PgyQueue_##SuffixName q; \
+    q.capacity = 16; \
+    q.count = q.head = q.tail = 0; \
+    q.data = (CType *)calloc(q.capacity, sizeof(CType)); \
+    return q; \
+} \
+\
+static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType val) \
+{ \
+    if (q->count >= q->capacity) { \
+        size_t nc = q->capacity * 2; \
+        CType *nd = (CType *)calloc(nc, sizeof(CType)); \
+        for (size_t i = 0; i < q->count; i++) \
+            nd[i] = q->data[(q->head + i) % q->capacity]; \
+        free(q->data); q->data = nd; \
+        q->head = 0; q->tail = q->count; q->capacity = nc; \
+    } \
+    q->data[q->tail] = val; \
+    q->tail = (q->tail + 1) % q->capacity; \
+    q->count++; \
+} \
+\
+static inline CType pgy_queue_pop_##SuffixName(PgyQueue_##SuffixName *q) \
+{ \
+    CType zero_value; \
+    memset(&zero_value, 0, sizeof(CType)); \
+    if (q->count == 0) return zero_value; \
+    CType val = q->data[q->head]; \
+    q->head = (q->head + 1) % q->capacity; \
+    q->count--; \
+    return val; \
+} \
+\
+static inline int32_t pgy_queue_size_##SuffixName(PgyQueue_##SuffixName *q) { return (int32_t)q->count; } \
+static inline bool pgy_queue_empty_##SuffixName(PgyQueue_##SuffixName *q) { return q->count == 0; }
 
 typedef struct
 {

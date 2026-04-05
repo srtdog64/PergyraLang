@@ -1,6 +1,6 @@
 # Pergyra 언어 상태 평가
 
-마지막 업데이트: 2026-04-04
+마지막 업데이트: 2026-04-05
 
 ## 요약
 
@@ -26,6 +26,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `Box<T>` explicit handle surface와 `Box<class>` object-handle 경로가 semantic/C backend에 반영됨
 - Role/Party/World 문법과 코드젠이 C/LLVM 양쪽에 존재
 - `relation`, `effect`, `zone` declaration keyword가 parser/semantic 표면에 반영됨
+- `intent` declaration이 parser/semantic/HIR/codegen 표면에 반영되어 world/zone/action 계약을 참조하는 executable orchestration declaration으로 동작함
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, runtime instance를 직접 만들 수 있음
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` 최소 표면까지 parser/semantic에 반영됨
@@ -63,6 +64,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - LLVM backend도 relation/effect constructor type path와 runtime instance method call parity까지 올라와 있음
 - zone/world lifecycle sync와 `HasLayer` / `HasState` / `HasZone` query lowering도 이제 LLVM까지 올라와 C/LLVM parity를 가진다
 - zone layer slot은 이제 C/LLVM에서 실제 typed `relation` / `effect` runtime instance로 유지되고, zone sync가 subject slot을 overlay endpoint/target에 바인딩한 뒤 projection sync까지 밀어준다
+- `effect pool`도 LLVM에서 concrete pool storage `{items, active, count, cap}`로 내려가며, `apply`와 `HasLayer(...)`가 pooled effect runtime 위에서 동작한다
 - world sync는 이제 C/LLVM 양쪽에서 `command pass(reset/directives) -> zone sync pass -> derived pass` 두 층 모델로 계산된다
 - world sync는 per-zone dirty flag와 world derived-dirty flag를 사용해 dirty zone만 다시 sync하고 derived layer를 필요한 경우에만 다시 계산한다
 - world constructor는 zone dirty와 world derived-dirty를 `true`로 초기화해 첫 sync에서 embedded zone projection/runtime state를 놓치지 않는다
@@ -95,13 +97,14 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
 - `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
-- 현재 회귀 수치: `semantic 450 passed`, `transpile 351 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 474 passed`, `transpile 381 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 projection sync(`refresh` / `publish` / `bind`)임
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
+- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행된다. trace/history, rollback/compensation은 아직 다음 단계다.
 
 ## 현재 한계
 

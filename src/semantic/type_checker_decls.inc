@@ -226,6 +226,318 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
     return !ctx->has_error;
 }
 
+static ASTNode *
+find_intent_involves_local(ASTNode *intent, const char *alias)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+            && involves->data.intent_involves.alias != NULL
+            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
+            return involves;
+        }
+    }
+    return NULL;
+}
+
+static bool
+subject_type_has_ability(ASTNode *program, const char *type_name,
+                         const char *ability_name);
+
+static bool
+intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
+{
+    Type *ty;
+    if (expr == NULL)
+        return true;
+    ty = type_check_expression(expr, ctx);
+    if (ty != NULL && !type_equals(ty, TYPE_BOOL)) {
+        semantic_error(ctx, expr,
+            "Intent %s expression must be Bool, got '%s'",
+            label != NULL ? label : "condition",
+            ty->name != NULL ? ty->name : "<type>");
+        return false;
+    }
+    return true;
+}
+
+static const char *
+intent_involves_type_name(ASTNode *involves)
+{
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
+        || involves->data.intent_involves.subject_type == NULL
+        || involves->data.intent_involves.subject_type->type != AST_TYPE) {
+        return NULL;
+    }
+    return involves->data.intent_involves.subject_type->data.type.name;
+}
+
+static bool
+subject_decl_has_action_named(ASTNode *decl, const char *action_name)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        return false;
+    }
+
+    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
+        ASTNode *method = decl->data.class_decl.methods[i];
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.is_action
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, action_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
+{
+    const char *name = node->data.intent_decl.name;
+    Symbol *existing = scope_lookup_current(ctx->scope, name);
+    if (existing != NULL && existing->kind != SYMBOL_INTENT) {
+        semantic_error(ctx, node, "Redeclaration of intent '%s'", name);
+        return false;
+    }
+    if (existing != NULL && existing->kind == SYMBOL_INTENT) {
+        size_t ipc = node->data.intent_decl.involve_count;
+        Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
+        Type *ft;
+        for (size_t i = 0; i < ipc; i++) {
+            ASTNode *involves = node->data.intent_decl.involves[i];
+            if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                && involves->data.intent_involves.subject_type != NULL) {
+                ptypes[i] = resolve_type_node(
+                    involves->data.intent_involves.subject_type, ctx);
+            } else {
+                ptypes[i] = TYPE_UNKNOWN;
+            }
+        }
+        ft = type_create_function(ptypes, ipc, TYPE_BOOL);
+        free(ptypes);
+        if (ft != NULL) {
+            existing->type = ft;
+        }
+    }
+
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = node->data.intent_decl.involves[i];
+        Type *subject_type;
+        ASTNode *type_decl;
+
+        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+            continue;
+
+        subject_type = resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+        type_decl = find_type_decl_by_name(ctx->program_root,
+            subject_type != NULL ? subject_type->name : NULL);
+        if (type_decl == NULL || !decl_is_subject_host(type_decl)) {
+            semantic_error(ctx, involves,
+                "Intent involves '%s' must bind to a subject type",
+                involves->data.intent_involves.alias != NULL
+                    ? involves->data.intent_involves.alias : "<alias>");
+        }
+    }
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = node->data.intent_decl.involves[i];
+        Type *subject_type;
+        Symbol *actor_sym;
+
+        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+            continue;
+
+        subject_type = resolve_type_node(involves->data.intent_involves.subject_type, ctx);
+        actor_sym = symbol_create_variable(involves->data.intent_involves.alias,
+            subject_type, involves->line, involves->column);
+        scope_declare(ctx->scope, actor_sym);
+    }
+
+    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
+        ASTNode *step = node->data.intent_decl.steps[i];
+        bool matched_action = false;
+        ASTNode *zone_decl = NULL;
+
+        if (step == NULL || step->type != AST_INTENT_STEP)
+            continue;
+
+        if (step->data.intent_step.where_type == NULL) {
+            semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        } else {
+            Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
+            zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                zone_type != NULL ? zone_type->name : NULL);
+            if (zone_decl == NULL) {
+                semantic_error(ctx, step->data.intent_step.where_type,
+                    "Intent step '%s' refers to unknown zone '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    zone_type != NULL ? zone_type->name : "<zone>");
+            }
+        }
+
+        if (step->data.intent_step.who_count == 0) {
+            semantic_error(ctx, step, "Intent step '%s' requires at least one who actor",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        }
+
+        for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
+            if (step->data.intent_step.on_exprs[j] != NULL)
+                type_check_expression(step->data.intent_step.on_exprs[j], ctx);
+        }
+        if (step->data.intent_step.pre_expr != NULL)
+            intent_condition_is_bool(step->data.intent_step.pre_expr, ctx, "pre");
+        if (step->data.intent_step.guard_expr != NULL)
+            intent_condition_is_bool(step->data.intent_step.guard_expr, ctx, "guard");
+        if (step->data.intent_step.post_expr != NULL)
+            intent_condition_is_bool(step->data.intent_step.post_expr, ctx, "post");
+        if (step->data.intent_step.invariant_expr != NULL)
+            intent_condition_is_bool(step->data.intent_step.invariant_expr, ctx, "invariant");
+
+        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+            const char *alias = step->data.intent_step.who_names[j];
+            ASTNode *involves = find_intent_involves_local(node, alias);
+            const char *actor_type_name = NULL;
+            if (involves == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' refers to unknown actor '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    alias != NULL ? alias : "<actor>");
+                continue;
+            }
+
+            actor_type_name = intent_involves_type_name(involves);
+            if (zone_decl != NULL && actor_type_name != NULL
+                && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
+                    zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' binds actor '%s' of type '%s', but zone '%s' has no matching subject slot",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    alias != NULL ? alias : "<actor>",
+                    actor_type_name,
+                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+            }
+
+            if (involves->data.intent_involves.subject_type != NULL
+                && involves->data.intent_involves.subject_type->type == AST_TYPE
+                && involves->data.intent_involves.subject_type->data.type.name != NULL) {
+                ASTNode *subject_decl = find_type_decl_by_name(ctx->program_root,
+                    involves->data.intent_involves.subject_type->data.type.name);
+                if (subject_decl_has_action_named(subject_decl, step->data.intent_step.name))
+                    matched_action = true;
+            }
+        }
+
+        for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
+            const char *ability = step->data.intent_step.required_abilities[j];
+            if (find_ability_decl_by_name(ctx->program_root, ability) == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' requires unknown ability '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    ability != NULL ? ability : "<ability>");
+                continue;
+            }
+
+            for (size_t k = 0; k < step->data.intent_step.who_count; k++) {
+                const char *alias = step->data.intent_step.who_names[k];
+                ASTNode *involves = find_intent_involves_local(node, alias);
+                const char *actor_type_name = intent_involves_type_name(involves);
+                if (actor_type_name != NULL
+                    && !subject_type_has_ability(ctx->program_root, actor_type_name, ability)) {
+                    semantic_error(ctx, step,
+                        "Intent step '%s' requires ability '%s', but actor '%s' of type '%s' does not implement it",
+                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        ability != NULL ? ability : "<ability>",
+                        alias != NULL ? alias : "<actor>",
+                        actor_type_name);
+                }
+            }
+        }
+
+        if (step->data.intent_step.causes_effect != NULL
+            && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+                step->data.intent_step.causes_effect) == NULL) {
+            semantic_error(ctx, step,
+                "Intent step '%s' causes unknown effect '%s'",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step->data.intent_step.causes_effect);
+        } else if (step->data.intent_step.causes_effect != NULL
+            && zone_decl != NULL
+            && !zone_has_effect_layer_type(zone_decl, step->data.intent_step.causes_effect)) {
+            semantic_warning(ctx, step,
+                "Intent step '%s' causes effect '%s', but zone '%s' has no matching effect slot",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step->data.intent_step.causes_effect,
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+        }
+
+        for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
+            const char *alias = step->data.intent_step.authorized_by[j];
+            ASTNode *involves = find_intent_involves_local(node, alias);
+            const char *actor_type_name = intent_involves_type_name(involves);
+            if (involves == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' authorizes unknown actor '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    alias != NULL ? alias : "<actor>");
+                continue;
+            }
+
+            if (zone_decl != NULL && actor_type_name != NULL) {
+                if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
+                        zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                    semantic_error(ctx, step,
+                        "Intent step '%s' authorized actor '%s' has type '%s', but zone '%s' has no matching subject slot",
+                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        alias != NULL ? alias : "<actor>",
+                        actor_type_name,
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                } else if (zone_decl->data.zone_decl.authority_count > 0
+                    && !zone_has_authority_for_subject_type(zone_decl, ctx, actor_type_name)) {
+                    semantic_error(ctx, step,
+                        "Intent step '%s' authorized actor '%s' has type '%s', but zone '%s' declares no matching authority",
+                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        alias != NULL ? alias : "<actor>",
+                        actor_type_name,
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                }
+            }
+        }
+
+        if (step->data.intent_step.expect_expr != NULL)
+            intent_condition_is_bool(step->data.intent_step.expect_expr, ctx, "expect");
+
+        if (!matched_action) {
+            semantic_warning(ctx, step,
+                "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        }
+    }
+
+    if (node->data.intent_decl.priority_expr != NULL) {
+        Type *priority_type = type_check_expression(node->data.intent_decl.priority_expr, ctx);
+        if (priority_type != NULL && !type_equals(priority_type, TYPE_INT)) {
+            semantic_error(ctx, node->data.intent_decl.priority_expr,
+                "Intent priority expression must be Int, got '%s'",
+                priority_type->name != NULL ? priority_type->name : "<type>");
+        }
+    }
+
+    if (node->data.intent_decl.success_expr != NULL)
+        intent_condition_is_bool(node->data.intent_decl.success_expr, ctx, "success");
+    if (node->data.intent_decl.failure_expr != NULL)
+        intent_condition_is_bool(node->data.intent_decl.failure_expr, ctx, "failure");
+
+    scope_exit(&ctx->scope);
+    return !ctx->has_error;
+}
+
 bool
 type_check_world_decl(ASTNode *node, SemanticContext *ctx);
 

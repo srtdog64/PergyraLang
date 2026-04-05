@@ -21,6 +21,7 @@ typedef enum
     HIR_TOPLEVEL_ZONE,
     HIR_TOPLEVEL_ACTOR,
     HIR_TOPLEVEL_EVENT,
+    HIR_TOPLEVEL_INTENT,
     HIR_TOPLEVEL_FUNCTION,
     HIR_TOPLEVEL_EXECUTABLE
 } HIRTopLevelKind;
@@ -61,6 +62,8 @@ typedef struct
     size_t            actor_count;
     ASTNode         **events;
     size_t            event_count;
+    ASTNode         **intents;
+    size_t            intent_count;
     ASTNode         **functions;
     size_t            function_count;
     ASTNode         **executables;

@@ -34,6 +34,7 @@ typedef enum
     SYMBOL_PARTY,       /* party Baz                */
     SYMBOL_SYSTEMIC,    /* systemic Sys             */
     SYMBOL_WORLD,       /* world W                  */
+    SYMBOL_INTENT,      /* intent Purchase          */
     SYMBOL_RELATION,    /* relation R               */
     SYMBOL_EFFECT,      /* effect E                 */
     SYMBOL_ZONE         /* zone Z                   */

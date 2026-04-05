@@ -271,7 +271,12 @@
   - 완료: `pgy scaffold` help를 `subject/class/object/dto` 우선 분기로 정렬
   - 완료: `class` scaffold kind 추가
   - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/dto`로 투영하는 starter shape를 생성
+  - 남음: `pgy new`가 `subject-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
   - 남음: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
+  - 남음: intent-first project scaffold shape 추가
+    - `intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`
+    - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함
+    - intent declaration이 필요한 subject/zone/ability/effect TODO를 역산하는 workflow 예시 포함
 
 ### 대표 프로그램
 - [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명

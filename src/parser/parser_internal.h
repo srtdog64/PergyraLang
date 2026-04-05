@@ -72,6 +72,7 @@ ASTNode *parse_role_declaration(Parser *parser);
 ASTNode *parse_party_declaration(Parser *parser);
 ASTNode *parse_systemic_declaration(Parser *parser);
 ASTNode *parse_world_declaration(Parser *parser);
+ASTNode *parse_intent_declaration(Parser *parser);
 ASTNode *parse_relation_declaration(Parser *parser);
 ASTNode *parse_effect_declaration(Parser *parser);
 ASTNode *parse_zone_declaration(Parser *parser);

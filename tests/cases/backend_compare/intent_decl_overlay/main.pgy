@@ -1,0 +1,73 @@
+subject Player
+{
+    let hp: Int;
+    let started: Bool;
+
+    action Ignite(self) -> Void
+    {
+        started = true;
+        hp = hp + 1;
+    }
+}
+
+ability Scouting
+{
+    require hp: Int;
+    func ScoutMark() -> String;
+}
+
+role PlayerScout for Player
+{
+    impl ability Scouting
+    {
+        func ScoutMark() -> String
+        {
+            return "scout";
+        }
+    }
+}
+
+effect TrailMark for bearer: Player
+{
+}
+
+zone JourneyZone
+{
+    subject slot explorer: Player
+    effect slot trail: TrailMark
+    authority explorer requires Scouting
+}
+
+intent Expedition(explorer: Player)
+{
+    exclusive;
+    priority: 7;
+
+    step Ignite
+    {
+        where: JourneyZone;
+        who: explorer;
+        on: explorer.Ignite();
+        on: explorer.Ignite();
+        pre: explorer.hp >= 0;
+        guard: explorer.started;
+        requires: Scouting;
+        authorized by: explorer;
+        causes: TrailMark;
+        post: explorer.started;
+        invariant: explorer.started;
+        expect: explorer.started;
+    }
+
+    success: explorer.hp == 10;
+    failure: false;
+}
+
+func Main() -> Void
+{
+    let hero = Player(9, false);
+    let ok = Expedition(hero);
+    Log("intent runtime ok=" + ToString(ok));
+    Log("intent hero hp=" + ToString(hero.hp));
+    Log("intent hero started=" + ToString(hero.started));
+}

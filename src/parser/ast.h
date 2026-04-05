@@ -159,6 +159,9 @@ typedef enum
     AST_WORLD_DEACTIVATE,
     AST_WORLD_MAINTAIN,
     AST_WORLD_STATE,
+    AST_INTENT_DECL,
+    AST_INTENT_INVOLVES,
+    AST_INTENT_STEP,
     AST_RELATION_DECL,
     AST_EFFECT_DECL,
     AST_ZONE_DECL,
@@ -734,6 +737,46 @@ struct ASTNode
             size_t input_count;
         } world_state;
 
+        /* Intent declaration */
+        struct {
+            char* name;
+            ASTNode** involves;
+            size_t involve_count;
+            ASTNode** steps;
+            size_t step_count;
+            bool is_concurrent;
+            ASTNode* priority_expr;
+            ASTNode* success_expr;
+            ASTNode* failure_expr;
+            StructuredComment* doc_comment;
+        } intent_decl;
+
+        /* Intent participant binding */
+        struct {
+            char* alias;
+            ASTNode* subject_type;
+        } intent_involves;
+
+        /* Intent step */
+        struct {
+            char* name;
+            ASTNode* where_type;
+            char** who_names;
+            size_t who_count;
+            ASTNode** on_exprs;
+            size_t on_expr_count;
+            ASTNode* pre_expr;
+            ASTNode* guard_expr;
+            ASTNode* post_expr;
+            ASTNode* invariant_expr;
+            char** required_abilities;
+            size_t required_ability_count;
+            char* causes_effect;
+            char** authorized_by;
+            size_t authorized_by_count;
+            ASTNode* expect_expr;
+        } intent_step;
+
         /* Relation declaration */
         struct {
             char* name;
@@ -1050,6 +1093,9 @@ ASTNode* ast_create_world_state_compose(const char* state_name,
                                         WorldStateSourceKind source_kind,
                                         const char** input_names,
                                         size_t input_count);
+ASTNode* ast_create_intent_declaration(const char* name);
+ASTNode* ast_create_intent_involves(const char* alias);
+ASTNode* ast_create_intent_step(const char* name);
 ASTNode* ast_create_relation_declaration(const char* name);
 ASTNode* ast_create_effect_declaration(const char* name);
 ASTNode* ast_create_zone_declaration(const char* name);

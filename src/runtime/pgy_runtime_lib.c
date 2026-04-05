@@ -25,6 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <pthread.h>
 #include "runtime/pgy_parallel.h"
 
 /* =================================================================
@@ -54,6 +55,141 @@ char *pgy_int_to_string(int32_t v)
     if (buf == NULL) return NULL;
     memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
+}
+
+typedef struct {
+    int32_t handle;
+    char   *name;
+    void  **subjects;
+    int32_t subject_count;
+    bool    is_concurrent;
+    int32_t priority;
+    bool    active;
+} PgyIntentActiveEntry;
+
+#define PGY_INTENT_ACTIVE_MAX 256
+
+static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
+static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int32_t pgy_intent_next_handle = 1;
+
+static char *
+pgy_runtime_strdup_export(const char *src)
+{
+    size_t len;
+    char *copy;
+
+    if (src == NULL)
+        src = "";
+    len = strlen(src);
+    copy = (char *)malloc(len + 1);
+    if (copy == NULL)
+        return NULL;
+    memcpy(copy, src, len + 1);
+    return copy;
+}
+
+static bool
+pgy_intent_subjects_overlap_export(void **lhs, int32_t lhs_count,
+                                   void **rhs, int32_t rhs_count)
+{
+    for (int32_t i = 0; i < lhs_count; i++) {
+        if (lhs == NULL || lhs[i] == NULL)
+            continue;
+        for (int32_t j = 0; j < rhs_count; j++) {
+            if (rhs == NULL || rhs[j] == NULL)
+                continue;
+            if (lhs[i] == rhs[j])
+                return true;
+        }
+    }
+    return false;
+}
+
+int32_t
+pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
+                        bool is_concurrent, int32_t priority)
+{
+    int free_index = -1;
+    int32_t handle = 0;
+    void **subject_copy = NULL;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
+        if (!entry->active)
+            continue;
+        if (!pgy_intent_subjects_overlap_export(entry->subjects, entry->subject_count,
+                                                subjects, subject_count))
+            continue;
+        if (entry->is_concurrent && is_concurrent)
+            continue;
+        if (priority > entry->priority)
+            continue;
+        pthread_mutex_unlock(&pgy_intent_registry_mutex);
+        return 0;
+    }
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (!pgy_intent_active_registry[i].active) {
+            free_index = i;
+            break;
+        }
+    }
+
+    if (free_index < 0) {
+        pthread_mutex_unlock(&pgy_intent_registry_mutex);
+        return 0;
+    }
+
+    if (subject_count > 0) {
+        subject_copy = (void **)malloc(sizeof(void *) * (size_t)subject_count);
+        if (subject_copy == NULL) {
+            pthread_mutex_unlock(&pgy_intent_registry_mutex);
+            return 0;
+        }
+        memcpy(subject_copy, subjects, sizeof(void *) * (size_t)subject_count);
+    }
+
+    handle = pgy_intent_next_handle++;
+    pgy_intent_active_registry[free_index].handle = handle;
+    pgy_intent_active_registry[free_index].name = pgy_runtime_strdup_export(name);
+    pgy_intent_active_registry[free_index].subjects = subject_copy;
+    pgy_intent_active_registry[free_index].subject_count = subject_count;
+    pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
+    pgy_intent_active_registry[free_index].priority = priority;
+    pgy_intent_active_registry[free_index].active = true;
+
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return handle;
+}
+
+void
+pgy_intent_exit_export(int32_t handle)
+{
+    if (handle == 0)
+        return;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
+        if (!entry->active || entry->handle != handle)
+            continue;
+        free(entry->name);
+        free(entry->subjects);
+        entry->handle = 0;
+        entry->name = NULL;
+        entry->subjects = NULL;
+        entry->subject_count = 0;
+        entry->is_concurrent = false;
+        entry->priority = 0;
+        entry->active = false;
+        break;
+    }
+
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
 
 static struct timespec

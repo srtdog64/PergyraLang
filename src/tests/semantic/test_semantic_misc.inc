@@ -1337,6 +1337,212 @@ test_misc_grammar_edges(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("intent declaration binds subjects and validates step contracts");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action pay(self) -> Void { return; }\n"
+            "}\n"
+            "subject Merchant {\n"
+            "    let trust: Int;\n"
+            "}\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerRole for Player {\n"
+            "    impl ability Payable {\n"
+            "        func Pay() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "effect PaymentEffect for bearer: Player { }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Player\n"
+            "}\n"
+            "intent Purchase {\n"
+            "    involves buyer: Player;\n"
+            "    involves seller: Merchant;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        who: buyer;\n"
+            "        requires: Payable;\n"
+            "        authorized by: buyer;\n"
+            "        causes: PaymentEffect;\n"
+            "        expect: buyer.hp >= 0;\n"
+            "    }\n"
+            "    success: buyer.hp >= 0;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration rejects unknown who actor");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action pay(self) -> Void { return; }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Player\n"
+            "}\n"
+            "intent Purchase {\n"
+            "    involves buyer: Player;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        who: ghost;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "unknown actor 'ghost'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration enforces zone slots and actor abilities");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action Fight(self) -> Void { return; }\n"
+            "}\n"
+            "subject Merchant {\n"
+            "    let trust: Int;\n"
+            "}\n"
+            "ability Striking { func StrikeMark() -> String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot buyer: Merchant\n"
+            "    authority buyer requires Striking\n"
+            "}\n"
+            "intent Clash {\n"
+            "    involves hero: Player;\n"
+            "    step Fight {\n"
+            "        where: BattleZone;\n"
+            "        who: hero;\n"
+            "        requires: Striking;\n"
+            "        authorized by: hero;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "has no matching subject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not implement it"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration supports params and bool step contracts");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void { self.started = true; }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "}\n"
+            "intent DriveCar(driver: Driver) {\n"
+            "    exclusive;\n"
+            "    priority: 3;\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        who: driver;\n"
+            "        on: driver.Ignite();\n"
+            "        on: driver.Ignite();\n"
+            "        pre: true;\n"
+            "        guard: driver.started;\n"
+            "        post: driver.started;\n"
+            "        invariant: driver.started;\n"
+            "        expect: driver.started;\n"
+            "    }\n"
+            "    success: driver.started;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration rejects non-bool guard and invariant");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let hp: Int;\n"
+            "    action Ignite(self) -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "}\n"
+            "intent DriveCar(driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        who: driver;\n"
+            "        on: driver.Ignite();\n"
+            "        guard: driver.hp;\n"
+            "        invariant: driver.hp;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Intent guard expression must be Bool"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Intent invariant expression must be Bool"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------

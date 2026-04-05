@@ -6,7 +6,48 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added first-class `guard` and `invariant` clauses to `intent step`. The
+  parser, semantic pass, C backend, LLVM backend, backend parity tests, and
+  DND campaign now all exercise them.
+- Added first-class `intent` declaration parsing/AST/semantic support. The
+  compiler now understands `intent`, `involves`, `step`, `where`, `who`,
+  `requires`, `authorized by`, `causes`, `expect`, `success`, and `failure`
+  as a static orchestration contract surface.
+- Upgraded `intent` from declaration-only to executable lowering: `intent Name(args...)`
+  is now callable on both C and LLVM backends, with `exclusive`/`concurrent`,
+  `priority`, `pre`, `post`, `expect`, and repeated `on:` clauses preserved in
+  generated runtime functions.
+- Added HIR retention for top-level `intent` declarations instead of skipping
+  them after semantic analysis.
+- Added a first runtime conflict scheduler for `intent` execution on both C
+  and LLVM backends. Generated intent functions now register active instances,
+  reject conflicting same-subject `exclusive` entries, allow
+  `concurrent`/`concurrent` coexistence, and allow higher-priority nested
+  intents to override lower-priority active intents.
+- Updated `examples/dnd_tavern_campaign/` so campaign phases now invoke
+  `TavernRecruitment(...)`, `DelveThreeFloors(...)`, and `SlayDragon(...)`
+  directly, proving that intent moves subjects in the live scenario.
+- Added parser and semantic regression coverage for `intent` declarations,
+  including subject-binding and unknown-actor failure cases.
+- Added stronger `intent step` semantic validation so `who` / `authorized by`
+  must match subject-slot types in the referenced zone and `requires`
+  abilities must be implemented by the declared actor subject type.
+- Added backend-compare coverage for programs that carry `intent`
+  declarations but still execute normal code paths, proving current
+  parser/semantic/HIR-skip behavior is backend-equal.
+- Added backend-compare coverage for runtime intent conflicts:
+  `intent_conflict_runtime` now proves `exclusive` blocking,
+  `concurrent` coexistence, and higher-priority nested override stay
+  backend-equal.
+- Added `examples/dnd_tavern_campaign/intents.pgy` so the tavern campaign now
+  includes first-class static intent contracts for recruitment, floor delving,
+  and dragon-slaying on top of the existing runtime world state machine.
+- Clarified docs so `intent` is now described as a language declaration with a
+  still-pending runtime engine, rather than a plain library/module concept.
 - Added `effect pool <name>: <EffectType> capacity <N>` zone syntax with parser/semantic/C transpile support for fixed-capacity effect instancing.
+- Added LLVM runtime/codegen lowering for `zone effect pool` storage so pooled
+  effect layers are now emitted as concrete `{items, active, count, cap}`
+  structs instead of remaining semantic-only on the LLVM path.
 - Added C backend `HasLayer(...)` helper lowering with automatic zone rdlock wrapping and generation stale-warning checks.
 - Added multithreaded zone layer stress coverage to `test_concurrency`.
 

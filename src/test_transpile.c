@@ -332,6 +332,12 @@ test_type_mapping(void)
     TEST("Slice<Vertex> → PgySlice_Vertex");
     EXPECT(strcmp(pergyra_type_to_c("Slice<Vertex>"), "PgySlice_Vertex") == 0);
 
+    TEST("List<Vertex> → PgyList_Vertex");
+    EXPECT(strcmp(pergyra_type_to_c("List<Vertex>"), "PgyList_Vertex") == 0);
+
+    TEST("Queue<Vertex> → PgyQueue_Vertex");
+    EXPECT(strcmp(pergyra_type_to_c("Queue<Vertex>"), "PgyQueue_Vertex") == 0);
+
     TEST("Rc<Int> → PgyRc_Int");
     EXPECT(strcmp(pergyra_type_to_c("Rc<Int>"), "PgyRc_Int") == 0);
 
@@ -2518,6 +2524,104 @@ test_stdlib_and_enum_emit(void)
             "static int32_t pgy_lambda_");
         EXPECT_STR_CONTAINS(ctx->decls->data,
             "int32_t base, StrategyContext ctx");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("List<subject> typed let emits specialized helpers");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let roster: List<Player> = ListNew();\n"
+            "    let recruit = Player(10);\n"
+            "    ListPush(roster, recruit);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyList_Player roster = pgy_list_new_Player();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Player recruit = (Player){ .hp = 10 };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_push_Player(&roster, recruit)");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_LIST_DEFINE(Player, Player)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Queue<class> typed let emits specialized helpers");
+    {
+        const char *source =
+            "class Weapon {\n"
+            "    let name: String;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let bow = Weapon(\"Bow\");\n"
+            "    let satchel: Queue<Weapon> = QueueNew();\n"
+            "    QueuePush(satchel, bow);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Weapon bow = (Weapon){ .name = \"Bow\" };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyQueue_Weapon satchel = pgy_queue_new_Weapon();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_push_Weapon(&satchel, bow)");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HashMap<String, subject> typed let emits specialized helpers");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let registry: HashMap<String, Player> = MapNew();\n"
+            "    let hero = Player(42);\n"
+            "    MapSet(registry, \"hero\", hero);\n"
+            "    let loaded = MapGet(registry, \"hero\");\n"
+            "    Log(ToString(loaded.hp));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyHashMap_Player registry = pgy_map_new_Player();");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_map_set_Player(&registry, \"hero\", hero)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "Player loaded = pgy_map_get_Player(&registry, \"hero\");");
+        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_HASHMAP_DEFINE(Player, Player)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

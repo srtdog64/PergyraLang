@@ -52,6 +52,7 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 #define MAX_SLOT_VARS 256
 #define MAX_GENERIC_BINDINGS 32
 #define MAX_GENERIC_SPECIALIZATIONS 128
+#define MAX_COLLECTION_SPECIALIZATIONS 128
 
 typedef struct
 {
@@ -96,6 +97,12 @@ typedef struct
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t         binding_count;
 } GenericClassSpecEntry;
+
+typedef struct
+{
+    char kind[16];
+    char suffix[128];
+} CollectionSpecEntry;
 
 /* -----------------------------------------------------------------
  * Transpiler context
@@ -151,6 +158,10 @@ typedef struct
     /* Generic class specializations (monomorphized struct + methods). */
     GenericClassSpecEntry generic_class_specs[MAX_GENERIC_CLASS_SPECIALIZATIONS];
     int                   generic_class_spec_count;
+
+    /* Runtime collection helper specializations (List/Queue) emitted on demand. */
+    CollectionSpecEntry collection_specs[MAX_COLLECTION_SPECIALIZATIONS];
+    int                 collection_spec_count;
 
     /* Current class method emission context for implicit self-field access. */
     const char *current_class_name;

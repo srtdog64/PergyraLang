@@ -316,6 +316,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     LLVMValueRef layer_ptr;
     LLVMValueRef target_ptr;
     LLVMValueRef target_value;
+    bool is_pool = false;
 
     if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
         || layer_slot_name == NULL || target_slot_name == NULL) {
@@ -344,6 +345,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     subject_idx = llvm_class_field_index(effect_cls, target_slot->data.domain_slot.slot_name);
     if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
         return;
+    is_pool = layer_slot->data.zone_layer_slot.is_pool;
 
     self_ptr = LLVMGetParam(sync_fn, 0);
     layer_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
@@ -352,6 +354,100 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         self_ptr, (unsigned)target_idx, llvm_tmp_name(ctx));
     target_value = LLVMBuildLoad2(ctx->builder,
         zone_cls->fields[target_idx].field_type, target_ptr, llvm_tmp_name(ctx));
+    if (is_pool) {
+        LLVMValueRef tmp_effect = llvm_create_entry_alloca(ctx,
+            effect_cls->struct_type, "effect.pool.tmp");
+        LLVMValueRef subject_ptr;
+        char sync_name[256];
+        LLVMFuncEntry *sync_entry;
+        LLVMValueRef sync_args[1];
+        LLVMValueRef effect_value;
+        LLVMTypeRef pool_ty = zone_cls->fields[layer_idx].field_type;
+        LLVMValueRef count_ptr;
+        LLVMValueRef count_val;
+        LLVMValueRef has_space;
+        LLVMBasicBlockRef insert_bb;
+        LLVMBasicBlockRef skip_bb;
+        LLVMBasicBlockRef cont_bb;
+
+        LLVMBuildStore(ctx->builder, LLVMConstNull(effect_cls->struct_type), tmp_effect);
+        subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
+            tmp_effect, (unsigned)subject_idx, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, target_value, subject_ptr);
+
+        snprintf(sync_name, sizeof(sync_name), "%s_sync", effect_decl->data.effect_decl.name);
+        sync_entry = llvm_lookup_function(ctx, sync_name);
+        if (sync_entry != NULL) {
+            sync_args[0] = tmp_effect;
+            LLVMBuildCall2(ctx->builder, sync_entry->fn_type, sync_entry->fn,
+                sync_args, 1, "");
+        }
+
+        effect_value = LLVMBuildLoad2(ctx->builder, effect_cls->struct_type,
+            tmp_effect, llvm_tmp_name(ctx));
+        count_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, layer_ptr, 2, llvm_tmp_name(ctx));
+        count_val = LLVMBuildLoad2(ctx->builder, LLVMInt8TypeInContext(ctx->context),
+            count_ptr, llvm_tmp_name(ctx));
+        has_space = LLVMBuildICmp(ctx->builder, LLVMIntULT, count_val,
+            LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
+                layer_slot->data.zone_layer_slot.pool_capacity > 0
+                    ? (unsigned)layer_slot->data.zone_layer_slot.pool_capacity : 1,
+                0),
+            llvm_tmp_name(ctx));
+
+        insert_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "effect.pool.insert");
+        skip_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "effect.pool.skip");
+        cont_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "effect.pool.cont");
+        LLVMBuildCondBr(ctx->builder, has_space, insert_bb, skip_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, insert_bb);
+        {
+            LLVMValueRef idx32 = LLVMBuildZExt(ctx->builder, count_val, ctx->type_i32, llvm_tmp_name(ctx));
+            LLVMValueRef items_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, layer_ptr, 0, llvm_tmp_name(ctx));
+            LLVMValueRef active_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, layer_ptr, 1, llvm_tmp_name(ctx));
+            LLVMTypeRef items_arr_ty = LLVMStructGetTypeAtIndex(pool_ty, 0);
+            LLVMTypeRef active_arr_ty = LLVMStructGetTypeAtIndex(pool_ty, 1);
+            LLVMValueRef item_slot;
+            LLVMValueRef active_slot;
+            LLVMValueRef next_count;
+            LLVMValueRef cap_ptr;
+
+            LLVMValueRef item_ixs[] = {
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                idx32
+            };
+            item_slot = LLVMBuildInBoundsGEP2(ctx->builder, items_arr_ty, items_ptr,
+                item_ixs, 2, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, effect_value, item_slot);
+
+            LLVMValueRef active_ixs[] = {
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                idx32
+            };
+            active_slot = LLVMBuildInBoundsGEP2(ctx->builder, active_arr_ty, active_ptr,
+                active_ixs, 2, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_slot);
+
+            next_count = LLVMBuildAdd(ctx->builder, count_val,
+                LLVMConstInt(LLVMInt8TypeInContext(ctx->context), 1, 0),
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, next_count, count_ptr);
+            cap_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, layer_ptr, 3, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder,
+                LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
+                    layer_slot->data.zone_layer_slot.pool_capacity > 0
+                        ? (unsigned)layer_slot->data.zone_layer_slot.pool_capacity : 1,
+                    0),
+                cap_ptr);
+        }
+        LLVMBuildBr(ctx->builder, cont_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, skip_bb);
+        LLVMBuildBr(ctx->builder, cont_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+        return;
+    }
     {
         LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
             layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
@@ -891,4 +987,3 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
             LLVMPositionBuilderAtEnd(ctx->builder, last);
     }
 }
-

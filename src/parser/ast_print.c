@@ -1042,6 +1042,125 @@ void ast_print(ASTNode* node, int indent) {
             printf("\n");
             break;
 
+        case AST_INTENT_DECL:
+            printf("Intent: %s\n", node->data.intent_decl.name);
+            if (node->data.intent_decl.is_concurrent) {
+                print_indent(indent + 1);
+                printf("IntentMode: concurrent\n");
+            } else {
+                print_indent(indent + 1);
+                printf("IntentMode: exclusive\n");
+            }
+            if (node->data.intent_decl.priority_expr != NULL) {
+                print_indent(indent + 1);
+                printf("IntentPriority: ");
+                ast_print_inline(node->data.intent_decl.priority_expr);
+                printf("\n");
+            }
+            for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+                ast_print(node->data.intent_decl.involves[i], indent + 1);
+            }
+            for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
+                ast_print(node->data.intent_decl.steps[i], indent + 1);
+            }
+            if (node->data.intent_decl.success_expr != NULL) {
+                print_indent(indent + 1);
+                printf("IntentSuccess: ");
+                ast_print_inline(node->data.intent_decl.success_expr);
+                printf("\n");
+            }
+            if (node->data.intent_decl.failure_expr != NULL) {
+                print_indent(indent + 1);
+                printf("IntentFailure: ");
+                ast_print_inline(node->data.intent_decl.failure_expr);
+                printf("\n");
+            }
+            break;
+
+        case AST_INTENT_INVOLVES:
+            printf("IntentInvolves: %s: ", node->data.intent_involves.alias);
+            ast_print_inline(node->data.intent_involves.subject_type);
+            printf("\n");
+            break;
+
+        case AST_INTENT_STEP:
+            printf("IntentStep: %s", node->data.intent_step.name);
+            if (node->data.intent_step.where_type != NULL) {
+                printf(" where ");
+                ast_print_inline(node->data.intent_step.where_type);
+            }
+            printf("\n");
+            if (node->data.intent_step.who_count > 0) {
+                print_indent(indent + 1);
+                printf("Who: ");
+                for (size_t i = 0; i < node->data.intent_step.who_count; i++) {
+                    if (i > 0) printf(", ");
+                    printf("%s", node->data.intent_step.who_names[i]);
+                }
+                printf("\n");
+            }
+            if (node->data.intent_step.on_expr_count > 0) {
+                for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++) {
+                    print_indent(indent + 1);
+                    printf("On: ");
+                    ast_print_inline(node->data.intent_step.on_exprs[i]);
+                    printf("\n");
+                }
+            }
+            if (node->data.intent_step.pre_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Pre: ");
+                ast_print_inline(node->data.intent_step.pre_expr);
+                printf("\n");
+            }
+            if (node->data.intent_step.guard_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Guard: ");
+                ast_print_inline(node->data.intent_step.guard_expr);
+                printf("\n");
+            }
+            if (node->data.intent_step.post_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Post: ");
+                ast_print_inline(node->data.intent_step.post_expr);
+                printf("\n");
+            }
+            if (node->data.intent_step.invariant_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Invariant: ");
+                ast_print_inline(node->data.intent_step.invariant_expr);
+                printf("\n");
+            }
+            if (node->data.intent_step.required_ability_count > 0) {
+                print_indent(indent + 1);
+                printf("Requires: ");
+                for (size_t i = 0; i < node->data.intent_step.required_ability_count; i++) {
+                    if (i > 0) printf(", ");
+                    printf("%s", node->data.intent_step.required_abilities[i]);
+                }
+                printf("\n");
+            }
+            if (node->data.intent_step.authorized_by_count > 0) {
+                print_indent(indent + 1);
+                printf("AuthorizedBy: ");
+                for (size_t i = 0; i < node->data.intent_step.authorized_by_count; i++) {
+                    if (i > 0) printf(", ");
+                    printf("%s", node->data.intent_step.authorized_by[i]);
+                }
+                printf("\n");
+            }
+            if (node->data.intent_step.causes_effect != NULL) {
+                print_indent(indent + 1);
+                printf("Causes: %s\n", node->data.intent_step.causes_effect);
+            }
+            if (node->data.intent_step.expect_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Expect: ");
+                ast_print_inline(node->data.intent_step.expect_expr);
+                printf("\n");
+            }
+            break;
+
         case AST_RELATION_DECL:
             printf("Relation: %s\n", node->data.relation_decl.name);
             for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {

@@ -1533,30 +1533,58 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     }
     if (strcmp(name, "MapSet") == 0) {
         if (expr->data.call.arg_count >= 3) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
-            type_check_expression(expr->data.call.arguments[2], ctx);
+            Type *map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+            Type *key_type = type_check_expression(expr->data.call.arguments[1], ctx);
+            Type *value_type = type_check_expression(expr->data.call.arguments[2], ctx);
+            if (type_is_constructed_named(map_type, "HashMap")
+                && map_type->data.constructed.arg_count == 2) {
+                require_assignable(key_type,
+                    map_type->data.constructed.args[0],
+                    expr->data.call.arguments[1], ctx);
+                require_assignable(value_type,
+                    map_type->data.constructed.args[1],
+                    expr->data.call.arguments[2], ctx);
+            }
         }
         return TYPE_VOID;
     }
     if (strcmp(name, "MapGet") == 0) {
         if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
+            Type *map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+            Type *key_type = type_check_expression(expr->data.call.arguments[1], ctx);
+            if (type_is_constructed_named(map_type, "HashMap")
+                && map_type->data.constructed.arg_count == 2) {
+                require_assignable(key_type,
+                    map_type->data.constructed.args[0],
+                    expr->data.call.arguments[1], ctx);
+                return map_type->data.constructed.args[1];
+            }
         }
         return TYPE_UNKNOWN; /* resolved from context */
     }
     if (strcmp(name, "MapHas") == 0) {
         if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
+            Type *map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+            Type *key_type = type_check_expression(expr->data.call.arguments[1], ctx);
+            if (type_is_constructed_named(map_type, "HashMap")
+                && map_type->data.constructed.arg_count == 2) {
+                require_assignable(key_type,
+                    map_type->data.constructed.args[0],
+                    expr->data.call.arguments[1], ctx);
+            }
         }
         return TYPE_BOOL;
     }
     if (strcmp(name, "MapRemove") == 0) {
         if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
-            type_check_expression(expr->data.call.arguments[1], ctx);
+            Type *map_type = type_check_expression(expr->data.call.arguments[0], ctx);
+            Type *key_type = type_check_expression(expr->data.call.arguments[1], ctx);
+            if (type_is_constructed_named(map_type, "HashMap")
+                && map_type->data.constructed.arg_count == 2) {
+                require_assignable(key_type,
+                    map_type->data.constructed.args[0],
+                    expr->data.call.arguments[1], ctx);
+            }
         }
         return TYPE_VOID;
     }
@@ -1576,8 +1604,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     }
     if (strcmp(name, "ListGet") == 0) {
         if (expr->data.call.arg_count >= 2) {
-            type_check_expression(expr->data.call.arguments[0], ctx);
+            Type *list_type = type_check_expression(expr->data.call.arguments[0], ctx);
             type_check_expression(expr->data.call.arguments[1], ctx);
+            if (type_is_constructed_named(list_type, "List")
+                && list_type->data.constructed.arg_count == 1) {
+                return list_type->data.constructed.args[0];
+            }
         }
         return TYPE_INT;
     }
@@ -1625,8 +1657,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_VOID;
     }
     if (strcmp(name, "QueuePop") == 0) {
-        if (expr->data.call.arg_count >= 1)
-            type_check_expression(expr->data.call.arguments[0], ctx);
+        if (expr->data.call.arg_count >= 1) {
+            Type *queue_type = type_check_expression(expr->data.call.arguments[0], ctx);
+            if (type_is_constructed_named(queue_type, "Queue")
+                && queue_type->data.constructed.arg_count == 1) {
+                return queue_type->data.constructed.args[0];
+            }
+        }
         return TYPE_INT;
     }
     if (strcmp(name, "QueueSize") == 0) {

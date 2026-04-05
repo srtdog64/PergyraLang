@@ -2341,7 +2341,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                     node->data.call.arguments[i]->data.identifier.name;
                                 LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                 if (arg_var != NULL) {
-                                    if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                                    if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
                                         arg_val = LLVMBuildLoad2(ctx->builder,
                                             arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
                                     else
@@ -2373,12 +2373,50 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     size_t argc = node->data.call.arg_count;
     ASTNode *decl = llvm_find_function_decl(ctx, callee_name);
+    ASTNode *intent_decl = decl == NULL ? llvm_find_intent_decl(ctx, callee_name) : NULL;
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
 
     if (decl != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, node->data.call.arguments,
             argc, &emitted_argc);
+    if (args == NULL && intent_decl != NULL) {
+        args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
+        if (args != NULL) {
+            for (size_t i = 0; i < argc; i++) {
+                ASTNode *involves = i < intent_decl->data.intent_decl.involve_count
+                    ? intent_decl->data.intent_decl.involves[i] : NULL;
+                const char *subject_name = NULL;
+                LLVMClassTypeEntry *param_cls = NULL;
+                ASTNode *arg_node = node->data.call.arguments[i];
+
+                if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                    && involves->data.intent_involves.subject_type != NULL
+                    && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                }
+                param_cls = subject_name != NULL ? llvm_lookup_class(ctx, subject_name) : NULL;
+                if (param_cls != NULL && param_cls->is_pointer_self_host) {
+                    if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+                        const char *arg_name = arg_node->data.identifier.name;
+                        LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+                        if (arg_var != NULL) {
+                            if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
+                                args[i] = LLVMBuildLoad2(ctx->builder, arg_var->type,
+                                    arg_var->alloca, llvm_tmp_name(ctx));
+                            else
+                                args[i] = arg_var->alloca;
+                        }
+                    } else if (arg_node != NULL && arg_node->type == AST_MEMBER_ACCESS) {
+                        args[i] = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+                    }
+                }
+                if (args[i] == NULL)
+                    args[i] = llvm_emit_expression(arg_node, ctx);
+            }
+            emitted_argc = (unsigned)argc;
+        }
+    }
     if (args == NULL) {
         args = calloc(argc > 0 ? argc : 1, sizeof(LLVMValueRef));
         for (size_t i = 0; i < argc; i++)
@@ -2387,6 +2425,38 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
+    if (func == NULL && intent_decl != NULL) {
+        LLVMTypeRef *param_types = NULL;
+        LLVMTypeRef fn_type;
+        LLVMValueRef fn;
+
+        if (intent_decl->data.intent_decl.involve_count > 0) {
+            param_types = calloc(intent_decl->data.intent_decl.involve_count,
+                sizeof(LLVMTypeRef));
+            for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
+                ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+                const char *subject_name = NULL;
+                LLVMClassTypeEntry *cls = NULL;
+
+                if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                    && involves->data.intent_involves.subject_type != NULL
+                    && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                }
+                cls = subject_name != NULL ? llvm_lookup_class(ctx, subject_name) : NULL;
+                param_types[i] = cls != NULL
+                    ? LLVMPointerType(cls->struct_type, 0)
+                    : ctx->type_i8ptr;
+            }
+        }
+
+        fn_type = LLVMFunctionType(ctx->type_i1, param_types,
+            (unsigned)intent_decl->data.intent_decl.involve_count, 0);
+        fn = LLVMAddFunction(ctx->module, callee_name, fn_type);
+        llvm_register_function(ctx, callee_name, fn, fn_type, ctx->type_i1);
+        free(param_types);
+        func = llvm_lookup_function(ctx, callee_name);
+    }
     if (func == NULL) {
         LLVMVarEntry *callee_var = NULL;
         LLVMValueRef fn_ptr = NULL;
@@ -2473,8 +2543,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             && arg_node->type == AST_IDENTIFIER) {
             LLVMVarEntry *v = llvm_scope_lookup(ctx,
                 arg_node->data.identifier.name);
-            if (v != NULL)
-                args[i] = v->alloca;
+            if (v != NULL) {
+                if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
+                    args[i] = LLVMBuildLoad2(ctx->builder, v->type,
+                        v->alloca, llvm_tmp_name(ctx));
+                } else {
+                    args[i] = v->alloca;
+                }
+            }
         }
     }
 

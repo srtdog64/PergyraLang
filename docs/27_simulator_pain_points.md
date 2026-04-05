@@ -12,6 +12,13 @@ examples such as the battle simulator and biome simulator.
   modes, but the encounter engine is still world-hosted orchestration rather
   than a first-class encounter/turn DSL with richer AI policy authoring and
   deeper tactical resolution ordering.
+- Intent declarations now execute, but the runtime is still minimal. Large
+  story scenarios can now call `Intent(args...)` and move subjects through
+  repeated `on:` clauses or zero-arg same-name action dispatch, and
+  `exclusive` / `concurrent` / `priority` now have a concrete runtime conflict
+  registry on both C and LLVM. Step-level `guard` / `invariant` now run too.
+  The remaining gaps are richer trace/history,
+  rollback/compensation, and deeper `step -> zone slot` binding.
 
 ## Recently Resolved
 
@@ -114,6 +121,20 @@ examples such as the battle simulator and biome simulator.
   factories and strategy cards now drive seat-by-seat combat text, so class
   flavor, posture, guard pressure, and effect hints come from game-layer
   factories rather than one-off combat strings.
+- Intent step contracts no longer stop at name lookup. The semantic checker now
+  validates that `who` / `authorized by` actors have matching subject slots in
+  the referenced zone, and that `requires` abilities are actually implemented
+  by the declared actor subject type.
 - Runtime hashmap helpers no longer leak raw `strdup(...)` warnings into large
   example builds. They now route string duplication through the local
   `pgy_runtime_strdup(...)` wrapper.
+- LLVM `zone effect pool` lowering no longer stops at semantic validation.
+  Pooled effect layers now have concrete runtime storage and `HasLayer(pool)`
+  smoke coverage on the LLVM path without compiler crashes.
+- Intent runtime no longer stops at a declaration-shaped sequential function.
+  Both backends now register active intent instances, reject conflicting
+  same-subject `exclusive` entries, allow `concurrent`/`concurrent`
+  coexistence, and allow higher-priority nested intents to override lower
+  priority active entries. This also fixed LLVM nested intent calls that were
+  incorrectly forwarding subject-pointer allocas instead of the subject
+  pointer value itself.

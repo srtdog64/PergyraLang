@@ -53,6 +53,8 @@ hir_node_name(ASTNode *node)
             return node->data.systemic_decl.name;
         case AST_WORLD_DECL:
             return node->data.world_decl.name;
+        case AST_INTENT_DECL:
+            return node->data.intent_decl.name;
         case AST_RELATION_DECL:
             return node->data.relation_decl.name;
         case AST_EFFECT_DECL:
@@ -86,6 +88,7 @@ hir_top_level_kind_name(HIRTopLevelKind kind)
         case HIR_TOPLEVEL_ZONE: return "zone";
         case HIR_TOPLEVEL_ACTOR: return "actor";
         case HIR_TOPLEVEL_EVENT: return "event";
+        case HIR_TOPLEVEL_INTENT: return "intent";
         case HIR_TOPLEVEL_FUNCTION: return "function";
         case HIR_TOPLEVEL_EXECUTABLE: return "executable";
         default: return "unknown";
@@ -135,6 +138,11 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_WORLD_DECL:
             item.kind = HIR_TOPLEVEL_WORLD;
             if (!append_ast(&hir->worlds, &hir->world_count, node))
+                goto oom;
+            break;
+        case AST_INTENT_DECL:
+            item.kind = HIR_TOPLEVEL_INTENT;
+            if (!append_ast(&hir->intents, &hir->intent_count, node))
                 goto oom;
             break;
         case AST_RELATION_DECL:
@@ -298,6 +306,7 @@ hir_destroy(HIRProgram *hir)
     free(hir->zones);
     free(hir->actors);
     free(hir->events);
+    free(hir->intents);
     free(hir->functions);
     free(hir->executables);
     free(hir);

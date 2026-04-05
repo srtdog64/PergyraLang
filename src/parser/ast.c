@@ -424,6 +424,49 @@ ASTNode* ast_create_world_state_compose(const char* state_name,
     return node;
 }
 
+ASTNode* ast_create_intent_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_INTENT_DECL);
+    node->data.intent_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.intent_decl.involves = NULL;
+    node->data.intent_decl.involve_count = 0;
+    node->data.intent_decl.steps = NULL;
+    node->data.intent_decl.step_count = 0;
+    node->data.intent_decl.is_concurrent = false;
+    node->data.intent_decl.priority_expr = NULL;
+    node->data.intent_decl.success_expr = NULL;
+    node->data.intent_decl.failure_expr = NULL;
+    node->data.intent_decl.doc_comment = NULL;
+    return node;
+}
+
+ASTNode* ast_create_intent_involves(const char* alias) {
+    ASTNode* node = ast_create_node(AST_INTENT_INVOLVES);
+    node->data.intent_involves.alias = alias ? pergyra_strdup(alias) : NULL;
+    node->data.intent_involves.subject_type = NULL;
+    return node;
+}
+
+ASTNode* ast_create_intent_step(const char* name) {
+    ASTNode* node = ast_create_node(AST_INTENT_STEP);
+    node->data.intent_step.name = name ? pergyra_strdup(name) : NULL;
+    node->data.intent_step.where_type = NULL;
+    node->data.intent_step.who_names = NULL;
+    node->data.intent_step.who_count = 0;
+    node->data.intent_step.on_exprs = NULL;
+    node->data.intent_step.on_expr_count = 0;
+    node->data.intent_step.pre_expr = NULL;
+    node->data.intent_step.guard_expr = NULL;
+    node->data.intent_step.post_expr = NULL;
+    node->data.intent_step.invariant_expr = NULL;
+    node->data.intent_step.required_abilities = NULL;
+    node->data.intent_step.required_ability_count = 0;
+    node->data.intent_step.causes_effect = NULL;
+    node->data.intent_step.authorized_by = NULL;
+    node->data.intent_step.authorized_by_count = 0;
+    node->data.intent_step.expect_expr = NULL;
+    return node;
+}
+
 ASTNode* ast_create_relation_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_RELATION_DECL);
     node->data.relation_decl.name = name ? pergyra_strdup(name) : NULL;
@@ -1445,6 +1488,48 @@ void ast_destroy(ASTNode* node) {
                     free(node->data.world_state.input_names[i]);
                 free(node->data.world_state.input_names);
             }
+            break;
+
+        case AST_INTENT_DECL:
+            free(node->data.intent_decl.name);
+            for (size_t i = 0; i < node->data.intent_decl.involve_count; i++)
+                ast_destroy(node->data.intent_decl.involves[i]);
+            free(node->data.intent_decl.involves);
+            for (size_t i = 0; i < node->data.intent_decl.step_count; i++)
+                ast_destroy(node->data.intent_decl.steps[i]);
+            free(node->data.intent_decl.steps);
+            ast_destroy(node->data.intent_decl.priority_expr);
+            ast_destroy(node->data.intent_decl.success_expr);
+            ast_destroy(node->data.intent_decl.failure_expr);
+            ast_destroy_structured_comment(node->data.intent_decl.doc_comment);
+            break;
+
+        case AST_INTENT_INVOLVES:
+            free(node->data.intent_involves.alias);
+            ast_destroy(node->data.intent_involves.subject_type);
+            break;
+
+        case AST_INTENT_STEP:
+            free(node->data.intent_step.name);
+            ast_destroy(node->data.intent_step.where_type);
+            for (size_t i = 0; i < node->data.intent_step.who_count; i++)
+                free(node->data.intent_step.who_names[i]);
+            free(node->data.intent_step.who_names);
+            for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++)
+                ast_destroy(node->data.intent_step.on_exprs[i]);
+            free(node->data.intent_step.on_exprs);
+            ast_destroy(node->data.intent_step.pre_expr);
+            ast_destroy(node->data.intent_step.guard_expr);
+            ast_destroy(node->data.intent_step.post_expr);
+            ast_destroy(node->data.intent_step.invariant_expr);
+            for (size_t i = 0; i < node->data.intent_step.required_ability_count; i++)
+                free(node->data.intent_step.required_abilities[i]);
+            free(node->data.intent_step.required_abilities);
+            free(node->data.intent_step.causes_effect);
+            for (size_t i = 0; i < node->data.intent_step.authorized_by_count; i++)
+                free(node->data.intent_step.authorized_by[i]);
+            free(node->data.intent_step.authorized_by);
+            ast_destroy(node->data.intent_step.expect_expr);
             break;
 
         case AST_RELATION_DECL:

@@ -145,6 +145,7 @@ void parser_synchronize(Parser* parser) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
         if (parser_check_contextual_keyword(parser, "object")
             || parser_check_contextual_keyword(parser, "vessel")
+            || parser_check_contextual_keyword(parser, "intent")
             || parser_check_contextual_keyword(parser, "dto")
             || parser_check_contextual_keyword(parser, "world")
             || parser_check_contextual_keyword(parser, "systemic")
@@ -465,6 +466,10 @@ parser_attach_pending_doc_comment(Parser *parser, ASTNode *node)
             node->data.world_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
             return true;
+        case AST_INTENT_DECL:
+            node->data.intent_decl.doc_comment = parser->pending_doc_comment;
+            parser->pending_doc_comment = NULL;
+            return true;
         case AST_RELATION_DECL:
             node->data.relation_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
@@ -499,6 +504,7 @@ parser_is_exportable_decl(ASTNode *node)
         case AST_PARTY_DECL:
         case AST_SYSTEMIC_DECL:
         case AST_WORLD_DECL:
+        case AST_INTENT_DECL:
         case AST_RELATION_DECL:
         case AST_EFFECT_DECL:
         case AST_ZONE_DECL:
@@ -555,6 +561,8 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_object_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "vessel"))
         node = parse_vessel_declaration(parser);
+    else if (parser_match_contextual_keyword(parser, "intent"))
+        node = parse_intent_declaration(parser);
     else if (parser_check(parser, TOKEN_STRUCT)) {
         bool is_dto = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "dto") == 0;
@@ -784,6 +792,11 @@ ASTNode* parser_parse_statement(Parser* parser) {
     if (parser_starts_contextual_declaration(parser, "vessel")) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_vessel_declaration(parser));
+    }
+
+    if (parser_starts_contextual_declaration(parser, "intent")) {
+        parser_advance(parser);
+        return parser_finalize_statement(parser, parse_intent_declaration(parser));
     }
 
     // dto / struct 선언
