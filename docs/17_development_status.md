@@ -5,14 +5,14 @@
 ## 요약
 
 - 컴파일러의 실제 driver 경로는 이제 `Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend dispatch`로 고정되며, `driver_run_pipeline()`은 backend 진입 전에 `DIR/RIR/MIR` lowering과 structural validation을 항상 수행한다.
-- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen 연산의 중심 자료구조는 여전히 `HIR`이지만, C backend에는 이제 simple top-level function CFG subset을 `MIR` 본문에서 직접 emit하는 첫 vertical slice가 들어가 있다.
+- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen 연산의 중심 자료구조는 여전히 `HIR`이지만, C backend에는 이제 simple top-level function CFG subset과 intent cleanup/rollback/invalidation CFG subset을 `MIR` 본문/exceptional block에서 직접 emit하는 첫 vertical slice가 들어가 있다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
-- RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함. 최근 패스로 HIR CFG를 받아 `flow-block[...]` 단위의 branch/join lattice propagation, join conflict, loop widening 정보를 함께 덤프하며, `relation/effect/zone/world` nominal handle도 function param / intent participant / `using` / `transfer` 경로에서 explicit fact/op로 정규화함
+- RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함. 최근 패스로 HIR CFG를 받아 `flow-block[...]` 단위의 branch/join lattice propagation, join conflict, loop widening 정보를 함께 덤프하며, `relation/effect/zone/world` nominal handle도 function param / intent participant / `using` / `transfer` 경로에서 explicit fact/op로 정규화함. 추가로 resource fact가 없는 CFG block도 `authority/projection/world-handoff/invalidation` conservative semantic flag를 유지해서 scope-level `semantics=`와 block-level `sem-entry/sem-exit` 표면에 남김
 - DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency까지 직접 가진다
-- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. 추가로 C backend에는 branch/return-only top-level function subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음.
+- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. 추가로 C backend에는 branch/return-only top-level function subset과 intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음.
 - LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
@@ -114,7 +114,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 474 passed`, `transpile 381 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 486 passed`, `transpile 406 passed`, `llvm-test-smoke` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -162,7 +162,7 @@
 |---|---|
 | concurrency | 5 passed |
 | semantic | 486 passed |
-| transpile | 403 passed |
+| transpile | 406 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |
 
 추가 회귀:

@@ -200,7 +200,7 @@ object StationView
     heat: Int;
 }
 
-dto StationPacket
+tobject StationPacket
 {
     name: String;
     stationRole: String;

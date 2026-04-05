@@ -3,7 +3,7 @@ zone PaymentZone
     subject slot buyer: Member
     subject slot merchant: Merchant
     object slot buyerView: BuyerZoneView = ToObject(BuyerZoneView, buyer)
-    dto slot merchantPacket: MerchantZonePacket = ToDto(MerchantZonePacket, merchant)
+    tobject slot merchantPacket: MerchantZonePacket = ToDto(MerchantZonePacket, merchant)
 
     effect slot paid: PaymentSeal
     relation slot link: CommerceLink

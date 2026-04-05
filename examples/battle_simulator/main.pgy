@@ -5,8 +5,8 @@ zone BattleZone {
     subject slot defender: Fighter
     object slot attackerView: FighterView
     object slot defenderView: FighterView
-    dto slot attackerPacket: FighterDto
-    dto slot defenderPacket: FighterDto
+    tobject slot attackerPacket: FighterDto
+    tobject slot defenderPacket: FighterDto
     authority attacker
     refresh attackerView from attacker by attacker
     refresh defenderView from defender by attacker

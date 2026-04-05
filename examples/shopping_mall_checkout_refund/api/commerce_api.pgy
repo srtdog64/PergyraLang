@@ -1,24 +1,24 @@
 use http;
 
-dto CheckoutIntentRequest
+tobject CheckoutIntentRequest
 {
     let transport: HttpIntentRequest;
     let shipping: Int;
 }
 
-dto RefundIntentRequest
+tobject RefundIntentRequest
 {
     let transport: HttpIntentRequest;
     let ticketSeed: Int;
 }
 
-dto ProfileSyncRequest
+tobject ProfileSyncRequest
 {
     let transport: HttpIntentRequest;
     let marketing: Int;
 }
 
-dto IntentApiResponse
+tobject IntentApiResponse
 {
     let transport: HttpIntentResponse;
 }

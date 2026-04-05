@@ -179,7 +179,7 @@ party CityDistrict {
 // ============= SYSTEMIC Level =============
 // 시스템 단위 구성
 
-systemic CityEconomy {
+roster CityEconomy {
     // 도시의 모든 구역들
     party slot downtownDistrict: CityDistrict
     party slot industrialDistrict: CityDistrict
@@ -214,7 +214,7 @@ systemic CityEconomy {
     }
 }
 
-systemic CityServices {
+roster CityServices {
     // 공공 서비스들
     party slot policeForce: LawEnforcement
     party slot fireService: EmergencyResponse
@@ -247,10 +247,10 @@ systemic CityServices {
 
 world SimCity {
     // 주요 시스템들
-    systemic economy: CityEconomy
-    systemic services: CityServices
-    systemic infrastructure: CityInfrastructure
-    systemic environment: CityEnvironment
+    roster economy: CityEconomy
+    roster services: CityServices
+    roster infrastructure: CityInfrastructure
+    roster environment: CityEnvironment
     
     // 월드 상태
     shared currentTime: GameTime
@@ -355,8 +355,8 @@ async func MonitorCity(city: SimCity) {
         let stats = GetWorldStatistics(city)
         Log($"Average Frame Time: {stats.avgFrameTimeNs / 1000000}ms")
         
-        for systemic in stats.systemicStats {
-            Log($"  {systemic.systemicName}: {systemic.avgExecutionTimeNs / 1000000}ms")
+        for roster in stats.systemicStats {
+            Log($"  {roster.systemicName}: {roster.avgExecutionTimeNs / 1000000}ms")
         }
     }
 }

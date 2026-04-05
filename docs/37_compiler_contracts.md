@@ -167,6 +167,7 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 
 - RIR는 이미 scope-level summary를 넘어서 HIR CFG 기반 `flow-block[...]`를 materialize한다.
 - 각 flow fact는 `entry/exit`, `merged_from_join`, `widened_by_loop`, `entry_conflict`, `exit_conflict`를 가진다.
+- flow block은 resource fact가 없어도 버리지 않고, 최소한 `authority`, `projection`, `world-handoff`, `invalidation` conservative semantic flag를 `sem-entry/sem-exit`로 보존한다.
 - handle merge는 resource kind를 함께 읽는다.
   - `zone/world handle`은 ownership/borrow 중심
   - `relation/effect handle`은 detach/sync/dirty lifecycle 중심
@@ -216,9 +217,10 @@ MIR로 이월하는 것:
 - branch/return/resource-op/cleanup instruction use를 versioned name으로 기록
 - block별 `ssa_entry_versions` / `ssa_exit_versions`를 저장해 phi incoming과 use edge가 predecessor exit map을 직접 참조한다
 - reachable intent block마다 cleanup successor edge를 두고, cleanup convergence root 아래에 rollback block과 invalidation block을 분리한다
+- routine-level value summary를 만들어 def/use/live/cleanup 도달 여부를 후속 pass가 재사용할 수 있게 한다
 
 즉 MIR는 아직 full optimizer IR은 아니지만, pure placeholder를 넘어서
-`phi`, versioned local value, instruction-level use, cleanup convergence, rollback/invalidation edge를 직접 가지는 실행 그래프다.
+`phi`, versioned local value, instruction-level use, routine-level value summary, cleanup convergence, rollback/invalidation edge를 직접 가지는 실행 그래프다.
 
 ## 2. Resource State Lattice 계약
 

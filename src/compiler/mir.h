@@ -74,12 +74,33 @@ typedef struct
     size_t           ssa_entry_value_count;
     const char     **ssa_exit_values;
     size_t           ssa_exit_value_count;
+    const char     **use_names;
+    size_t           use_name_count;
+    const char     **def_names;
+    size_t           def_name_count;
+    const char     **live_in_names;
+    size_t           live_in_name_count;
+    const char     **live_out_names;
+    size_t           live_out_name_count;
     size_t          *ssa_entry_versions;
     size_t          *ssa_exit_versions;
     size_t           ssa_version_count;
     MIRInstruction  *instructions;
     size_t           instruction_count;
 } MIRBasicBlock;
+
+typedef struct
+{
+    const char *name;
+    size_t      def_block;
+    size_t      def_inst;
+    size_t      use_count;
+    size_t      first_use_block;
+    size_t      last_use_block;
+    size_t      live_in_block_count;
+    size_t      live_out_block_count;
+    bool        reaches_cleanup;
+} MIRValueSummary;
 
 typedef struct
 {
@@ -104,6 +125,11 @@ typedef struct
     size_t             renamed_value_count;
     size_t             cleanup_edge_count;
     size_t             use_edge_count;
+    size_t             live_value_count;
+    bool               has_liveness;
+    MIRValueSummary   *value_summaries;
+    size_t             value_summary_count;
+    bool               has_use_def_summary;
 } MIRRoutine;
 
 struct MIRProgram

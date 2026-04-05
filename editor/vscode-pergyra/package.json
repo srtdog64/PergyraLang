@@ -56,11 +56,11 @@
       }
     ],
     "menus": {
-      "editor/title/run": [
+      "editor/title": [
         {
           "command": "pergyra.run",
           "when": "resourceLangId == pergyra",
-          "group": "navigation"
+          "group": "navigation@1"
         }
       ]
     },
@@ -69,6 +69,13 @@
         "command": "pergyra.run",
         "key": "ctrl+shift+r",
         "when": "resourceLangId == pergyra"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "pergyra-icons",
+        "label": "Pergyra File Icons",
+        "path": "./fileicons/pergyra-icon-theme.json"
       }
     ],
     "configuration": {

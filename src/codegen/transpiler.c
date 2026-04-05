@@ -70,9 +70,39 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
                                                       const ASTNode *func_decl);
+static const MIRRoutine *transpiler_find_mir_intent(const TranspilerCtx *ctx,
+                                                    const ASTNode *intent_decl);
+static const HIRBasicBlock *transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine,
+                                                              size_t block_id);
+static bool transpiler_parse_versioned_name(const char *versioned,
+                                            char *base,
+                                            size_t base_size,
+                                            size_t *version_out);
+static char *transpiler_make_c_ssa_name(const char *versioned_name);
+static const char *transpiler_find_local_type_name(const ASTNode *func_decl,
+                                                   const char *base_name);
+static const char *transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl,
+                                                              ASTNode *expr);
+static char *emit_expression_with_ssa_map(ASTNode *node,
+                                          TranspilerCtx *ctx,
+                                          const char **base_names,
+                                          const char **versioned_names,
+                                          size_t map_count);
+static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
+                                           int indent,
+                                           const MIRBasicBlock *pred_block,
+                                           const MIRBasicBlock *target_block);
+static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
+                                                 const ASTNode *func_decl,
+                                                 const MIRRoutine *mir_routine,
+                                                 const MIRBasicBlock *block,
+                                                 TranspilerCtx *ctx);
 static bool transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
                                                   const ASTNode *func_decl,
                                                   const MIRRoutine **mir_routine_out);
+static bool transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
+                                                        const ASTNode *intent_decl,
+                                                        const MIRRoutine **mir_routine_out);
 static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const MIRRoutine *mir_routine,
                                           const char *emitted_name,
@@ -783,6 +813,389 @@ transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
     return NULL;
 }
 
+static const MIRRoutine *
+transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
+{
+    if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
+        || intent_decl->type != AST_INTENT_DECL
+        || intent_decl->data.intent_decl.name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
+        const MIRRoutine *routine = &ctx->mir->routines[i];
+        if (routine->kind != MIR_SCOPE_INTENT
+            || routine->name == NULL
+            || strcmp(routine->name, intent_decl->data.intent_decl.name) != 0) {
+            continue;
+        }
+        if (routine->hir_routine != NULL && routine->hir_routine->ast == intent_decl)
+            return routine;
+    }
+
+    return NULL;
+}
+
+static const HIRBasicBlock *
+transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine, size_t block_id)
+{
+    if (mir_routine == NULL || mir_routine->hir_routine == NULL
+        || !mir_routine->hir_routine->has_cfg
+        || block_id >= mir_routine->block_count) {
+        return NULL;
+    }
+    if (block_id >= mir_routine->hir_routine->cfg.block_count)
+        return NULL;
+    return &mir_routine->hir_routine->cfg.blocks[block_id];
+}
+
+static bool
+transpiler_parse_versioned_name(const char *versioned, char *base, size_t base_size,
+                                size_t *version_out)
+{
+    const char *dot;
+    size_t len;
+    if (versioned == NULL || base == NULL || base_size == 0 || version_out == NULL)
+        return false;
+    dot = strrchr(versioned, '.');
+    if (dot == NULL)
+        return false;
+    len = (size_t)(dot - versioned);
+    if (len + 1 > base_size)
+        return false;
+    memcpy(base, versioned, len);
+    base[len] = '\0';
+    *version_out = (size_t)strtoull(dot + 1, NULL, 10);
+    return true;
+}
+
+static char *
+transpiler_make_c_ssa_name(const char *versioned_name)
+{
+    if (versioned_name == NULL)
+        return NULL;
+    char base[128];
+    size_t version = 0;
+    if (!transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version))
+        return pergyra_strdup(versioned_name);
+    return strdup_fmt("_pgy_ssa_%s_%zu", base, version);
+}
+
+static const char *
+transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl, ASTNode *expr)
+{
+    if (expr == NULL)
+        return NULL;
+    switch (expr->type) {
+        case AST_NUMBER:
+            return "Int";
+        case AST_STRING:
+            return "String";
+        case AST_BOOLEAN:
+            return "Bool";
+        case AST_IDENTIFIER:
+            return transpiler_find_local_type_name(func_decl, expr->data.identifier.name);
+        case AST_BINARY:
+            switch (expr->data.binary.op.type) {
+                case TOKEN_EQUAL:
+                case TOKEN_NOT_EQUAL:
+                case TOKEN_LESS:
+                case TOKEN_GREATER:
+                case TOKEN_LESS_EQUAL:
+                case TOKEN_GREATER_EQUAL:
+                case TOKEN_AND:
+                case TOKEN_OR:
+                    return "Bool";
+                default:
+                    return transpiler_infer_local_type_name_from_expr(func_decl, expr->data.binary.left);
+            }
+        case AST_UNARY:
+            if (expr->data.unary.op.type == TOKEN_NOT)
+                return "Bool";
+            return transpiler_infer_local_type_name_from_expr(func_decl, expr->data.unary.operand);
+        default:
+            return NULL;
+    }
+}
+
+static const char *
+transpiler_find_local_type_name_in_block(const ASTNode *func_decl, ASTNode *body, const char *base_name)
+{
+    if (body == NULL || base_name == NULL)
+        return NULL;
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < body->data.block.count; i++) {
+            const char *found = transpiler_find_local_type_name_in_block(
+                func_decl, body->data.block.statements[i], base_name);
+            if (found != NULL)
+                return found;
+        }
+        return NULL;
+    }
+    if (body->type == AST_LET_DECL
+        && body->data.let_decl.name != NULL
+        && strcmp(body->data.let_decl.name, base_name) == 0) {
+        if (body->data.let_decl.type != NULL) {
+            static char *rendered = NULL;
+            free(rendered);
+            rendered = render_type_name(body->data.let_decl.type);
+            return rendered;
+        }
+        return transpiler_infer_local_type_name_from_expr(func_decl, body->data.let_decl.initializer);
+    }
+    if (body->type == AST_IF_STMT) {
+        const char *found = transpiler_find_local_type_name_in_block(func_decl, body->data.if_stmt.then_branch, base_name);
+        if (found != NULL)
+            return found;
+        return transpiler_find_local_type_name_in_block(func_decl, body->data.if_stmt.else_branch, base_name);
+    }
+    if (body->type == AST_WHILE_LOOP)
+        return transpiler_find_local_type_name_in_block(func_decl, body->data.while_loop.body, base_name);
+    return NULL;
+}
+
+static const char *
+transpiler_find_local_type_name(const ASTNode *func_decl, const char *base_name)
+{
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
+        FuncParam *p = func_decl->data.func_decl.params[i];
+        if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
+            static char *rendered_param = NULL;
+            free(rendered_param);
+            rendered_param = render_type_name(p->type);
+            return rendered_param;
+        }
+    }
+    return transpiler_find_local_type_name_in_block(func_decl, func_decl->data.func_decl.body, base_name);
+}
+
+static bool
+transpiler_mir_type_supported(const char *type_name)
+{
+    if (type_name == NULL)
+        return false;
+    return strcmp(type_name, "Int") == 0
+           || strcmp(type_name, "Long") == 0
+           || strcmp(type_name, "Float") == 0
+           || strcmp(type_name, "Bool") == 0
+           || strcmp(type_name, "String") == 0;
+}
+
+static bool
+transpiler_mir_function_signature_supported(const ASTNode *func_decl)
+{
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+
+    if (func_decl->data.func_decl.return_type != NULL) {
+        char *return_type = render_type_name(func_decl->data.func_decl.return_type);
+        bool ok = transpiler_mir_type_supported(return_type);
+        free(return_type);
+        if (!ok)
+            return false;
+    }
+
+    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
+        FuncParam *param = func_decl->data.func_decl.params[i];
+        char *param_type = NULL;
+        bool ok;
+        if (param == NULL || param->type == NULL)
+            continue;
+        param_type = render_type_name(param->type);
+        ok = transpiler_mir_type_supported(param_type);
+        free(param_type);
+        if (!ok)
+            return false;
+    }
+
+    return true;
+}
+
+static char *
+emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
+                             const char **base_names,
+                             const char **versioned_names,
+                             size_t map_count)
+{
+    if (node == NULL)
+        return pergyra_strdup("0");
+    if (node->type == AST_IDENTIFIER && node->data.identifier.name != NULL) {
+        for (size_t i = 0; i < map_count; i++) {
+            if (base_names[i] != NULL
+                && strcmp(base_names[i], node->data.identifier.name) == 0
+                && versioned_names[i] != NULL) {
+                return transpiler_make_c_ssa_name(versioned_names[i]);
+            }
+        }
+        return emit_expression(node, ctx);
+    }
+    if (node->type == AST_NUMBER || node->type == AST_STRING || node->type == AST_BOOLEAN)
+        return emit_expression(node, ctx);
+    if (node->type == AST_BINARY) {
+        char *left = emit_expression_with_ssa_map(node->data.binary.left, ctx, base_names, versioned_names, map_count);
+        char *right = emit_expression_with_ssa_map(node->data.binary.right, ctx, base_names, versioned_names, map_count);
+        char *expr = strdup_fmt("(%s %s %s)", left,
+            token_type_to_string(node->data.binary.op.type), right);
+        free(left);
+        free(right);
+        return expr;
+    }
+    if (node->type == AST_UNARY) {
+        char *operand = emit_expression_with_ssa_map(node->data.unary.operand, ctx, base_names, versioned_names, map_count);
+        char *expr = strdup_fmt("(%s%s)", token_type_to_string(node->data.unary.op.type), operand);
+        free(operand);
+        return expr;
+    }
+    return emit_expression(node, ctx);
+}
+
+static bool
+transpiler_emit_mir_phi_copies(CodeBuf *buf, int indent,
+                               const MIRBasicBlock *pred_block,
+                               const MIRBasicBlock *target_block)
+{
+    if (buf == NULL || pred_block == NULL || target_block == NULL)
+        return false;
+    for (size_t i = 0; i < target_block->instruction_count; i++) {
+        const MIRInstruction *inst = &target_block->instructions[i];
+        if (inst->kind != MIR_INST_PHI || inst->result_name == NULL)
+            continue;
+        for (size_t j = 0; j < inst->phi_incoming_count; j++) {
+            if (inst->phi_incomings[j].predecessor_block != pred_block->id
+                || inst->phi_incomings[j].value_name == NULL) {
+                continue;
+            }
+            char *lhs = transpiler_make_c_ssa_name(inst->result_name);
+            char *rhs = transpiler_make_c_ssa_name(inst->phi_incomings[j].value_name);
+            write_indent_to(buf, indent);
+            codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+            free(lhs);
+            free(rhs);
+        }
+    }
+    return true;
+}
+
+static bool
+transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
+                                     const MIRRoutine *mir_routine,
+                                     const MIRBasicBlock *block,
+                                     TranspilerCtx *ctx)
+{
+    const HIRBasicBlock *hir_block = transpiler_find_hir_block_for_mir(mir_routine, block->id);
+    const char *base_names[256];
+    const char *versioned_names[256];
+    size_t map_count = 0;
+
+    if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->ssa_entry_value_count && map_count < 256; i++) {
+        char base[128];
+        size_t version = 0;
+        if (!transpiler_parse_versioned_name(block->ssa_entry_values[i], base, sizeof(base), &version))
+            continue;
+        base_names[map_count] = pergyra_strdup(base);
+        versioned_names[map_count] = block->ssa_entry_values[i];
+        map_count++;
+    }
+    for (size_t i = 0; i < block->instruction_count && map_count < 256; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        char base[128];
+        size_t version = 0;
+        if (inst->kind != MIR_INST_PHI || inst->result_name == NULL)
+            continue;
+        if (!transpiler_parse_versioned_name(inst->result_name, base, sizeof(base), &version))
+            continue;
+        bool replaced = false;
+        for (size_t j = 0; j < map_count; j++) {
+            if (strcmp(base_names[j], base) == 0) {
+                versioned_names[j] = inst->result_name;
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            base_names[map_count] = pergyra_strdup(base);
+            versioned_names[map_count] = inst->result_name;
+            map_count++;
+        }
+    }
+
+    if (hir_block != NULL) {
+        size_t def_index = 0;
+        for (size_t i = 0; i < hir_block->statement_count; i++) {
+            ASTNode *stmt = hir_block->statements[i];
+            if (stmt == NULL || stmt->type == AST_IF_STMT || stmt->type == AST_RETURN)
+                continue;
+            if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
+                while (def_index < block->instruction_count
+                       && block->instructions[def_index].kind == MIR_INST_PHI)
+                    def_index++;
+                const MIRInstruction *def_inst =
+                    (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
+                if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
+                    || def_inst->arg0 == NULL || def_inst->result_name == NULL
+                    || strcmp(def_inst->arg0, stmt->data.let_decl.name) != 0) {
+                    return false;
+                }
+                char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
+                char *rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx,
+                    base_names, versioned_names, map_count);
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+                free(lhs);
+                free(rhs);
+                for (size_t j = 0; j < map_count; j++) {
+                    if (strcmp(base_names[j], stmt->data.let_decl.name) == 0) {
+                        versioned_names[j] = def_inst->result_name;
+                        break;
+                    }
+                }
+                def_index++;
+                continue;
+            }
+            if (stmt->type == AST_ASSIGNMENT
+                && stmt->data.assignment.target != NULL
+                && stmt->data.assignment.target->type == AST_IDENTIFIER) {
+                while (def_index < block->instruction_count
+                       && block->instructions[def_index].kind == MIR_INST_PHI)
+                    def_index++;
+                const MIRInstruction *def_inst =
+                    (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
+                const char *target_name = stmt->data.assignment.target->data.identifier.name;
+                if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
+                    || def_inst->arg0 == NULL || def_inst->result_name == NULL
+                    || strcmp(def_inst->arg0, target_name) != 0) {
+                    return false;
+                }
+                char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
+                char *rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx,
+                    base_names, versioned_names, map_count);
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+                free(lhs);
+                free(rhs);
+                for (size_t j = 0; j < map_count; j++) {
+                    if (strcmp(base_names[j], target_name) == 0) {
+                        versioned_names[j] = def_inst->result_name;
+                        break;
+                    }
+                }
+                def_index++;
+                continue;
+            }
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < map_count; i++)
+        free((void *)base_names[i]);
+    return true;
+}
+
 static bool
 transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
                                       const ASTNode *func_decl,
@@ -799,8 +1212,7 @@ transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
         || routine->hir_routine->is_hosted
         || routine->hir_routine->is_action_like
         || routine->has_cleanup_block
-        || routine->phi_inserted_count != 0
-        || routine->renamed_value_count != 0) {
+        || !transpiler_mir_function_signature_supported(func_decl)) {
         return false;
     }
 
@@ -810,11 +1222,48 @@ transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
             continue;
         for (size_t j = 0; j < block->instruction_count; j++) {
             MIRInstKind kind = block->instructions[j].kind;
-            if (kind != MIR_INST_BRANCH && kind != MIR_INST_RETURN)
+            if (kind != MIR_INST_BRANCH
+                && kind != MIR_INST_RETURN
+                && kind != MIR_INST_PHI
+                && kind != MIR_INST_DEF) {
                 return false;
+            }
+            if ((kind == MIR_INST_DEF || kind == MIR_INST_PHI) && block->instructions[j].result_name != NULL) {
+                const char *lookup_name =
+                    (kind == MIR_INST_PHI)
+                        ? block->instructions[j].name
+                        : (block->instructions[j].arg0 != NULL
+                               ? block->instructions[j].arg0
+                               : block->instructions[j].name);
+                const char *type_name = transpiler_find_local_type_name(
+                    func_decl,
+                    lookup_name);
+                if (!transpiler_mir_type_supported(type_name))
+                    return false;
+            }
         }
     }
 
+    if (mir_routine_out != NULL)
+        *mir_routine_out = routine;
+    return true;
+}
+
+static bool
+transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
+                                            const ASTNode *intent_decl,
+                                            const MIRRoutine **mir_routine_out)
+{
+    const MIRRoutine *routine = transpiler_find_mir_intent(ctx, intent_decl);
+    if (mir_routine_out != NULL)
+        *mir_routine_out = NULL;
+    if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL)
+        return false;
+    if (routine->kind != MIR_SCOPE_INTENT
+        || routine->hir_routine == NULL
+        || !routine->has_cleanup_block) {
+        return false;
+    }
     if (mir_routine_out != NULL)
         *mir_routine_out = routine;
     return true;
@@ -915,6 +1364,34 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
+    for (size_t i = 0; i < mir_routine->block_count; i++) {
+        const MIRBasicBlock *block = &mir_routine->blocks[i];
+        if (!block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            const char *type_name = NULL;
+            const char *c_type = "int32_t";
+            char *c_name = NULL;
+            if ((inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
+                || inst->result_name == NULL) {
+                continue;
+            }
+            const char *lookup_name =
+                (inst->kind == MIR_INST_PHI)
+                    ? inst->name
+                    : (inst->arg0 != NULL ? inst->arg0 : inst->name);
+            type_name = transpiler_find_local_type_name(node,
+                lookup_name);
+            if (type_name != NULL)
+                c_type = pergyra_type_to_c(type_name);
+            c_name = transpiler_make_c_ssa_name(inst->result_name);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s %s = 0;\n", c_type, c_name);
+            free(c_name);
+        }
+    }
+
     write_indent(ctx);
     codebuf_write(ctx->out, "/* emitted-from-mir */\n");
     write_indent(ctx);
@@ -926,23 +1403,67 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             continue;
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
+        if (!transpiler_emit_mir_block_statements(ctx->out, node, mir_routine, block, ctx)) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "/* MIR block emission fallback unavailable */\n");
+        }
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_BRANCH) {
-                char *cond = emit_expression(inst->ast, ctx);
+                const char *base_names[256];
+                const char *versioned_names[256];
+                size_t map_count = 0;
+                for (size_t k = 0; k < block->ssa_exit_value_count && map_count < 256; k++) {
+                    char base[128];
+                    size_t version = 0;
+                    if (!transpiler_parse_versioned_name(block->ssa_exit_values[k], base, sizeof(base), &version))
+                        continue;
+                    base_names[map_count] = pergyra_strdup(base);
+                    versioned_names[map_count] = block->ssa_exit_values[k];
+                    map_count++;
+                }
+                char *cond = emit_expression_with_ssa_map(inst->ast, ctx,
+                    base_names, versioned_names, map_count);
+                if (block->has_succ_true)
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
+                        &mir_routine->blocks[block->succ_true]);
                 write_indent(ctx);
-                codebuf_write(ctx->out,
-                    "if (%s) goto _pgy_mir_bb_%s_%zu; else goto _pgy_mir_bb_%s_%zu;\n",
-                    cond != NULL ? cond : "false",
-                    name, block->succ_true,
-                    name, block->succ_false);
+                codebuf_write(ctx->out, "if (%s) {\n", cond != NULL ? cond : "false");
+                write_indent_to(ctx->out, ctx->indent + 1);
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "} else {\n");
+                if (block->has_succ_false)
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent + 1, block,
+                        &mir_routine->blocks[block->succ_false]);
+                write_indent_to(ctx->out, ctx->indent + 1);
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_false);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "}\n");
                 free(cond);
+                for (size_t k = 0; k < map_count; k++)
+                    free((void *)base_names[k]);
             } else if (inst->kind == MIR_INST_RETURN) {
                 if (inst->ast != NULL) {
-                    char *ret_expr = emit_expression(inst->ast, ctx);
+                    const char *base_names[256];
+                    const char *versioned_names[256];
+                    size_t map_count = 0;
+                    for (size_t k = 0; k < block->ssa_exit_value_count && map_count < 256; k++) {
+                        char base[128];
+                        size_t version = 0;
+                        if (!transpiler_parse_versioned_name(block->ssa_exit_values[k], base, sizeof(base), &version))
+                            continue;
+                        base_names[map_count] = pergyra_strdup(base);
+                        versioned_names[map_count] = block->ssa_exit_values[k];
+                        map_count++;
+                    }
+                    char *ret_expr = emit_expression_with_ssa_map(inst->ast, ctx,
+                        base_names, versioned_names, map_count);
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return %s;\n", ret_expr);
                     free(ret_expr);
+                    for (size_t k = 0; k < map_count; k++)
+                        free((void *)base_names[k]);
                 } else {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return;\n");
@@ -950,6 +1471,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
         }
         if (block->instruction_count == 0 && block->has_succ_true) {
+            transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
+                &mir_routine->blocks[block->succ_true]);
             write_indent(ctx);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
         }
@@ -3065,6 +3588,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     bool has_compensate_steps = false;
     bool needs_cleanup_done_label = false;
     size_t subject_count = 0;
+    const MIRRoutine *mir_routine = NULL;
+    bool emit_cleanup_from_mir = false;
     CodeBuf *saved_out;
     TranspilerCtx *saved_render_ctx;
 
@@ -3078,6 +3603,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->out = buf;
     g_type_render_ctx = ctx;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
+    emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
         if (step != NULL && step->type == AST_INTENT_STEP
@@ -3088,7 +3614,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
     if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE)
         has_compensate_steps = false;
-    needs_cleanup_done_label = has_compensate_steps
+    needs_cleanup_done_label = !emit_cleanup_from_mir && has_compensate_steps
         && node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT;
 
     codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
@@ -3178,7 +3704,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "__intent_result = false;\n");
         write_indent(ctx);
-        codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+        if (emit_cleanup_from_mir) {
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->cleanup_block);
+        } else {
+            codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+        }
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -3217,8 +3748,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(pre);
         }
 
@@ -3228,8 +3765,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(invariant);
         }
 
@@ -3280,8 +3823,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(guard);
         }
 
@@ -3291,8 +3840,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(expect);
         }
 
@@ -3302,8 +3857,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(post);
         }
 
@@ -3313,8 +3874,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = false; ",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
             free(invariant);
         }
         write_indent(ctx);
@@ -3331,52 +3898,149 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "__intent_result = true;\n");
     }
     write_indent(ctx);
-    codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+    if (emit_cleanup_from_mir) {
+        codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+            node->data.intent_decl.name, mir_routine->cleanup_block);
+    } else {
+        codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+    }
 
-    write_indent(ctx);
-    codebuf_write(ctx->out, "__intent_cleanup:\n");
-    ctx->indent++;
-    if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+    if (emit_cleanup_from_mir) {
         write_indent(ctx);
-        codebuf_write(ctx->out, "if (__intent_failed) {\n");
+        codebuf_write(ctx->out, "/* cleanup-emitted-from-mir */\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+            node->data.intent_decl.name, mir_routine->cleanup_block);
         ctx->indent++;
-        for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
-            ASTNode *step = node->data.intent_decl.steps[i];
-            if (step == NULL || step->type != AST_INTENT_STEP
-                || step->data.intent_step.compensate_expr_count == 0)
-                continue;
+        if (mir_routine->has_rollback_block) {
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+            codebuf_write(ctx->out, "if (__intent_failed) {\n");
+            write_indent_to(ctx->out, ctx->indent + 1);
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->rollback_block);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+        }
+        if (mir_routine->has_invalidation_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->invalidation_block);
+        } else {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out, "return __intent_result;\n");
+        }
+        ctx->indent--;
+        if (mir_routine->has_rollback_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+                node->data.intent_decl.name, mir_routine->rollback_block);
             ctx->indent++;
-            for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
-                char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
-                if (expr != NULL && expr[0] != '\0') {
+            if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+                for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
+                    ASTNode *step = node->data.intent_decl.steps[i];
+                    if (step == NULL || step->type != AST_INTENT_STEP
+                        || step->data.intent_step.compensate_expr_count == 0)
+                        continue;
                     write_indent(ctx);
-                    codebuf_write(ctx->out, "%s;\n", expr);
+                    codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+                    ctx->indent++;
+                    for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
+                        char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                        if (expr != NULL && expr[0] != '\0') {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "%s;\n", expr);
+                        }
+                        free(expr);
+                    }
+                    emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                        if (mir_routine->has_invalidation_block) {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                                node->data.intent_decl.name, mir_routine->invalidation_block);
+                        } else {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "return __intent_result;\n");
+                        }
+                    }
+                    ctx->indent--;
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "}\n");
                 }
-                free(expr);
             }
-            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
-            if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+            if (mir_routine->has_invalidation_block) {
                 write_indent(ctx);
-                codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                    node->data.intent_decl.name, mir_routine->invalidation_block);
+            } else {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+                write_indent(ctx);
+                codebuf_write(ctx->out, "return __intent_result;\n");
+            }
+            ctx->indent--;
+        }
+        if (mir_routine->has_invalidation_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+                node->data.intent_decl.name, mir_routine->invalidation_block);
+            ctx->indent++;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out, "return __intent_result;\n");
+            ctx->indent--;
+        }
+    } else {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_cleanup:\n");
+        ctx->indent++;
+        if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_failed) {\n");
+            ctx->indent++;
+            for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
+                ASTNode *step = node->data.intent_decl.steps[i];
+                if (step == NULL || step->type != AST_INTENT_STEP
+                    || step->data.intent_step.compensate_expr_count == 0)
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+                ctx->indent++;
+                for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
+                    char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                    if (expr != NULL && expr[0] != '\0') {
+                        write_indent(ctx);
+                        codebuf_write(ctx->out, "%s;\n", expr);
+                    }
+                    free(expr);
+                }
+                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");
+                }
+                ctx->indent--;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "}\n");
             }
             ctx->indent--;
             write_indent(ctx);
             codebuf_write(ctx->out, "}\n");
         }
-        ctx->indent--;
+        if (needs_cleanup_done_label) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_cleanup_done:\n");
+        }
         write_indent(ctx);
-        codebuf_write(ctx->out, "}\n");
-    }
-    if (needs_cleanup_done_label) {
+        codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
         write_indent(ctx);
-        codebuf_write(ctx->out, "__intent_cleanup_done:\n");
+        codebuf_write(ctx->out, "return __intent_result;\n");
     }
-    write_indent(ctx);
-    codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
-    write_indent(ctx);
-    codebuf_write(ctx->out, "return __intent_result;\n");
     ctx->indent--;
 
     ctx->indent--;

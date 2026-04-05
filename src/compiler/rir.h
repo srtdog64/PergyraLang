@@ -85,6 +85,15 @@ typedef enum
     RIR_OP_COMPENSATE_INTENT_STEP
 } RIROpKind;
 
+typedef enum
+{
+    RIR_FLOW_NONE = 0,
+    RIR_FLOW_AUTHORITY = 1 << 0,
+    RIR_FLOW_PROJECTION = 1 << 1,
+    RIR_FLOW_WORLD_HANDOFF = 1 << 2,
+    RIR_FLOW_INVALIDATION = 1 << 3
+} RIRFlowSemanticFlags;
+
 typedef struct
 {
     const char       *name;
@@ -113,6 +122,8 @@ typedef struct
     size_t        block_id;
     bool          is_reachable;
     bool          is_join;
+    unsigned int  entry_semantics;
+    unsigned int  exit_semantics;
     RIRFlowFact  *facts;
     size_t        fact_count;
 } RIRFlowBlock;
@@ -151,6 +162,7 @@ typedef struct
     RIRStateSummary *state_summaries;
     size_t           state_summary_count;
     bool             has_state_errors;
+    unsigned int     conservative_semantics;
     RIRFlowBlock    *flow_blocks;
     size_t           flow_block_count;
     bool             has_flow_sensitive_merge;

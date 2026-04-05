@@ -7,8 +7,8 @@ zone JourneyZone
 
     object slot fighterView: HeroView = ToObject(HeroView, fighter)
     object slot rogueView: HeroView = ToObject(HeroView, rogue)
-    dto slot clericPacket: HeroPacket = ToDto(HeroPacket, cleric)
-    dto slot magePacket: HeroPacket = ToDto(HeroPacket, mage)
+    tobject slot clericPacket: HeroPacket = ToDto(HeroPacket, cleric)
+    tobject slot magePacket: HeroPacket = ToDto(HeroPacket, mage)
 
     effect slot fighterBlessing: BattleBless
     effect slot mageBlessing: BattleBless

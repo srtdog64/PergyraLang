@@ -22,7 +22,8 @@ static const KeywordEntry keywords[] = {
     {"class",    TOKEN_CLASS},
     {"subject",  TOKEN_CLASS},
     {"struct",   TOKEN_STRUCT},
-    {"dto",      TOKEN_STRUCT},
+    {"tobject",  TOKEN_STRUCT},
+    {"dto",      TOKEN_STRUCT},  /* deprecated: use tobject */
     {"extern",   TOKEN_EXTERN},
     {"with",     TOKEN_WITH},
     {"as",       TOKEN_AS},

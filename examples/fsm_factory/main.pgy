@@ -17,8 +17,8 @@ zone AssemblyZone
     shared maintenance: Int = 6
     object slot furnaceView: StationView
     object slot packerView: StationView
-    dto slot supervisorPacket: StationPacket
-    dto slot furnacePacket: StationPacket
+    tobject slot supervisorPacket: StationPacket
+    tobject slot furnacePacket: StationPacket
     authority supervisor
     refresh furnaceView from furnace by supervisor
     refresh packerView from packer by supervisor

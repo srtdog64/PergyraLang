@@ -190,7 +190,7 @@ object CreatureView
     metabolism: Int;
 }
 
-dto CreaturePacket
+tobject CreaturePacket
 {
     name: String;
     species: String;

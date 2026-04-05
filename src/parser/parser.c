@@ -148,7 +148,8 @@ void parser_synchronize(Parser* parser) {
             || parser_check_contextual_keyword(parser, "intent")
             || parser_check_contextual_keyword(parser, "dto")
             || parser_check_contextual_keyword(parser, "world")
-            || parser_check_contextual_keyword(parser, "systemic")
+            || parser_check_contextual_keyword(parser, "roster")
+            || parser_check_contextual_keyword(parser, "systemic")  /* deprecated */
             || parser_check_contextual_keyword(parser, "relation")
             || parser_check_contextual_keyword(parser, "effect")
             || parser_check_contextual_keyword(parser, "zone")) {
@@ -632,7 +633,8 @@ parser_parse_export_declaration(Parser *parser)
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-    } else if (parser_match_contextual_keyword(parser, "systemic"))
+    } else if (parser_match_contextual_keyword(parser, "roster")
+               || parser_match_contextual_keyword(parser, "systemic"))  /* systemic deprecated */
         node = parse_systemic_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "world"))
         node = parse_world_declaration(parser);
@@ -984,8 +986,9 @@ ASTNode* parser_parse_statement(Parser* parser) {
             ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
     }
 
-    // systemic 선언
-    if (parser_starts_contextual_declaration(parser, "systemic")) {
+    // roster (formerly systemic) 선언
+    if (parser_starts_contextual_declaration(parser, "roster")
+        || parser_starts_contextual_declaration(parser, "systemic")) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_systemic_declaration(parser));
     }

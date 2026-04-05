@@ -12,9 +12,9 @@ zone MeadowZone
     object slot grazerView: CreatureView
     object slot browserView: CreatureView
     object slot predatorView: CreatureView
-    dto slot browserPacket: CreaturePacket
-    dto slot foragerPacket: CreaturePacket
-    dto slot predatorPacket: CreaturePacket
+    tobject slot browserPacket: CreaturePacket
+    tobject slot foragerPacket: CreaturePacket
+    tobject slot predatorPacket: CreaturePacket
     authority predator
     refresh grazerView from grazer by predator
     refresh browserView from browser by predator

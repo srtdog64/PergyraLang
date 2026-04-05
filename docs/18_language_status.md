@@ -97,7 +97,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
 - `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
-- 현재 회귀 수치: `semantic 474 passed`, `transpile 381 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `semantic 486 passed`, `transpile 406 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 projection sync(`refresh` / `publish` / `bind`)임

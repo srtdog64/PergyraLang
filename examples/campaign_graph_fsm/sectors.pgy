@@ -5,7 +5,7 @@ zone SectorZone
     subject slot captain: Adventurer
     subject slot wing: Adventurer
     object slot captainView: AdventurerView
-    dto slot wingPacket: AdventurerPacket
+    tobject slot wingPacket: AdventurerPacket
     shared sectorId: Int = 0
     shared threat: Int = 0
     shared control: Int = 0

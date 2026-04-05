@@ -11,7 +11,7 @@ object AdventurerView
     intel: Int;
 }
 
-dto AdventurerPacket
+tobject AdventurerPacket
 {
     name: String;
     archetype: String;

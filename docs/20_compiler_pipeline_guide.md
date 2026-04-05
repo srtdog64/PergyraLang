@@ -34,8 +34,9 @@
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
 - driver는 backend 진입 전에 항상 `HIR`, `DIR`, `RIR`, `MIR`를 모두 만든다.
 - backend runner는 현재 `CompilerIRBundle`을 받는다.
-- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice가 들어가 있다.
+- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice와, intent cleanup/rollback/invalidation CFG를 `bundle->mir` exceptional block으로 직접 emit하는 보강 경로가 들어가 있다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
+- compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base.inc`](../src/compiler/mir_base.inc) / [`mir_public.inc`](../src/compiler/mir_public.inc)로 떼어내고, `rir.c`도 [`rir_flow.inc`](../src/compiler/rir_flow.inc) / [`rir_builder.inc`](../src/compiler/rir_builder.inc) / [`rir_public.inc`](../src/compiler/rir_public.inc)로 분리해 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
 
 ## 2. 어디서 시작하나
 
@@ -202,6 +203,9 @@
 
 - `src/compiler/rir.h`
 - `src/compiler/rir.c`
+- `src/compiler/rir_flow.inc`
+- `src/compiler/rir_builder.inc`
+- `src/compiler/rir_public.inc`
 
 주 진입점:
 
@@ -263,11 +267,14 @@
 
 를 덤프한다. 완전한 CFG 기반 cleanup/exception merge는 여전히 MIR로 이월한다.
 
+추가로, `RIR-flow`는 resource state가 없는 block도 버리지 않는다. projection op나 intent/world handoff처럼 "상태 lattice로는 안 보이지만 의미론적으로 중요한 것"은 scope-level `semantics=`와 block-level `sem-entry=` / `sem-exit=` conservative flag로 남긴다.
+
 현재 merge는 resource kind를 함께 본다.
 
 - `zone/world handle`은 ownership/borrow 중심으로 병합
 - `relation/effect handle`은 detach/sync/dirty lifecycle 중심으로 병합
 - move/release와 live state가 섞이면 보수적으로 conflict + invalid로 간다
+- `authority` / `projection` / `world-handoff`는 별도 conservative semantic flag로 OR-merge한다
 
 ### 3.7 MIR Lowering
 
@@ -317,8 +324,9 @@
   - branch/return은 terminator expression에서 identifier use를 수집
   - resource-op / cleanup instruction도 AST 기반 identifier use를 수집
   - block별 `entry:` / `exit:` version dump를 유지
+  - routine-level value summary를 만들어 `def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`를 후속 pass가 직접 읽을 수 있게 유지
 
-즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + exceptional CFG 시작점"이다. full liveness, DCE, `RIR-flow` merge의 최종 근거는 아직 아니지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, C backend에는 branch/return-only top-level function subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
+즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full liveness, DCE, `RIR-flow` merge의 최종 근거는 아직 아니지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, C backend에는 branch/return-only top-level function subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
 
 ### 3.8 HIR Lowering
 

@@ -1570,6 +1570,8 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.relation_decl.method_count; i++)
                 ast_destroy(node->data.relation_decl.methods[i]);
             free(node->data.relation_decl.methods);
+            free(node->data.relation_decl.between_left);
+            free(node->data.relation_decl.between_right);
             ast_destroy_structured_comment(node->data.relation_decl.doc_comment);
             break;
 

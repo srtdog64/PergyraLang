@@ -3084,9 +3084,114 @@ test_mir_vertical_slice_emit(void)
                && output != NULL
                && strstr(output, "/* emitted-from-mir */") != NULL
                && strstr(output, "goto _pgy_mir_bb_Score_0;") != NULL
-               && strstr(output, "if (flag) goto _pgy_mir_bb_Score_1; else goto _pgy_mir_bb_Score_2;") != NULL
+               && strstr(output, "if (flag) {") != NULL
+               && strstr(output, "goto _pgy_mir_bb_Score_1;") != NULL
+               && strstr(output, "goto _pgy_mir_bb_Score_2;") != NULL
                && strstr(output, "return 7;") != NULL
                && strstr(output, "return 3;") != NULL);
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("phi merge function body emits MIR SSA locals and predecessor copies");
+    {
+        const char *source =
+            "func Score(flag: Bool) -> Int {\n"
+            "    let score: Int = 0;\n"
+            "    if flag {\n"
+            "        score = 7;\n"
+            "    } else {\n"
+            "        score = 3;\n"
+            "    }\n"
+            "    return score;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *path = "/tmp/pgy_test_mir_phi_slice.c";
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok
+               && output != NULL
+               && strstr(output, "/* emitted-from-mir */") != NULL
+               && strstr(output, "_pgy_ssa_score_") != NULL
+               && strstr(output, "if (flag)") != NULL
+               && strstr(output, "return _pgy_ssa_score_") != NULL);
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("intent cleanup CFG emits from MIR exceptional blocks");
+    {
+        const char *source =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "    failure: false;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *path = "/tmp/pgy_test_mir_intent_cleanup.c";
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok
+               && output != NULL
+               && strstr(output, "/* cleanup-emitted-from-mir */") != NULL
+               && strstr(output, "goto _pgy_mir_bb_Purchase_") != NULL
+               && strstr(output, "_pgy_mir_bb_Purchase_1:") != NULL
+               && strstr(output, "_pgy_mir_bb_Purchase_2:") != NULL
+               && strstr(output, "_pgy_mir_bb_Purchase_3:") != NULL
+               && strstr(output, "if (__intent_failed)") != NULL
+               && strstr(output, "pgy_intent_exit_export(__intent_handle)") != NULL);
 
         free(output);
         remove(path);

@@ -351,8 +351,14 @@ main(void)
                         hover_text = "**struct** — Value type (passed by value)";
                     else if (strcmp(word, "object") == 0)
                         hover_text = "**object** — Passive state-bearing object type; can react but does not initiate intent";
+                    else if (strcmp(word, "tobject") == 0)
+                        hover_text = "**tobject** — Transfer object. Boundary transfer data type, commonly known as DTO (Data Transfer Object)";
                     else if (strcmp(word, "dto") == 0)
-                        hover_text = "**dto** — Boundary transfer/projection type (struct-compatible keyword)";
+                        hover_text = "**dto** — Deprecated. Use **tobject** instead. Transfer object for boundary data";
+                    else if (strcmp(word, "roster") == 0)
+                        hover_text = "**roster** — Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)";
+                    else if (strcmp(word, "systemic") == 0)
+                        hover_text = "**systemic** — Deprecated. Use **roster** instead. Party container";
                     else if (strcmp(word, "class") == 0)
                         hover_text = "**class** — Subject declaration (compatibility keyword)";
                     else if (strcmp(word, "subject") == 0)

@@ -1,0 +1,19 @@
+{
+  "hidesExplorerArrows": false,
+  "iconDefinitions": {
+    "_pgy": {
+      "iconPath": "../icons/pgy-icon-dark.png"
+    },
+    "_pgy_light": {
+      "iconPath": "../icons/pgy-icon-light.png"
+    }
+  },
+  "fileExtensions": {
+    "pgy": "_pgy"
+  },
+  "light": {
+    "fileExtensions": {
+      "pgy": "_pgy_light"
+    }
+  }
+}

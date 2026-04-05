@@ -200,17 +200,17 @@
     "description": "Struct (pure data)"
   },
 
-  "DTO Declaration": {
-    "prefix": "dto",
+  "Transfer Object Declaration": {
+    "prefix": "tobject",
     "body": [
-      "/// [What]: ${1:이 dto가 전송하는 데이터}",
-      "dto ${2:Name}",
+      "/// [What]: ${1:이 tobject가 전송하는 데이터}",
+      "tobject ${2:Name}",
       "{",
       "    let ${3:field}: ${4:Type};",
       "    $0",
       "}"
     ],
-    "description": "DTO (boundary projection)"
+    "description": "Transfer object (boundary transfer data)"
   },
 
   "Object Declaration": {
@@ -224,6 +224,20 @@
       "}"
     ],
     "description": "Object (read-only view)"
+  },
+
+  "Roster Declaration": {
+    "prefix": "roster",
+    "body": [
+      "/// [What]: ${1:이 roster의 파티 편성 규칙}",
+      "roster ${2:Name}",
+      "{",
+      "    party slot ${3:team1}: ${4:PartyType}",
+      "    shared max_parties: Int = ${5:4}",
+      "    $0",
+      "}"
+    ],
+    "description": "Roster (party container with capacity)"
   },
 
   "Structured Comment Block": {

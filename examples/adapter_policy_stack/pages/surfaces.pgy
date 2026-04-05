@@ -5,14 +5,14 @@ object CartPage
     let state: String;
 }
 
-dto CheckoutRequest
+tobject CheckoutRequest
 {
     let route: String;
     let shopper: String;
     let amount: Int;
 }
 
-dto RefundRequest
+tobject RefundRequest
 {
     let route: String;
     let shopper: String;

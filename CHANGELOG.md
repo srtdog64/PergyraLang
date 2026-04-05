@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Fixed the `relation ... between ...` parser surface so `subject`, `class`,
+  and `subject[]`/`class[]` endpoints are consumed through the normal
+  name-token path instead of incorrectly requiring raw `TOKEN_IDENTIFIER`.
+  Shared-domain semantic regression tests for `between` syntax are green
+  again.
+- Extended `RIR` conservative flow semantics with `invalidation`. Scope-level
+  and block-level flow dumps now preserve detach/release/abort-style invalidation
+  signals alongside `authority`, `projection`, and `world-handoff`.
+- Extended `MIR` with routine-level value/use-def summaries. Each routine now
+  materializes per-value `def_block`, `def_inst`, `use_count`,
+  `live_in/out block count`, and `reaches_cleanup`, and MIR validation now
+  requires this summary for non-empty routines.
 - Added `examples/resource_scheduler_async_probe/` as a strict async/parallel
   resource-discipline probe. It combines `Channel<Int>`, `parallel`,
   `Slot<subject>`, helper-based `ref Slot<subject>` mutation,
@@ -603,3 +615,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - codegen/compiler/tests: add the first real `MIR -> C backend` vertical slice. The C backend now accepts `transpile_with_mir(...)`, `compiler_emit_c()` passes `bundle->mir`, and a conservative subset of simple top-level branch/return functions is emitted from MIR blocks/terminators instead of the AST/HIR body walker. Added a transpile regression that locks the emitted `goto _pgy_mir_bb_*` body shape and `/* emitted-from-mir */` marker.
 - docs: update the compiler pipeline/development status docs so they no longer claim `DIR/RIR/MIR` are analysis-only in every case; they now explicitly note the first MIR-driven codegen slice while preserving the larger point that most backend emission is still HIR-driven.
 - tests: tighten `read_file_text()` in `src/test_transpile.c` to check `fread()` results instead of ignoring them, keeping the transpile suite warning-free under the new MIR vertical-slice regression.
+# 2026-04-06
+
+- compiler/codegen: expanded the first MIR->C vertical slice beyond simple function CFGs so `intent` cleanup now emits `cleanup/rollback/invalidation` labels from MIR exceptional block ids while preserving existing step semantics
+- compiler/codegen: `emit_intent_decl(...)` now routes failure/success cleanup gotos through MIR cleanup blocks when a matching `MIR_SCOPE_INTENT` routine is available
+- tests: added MIR-backed transpile regression for intent exceptional CFG emission in [`src/test_transpile.c`](src/test_transpile.c)
+- docs: updated IR pipeline and current-state documents to reflect that MIR now directly drives both simple function CFG emission and intent cleanup CFG emission in the C backend
+- compiler/layout: split `src/compiler/mir.c` into a smaller core file plus [`src/compiler/mir_base.inc`](src/compiler/mir_base.inc) and [`src/compiler/mir_public.inc`](src/compiler/mir_public.inc), and split public/dump surface from `src/compiler/rir.c` into [`src/compiler/rir_public.inc`](src/compiler/rir_public.inc) to start bringing IR implementation files back under control
+- compiler/layout: continue the IR file split by carving [`src/compiler/rir_flow.inc`](src/compiler/rir_flow.inc) and [`src/compiler/rir_builder.inc`](src/compiler/rir_builder.inc) out of `src/compiler/rir.c`, so resource lattice merge/CFG flow enrichment and AST scope collection no longer live in one 1.6k-line implementation file
+- compiler/rir: extend `RIR-flow` so branch/join analysis now carries conservative semantic flags for `authority`, `projection`, and `world-handoff` in addition to resource state lattice facts. `scope semantics=` and block-level `sem-entry/sem-exit` are now part of the dump/contract surface, and resource-free CFG blocks can still preserve projection/handoff meaning.
+- tests: add a RIR regression that locks projection-flow merge across an `if` join and world-handoff conservative semantics on an intent transfer scope

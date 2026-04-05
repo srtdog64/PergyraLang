@@ -1275,7 +1275,15 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_RELATION_DECL:
-            printf("Relation: %s\n", node->data.relation_decl.name);
+            printf("Relation: %s", node->data.relation_decl.name);
+            if (node->data.relation_decl.between_left) {
+                printf(" between %s%s, %s%s",
+                    node->data.relation_decl.between_left,
+                    node->data.relation_decl.between_left_many ? "[]" : "",
+                    node->data.relation_decl.between_right,
+                    node->data.relation_decl.between_right_many ? "[]" : "");
+            }
+            printf("\n");
             for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
                 ast_print(node->data.relation_decl.slots[i], indent + 1);
             }

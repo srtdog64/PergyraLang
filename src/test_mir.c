@@ -176,6 +176,37 @@ block_has_use_prefix(const MIRBasicBlock *block, const char *prefix)
     return false;
 }
 
+static bool
+block_has_live_out_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->live_out_name_count; i++) {
+        if (block->live_out_names[i] != NULL
+            && strncmp(block->live_out_names[i], prefix, prefix_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const MIRValueSummary *
+find_value_summary_prefix_with_use(const MIRRoutine *routine, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    const MIRValueSummary *best = NULL;
+    if (routine == NULL)
+        return NULL;
+    for (size_t i = 0; i < routine->value_summary_count; i++) {
+        const MIRValueSummary *summary = &routine->value_summaries[i];
+        if (summary->name != NULL
+            && strncmp(summary->name, prefix, prefix_len) == 0) {
+            if (best == NULL || summary->use_count > best->use_count)
+                best = summary;
+        }
+    }
+    return best;
+}
+
 static void
 test_mir_lowering(void)
 {
@@ -307,9 +338,13 @@ test_mir_lowering(void)
         bool has_def = false;
         bool has_entry = false;
         bool has_exit = false;
+        bool has_live_out = false;
+        const MIRValueSummary *score_summary = NULL;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             merge = find_mir_routine(mir, "Merge", MIR_SCOPE_FUNCTION);
+        if (merge != NULL)
+            score_summary = find_value_summary_prefix_with_use(merge, "score.");
         if (merge != NULL) {
             for (size_t i = 0; i < merge->block_count; i++) {
                 const MIRBasicBlock *block = &merge->blocks[i];
@@ -325,6 +360,8 @@ test_mir_lowering(void)
                     has_entry = true;
                 if (block_has_exit_prefix(block, "score."))
                     has_exit = true;
+                if (block_has_live_out_prefix(block, "score."))
+                    has_live_out = true;
                 for (size_t j = 0; j < block->instruction_count; j++) {
                     const MIRInstruction *inst = &block->instructions[j];
                     if (inst->kind == MIR_INST_PHI && inst->phi_incoming_count >= 2)
@@ -347,9 +384,16 @@ test_mir_lowering(void)
                && has_def
                && has_entry
                && has_exit
+               && has_live_out
                && has_uses
                && has_branch
-               && has_return);
+               && has_return
+               && merge->has_liveness
+               && merge->live_value_count > 0
+               && merge->has_use_def_summary
+               && score_summary != NULL
+               && score_summary->use_count > 0
+               && score_summary->live_out_block_count > 0);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

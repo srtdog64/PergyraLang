@@ -807,6 +807,11 @@ struct ASTNode
             ASTNode** methods;
             size_t method_count;
             StructuredComment* doc_comment;
+            /* between clause: relation X between Left, Right */
+            char* between_left;       /* "subject", "object", "class" or concrete type */
+            char* between_right;      /* "subject", "object", "class" or concrete type */
+            bool between_left_many;   /* true if left[] */
+            bool between_right_many;  /* true if right[] */
         } relation_decl;
 
         /* Effect declaration */

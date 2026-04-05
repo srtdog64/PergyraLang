@@ -12,7 +12,7 @@ object HeroView
     let shield: Int;
 }
 
-dto HeroPacket
+tobject HeroPacket
 {
     let name: String;
     let className: String;

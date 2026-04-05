@@ -2205,6 +2205,22 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             "Relation '%s' currently models a small edge; more than two endpoint slots may be better expressed as party or zone",
             node->data.relation_decl.name);
     }
+    /* Validate 'between' clause if present */
+    const char *bl = node->data.relation_decl.between_left;
+    const char *br = node->data.relation_decl.between_right;
+    if (bl != NULL && br != NULL) {
+        /* At least one side must be 'subject' */
+        bool left_is_subject = (strcmp(bl, "subject") == 0);
+        bool right_is_subject = (strcmp(br, "subject") == 0);
+        if (!left_is_subject && !right_is_subject) {
+            semantic_error(ctx, node,
+                "Relation '%s': at least one side of 'between' must be 'subject' "
+                "(got '%s' and '%s')",
+                node->data.relation_decl.name, bl, br);
+            ok = false;
+        }
+    }
+
     ctx->current_relation = saved_relation;
     return ok && !ctx->has_error;
 }

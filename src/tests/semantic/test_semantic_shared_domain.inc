@@ -1166,6 +1166,113 @@ test_shared_memory_features(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+    TEST("relation between subject, subject passes");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "relation Marriage between subject, subject\n"
+            "{\n"
+            "    shared years: Int = 0\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        /* verify between fields were parsed */
+        ASTNode *rel = program->data.program.statements[1];
+        EXPECT(rel->data.relation_decl.between_left != NULL);
+        EXPECT(strcmp(rel->data.relation_decl.between_left, "subject") == 0);
+        EXPECT(strcmp(rel->data.relation_decl.between_right, "subject") == 0);
+        EXPECT(!rel->data.relation_decl.between_left_many);
+        EXPECT(!rel->data.relation_decl.between_right_many);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation between subject, class[] parses 1:N");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "class Item { let name: String; }\n"
+            "relation Ownership between subject, class[]\n"
+            "{\n"
+            "    shared acquired_at: Int = 0\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        ASTNode *rel = program->data.program.statements[2];
+        EXPECT(strcmp(rel->data.relation_decl.between_left, "subject") == 0);
+        EXPECT(strcmp(rel->data.relation_decl.between_right, "class") == 0);
+        EXPECT(!rel->data.relation_decl.between_left_many);
+        EXPECT(rel->data.relation_decl.between_right_many);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation between object, object rejects (no subject)");
+    {
+        const char *source =
+            "object ViewA { x: Int; }\n"
+            "object ViewB { y: Int; }\n"
+            "relation BadLink between object, object\n"
+            "{\n"
+            "    shared weight: Int = 0\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("relation between subject[], subject[] parses N:N");
+    {
+        const char *source =
+            "subject Nation { let name: String; }\n"
+            "relation Alliance between subject[], subject[]\n"
+            "{\n"
+            "    shared trust: Int = 0\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        ASTNode *rel = program->data.program.statements[1];
+        EXPECT(rel->data.relation_decl.between_left_many);
+        EXPECT(rel->data.relation_decl.between_right_many);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 /* -----------------------------------------------------------------

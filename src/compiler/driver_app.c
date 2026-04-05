@@ -804,14 +804,14 @@ driver_run_scaffold_command(int argc, char *argv[])
     if (argc < 3) {
         fprintf(stderr,
             "Usage:\n"
-            "  pgy scaffold <subject|class|vessel|object|dto|zone|world|simulator|project> <target>\n"
+            "  pgy scaffold <subject|class|vessel|object|tobject|zone|world|simulator|project> <target>\n"
             "  pgy new <project-dir>\n"
             "\n"
             "Ontology first:\n"
-            "  subject = active agent / who acts\n"
-            "  class   = passive tool or thing with hosted func\n"
-            "  object  = passive view or state target\n"
-            "  dto     = boundary packet\n");
+            "  subject  = active agent / who acts\n"
+            "  class    = passive tool or thing with hosted func\n"
+            "  object   = passive view or state target\n"
+            "  tobject  = transfer object (boundary data, commonly known as DTO)\n");
         return 1;
     }
 
@@ -826,7 +826,7 @@ driver_run_scaffold_command(int argc, char *argv[])
         return scaffold_vessel_file(target);
     if (strcmp(kind, "object") == 0)
         return scaffold_object_file(target);
-    if (strcmp(kind, "dto") == 0)
+    if (strcmp(kind, "tobject") == 0 || strcmp(kind, "dto") == 0)
         return scaffold_dto_file(target);
     if (strcmp(kind, "zone") == 0)
         return scaffold_zone_file(target);

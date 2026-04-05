@@ -41,7 +41,7 @@ class Event
 // 이벤트 목록
 // ⚠️ 약점: 제네릭 컬렉션이 없다
 // List<Event>가 안 되므로 고정 배열 또는 HashMap으로 우회
-dto EventSummary
+tobject EventSummary
 {
     let title: String;
     let date_year: Int;

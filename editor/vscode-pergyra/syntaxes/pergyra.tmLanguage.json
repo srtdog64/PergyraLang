@@ -37,7 +37,7 @@
         },
         {
           "name": "storage.type.pergyra",
-          "match": "\\b(subject|class|struct|vessel|object|dto|ability|role|relation|effect|zone|world|party|systemic|channel)\\b"
+          "match": "\\b(subject|class|struct|vessel|object|tobject|dto|ability|role|relation|effect|zone|world|party|roster|systemic|channel)\\b"
         }
       ]
     },

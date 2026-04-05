@@ -1,8 +1,8 @@
-// subject_object_dto.pgy — subject/object/dto 존재론 분리
+// subject_object_dto.pgy — subject/object/tobject 존재론 분리
 //
 // subject = 상태와 identity를 가진 능동 주체
 // object  = subject에서 파생된 수동 투영 (읽기 전용 뷰)
-// dto     = 외부 경계용 축약 투영 (IPC/API)
+// tobject     = 외부 경계용 축약 투영 (IPC/API)
 
 subject Player {
     let name: String;
@@ -17,8 +17,8 @@ object PlayerView {
     let hp: Int;
 }
 
-// dto: 외부 전송용 경량 투영
-dto PlayerSummary {
+// tobject: 외부 전송용 경량 투영
+tobject PlayerSummary {
     let name: String;
     let level: Int;
 }
@@ -33,7 +33,7 @@ func Main() -> Void {
     Log(view.name);
     Log(view.hp);
 
-    // ToDto: subject → dto 투영
+    // ToDto: subject → tobject 투영
     let summary: PlayerSummary = ToDto(PlayerSummary, p);
     Log(summary.name);
     Log(summary.level);

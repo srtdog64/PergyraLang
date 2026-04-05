@@ -7,277 +7,7 @@
 
 #include "../common/string_compat.h"
 
-static bool
-append_instruction(MIRBasicBlock *block, MIRInstruction inst)
-{
-    MIRInstruction *grown;
-    if (block == NULL)
-        return false;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    grown[block->instruction_count] = inst;
-    block->instructions = grown;
-    block->instruction_count++;
-    return true;
-}
-
-static char *
-mir_strdup_fmt(const char *fmt, ...)
-{
-    va_list args;
-    va_list copy;
-    int length;
-    char *result;
-
-    va_start(args, fmt);
-    va_copy(copy, args);
-    length = vsnprintf(NULL, 0, fmt, copy);
-    va_end(copy);
-    if (length < 0) {
-        va_end(args);
-        return NULL;
-    }
-
-    result = malloc((size_t)length + 1);
-    if (result == NULL) {
-        va_end(args);
-        return NULL;
-    }
-    vsnprintf(result, (size_t)length + 1, fmt, args);
-    va_end(args);
-    return result;
-}
-
-static bool
-insert_instruction(MIRBasicBlock *block, size_t index, MIRInstruction inst)
-{
-    MIRInstruction *grown;
-    if (block == NULL)
-        return false;
-    if (index > block->instruction_count)
-        index = block->instruction_count;
-    grown = realloc(block->instructions, (block->instruction_count + 1) * sizeof(MIRInstruction));
-    if (grown == NULL)
-        return false;
-    memmove(&grown[index + 1],
-            &grown[index],
-            (block->instruction_count - index) * sizeof(MIRInstruction));
-    grown[index] = inst;
-    block->instructions = grown;
-    block->instruction_count++;
-    return true;
-}
-
-static bool
-append_name(const char ***names, size_t *count, const char *name)
-{
-    const char **grown;
-    if (names == NULL || count == NULL || name == NULL)
-        return false;
-    grown = realloc((void *)*names, (*count + 1) * sizeof(const char *));
-    if (grown == NULL)
-        return false;
-    grown[*count] = name;
-    *names = grown;
-    (*count)++;
-    return true;
-}
-
-static bool
-append_owned_name(const char ***names, size_t *count, char *name)
-{
-    const char **grown;
-    if (names == NULL || count == NULL || name == NULL)
-        return false;
-    grown = realloc((void *)*names, (*count + 1) * sizeof(const char *));
-    if (grown == NULL) {
-        free(name);
-        return false;
-    }
-    grown[*count] = name;
-    *names = grown;
-    (*count)++;
-    return true;
-}
-
-static bool
-append_name_unique(const char ***names, size_t *count, const char *name)
-{
-    if (names == NULL || count == NULL || name == NULL)
-        return false;
-    for (size_t i = 0; i < *count; i++) {
-        if ((*names)[i] != NULL && strcmp((*names)[i], name) == 0)
-            return true;
-    }
-    return append_name(names, count, name);
-}
-
-static bool
-append_index_unique(size_t **items, size_t *count, size_t value)
-{
-    size_t *grown;
-    if (items == NULL || count == NULL)
-        return false;
-    for (size_t i = 0; i < *count; i++) {
-        if ((*items)[i] == value)
-            return true;
-    }
-    grown = realloc(*items, (*count + 1) * sizeof(size_t));
-    if (grown == NULL)
-        return false;
-    grown[*count] = value;
-    *items = grown;
-    (*count)++;
-    return true;
-}
-
-static bool
-append_block(MIRRoutine *routine, MIRBasicBlock block)
-{
-    MIRBasicBlock *grown;
-    if (routine == NULL)
-        return false;
-    grown = realloc(routine->blocks, (routine->block_count + 1) * sizeof(MIRBasicBlock));
-    if (grown == NULL)
-        return false;
-    grown[routine->block_count] = block;
-    routine->blocks = grown;
-    routine->block_count++;
-    return true;
-}
-
-static bool
-append_routine(MIRProgram *mir, MIRRoutine routine)
-{
-    MIRRoutine *grown;
-    if (mir == NULL)
-        return false;
-    grown = realloc(mir->routines, (mir->routine_count + 1) * sizeof(MIRRoutine));
-    if (grown == NULL)
-        return false;
-    grown[mir->routine_count] = routine;
-    mir->routines = grown;
-    mir->routine_count++;
-    return true;
-}
-
-static char *
-mir_make_versioned_name(const char *base, size_t version)
-{
-    char buffer[128];
-    size_t length;
-    char *result;
-    if (base == NULL)
-        base = "tmp";
-    snprintf(buffer, sizeof(buffer), "%s.%zu", base, version);
-    length = strlen(buffer);
-    result = malloc(length + 1);
-    if (result == NULL)
-        return NULL;
-    memcpy(result, buffer, length + 1);
-    return result;
-}
-
-static bool
-copy_indices(size_t **dst, size_t *dst_count, const size_t *src, size_t src_count)
-{
-    if (src_count == 0) {
-        *dst = NULL;
-        *dst_count = 0;
-        return true;
-    }
-    *dst = malloc(src_count * sizeof(size_t));
-    if (*dst == NULL)
-        return false;
-    memcpy(*dst, src, src_count * sizeof(size_t));
-    *dst_count = src_count;
-    return true;
-}
-
-static bool
-copy_versions(size_t **dst, const size_t *src, size_t count)
-{
-    if (count == 0) {
-        *dst = NULL;
-        return true;
-    }
-    *dst = malloc(count * sizeof(size_t));
-    if (*dst == NULL)
-        return false;
-    memcpy(*dst, src, count * sizeof(size_t));
-    return true;
-}
-
-static bool
-mir_store_block_versions(MIRBasicBlock *block, bool is_entry, const size_t *versions, size_t count)
-{
-    size_t **target;
-    if (block == NULL)
-        return false;
-    target = is_entry ? &block->ssa_entry_versions : &block->ssa_exit_versions;
-    free(*target);
-    *target = NULL;
-    if (!copy_versions(target, versions, count))
-        return false;
-    block->ssa_version_count = count;
-    return true;
-}
-
-static MIRScopeKind
-mir_scope_kind_from_hir(const HIRRoutine *routine)
-{
-    if (routine == NULL)
-        return MIR_SCOPE_FUNCTION;
-    if (routine->kind == HIR_TOPLEVEL_INTENT)
-        return MIR_SCOPE_INTENT;
-    if (routine->is_hosted || routine->is_action_like)
-        return MIR_SCOPE_METHOD;
-    return MIR_SCOPE_FUNCTION;
-}
-
-static const RIRScope *
-mir_find_matching_rir_scope(const RIRProgram *rir, const HIRRoutine *routine)
-{
-    RIRScopeKind wanted_kind;
-    if (rir == NULL || routine == NULL || routine->name == NULL)
-        return NULL;
-
-    if (routine->kind == HIR_TOPLEVEL_INTENT) {
-        wanted_kind = RIR_SCOPE_INTENT;
-    } else if (routine->is_hosted || routine->is_action_like) {
-        wanted_kind = RIR_SCOPE_METHOD;
-    } else {
-        wanted_kind = RIR_SCOPE_FUNCTION;
-    }
-
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
-        if (scope->kind == wanted_kind
-            && scope->name != NULL
-            && strcmp(scope->name, routine->name) == 0) {
-            return scope;
-        }
-    }
-    return NULL;
-}
-
-static const char *
-mir_node_name(ASTNode *node)
-{
-    if (node == NULL)
-        return NULL;
-    switch (node->type) {
-        case AST_IDENTIFIER:
-            return node->data.identifier.name;
-        case AST_MEMBER_ACCESS:
-            return node->data.member.name;
-        case AST_TYPE:
-            return node->data.type.name;
-        default:
-            return NULL;
-    }
-}
+#include "mir_base.inc"
 
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block, const HIRBasicBlock *hir_block)
@@ -922,6 +652,447 @@ mir_populate_use_edges(MIRRoutine *routine)
 }
 
 static bool
+mir_append_block_set(const char ***names, size_t *count, const char *name)
+{
+    if (name == NULL)
+        return true;
+    return append_name_unique(names, count, name);
+}
+
+static bool
+mir_collect_block_defs_uses(MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        MIRBasicBlock *block = &routine->blocks[i];
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_PHI) {
+                if (inst->result_name != NULL) {
+                    if (!mir_append_block_set(&block->def_names, &block->def_name_count, inst->result_name))
+                        return false;
+                }
+                continue;
+            }
+            for (size_t k = 0; k < inst->use_count; k++) {
+                const char *use = inst->uses[k];
+                if (!mir_name_set_contains(block->def_names, block->def_name_count, use)) {
+                    if (!mir_append_block_set(&block->use_names, &block->use_name_count, use))
+                        return false;
+                }
+            }
+            if (inst->result_name != NULL) {
+                if (!mir_append_block_set(&block->def_names, &block->def_name_count, inst->result_name))
+                    return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static bool
+mir_collect_successor_live_in(const MIRRoutine *routine,
+                              size_t predecessor_block,
+                              const MIRBasicBlock *block,
+                              const char ***names,
+                              size_t *count)
+{
+    size_t succs[5];
+    size_t succ_count = 0;
+
+    if (routine == NULL || block == NULL || names == NULL || count == NULL)
+        return false;
+
+    if (block->has_succ_true)
+        succs[succ_count++] = block->succ_true;
+    if (block->has_succ_false)
+        succs[succ_count++] = block->succ_false;
+    if (block->has_cleanup_succ)
+        succs[succ_count++] = block->cleanup_succ;
+    if (block->has_rollback_succ)
+        succs[succ_count++] = block->rollback_succ;
+    if (block->has_invalidation_succ)
+        succs[succ_count++] = block->invalidation_succ;
+
+    for (size_t i = 0; i < succ_count; i++) {
+        size_t succ = succs[i];
+        if (succ >= routine->block_count)
+            continue;
+        for (size_t j = 0; j < routine->blocks[succ].live_in_name_count; j++) {
+            if (!mir_append_block_set(names, count, routine->blocks[succ].live_in_names[j]))
+                return false;
+        }
+        for (size_t j = 0; j < routine->blocks[succ].instruction_count; j++) {
+            const MIRInstruction *inst = &routine->blocks[succ].instructions[j];
+            if (inst->kind != MIR_INST_PHI)
+                continue;
+            for (size_t k = 0; k < inst->phi_incoming_count; k++) {
+                if (inst->phi_incomings[k].predecessor_block == predecessor_block) {
+                    if (!mir_append_block_set(names, count, inst->phi_incomings[k].value_name))
+                        return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+static void
+mir_clear_block_name_set(const char ***names, size_t *count)
+{
+    free((void *)*names);
+    *names = NULL;
+    *count = 0;
+}
+
+static int
+mir_find_value_summary(const MIRRoutine *routine, const char *name)
+{
+    if (routine == NULL || name == NULL)
+        return -1;
+    for (size_t i = 0; i < routine->value_summary_count; i++) {
+        if (routine->value_summaries[i].name != NULL
+            && strcmp(routine->value_summaries[i].name, name) == 0) {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+static bool
+mir_append_value_summary(MIRRoutine *routine,
+                         const char *name,
+                         size_t def_block,
+                         size_t def_inst)
+{
+    MIRValueSummary *grown;
+    MIRValueSummary summary;
+
+    if (routine == NULL || name == NULL)
+        return false;
+    if (mir_find_value_summary(routine, name) >= 0)
+        return true;
+
+    memset(&summary, 0, sizeof(summary));
+    summary.name = pergyra_strdup(name);
+    if (summary.name == NULL)
+        return false;
+    summary.def_block = def_block;
+    summary.def_inst = def_inst;
+    summary.first_use_block = SIZE_MAX;
+    summary.last_use_block = SIZE_MAX;
+
+    grown = realloc(routine->value_summaries,
+                    sizeof(MIRValueSummary) * (routine->value_summary_count + 1));
+    if (grown == NULL) {
+        free((void *)summary.name);
+        return false;
+    }
+    routine->value_summaries = grown;
+    routine->value_summaries[routine->value_summary_count++] = summary;
+    return true;
+}
+
+static bool
+mir_build_value_summaries(MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+
+    for (size_t i = 0; i < routine->value_summary_count; i++)
+        free((void *)routine->value_summaries[i].name);
+    free(routine->value_summaries);
+    routine->value_summaries = NULL;
+    routine->value_summary_count = 0;
+    routine->has_use_def_summary = false;
+
+    for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
+        MIRBasicBlock *block = &routine->blocks[block_id];
+        for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
+            const MIRInstruction *inst = &block->instructions[inst_id];
+            if (inst->result_name != NULL) {
+                if (!mir_append_value_summary(routine, inst->result_name, block_id, inst_id))
+                    return false;
+            }
+        }
+    }
+
+    for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
+        const MIRBasicBlock *block = &routine->blocks[block_id];
+
+        for (size_t i = 0; i < block->live_in_name_count; i++) {
+            int idx = mir_find_value_summary(routine, block->live_in_names[i]);
+            if (idx >= 0)
+                routine->value_summaries[idx].live_in_block_count++;
+        }
+        for (size_t i = 0; i < block->live_out_name_count; i++) {
+            int idx = mir_find_value_summary(routine, block->live_out_names[i]);
+            if (idx >= 0)
+                routine->value_summaries[idx].live_out_block_count++;
+        }
+        for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
+            const MIRInstruction *inst = &block->instructions[inst_id];
+            for (size_t use_i = 0; use_i < inst->use_count; use_i++) {
+                int idx = mir_find_value_summary(routine, inst->uses[use_i]);
+                MIRValueSummary *summary;
+                if (idx < 0)
+                    continue;
+                summary = &routine->value_summaries[idx];
+                summary->use_count++;
+                if (summary->first_use_block == SIZE_MAX)
+                    summary->first_use_block = block_id;
+                summary->last_use_block = block_id;
+                if (block->is_cleanup)
+                    summary->reaches_cleanup = true;
+            }
+        }
+    }
+
+    routine->has_use_def_summary = true;
+    return true;
+}
+
+static bool
+mir_compute_liveness(MIRRoutine *routine)
+{
+    bool changed;
+
+    if (routine == NULL)
+        return false;
+    if (!mir_collect_block_defs_uses(routine))
+        return false;
+
+    do {
+        changed = false;
+        for (size_t idx = routine->block_count; idx-- > 0;) {
+            MIRBasicBlock *block = &routine->blocks[idx];
+            const char **new_live_out = NULL;
+            size_t new_live_out_count = 0;
+            const char **new_live_in = NULL;
+            size_t new_live_in_count = 0;
+            bool same_live_out = true;
+            bool same_live_in = true;
+
+            if (!mir_collect_successor_live_in(routine, idx, block, &new_live_out, &new_live_out_count)) {
+                free((void *)new_live_out);
+                free((void *)new_live_in);
+                return false;
+            }
+
+            for (size_t i = 0; i < block->use_name_count; i++) {
+                if (!mir_append_block_set(&new_live_in, &new_live_in_count, block->use_names[i])) {
+                    free((void *)new_live_out);
+                    free((void *)new_live_in);
+                    return false;
+                }
+            }
+            for (size_t i = 0; i < new_live_out_count; i++) {
+                const char *name = new_live_out[i];
+                if (!mir_name_set_contains(block->def_names, block->def_name_count, name)) {
+                    if (!mir_append_block_set(&new_live_in, &new_live_in_count, name)) {
+                        free((void *)new_live_out);
+                        free((void *)new_live_in);
+                        return false;
+                    }
+                }
+            }
+
+            if (new_live_out_count != block->live_out_name_count)
+                same_live_out = false;
+            else {
+                for (size_t i = 0; i < new_live_out_count; i++) {
+                    if (!mir_name_set_contains(block->live_out_names, block->live_out_name_count, new_live_out[i])) {
+                        same_live_out = false;
+                        break;
+                    }
+                }
+            }
+
+            if (new_live_in_count != block->live_in_name_count)
+                same_live_in = false;
+            else {
+                for (size_t i = 0; i < new_live_in_count; i++) {
+                    if (!mir_name_set_contains(block->live_in_names, block->live_in_name_count, new_live_in[i])) {
+                        same_live_in = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!same_live_out) {
+                mir_clear_block_name_set(&block->live_out_names, &block->live_out_name_count);
+                block->live_out_names = new_live_out;
+                block->live_out_name_count = new_live_out_count;
+                new_live_out = NULL;
+                changed = true;
+            }
+            if (!same_live_in) {
+                mir_clear_block_name_set(&block->live_in_names, &block->live_in_name_count);
+                block->live_in_names = new_live_in;
+                block->live_in_name_count = new_live_in_count;
+                new_live_in = NULL;
+                changed = true;
+            }
+
+            free((void *)new_live_out);
+            free((void *)new_live_in);
+        }
+    } while (changed);
+
+    routine->live_value_count = 0;
+    routine->has_liveness = true;
+    for (size_t i = 0; i < routine->block_count; i++)
+        routine->live_value_count += routine->blocks[i].live_in_name_count + routine->blocks[i].live_out_name_count;
+    return mir_build_value_summaries(routine);
+}
+
+static bool
+mir_block_has_value(const MIRBasicBlock *block, const char *name)
+{
+    if (block == NULL || name == NULL)
+        return false;
+    return mir_name_set_contains(block->ssa_entry_values, block->ssa_entry_value_count, name)
+           || mir_name_set_contains(block->def_names, block->def_name_count, name)
+           || mir_name_set_contains(block->ssa_exit_values, block->ssa_exit_value_count, name);
+}
+
+static bool
+mir_block_has_predecessor(const MIRBasicBlock *block, size_t predecessor)
+{
+    if (block == NULL)
+        return false;
+    for (size_t i = 0; i < block->predecessor_count; i++) {
+        if (block->predecessors[i] == predecessor)
+            return true;
+    }
+    return false;
+}
+
+static bool
+mir_block_can_use_value_before_inst(const MIRBasicBlock *block, const char *name, size_t inst_index)
+{
+    if (block == NULL || name == NULL)
+        return false;
+    if (mir_name_set_contains(block->live_in_names, block->live_in_name_count, name)
+        || mir_name_set_contains(block->ssa_entry_values, block->ssa_entry_value_count, name)) {
+        return true;
+    }
+
+    for (size_t i = 0; i < inst_index && i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->result_name != NULL && strcmp(inst->result_name, name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+mir_validate_block_liveness_sets(const MIRRoutine *routine,
+                                 const MIRBasicBlock *block,
+                                 size_t block_index,
+                                 char **error_message)
+{
+    if (block == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->live_out_name_count; i++) {
+        const char *name = block->live_out_names[i];
+        if (name == NULL)
+            continue;
+        if (!mir_block_has_value(block, name) && !mir_name_set_contains(block->live_in_names, block->live_in_name_count, name)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] live-out '%s' is not produced by block state",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    name);
+            }
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+mir_validate_instruction_uses(const MIRRoutine *routine,
+                              const MIRBasicBlock *block,
+                              size_t block_index,
+                              char **error_message)
+{
+    if (routine == NULL || block == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind == MIR_INST_PHI) {
+            for (size_t j = 0; j < inst->phi_incoming_count; j++) {
+                size_t pred = inst->phi_incomings[j].predecessor_block;
+                const char *value = inst->phi_incomings[j].value_name;
+                if (pred >= routine->block_count) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] phi references invalid predecessor %zu",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            block_index,
+                            pred);
+                    }
+                    return false;
+                }
+                if (!mir_block_has_predecessor(block, pred)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] phi predecessor %zu is not in predecessor list",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            block_index,
+                            pred);
+                    }
+                    return false;
+                }
+                if (!mir_name_set_contains(routine->blocks[pred].ssa_exit_values,
+                                           routine->blocks[pred].ssa_exit_value_count,
+                                           value)
+                    && !mir_name_set_contains(routine->blocks[pred].live_out_names,
+                                              routine->blocks[pred].live_out_name_count,
+                                              value)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] phi incoming '%s' is not available from predecessor %zu",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            block_index,
+                            value != NULL ? value : "(null)",
+                            pred);
+                    }
+                    return false;
+                }
+            }
+            continue;
+        }
+
+        for (size_t j = 0; j < inst->use_count; j++) {
+            const char *use = inst->uses[j];
+            if (!mir_block_can_use_value_before_inst(block, use, i)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] uses '%s' before definition",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i,
+                        use != NULL ? use : "(null)");
+                }
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static bool
 mir_materialize_cleanup_edges(MIRRoutine *routine)
 {
     if (routine == NULL || !routine->has_cleanup_block)
@@ -1188,261 +1359,4 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     return true;
 }
 
-MIRProgram *
-mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
-{
-    MIRProgram *mir;
-    if (error_message != NULL)
-        *error_message = NULL;
-    if (hir == NULL) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup("MIR lowering requires HIR");
-        return NULL;
-    }
-
-    mir = calloc(1, sizeof(MIRProgram));
-    if (mir == NULL) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup("out of memory");
-        return NULL;
-    }
-
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        const HIRRoutine *hir_routine = &hir->routines[i];
-        MIRRoutine routine;
-        memset(&routine, 0, sizeof(routine));
-        routine.id = mir->routine_count;
-        routine.kind = mir_scope_kind_from_hir(hir_routine);
-        routine.owner_name = NULL;
-        routine.name = hir_routine->name;
-        routine.hir_routine = hir_routine;
-        routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
-
-        if (!mir_build_blocks_from_hir(&routine, hir_routine)
-            || !mir_append_cleanup_block(&routine, routine.rir_scope)
-            || !mir_populate_instructions(&routine)
-            || !mir_apply_ssa_rename(&routine)
-            || !mir_populate_use_edges(&routine)
-            || !mir_materialize_cleanup_edges(&routine)
-            || !append_routine(mir, routine)) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-    }
-
-    return mir;
-}
-
-void
-mir_destroy(MIRProgram *mir)
-{
-    if (mir == NULL)
-        return;
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        MIRRoutine *routine = &mir->routines[i];
-        for (size_t j = 0; j < routine->block_count; j++) {
-            free(routine->blocks[j].predecessors);
-            for (size_t k = 0; k < routine->blocks[j].instruction_count; k++) {
-                free((void *)routine->blocks[j].instructions[k].result_name);
-                for (size_t m = 0; m < routine->blocks[j].instructions[k].use_count; m++)
-                    free((void *)routine->blocks[j].instructions[k].uses[m]);
-                free((void *)routine->blocks[j].instructions[k].uses);
-                if (routine->blocks[j].instructions[k].phi_incomings != NULL) {
-                    for (size_t m = 0; m < routine->blocks[j].instructions[k].phi_incoming_count; m++)
-                        free((void *)routine->blocks[j].instructions[k].phi_incomings[m].value_name);
-                }
-                free(routine->blocks[j].instructions[k].phi_incomings);
-            }
-            for (size_t k = 0; k < routine->blocks[j].renamed_local_count; k++)
-                free((void *)routine->blocks[j].renamed_locals[k]);
-            free((void *)routine->blocks[j].renamed_locals);
-            for (size_t k = 0; k < routine->blocks[j].ssa_entry_value_count; k++)
-                free((void *)routine->blocks[j].ssa_entry_values[k]);
-            free((void *)routine->blocks[j].ssa_entry_values);
-            for (size_t k = 0; k < routine->blocks[j].ssa_exit_value_count; k++)
-                free((void *)routine->blocks[j].ssa_exit_values[k]);
-            free((void *)routine->blocks[j].ssa_exit_values);
-            free(routine->blocks[j].ssa_entry_versions);
-            free(routine->blocks[j].ssa_exit_versions);
-            free(routine->blocks[j].instructions);
-        }
-        free(routine->blocks);
-    }
-    free(mir->routines);
-    free(mir);
-}
-
-const char *
-mir_scope_kind_name(MIRScopeKind kind)
-{
-    switch (kind) {
-        case MIR_SCOPE_FUNCTION: return "function";
-        case MIR_SCOPE_METHOD: return "method";
-        case MIR_SCOPE_INTENT: return "intent";
-        default: return "unknown";
-    }
-}
-
-const char *
-mir_inst_kind_name(MIRInstKind kind)
-{
-    switch (kind) {
-        case MIR_INST_DEF: return "def";
-        case MIR_INST_RESOURCE_OP: return "resource-op";
-        case MIR_INST_PHI: return "phi";
-        case MIR_INST_BRANCH: return "branch";
-        case MIR_INST_RETURN: return "return";
-        case MIR_INST_CLEANUP_EDGE: return "cleanup";
-        default: return "unknown";
-    }
-}
-
-bool
-mir_validate(const MIRProgram *mir, char **error_message)
-{
-    if (error_message != NULL)
-        *error_message = NULL;
-    if (mir == NULL) {
-        if (error_message != NULL)
-            *error_message = pergyra_strdup("MIR program is null");
-        return false;
-    }
-
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
-        if (routine->block_count == 0 || routine->entry_block >= routine->block_count) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' has invalid entry block",
-                    routine->name != NULL ? routine->name : "(anonymous)");
-            }
-            return false;
-        }
-        if (routine->has_cleanup_block && routine->cleanup_block >= routine->block_count) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' has invalid cleanup block",
-                    routine->name != NULL ? routine->name : "(anonymous)");
-            }
-            return false;
-        }
-        for (size_t j = 0; j < routine->block_count; j++) {
-            const MIRBasicBlock *block = &routine->blocks[j];
-            for (size_t k = 0; k < block->instruction_count; k++) {
-                const MIRInstruction *inst = &block->instructions[k];
-                if (inst->kind == MIR_INST_PHI
-                    && inst->phi_incoming_count != block->predecessor_count) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' block[%zu] phi has %zu incoming edges but %zu predecessors",
-                            routine->name != NULL ? routine->name : "(anonymous)",
-                            j,
-                            inst->phi_incoming_count,
-                            block->predecessor_count);
-                    }
-                    return false;
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-void
-mir_dump(const MIRProgram *mir, FILE *out)
-{
-    if (out == NULL)
-        out = stdout;
-    if (mir == NULL) {
-        fprintf(out, "MIR: (null)\n");
-        return;
-    }
-
-    fprintf(out, "MIR Program\n  routines: %zu\n", mir->routine_count);
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
-        fprintf(out,
-                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu\n",
-                i,
-                mir_scope_kind_name(routine->kind),
-                routine->name != NULL ? routine->name : "(anonymous)",
-                routine->block_count,
-                routine->instruction_count,
-                routine->has_cleanup_block ? "yes" : "no",
-                routine->has_rollback_block ? "yes" : "no",
-                routine->has_invalidation_block ? "yes" : "no",
-                routine->phi_inserted_count,
-                routine->renamed_value_count,
-                routine->cleanup_edge_count,
-                routine->use_edge_count);
-        for (size_t j = 0; j < routine->block_count; j++) {
-            const MIRBasicBlock *block = &routine->blocks[j];
-            fprintf(out,
-                    "    block[%02zu] reachable=%s cleanup=%s preds=%zu succT=%s succF=%s cleanupSucc=%s instructions=%zu\n",
-                    j,
-                    block->is_reachable ? "yes" : "no",
-                    block->is_cleanup ? "yes" : "no",
-                    block->predecessor_count,
-                    block->has_succ_true ? "yes" : "no",
-                    block->has_succ_false ? "yes" : "no",
-                    block->has_cleanup_succ ? "yes" : "no",
-                    block->instruction_count);
-            if (block->has_rollback_succ || block->has_invalidation_succ) {
-                fprintf(out,
-                        "      exceptional rollback=%s invalidation=%s\n",
-                        block->has_rollback_succ ? "yes" : "no",
-                        block->has_invalidation_succ ? "yes" : "no");
-            }
-            if (block->ssa_entry_value_count > 0) {
-                fprintf(out, "      entry:");
-                for (size_t k = 0; k < block->ssa_entry_value_count; k++)
-                    fprintf(out, " %s", block->ssa_entry_values[k]);
-                fprintf(out, "\n");
-            }
-            if (block->renamed_local_count > 0) {
-                fprintf(out, "      renamed:");
-                for (size_t k = 0; k < block->renamed_local_count; k++)
-                    fprintf(out, " %s", block->renamed_locals[k]);
-                fprintf(out, "\n");
-            }
-            if (block->ssa_exit_value_count > 0) {
-                fprintf(out, "      exit:");
-                for (size_t k = 0; k < block->ssa_exit_value_count; k++)
-                    fprintf(out, " %s", block->ssa_exit_values[k]);
-                fprintf(out, "\n");
-            }
-            for (size_t k = 0; k < block->instruction_count; k++) {
-                const MIRInstruction *inst = &block->instructions[k];
-                fprintf(out,
-                        "      inst[%02zu] %-12s name=%s result=%s arg0=%s arg1=%s",
-                        k,
-                        mir_inst_kind_name(inst->kind),
-                        inst->name != NULL ? inst->name : "-",
-                        inst->result_name != NULL ? inst->result_name : "-",
-                        inst->arg0 != NULL ? inst->arg0 : "-",
-                        inst->arg1 != NULL ? inst->arg1 : "-");
-                if (inst->phi_incoming_count > 0) {
-                    fprintf(out, " incoming=");
-                    for (size_t m = 0; m < inst->phi_incoming_count; m++) {
-                        fprintf(out,
-                                "%s%zu:%s",
-                                m == 0 ? "" : ",",
-                                inst->phi_incomings[m].predecessor_block,
-                                inst->phi_incomings[m].value_name != NULL
-                                    ? inst->phi_incomings[m].value_name
-                                    : "-");
-                    }
-                }
-                if (inst->use_count > 0) {
-                    fprintf(out, " uses=");
-                    for (size_t m = 0; m < inst->use_count; m++)
-                        fprintf(out, "%s%s", m == 0 ? "" : ",", inst->uses[m]);
-                }
-                fprintf(out, "\n");
-            }
-        }
-    }
-}
+#include "mir_public.inc"

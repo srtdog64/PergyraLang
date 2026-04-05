@@ -10,7 +10,7 @@ object BuyerZoneView
     let lastStatus: String;
 }
 
-dto MerchantZonePacket
+tobject MerchantZonePacket
 {
     let name: String;
     let orderCount: Int;
@@ -31,7 +31,7 @@ object CartPage
     let status: String;
 }
 
-dto CheckoutPacket
+tobject CheckoutPacket
 {
     let route: String;
     let shopper: String;
@@ -51,7 +51,7 @@ object RefundPage
     let merchant: String;
 }
 
-dto ProfilePacket
+tobject ProfilePacket
 {
     let route: String;
     let shopper: String;

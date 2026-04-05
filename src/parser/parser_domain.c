@@ -126,14 +126,15 @@ ASTNode* parse_world_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        if (parser_match_identifier_keyword(parser, "systemic")) {
-            /* systemic name: SystemicType */
+        if (parser_match_identifier_keyword(parser, "roster")
+            || parser_match_identifier_keyword(parser, "systemic")) {
+            /* roster name: RosterType  (systemic is deprecated alias) */
             Token slot_name = consume_name_token(parser,
-                "Expected systemic name");
+                "Expected roster name");
             parser_consume(parser, TOKEN_COLON,
-                "Expected ':' after systemic name");
+                "Expected ':' after roster name");
             Token sys_type = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected systemic type");
+                "Expected roster type");
 
             ASTNode* ws = ast_create_world_systemic(
                 slot_name.text, sys_type.text);
@@ -338,7 +339,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'systemic', 'zone', 'activate', 'deactivate', 'maintain', 'state', 'shared', or 'func' in world body");
+                "Expected 'roster', 'zone', 'activate', 'deactivate', 'maintain', 'state', 'shared', or 'func' in world body");
             parser_advance(parser);
         }
     }
@@ -540,6 +541,34 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     relation->data.relation_decl.doc_comment = parser_take_pending_doc_comment(parser);
     relation->line = name.line;
     relation->column = name.column;
+
+    /* Parse 'between Left, Right' clause (optional for backward compat) */
+    relation->data.relation_decl.between_left = NULL;
+    relation->data.relation_decl.between_right = NULL;
+    relation->data.relation_decl.between_left_many = false;
+    relation->data.relation_decl.between_right_many = false;
+
+    if (parser_match_identifier_keyword(parser, "between")) {
+        Token left = consume_name_token(parser,
+            "Expected type keyword after 'between' (subject, object, class, or type name)");
+        relation->data.relation_decl.between_left = pergyra_strdup(left.text);
+        if (parser_match(parser, TOKEN_LBRACKET)) {
+            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
+            relation->data.relation_decl.between_left_many = true;
+        }
+
+        parser_consume(parser, TOKEN_COMMA,
+            "Expected ',' between left and right types in 'between' clause");
+
+        Token right = consume_name_token(parser,
+            "Expected type keyword after ',' (subject, object, class, or type name)");
+        relation->data.relation_decl.between_right = pergyra_strdup(right.text);
+        if (parser_match(parser, TOKEN_LBRACKET)) {
+            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
+            relation->data.relation_decl.between_right_many = true;
+        }
+    }
+
     parse_header_subject_targets(parser,
         &relation->data.relation_decl.slots,
         &relation->data.relation_decl.slot_count,

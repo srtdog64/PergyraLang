@@ -124,6 +124,27 @@ find_scope(const RIRProgram *rir, const char *name, RIRScopeKind kind)
     return NULL;
 }
 
+static bool
+scope_has_flow_semantics(const RIRScope *scope, unsigned int flags)
+{
+    if (scope == NULL)
+        return false;
+    for (size_t i = 0; i < scope->flow_block_count; i++) {
+        const RIRFlowBlock *block = &scope->flow_blocks[i];
+        if ((block->entry_semantics & flags) == flags
+            || (block->exit_semantics & flags) == flags) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+scope_has_conservative_semantics(const RIRScope *scope, unsigned int flags)
+{
+    return scope != NULL && (scope->conservative_semantics & flags) == flags;
+}
+
 static void
 test_rir_lowering(void)
 {
@@ -219,7 +240,14 @@ test_rir_lowering(void)
                          && scope_has_op(intent, RIR_OP_COMPENSATE_INTENT_STEP)
                          && scope_has_op(intent, RIR_OP_ABORT_INTENT)
                          && scope_has_op(intent, RIR_OP_COMMIT_INTENT);
-        EXPECT(ok && rir_validate(rir, NULL) && zone_ok && intent_ok);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && zone_ok
+               && intent_ok
+               && scope_has_conservative_semantics(zone,
+                                                   RIR_FLOW_PROJECTION | RIR_FLOW_INVALIDATION)
+               && scope_has_conservative_semantics(intent,
+                                                   RIR_FLOW_AUTHORITY | RIR_FLOW_INVALIDATION));
         rir_destroy(rir);
         hir_destroy(hir);
     }
@@ -288,6 +316,40 @@ test_rir_lowering(void)
                && flow->flow_block_count > 0
                && flow->has_flow_sensitive_merge
                && found_join_merge);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR tracks invalidation semantics across projection and transfer flow");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "world CommerceWorld { zone pay: PaymentZone }\n"
+            "intent Shift(pay: PaymentZone, buyer: Buyer) {\n"
+            "    step step1 {\n"
+            "        where: PaymentZone;\n"
+            "        using: pay;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *zone = find_scope(rir, "PaymentZone", RIR_SCOPE_ZONE);
+        const RIRScope *intent = find_scope(rir, "Shift", RIR_SCOPE_INTENT);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && zone != NULL
+               && intent != NULL
+               && scope_has_conservative_semantics(zone, RIR_FLOW_PROJECTION)
+               && scope_has_conservative_semantics(intent, RIR_FLOW_INVALIDATION));
         rir_destroy(rir);
         hir_destroy(hir);
     }
@@ -371,6 +433,44 @@ test_rir_lowering(void)
                && scope_has_op_subject(intent, RIR_OP_READ, "refund")
                && scope_has_op_subject(intent, RIR_OP_MOVE, "payment")
                && scope_has_op_subject(intent, RIR_OP_CLAIM, "refund"));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR flow tracks projection semantics across joins and handoff semantics conservatively");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "dto BuyerDto { let hp: Int; }\n"
+            "zone PaymentZone { subject slot buyer: Buyer }\n"
+            "func MergeProjection(flag: Bool, buyer: Buyer) -> Void {\n"
+            "    if flag {\n"
+            "        ToObject(BuyerView, buyer);\n"
+            "    } else {\n"
+            "        ToDto(BuyerDto, buyer);\n"
+            "    }\n"
+            "}\n"
+            "intent Route(payment: PaymentZone, refund: PaymentZone, buyer: Buyer) {\n"
+            "    step move {\n"
+            "        where: PaymentZone;\n"
+            "        who: buyer;\n"
+            "        transfer: payment -> refund;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "MergeProjection", RIR_SCOPE_FUNCTION);
+        const RIRScope *intent = find_scope(rir, "Route", RIR_SCOPE_INTENT);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && flow->has_flow_sensitive_merge
+               && scope_has_flow_semantics(flow, RIR_FLOW_PROJECTION)
+               && intent != NULL
+               && scope_has_conservative_semantics(intent, RIR_FLOW_WORLD_HANDOFF));
         rir_destroy(rir);
         hir_destroy(hir);
     }

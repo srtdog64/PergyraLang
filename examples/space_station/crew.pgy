@@ -9,7 +9,7 @@ object CrewView
     role_name: String;
 }
 
-dto StatusReport
+tobject StatusReport
 {
     crew_name: String;
     location: String;

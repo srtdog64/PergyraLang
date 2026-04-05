@@ -204,7 +204,7 @@ subject Player {
 }
 
 // ============================================================
-// 6. object / dto -- projection (passive view)
+// 6. object / tobject -- projection (passive view)
 // ============================================================
 
 object PlayerView {
@@ -217,7 +217,7 @@ object PlayerView {
     }
 }
 
-dto PlayerProfile {
+tobject PlayerProfile {
     name: String;
     level: Int;
     item_count: Int;
@@ -286,7 +286,7 @@ world GameWorld {
     zone battle: BattleZone;
     zone trade: TradeZone;
 
-    systemic combat: CombatSystem;
+    roster combat: CombatSystem;
 }
 
 // ============================================================
@@ -296,7 +296,7 @@ world GameWorld {
 //   vessel    = passive receptacle  (organ)
 //   subject   = active orchestrator (organism / protagonist)
 //   object    = read-only view      (shadow / snapshot)
-//   dto       = boundary projection (letter / rumor)
+//   tobject       = boundary projection (letter / rumor)
 //   ability   = behavioral contract (genetic trait)
 //   role      = ability fulfillment (phenotype)
 //   action    = plot behavior       (protagonist's deed)
@@ -310,5 +310,5 @@ world GameWorld {
 //   action = "why, who, where" (orchestration / plot)
 //
 //   subject has action, not func.
-//   vessel/object/struct/dto/role have func, not action.
+//   vessel/object/struct/tobject/role have func, not action.
 // ============================================================
