@@ -1379,7 +1379,7 @@ static inline void pgy_list_push_string(PgyList_String *l, const char *val)
         l->capacity *= 2;
         l->data = (char **)realloc(l->data, l->capacity * sizeof(char *));
     }
-    l->data[l->count++] = strdup(val ? val : "");
+    l->data[l->count++] = pgy_runtime_strdup(val ? val : "");
 }
 
 static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
@@ -1440,7 +1440,7 @@ static inline void pgy_set_add_string(PgySet_String *s, const char *key)
     }
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity;
-    s->keys[h] = strdup(key); s->occupied[h] = 1; s->count++;
+    s->keys[h] = pgy_runtime_strdup(key); s->occupied[h] = 1; s->count++;
 }
 
 static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
@@ -1599,7 +1599,7 @@ static inline int32_t pgy_fsm_add_state(PgyFsm *f, const char *name)
 {
     if (f->state_count >= PGY_FSM_MAX_STATES) return -1;
     int32_t id = (int32_t)f->state_count;
-    f->state_names[id] = strdup(name ? name : "");
+    f->state_names[id] = pgy_runtime_strdup(name ? name : "");
     f->state_count++;
     return id;
 }

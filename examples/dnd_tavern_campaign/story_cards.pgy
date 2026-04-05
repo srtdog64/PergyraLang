@@ -1,0 +1,104 @@
+struct SceneChoiceCard
+{
+    let tag: String;
+    let gmPrompt: String;
+    let stakes: String;
+    let reward: String;
+}
+
+struct CompanionEventCard
+{
+    let trigger: String;
+    let reaction: String;
+    let outcome: String;
+}
+
+struct BossPhaseCard
+{
+    let title: String;
+    let dragonIntent: String;
+    let partyWindow: String;
+    let failureCost: String;
+}
+
+func SceneChoiceCardFor(stateId: Int, option: Int, beat: Int) -> SceneChoiceCard
+{
+    if stateId == 0
+    {
+        if option == 1 { return SceneChoiceCard("tavern-boast", "The room wants a leader before it wants a plan.", "Fame now can become debt by midnight.", "If the table buys the story, recruitment becomes easier."); }
+        if option == 2 { return SceneChoiceCard("tavern-rumor", "Every rumor broker in the Lantern is waiting to see what the party will pay.", "Bad rumors harden into route pressure later.", "A true lead trims danger off the first descent."); }
+        if option == 3 { return SceneChoiceCard("tavern-knife", "A public challenge can win respect faster than introductions.", "Too much noise marks the party before the dungeon does.", "The right audience will talk after pride is bruised."); }
+        return SceneChoiceCard("tavern-listen", "Silence lets other people do the revealing.", "A passive table can lose initiative inside the room.", "The best map may come from what no one meant to say.");
+    }
+    if stateId == 1
+    {
+        if option == 1 { return SceneChoiceCard("cellar-scout", "The first floor wants patience before it wants courage.", "Missing one vent or dart seam can snowball the whole cellar.", "A clean scout run changes every later angle of attack."); }
+        if option == 2 { return SceneChoiceCard("cellar-breach", "A breach can seize tempo before the gnolls organize.", "A loud entry turns every room into the same fight.", "If the line holds, the cellar never gets to settle."); }
+        if option == 3 { return SceneChoiceCard("cellar-rite", "The shrine still listens, but not selectively.", "Sanctity protects and exposes in equal measure here.", "If the rite lands cleanly, fear starts paying the party instead."); }
+        return SceneChoiceCard("cellar-runes", "The old rails and runes hide a faster pattern through the mold.", "Fast paths usually wake what slow paths avoid.", "Arcane certainty can trade travel cost for loot and leverage.");
+    }
+    if stateId == 2
+    {
+        if option == 1 { return SceneChoiceCard("mirror-wall", "The hall wants formation more than speed.", "A broken line here multiplies mistakes in reflection.", "If formation holds, the mirrors become predictable enough to cross."); }
+        if option == 2 { return SceneChoiceCard("mirror-split", "Two angles of attack might beat one mirrored corridor.", "A split party risks turning trust into distance.", "If timing holds, the court loses its easiest target map."); }
+        if option == 3 { return SceneChoiceCard("mirror-blood", "The saint-glass shortcut accepts pain as valid currency.", "Blood paid now weakens the next mistake window.", "A shortcut here buys time the dragon never gets back."); }
+        return SceneChoiceCard("mirror-blast", "A forced route can collapse the puzzle into rubble.", "Noise invites every wraith to vote on the same moment.", "If the blast opens true, the floor becomes shorter and richer.");
+    }
+    if stateId == 3
+    {
+        if option == 1 { return SceneChoiceCard("vault-rush", "The ash vault punishes hesitation and rewards a hard opening.", "A mistimed rush feeds the chains instead of beating them.", "If the line gets under the first pull, the seals can still be stolen cleanly."); }
+        if option == 2 { return SceneChoiceCard("vault-oath", "An ember oath can turn the party into one tactical promise.", "If the promise is weak, the vault hears the crack.", "A true oath makes morale and trust behave like armor."); }
+        if option == 3 { return SceneChoiceCard("vault-trap", "Patient hands can make the vault injure itself.", "One wrong cut will wake every ash vent in sequence.", "A clean trap cycle buys seals, keys, and breathing room."); }
+        return SceneChoiceCard("vault-seal", "Seal theft is speed disguised as precision.", "If timing slips, the room rewrites the plan in flame.", "A sharp theft line weakens the lair before it sees the party.");
+    }
+    if option == 1 { return SceneChoiceCard("dragon-wall", "The dragon expects the party to scatter before its first true pass.", "If the line breaks once, the lair will remember the fracture.", "A standing wall forces the dragon into a narrower fight."); }
+    if option == 2 { return SceneChoiceCard("dragon-liturgy", "The lair is hot enough to turn prayer into structure.", "If the rhythm breaks, fear rushes back into every gap.", "A held ward turns panic into positioning."); }
+    if option == 3 { return SceneChoiceCard("dragon-flank", "The dragon cannot watch every tendon and promise at the same time.", "One early reveal ruins the best flank window.", "A true cut can force the beast to defend history instead of hunger."); }
+    return SceneChoiceCard("dragon-surge", "Raw ember force can steal a phase if paid for immediately.", "The cost lands later on bodies, focus, and future plans.", "If the burst lands, the whole fight shortens.");
+}
+
+func CompanionEventCardFor(stateId: Int, option: Int, seat: Int, beat: Int) -> CompanionEventCard
+{
+    if seat == 0
+    {
+        if stateId == 0 { return CompanionEventCard("Ari checks who reaches for steel first.", "He treats first impressions like marching order.", "The room starts reading discipline as intent."); }
+        if option == 2 { return CompanionEventCard("Ari watches the hesitation around every fork.", "He answers uncertainty by making a line and standing in it.", "The party inherits a clearer front."); }
+        return CompanionEventCard("Ari picks the place where impact should happen.", "He wants tempo to feel earned, not borrowed.", "The floor pays a little more for every mistake.");
+    }
+    if seat == 1
+    {
+        if beat == 2 { return CompanionEventCard("Mira counts future wounds before they arrive.", "She shifts the room by naming the injury nobody wants.", "Fear loses some of its leverage."); }
+        if option == 3 { return CompanionEventCard("Mira accepts cost when it buys a cleaner route.", "She frames pain as debt, not glory.", "The party spends courage more carefully."); }
+        return CompanionEventCard("Mira measures morale like a pulse.", "She speaks just enough to keep the line from hollowing out.", "Recovery starts before the damage ends.");
+    }
+    if seat == 2
+    {
+        if stateId == 0 { return CompanionEventCard("Nyx tests lies for structural weakness.", "She trusts a room only after it fails a few private checks.", "Secrets start moving toward the table."); }
+        if option == 1 { return CompanionEventCard("Nyx treats scouting like an argument with geometry.", "She prefers information that can still surprise someone later.", "The route grows sharper and meaner."); }
+        return CompanionEventCard("Nyx waits for the soft hinge in the problem.", "She assumes every lock is also an invitation.", "The party finds angles it did not pay for directly.");
+    }
+    if stateId == 4 { return CompanionEventCard("Sol tracks the dragon like a theorem catching fire.", "He commits to the cast before the room agrees.", "Arcane pressure starts rewriting the phase."); }
+    if option == 4 { return CompanionEventCard("Sol leans toward dangerous certainty.", "He would rather spend future options than present momentum.", "The field gets louder, faster, and harder to recover."); }
+    return CompanionEventCard("Sol listens for hidden structure.", "He treats old ruins and live combat like the same unfinished proof.", "Pattern turns into leverage.");
+}
+
+func BossPhaseCardFor(round: Int, option: Int) -> BossPhaseCard
+{
+    if round == 1
+    {
+        return BossPhaseCard("OPENING", "The dragon tries to define the room before the party does.", "Claim a stable lane before the second wingbeat.", "If the opening belongs to the dragon, every later phase gets shorter and meaner.");
+    }
+    if round == 2
+    {
+        return BossPhaseCard("FLAME TURN", "The dragon shifts from threat to terrain and makes the lair part of its body.", "Use blessing, footing, or speed before the vent pattern locks in.", "If the fire map settles first, recovery becomes taxation.");
+    }
+    if round == 3
+    {
+        return BossPhaseCard("BREAKPOINT", "The dragon tests whether the party trusts one kill window more than four safe ones.", "Spend the best bond and force the weak scale line open.", "If the breakpoint is missed, courage turns expensive.");
+    }
+    if option == 4
+    {
+        return BossPhaseCard("EXECUTION WINDOW", "The dragon expects reckless power and prepares to survive it.", "Turn recklessness into timing instead of spectacle.", "If the surge whiffs, the lair will outlast the party.");
+    }
+    return BossPhaseCard("EXECUTION WINDOW", "The dragon tries to retreat into its own legend.", "Refuse the legend and finish the body that carries it.", "If the finish stalls, morale becomes the last remaining weapon.");
+}

@@ -9,6 +9,7 @@ import "layers.pgy";
 import "dialogue.pgy";
 import "combat_text.pgy";
 import "combat_cards.pgy";
+import "story_cards.pgy";
 import "events.pgy";
 import "journey.pgy";
 import "world.pgy";

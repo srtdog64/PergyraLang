@@ -357,11 +357,31 @@ world TavernCampaignWorld
         let beat = 1;
         while beat <= 6
         {
+            let sceneCard = SceneChoiceCardFor(stateId, option, beat);
+            let fighterEvent = CompanionEventCardFor(stateId, option, 0, beat);
+            let clericEvent = CompanionEventCardFor(stateId, option, 1, beat);
+            let rogueEvent = CompanionEventCardFor(stateId, option, 2, beat);
+            let mageEvent = CompanionEventCardFor(stateId, option, 3, beat);
             Broadcast("  [Scene " + ToString(beat) + "] " + StoryBeat(stateId, option, beat));
+            Broadcast("    [GM] " + sceneCard.gmPrompt);
+            Broadcast("    [Stakes] " + sceneCard.stakes);
+            Broadcast("    [Reward] " + sceneCard.reward);
             Broadcast("    [Ari] " + CompanionBeat(journey.fighter.name, 0, stateId, option, beat));
+            Broadcast("      [Event] " + fighterEvent.trigger);
+            Broadcast("      [Reaction] " + fighterEvent.reaction);
+            Broadcast("      [Shift] " + fighterEvent.outcome);
             Broadcast("    [Mira] " + CompanionBeat(journey.cleric.name, 1, stateId, option, beat));
+            Broadcast("      [Event] " + clericEvent.trigger);
+            Broadcast("      [Reaction] " + clericEvent.reaction);
+            Broadcast("      [Shift] " + clericEvent.outcome);
             Broadcast("    [Nyx] " + CompanionBeat(journey.rogue.name, 2, stateId, option, beat));
+            Broadcast("      [Event] " + rogueEvent.trigger);
+            Broadcast("      [Reaction] " + rogueEvent.reaction);
+            Broadcast("      [Shift] " + rogueEvent.outcome);
             Broadcast("    [Sol] " + CompanionBeat(journey.mage.name, 3, stateId, option, beat));
+            Broadcast("      [Event] " + mageEvent.trigger);
+            Broadcast("      [Reaction] " + mageEvent.reaction);
+            Broadcast("      [Shift] " + mageEvent.outcome);
             beat = beat + 1;
         }
     }
@@ -371,8 +391,11 @@ world TavernCampaignWorld
         let node = 1;
         while node <= 5
         {
+            let sceneCard = SceneChoiceCardFor(stateId, option, node);
             Broadcast("  [Node " + ToString(node) + "] " + EventNodeLine(stateId, node, option));
             Broadcast("    [Resolution] " + EventResolutionLine(stateId, node, option));
+            Broadcast("    [Pressure] " + sceneCard.stakes);
+            Broadcast("    [Prize] " + sceneCard.reward);
             Broadcast("    [PartyState] Ari " + MemberShortState(0) + " | Mira " + MemberShortState(1));
             Broadcast("    [PartyState] Nyx " + MemberShortState(2) + " | Sol " + MemberShortState(3));
             if stateId <= 3
@@ -582,6 +605,7 @@ world TavernCampaignWorld
         while round <= 4
         {
             let pulse = CombatRoll(4, round, option);
+            let phaseCard = BossPhaseCardFor(round, option);
             let fighterWeapon = WeaponFactory(0);
             let clericWeapon = WeaponFactory(1);
             let rogueWeapon = WeaponFactory(2);
@@ -590,8 +614,11 @@ world TavernCampaignWorld
             let clericStrategy = CombatStrategyFactory(4, option, 1, pulse);
             let rogueStrategy = CombatStrategyFactory(4, option, 2, pulse);
             let mageStrategy = CombatStrategyFactory(4, option, 3, pulse);
-            Broadcast("  [BossPhase " + ToString(round) + "] " + BossPhaseName(round));
+            Broadcast("  [BossPhase " + ToString(round) + "] " + BossPhaseName(round) + " :: " + phaseCard.title);
             Broadcast("    [Narration] " + StoryBeat(4, option, round));
+            Broadcast("    [DragonIntent] " + phaseCard.dragonIntent);
+            Broadcast("    [PartyWindow] " + phaseCard.partyWindow);
+            Broadcast("    [FailureCost] " + phaseCard.failureCost);
             Broadcast("  [BossRound " + ToString(round) + "] pulse=" + ToString(pulse));
             Broadcast("    [Action] " + journey.fighter.name + " " + StrategyActionText(fighterWeapon, fighterStrategy) + " into " + CombatTarget(4, round, 0));
             Broadcast("    [Effect] " + StrategyEffectText(fighterWeapon, fighterStrategy));

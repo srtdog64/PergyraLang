@@ -73,6 +73,7 @@ Current source/golden layout:
 - `dialogue.pgy`
 - `combat_text.pgy`
 - `combat_cards.pgy`
+- `story_cards.pgy`
 - `events.pgy`
 - `journey.pgy`
 - `world.pgy`
@@ -191,13 +192,17 @@ This scenario is likely to expose:
   Each seat resolves through weapon loadout factories plus per-round strategy
   selection, so class flavor, posture, aggression, guard pressure, and effect
   text come from data-shaped helpers instead of one-off hard-coded lines
+- Scene/event pacing is now also card-driven. GM prompts, stakes, rewards,
+  companion reactions, and boss phase intent all come from story-card
+  factories instead of only the core world loop
 - Journey projection wiring now uses `bind ... from ...` so object/dto target
   kind comes from slot declarations instead of forcing repeated `refresh` /
   `publish` choices in the scenario body
 - `results.txt` is transcript-first and now captures the entire scenario flow,
   not just a final summary
-- The current transcript/report size is now in the mid-hundreds of lines,
-  which is enough to read like a compact GM transcript instead of a short demo
+- The current transcript/report size is now in the low-thousands of lines,
+  which is enough to read like a substantial GM transcript instead of a short
+  demo
 - Exact stdout and exact `results.txt` goldens are now part of the regression shape
 
 ## Discovered Pain Points

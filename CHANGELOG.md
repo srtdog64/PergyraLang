@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added multithreaded zone layer stress coverage to `test_concurrency`.
 
 ### Added
+- `examples/dnd_tavern_campaign/story_cards.pgy` for scene-choice cards,
+  companion reaction cards, and boss phase cards that drive denser transcript
+  narration
 - Scripted, seeded-random, and player-input entry modes for
   `examples/dnd_tavern_campaign/`, including `random_main.pgy` and
   `player_main.pgy` plus transcript-bearing `results.random.txt` and
@@ -59,6 +62,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- `examples/dnd_tavern_campaign/` scene/event pacing is now more data-driven:
+  GM prompts, stakes, rewards, companion reactions, and boss phase intent are
+  emitted from story-card factories instead of only the main world loop
 - `examples/dnd_tavern_campaign/` combat flow now uses game-layer weapon
   factories and strategy cards instead of only world-hosted fixed action text,
   so seat-by-seat combat narration carries class-shaped loadout and posture

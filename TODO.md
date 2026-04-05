@@ -283,9 +283,44 @@
   - 후보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
   - 방향: pool/fsm/strategy/table은 `.pgy` 또는 stdlib 모듈로 제공하고, 언어 키워드로 승격하지 않는다
   - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming을 우선한다
+  - 이번 예제 기준 라이브러리화 후보:
+    - `use strategy;`
+      - `WeaponCard` / `CombatStrategyCard`
+      - `WeaponFactory<TClass>` 또는 `LoadoutTable<TArchetype>`
+      - `StrategyTable<TContext, TChoice>`
+      - `ActionTextFactory<TContext>` / `EffectTextFactory<TContext>`
+    - `use tables;`
+      - `SceneChoiceCard`
+      - `CompanionEventCard`
+      - `BossPhaseCard`
+      - `WeightedTable<T>`
+      - `ChoiceTable<TState, TOption>`
+    - `use encounter;`
+      - `EncounterStateMachine<TState, TEvent>`
+      - `TurnLoop<TActor, TAction>`
+      - `BossPhaseMachine<TPhase>`
+      - `ResolutionLedger<TSnapshot>`
+    - `use report;`
+      - transcript accumulator
+      - exact report writer
+      - stdout/results dual sink
+    - `use campaign;`
+      - scripted / random / player mode runner
+      - input script playback
+      - seeded choice resolver
 - [ ] **DND/campaign 시나리오를 게임 프레임워크 검증장으로 사용**
   - `dnd_tavern_campaign`를 기준으로 pool/fsm/strategy/table이 실제로 충분한지 검증
   - language core 부족이 아니라 framework layer 부족인지 계속 분리해서 기록
+  - 지금까지 뽑힌 실제 패턴:
+    - 장소/장면 진입 팩토리 (`OpenTavernCampaign`)
+    - 게임 상태 머신 (`tavern -> floor1 -> floor2 -> floor3 -> dragon -> epilogue`)
+    - 선택 해석기 (`scripted` / `random` / `player`)
+    - 장면 카드 / 동료 반응 카드 / 보스 페이즈 카드
+    - 전투 loadout/strategy 카드
+    - transcript-first report writer
+  - 다음 목표:
+    - 위 패턴들을 `examples/` 전용 코드가 아니라 `use` 라이브러리 후보로 재구성
+    - `world.pgy`의 orchestration 양을 줄이고 encounter/strategy/report 계층으로 분리
 
 ## P1.8 — 멀티 타겟
 

@@ -24,35 +24,125 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
 [Substate] tavern.arrival
 [Arrival] Ari pushes into the Ember Lantern with a fresh guild charter.
   [Scene 1] Rain beads on the Ember Lantern sign while boots and rumors flood the room.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira accepts cost when it buys a cleaner route.
+      [Reaction] She frames pain as debt, not glory.
+      [Shift] The party spends courage more carefully.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 2] Dice, knives, and chapel hymns all compete under the same smoke-black beams.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira counts wounds before they happen and calls that optimism.
+      [Event] Mira counts future wounds before they arrive.
+      [Reaction] She shifts the room by naming the injury nobody wants.
+      [Shift] Fear loses some of its leverage.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 3] A guild runner nails a dragon bounty over the hearth and every table goes half quiet.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira accepts cost when it buys a cleaner route.
+      [Reaction] She frames pain as debt, not glory.
+      [Shift] The party spends courage more carefully.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 4] The barkeep keeps polishing the same cup because listening pays better than asking.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira accepts cost when it buys a cleaner route.
+      [Reaction] She frames pain as debt, not glory.
+      [Shift] The party spends courage more carefully.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol is already narrating the magical failure case no one else wants to hear.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 5] Ari's charter, Mira's seal, Nyx's grin, and Sol's notes finally start looking like one expedition.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira notices the one member of the party pretending not to shake and stands closer.
+      [Event] Mira accepts cost when it buys a cleaner route.
+      [Reaction] She frames pain as debt, not glory.
+      [Shift] The party spends courage more carefully.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 6] The knife game is loud enough to shake secrets loose from mercenaries and priests alike.
+    [GM] A public challenge can win respect faster than introductions.
+    [Stakes] Too much noise marks the party before the dungeon does.
+    [Reward] The right audience will talk after pride is bruised.
     [Ari] Ari checks exits, tables, and wrists before trusting anyone's smile.
+      [Event] Ari checks who reaches for steel first.
+      [Reaction] He treats first impressions like marching order.
+      [Shift] The room starts reading discipline as intent.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira accepts cost when it buys a cleaner route.
+      [Reaction] She frames pain as debt, not glory.
+      [Shift] The party spends courage more carefully.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx tests lies for structural weakness.
+      [Reaction] She trusts a room only after it fails a few private checks.
+      [Shift] Secrets start moving toward the table.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
 [Substate] tavern.recruitment
 [Creation] Ari the Vanguard from guild orphan carries the iron wolf and favors shield-first
 [Hook] fresh guild charter
@@ -102,60 +192,160 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
   [PartyTalk] Nyx comes back with a trap map drawn in spilled cider soot.
 [Substate] floor1.briefing
   [Scene 1] The root cellar breathes damp spores through broken casks and saint-stamped stone.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 2] Every corridor splits into rat paths, trap seams, and old delivery rails.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira counts wounds before they happen and calls that optimism.
+      [Event] Mira counts future wounds before they arrive.
+      [Reaction] She shifts the room by naming the injury nobody wants.
+      [Shift] Fear loses some of its leverage.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 3] Somewhere ahead, gnolls laugh around barrels that still smell like the tavern above.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 4] Spores cling to cloaks and promises alike, marking who rushed and who watched.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari keeps rewriting the route in his head every time the room changes volume.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol is already narrating the magical failure case no one else wants to hear.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 5] Old delivery chalk still points toward the reliquary if someone is patient enough to trust the dead.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira notices the one member of the party pretending not to shake and stands closer.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 6] The party leans into stealth, letting scouting shape the map before steel does.
+    [GM] The first floor wants patience before it wants courage.
+    [Stakes] Missing one vent or dart seam can snowball the whole cellar.
+    [Reward] A clean scout run changes every later angle of attack.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
 [Substate] floor1.travel
 [Substate] floor1.choice_resolution
 [Substate] floor1.nodes
   [Node 1] A ruined taproom under the tavern becomes the party's first real map node.
     [Resolution] Scouting cuts risk and turns rumor into route control.
+    [Pressure] Missing one vent or dart seam can snowball the whole cellar.
+    [Prize] A clean scout run changes every later angle of attack.
     [PartyState] Ari hp=26 focus=10 | Mira hp=27 mana=18
     [PartyState] Nyx hp=22 stamina=6 | Sol hp=25 mana=22
     [CampForeshadow] The first camp smells of spores, lamp oil, and relief that still refuses to relax.
   [Node 2] A fork of root-choked halls asks whether speed or caution owns the next minute.
     [Resolution] The party redraws the route with every trap they refuse to trigger twice.
+    [Pressure] Missing one vent or dart seam can snowball the whole cellar.
+    [Prize] A clean scout run changes every later angle of attack.
     [PartyState] Ari hp=26 focus=10 | Mira hp=27 mana=18
     [PartyState] Nyx hp=22 stamina=6 | Sol hp=25 mana=22
     [CampForeshadow] No one says they were lucky, but everyone inventories what nearly went wrong.
   [Node 3] A reliquary room offers loot only after the traps are understood.
     [Resolution] Reliquary dust turns treasure counting into theology and theft at once.
+    [Pressure] Missing one vent or dart seam can snowball the whole cellar.
+    [Prize] A clean scout run changes every later angle of attack.
     [PartyState] Ari hp=26 focus=10 | Mira hp=27 mana=18
     [PartyState] Nyx hp=22 stamina=6 | Sol hp=25 mana=22
     [CampForeshadow] The tavern already feels far away enough to be myth.
   [Node 4] A fungus cistern whispers with trapped air and worse guidance.
     [Resolution] The cistern rewards whoever understands that bad air is also a warning system.
+    [Pressure] Missing one vent or dart seam can snowball the whole cellar.
+    [Prize] A clean scout run changes every later angle of attack.
     [PartyState] Ari hp=26 focus=10 | Mira hp=27 mana=18
     [PartyState] Nyx hp=22 stamina=6 | Sol hp=25 mana=22
     [CampForeshadow] The tavern already feels far away enough to be myth.
   [Node 5] A broken dumbwaiter shaft suggests a riskier route back toward the main cellar.
     [Resolution] The dumbwaiter route is faster only if nobody minds climbing through old panic.
+    [Pressure] Missing one vent or dart seam can snowball the whole cellar.
+    [Prize] A clean scout run changes every later angle of attack.
     [PartyState] Ari hp=26 focus=10 | Mira hp=27 mana=18
     [PartyState] Nyx hp=22 stamina=6 | Sol hp=25 mana=22
     [CampForeshadow] The tavern already feels far away enough to be myth.
@@ -224,60 +414,160 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
   [PartyTalk] The split works, but trust has to hold under broken reflections.
 [Substate] floor2.briefing
   [Scene 1] The mirror hall doubles every torch and triples every mistake.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 2] Silver wraiths move behind reflections a heartbeat before they move in the room itself.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira counts wounds before they happen and calls that optimism.
+      [Event] Mira counts future wounds before they arrive.
+      [Reaction] She shifts the room by naming the injury nobody wants.
+      [Shift] Fear loses some of its leverage.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 3] Saint-glass saints watch the party choose whether trust or speed matters more.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 4] Every reflection has a different opinion about who should take the next hit.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari keeps rewriting the route in his head every time the room changes volume.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx keeps score in shortcuts, not kills.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol is already narrating the magical failure case no one else wants to hear.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 5] Broken glass underfoot turns retreat into a tax paid in confidence.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira notices the one member of the party pretending not to shake and stands closer.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 6] The split turns one party into two fragile promises trying to keep the same pace.
+    [GM] Two angles of attack might beat one mirrored corridor.
+    [Stakes] A split party risks turning trust into distance.
+    [Reward] If timing holds, the court loses its easiest target map.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
 [Substate] floor2.travel
 [Substate] floor2.choice_resolution
 [Substate] floor2.nodes
   [Node 1] The first mirror bridge tests formation before combat does.
     [Resolution] The split pays off only because no one hesitates at the wrong second.
+    [Pressure] A split party risks turning trust into distance.
+    [Prize] If timing holds, the court loses its easiest target map.
     [PartyState] Ari hp=34 focus=13 | Mira hp=32 mana=23
     [PartyState] Nyx hp=32 stamina=4 | Sol hp=27 mana=26
     [CampForeshadow] Mirror shards turn the campfire into a council of uncertain faces.
   [Node 2] A saint-glass alcove offers a shortcut to anyone willing to pay in blood or trust.
     [Resolution] The saint-glass alcove measures sincerity in blood and never refunds the difference.
+    [Pressure] A split party risks turning trust into distance.
+    [Prize] If timing holds, the court loses its easiest target map.
     [PartyState] Ari hp=34 focus=13 | Mira hp=32 mana=23
     [PartyState] Nyx hp=32 stamina=4 | Sol hp=27 mana=26
     [CampForeshadow] Trust becomes practical here: who wakes first, who watches longest, who lies least.
   [Node 3] The wraith court arrives as reflections first and enemies second.
     [Resolution] Once the reflections attack, trust becomes a faster resource than healing.
+    [Pressure] A split party risks turning trust into distance.
+    [Prize] If timing holds, the court loses its easiest target map.
     [PartyState] Ari hp=34 focus=13 | Mira hp=32 mana=23
     [PartyState] Nyx hp=32 stamina=4 | Sol hp=27 mana=26
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
   [Node 4] A choir loft of glass eyes catalogues every hesitation.
     [Resolution] The choir loft reveals who can move under surveillance without becoming slower.
+    [Pressure] A split party risks turning trust into distance.
+    [Prize] If timing holds, the court loses its easiest target map.
     [PartyState] Ari hp=34 focus=13 | Mira hp=32 mana=23
     [PartyState] Nyx hp=32 stamina=4 | Sol hp=27 mana=26
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
   [Node 5] A split stair of mirrored steps rewards rhythm more than caution.
     [Resolution] The mirrored stair is less a path than a coordinated lie told with perfect timing.
+    [Pressure] A split party risks turning trust into distance.
+    [Prize] If timing holds, the court loses its easiest target map.
     [PartyState] Ari hp=34 focus=13 | Mira hp=32 mana=23
     [PartyState] Nyx hp=32 stamina=4 | Sol hp=27 mana=26
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
@@ -346,60 +636,160 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
   [PartyTalk] The ash chains rattle like a countdown as Ari charges.
 [Substate] floor3.briefing
   [Scene 1] The ash vault is less a floor than a throat leading down into dragon weather.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 2] Cinder knights patrol crown seals chained to obsidian ribs in the walls.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira counts wounds before they happen and calls that optimism.
+      [Event] Mira counts future wounds before they arrive.
+      [Reaction] She shifts the room by naming the injury nobody wants.
+      [Shift] Fear loses some of its leverage.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 3] Every key now feels heavy enough to bend a future around it.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 4] The vault counts intruders by breath, not by footsteps.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari keeps rewriting the route in his head every time the room changes volume.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol is already narrating the magical failure case no one else wants to hear.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 5] Even silence burns here; only discipline decides what kind of scar it leaves.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira notices the one member of the party pretending not to shake and stands closer.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
   [Scene 6] Speed is the only shield against the ash chains tightening shut.
+    [GM] The ash vault punishes hesitation and rewards a hard opening.
+    [Stakes] A mistimed rush feeds the chains instead of beating them.
+    [Reward] If the line gets under the first pull, the seals can still be stolen cleanly.
     [Ari] Ari sets the pace and dares the floor to keep up.
+      [Event] Ari picks the place where impact should happen.
+      [Reaction] He wants tempo to feel earned, not borrowed.
+      [Shift] The floor pays a little more for every mistake.
     [Mira] Mira watches morale the way others watch hit points.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx smiles like every trap is secretly an introduction.
+      [Event] Nyx treats scouting like an argument with geometry.
+      [Reaction] She prefers information that can still surprise someone later.
+      [Shift] The route grows sharper and meaner.
     [Sol] Sol hears hidden structure in every ruin wall and every bad plan.
+      [Event] Sol listens for hidden structure.
+      [Reaction] He treats old ruins and live combat like the same unfinished proof.
+      [Shift] Pattern turns into leverage.
 [Substate] floor3.travel
 [Substate] floor3.choice_resolution
 [Substate] floor3.nodes
   [Node 1] Ash chains drag over stone like something enormous is already listening.
     [Resolution] Momentum steals the first move from the vault.
+    [Pressure] A mistimed rush feeds the chains instead of beating them.
+    [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
     [PartyState] Ari hp=38 focus=20 | Mira hp=36 mana=26
     [PartyState] Nyx hp=39 stamina=2 | Sol hp=28 mana=30
     [CampForeshadow] Ash settles on armor and bread alike, making every ration taste like tomorrow.
   [Node 2] The crown-seal vault forces the party to choose between loot discipline and speed.
     [Resolution] Speed and discipline argue here, and only one gets to keep the keys.
+    [Pressure] A mistimed rush feeds the chains instead of beating them.
+    [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
     [PartyState] Ari hp=38 focus=20 | Mira hp=36 mana=26
     [PartyState] Nyx hp=39 stamina=2 | Sol hp=28 mana=30
     [CampForeshadow] The key count is spoken aloud three times, as if numbers could guard themselves.
   [Node 3] The final antechamber tastes of metal, smoke, and almost-dragon.
     [Resolution] The antechamber decides whether fear becomes caution or noise.
+    [Pressure] A mistimed rush feeds the chains instead of beating them.
+    [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
     [PartyState] Ari hp=38 focus=20 | Mira hp=36 mana=26
     [PartyState] Nyx hp=39 stamina=2 | Sol hp=28 mana=30
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
   [Node 4] A hall of spent braziers hides vents that wake when the wrong seal is moved.
     [Resolution] Braziers reward anyone who remembers that heat can be navigated, not only endured.
+    [Pressure] A mistimed rush feeds the chains instead of beating them.
+    [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
     [PartyState] Ari hp=38 focus=20 | Mira hp=36 mana=26
     [PartyState] Nyx hp=39 stamina=2 | Sol hp=28 mana=30
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
   [Node 5] A molten counting room still tracks tribute no dragon plans to collect again.
     [Resolution] The counting room turns greed into a tactical time limit.
+    [Pressure] A mistimed rush feeds the chains instead of beating them.
+    [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
     [PartyState] Ari hp=38 focus=20 | Mira hp=36 mana=26
     [PartyState] Nyx hp=39 stamina=2 | Sol hp=28 mana=30
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
@@ -468,62 +858,165 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
   [PartyTalk] Mira turns fear into liturgy and the room answers with heat.
 [Substate] dragon.briefing
   [Scene 1] The lair opens like a furnace temple built for one enormous believer.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps the line even when the line is made of dragonfire.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira threads prayer between every impact like chain links.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol starts speaking in ember math and impossible percentages.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
   [Scene 2] Coins, bones, and library ash shift together whenever the dragon breathes.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps the line even when the line is made of dragonfire.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira counts wounds before they happen and calls that optimism.
+      [Event] Mira counts future wounds before they arrive.
+      [Reaction] She shifts the room by naming the injury nobody wants.
+      [Shift] Fear loses some of its leverage.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol starts speaking in ember math and impossible percentages.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
   [Scene 3] Everything the party carried from the tavern arrives here as courage, fear, and unfinished sentences.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps the line even when the line is made of dragonfire.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira threads prayer between every impact like chain links.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol starts speaking in ember math and impossible percentages.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
   [Scene 4] The hoard is not treasure here but memory arranged into a warning.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps rewriting the route in his head every time the room changes volume.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira threads prayer between every impact like chain links.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx keeps score in shortcuts, not kills.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol is already narrating the magical failure case no one else wants to hear.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
   [Scene 5] Every companion now knows which promise brought them this far and which one might break first.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps the line even when the line is made of dragonfire.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira notices the one member of the party pretending not to shake and stands closer.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol starts speaking in ember math and impossible percentages.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
   [Scene 6] The plan is to turn liturgy into a battlefield and dare the dragon to answer.
+    [GM] The lair is hot enough to turn prayer into structure.
+    [Stakes] If the rhythm breaks, fear rushes back into every gap.
+    [Reward] A held ward turns panic into positioning.
     [Ari] Ari keeps the line even when the line is made of dragonfire.
+      [Event] Ari watches the hesitation around every fork.
+      [Reaction] He answers uncertainty by making a line and standing in it.
+      [Shift] The party inherits a clearer front.
     [Mira] Mira threads prayer between every impact like chain links.
+      [Event] Mira measures morale like a pulse.
+      [Reaction] She speaks just enough to keep the line from hollowing out.
+      [Shift] Recovery starts before the damage ends.
     [Nyx] Nyx treats bad odds like a puzzle with sharper edges.
+      [Event] Nyx waits for the soft hinge in the problem.
+      [Reaction] She assumes every lock is also an invitation.
+      [Shift] The party finds angles it did not pay for directly.
     [Sol] Sol starts speaking in ember math and impossible percentages.
+      [Event] Sol tracks the dragon like a theorem catching fire.
+      [Reaction] He commits to the cast before the room agrees.
+      [Shift] Arcane pressure starts rewriting the phase.
 [Substate] dragon.prepare
 [Substate] dragon.choice_resolution
 [Substate] dragon.nodes
   [Node 1] The lair threshold turns every old choice into present weight.
     [Resolution] Saint-fire reduces panic and opens a survivable center.
+    [Pressure] If the rhythm breaks, fear rushes back into every gap.
+    [Prize] A held ward turns panic into positioning.
     [PartyState] Ari hp=42 focus=21 | Mira hp=40 mana=28
     [PartyState] Nyx hp=43 stamina=4 | Sol hp=28 mana=32
   [Node 2] The hoard field is both battlefield and argument about greed.
     [Resolution] The hoard makes footing political; everyone chooses what not to step on.
+    [Pressure] If the rhythm breaks, fear rushes back into every gap.
+    [Prize] A held ward turns panic into positioning.
     [PartyState] Ari hp=42 focus=21 | Mira hp=40 mana=28
     [PartyState] Nyx hp=43 stamina=4 | Sol hp=28 mana=32
   [Node 3] The kill window appears only if the party still trusts each other enough to take it.
     [Resolution] The kill window appears, disappears, and appears again only for the disciplined.
+    [Pressure] If the rhythm breaks, fear rushes back into every gap.
+    [Prize] A held ward turns panic into positioning.
     [PartyState] Ari hp=42 focus=21 | Mira hp=40 mana=28
     [PartyState] Nyx hp=43 stamina=4 | Sol hp=28 mana=32
   [Node 4] The dragon's second wingbeat rearranges the whole battlefield and every plan on it.
     [Resolution] One wingbeat changes cover, range, and courage in the same instant.
+    [Pressure] If the rhythm breaks, fear rushes back into every gap.
+    [Prize] A held ward turns panic into positioning.
     [PartyState] Ari hp=42 focus=21 | Mira hp=40 mana=28
     [PartyState] Nyx hp=43 stamina=4 | Sol hp=28 mana=32
   [Node 5] The last safe ground is not safe, only familiar enough to die on.
     [Resolution] The final ground teaches that survival and victory are not always the same geometry.
+    [Pressure] If the rhythm breaks, fear rushes back into every gap.
+    [Prize] A held ward turns panic into positioning.
     [PartyState] Ari hp=42 focus=21 | Mira hp=40 mana=28
     [PartyState] Nyx hp=43 stamina=4 | Sol hp=28 mana=32
 [Lair] The dragon descends through brass smoke and molten paper.
 [Substate] dragon.phase_machine
-  [BossPhase 1] OPENING
+  [BossPhase 1] OPENING :: OPENING
     [Narration] The lair opens like a furnace temple built for one enormous believer.
+    [DragonIntent] The dragon tries to define the room before the party does.
+    [PartyWindow] Claim a stable lane before the second wingbeat.
+    [FailureCost] If the opening belongs to the dragon, every later phase gets shorter and meaner.
   [BossRound 1] pulse=2
     [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into dragon foreclaw
     [Effect] guard crack, aggression=3, guard=3, morale=1
