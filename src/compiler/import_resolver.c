@@ -17,6 +17,14 @@
 #include "module_normalizer.h"
 #include "path_utils.h"
 
+#ifdef _WIN32
+#include <direct.h>
+#define pgy_fullpath _fullpath
+#else
+#include <limits.h>
+#include <unistd.h>
+#endif
+
 typedef struct
 {
     char  **paths;
@@ -89,6 +97,29 @@ import_stack_destroy(ImportStack *stack)
     free(stack->paths);
     stack->paths = NULL;
     stack->capacity = 0;
+}
+
+static char *
+canonicalize_path_dup(const char *path)
+{
+    if (path == NULL)
+        return NULL;
+
+#ifdef _WIN32
+    {
+        char buffer[_MAX_PATH];
+        if (pgy_fullpath(buffer, path, _MAX_PATH) != NULL)
+            return pergyra_strdup(buffer);
+    }
+#else
+    {
+        char *resolved = realpath(path, NULL);
+        if (resolved != NULL)
+            return resolved;
+    }
+#endif
+
+    return pergyra_strdup(path);
 }
 
 /* path_dirname_dup and path_join_dup are now in path_utils.c */
@@ -216,21 +247,31 @@ import_resolver_load_internal(const char *source_path,
 {
     ASTNode *ast = NULL;
     char *base_dir = NULL;
+    char *canonical_source = canonicalize_path_dup(source_path);
 
-    if (imported && import_stack_contains(loaded, source_path)) {
+    if (canonical_source == NULL) {
+        set_error(error_message, "out of memory while canonicalizing path '%s'",
+                  source_path != NULL ? source_path : "(null)");
+        return NULL;
+    }
+
+    if (imported && import_stack_contains(loaded, canonical_source)) {
+        free(canonical_source);
         return ast_create_program();
     }
 
-    if (import_stack_contains(stack, source_path)) {
+    if (import_stack_contains(stack, canonical_source)) {
         set_error(error_message, "circular import detected at '%s'", source_path);
+        free(canonical_source);
         return NULL;
     }
-    if (!import_stack_push(stack, source_path)) {
+    if (!import_stack_push(stack, canonical_source)) {
         set_error(error_message, "out of memory while tracking imports");
+        free(canonical_source);
         return NULL;
     }
 
-    ast = parse_program_file(source_path, error_message);
+    ast = parse_program_file(canonical_source, error_message);
     if (ast == NULL)
         goto fail;
 
@@ -239,12 +280,12 @@ import_resolver_load_internal(const char *source_path,
         goto fail;
     }
 
-    if (!import_stack_push(loaded, source_path)) {
+    if (!import_stack_push(loaded, canonical_source)) {
         set_error(error_message, "out of memory while tracking loaded modules");
         goto fail;
     }
 
-    base_dir = path_dirname_dup(source_path);
+    base_dir = path_dirname_dup(canonical_source);
     if (base_dir == NULL) {
         set_error(error_message, "out of memory while resolving imports");
         goto fail;
@@ -268,11 +309,22 @@ import_resolver_load_internal(const char *source_path,
             }
         } else {
             import_path = stmt->data.use_decl.module_name;
-            full_path = resolve_stdlib_module_path(source_path, import_path);
+            full_path = resolve_stdlib_module_path(canonical_source, import_path);
             if (full_path == NULL) {
                 set_error(error_message, "cannot resolve stdlib module '%s'", import_path);
                 goto fail;
             }
+        }
+
+        {
+            char *canonical_full_path = canonicalize_path_dup(full_path);
+            if (canonical_full_path == NULL) {
+                free(full_path);
+                set_error(error_message, "out of memory while canonicalizing import '%s'", import_path);
+                goto fail;
+            }
+            free(full_path);
+            full_path = canonical_full_path;
         }
 
         {
@@ -330,11 +382,13 @@ import_resolver_load_internal(const char *source_path,
     }
 
     free(base_dir);
+    free(canonical_source);
     import_stack_pop(stack);
     return ast;
 
 fail:
     free(base_dir);
+    free(canonical_source);
     ast_destroy(ast);
     import_stack_pop(stack);
     return NULL;

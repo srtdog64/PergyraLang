@@ -11,7 +11,9 @@ elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" 
 else
     PGY="$DEFAULT_PGY"
 fi
-WORK_DIR="$(mktemp -d)"
+WORK_BASE="$ROOT_DIR/.tmp/example-smoke"
+mkdir -p "$WORK_BASE"
+WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 if [[ ! -x "$PGY" ]]; then
