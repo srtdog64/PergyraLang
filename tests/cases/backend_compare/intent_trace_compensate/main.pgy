@@ -17,19 +17,21 @@ zone CockpitZone {
     subject slot driver: Driver
 }
 
-intent DriveCar(driver: Driver) {
+intent DriveCar(cockpit: CockpitZone, driver: Driver) {
     exclusive;
     priority: 3;
 
     step Ignite {
         where: CockpitZone;
+        using: cockpit;
         who: driver;
         on: driver.Ignite();
         compensate: driver.RollbackIgnite();
         pre: true;
+        expect: cockpit.driver.hp == driver.hp;
         post: driver.started;
         guard: false;
-        expect: true;
+        invariant: cockpit.driver.started == driver.started;
     }
 
     success: true;
@@ -38,10 +40,17 @@ intent DriveCar(driver: Driver) {
 
 func Main() -> Void {
     let d = Driver(0, false);
-    let ok = DriveCar(d);
+    let cockpit = CockpitZone(Driver(99, true));
+    let ok = DriveCar(cockpit, d);
     Log("ok=" + ToString(ok));
     Log("hp=" + ToString(d.hp));
     Log("started=" + ToString(d.started));
+    Log("cockpit.hp=" + ToString(cockpit.driver.hp));
+    Log("cockpit.started=" + ToString(cockpit.driver.started));
+    Log("last.name=" + IntentLastName());
+    Log("last.handle=" + ToString(IntentLastHandle()));
+    Log("last.steps=" + ToString(IntentLastStepCount()));
+    Log("last.failed=" + ToString(IntentLastFailed()));
     Log("failure=" + IntentLastFailure());
     Log("trace:");
     Log(IntentLastTrace());

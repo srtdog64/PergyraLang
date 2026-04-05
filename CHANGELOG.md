@@ -403,3 +403,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - parser: downgrade `context` from a global lexer keyword so it can be used as an ordinary identifier in locals, parameters, and fields; add parser coverage and update grammar/testdoc notes accordingly.
 - parser/semantic/codegen/examples: add `func(...) -> ...` type syntax for callable parameters, preserve typed lambda parameters in the AST, lower callable parameters through C function pointers and LLVM function-pointer calls, and upgrade `pattern_library_basics/strategy.pgy` to real injected score/line policies including lambda-based overrides.
 - examples/tests/docs: promote `examples/dnd_tavern_campaign/WeaponCard` into a real `class`, embed it directly into `Adventurer`, route loadout/combat narration through subject-owned class methods, and add semantic/transpile regressions for `subject` owning a `class` value and calling its hosted `func`.
+# 2026-04-05
+
+- intent runtime now materializes bound `who` actors into matching live zone
+  subject slots when `using:` binds a concrete zone instance, on both C and
+  LLVM backends
+- intent runtime history now exposes `IntentLastName()`,
+  `IntentLastHandle()`, `IntentLastStepCount()`, and `IntentLastFailed()`
+  alongside existing trace/failure builtins
+- added `pgy_intent_trace_materialize_export(...)` runtime trace lines so
+  intent traces now record actor-to-zone-slot materialization explicitly
+- strengthened backend parity coverage for intent trace/rollback/materialize
+  via `tests/cases/backend_compare/intent_trace_compensate`
+- documented the post-implementation strengths and weaknesses of Pergyra in
+  `docs/35_hands_on_language_assessment.md`

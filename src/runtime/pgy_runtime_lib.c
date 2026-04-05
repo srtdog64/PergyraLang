@@ -78,6 +78,10 @@ static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int32_t pgy_intent_next_handle = 1;
 static char *pgy_intent_last_trace = NULL;
 static char *pgy_intent_last_failure = NULL;
+static char *pgy_intent_last_name = NULL;
+static int32_t pgy_intent_last_handle = 0;
+static int32_t pgy_intent_last_step_count = 0;
+static bool pgy_intent_last_failed = false;
 
 static char *
 pgy_runtime_strdup_export(const char *src)
@@ -244,6 +248,23 @@ pgy_intent_trace_bind_export(int32_t handle, char *actor_name, char *slot_name)
 }
 
 void
+pgy_intent_trace_materialize_export(int32_t handle, char *actor_name,
+                                    char *slot_name, char *zone_name)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_export(handle);
+    if (entry != NULL) {
+        char line[320];
+        snprintf(line, sizeof(line), "[materialize] %s => %s.%s\n",
+            actor_name != NULL ? actor_name : "<actor>",
+            zone_name != NULL ? zone_name : "<zone>",
+            slot_name != NULL ? slot_name : "<unbound>");
+        pgy_intent_append_line_export(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+void
 pgy_intent_trace_step_ok_export(int32_t handle, char *step_name)
 {
     pthread_mutex_lock(&pgy_intent_registry_mutex);
@@ -286,6 +307,30 @@ pgy_intent_last_failure_export(void)
     return pgy_intent_last_failure != NULL ? pgy_intent_last_failure : "";
 }
 
+char *
+pgy_intent_last_name_export(void)
+{
+    return pgy_intent_last_name != NULL ? pgy_intent_last_name : "";
+}
+
+int32_t
+pgy_intent_last_handle_export(void)
+{
+    return pgy_intent_last_handle;
+}
+
+int32_t
+pgy_intent_last_step_count_export(void)
+{
+    return pgy_intent_last_step_count;
+}
+
+bool
+pgy_intent_last_failed_export(void)
+{
+    return pgy_intent_last_failed;
+}
+
 void
 pgy_intent_exit_export(int32_t handle)
 {
@@ -300,10 +345,16 @@ pgy_intent_exit_export(int32_t handle)
             continue;
         free(pgy_intent_last_trace);
         free(pgy_intent_last_failure);
+        free(pgy_intent_last_name);
         pgy_intent_last_trace = entry->trace != NULL
             ? pgy_runtime_strdup_export(entry->trace) : pgy_runtime_strdup_export("");
         pgy_intent_last_failure = entry->failure_reason != NULL
             ? pgy_runtime_strdup_export(entry->failure_reason) : pgy_runtime_strdup_export("");
+        pgy_intent_last_name = entry->name != NULL
+            ? pgy_runtime_strdup_export(entry->name) : pgy_runtime_strdup_export("");
+        pgy_intent_last_handle = entry->handle;
+        pgy_intent_last_step_count = entry->step_count;
+        pgy_intent_last_failed = entry->failed;
         free(entry->name);
         free(entry->subjects);
         free(entry->trace);

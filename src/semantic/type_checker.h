@@ -264,6 +264,15 @@ typedef enum
     BUILTIN_PRINT,
     BUILTIN_INTENT_LAST_TRACE,
     BUILTIN_INTENT_LAST_FAILURE,
+    BUILTIN_INTENT_LAST_NAME,
+    BUILTIN_INTENT_LAST_HANDLE,
+    BUILTIN_INTENT_LAST_STEP_COUNT,
+    BUILTIN_INTENT_LAST_FAILED,
+    BUILTIN_INTENT_HISTORY_COUNT,
+    BUILTIN_INTENT_HISTORY_STEP_NAME,
+    BUILTIN_INTENT_HISTORY_STEP_ZONE,
+    BUILTIN_INTENT_HISTORY_STEP_OK,
+    BUILTIN_INTENT_HISTORY_STEP_FAILURE,
     BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
 } BuiltinKind;
 
@@ -284,9 +293,4 @@ Type* resolve_type_node(ASTNode* type_node, SemanticContext* ctx);
 
 /*
  * Check two types are compatible for assignment (from → to).
- * Emits a semantic_error if not.
- */
-bool require_assignable(Type* from, Type* to,
-                         const ASTNode* site, SemanticContext* ctx);
-
-#endif /* PERGYRA_TYPE_CHECKER_H */
+ * Emits 

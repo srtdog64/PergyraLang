@@ -1016,6 +1016,10 @@ builtin_resolve(const char *name)
     if (strcmp(name, "Print")           == 0) return BUILTIN_PRINT;
     if (strcmp(name, "IntentLastTrace") == 0) return BUILTIN_INTENT_LAST_TRACE;
     if (strcmp(name, "IntentLastFailure") == 0) return BUILTIN_INTENT_LAST_FAILURE;
+    if (strcmp(name, "IntentLastName")  == 0) return BUILTIN_INTENT_LAST_NAME;
+    if (strcmp(name, "IntentLastHandle") == 0) return BUILTIN_INTENT_LAST_HANDLE;
+    if (strcmp(name, "IntentLastStepCount") == 0) return BUILTIN_INTENT_LAST_STEP_COUNT;
+    if (strcmp(name, "IntentLastFailed") == 0) return BUILTIN_INTENT_LAST_FAILED;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -2747,6 +2751,18 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_INTENT_LAST_FAILURE:
         check_call_arity(call, 0, "IntentLastFailure", ctx);
         return TYPE_STRING;
+    case BUILTIN_INTENT_LAST_NAME:
+        check_call_arity(call, 0, "IntentLastName", ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_LAST_HANDLE:
+        check_call_arity(call, 0, "IntentLastHandle", ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_LAST_STEP_COUNT:
+        check_call_arity(call, 0, "IntentLastStepCount", ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_LAST_FAILED:
+        check_call_arity(call, 0, "IntentLastFailed", ctx);
+        return TYPE_BOOL;
     default:
         return TYPE_UNKNOWN;
     }

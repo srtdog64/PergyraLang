@@ -1905,6 +1905,34 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
     }
 
+    if (strcmp(callee_name, "IntentLastName") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_name_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentLastHandle") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_handle_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentLastStepCount") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_step_count_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentLastFailed") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_failed_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
     if (strcmp(callee_name, "SeedRandom") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "SeedRandom");

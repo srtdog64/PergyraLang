@@ -2466,6 +2466,18 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
     if (zone_alias == NULL || zone_type == NULL)
         return;
 
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        const char *slot_name = resolve_intent_zone_slot_name(ctx, intent, step, alias);
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
+            continue;
+        write_indent(ctx);
+        codebuf_write(out, "%s->%s = *%s;\n", zone_alias, slot_name, alias);
+        write_indent(ctx);
+        codebuf_write(out,
+            "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+            alias, slot_name, zone_type);
+    }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
 }

@@ -104,7 +104,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
-- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` history도 동작한다. `using: zoneAlias;`는 live zone-instance sync까지 제공한다.
+- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작한다. `using: zoneAlias;`는 live zone-instance sync와 actor-to-zone-slot materialization까지 제공한다.
 
 ## 현재 한계
 

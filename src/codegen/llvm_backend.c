@@ -1559,8 +1559,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
     LLVMValueRef zone_ptr;
     char sync_name[256];
     LLVMFuncEntry *sync_fn;
+    LLVMClassTypeEntry *zone_cls;
+    LLVMFuncEntry *trace_materialize_fn;
 
-    (void)intent;
     if (ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
         || step->data.intent_step.using_expr == NULL
         || step->data.intent_step.using_expr->type != AST_IDENTIFIER
@@ -1583,6 +1584,64 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
     zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type, zone_var->alloca, llvm_tmp_name(ctx));
     if (LLVMGetTypeKind(LLVMTypeOf(zone_ptr)) != LLVMPointerTypeKind)
         return;
+
+    zone_cls = llvm_lookup_class(ctx, zone_type_name);
+    trace_materialize_fn = llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export");
+
+    if (zone_cls != NULL) {
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names[i];
+            const char *slot_name = llvm_resolve_intent_zone_slot_name(ctx, intent, step, alias);
+            ASTNode *involves;
+            LLVMVarEntry *actor_var;
+            LLVMTypeRef actor_ptr_type;
+            LLVMTypeRef actor_value_type;
+            LLVMValueRef actor_ptr;
+            LLVMValueRef actor_value;
+            LLVMValueRef slot_ptr;
+            int field_idx;
+
+            if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
+                continue;
+
+            field_idx = llvm_class_field_index(zone_cls, slot_name);
+            if (field_idx < 0)
+                continue;
+
+            involves = llvm_find_intent_actor_local(intent, alias);
+            actor_var = llvm_scope_lookup(ctx, alias);
+            if (involves == NULL || actor_var == NULL
+                || involves->data.intent_involves.subject_type == NULL) {
+                continue;
+            }
+
+            actor_ptr_type = actor_var->type;
+            actor_value_type = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+            actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
+                llvm_tmp_name(ctx));
+            actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
+                llvm_tmp_name(ctx));
+            slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,
+                (unsigned)field_idx, llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, actor_value, slot_ptr);
+
+            if (trace_materialize_fn != NULL) {
+                LLVMValueRef handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
+                    ? LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                        llvm_scope_lookup(ctx, "__intent_handle")->alloca,
+                        llvm_tmp_name(ctx))
+                    : LLVMConstInt(ctx->type_i32, 0, 0);
+                LLVMValueRef args[] = {
+                    handle,
+                    LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx)),
+                    LLVMBuildGlobalStringPtr(ctx->builder, slot_name, llvm_tmp_name(ctx)),
+                    LLVMBuildGlobalStringPtr(ctx->builder, zone_type_name, llvm_tmp_name(ctx))
+                };
+                LLVMBuildCall2(ctx->builder, trace_materialize_fn->fn_type,
+                    trace_materialize_fn->fn, args, 4, "");
+            }
+        }
+    }
 
     snprintf(sync_name, sizeof(sync_name), "%s_sync", zone_type_name);
     sync_fn = llvm_lookup_function(ctx, sync_name);
@@ -1772,6 +1831,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         fail_reason_alloca);
     handle_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, "__intent_handle");
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), handle_alloca);
+    llvm_scope_declare(ctx, "__intent_handle", handle_alloca, ctx->type_i32);
     if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
         completed_allocas = calloc(node->data.intent_decl.step_count, sizeof(LLVMValueRef));
         for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
@@ -2224,6 +2284,16 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { }, 0 },
             { "pgy_intent_last_failure_export", ctx->type_i8ptr,
               { }, 0 },
+            { "pgy_intent_last_name_export", ctx->type_i8ptr,
+              { }, 0 },
+            { "pgy_intent_last_handle_export", ctx->type_i32,
+              { }, 0 },
+            { "pgy_intent_last_step_count_export", ctx->type_i32,
+              { }, 0 },
+            { "pgy_intent_last_failed_export", ctx->type_i1,
+              { }, 0 },
+            { "pgy_intent_trace_materialize_export", ctx->type_void,
+              { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "pgy_write_file", ctx->type_void,

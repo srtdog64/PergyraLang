@@ -950,6 +950,14 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_intent_last_trace_export()");
     case BUILTIN_INTENT_LAST_FAILURE:
         return pergyra_strdup("pgy_intent_last_failure_export()");
+    case BUILTIN_INTENT_LAST_NAME:
+        return pergyra_strdup("pgy_intent_last_name_export()");
+    case BUILTIN_INTENT_LAST_HANDLE:
+        return pergyra_strdup("pgy_intent_last_handle_export()");
+    case BUILTIN_INTENT_LAST_STEP_COUNT:
+        return pergyra_strdup("pgy_intent_last_step_count_export()");
+    case BUILTIN_INTENT_LAST_FAILED:
+        return pergyra_strdup("pgy_intent_last_failed_export()");
     default:
         break;
     }

@@ -257,11 +257,13 @@ This scenario is likely to expose:
 - The remaining intent gap is now narrower: basic runtime conflict
   arbitration now exists for `exclusive` / `concurrent` / `priority`,
   reverse-order `compensate:` rollback is present, and
-  `IntentLastTrace()` / `IntentLastFailure()` now expose minimal execution
+  `IntentLastTrace()` / `IntentLastFailure()` /
+  `IntentLastName()` / `IntentLastHandle()` /
+  `IntentLastStepCount()` / `IntentLastFailed()` now expose minimal execution
   history. `using: journey;` now provides live concrete zone-instance binding
-  for scenario intents. The remaining gaps are richer trace ids/history
-  structure and a fuller actor-to-zone-slot materialization layer beyond the
-  current sync-based binding.
+  and actor-to-zone-slot materialization for scenario intents. The remaining
+  gaps are structured trace ids/history, richer rollback policy, and true
+  cross-world transfer semantics.
 - Runtime hashmap helpers used raw `strdup(...)`, which leaked portability
   warnings into larger example builds. The runtime now routes those copies
   through `pgy_runtime_strdup(...)` instead.

@@ -18,11 +18,12 @@ examples such as the battle simulator and biome simulator.
   `exclusive` / `concurrent` / `priority` now have a concrete runtime conflict
   registry on both C and LLVM. Step-level `guard` / `invariant` now run too,
   reverse-order `compensate:` rollback works, and `IntentLastTrace()` /
-  `IntentLastFailure()` expose minimal history.
+  `IntentLastFailure()` plus `IntentLastName()` / `IntentLastHandle()` /
+  `IntentLastStepCount()` / `IntentLastFailed()` expose minimal history.
   `using: zoneAlias;` now gives intent steps a live concrete zone instance and
-  forces sync on that bound zone while the step runs. The remaining gaps are
-  richer trace ids/history structure and a fuller actor-to-zone-slot
-  materialization layer beyond the current sync-based binding.
+  now also materializes bound `who` actors into matching zone subject slots
+  before sync. The remaining gaps are structured trace/history data instead of
+  flat strings, richer rollback policy, and cross-world transfer semantics.
 
 ## Recently Resolved
 
