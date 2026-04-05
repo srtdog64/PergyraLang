@@ -1,0 +1,68 @@
+// ============================================
+// Zone: CalendarZone — 일정 관리 실행 경계
+// ============================================
+
+ability CalendarOwner
+{
+    func CanModify(self) -> Bool;
+}
+
+role CalendarOwner for User
+{
+    func CanModify(self) -> Bool
+    {
+        return true;
+    }
+}
+
+zone CalendarZone
+{
+    subject slot owner: User;
+
+    // ⚠️ 약점: zone 안에 List<Event>를 slot으로 못 둔다
+    // 이벤트 저장소를 어떻게 표현하는가?
+    // HashMap<Int, Event>도 제네릭이 Int 키만 지원
+
+    action CreateEvent(self, title: String, year: Int, month: Int, day: Int)
+        requires CalendarOwner
+        within CalendarZone
+    {
+        // ⚠️ 약점: Event를 생성하고 어디에 저장하는가?
+        // new Event(...) 문법이 있는가?
+        // 컬렉션에 push하는 패턴이 자연스럽지 않다
+
+        let event_id := owner.calendar.event_count;
+        owner.calendar.event_count = owner.calendar.event_count + 1;
+
+        // MapSet은 Int 키만... Event 값을 넣을 수 있는가?
+        // ⚠️ 약점: HashMap<Int, Event> 같은 복합 제네릭 불가
+
+        Print("Created event: ");
+        Print(title);
+        PrintInt(event_id);
+    }
+
+    action DeleteEvent(self, event_id: Int)
+        requires CalendarOwner
+        within CalendarZone
+        authorized by owner
+    {
+        // ⚠️ 약점: MapRemove 후 인덱스 재정렬 로직?
+        // 삭제된 슬롯의 재사용? generation counter?
+        Print("Deleted event: ");
+        PrintInt(event_id);
+        owner.calendar.event_count = owner.calendar.event_count - 1;
+    }
+
+    action ListEvents(self)
+        within CalendarZone
+    {
+        // ⚠️ 약점: for-in 루프가 없다
+        // 이벤트를 순회하며 출력하는 게 불가능하거나 매우 불편
+        let i := 0;
+        // while (i < owner.calendar.event_count) { ... }
+        // ⚠️ while이 있는가?
+        Print("Total events: ");
+        PrintInt(owner.calendar.event_count);
+    }
+}

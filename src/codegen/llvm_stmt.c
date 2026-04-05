@@ -111,6 +111,26 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
         && init->data.call.callee->type == AST_IDENTIFIER
         && init->data.call.callee->data.identifier.name != NULL) {
         name = init->data.call.callee->data.identifier.name;
+        if ((strcmp(name, "ListGet") == 0 || strcmp(name, "QueuePop") == 0)
+            && init->data.call.arg_count >= 1
+            && init->data.call.arguments[0] != NULL
+            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            const char *collection = init->data.call.arguments[0]->data.identifier.name;
+            const char *inner = strcmp(name, "ListGet") == 0
+                ? llvm_lookup_list_inner(ctx, collection)
+                : llvm_lookup_queue_inner(ctx, collection);
+            if (inner != NULL && llvm_lookup_class(ctx, inner) != NULL)
+                return inner;
+        }
+        if (strcmp(name, "MapGet") == 0
+            && init->data.call.arg_count >= 1
+            && init->data.call.arguments[0] != NULL
+            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
+            const char *collection = init->data.call.arguments[0]->data.identifier.name;
+            const char *value = llvm_lookup_map_value(ctx, collection);
+            if (value != NULL && llvm_lookup_class(ctx, value) != NULL)
+                return value;
+        }
         if (llvm_lookup_class(ctx, name) != NULL)
             return name;
         {
@@ -256,6 +276,42 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 || strcmp(callee, "Concat") == 0
                 || strcmp(callee, "StringConcat") == 0) {
                 return ctx->type_i8ptr;
+            }
+            if (strcmp(callee, "ListGet") == 0
+                && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *inner = llvm_lookup_list_inner(
+                    ctx, expr->data.call.arguments[0]->data.identifier.name);
+                if (inner != NULL)
+                    return pergyra_type_to_llvm(ctx, inner);
+            }
+            if (strcmp(callee, "QueuePop") == 0
+                && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *inner = llvm_lookup_queue_inner(
+                    ctx, expr->data.call.arguments[0]->data.identifier.name);
+                if (inner != NULL)
+                    return pergyra_type_to_llvm(ctx, inner);
+            }
+            if (strcmp(callee, "MapGet") == 0
+                && expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *value = llvm_lookup_map_value(
+                    ctx, expr->data.call.arguments[0]->data.identifier.name);
+                if (value != NULL)
+                    return pergyra_type_to_llvm(ctx, value);
+            }
+            if (strcmp(callee, "ListSize") == 0
+                || strcmp(callee, "QueueSize") == 0
+                || strcmp(callee, "MapSize") == 0) {
+                return ctx->type_i32;
+            }
+            if (strcmp(callee, "QueueEmpty") == 0
+                || strcmp(callee, "MapHas") == 0) {
+                return ctx->type_i1;
             }
             if (strcmp(callee, "HasZone") == 0
                 || strcmp(callee, "HasState") == 0
@@ -925,6 +981,87 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    if (type_ann != NULL
+        && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER) {
+        const char *ann_name = type_ann->data.type.name;
+        const char *callee = init->data.call.callee->data.identifier.name;
+        const char *inner = "Int";
+
+        if (type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0
+            && type_ann->data.type.generic_args->params[0] != NULL
+            && type_ann->data.type.generic_args->params[0]->name != NULL) {
+            inner = type_ann->data.type.generic_args->params[0]->name;
+        }
+
+        if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
+            LLVMTypeRef list_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, list_ty);
+            llvm_register_list_var(ctx, name, inner);
+            return;
+        }
+
+        if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
+            LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, queue_ty);
+            llvm_register_queue_var(ctx, name, inner);
+            return;
+        }
+
+        if (strcmp(ann_name, "HashMap") == 0 && strcmp(callee, "MapNew") == 0) {
+            const char *value_type = "Int";
+            LLVMTypeRef map_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef value_ty;
+            LLVMValueRef alloca_val;
+            LLVMFuncEntry *new_fn;
+
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 1
+                && type_ann->data.type.generic_args->params[1] != NULL
+                && type_ann->data.type.generic_args->params[1]->name != NULL) {
+                value_type = type_ann->data.type.generic_args->params[1]->name;
+            }
+            value_ty = pergyra_type_to_llvm(ctx, value_type);
+            alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
+            new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, value_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, map_ty);
+            llvm_register_map_var(ctx, name, value_type);
+            return;
+        }
+    }
+
     /* Slot sugar: let x: Slot<Int> = 42 → auto Claim + Write */
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL) {
@@ -1290,6 +1427,30 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL) {
+        const char *ann_name = type_ann->data.type.name;
+        if (strcmp(ann_name, "List") == 0
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0
+            && type_ann->data.type.generic_args->params[0] != NULL
+            && type_ann->data.type.generic_args->params[0]->name != NULL) {
+            llvm_register_list_var(ctx, name, type_ann->data.type.generic_args->params[0]->name);
+        } else if (strcmp(ann_name, "Queue") == 0
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 0
+            && type_ann->data.type.generic_args->params[0] != NULL
+            && type_ann->data.type.generic_args->params[0]->name != NULL) {
+            llvm_register_queue_var(ctx, name, type_ann->data.type.generic_args->params[0]->name);
+        } else if (strcmp(ann_name, "HashMap") == 0
+            && type_ann->data.type.generic_args != NULL
+            && type_ann->data.type.generic_args->count > 1
+            && type_ann->data.type.generic_args->params[1] != NULL
+            && type_ann->data.type.generic_args->params[1]->name != NULL) {
+            llvm_register_map_var(ctx, name, type_ann->data.type.generic_args->params[1]->name);
+        }
+    }
+
+    if (type_ann != NULL && type_ann->type == AST_TYPE
         && type_ann->data.type.name != NULL
         && type_ann->data.type.generic_args != NULL
         && type_ann->data.type.generic_args->count > 0) {
@@ -1474,6 +1635,187 @@ static void
 llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *var_name = node->data.for_loop.variable;
+
+    if (node->data.for_loop.iterable != NULL) {
+        if (node->data.for_loop.iterable->type == AST_IDENTIFIER) {
+            const char *iter_name = node->data.for_loop.iterable->data.identifier.name;
+            const char *list_inner = llvm_lookup_list_inner(ctx, iter_name);
+            LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
+            if (list_inner != NULL && list_var != NULL) {
+                LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, list_inner);
+                LLVMValueRef idx_alloca;
+                LLVMValueRef fn = ctx->current_function;
+                LLVMBasicBlockRef cond_bb;
+                LLVMBasicBlockRef body_bb;
+                LLVMBasicBlockRef incr_bb;
+                LLVMBasicBlockRef exit_bb;
+                LLVMFuncEntry *size_fn = llvm_lookup_function(ctx, "pgy_list_size_raw_export");
+                LLVMFuncEntry *get_fn = llvm_lookup_function(ctx, "pgy_list_get_raw_export");
+
+                llvm_scope_push(ctx);
+                idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), idx_alloca);
+                {
+                    LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, var_name);
+                    llvm_scope_declare(ctx, var_name, item_alloca, elem_ty);
+                    {
+                        LLVMClassTypeEntry *cls = llvm_stmt_lookup_class_by_type(ctx, elem_ty);
+                        if (cls != NULL)
+                            llvm_register_var_class(ctx, var_name, cls->class_name);
+                    }
+                }
+
+                cond_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.list.cond");
+                body_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.list.body");
+                incr_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.list.incr");
+                exit_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.list.exit");
+                LLVMBuildBr(ctx->builder, cond_bb);
+
+                LLVMPositionBuilderAtEnd(ctx->builder, cond_bb);
+                {
+                    LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_alloca, llvm_tmp_name(ctx));
+                    LLVMValueRef size_call = LLVMConstInt(ctx->type_i32, 0, 0);
+                    if (size_fn != NULL) {
+                        LLVMValueRef args[] = {
+                            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                        };
+                        size_call = LLVMBuildCall2(ctx->builder, size_fn->fn_type, size_fn->fn, args, 1, llvm_tmp_name(ctx));
+                    }
+                    LLVMValueRef cond = LLVMBuildICmp(ctx->builder, LLVMIntSLT, idx, size_call, llvm_tmp_name(ctx));
+                    LLVMBuildCondBr(ctx->builder, cond, body_bb, exit_bb);
+                }
+
+                LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+                {
+                    LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_alloca, llvm_tmp_name(ctx));
+                    LLVMVarEntry *loop_var = llvm_scope_lookup(ctx, var_name);
+                    if (get_fn != NULL && loop_var != NULL) {
+                        LLVMValueRef args[] = {
+                            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                            idx,
+                            LLVMBuildBitCast(ctx->builder, loop_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                            llvm_sizeof_type_i64(ctx, elem_ty)
+                        };
+                        LLVMBuildCall2(ctx->builder, get_fn->fn_type, get_fn->fn, args, 4, "");
+                    }
+                }
+                if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+                    ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
+                    ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+                    ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
+                    ctx->loop_depth++;
+                }
+                if (node->data.for_loop.body != NULL)
+                    llvm_emit_statement(node->data.for_loop.body, ctx);
+                if (ctx->loop_depth > 0)
+                    ctx->loop_depth--;
+                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                    LLVMBuildBr(ctx->builder, incr_bb);
+
+                LLVMPositionBuilderAtEnd(ctx->builder, incr_bb);
+                {
+                    LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_alloca, llvm_tmp_name(ctx));
+                    LLVMValueRef next = LLVMBuildAdd(ctx->builder, idx, LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
+                    LLVMBuildStore(ctx->builder, next, idx_alloca);
+                    LLVMBuildBr(ctx->builder, cond_bb);
+                }
+
+                LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
+                llvm_scope_pop(ctx);
+                return;
+            }
+        }
+
+        LLVMValueRef iterable = llvm_emit_expression(node->data.for_loop.iterable, ctx);
+        LLVMTypeRef iterable_ty;
+        LLVMTypeRef field_types[5];
+        LLVMTypeRef elem_ty;
+        LLVMValueRef data_ptr;
+        LLVMValueRef count64;
+        LLVMValueRef idx_alloca;
+        LLVMValueRef fn;
+        LLVMBasicBlockRef cond_bb;
+        LLVMBasicBlockRef body_bb;
+        LLVMBasicBlockRef incr_bb;
+        LLVMBasicBlockRef exit_bb;
+
+        if (iterable == NULL)
+            return;
+        iterable_ty = LLVMTypeOf(iterable);
+        if (LLVMGetTypeKind(iterable_ty) != LLVMStructTypeKind
+            || LLVMCountStructElementTypes(iterable_ty) < 2) {
+            return;
+        }
+
+        LLVMGetStructElementTypes(iterable_ty, field_types);
+        elem_ty = LLVMGetElementType(field_types[0]);
+        data_ptr = LLVMBuildExtractValue(ctx->builder, iterable, 0, llvm_tmp_name(ctx));
+        count64 = LLVMBuildExtractValue(ctx->builder, iterable, 1, llvm_tmp_name(ctx));
+
+        llvm_scope_push(ctx);
+        idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i64, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i64, 0, 0), idx_alloca);
+
+        {
+            LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, var_name);
+            llvm_scope_declare(ctx, var_name, item_alloca, elem_ty);
+            {
+                LLVMClassTypeEntry *cls = llvm_stmt_lookup_class_by_type(ctx, elem_ty);
+                if (cls != NULL)
+                    llvm_register_var_class(ctx, var_name, cls->class_name);
+            }
+        }
+
+        fn = ctx->current_function;
+        cond_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.cond");
+        body_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.body");
+        incr_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.incr");
+        exit_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "forin.exit");
+
+        LLVMBuildBr(ctx->builder, cond_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, cond_bb);
+        {
+            LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i64, idx_alloca, llvm_tmp_name(ctx));
+            LLVMValueRef cond = LLVMBuildICmp(ctx->builder, LLVMIntULT, idx, count64, llvm_tmp_name(ctx));
+            LLVMBuildCondBr(ctx->builder, cond, body_bb, exit_bb);
+        }
+
+        LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
+        {
+            LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i64, idx_alloca, llvm_tmp_name(ctx));
+            LLVMValueRef item_ptr = LLVMBuildGEP2(ctx->builder, elem_ty, data_ptr, &idx, 1, llvm_tmp_name(ctx));
+            LLVMValueRef item = LLVMBuildLoad2(ctx->builder, elem_ty, item_ptr, llvm_tmp_name(ctx));
+            LLVMVarEntry *loop_var = llvm_scope_lookup(ctx, var_name);
+            if (loop_var != NULL)
+                LLVMBuildStore(ctx->builder, item, loop_var->alloca);
+        }
+        if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+            ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
+            ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
+            ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
+            ctx->loop_depth++;
+        }
+        if (node->data.for_loop.body != NULL)
+            llvm_emit_statement(node->data.for_loop.body, ctx);
+        if (ctx->loop_depth > 0)
+            ctx->loop_depth--;
+        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+            LLVMBuildBr(ctx->builder, incr_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, incr_bb);
+        {
+            LLVMValueRef idx = LLVMBuildLoad2(ctx->builder, ctx->type_i64, idx_alloca, llvm_tmp_name(ctx));
+            LLVMValueRef next = LLVMBuildAdd(ctx->builder, idx,
+                LLVMConstInt(ctx->type_i64, 1, 0), llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, next, idx_alloca);
+            LLVMBuildBr(ctx->builder, cond_bb);
+        }
+
+        LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
+        llvm_scope_pop(ctx);
+        return;
+    }
 
     llvm_scope_push(ctx);
 

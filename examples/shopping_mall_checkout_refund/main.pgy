@@ -4,6 +4,8 @@ import "subjects/abilities.pgy";
 import "subjects/commerce.pgy";
 import "subjects/roles.pgy";
 import "pages/surfaces.pgy";
+import "api/commerce_api.pgy";
+import "report/transcript_report.pgy";
 import "zones/layers.pgy";
 import "zones/cart.pgy";
 import "zones/payment.pgy";
@@ -16,7 +18,57 @@ import "setup.pgy";
 func Main() -> Void
 {
     let world = OpenCommerceWorld();
-    world.RunCommerceScripted();
+    world.Broadcast(CommerceHeader());
+    world.Broadcast(CommerceSubtitle());
+    world.Blank();
+
+    world.Broadcast("[Scene] storefront opens with a JS cart page over a Pergyra backend.");
+    world.cart.buyer.AddFeatured(2);
+    world.cart.buyer.ApplyPromo(7);
+    world.cart.Touch();
+    world.ShowCart();
+    world.Blank();
+
+    world.flowState = "checkout";
+    world.Broadcast("[API] POST /api/intents/CheckoutPurchase");
+    let checkoutReq = BuildCheckoutIntentRequest(world.cart, 6);
+    let checkoutRes = HandleCheckoutIntent(world.cart, world.payment, world.cart.buyer, world.cart.merchant, checkoutReq);
+    world.BroadcastIntentApi(checkoutRes);
+    world.BroadcastIntentHistory();
+    world.ShowCheckout();
+    world.Blank();
+
+    world.flowState = "refund";
+    world.Broadcast("[API] POST /api/intents/RefundPurchase");
+    let refundReq = BuildRefundIntentRequest(world.payment, 8831);
+    let refundRes = HandleRefundIntent(world.payment, world.refund, world.cart.buyer, world.cart.merchant, refundReq);
+    world.BroadcastIntentApi(refundRes);
+    world.BroadcastIntentHistory();
+    world.ShowRefund();
+    world.Blank();
+
+    world.flowState = "account";
+    world.Broadcast("[API] POST /api/intents/SyncAccountProfile");
+    let profileReq = BuildProfileSyncRequest(world.refund, 1);
+    let profileRes = HandleProfileSyncIntent(world.refund, world.account, world.cart.buyer, profileReq);
+    world.BroadcastIntentApi(profileRes);
+    world.BroadcastIntentHistory();
+    world.ShowProfile();
+    world.Blank();
+
+    world.Broadcast("[Summary] all page routes are projections; all state changes went through intents and zones.");
+    world.FinalSnapshot();
     Log("saving examples/shopping_mall_checkout_refund/results.txt");
-    world.SaveReport("examples/shopping_mall_checkout_refund/results.txt");
+    SaveCommerceReport(
+        "examples/shopping_mall_checkout_refund/results.txt",
+        world.route,
+        world.flowState,
+        world.transcript,
+        world.cart.buyer,
+        world.cart.merchant,
+        world.cart,
+        world.payment,
+        world.refund,
+        world.account
+    );
 }

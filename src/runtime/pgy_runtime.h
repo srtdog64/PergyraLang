@@ -67,6 +67,13 @@ pgy_runtime_strdup(const char *src)
 typedef struct {
     char *name;
     char *zone;
+    char *phase;
+    char *actor;
+    char *slot;
+    char *from_zone;
+    char *from_slot;
+    char *to_zone;
+    char *to_slot;
     bool ok;
     char *failure_reason;
 } PgyIntentHistoryStep;
@@ -78,6 +85,7 @@ typedef struct {
     int32_t subject_count;
     bool    is_concurrent;
     int32_t priority;
+    int32_t trace_id;
     char   *trace;
     char   *failure_reason;
     int32_t step_count;
@@ -89,14 +97,53 @@ typedef struct {
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int32_t pgy_intent_next_handle = 1;
+static int32_t pgy_intent_next_trace_id = 1;
 static char *pgy_intent_last_trace = NULL;
 static char *pgy_intent_last_failure = NULL;
 static char *pgy_intent_last_name = NULL;
 static int32_t pgy_intent_last_handle = 0;
+static int32_t pgy_intent_last_trace_id = 0;
 static int32_t pgy_intent_last_step_count = 0;
 static bool pgy_intent_last_failed = false;
 static PgyIntentHistoryStep pgy_intent_last_steps[PGY_INTENT_ACTIVE_MAX];
 static int32_t pgy_intent_last_history_count = 0;
+
+static inline void
+pgy_intent_history_step_set_string(char **dst, const char *value)
+{
+    if (dst == NULL)
+        return;
+    free(*dst);
+    *dst = pgy_runtime_strdup(value != NULL ? value : "");
+}
+
+static inline void
+pgy_intent_history_step_clear(PgyIntentHistoryStep *step)
+{
+    if (step == NULL)
+        return;
+    free(step->name);
+    free(step->zone);
+    free(step->phase);
+    free(step->actor);
+    free(step->slot);
+    free(step->from_zone);
+    free(step->from_slot);
+    free(step->to_zone);
+    free(step->to_slot);
+    free(step->failure_reason);
+    step->name = NULL;
+    step->zone = NULL;
+    step->phase = NULL;
+    step->actor = NULL;
+    step->slot = NULL;
+    step->from_zone = NULL;
+    step->from_slot = NULL;
+    step->to_zone = NULL;
+    step->to_slot = NULL;
+    step->failure_reason = NULL;
+    step->ok = false;
+}
 
 static inline void
 pgy_intent_append_line(char **dst, const char *line)
@@ -200,6 +247,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].subject_count = subject_count;
     pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
     pgy_intent_active_registry[free_index].priority = priority;
+    pgy_intent_active_registry[free_index].trace_id = pgy_intent_next_trace_id++;
     pgy_intent_active_registry[free_index].trace = NULL;
     pgy_intent_active_registry[free_index].failure_reason = NULL;
     pgy_intent_active_registry[free_index].step_count = 0;
@@ -229,11 +277,16 @@ pgy_intent_trace_step_export(int32_t handle, const char *step_name, const char *
         pgy_intent_append_line(&entry->trace, line);
         if (entry->step_count < PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count;
-            free(entry->steps[index].name);
-            free(entry->steps[index].zone);
-            free(entry->steps[index].failure_reason);
+            pgy_intent_history_step_clear(&entry->steps[index]);
             entry->steps[index].name = pgy_runtime_strdup(step_name != NULL ? step_name : "");
             entry->steps[index].zone = pgy_runtime_strdup(zone_name != NULL ? zone_name : "");
+            entry->steps[index].phase = pgy_runtime_strdup("begin");
+            entry->steps[index].actor = pgy_runtime_strdup("");
+            entry->steps[index].slot = pgy_runtime_strdup("");
+            entry->steps[index].from_zone = pgy_runtime_strdup("");
+            entry->steps[index].from_slot = pgy_runtime_strdup("");
+            entry->steps[index].to_zone = pgy_runtime_strdup("");
+            entry->steps[index].to_slot = pgy_runtime_strdup("");
             entry->steps[index].ok = false;
             entry->steps[index].failure_reason = pgy_runtime_strdup("");
         }
@@ -253,6 +306,11 @@ pgy_intent_trace_bind_export(int32_t handle, const char *actor_name, const char 
             actor_name != NULL ? actor_name : "<actor>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].slot, slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -270,6 +328,14 @@ pgy_intent_trace_materialize_export(int32_t handle, const char *actor_name,
             zone_name != NULL ? zone_name : "<zone>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string(&entry->steps[index].phase, "materialize");
+            pgy_intent_history_step_set_string(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].slot, slot_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].to_zone, zone_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].to_slot, slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -290,6 +356,15 @@ pgy_intent_trace_transfer_export(int32_t handle, const char *actor_name,
             to_zone_name != NULL ? to_zone_name : "<zone>",
             to_slot_name != NULL ? to_slot_name : "<unbound>");
         pgy_intent_append_line(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string(&entry->steps[index].phase, "transfer");
+            pgy_intent_history_step_set_string(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].from_zone, from_zone_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].from_slot, from_slot_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].to_zone, to_zone_name);
+            pgy_intent_history_step_set_string(&entry->steps[index].to_slot, to_slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -304,8 +379,11 @@ pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");
         pgy_intent_append_line(&entry->trace, line);
-        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX)
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             entry->steps[entry->step_count - 1].ok = true;
+            pgy_intent_history_step_set_string(
+                &entry->steps[entry->step_count - 1].phase, "ok");
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -322,8 +400,8 @@ pgy_intent_trace_fail_export(int32_t handle, const char *reason)
         entry->failed = true;
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
-            free(entry->steps[index].failure_reason);
-            entry->steps[index].failure_reason = pgy_runtime_strdup(reason != NULL ? reason : "");
+            pgy_intent_history_step_set_string(&entry->steps[index].phase, "fail");
+            pgy_intent_history_step_set_string(&entry->steps[index].failure_reason, reason);
         }
         snprintf(line, sizeof(line), "[fail] %s\n",
             reason != NULL ? reason : "<failure>");
@@ -357,6 +435,12 @@ pgy_intent_last_handle_export(void)
 }
 
 static inline int32_t
+pgy_intent_last_trace_id_export(void)
+{
+    return pgy_intent_last_trace_id;
+}
+
+static inline int32_t
 pgy_intent_last_step_count_export(void)
 {
     return pgy_intent_last_step_count;
@@ -372,6 +456,25 @@ static inline int32_t
 pgy_intent_history_count_export(void)
 {
     return pgy_intent_last_history_count;
+}
+
+static inline PgyIntentActiveEntry *
+pgy_intent_active_entry_by_index_export(int32_t index)
+{
+    int32_t seen = 0;
+
+    if (index < 0)
+        return NULL;
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (!pgy_intent_active_registry[i].active)
+            continue;
+        if (seen == index)
+            return &pgy_intent_active_registry[i];
+        seen++;
+    }
+
+    return NULL;
 }
 
 static inline char *
@@ -390,6 +493,62 @@ pgy_intent_history_step_zone_export(int32_t index)
     return pgy_intent_last_steps[index].zone != NULL ? pgy_intent_last_steps[index].zone : "";
 }
 
+static inline char *
+pgy_intent_history_step_phase_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].phase != NULL ? pgy_intent_last_steps[index].phase : "";
+}
+
+static inline char *
+pgy_intent_history_step_actor_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].actor != NULL ? pgy_intent_last_steps[index].actor : "";
+}
+
+static inline char *
+pgy_intent_history_step_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].slot != NULL ? pgy_intent_last_steps[index].slot : "";
+}
+
+static inline char *
+pgy_intent_history_step_from_zone_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].from_zone != NULL ? pgy_intent_last_steps[index].from_zone : "";
+}
+
+static inline char *
+pgy_intent_history_step_from_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].from_slot != NULL ? pgy_intent_last_steps[index].from_slot : "";
+}
+
+static inline char *
+pgy_intent_history_step_to_zone_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].to_zone != NULL ? pgy_intent_last_steps[index].to_zone : "";
+}
+
+static inline char *
+pgy_intent_history_step_to_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].to_slot != NULL ? pgy_intent_last_steps[index].to_slot : "";
+}
+
 static inline bool
 pgy_intent_history_step_ok_export(int32_t index)
 {
@@ -405,6 +564,98 @@ pgy_intent_history_step_failure_export(int32_t index)
         return "";
     return pgy_intent_last_steps[index].failure_reason != NULL
         ? pgy_intent_last_steps[index].failure_reason : "";
+}
+
+static inline int32_t
+pgy_intent_active_count_export(void)
+{
+    int32_t count = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (pgy_intent_active_registry[i].active)
+            count++;
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return count;
+}
+
+static inline char *
+pgy_intent_active_name_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->name != NULL)
+        result = entry->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_priority_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->priority;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_trace_id_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->trace_id;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline bool
+pgy_intent_active_concurrent_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->is_concurrent;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_active_trace_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->trace != NULL)
+        result = entry->trace;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
 }
 
 static inline void
@@ -439,16 +690,32 @@ pgy_intent_exit_export(int32_t handle)
         pgy_intent_last_name = entry->name != NULL
             ? pgy_runtime_strdup(entry->name) : pgy_runtime_strdup("");
         pgy_intent_last_handle = entry->handle;
+        pgy_intent_last_trace_id = entry->trace_id;
         pgy_intent_last_step_count = entry->step_count;
         pgy_intent_last_failed = entry->failed;
         pgy_intent_last_history_count = entry->step_count;
         if (pgy_intent_last_history_count > PGY_INTENT_ACTIVE_MAX)
             pgy_intent_last_history_count = PGY_INTENT_ACTIVE_MAX;
         for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
+            pgy_intent_history_step_clear(&pgy_intent_last_steps[j]);
             pgy_intent_last_steps[j].name = pgy_runtime_strdup(
                 entry->steps[j].name != NULL ? entry->steps[j].name : "");
             pgy_intent_last_steps[j].zone = pgy_runtime_strdup(
                 entry->steps[j].zone != NULL ? entry->steps[j].zone : "");
+            pgy_intent_last_steps[j].phase = pgy_runtime_strdup(
+                entry->steps[j].phase != NULL ? entry->steps[j].phase : "");
+            pgy_intent_last_steps[j].actor = pgy_runtime_strdup(
+                entry->steps[j].actor != NULL ? entry->steps[j].actor : "");
+            pgy_intent_last_steps[j].slot = pgy_runtime_strdup(
+                entry->steps[j].slot != NULL ? entry->steps[j].slot : "");
+            pgy_intent_last_steps[j].from_zone = pgy_runtime_strdup(
+                entry->steps[j].from_zone != NULL ? entry->steps[j].from_zone : "");
+            pgy_intent_last_steps[j].from_slot = pgy_runtime_strdup(
+                entry->steps[j].from_slot != NULL ? entry->steps[j].from_slot : "");
+            pgy_intent_last_steps[j].to_zone = pgy_runtime_strdup(
+                entry->steps[j].to_zone != NULL ? entry->steps[j].to_zone : "");
+            pgy_intent_last_steps[j].to_slot = pgy_runtime_strdup(
+                entry->steps[j].to_slot != NULL ? entry->steps[j].to_slot : "");
             pgy_intent_last_steps[j].ok = entry->steps[j].ok;
             pgy_intent_last_steps[j].failure_reason = pgy_runtime_strdup(
                 entry->steps[j].failure_reason != NULL ? entry->steps[j].failure_reason : "");
@@ -458,13 +725,7 @@ pgy_intent_exit_export(int32_t handle)
         free(entry->trace);
         free(entry->failure_reason);
         for (int32_t j = 0; j < entry->step_count && j < PGY_INTENT_ACTIVE_MAX; j++) {
-            free(entry->steps[j].name);
-            free(entry->steps[j].zone);
-            free(entry->steps[j].failure_reason);
-            entry->steps[j].name = NULL;
-            entry->steps[j].zone = NULL;
-            entry->steps[j].failure_reason = NULL;
-            entry->steps[j].ok = false;
+            pgy_intent_history_step_clear(&entry->steps[j]);
         }
         entry->handle = 0;
         entry->name = NULL;
@@ -472,6 +733,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->subject_count = 0;
         entry->is_concurrent = false;
         entry->priority = 0;
+        entry->trace_id = 0;
         entry->trace = NULL;
         entry->failure_reason = NULL;
         entry->step_count = 0;

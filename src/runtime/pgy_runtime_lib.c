@@ -39,6 +39,8 @@ void pgy_log_double(double v)  { printf("%lf\n", v); }
 void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
 void pgy_log_string(char *v)   { printf("%s\n", v ? v : "(null)"); }
 
+static char *pgy_runtime_strdup_export(const char *src);
+
 char *pgy_int_to_string(int32_t v)
 {
     char stack_buf[32];
@@ -57,11 +59,354 @@ char *pgy_int_to_string(int32_t v)
     return buf;
 }
 
+typedef struct {
+    void   *data;
+    size_t  count;
+    size_t  capacity;
+} PgyListRaw;
+
+typedef struct {
+    void   *data;
+    size_t  head;
+    size_t  tail;
+    size_t  count;
+    size_t  capacity;
+} PgyQueueRaw;
+
+typedef struct {
+    char    **keys;
+    void     *values;
+    uint8_t  *occupied;
+    size_t    count;
+    size_t    capacity;
+} PgyHashMapRaw;
+
+static uint32_t
+pgy_hash_string_export(const char *s)
+{
+    uint32_t h = 2166136261u;
+    if (s == NULL)
+        return 0;
+    while (*s != '\0') {
+        h ^= (uint8_t)(*s++);
+        h *= 16777619u;
+    }
+    return h;
+}
+
+void
+pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    if (list == NULL || elem_size <= 0)
+        return;
+    list->capacity = 16;
+    list->count = 0;
+    list->data = calloc((size_t)list->capacity, (size_t)elem_size);
+}
+
+void
+pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    char *dst;
+    if (list == NULL || value_ptr == NULL || elem_size <= 0)
+        return;
+    if (list->count >= list->capacity) {
+        size_t new_capacity = list->capacity == 0 ? 16 : list->capacity * 2;
+        void *grown = realloc(list->data, new_capacity * (size_t)elem_size);
+        if (grown == NULL)
+            return;
+        list->data = grown;
+        list->capacity = new_capacity;
+    }
+    dst = (char *)list->data + (list->count * (size_t)elem_size);
+    memcpy(dst, value_ptr, (size_t)elem_size);
+    list->count++;
+}
+
+void
+pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t elem_size)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    if (out_ptr == NULL || elem_size <= 0) return;
+    memset(out_ptr, 0, (size_t)elem_size);
+    if (list == NULL || index < 0 || (size_t)index >= list->count)
+        return;
+    memcpy(out_ptr,
+           (char *)list->data + ((size_t)index * (size_t)elem_size),
+           (size_t)elem_size);
+}
+
+void
+pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t elem_size)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    if (list == NULL || value_ptr == NULL || elem_size <= 0)
+        return;
+    if (index < 0 || (size_t)index >= list->count)
+        return;
+    memcpy((char *)list->data + ((size_t)index * (size_t)elem_size),
+           value_ptr, (size_t)elem_size);
+}
+
+int32_t
+pgy_list_size_raw_export(void *list_ptr)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    if (list == NULL)
+        return 0;
+    return (int32_t)list->count;
+}
+
+void
+pgy_list_remove_raw_export(void *list_ptr, int32_t index, int64_t elem_size)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    size_t tail_count;
+    if (list == NULL || elem_size <= 0)
+        return;
+    if (index < 0 || (size_t)index >= list->count)
+        return;
+    tail_count = list->count - (size_t)index - 1;
+    if (tail_count > 0) {
+        memmove((char *)list->data + ((size_t)index * (size_t)elem_size),
+                (char *)list->data + (((size_t)index + 1) * (size_t)elem_size),
+                tail_count * (size_t)elem_size);
+    }
+    list->count--;
+}
+
+void
+pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    if (queue == NULL || elem_size <= 0)
+        return;
+    queue->capacity = 16;
+    queue->head = 0;
+    queue->tail = 0;
+    queue->count = 0;
+    queue->data = calloc(queue->capacity, (size_t)elem_size);
+}
+
+void
+pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    if (queue == NULL || value_ptr == NULL || elem_size <= 0)
+        return;
+    if (queue->count >= queue->capacity) {
+        size_t new_capacity = queue->capacity == 0 ? 16 : queue->capacity * 2;
+        void *new_data = calloc(new_capacity, (size_t)elem_size);
+        if (new_data == NULL)
+            return;
+        for (size_t i = 0; i < queue->count; i++) {
+            memcpy((char *)new_data + (i * (size_t)elem_size),
+                   (char *)queue->data + (((queue->head + i) % queue->capacity) * (size_t)elem_size),
+                   (size_t)elem_size);
+        }
+        free(queue->data);
+        queue->data = new_data;
+        queue->head = 0;
+        queue->tail = queue->count;
+        queue->capacity = new_capacity;
+    }
+    memcpy((char *)queue->data + (queue->tail * (size_t)elem_size),
+           value_ptr, (size_t)elem_size);
+    queue->tail = (queue->tail + 1) % queue->capacity;
+    queue->count++;
+}
+
+void
+pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    if (out_ptr == NULL || elem_size <= 0) return;
+    memset(out_ptr, 0, (size_t)elem_size);
+    if (queue == NULL || queue->count == 0)
+        return;
+    memcpy(out_ptr,
+           (char *)queue->data + (queue->head * (size_t)elem_size),
+           (size_t)elem_size);
+    queue->head = (queue->head + 1) % queue->capacity;
+    queue->count--;
+}
+
+int32_t
+pgy_queue_size_raw_export(void *queue_ptr)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    if (queue == NULL)
+        return 0;
+    return (int32_t)queue->count;
+}
+
+bool
+pgy_queue_empty_raw_export(void *queue_ptr)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    return queue == NULL || queue->count == 0;
+}
+
+void
+pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    if (map == NULL || value_size <= 0)
+        return;
+    map->capacity = 16;
+    map->count = 0;
+    map->keys = (char **)calloc(map->capacity, sizeof(char *));
+    map->values = calloc(map->capacity, (size_t)value_size);
+    map->occupied = (uint8_t *)calloc(map->capacity, sizeof(uint8_t));
+}
+
+static void
+pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
+{
+    size_t old_capacity = map->capacity;
+    char **old_keys = map->keys;
+    void *old_values = map->values;
+    uint8_t *old_occupied = map->occupied;
+
+    map->capacity *= 2;
+    map->keys = (char **)calloc(map->capacity, sizeof(char *));
+    map->values = calloc(map->capacity, (size_t)value_size);
+    map->occupied = (uint8_t *)calloc(map->capacity, sizeof(uint8_t));
+    map->count = 0;
+
+    for (size_t i = 0; i < old_capacity; i++) {
+        if (!old_occupied[i] || old_keys[i] == NULL)
+            continue;
+        {
+            uint32_t h = pgy_hash_string_export(old_keys[i]) % (uint32_t)map->capacity;
+            while (map->occupied[h])
+                h = (h + 1) % (uint32_t)map->capacity;
+            map->keys[h] = old_keys[i];
+            memcpy((char *)map->values + (h * (size_t)value_size),
+                   (char *)old_values + (i * (size_t)value_size),
+                   (size_t)value_size);
+            map->occupied[h] = 1;
+            map->count++;
+        }
+    }
+
+    free(old_keys);
+    free(old_values);
+    free(old_occupied);
+}
+
+void
+pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t value_size)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    if (map == NULL || key == NULL || value_ptr == NULL || value_size <= 0)
+        return;
+    if ((double)map->count / (double)map->capacity > 0.75)
+        pgy_map_grow_raw_export(map, value_size);
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h]) {
+        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            memcpy((char *)map->values + (h * (size_t)value_size),
+                   value_ptr, (size_t)value_size);
+            return;
+        }
+        h = (h + 1) % (uint32_t)map->capacity;
+    }
+    map->keys[h] = pgy_runtime_strdup_export(key);
+    memcpy((char *)map->values + (h * (size_t)value_size),
+           value_ptr, (size_t)value_size);
+    map->occupied[h] = 1;
+    map->count++;
+}
+
+void
+pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t value_size)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    size_t probes = 0;
+    if (out_ptr == NULL || value_size <= 0) return;
+    memset(out_ptr, 0, (size_t)value_size);
+    if (map == NULL || key == NULL || map->count == 0)
+        return;
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            memcpy(out_ptr,
+                   (char *)map->values + (h * (size_t)value_size),
+                   (size_t)value_size);
+            return;
+        }
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+}
+
+bool
+pgy_map_has_raw_export(void *map_ptr, const char *key)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    size_t probes = 0;
+    if (map == NULL || key == NULL || map->count == 0)
+        return false;
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0)
+            return true;
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+    return false;
+}
+
+void
+pgy_map_remove_raw_export(void *map_ptr, const char *key, int64_t value_size)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    size_t probes = 0;
+    if (map == NULL || key == NULL || map->count == 0 || value_size <= 0)
+        return;
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            free(map->keys[h]);
+            map->keys[h] = NULL;
+            memset((char *)map->values + (h * (size_t)value_size), 0, (size_t)value_size);
+            map->occupied[h] = 0;
+            map->count--;
+            return;
+        }
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+}
+
+int32_t
+pgy_map_size_raw_export(void *map_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    if (map == NULL)
+        return 0;
+    return (int32_t)map->count;
+}
+
 #define PGY_INTENT_ACTIVE_MAX 256
 
 typedef struct {
     char *name;
     char *zone;
+    char *phase;
+    char *actor;
+    char *slot;
+    char *from_zone;
+    char *from_slot;
+    char *to_zone;
+    char *to_slot;
     bool ok;
     char *failure_reason;
 } PgyIntentHistoryStep;
@@ -73,6 +418,7 @@ typedef struct {
     int32_t subject_count;
     bool    is_concurrent;
     int32_t priority;
+    int32_t trace_id;
     char   *trace;
     char   *failure_reason;
     int32_t step_count;
@@ -84,10 +430,12 @@ typedef struct {
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int32_t pgy_intent_next_handle = 1;
+static int32_t pgy_intent_next_trace_id = 1;
 static char *pgy_intent_last_trace = NULL;
 static char *pgy_intent_last_failure = NULL;
 static char *pgy_intent_last_name = NULL;
 static int32_t pgy_intent_last_handle = 0;
+static int32_t pgy_intent_last_trace_id = 0;
 static int32_t pgy_intent_last_step_count = 0;
 static bool pgy_intent_last_failed = false;
 static PgyIntentHistoryStep pgy_intent_last_steps[PGY_INTENT_ACTIVE_MAX];
@@ -107,6 +455,43 @@ pgy_runtime_strdup_export(const char *src)
         return NULL;
     memcpy(copy, src, len + 1);
     return copy;
+}
+
+static void
+pgy_intent_history_step_set_string_export(char **dst, const char *value)
+{
+    if (dst == NULL)
+        return;
+    free(*dst);
+    *dst = pgy_runtime_strdup_export(value != NULL ? value : "");
+}
+
+static void
+pgy_intent_history_step_clear_export(PgyIntentHistoryStep *step)
+{
+    if (step == NULL)
+        return;
+    free(step->name);
+    free(step->zone);
+    free(step->phase);
+    free(step->actor);
+    free(step->slot);
+    free(step->from_zone);
+    free(step->from_slot);
+    free(step->to_zone);
+    free(step->to_slot);
+    free(step->failure_reason);
+    step->name = NULL;
+    step->zone = NULL;
+    step->phase = NULL;
+    step->actor = NULL;
+    step->slot = NULL;
+    step->from_zone = NULL;
+    step->from_slot = NULL;
+    step->to_zone = NULL;
+    step->to_slot = NULL;
+    step->failure_reason = NULL;
+    step->ok = false;
 }
 
 static void
@@ -210,6 +595,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].subject_count = subject_count;
     pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
     pgy_intent_active_registry[free_index].priority = priority;
+    pgy_intent_active_registry[free_index].trace_id = pgy_intent_next_trace_id++;
     pgy_intent_active_registry[free_index].trace = NULL;
     pgy_intent_active_registry[free_index].failure_reason = NULL;
     pgy_intent_active_registry[free_index].step_count = 0;
@@ -239,11 +625,16 @@ pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
         pgy_intent_append_line_export(&entry->trace, line);
         if (entry->step_count < PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count;
-            free(entry->steps[index].name);
-            free(entry->steps[index].zone);
-            free(entry->steps[index].failure_reason);
+            pgy_intent_history_step_clear_export(&entry->steps[index]);
             entry->steps[index].name = pgy_runtime_strdup_export(step_name != NULL ? step_name : "");
             entry->steps[index].zone = pgy_runtime_strdup_export(zone_name != NULL ? zone_name : "");
+            entry->steps[index].phase = pgy_runtime_strdup_export("begin");
+            entry->steps[index].actor = pgy_runtime_strdup_export("");
+            entry->steps[index].slot = pgy_runtime_strdup_export("");
+            entry->steps[index].from_zone = pgy_runtime_strdup_export("");
+            entry->steps[index].from_slot = pgy_runtime_strdup_export("");
+            entry->steps[index].to_zone = pgy_runtime_strdup_export("");
+            entry->steps[index].to_slot = pgy_runtime_strdup_export("");
             entry->steps[index].ok = false;
             entry->steps[index].failure_reason = pgy_runtime_strdup_export("");
         }
@@ -263,6 +654,11 @@ pgy_intent_trace_bind_export(int32_t handle, char *actor_name, char *slot_name)
             actor_name != NULL ? actor_name : "<actor>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line_export(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].slot, slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -280,6 +676,14 @@ pgy_intent_trace_materialize_export(int32_t handle, char *actor_name,
             zone_name != NULL ? zone_name : "<zone>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line_export(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "materialize");
+            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].slot, slot_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].to_zone, zone_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].to_slot, slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -300,6 +704,15 @@ pgy_intent_trace_transfer_export(int32_t handle, char *actor_name,
             to_zone_name != NULL ? to_zone_name : "<zone>",
             to_slot_name != NULL ? to_slot_name : "<unbound>");
         pgy_intent_append_line_export(&entry->trace, line);
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
+            int32_t index = entry->step_count - 1;
+            pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "transfer");
+            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].from_zone, from_zone_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].from_slot, from_slot_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].to_zone, to_zone_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].to_slot, to_slot_name);
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -314,8 +727,11 @@ pgy_intent_trace_step_ok_export(int32_t handle, char *step_name)
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");
         pgy_intent_append_line_export(&entry->trace, line);
-        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX)
+        if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             entry->steps[entry->step_count - 1].ok = true;
+            pgy_intent_history_step_set_string_export(
+                &entry->steps[entry->step_count - 1].phase, "ok");
+        }
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
@@ -332,8 +748,8 @@ pgy_intent_trace_fail_export(int32_t handle, char *reason)
         entry->failed = true;
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
-            free(entry->steps[index].failure_reason);
-            entry->steps[index].failure_reason = pgy_runtime_strdup_export(reason != NULL ? reason : "");
+            pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "fail");
+            pgy_intent_history_step_set_string_export(&entry->steps[index].failure_reason, reason);
         }
         snprintf(line, sizeof(line), "[fail] %s\n",
             reason != NULL ? reason : "<failure>");
@@ -367,6 +783,12 @@ pgy_intent_last_handle_export(void)
 }
 
 int32_t
+pgy_intent_last_trace_id_export(void)
+{
+    return pgy_intent_last_trace_id;
+}
+
+int32_t
 pgy_intent_last_step_count_export(void)
 {
     return pgy_intent_last_step_count;
@@ -382,6 +804,25 @@ int32_t
 pgy_intent_history_count_export(void)
 {
     return pgy_intent_last_history_count;
+}
+
+static PgyIntentActiveEntry *
+pgy_intent_active_entry_by_index_export(int32_t index)
+{
+    int32_t seen = 0;
+
+    if (index < 0)
+        return NULL;
+
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (!pgy_intent_active_registry[i].active)
+            continue;
+        if (seen == index)
+            return &pgy_intent_active_registry[i];
+        seen++;
+    }
+
+    return NULL;
 }
 
 char *
@@ -400,6 +841,62 @@ pgy_intent_history_step_zone_export(int32_t index)
     return pgy_intent_last_steps[index].zone != NULL ? pgy_intent_last_steps[index].zone : "";
 }
 
+char *
+pgy_intent_history_step_phase_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].phase != NULL ? pgy_intent_last_steps[index].phase : "";
+}
+
+char *
+pgy_intent_history_step_actor_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].actor != NULL ? pgy_intent_last_steps[index].actor : "";
+}
+
+char *
+pgy_intent_history_step_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].slot != NULL ? pgy_intent_last_steps[index].slot : "";
+}
+
+char *
+pgy_intent_history_step_from_zone_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].from_zone != NULL ? pgy_intent_last_steps[index].from_zone : "";
+}
+
+char *
+pgy_intent_history_step_from_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].from_slot != NULL ? pgy_intent_last_steps[index].from_slot : "";
+}
+
+char *
+pgy_intent_history_step_to_zone_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].to_zone != NULL ? pgy_intent_last_steps[index].to_zone : "";
+}
+
+char *
+pgy_intent_history_step_to_slot_export(int32_t index)
+{
+    if (index < 0 || index >= pgy_intent_last_history_count)
+        return "";
+    return pgy_intent_last_steps[index].to_slot != NULL ? pgy_intent_last_steps[index].to_slot : "";
+}
+
 bool
 pgy_intent_history_step_ok_export(int32_t index)
 {
@@ -415,6 +912,98 @@ pgy_intent_history_step_failure_export(int32_t index)
         return "";
     return pgy_intent_last_steps[index].failure_reason != NULL
         ? pgy_intent_last_steps[index].failure_reason : "";
+}
+
+int32_t
+pgy_intent_active_count_export(void)
+{
+    int32_t count = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (pgy_intent_active_registry[i].active)
+            count++;
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return count;
+}
+
+char *
+pgy_intent_active_name_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->name != NULL)
+        result = entry->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_priority_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->priority;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_trace_id_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->trace_id;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+bool
+pgy_intent_active_concurrent_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->is_concurrent;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+char *
+pgy_intent_active_trace_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->trace != NULL)
+        result = entry->trace;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
 }
 
 void
@@ -448,16 +1037,32 @@ pgy_intent_exit_export(int32_t handle)
         pgy_intent_last_name = entry->name != NULL
             ? pgy_runtime_strdup_export(entry->name) : pgy_runtime_strdup_export("");
         pgy_intent_last_handle = entry->handle;
+        pgy_intent_last_trace_id = entry->trace_id;
         pgy_intent_last_step_count = entry->step_count;
         pgy_intent_last_failed = entry->failed;
         pgy_intent_last_history_count = entry->step_count;
         if (pgy_intent_last_history_count > PGY_INTENT_ACTIVE_MAX)
             pgy_intent_last_history_count = PGY_INTENT_ACTIVE_MAX;
         for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
+            pgy_intent_history_step_clear_export(&pgy_intent_last_steps[j]);
             pgy_intent_last_steps[j].name = pgy_runtime_strdup_export(
                 entry->steps[j].name != NULL ? entry->steps[j].name : "");
             pgy_intent_last_steps[j].zone = pgy_runtime_strdup_export(
                 entry->steps[j].zone != NULL ? entry->steps[j].zone : "");
+            pgy_intent_last_steps[j].phase = pgy_runtime_strdup_export(
+                entry->steps[j].phase != NULL ? entry->steps[j].phase : "");
+            pgy_intent_last_steps[j].actor = pgy_runtime_strdup_export(
+                entry->steps[j].actor != NULL ? entry->steps[j].actor : "");
+            pgy_intent_last_steps[j].slot = pgy_runtime_strdup_export(
+                entry->steps[j].slot != NULL ? entry->steps[j].slot : "");
+            pgy_intent_last_steps[j].from_zone = pgy_runtime_strdup_export(
+                entry->steps[j].from_zone != NULL ? entry->steps[j].from_zone : "");
+            pgy_intent_last_steps[j].from_slot = pgy_runtime_strdup_export(
+                entry->steps[j].from_slot != NULL ? entry->steps[j].from_slot : "");
+            pgy_intent_last_steps[j].to_zone = pgy_runtime_strdup_export(
+                entry->steps[j].to_zone != NULL ? entry->steps[j].to_zone : "");
+            pgy_intent_last_steps[j].to_slot = pgy_runtime_strdup_export(
+                entry->steps[j].to_slot != NULL ? entry->steps[j].to_slot : "");
             pgy_intent_last_steps[j].ok = entry->steps[j].ok;
             pgy_intent_last_steps[j].failure_reason = pgy_runtime_strdup_export(
                 entry->steps[j].failure_reason != NULL ? entry->steps[j].failure_reason : "");
@@ -467,13 +1072,7 @@ pgy_intent_exit_export(int32_t handle)
         free(entry->trace);
         free(entry->failure_reason);
         for (int32_t j = 0; j < entry->step_count && j < PGY_INTENT_ACTIVE_MAX; j++) {
-            free(entry->steps[j].name);
-            free(entry->steps[j].zone);
-            free(entry->steps[j].failure_reason);
-            entry->steps[j].name = NULL;
-            entry->steps[j].zone = NULL;
-            entry->steps[j].failure_reason = NULL;
-            entry->steps[j].ok = false;
+            pgy_intent_history_step_clear_export(&entry->steps[j]);
         }
         entry->handle = 0;
         entry->name = NULL;
@@ -481,6 +1080,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->subject_count = 0;
         entry->is_concurrent = false;
         entry->priority = 0;
+        entry->trace_id = 0;
         entry->trace = NULL;
         entry->failure_reason = NULL;
         entry->step_count = 0;

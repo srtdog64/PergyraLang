@@ -66,6 +66,13 @@ world CommerceWorld
         }
     }
 
+    func BroadcastIntentApi(self, response: IntentApiResponse) -> Void
+    {
+        Broadcast(RenderIntentApiResponse(response));
+        Broadcast("  [Runtime] name=" + response.intentName + " handle=" + ToString(response.handle) + " failed=" + ToString(response.failed));
+        Broadcast("  [Runtime] steps=" + ToString(response.stepCount));
+    }
+
     func ShowCart(self) -> Void
     {
         route = cart.route;
@@ -118,61 +125,4 @@ world CommerceWorld
         Broadcast("account=" + account.Snapshot());
     }
 
-    func RunCommerceScripted(self) -> Void
-    {
-        Broadcast(CommerceHeader());
-        Broadcast(CommerceSubtitle());
-        Blank();
-
-        Broadcast("[Scene] storefront opens with a JS cart page over a Pergyra backend.");
-        cart.buyer.AddFeatured(2);
-        cart.buyer.ApplyPromo(7);
-        cart.Touch();
-        ShowCart();
-        Blank();
-
-        flowState = "checkout";
-        Broadcast("[API] POST /api/intents/CheckoutPurchase");
-        let checkoutOk: Bool = CheckoutPurchase(cart, payment, cart.buyer, cart.merchant);
-        BroadcastIntent("CheckoutPurchase", checkoutOk);
-        BroadcastIntentHistory();
-        ShowCheckout();
-        Blank();
-
-        flowState = "refund";
-        Broadcast("[API] POST /api/intents/RefundPurchase");
-        let refundOk: Bool = RefundPurchase(payment, refund, cart.buyer, cart.merchant);
-        BroadcastIntent("RefundPurchase", refundOk);
-        BroadcastIntentHistory();
-        ShowRefund();
-        Blank();
-
-        flowState = "account";
-        Broadcast("[API] POST /api/intents/SyncAccountProfile");
-        let profileOk: Bool = SyncAccountProfile(refund, account, cart.buyer);
-        BroadcastIntent("SyncAccountProfile", profileOk);
-        BroadcastIntentHistory();
-        ShowProfile();
-        Blank();
-
-        Broadcast("[Summary] all page routes are projections; all state changes went through intents and zones.");
-        FinalSnapshot();
-    }
-
-    func SaveReport(self, path: String) -> Void
-    {
-        WriteFile(path,
-            "=== SHOPPING CHECKOUT + REFUND REPORT ===\n"
-            + "route=" + route + " flow=" + flowState + "\n\n"
-            + "--- TRANSCRIPT ---\n"
-            + transcript + "\n\n"
-            + "--- SNAPSHOT ---\n"
-            + "buyer: " + cart.buyer.Summary() + "\n"
-            + "merchant: " + cart.merchant.Summary() + "\n"
-            + "cart=" + cart.Snapshot() + "\n"
-            + "payment=" + payment.Snapshot() + "\n"
-            + "refund=" + refund.Snapshot() + "\n"
-            + "account=" + account.Snapshot() + "\n"
-        );
-    }
 }

@@ -1,0 +1,174 @@
+subject Driver {
+    let hp: Int;
+    let started: Bool;
+
+    action StepA(self) -> Void {
+        hp = hp + 10;
+    }
+
+    action UndoStepA(self) -> Void {
+        hp = hp - 10;
+    }
+
+    action StepB(self) -> Void {
+        hp = hp + 3;
+        started = true;
+    }
+
+    action UndoStepB(self) -> Void {
+        hp = hp - 3;
+        started = false;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent InnerObserve(cockpit: CockpitZone, driver: Driver) {
+    concurrent;
+    priority: 9;
+
+    step Pulse {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: Log("inner.active.count=" + ToString(IntentActiveCount()));
+        on: Log("inner.active.0=" + IntentActiveName(0));
+        on: Log("inner.active.1=" + IntentActiveName(1));
+        on: Log("inner.active.0.priority=" + ToString(IntentActivePriority(0)));
+        on: Log("inner.active.1.priority=" + ToString(IntentActivePriority(1)));
+        on: Log("inner.active.0.concurrent=" + ToString(IntentActiveConcurrent(0)));
+        on: Log("inner.active.1.concurrent=" + ToString(IntentActiveConcurrent(1)));
+        post: IntentActiveCount() >= 2;
+        expect: IntentActiveHandle(0) > 0;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent OuterObserve(cockpit: CockpitZone, driver: Driver) {
+    concurrent;
+    priority: 1;
+
+    step Start {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: Log("outer.before=" + ToString(IntentActiveCount()));
+        on: InnerObserve(cockpit, driver);
+        on: Log("outer.after=" + ToString(IntentActiveCount()));
+        post: IntentActiveCount() >= 1;
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent FullRollback(cockpit: CockpitZone, driver: Driver) {
+    exclusive;
+    rollback: full;
+
+    step StepA {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepA();
+        compensate: driver.UndoStepA();
+        post: driver.hp >= 10;
+    }
+
+    step StepB {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepB();
+        compensate: driver.UndoStepB();
+        guard: false;
+        post: driver.started;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent CurrentRollback(cockpit: CockpitZone, driver: Driver) {
+    exclusive;
+    rollback: current;
+
+    step StepA {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepA();
+        compensate: driver.UndoStepA();
+        post: driver.hp >= 10;
+    }
+
+    step StepB {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepB();
+        compensate: driver.UndoStepB();
+        guard: false;
+        post: driver.started;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent NoRollback(cockpit: CockpitZone, driver: Driver) {
+    exclusive;
+    rollback: none;
+
+    step StepA {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepA();
+        compensate: driver.UndoStepA();
+        post: driver.hp >= 10;
+    }
+
+    step StepB {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.StepB();
+        compensate: driver.UndoStepB();
+        guard: false;
+        post: driver.started;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let observeDriver = Driver(0, false);
+    let observeCockpit = CockpitZone(Driver(99, true));
+    Log("outer.ok=" + ToString(OuterObserve(observeCockpit, observeDriver)));
+    Log("active.after.outer=" + ToString(IntentActiveCount()));
+
+    let fullDriver = Driver(0, false);
+    let fullCockpit = CockpitZone(Driver(0, false));
+    Log("full.ok=" + ToString(FullRollback(fullCockpit, fullDriver)));
+    Log("full.hp=" + ToString(fullDriver.hp));
+    Log("full.started=" + ToString(fullDriver.started));
+
+    let currentDriver = Driver(0, false);
+    let currentCockpit = CockpitZone(Driver(0, false));
+    Log("current.ok=" + ToString(CurrentRollback(currentCockpit, currentDriver)));
+    Log("current.hp=" + ToString(currentDriver.hp));
+    Log("current.started=" + ToString(currentDriver.started));
+
+    let noneDriver = Driver(0, false);
+    let noneCockpit = CockpitZone(Driver(0, false));
+    Log("none.ok=" + ToString(NoRollback(noneCockpit, noneDriver)));
+    Log("none.hp=" + ToString(noneDriver.hp));
+    Log("none.started=" + ToString(noneDriver.started));
+}

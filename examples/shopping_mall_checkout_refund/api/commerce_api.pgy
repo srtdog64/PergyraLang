@@ -1,0 +1,86 @@
+dto CheckoutIntentRequest
+{
+    let route: String;
+    let shipping: Int;
+}
+
+dto RefundIntentRequest
+{
+    let route: String;
+    let ticketSeed: Int;
+}
+
+dto ProfileSyncRequest
+{
+    let route: String;
+    let marketing: Int;
+}
+
+dto IntentApiResponse
+{
+    let ok: Bool;
+    let intentName: String;
+    let handle: Int;
+    let failed: Bool;
+    let stepCount: Int;
+}
+
+func RenderIntentApiResponse(response: IntentApiResponse) -> String
+{
+    return "[Adapter] " + response.intentName
+        + " ok=" + ToString(response.ok)
+        + " handle=" + ToString(response.handle)
+        + " failed=" + ToString(response.failed)
+        + " steps=" + ToString(response.stepCount);
+}
+
+func BuildCheckoutIntentRequest(cart: CartZone, shipping: Int) -> CheckoutIntentRequest
+{
+    return CheckoutIntentRequest(cart.route, shipping);
+}
+
+func BuildRefundIntentRequest(payment: PaymentZone, ticketSeed: Int) -> RefundIntentRequest
+{
+    return RefundIntentRequest(payment.route, ticketSeed);
+}
+
+func BuildProfileSyncRequest(refund: RefundZone, marketing: Int) -> ProfileSyncRequest
+{
+    return ProfileSyncRequest(refund.route, marketing);
+}
+
+func HandleCheckoutIntent(cart: CartZone, payment: PaymentZone, buyer: Member, merchant: Merchant, req: CheckoutIntentRequest) -> IntentApiResponse
+{
+    let ok = CheckoutPurchase(cart, payment, buyer, merchant);
+    return IntentApiResponse(
+        ok,
+        IntentLastName(),
+        IntentLastHandle(),
+        IntentLastFailed(),
+        IntentLastStepCount()
+    );
+}
+
+func HandleRefundIntent(payment: PaymentZone, refund: RefundZone, buyer: Member, merchant: Merchant, req: RefundIntentRequest) -> IntentApiResponse
+{
+    let ok = RefundPurchase(payment, refund, buyer, merchant);
+    return IntentApiResponse(
+        ok,
+        IntentLastName(),
+        IntentLastHandle(),
+        IntentLastFailed(),
+        IntentLastStepCount()
+    );
+}
+
+func HandleProfileSyncIntent(refund: RefundZone, account: AccountZone, buyer: Member, req: ProfileSyncRequest) -> IntentApiResponse
+{
+    let ok = SyncAccountProfile(refund, account, buyer);
+    return IntentApiResponse(
+        ok,
+        IntentLastName(),
+        IntentLastHandle(),
+        IntentLastFailed(),
+        IntentLastStepCount()
+    );
+}

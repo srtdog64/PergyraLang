@@ -73,6 +73,23 @@ llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+static bool
+llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
+
+static bool
+llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
+{
+    const char *type_name;
+
+    if (ctx == NULL || param == NULL || param->type == NULL
+        || param->type->type != AST_TYPE
+        || param->type->data.type.name == NULL)
+        return false;
+
+    type_name = param->type->data.type.name;
+    return llvm_nominal_uses_pointer_self(ctx, type_name);
+}
+
 static LLVMValueRef *
 llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                               ASTNode **arg_nodes, size_t argc,
@@ -105,6 +122,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         FuncParam *p = decl->data.func_decl.params[i];
         const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
         ASTNode *arg_node = arg_nodes[arg_idx++];
+        bool pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);
 
         if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             const char *source_name = arg_node->data.identifier.name;
@@ -123,6 +141,25 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                 }
             }
             continue;
+        }
+
+        if (pointer_self && arg_node != NULL) {
+            if (arg_node->type == AST_IDENTIFIER) {
+                const char *source_name = arg_node->data.identifier.name;
+                LLVMVarEntry *var = llvm_scope_lookup(ctx, source_name);
+                if (var != NULL) {
+                    args[emitted_idx++] = LLVMGetTypeKind(var->type) == LLVMPointerTypeKind
+                        ? LLVMBuildLoad2(ctx->builder, var->type, var->alloca, llvm_tmp_name(ctx))
+                        : var->alloca;
+                    continue;
+                }
+            } else if (arg_node->type == AST_MEMBER_ACCESS) {
+                LLVMValueRef ptr = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+                if (ptr != NULL) {
+                    args[emitted_idx++] = ptr;
+                    continue;
+                }
+            }
         }
 
         args[emitted_idx++] = llvm_emit_expression(arg_node, ctx);

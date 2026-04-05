@@ -23,12 +23,16 @@ zone PaymentZone
     state paidReady: effect paid on buyer
     state linked: relation link between buyer, merchant
 
-    func MirrorCapture(self, amount: Int, shipmentCount: Int) -> Int
+    func Capture(self, shipping: Int) -> Int
     {
+        let staged = merchant.StageOrder(buyer.cart.GrandTotal());
+        buyer.BeginCheckout(shipping);
+        let settled = buyer.ConfirmPayment();
+        merchant.CaptureOrder(settled + Max(staged - settled, 0));
         self.link.medium = "web";
-        self.paid.amount = amount;
-        captured = amount;
-        shipped = shipmentCount;
+        self.paid.amount = settled;
+        captured = settled;
+        shipped = merchant.ledger.shipments;
         stage = "captured";
         return captured;
     }

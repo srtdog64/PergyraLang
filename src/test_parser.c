@@ -813,6 +813,7 @@ main(void)
             "}\n"
             "intent Purchase(payment: PaymentZone, buyer: Player, seller: Merchant) {\n"
             "    exclusive;\n"
+            "    rollback: current;\n"
             "    priority: 10;\n"
             "    step pay {\n"
             "        where: PaymentZone;\n"

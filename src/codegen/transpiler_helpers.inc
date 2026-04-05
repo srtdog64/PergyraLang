@@ -3,6 +3,7 @@ static char *escape_c_string_literal(const char *src);
 static char *render_type_name(ASTNode *type_node);
 static bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node);
 static bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func);
+static bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx, ASTNode *func);
 
 /* -----------------------------------------------------------------
  * CodeBuf
@@ -407,6 +408,43 @@ find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
     }
 
     return NULL;
+}
+
+static bool
+transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+        return false;
+
+    if (find_class_decl(ctx, name) != NULL
+        || find_zone_decl(ctx, name) != NULL
+        || find_party_decl(ctx, name) != NULL
+        || find_actor_decl(ctx, name) != NULL)
+        return true;
+
+    for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
+        ASTNode *stmt = ctx->hir->systemics[i];
+        if (stmt != NULL && stmt->data.systemic_decl.name != NULL
+            && strcmp(stmt->data.systemic_decl.name, name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->world_count; i++) {
+        (void)i;
+    }
+    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+        ASTNode *stmt = ctx->hir->relations[i];
+        if (stmt != NULL && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, name) == 0)
+            return true;
+    }
+
+    return false;
 }
 
 static ASTNode *
@@ -2789,8 +2827,43 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return constructed_arg_name_at(map_type, 1);
                 return "Int";
             }
+            if (strcmp(name, "ToString") == 0)
+                return "String";
+            if (strcmp(name, "IntentLastTrace") == 0
+                || strcmp(name, "IntentLastFailure") == 0
+                || strcmp(name, "IntentLastName") == 0
+                || strcmp(name, "IntentHistoryStepName") == 0
+                || strcmp(name, "IntentHistoryStepZone") == 0
+                || strcmp(name, "IntentHistoryStepPhase") == 0
+                || strcmp(name, "IntentHistoryStepActor") == 0
+                || strcmp(name, "IntentHistoryStepSlot") == 0
+                || strcmp(name, "IntentHistoryStepFromZone") == 0
+                || strcmp(name, "IntentHistoryStepFromSlot") == 0
+                || strcmp(name, "IntentHistoryStepToZone") == 0
+                || strcmp(name, "IntentHistoryStepToSlot") == 0
+                || strcmp(name, "IntentActiveName") == 0
+                || strcmp(name, "IntentActiveTrace") == 0)
+                return "String";
+            if (strcmp(name, "IntentLastHandle") == 0
+                || strcmp(name, "IntentLastTraceId") == 0
+                || strcmp(name, "IntentLastStepCount") == 0
+                || strcmp(name, "IntentHistoryCount") == 0
+                || strcmp(name, "IntentActiveCount") == 0
+                || strcmp(name, "IntentActiveHandle") == 0
+                || strcmp(name, "IntentActiveTraceId") == 0
+                || strcmp(name, "IntentActivePriority") == 0)
+                return "Int";
             if (strcmp(name, "ListNew") == 0)
                 return "List";
+            if (strcmp(name, "ListGet") == 0 && expr->data.call.arg_count >= 1) {
+                const char *list_type = infer_expression_type_name(ctx,
+                    expr->data.call.arguments[0]);
+                if (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                    return slot_inner_type_name(list_type);
+                return "Int";
+            }
+            if (strcmp(name, "ListSize") == 0)
+                return "Int";
             if (strcmp(name, "SetNew") == 0)
                 return "Set";
             if (strcmp(name, "QueueNew") == 0)
@@ -2892,11 +2965,17 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "SendTimeout") == 0
                 || strcmp(name, "Cancel") == 0
                 || strcmp(name, "IsCancelled") == 0
+                || strcmp(name, "IntentLastFailed") == 0
+                || strcmp(name, "IntentHistoryStepOk") == 0
+                || strcmp(name, "IntentActiveConcurrent") == 0
                 || strcmp(name, "MapHas") == 0
                 || strcmp(name, "HasProjection") == 0
                 || strcmp(name, "HasLayer") == 0
                 || strcmp(name, "HasState") == 0
                 || strcmp(name, "HasZone") == 0
+                || strcmp(name, "HasZoneProjection") == 0
+                || strcmp(name, "HasZoneLayer") == 0
+                || strcmp(name, "HasZoneState") == 0
                 || strcmp(name, "ChannelFull") == 0
                 || strcmp(name, "ChannelClosed") == 0
                 || strcmp(name, "ChannelReady") == 0)
@@ -2941,6 +3020,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || find_world_decl(ctx, name) != NULL) {
                 return name;
             }
+            if (find_intent_decl(ctx, name) != NULL)
+                return "Bool";
 
             {
                 ASTNode *host_method = current_host_method_decl(ctx, name);
@@ -3173,6 +3254,39 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
         if (p == NULL || p->type == NULL)
             continue;
         if (!transpiler_can_forward_declare_type_early(ctx, p->type))
+            return false;
+    }
+    return true;
+}
+
+static bool
+transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    if (transpiler_can_forward_declare_type_early(ctx, type_node))
+        return true;
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL)
+        return false;
+
+    return transpiler_has_known_nominal_type(ctx, type_node->data.type.name);
+}
+
+static bool
+transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx, ASTNode *func)
+{
+    if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
+        return false;
+    if (func->data.func_decl.generic_params != NULL
+        && func->data.func_decl.generic_params->count > 0)
+        return false;
+    if (!transpiler_can_forward_declare_type_after_zones(ctx,
+            func->data.func_decl.return_type))
+        return false;
+    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
+        FuncParam *p = func->data.func_decl.params[i];
+        if (p == NULL || p->type == NULL)
+            continue;
+        if (!transpiler_can_forward_declare_type_after_zones(ctx, p->type))
             return false;
     }
     return true;

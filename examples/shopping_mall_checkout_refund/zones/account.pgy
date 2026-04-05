@@ -8,11 +8,11 @@ zone AccountZone
 
     authority buyer requires ProfileEditable
 
-    func MirrorProfile(self, marketingChoice: Int, accepted: Int) -> Int
+    func Sync(self, marketingChoice: Int) -> Int
     {
-        marketing = marketingChoice;
+        marketing = buyer.UpdatePrivacy(marketingChoice);
         stage = "synced";
-        return accepted;
+        return marketing;
     }
 
     func Snapshot(self) -> String

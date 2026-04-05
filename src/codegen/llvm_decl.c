@@ -59,6 +59,70 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
     return count;
 }
 
+static bool
+llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL)
+        return false;
+
+    {
+        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_name);
+        if (cls != NULL && cls->is_pointer_self_host)
+            return true;
+    }
+
+    if (ctx->hir == NULL)
+        return false;
+
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt == NULL)
+            continue;
+        switch (stmt->type) {
+        case AST_CLASS_DECL:
+            if (stmt->data.class_decl.name != NULL
+                && strcmp(stmt->data.class_decl.name, type_name) == 0
+                && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
+                return true;
+            break;
+        case AST_PARTY_DECL:
+            if (stmt->data.party_decl.name != NULL
+                && strcmp(stmt->data.party_decl.name, type_name) == 0)
+                return true;
+            break;
+        case AST_SYSTEMIC_DECL:
+            if (stmt->data.systemic_decl.name != NULL
+                && strcmp(stmt->data.systemic_decl.name, type_name) == 0)
+                return true;
+            break;
+        case AST_WORLD_DECL:
+            if (stmt->data.world_decl.name != NULL
+                && strcmp(stmt->data.world_decl.name, type_name) == 0)
+                return true;
+            break;
+        case AST_RELATION_DECL:
+            if (stmt->data.relation_decl.name != NULL
+                && strcmp(stmt->data.relation_decl.name, type_name) == 0)
+                return true;
+            break;
+        case AST_EFFECT_DECL:
+            if (stmt->data.effect_decl.name != NULL
+                && strcmp(stmt->data.effect_decl.name, type_name) == 0)
+                return true;
+            break;
+        case AST_ZONE_DECL:
+            if (stmt->data.zone_decl.name != NULL
+                && strcmp(stmt->data.zone_decl.name, type_name) == 0)
+                return true;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return false;
+}
+
 /* =================================================================
  * Function declaration emission
  * ================================================================= */
@@ -86,6 +150,12 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef pt = (p->type != NULL)
                 ? ast_type_to_llvm(ctx, p->type)
                 : ctx->type_i32;
+            if (p->type != NULL
+                && p->type->type == AST_TYPE
+                && p->type->data.type.name != NULL
+                && llvm_decl_nominal_uses_pointer_self(ctx, p->type->data.type.name)) {
+                pt = LLVMPointerType(pt, 0);
+            }
             if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL) {
                 param_types[pidx++] = LLVMPointerType(pt, 0);
                 if (is_secure) {
@@ -141,6 +211,12 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef pt = (p->type != NULL)
             ? ast_type_to_llvm(ctx, p->type)
             : ctx->type_i32;
+        if (p->type != NULL
+            && p->type->type == AST_TYPE
+            && p->type->data.type.name != NULL
+            && llvm_decl_nominal_uses_pointer_self(ctx, p->type->data.type.name)) {
+            pt = LLVMPointerType(pt, 0);
+        }
         if (inner != NULL) {
             LLVMValueRef slot_ptr = LLVMGetParam(fn, llvm_pidx++);
             llvm_scope_declare(ctx, p->name, slot_ptr, pt);

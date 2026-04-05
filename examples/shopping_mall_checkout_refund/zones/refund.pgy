@@ -22,12 +22,13 @@ zone RefundZone
     state refundReady: effect refunded on buyer
     state linked: relation link between buyer, merchant
 
-    func MirrorRefund(self, requestedAmount: Int, approvedAmount: Int) -> Int
+    func Process(self, ticketSeed: Int) -> Int
     {
+        requested = buyer.OpenRefund(ticketSeed);
+        let amount = buyer.AcceptRefund();
+        approved = merchant.ApproveRefund(amount);
         self.link.medium = "web";
-        requested = requestedAmount;
-        approved = approvedAmount;
-        self.refunded.amount = approvedAmount;
+        self.refunded.amount = approved;
         stage = "approved";
         return approved;
     }

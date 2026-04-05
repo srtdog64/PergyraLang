@@ -32,20 +32,26 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         /* Role methods operate on subject (pointer-self);
          * find the role's target subject so bare field access uses -> */
         ASTNode *role_node = find_role_decl(ctx, role_name);
+        const char *subject_c_type = NULL;
         if (role_node != NULL
             && role_node->data.role_decl.for_type != NULL
             && role_node->data.role_decl.for_type->type == AST_TYPE
             && role_node->data.role_decl.for_type->data.type.name != NULL) {
             subject_name = role_node->data.role_decl.for_type->data.type.name;
+            subject_c_type = pergyra_type_to_c(subject_name);
             ctx->current_class_name = subject_name;
         }
         /* Cast void *_raw_self to concrete subject type */
         if (subject_name != NULL && is_pointer_self_host_type_name(ctx, subject_name)) {
-            codebuf_write(ctx->out, "    %s *self = (%s *)_raw_self;\n", subject_name, subject_name);
+            codebuf_write(ctx->out, "    %s *self = (%s *)_raw_self;\n",
+                          subject_c_type != NULL ? subject_c_type : subject_name,
+                          subject_c_type != NULL ? subject_c_type : subject_name);
             codebuf_write(ctx->out, "    (void)self;\n");
         }
         else if (subject_name != NULL) {
-            codebuf_write(ctx->out, "    %s self = *(%s *)_raw_self;\n", subject_name, subject_name);
+            codebuf_write(ctx->out, "    %s self = *(%s *)_raw_self;\n",
+                          subject_c_type != NULL ? subject_c_type : subject_name,
+                          subject_c_type != NULL ? subject_c_type : subject_name);
             codebuf_write(ctx->out, "    (void)self;\n");
         }
         else

@@ -1541,7 +1541,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         const char *elem_type = "int32_t";
         if (coll_type != NULL
             && (strncmp(coll_type, "Array<", 6) == 0
-                || strncmp(coll_type, "Slice<", 6) == 0)) {
+                || strncmp(coll_type, "Slice<", 6) == 0
+                || strncmp(coll_type, "List<", 5) == 0)) {
             elem_type = pergyra_type_to_c(slot_inner_type_name(coll_type));
         }
 
@@ -2552,6 +2553,107 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
     codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
 }
 
+static bool
+emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
+                                           ASTNode *intent, ASTNode *step,
+                                           size_t step_index)
+{
+    const char *zone_alias;
+    const char *zone_type;
+    bool rebound = false;
+
+    if (out == NULL || ctx == NULL || intent == NULL || step == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return false;
+    }
+
+    zone_alias = intent_step_effective_zone_alias(step);
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_alias == NULL || zone_type == NULL)
+        return false;
+
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        ASTNode *involves = find_intent_actor_local(intent, alias);
+        const char *actor_c_type;
+
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
+            || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
+            continue;
+        }
+
+        actor_c_type = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+        write_indent(ctx);
+        codebuf_write(out, "%s *__intent_saved_%zu_%s = %s;\n",
+            actor_c_type, step_index, alias, alias);
+        write_indent(ctx);
+        codebuf_write(out, "%s = &%s->%s;\n", alias, zone_alias, slot_name);
+        rebound = true;
+    }
+
+    return rebound;
+}
+
+static void
+emit_intent_step_sync_effective_zone(CodeBuf *out, TranspilerCtx *ctx,
+                                     ASTNode *step)
+{
+    const char *zone_alias;
+    const char *zone_type;
+
+    if (out == NULL || ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return;
+    }
+
+    zone_alias = intent_step_effective_zone_alias(step);
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_alias == NULL || zone_type == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}
+
+static void
+emit_intent_step_restore_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
+                                            ASTNode *intent, ASTNode *step,
+                                            size_t step_index)
+{
+    const char *zone_type;
+
+    if (out == NULL || ctx == NULL || intent == NULL || step == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return;
+    }
+
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_type == NULL)
+        return;
+
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        ASTNode *involves = find_intent_actor_local(intent, alias);
+
+        if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
+            || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
+            continue;
+        }
+
+        write_indent(ctx);
+        codebuf_write(out, "*__intent_saved_%zu_%s = *%s;\n", step_index, alias, alias);
+        write_indent(ctx);
+        codebuf_write(out, "%s = __intent_saved_%zu_%s;\n", alias, step_index, alias);
+    }
+}
+
 static const char *
 resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
                               ASTNode *step, const char *alias)
@@ -2679,6 +2781,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     int saved_slot_count;
     int saved_typed_count;
     bool has_compensate_steps = false;
+    bool needs_cleanup_done_label = false;
     size_t subject_count = 0;
     CodeBuf *saved_out;
     TranspilerCtx *saved_render_ctx;
@@ -2701,6 +2804,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             break;
         }
     }
+    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE)
+        has_compensate_steps = false;
+    needs_cleanup_done_label = has_compensate_steps
+        && node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT;
 
     codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -2804,6 +2911,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
+        bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
 
@@ -2826,6 +2934,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 slot_name != NULL ? slot_name : "<unbound>");
         }
         emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+        rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
 
         if (step->data.intent_step.pre_expr != NULL) {
             char *pre = emit_expression(step->data.intent_step.pre_expr, ctx);
@@ -2890,7 +2999,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
             }
         }
-        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+        if (rebound_aliases)
+            emit_intent_step_sync_effective_zone(ctx->out, ctx, step);
+        else
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+        if (rebound_aliases)
+            emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
 
         if (has_compensate_steps) {
             write_indent(ctx);
@@ -3004,6 +3118,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 free(expr);
             }
             emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+            if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");
+            }
             ctx->indent--;
             write_indent(ctx);
             codebuf_write(ctx->out, "}\n");
@@ -3011,6 +3129,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
+    }
+    if (needs_cleanup_done_label) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_cleanup_done:\n");
     }
     write_indent(ctx);
     codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
@@ -3122,6 +3244,12 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     for (size_t i = 0; i < hir->intent_count; i++) {
         if (!transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
             emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    }
+    for (size_t i = 0; i < hir->function_count; i++) {
+        if (!transpiler_can_forward_declare_func_early(ctx, hir->functions[i])
+            && transpiler_can_forward_declare_func_after_zones(ctx, hir->functions[i])) {
+            emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
+        }
     }
 
     /* Pass 3.9: worlds (struct + methods) */

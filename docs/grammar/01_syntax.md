@@ -141,6 +141,7 @@ func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
 ```pergyra
 intent Purchase(buyer: Player, seller: Merchant) {
     exclusive;
+    rollback: current;
     priority: 10;
 
     step pay {
@@ -176,19 +177,25 @@ Purchase(hero, merchant);
 - `pre` / `post` / `expect` / `success` / `failure`는 `Bool`이어야 한다
 - `guard` / `invariant`도 `Bool`이어야 한다
 - `priority`는 `Int`여야 한다
+- `rollback`은 `full`, `current`, `none` 중 하나여야 하며, 기본값은 `full`이다
 - `on:`은 여러 번 선언할 수 있고 현재 lowering은 선언 순서대로 실행한다
 - `compensate:`는 여러 번 선언할 수 있고, failure 시 reverse-order로 실행된다
-- `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` builtin으로 마지막 intent 실행 기록 요약을 읽을 수 있다
-- `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
+- `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastTraceId()` / `IntentLastStepCount()` / `IntentLastFailed()` builtin으로 마지막 intent 실행 기록 요약을 읽을 수 있다
+- `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepPhase(i)` / `IntentHistoryStepActor(i)` / `IntentHistoryStepSlot(i)` / `IntentHistoryStepFromZone(i)` / `IntentHistoryStepFromSlot(i)` / `IntentHistoryStepToZone(i)` / `IntentHistoryStepToSlot(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
+- `IntentActiveCount()` / `IntentActiveName(i)` / `IntentActiveHandle(i)` / `IntentActiveTraceId(i)` / `IntentActivePriority(i)` / `IntentActiveConcurrent(i)` / `IntentActiveTrace(i)` builtin으로 현재 active intent registry를 읽을 수 있다
 - `transfer: source -> target;`는 intent step에서 cross-zone handoff를 선언한다. 현재 구현은 source/target 양쪽 zone을 live sync하고, `who` actor를 matching subject slot에 materialize하며, trace에 `[transfer] ...`를 남긴다.
+- `using:` step은 현재 `who` actor alias를 live zone subject slot pointer로 재바인딩한 뒤 step body를 실행하고, sync 후 canonical actor로 복구한다. 그래서 zone method가 nested actor state를 직접 바꿔도 intent clause와 최종 actor state가 일관된다.
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
 - 같은 subject에 대해 `exclusive` intent가 이미 active면 새 intent는 기본적으로 거부된다
 - 새 intent와 active intent가 모두 `concurrent`이면 병행 가능하다
 - 새 intent의 `priority`가 더 높으면 낮은 priority active intent 위로 중첩 진입할 수 있다
-- step ordering, basic trace/history, basic rollback/compensation은 현재 구현되어 있다
-- 아직 남은 건 richer trace id/history API와 richer rollback policy다
+- `rollback: full`은 현재 구현의 기본값이며, completed step들을 reverse-order로 보상한다
+- `rollback: current`는 가장 최근 completed step만 보상한다
+- `rollback: none`은 compensation을 건너뛴다
+- step ordering, active registry observability, basic trace/history, rollback/compensation은 현재 구현되어 있다
+- 아직 남은 건 richer multi-instance timeline query와 richer rollback policy detail이다
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.

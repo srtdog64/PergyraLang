@@ -1,0 +1,50 @@
+// ============================================
+// 수동 데이터: Event, DateInfo
+// ============================================
+
+// ⚠️ 약점: Date/Time 빌트인 타입이 없다
+// Int로 때우는 수밖에 없음
+struct DateInfo
+{
+    let year: Int;
+    let month: Int;
+    let day: Int;
+    let hour: Int;
+    let minute: Int;
+}
+
+class Event
+{
+    let title: String;
+    let description: String;
+    let date: DateInfo;         // ⚠️ struct 중첩은 되는가?
+    let duration_minutes: Int;
+    let is_recurring: Bool;     // ⚠️ 약점: Bool 타입이 있는가?
+    let recurrence_days: Int;   // 반복 간격 (0이면 비반복)
+
+    func IsOnDate(self, y: Int, m: Int, d: Int) -> Bool
+    {
+        // ⚠️ 약점: 논리 연산자 &&가 있는가?
+        return self.date.year == y
+            && self.date.month == m
+            && self.date.day == d;
+    }
+
+    func Summary(self) -> String
+    {
+        // ⚠️ 약점: 문자열 포매팅/보간이 없다
+        // "2026-04-05 회의" 같은 걸 만들 수 없음
+        return self.title;
+    }
+}
+
+// 이벤트 목록
+// ⚠️ 약점: 제네릭 컬렉션이 없다
+// List<Event>가 안 되므로 고정 배열 또는 HashMap으로 우회
+dto EventSummary
+{
+    let title: String;
+    let date_year: Int;
+    let date_month: Int;
+    let date_day: Int;
+}

@@ -19,16 +19,19 @@ examples such as the battle simulator and biome simulator.
   registry on both C and LLVM. Step-level `guard` / `invariant` now run too,
   reverse-order `compensate:` rollback works, and `IntentLastTrace()` /
   `IntentLastFailure()` plus `IntentLastName()` / `IntentLastHandle()` /
-  `IntentLastStepCount()` / `IntentLastFailed()` expose minimal history.
-  `IntentHistoryCount()` / `IntentHistoryStep*()` also expose typed
-  step-level history for the last completed intent.
+  `IntentLastTraceId()` / `IntentLastStepCount()` / `IntentLastFailed()`
+  expose minimal history. `IntentHistoryCount()` / `IntentHistoryStep*()`
+  also expose typed step-level history for the last completed intent,
+  including actor/slot and transfer source-target identity data.
   `using: zoneAlias;` now gives intent steps a live concrete zone instance and
   now also materializes bound `who` actors into matching zone subject slots
   before sync. `transfer: source -> target;` now also performs v1 cross-world
   handoff materialization and leaves explicit transfer trace lines on both C
-  and LLVM. The remaining gaps are structured trace/history data instead of
-  richer trace ids beyond the current last-intent surface and richer rollback
-  policy.
+  and LLVM. Active registry observability is now available through
+  `IntentActiveCount()` / `IntentActive*()` builtins, including per-instance
+  `trace id`, and rollback policy now supports `full`, `current`, and `none`.
+  The remaining gaps are richer multi-instance timeline query and richer
+  rollback policy detail.
 
 ## Recently Resolved
 
@@ -152,8 +155,11 @@ examples such as the battle simulator and biome simulator.
   warning that they are "declarative only" just because no same-name subject
   action exists. If a step has concrete `on:` expressions, the compiler now
   treats that as a real executable lowering path.
-- The new shopping-mall checkout/refund scenario exposed a practical boundary
-  in `using:` + actor materialization: trace and slot binding are strong, but
-  richer nested actor state is still more predictable when a canonical actor
-  is updated explicitly and zones mirror the shared execution result. The
-  example now follows that pattern and documents it as the safer v1 shape.
+- The shopping-mall checkout/refund scenario originally exposed a practical
+  boundary in `using:` + actor materialization: trace and slot binding were
+  strong, but nested actor state still drifted unless the canonical actor was
+  updated explicitly and zones mirrored the result. That gap is now closed.
+  Bound `who` actors are rebound to the live zone subject slots during the
+  step body and restored afterward, so zone methods such as
+  `payment.Capture(...)`, `refund.Process(...)`, and `account.Sync(...)`
+  mutate the same live actor state that the surrounding intent clauses read.

@@ -1051,6 +1051,11 @@ void ast_print(ASTNode* node, int indent) {
                 print_indent(indent + 1);
                 printf("IntentMode: exclusive\n");
             }
+            print_indent(indent + 1);
+            printf("IntentRollback: %s\n",
+                node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE ? "none" :
+                node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT ? "current" :
+                "full");
             if (node->data.intent_decl.priority_expr != NULL) {
                 print_indent(indent + 1);
                 printf("IntentPriority: ");

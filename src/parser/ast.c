@@ -432,6 +432,7 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.steps = NULL;
     node->data.intent_decl.step_count = 0;
     node->data.intent_decl.is_concurrent = false;
+    node->data.intent_decl.rollback_policy = INTENT_ROLLBACK_FULL;
     node->data.intent_decl.priority_expr = NULL;
     node->data.intent_decl.success_expr = NULL;
     node->data.intent_decl.failure_expr = NULL;

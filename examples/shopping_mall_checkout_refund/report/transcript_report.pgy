@@ -1,0 +1,50 @@
+func BuildCommerceReport(
+    route: String,
+    flowState: String,
+    transcript: String,
+    buyer: Member,
+    merchant: Merchant,
+    cart: CartZone,
+    payment: PaymentZone,
+    refund: RefundZone,
+    account: AccountZone
+) -> String
+{
+    return "=== SHOPPING CHECKOUT + REFUND REPORT ===\n"
+        + "route=" + route + " flow=" + flowState + "\n\n"
+        + "--- TRANSCRIPT ---\n"
+        + transcript + "\n\n"
+        + "--- SNAPSHOT ---\n"
+        + "buyer: " + buyer.Summary() + "\n"
+        + "merchant: " + merchant.Summary() + "\n"
+        + "cart=" + cart.Snapshot() + "\n"
+        + "payment=" + payment.Snapshot() + "\n"
+        + "refund=" + refund.Snapshot() + "\n"
+        + "account=" + account.Snapshot() + "\n";
+}
+
+func SaveCommerceReport(
+    path: String,
+    route: String,
+    flowState: String,
+    transcript: String,
+    buyer: Member,
+    merchant: Merchant,
+    cart: CartZone,
+    payment: PaymentZone,
+    refund: RefundZone,
+    account: AccountZone
+) -> Void
+{
+    WriteFile(path, BuildCommerceReport(
+        route,
+        flowState,
+        transcript,
+        buyer,
+        merchant,
+        cart,
+        payment,
+        refund,
+        account
+    ));
+}

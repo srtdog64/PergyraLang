@@ -6,6 +6,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added compiler-known stdlib module resolution for `use <module>;`.
+  The import resolver now locates `stdlib/<module>.pgy` and merges it into
+  the AST, so `use datetime;` is an actual language surface instead of a
+  documentation-only placeholder.
+- Added `stdlib/datetime.pgy` with `LocalDate`, `LocalTime`, `DateTime`,
+  `FormatDate`, `FormatTime`, `FormatDateTime`, and `SameDate`, and migrated
+  `examples/calendar_working/` to that standard module.
+- Tightened LLVM collection parity further: `List<T>` iteration and
+  `HashMap<String, Int/Class/Subject>` access now work in practical examples,
+  substantially shrinking the earlier C-only collection gap.
+- Split `examples/shopping_mall_checkout_refund/` into explicit `api/` and
+  `report/` adapter layers so the scenario now demonstrates
+  `request dto -> adapter handler -> intent -> zone/world -> response/report dto`
+  instead of routing all adapter logic through `world.pgy`.
+- Fixed LLVM standalone helper lowering for pointer-self nominal parameters.
+  Top-level functions that take `subject` / `zone` / `world`-style hosts now
+  use pointer semantics in both signature emission and call lowering, which
+  restores parity for adapter-style flows such as
+  `examples/shopping_mall_checkout_refund/` and the new
+  `zone_param_mutation` backend-compare case.
+- Added `examples/calendar_working/` to example smoke so `use datetime;`,
+  `List<T>` iteration, and `${expr}` string interpolation are exercised on
+  both C and LLVM in CI.
+
 - Added `using: zoneAlias;` to `intent step` and lowered it on both C and LLVM
   backends as a live concrete zone-instance binding path. Intent steps now
   re-sync the bound zone instance while they execute instead of treating
@@ -27,6 +51,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added backend parity coverage for `intent_trace_compensate`, proving
   compensation, last-trace history, and failure strings stay equal on C and
   LLVM.
+- Added `rollback: full | current | none` to `intent` declarations. The
+  default remains `full`, `current` compensates only the latest completed
+  step, and `none` skips compensation entirely on both C and LLVM backends.
+- Added active intent registry built-ins:
+  `IntentActiveCount()` / `IntentActiveName(i)` /
+  `IntentActiveHandle(i)` / `IntentActivePriority(i)` /
+  `IntentActiveConcurrent(i)` / `IntentActiveTrace(i)`.
+- Added backend parity coverage for `intent_observability_rollback`, proving
+  multi-instance observability and rollback policy stay equal on C and LLVM.
 - Added first-class `guard` and `invariant` clauses to `intent step`. The
   parser, semantic pass, C backend, LLVM backend, backend parity tests, and
   DND campaign now all exercise them.
@@ -431,3 +464,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   transcript output demonstrating `page != zone`, checkout/payment/refund
   transfer, profile sync, and runtime `IntentHistory*` inspection on both C
   and LLVM backends
+- intent/codegen/runtime/examples: close the remaining `using:` gap by
+  rebinding bound `who` actors to the live zone subject slots during each
+  step body and restoring them afterward; this lets zone methods mutate deep
+  nested actor state directly while keeping intent clauses, trace, and final
+  canonical actor state consistent on both C and LLVM, and the shopping-mall
+  scenario now demonstrates the stronger lowering with zone-method based
+  checkout/refund/account sync steps
+# 2026-04-05
+
+- intent/runtime: added richer trace-id and identity-aware step history. `IntentLastTraceId()` and `IntentActiveTraceId()` now expose per-instance trace ids, and `IntentHistoryStepPhase/Actor/Slot/FromZone/FromSlot/ToZone/ToSlot` now expose typed step identity for materialize/transfer flows on both C and LLVM.
+- intent/codegen: cross-world handoff traces are now reflected in typed history instead of only flat trace strings, so transfer/materialize debugging can be done through builtins rather than transcript scraping.
+- transpiler/llvm: fixed Bool stringification parity around intent/result reporting and world-zone query reporting. `ToString(Bool)` now prints `true/false` consistently on LLVM, and C type inference now recognizes `HasZoneProjection/HasZoneLayer/HasZoneState` plus intent observability builtins as Bool/Int/String instead of falling back to integer lowering.
+- tests: added `tests/cases/backend_compare/intent_rich_history_identity/` and expanded intent parity coverage for rich history / transfer identity, while updating DND and shopping-mall exact goldens to the new Bool text output.
+- language: `for-in` now accepts `List<T>` in semantic analysis and C transpilation, so `for event in events` works for generic list-backed flows instead of only `Array<T>` / `Slice<T>`.
+- parser: string interpolation `${expr}` now reparses embedded expressions and wraps them in `ToString(...)`, which makes calendar/report-style text with ints and member access type-check again.
+- codegen: `ToString(...)` in the C backend now handles `String` passthrough and `Bool` text emission instead of always lowering to `pgy_int_to_string(...)`.
+- examples: added [`examples/calendar_working/main.pgy`](/mnt/e/PergyraLang/examples/calendar_working/main.pgy) as a direct proof that Pergyra can now build a basic calendar-style schedule renderer using `List<Event>`, `for-in`, and interpolation.
+- docs: updated [`docs/35_hands_on_language_assessment.md`](/mnt/e/PergyraLang/docs/35_hands_on_language_assessment.md) so the old “calendar even this cannot be built” section reflects the current state instead of stale pre-fix claims.

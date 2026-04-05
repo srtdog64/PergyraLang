@@ -1,0 +1,27 @@
+// ============================================
+// Intent: ViewSchedule
+// "사용자가 일정을 보고 싶다"
+// ============================================
+
+intent ViewSchedule(viewer: User)
+{
+    concurrent;        // 다른 intent와 동시 가능 (보기는 비파괴적)
+
+    step browse
+    {
+        where: CalendarZone;
+        who: viewer;
+        // on 없음 → 자동 (캘린더 열면 바로 보임)
+        post: viewer.current_view != null;
+    }
+
+    step detail
+    {
+        where: EventDetailZone;
+        who: viewer;
+        on: viewer.SelectEvent();
+        pre: selected_event != null;
+    }
+
+    success: viewer has seen schedule;
+}

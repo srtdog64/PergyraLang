@@ -2563,6 +2563,39 @@ test_stdlib_and_enum_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("for-in over List<subject> lowers through list storage");
+    {
+        const char *source =
+            "subject Event {\n"
+            "    let title: String;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let events: List<Event> = ListNew();\n"
+            "    ListPush(events, Event(\"Kickoff\"));\n"
+            "    for event in events {\n"
+            "        Print(event.title);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyList_Event events = pgy_list_new_Event();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "for (size_t _pgy_idx_");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_idx_1 < events.count");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Event event = events.data[_pgy_idx_1];");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Queue<class> typed let emits specialized helpers");
     {
         const char *source =

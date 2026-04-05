@@ -9,9 +9,9 @@
 
 #include "llvm_internal.h"
 
-#include "llvm_expr_helpers.inc"
 static LLVMValueRef llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
                                                 LLVMTypeRef *out_field_type);
+#include "llvm_expr_helpers.inc"
 static LLVMValueRef
 llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
 {
@@ -29,7 +29,11 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
     if (LLVMGetTypeKind(value_type) == LLVMIntegerTypeKind) {
         unsigned width = LLVMGetIntTypeWidth(value_type);
         if (width == 1) {
-            value = LLVMBuildZExt(ctx->builder, value, ctx->type_i32,
+            LLVMValueRef true_str = LLVMBuildGlobalStringPtr(
+                ctx->builder, "true", llvm_tmp_name(ctx));
+            LLVMValueRef false_str = LLVMBuildGlobalStringPtr(
+                ctx->builder, "false", llvm_tmp_name(ctx));
+            return LLVMBuildSelect(ctx->builder, value, true_str, false_str,
                 llvm_tmp_name(ctx));
         } else if (width < 32) {
             value = LLVMBuildSExt(ctx->builder, value, ctx->type_i32,
@@ -1750,6 +1754,433 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
+    if (strcmp(callee_name, "ListNew") == 0 && node->data.call.arg_count == 0) {
+        LLVMTypeRef list_ty = ctx->type_i32;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
+        if (ctx->current_ret_type != NULL
+            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
+            list_ty = ctx->current_ret_type;
+        }
+        tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(list_ty), tmp);
+        if (fn != NULL) {
+            LLVMTypeRef elem_ty = LLVMInt32TypeInContext(ctx->context);
+            if (LLVMCountStructElementTypes(list_ty) > 0) {
+                LLVMTypeRef fields[3];
+                LLVMGetStructElementTypes(list_ty, fields);
+                elem_ty = LLVMGetElementType(fields[0]);
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, list_ty, tmp, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "ListPush") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *list_arg = node->data.call.arguments[0];
+        LLVMVarEntry *list_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        if (list_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(value) != elem_ty) {
+            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+        }
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_list_push_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ListGet") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *list_arg = node->data.call.arguments[0];
+        LLVMVarEntry *list_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef idx;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        if (list_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (idx == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(idx) != ctx->type_i32)
+            idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
+        fn = llvm_lookup_function(ctx, "pgy_list_get_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "ListSet") == 0 && node->data.call.arg_count == 3) {
+        ASTNode *list_arg = node->data.call.arguments[0];
+        LLVMVarEntry *list_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef idx;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        if (list_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        if (idx == NULL || value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(idx) != ctx->type_i32)
+            idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
+        if (LLVMTypeOf(value) != elem_ty) {
+            if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
+                && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
+                value = LLVMBuildFPToSI(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+            else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
+                && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
+                value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+        }
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_list_set_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ListSize") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *list_arg = node->data.call.arguments[0];
+        LLVMVarEntry *list_var;
+        LLVMFuncEntry *fn;
+        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        fn = llvm_lookup_function(ctx, "pgy_list_size_raw_export");
+        if (list_var == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx));
+        }
+    }
+
+    if (strcmp(callee_name, "ListRemove") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *list_arg = node->data.call.arguments[0];
+        LLVMVarEntry *list_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef idx;
+        LLVMFuncEntry *fn;
+        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        if (list_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (idx == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (LLVMTypeOf(idx) != ctx->type_i32)
+            idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
+        fn = llvm_lookup_function(ctx, "pgy_list_remove_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx,
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "QueuePush") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *queue_arg = node->data.call.arguments[0];
+        LLVMVarEntry *queue_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        if (queue_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_queue_push_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "QueuePop") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *queue_arg = node->data.call.arguments[0];
+        LLVMVarEntry *queue_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        if (queue_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
+        fn = llvm_lookup_function(ctx, "pgy_queue_pop_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "QueueSize") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *queue_arg = node->data.call.arguments[0];
+        LLVMVarEntry *queue_var;
+        LLVMFuncEntry *fn;
+        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        fn = llvm_lookup_function(ctx, "pgy_queue_size_raw_export");
+        if (queue_var == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx));
+        }
+    }
+
+    if (strcmp(callee_name, "QueueEmpty") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *queue_arg = node->data.call.arguments[0];
+        LLVMVarEntry *queue_var;
+        LLVMFuncEntry *fn;
+        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i1, 1, 0);
+        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        fn = llvm_lookup_function(ctx, "pgy_queue_empty_raw_export");
+        if (queue_var == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i1, 1, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx));
+        }
+    }
+
+    if (strcmp(callee_name, "MapSet") == 0 && node->data.call.arg_count == 3) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        const char *value_name;
+        LLVMTypeRef value_ty;
+        LLVMValueRef key;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
+        if (map_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        if (key == NULL || value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_map_set_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, value_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "MapGet") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        const char *value_name;
+        LLVMTypeRef value_ty;
+        LLVMValueRef key;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
+        if (map_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (key == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
+        fn = llvm_lookup_function(ctx, "pgy_map_get_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, value_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, value_ty, tmp, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "MapHas") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        LLVMValueRef key;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        fn = llvm_lookup_function(ctx, "pgy_map_has_raw_export");
+        if (map_var == NULL || key == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, llvm_tmp_name(ctx));
+        }
+    }
+
+    if (strcmp(callee_name, "MapRemove") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        const char *value_name;
+        LLVMTypeRef value_ty;
+        LLVMValueRef key;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
+        if (map_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        value_ty = pergyra_type_to_llvm(ctx, value_name != NULL ? value_name : "Int");
+        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        fn = llvm_lookup_function(ctx, "pgy_map_remove_raw_export");
+        if (key == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                llvm_sizeof_type_i64(ctx, value_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "MapSize") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *map_arg = node->data.call.arguments[0];
+        LLVMVarEntry *map_var;
+        LLVMFuncEntry *fn;
+        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        fn = llvm_lookup_function(ctx, "pgy_map_size_raw_export");
+        if (map_var == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx));
+        }
+    }
+
     if ((strcmp(callee_name, "ViewRead") == 0
          || strcmp(callee_name, "ViewWrite") == 0
          || strcmp(callee_name, "Move") == 0)
@@ -1919,6 +2350,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
     }
 
+    if (strcmp(callee_name, "IntentLastTraceId") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_trace_id_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
     if (strcmp(callee_name, "IntentLastStepCount") == 0
         && node->data.call.arg_count == 0) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_step_count_export");
@@ -1954,6 +2392,55 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentHistoryStepPhase") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_phase_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepActor") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_actor_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepSlot") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepFromZone") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_from_zone_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepFromSlot") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_from_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepToZone") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_to_zone_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentHistoryStepToSlot") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_to_slot_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
     if (strcmp(callee_name, "IntentHistoryStepOk") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_ok_export");
@@ -1964,6 +2451,55 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (strcmp(callee_name, "IntentHistoryStepFailure") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_failure_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveCount") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_count_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentActiveName") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_name_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveHandle") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_handle_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveTraceId") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_trace_id_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActivePriority") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_priority_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveConcurrent") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_concurrent_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveTrace") == 0
+        && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_trace_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
@@ -2629,16 +3165,26 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             ? LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i))
             : NULL;
         if (param_ty != NULL
-            && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind
-            && arg_node->type == AST_IDENTIFIER) {
-            LLVMVarEntry *v = llvm_scope_lookup(ctx,
-                arg_node->data.identifier.name);
-            if (v != NULL) {
-                if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
-                    args[i] = LLVMBuildLoad2(ctx->builder, v->type,
-                        v->alloca, llvm_tmp_name(ctx));
-                } else {
-                    args[i] = v->alloca;
+            && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind) {
+            if (arg_node->type == AST_IDENTIFIER) {
+                LLVMVarEntry *v = llvm_scope_lookup(ctx,
+                    arg_node->data.identifier.name);
+                if (v != NULL) {
+                    if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
+                        args[i] = LLVMBuildLoad2(ctx->builder, v->type,
+                            v->alloca, llvm_tmp_name(ctx));
+                    } else {
+                        args[i] = v->alloca;
+                    }
+                }
+            } else if (arg_node->type == AST_MEMBER_ACCESS) {
+                args[i] = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+            }
+            if (args[i] == NULL && arg_node->type == AST_CALL) {
+                LLVMValueRef maybe_value = llvm_emit_expression(arg_node, ctx);
+                if (maybe_value != NULL
+                    && LLVMGetTypeKind(LLVMTypeOf(maybe_value)) == LLVMPointerTypeKind) {
+                    args[i] = maybe_value;
                 }
             }
         }

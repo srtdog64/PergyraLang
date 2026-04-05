@@ -1,0 +1,27 @@
+// ============================================
+// Calendar App — main
+// ============================================
+
+world CalendarApp
+{
+    zone calendar: CalendarZone;
+    zone eventEdit: EventEditZone;
+}
+
+func main()
+{
+    let user := User { name: "Alice", email: "alice@mail.com" };
+
+    // ⚠️ 약점: vessel 초기화 문법이 있는가?
+    // user.calendar.event_count = 0; 같은 초기화가 필요
+
+    // Intent 실행 — 이벤트 생성
+    ManageEvent(user);
+    // → step create 진입
+    // → CalendarZone에서 CreateEvent action 실행
+
+    // Intent 실행 — 일정 보기
+    ViewSchedule(user);
+    // → step browse 자동 진입
+    // → CalendarZone에서 ListEvents action 실행
+}

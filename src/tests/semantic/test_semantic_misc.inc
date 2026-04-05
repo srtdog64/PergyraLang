@@ -215,6 +215,57 @@ test_misc_grammar_edges(void)
         ast_destroy(opt);
     }
 
+    TEST("for-in over List<subject> type-checks");
+    {
+        const char *source =
+            "subject Event {\n"
+            "    let title: String;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let events: List<Event> = ListNew();\n"
+            "    ListPush(events, Event(\"Kickoff\"));\n"
+            "    for event in events {\n"
+            "        Print(event.title);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+
+        type_check_program(program, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("string interpolation type-checks embedded ints and member access");
+    {
+        const char *source =
+            "subject Event {\n"
+            "    let title: String;\n"
+            "    let day: Int;\n"
+            "}\n"
+            "func Render(event: Event) -> String {\n"
+            "    return \"Day ${event.day}: ${event.title}\";\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+
+        type_check_program(program, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Some(42) returns Option<Int>");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -1557,6 +1608,7 @@ test_misc_grammar_edges(void)
             "    subject slot driver: Driver\n"
             "}\n"
             "intent DriveCar(driver: Driver) {\n"
+            "    rollback: current;\n"
             "    step Ignite {\n"
             "        where: CockpitZone;\n"
             "        who: driver;\n"
@@ -1573,6 +1625,30 @@ test_misc_grammar_edges(void)
             "func Main() -> Void {\n"
             "    Log(IntentLastTrace());\n"
             "    Log(IntentLastFailure());\n"
+            "    Log(IntentLastName());\n"
+            "    Log(ToString(IntentLastHandle()));\n"
+            "    Log(ToString(IntentLastTraceId()));\n"
+            "    Log(ToString(IntentLastStepCount()));\n"
+            "    Log(ToString(IntentLastFailed()));\n"
+            "    Log(ToString(IntentHistoryCount()));\n"
+            "    Log(IntentHistoryStepName(0));\n"
+            "    Log(IntentHistoryStepZone(0));\n"
+            "    Log(IntentHistoryStepPhase(0));\n"
+            "    Log(IntentHistoryStepActor(0));\n"
+            "    Log(IntentHistoryStepSlot(0));\n"
+            "    Log(IntentHistoryStepFromZone(0));\n"
+            "    Log(IntentHistoryStepFromSlot(0));\n"
+            "    Log(IntentHistoryStepToZone(0));\n"
+            "    Log(IntentHistoryStepToSlot(0));\n"
+            "    Log(ToString(IntentHistoryStepOk(0)));\n"
+            "    Log(IntentHistoryStepFailure(0));\n"
+            "    Log(ToString(IntentActiveCount()));\n"
+            "    Log(IntentActiveName(0));\n"
+            "    Log(ToString(IntentActiveHandle(0)));\n"
+            "    Log(ToString(IntentActiveTraceId(0)));\n"
+            "    Log(ToString(IntentActivePriority(0)));\n"
+            "    Log(ToString(IntentActiveConcurrent(0)));\n"
+            "    Log(IntentActiveTrace(0));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

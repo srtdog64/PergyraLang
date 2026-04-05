@@ -1,0 +1,72 @@
+export class LocalDate
+{
+    let year: Int;
+    let month: Int;
+    let day: Int;
+
+    func Key(self) -> Int
+    {
+        return year * 10000 + month * 100 + day;
+    }
+
+    func Format(self) -> String
+    {
+        return ToString(year) + "-" + ToString(month) + "-" + ToString(day);
+    }
+}
+
+export class LocalTime
+{
+    let hour: Int;
+    let minute: Int;
+
+    func Format(self) -> String
+    {
+        return ToString(hour) + ":" + ToString(minute);
+    }
+}
+
+export class DateTime
+{
+    let date: LocalDate;
+    let time: LocalTime;
+
+    func Format(self) -> String
+    {
+        return date.Format() + " " + time.Format();
+    }
+
+    func IsOnDate(self, target: LocalDate) -> Bool
+    {
+        return date.year == target.year
+            && date.month == target.month
+            && date.day == target.day;
+    }
+}
+
+export func SameDate(a: LocalDate, b: LocalDate) -> Bool
+{
+    return a.year == b.year
+        && a.month == b.month
+        && a.day == b.day;
+}
+
+export func FormatDate(date: LocalDate) -> String
+{
+    return date.Format();
+}
+
+export func FormatTime(time: LocalTime) -> String
+{
+    return time.Format();
+}
+
+export func FormatDateTime(at: DateTime) -> String
+{
+    return at.Format();
+}
+
+export func DateTimeOnDate(at: DateTime, date: LocalDate) -> Bool
+{
+    return at.IsOnDate(date);
+}

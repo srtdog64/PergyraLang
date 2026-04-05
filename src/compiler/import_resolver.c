@@ -126,6 +126,85 @@ cleanup:
     return ast;
 }
 
+static bool
+path_file_exists(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (f == NULL)
+        return false;
+    fclose(f);
+    return true;
+}
+
+static char *
+path_parent_dir_dup(const char *path)
+{
+    char *dir = path_dirname_dup(path);
+    char *parent;
+
+    if (dir == NULL)
+        return NULL;
+    if (strcmp(dir, ".") == 0 || strcmp(dir, "/") == 0 || strcmp(dir, "\\") == 0)
+        return dir;
+
+    parent = path_dirname_dup(dir);
+    free(dir);
+    return parent;
+}
+
+static char *
+resolve_stdlib_module_path(const char *source_path, const char *module_name)
+{
+    char *search_dir = NULL;
+    char *module_file = NULL;
+    char *resolved = NULL;
+
+    if (source_path == NULL || module_name == NULL)
+        return NULL;
+
+    search_dir = path_dirname_dup(source_path);
+    module_file = malloc(strlen(module_name) + 5);
+    if (search_dir == NULL || module_file == NULL)
+        goto cleanup;
+
+    sprintf(module_file, "%s.pgy", module_name);
+
+    while (search_dir != NULL) {
+        char *stdlib_dir = path_join_dup(search_dir, "stdlib");
+        char *candidate = stdlib_dir != NULL ? path_join_dup(stdlib_dir, module_file) : NULL;
+        char *parent = NULL;
+
+        free(stdlib_dir);
+
+        if (candidate != NULL && path_file_exists(candidate)) {
+            resolved = candidate;
+            break;
+        }
+        free(candidate);
+
+        parent = path_parent_dir_dup(search_dir);
+        if (parent == NULL || strcmp(parent, search_dir) == 0) {
+            free(parent);
+            break;
+        }
+        free(search_dir);
+        search_dir = parent;
+    }
+
+    if (resolved == NULL) {
+        char *candidate = path_join_dup("stdlib", module_file);
+        if (candidate != NULL && path_file_exists(candidate))
+            resolved = candidate;
+        else
+            free(candidate);
+    }
+
+cleanup:
+    free(search_dir);
+    free(module_file);
+    return resolved;
+}
+
 static ASTNode *
 import_resolver_load_internal(const char *source_path,
                               ImportStack *stack,
@@ -163,16 +242,27 @@ import_resolver_load_internal(const char *source_path,
 
     for (size_t i = 0; i < ast->data.program.count; i++) {
         ASTNode *stmt = ast->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_IMPORT_DECL)
+        if (stmt == NULL || (stmt->type != AST_IMPORT_DECL && stmt->type != AST_USE_DECL))
             continue;
 
-        const char *import_path = stmt->data.import_decl.path;
-        char *full_path = path_join_dup(base_dir, import_path);
+        const char *import_path = NULL;
+        char *full_path = NULL;
         ASTNode *imp_ast = NULL;
 
-        if (full_path == NULL) {
-            set_error(error_message, "out of memory while resolving import '%s'", import_path);
-            goto fail;
+        if (stmt->type == AST_IMPORT_DECL) {
+            import_path = stmt->data.import_decl.path;
+            full_path = path_join_dup(base_dir, import_path);
+            if (full_path == NULL) {
+                set_error(error_message, "out of memory while resolving import '%s'", import_path);
+                goto fail;
+            }
+        } else {
+            import_path = stmt->data.use_decl.module_name;
+            full_path = resolve_stdlib_module_path(source_path, import_path);
+            if (full_path == NULL) {
+                set_error(error_message, "cannot resolve stdlib module '%s'", import_path);
+                goto fail;
+            }
         }
 
         {

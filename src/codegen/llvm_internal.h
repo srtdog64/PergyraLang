@@ -132,6 +132,10 @@ LLVMTypeRef pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind);
 const char *pgy_kind_to_suffix(PgyTypeKind kind);
 LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_queue_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_hashmap_struct_type(LLVMGenCtx *ctx, const char *value);
+LLVMValueRef llvm_sizeof_type_i64(LLVMGenCtx *ctx, LLVMTypeRef type);
 
 /* =================================================================
  * Type definitions
@@ -209,6 +213,24 @@ typedef struct
     LLVMTypeRef  elem_type;
     int64_t      length;
 } LLVMArrayVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
+} LLVMListVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
+} LLVMQueueVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *value_type;
+} LLVMMapVarEntry;
 
 typedef struct
 {
@@ -360,6 +382,18 @@ typedef struct LLVMGenCtx
     int                   array_var_count;
     int                   array_var_capacity;
 
+    LLVMListVarEntry     *list_vars;
+    int                   list_var_count;
+    int                   list_var_capacity;
+
+    LLVMQueueVarEntry    *queue_vars;
+    int                   queue_var_count;
+    int                   queue_var_capacity;
+
+    LLVMMapVarEntry      *map_vars;
+    int                   map_var_count;
+    int                   map_var_capacity;
+
     LLVMEventTypeEntry   *event_types;
     int                   event_type_count;
     int                   event_type_capacity;
@@ -418,6 +452,16 @@ void          llvm_scope_pop(LLVMGenCtx *ctx);
 void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                                   LLVMValueRef alloca, LLVMTypeRef type);
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+
+void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
+                            const char *inner_type);
+const char *llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
+                             const char *inner_type);
+const char *llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
+                           const char *value_type);
+const char *llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name);
 
 /* =================================================================
  * Function registry (llvm_backend.c)

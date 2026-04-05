@@ -158,15 +158,15 @@
 [Tavern] She promises every trap she sees will be called.
 [Tavern] He promises to crack any sealed chamber with a pulse.
 [Substate] tavern.scene
-[Intent] TavernRecruitment ok=1
+[Intent] TavernRecruitment ok=true
 [Substate] tavern.choice_resolution
   [Fighter] Ari lv=1 aff=8
   [MagePacket] Sol hp=21 gold=0
   [Objective] loot=guild rumor map
 [World] mode=SCRIPTED phase=TAVERN day=1 omen=1 fame=4 gold=0 morale=9 route=10/3/6/6
   [Journey] stage=TAVERN floor=TAVERN trapName=crowded tables monsterName=restless mercenaries rumor=6 threat=0 trap=0 monster=0 treasure=0 affinityPulse=2 morale=9 keys=0 dragonHp=0 victory=0
-  [Layers] bless=1/1 bonds=1/1
-  [States] bless=1/1 bond=1/1
+  [Layers] bless=true/true bonds=true/true
+  [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=tavern pact pulse=2
   [Camp] Ari lays a chalk route over the table and names the order of march.
@@ -302,7 +302,7 @@
       [Event] Sol listens for hidden structure.
       [Reaction] He treats old ruins and live combat like the same unfinished proof.
       [Shift] Pattern turns into leverage.
-[Intent] DelveThreeFloors ok=1
+[Intent] DelveThreeFloors ok=true
 [Substate] floor1.travel
 [Substate] floor1.choice_resolution
 [Substate] floor1.nodes
@@ -388,8 +388,8 @@
   [Loot] mildewed reliquary secured
 [World] mode=SCRIPTED phase=FLOOR1 day=2 omen=2 fame=21 gold=86 morale=28 route=9/6/7/8
   [Journey] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=0 trap=0 monster=3 treasure=10 affinityPulse=3 morale=28 keys=1 dragonHp=0 victory=0
-  [Layers] bless=1/1 bonds=1/1
-  [States] bless=1/1 bond=1/1
+  [Layers] bless=true/true bonds=true/true
+  [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=rescue knot pulse=3
   [Camp] The party camps beside cracked cider barrels while spores drift through candlelight.
@@ -610,8 +610,8 @@
   [Loot] glass saint icons secured
 [World] mode=SCRIPTED phase=FLOOR2 day=3 omen=3 fame=31 gold=222 morale=37 route=8/9/16/10
   [Journey] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=6 trap=1 monster=5 treasure=32 affinityPulse=6 morale=37 keys=2 dragonHp=0 victory=0
-  [Layers] bless=1/1 bonds=1/1
-  [States] bless=1/1 bond=1/1
+  [Layers] bless=true/true bonds=true/true
+  [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=mirror oath pulse=6
   [Camp] The party rests between black mirrors, trading vows to keep each other from the glass.
@@ -832,8 +832,8 @@
   [Loot] smoldering crown seals secured
 [World] mode=SCRIPTED phase=FLOOR3 day=4 omen=2 fame=51 gold=404 morale=61 route=10/12/21/13
   [Journey] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=61 keys=6 dragonHp=0 victory=0
-  [Layers] bless=1/1 bonds=1/1
-  [States] bless=1/1 bond=1/1
+  [Layers] bless=true/true bonds=true/true
+  [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=ember vow pulse=9
   [Camp] The party braces in the ash vault, counting keys and whispering what they owe the dragon.
@@ -969,7 +969,7 @@
       [Event] Sol tracks the dragon like a theorem catching fire.
       [Reaction] He commits to the cast before the room agrees.
       [Shift] Arcane pressure starts rewriting the phase.
-[Intent] SlayDragon ok=1
+[Intent] SlayDragon ok=true
 [Substate] dragon.prepare
 [Substate] dragon.choice_resolution
 [Substate] dragon.nodes
@@ -1025,8 +1025,8 @@
 [Ledger] morale=50
 [World] mode=SCRIPTED phase=DRAGON day=5 omen=1 fame=80 gold=430 morale=93 route=12/12/21/12
   [Journey] stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=93 keys=6 dragonHp=0 victory=1
-  [Layers] bless=1/1 bonds=1/1
-  [States] bless=1/1 bond=1/1
+  [Layers] bless=true/true bonds=true/true
+  [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
   [Bond] event=dragon stand pulse=9
   [Camp] The wyrm collapses across the hoard while the party drags the crown seals into dawn.
@@ -1042,9 +1042,9 @@
 === FINAL PARTY SNAPSHOT ===
 mode=SCRIPTED phase=EPILOGUE day=5 omen=1 fame=80 gold=430 morale=93 route=12/12/21/12
 choices=3/1/2/1/2
-ready=1/1
-layers=1/1
-states=1/1
+ready=true/true
+layers=true/true
+states=true/true
 layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
 fighter: Ari [Vanguard] crest=iron wolf weapon=Iron Kite Shieldblade [line-break] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=8 hp=50 mp=25 sta=2 atk=14 grd=10 focus=26 affinity=11 trust=10 relics=31 gold=90 fx=0/2/1/19 dragon=19
 cleric: Mira [Cleric] crest=sun chalice weapon=Sunlance Censer [radiant reach] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=30 affinity=15 trust=11 relics=28 gold=74 fx=0/1/6/0 dragon=15

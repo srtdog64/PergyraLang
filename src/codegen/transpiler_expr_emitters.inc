@@ -954,6 +954,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_intent_last_name_export()");
     case BUILTIN_INTENT_LAST_HANDLE:
         return pergyra_strdup("pgy_intent_last_handle_export()");
+    case BUILTIN_INTENT_LAST_TRACE_ID:
+        return pergyra_strdup("pgy_intent_last_trace_id_export()");
     case BUILTIN_INTENT_LAST_STEP_COUNT:
         return pergyra_strdup("pgy_intent_last_step_count_export()");
     case BUILTIN_INTENT_LAST_FAILED:
@@ -972,6 +974,48 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_INTENT_HISTORY_STEP_PHASE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_phase_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_ACTOR: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_actor_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_SLOT: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_slot_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_from_zone_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_from_slot_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_TO_ZONE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_to_zone_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_HISTORY_STEP_TO_SLOT: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_history_step_to_slot_export(%s)", index);
+        free(index);
+        return result;
+    }
     case BUILTIN_INTENT_HISTORY_STEP_OK: {
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_ok_export(%s)", index);
@@ -981,6 +1025,44 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_INTENT_HISTORY_STEP_FAILURE: {
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_failure_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_COUNT:
+        return pergyra_strdup("pgy_intent_active_count_export()");
+    case BUILTIN_INTENT_ACTIVE_NAME: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_name_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_HANDLE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_handle_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_TRACE_ID: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_trace_id_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_PRIORITY: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_priority_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_CONCURRENT: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_concurrent_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_TRACE: {
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_trace_export(%s)", index);
         free(index);
         return result;
     }
@@ -1773,7 +1855,18 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         /* ToString */
         if (strcmp(fn, "ToString") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *result = strdup_fmt("pgy_int_to_string(%s)", arg);
+            const char *arg_type = infer_expression_type_name(ctx,
+                call->data.call.arguments[0]);
+            char *result = NULL;
+            if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
+                result = pergyra_strdup(arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Bool") == 0) {
+                result = strdup_fmt("((%s) ? \"true\" : \"false\")", arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Long") == 0) {
+                result = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
+            } else {
+                result = strdup_fmt("pgy_int_to_string(%s)", arg);
+            }
             free(arg);
             return result;
         }

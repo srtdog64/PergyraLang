@@ -11,23 +11,23 @@ pages project surfaces; zones enforce execution; intents move the customer.
   [CartZone] /cart total=77 coupon=7 buyer=Hana
 
 [API] POST /api/intents/CheckoutPurchase
-[Intent] CheckoutPurchase ok=1
-  [Runtime] name=CheckoutPurchase handle=1 failed=0
+[Adapter] CheckoutPurchase ok=true handle=1 failed=false steps=2
+  [Runtime] name=CheckoutPurchase handle=1 failed=false
   [Runtime] steps=2
-  [Step] ReviewCart @ CartZone ok=1
-  [Step] MoveToPayment @ PaymentZone ok=1
+  [Step] ReviewCart @ CartZone ok=true
+  [Step] MoveToPayment @ PaymentZone ok=true
   [Trace] [intent] enter CheckoutPurchase
 [step] begin ReviewCart @ CartZone
 [bind] buyer -> buyer
 [materialize] buyer => CartZone.buyer
-[materialize] buyer => CartZone.buyer
 [step] ok ReviewCart
 [step] begin MoveToPayment @ PaymentZone
 [bind] buyer -> buyer
+[bind] merchant -> merchant
 [materialize] buyer => CartZone.buyer
 [transfer] buyer: CartZone.buyer -> PaymentZone.buyer
-[materialize] buyer => CartZone.buyer
-[transfer] buyer: CartZone.buyer -> PaymentZone.buyer
+[materialize] merchant => CartZone.merchant
+[transfer] merchant: CartZone.merchant -> PaymentZone.merchant
 [step] ok MoveToPayment
 
 [JS] navigate /checkout
@@ -35,20 +35,21 @@ pages project surfaces; zones enforce execution; intents move the customer.
   [PaymentZone] /checkout order=4101 captured=83 shipped=1 state=captured
   [Link] Hana to Northwind Store via web
   [Effect] Hana payment sealed $83
-  [State] paidReady=1 linked=1
+  [State] paidReady=true linked=true
 
 [API] POST /api/intents/RefundPurchase
-[Intent] RefundPurchase ok=1
-  [Runtime] name=RefundPurchase handle=2 failed=0
+[Adapter] RefundPurchase ok=true handle=2 failed=false steps=1
+  [Runtime] name=RefundPurchase handle=2 failed=false
   [Runtime] steps=1
-  [Step] MoveToRefund @ RefundZone ok=1
+  [Step] MoveToRefund @ RefundZone ok=true
   [Trace] [intent] enter RefundPurchase
 [step] begin MoveToRefund @ RefundZone
 [bind] buyer -> buyer
+[bind] merchant -> merchant
 [materialize] buyer => PaymentZone.buyer
 [transfer] buyer: PaymentZone.buyer -> RefundZone.buyer
-[materialize] buyer => PaymentZone.buyer
-[transfer] buyer: PaymentZone.buyer -> RefundZone.buyer
+[materialize] merchant => PaymentZone.merchant
+[transfer] merchant: PaymentZone.merchant -> RefundZone.merchant
 [step] ok MoveToRefund
 
 [JS] navigate /refund
@@ -56,18 +57,16 @@ pages project surfaces; zones enforce execution; intents move the customer.
   [RefundZone] /refund requested=83 approved=83 state=approved
   [Link] Hana to Northwind Store via web
   [Effect] Hana refund issued $83
-  [State] refundReady=1 linked=1
+  [State] refundReady=true linked=true
 
 [API] POST /api/intents/SyncAccountProfile
-[Intent] SyncAccountProfile ok=1
-  [Runtime] name=SyncAccountProfile handle=3 failed=0
+[Adapter] SyncAccountProfile ok=true handle=3 failed=false steps=1
+  [Runtime] name=SyncAccountProfile handle=3 failed=false
   [Runtime] steps=1
-  [Step] MoveToAccount @ AccountZone ok=1
+  [Step] MoveToAccount @ AccountZone ok=true
   [Trace] [intent] enter SyncAccountProfile
 [step] begin MoveToAccount @ AccountZone
 [bind] buyer -> buyer
-[materialize] buyer => RefundZone.buyer
-[transfer] buyer: RefundZone.buyer -> AccountZone.buyer
 [materialize] buyer => RefundZone.buyer
 [transfer] buyer: RefundZone.buyer -> AccountZone.buyer
 [step] ok MoveToAccount

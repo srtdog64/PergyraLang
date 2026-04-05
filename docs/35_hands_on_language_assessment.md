@@ -146,6 +146,106 @@ Pergyra는 지금
 
 에서는 아직 거친 부분이 있다.
 
+## 캘린더 예제 — 구체적 발견 (2026-04-05)
+
+### 예제: `examples/calendar/`
+
+intent-first로 캘린더 앱을 설계하면서 발견한 것.
+
+### 강점 확인
+
+**1. intents/ 폴더만 읽으면 앱 목적이 보인다**
+
+```
+intents/manage_event.pgy  → "일정을 만들고 수정하고 삭제하고 싶다"
+intents/view_schedule.pgy → "일정을 보고 싶다"
+```
+
+OOP라면 CalendarService, EventRepository, CalendarController를 다 읽어야 알 수 있는 걸, 2개 파일 이름만으로 안다.
+
+**2. action 계약이 자기 문서화**
+
+```pergyra
+action DeleteEvent(self, event_id: Int)
+    requires CalendarOwner
+    within CalendarZone
+    authorized by owner
+```
+
+별도 권한 문서 없이 "누가, 어디서, 어떤 자격으로" 삭제할 수 있는지 선언에 보인다.
+
+**3. concurrent/exclusive가 읽기/쓰기 정책을 선언**
+
+```pergyra
+intent ManageEvent { exclusive; }     // 수정 중 다른 수정 불가
+intent ViewSchedule { concurrent; }   // 보기는 동시에 가능
+```
+
+### 약점 발견 — P0 (이전 상태, 2026-04-05 이전)
+
+이 항목들은 직접 캘린더를 만들어보며 실제로 막혔던 지점이었지만,
+지금은 일부가 해결되었다.
+
+| 해결된 기능 | 현재 상태 |
+|------------|----------|
+| **while** | 이미 지원됨 |
+| **for-in** | `Array<T>`, `Slice<T>`, `List<T>` 순회 지원 |
+| **제네릭 컬렉션** | C backend 기준 `List<Event>`, `HashMap<String, Subject>` 등 가능 |
+| **문자열 보간** | `${expr}` 지원, embedded expression은 `ToString(...)`으로 lowering |
+
+현재 캘린더를 막는 최상위 P0는 “문법 부재”보다 backend parity와 richer stdlib 쪽이다.
+
+| 남은 P0 | 현재 상태 | 필요한 것 |
+|--------|----------|----------|
+| **LLVM 컬렉션 parity** | 실전 예제 기준 해결 | `List<T>`와 `HashMap<String, Int/Class/Subject>`가 practical examples에서 C/LLVM 둘 다 동작 |
+| **datetime 표준층 부재** | 해결 | `use datetime;`가 실제 stdlib module로 동작 |
+| **UI/report ergonomics 부족** | 부분 해결 | `shopping_mall_checkout_refund`에 `api/` / `report/` adapter layer 추가, page/report library는 더 두꺼워질 필요 |
+
+즉 현재 판단은 이렇다.
+
+- `for-in` / `List<T>` / `${expr}` 자체는 더 이상 P0가 아니다
+- `HashMap<String, Subject>`도 더 이상 C-only가 아니고, 실전 예제 기준으로 LLVM까지 닫혔다
+- `use datetime;`도 문서 placeholder가 아니라 실제 stdlib surface가 되었다
+- 이제 남은 문제는 “캘린더조차 못 만든다” 류의 P0라기보다, richer stdlib와 app/report ergonomics다
+
+### 약점 발견 — P1 (캘린더는 만들 수 있지만 고통스러움)
+
+| 부족한 기능 | 구체적 장면 | 필요한 것 |
+|------------|-----------|----------|
+| **Date/Time 타입** | `use datetime;`로 해결 | richer date arithmetic는 차후 |
+| **Optional/Nullable** | "선택된 이벤트 없음" 표현 불가 | `T?` 또는 `Optional<T>` |
+| **Bool + 논리연산** | `&&`, `\|\|`, `!` 미확인 | 조건 결합 |
+
+### 약점 발견 — P2 (불편하지만 우회 가능)
+
+| 부족한 기능 | 구체적 장면 | 필요한 것 |
+|------------|-----------|----------|
+| struct/class 리터럴 생성 | `Event { title: "회의" }` 가능한가 | 구조체 리터럴 |
+| 중첩 접근 | `event.date.year` 가능한가 | a.b.c 패턴 |
+
+### 핵심 관찰
+
+```
+Pergyra로 캘린더 예제를 만들면:
+
+선언 단계:
+  "이 앱은 캘린더다. 사용자가 일정을 만들고 수정하고 삭제할 수 있다.
+   CalendarZone에서 CalendarOwner 자격으로 소유자 승인 하에."
+  → 선언할 수 있다. 기존 어떤 언어보다 명확하다.
+
+구현 단계:
+  "이벤트 목록을 순회하며 오늘 날짜의 이벤트를 필터링해서
+   '2026-04-05 팀 회의 (14:00-15:00)' 형식으로 출력한다."
+  → 이제 C backend 기준으로는 구현 가능하다.
+
+실제 working 예제:
+- [`examples/calendar_working/main.pgy`](/mnt/e/PergyraLang/examples/calendar_working/main.pgy)
+
+설계도는 완벽한데 벽돌이 없는 상태.
+```
+
+---
+
 ## 현재 판단
 
 한 줄로 정리하면 이렇다.

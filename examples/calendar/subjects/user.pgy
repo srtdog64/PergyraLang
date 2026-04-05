@@ -1,0 +1,16 @@
+// ============================================
+// Subject: User — 캘린더의 주인
+// ============================================
+
+subject User
+{
+    let name: String;
+    let email: String;
+    vessel calendar: CalendarState;
+}
+
+vessel CalendarState
+{
+    let event_count: Int;
+    let selected_index: Int;
+}

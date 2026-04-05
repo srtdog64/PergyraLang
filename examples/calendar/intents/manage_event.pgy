@@ -1,0 +1,42 @@
+// ============================================
+// Intent: ManageEvent
+// "사용자가 일정을 만들고 수정하고 삭제하고 싶다"
+// ============================================
+
+intent ManageEvent(owner: User)
+{
+    exclusive;
+
+    step create
+    {
+        where: CalendarZone;
+        who: owner;
+        requires: CalendarOwner;
+        on: owner.RequestCreate();
+        post: calendar.event_count > 0;
+    }
+
+    step edit
+    {
+        where: EventEditZone;
+        who: owner;
+        requires: CalendarOwner;
+        authorized by: owner;
+        on: owner.SelectEvent();
+        pre: selected_event != null;       // ⚠️ 약점: null 개념이 없다
+        post: selected_event.modified;
+    }
+
+    step delete
+    {
+        where: CalendarZone;
+        who: owner;
+        requires: CalendarOwner;
+        authorized by: owner;
+        on: owner.RequestDelete();
+        pre: selected_event != null;
+    }
+
+    success: calendar state updated;
+    failure: rollback to create;
+}

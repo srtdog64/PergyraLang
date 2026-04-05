@@ -1,0 +1,49 @@
+use datetime;
+
+class Event {
+    let title: String;
+    let note: String;
+    let at: DateTime;
+    let durationMinutes: Int;
+
+    func IsOnDate(self, date: LocalDate) -> Bool {
+        return at.IsOnDate(date);
+    }
+
+    func Summary(self) -> String {
+        return at.Format() + " " + title + " (" + ToString(durationMinutes) + "m)";
+    }
+}
+
+func Main() -> Void {
+    let events: List<Event> = ListNew();
+    let today = LocalDate(2026, 4, 5);
+
+    ListPush(events, Event(
+        "Team Sync",
+        "weekly planning",
+        DateTime(today, LocalTime(10, 30)),
+        60
+    ));
+    ListPush(events, Event(
+        "Dentist",
+        "checkup",
+        DateTime(today, LocalTime(15, 0)),
+        30
+    ));
+    ListPush(events, Event(
+        "Flight",
+        "Busan trip",
+        DateTime(LocalDate(2026, 4, 6), LocalTime(8, 15)),
+        90
+    ));
+
+    Log("total events: ${ListSize(events)}");
+    Log("== ${today.Format()} ==");
+    for event in events {
+        if event.IsOnDate(today) {
+            Log(event.Summary());
+            Log("  note: ${event.note}");
+        }
+    }
+}

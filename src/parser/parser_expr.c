@@ -50,6 +50,35 @@ parser_is_lambda_start(Parser *parser)
     }
 }
 
+static ASTNode *
+parse_interpolated_expression_fragment(const char *expr_src)
+{
+    Lexer *lexer;
+    Parser *parser;
+    ASTNode *expr;
+
+    if (expr_src == NULL)
+        return ast_create_string("\"\"");
+
+    lexer = lexer_create(expr_src);
+    if (lexer == NULL)
+        return ast_create_identifier(expr_src);
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        return ast_create_identifier(expr_src);
+    }
+
+    expr = parser_parse_expression(parser);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+
+    if (expr == NULL)
+        return ast_create_identifier(expr_src);
+    return expr;
+}
+
 // 표현식 파싱 (우선순위 기반)
 ASTNode* parser_parse_expression(Parser* parser) {
     return parser_parse_assignment(parser);
@@ -408,17 +437,17 @@ ASTNode* parser_parse_primary(Parser* parser) {
                 memcpy(expr_str, expr_start, expr_len);
                 expr_str[expr_len] = '\0';
 
-                /* Create identifier node for the interpolated variable.
-                 * No ToString() wrapper — the + operator handles
-                 * String concatenation, and non-string types will
-                 * need explicit ToString() in the interpolated code. */
-                ASTNode *inner_expr = ast_create_identifier(expr_str);
+                ASTNode *inner_expr =
+                    parse_interpolated_expression_fragment(expr_str);
+                ASTNode *to_string = ast_create_call(
+                    ast_create_identifier("ToString"));
+                ast_add_argument(to_string, inner_expr);
                 free(expr_str);
 
-                if (result == NULL) result = inner_expr;
+                if (result == NULL) result = to_string;
                 else {
                     Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
-                    result = ast_create_binary(result, plus_tok, inner_expr);
+                    result = ast_create_binary(result, plus_tok, to_string);
                 }
 
                 s = expr_end + 1;

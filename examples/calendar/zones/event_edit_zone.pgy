@@ -1,0 +1,34 @@
+// ============================================
+// Zone: EventEditZone — 이벤트 편집 실행 경계
+// ============================================
+
+zone EventEditZone
+{
+    subject slot editor: User;
+
+    action EditTitle(self, event_id: Int, new_title: String)
+        requires CalendarOwner
+        within EventEditZone
+        authorized by editor
+    {
+        // ⚠️ 약점: Event를 ID로 찾아서 필드를 수정하는 패턴
+        // Map에서 꺼내고 → 필드 바꾸고 → 다시 넣는?
+        // 아니면 Event가 참조형이라 바로 수정?
+        // class는 값 타입이므로... 직접 수정이 안 될 수 있다
+        Print("Edit title of event ");
+        PrintInt(event_id);
+        Print(" to: ");
+        Print(new_title);
+    }
+
+    action EditDate(self, event_id: Int, year: Int, month: Int, day: Int)
+        requires CalendarOwner
+        within EventEditZone
+        authorized by editor
+    {
+        // ⚠️ 약점: DateInfo struct를 새로 만들어서 교체하는 문법이 있는가?
+        // struct는 값 타입이므로 복사-교체가 필요
+        Print("Edit date of event ");
+        PrintInt(event_id);
+    }
+}

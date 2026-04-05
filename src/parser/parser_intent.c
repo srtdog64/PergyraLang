@@ -254,6 +254,25 @@ parse_intent_declaration(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "rollback")) {
+            Token mode;
+
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'rollback'");
+            mode = consume_name_token(parser, "Expected rollback policy after 'rollback:'");
+            if (mode.text != NULL && strcmp(mode.text, "none") == 0) {
+                intent->data.intent_decl.rollback_policy = INTENT_ROLLBACK_NONE;
+            } else if (mode.text != NULL && strcmp(mode.text, "current") == 0) {
+                intent->data.intent_decl.rollback_policy = INTENT_ROLLBACK_CURRENT;
+            } else if (mode.text != NULL && strcmp(mode.text, "full") == 0) {
+                intent->data.intent_decl.rollback_policy = INTENT_ROLLBACK_FULL;
+            } else {
+                parser_error(parser, "Intent rollback policy must be one of: full, current, none");
+                return intent;
+            }
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after rollback clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "involves")) {
             Token alias = consume_name_token(parser, "Expected involves alias");
             ASTNode *involves = ast_create_intent_involves(alias.text);

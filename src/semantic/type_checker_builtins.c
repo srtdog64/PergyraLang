@@ -1018,13 +1018,28 @@ builtin_resolve(const char *name)
     if (strcmp(name, "IntentLastFailure") == 0) return BUILTIN_INTENT_LAST_FAILURE;
     if (strcmp(name, "IntentLastName")  == 0) return BUILTIN_INTENT_LAST_NAME;
     if (strcmp(name, "IntentLastHandle") == 0) return BUILTIN_INTENT_LAST_HANDLE;
+    if (strcmp(name, "IntentLastTraceId") == 0) return BUILTIN_INTENT_LAST_TRACE_ID;
     if (strcmp(name, "IntentLastStepCount") == 0) return BUILTIN_INTENT_LAST_STEP_COUNT;
     if (strcmp(name, "IntentLastFailed") == 0) return BUILTIN_INTENT_LAST_FAILED;
     if (strcmp(name, "IntentHistoryCount") == 0) return BUILTIN_INTENT_HISTORY_COUNT;
     if (strcmp(name, "IntentHistoryStepName") == 0) return BUILTIN_INTENT_HISTORY_STEP_NAME;
     if (strcmp(name, "IntentHistoryStepZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_ZONE;
+    if (strcmp(name, "IntentHistoryStepPhase") == 0) return BUILTIN_INTENT_HISTORY_STEP_PHASE;
+    if (strcmp(name, "IntentHistoryStepActor") == 0) return BUILTIN_INTENT_HISTORY_STEP_ACTOR;
+    if (strcmp(name, "IntentHistoryStepSlot") == 0) return BUILTIN_INTENT_HISTORY_STEP_SLOT;
+    if (strcmp(name, "IntentHistoryStepFromZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE;
+    if (strcmp(name, "IntentHistoryStepFromSlot") == 0) return BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT;
+    if (strcmp(name, "IntentHistoryStepToZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_TO_ZONE;
+    if (strcmp(name, "IntentHistoryStepToSlot") == 0) return BUILTIN_INTENT_HISTORY_STEP_TO_SLOT;
     if (strcmp(name, "IntentHistoryStepOk") == 0) return BUILTIN_INTENT_HISTORY_STEP_OK;
     if (strcmp(name, "IntentHistoryStepFailure") == 0) return BUILTIN_INTENT_HISTORY_STEP_FAILURE;
+    if (strcmp(name, "IntentActiveCount") == 0) return BUILTIN_INTENT_ACTIVE_COUNT;
+    if (strcmp(name, "IntentActiveName") == 0) return BUILTIN_INTENT_ACTIVE_NAME;
+    if (strcmp(name, "IntentActiveHandle") == 0) return BUILTIN_INTENT_ACTIVE_HANDLE;
+    if (strcmp(name, "IntentActiveTraceId") == 0) return BUILTIN_INTENT_ACTIVE_TRACE_ID;
+    if (strcmp(name, "IntentActivePriority") == 0) return BUILTIN_INTENT_ACTIVE_PRIORITY;
+    if (strcmp(name, "IntentActiveConcurrent") == 0) return BUILTIN_INTENT_ACTIVE_CONCURRENT;
+    if (strcmp(name, "IntentActiveTrace") == 0) return BUILTIN_INTENT_ACTIVE_TRACE;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -2762,6 +2777,9 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_INTENT_LAST_HANDLE:
         check_call_arity(call, 0, "IntentLastHandle", ctx);
         return TYPE_INT;
+    case BUILTIN_INTENT_LAST_TRACE_ID:
+        check_call_arity(call, 0, "IntentLastTraceId", ctx);
+        return TYPE_INT;
     case BUILTIN_INTENT_LAST_STEP_COUNT:
         check_call_arity(call, 0, "IntentLastStepCount", ctx);
         return TYPE_INT;
@@ -2781,6 +2799,41 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_PHASE:
+        check_call_arity(call, 1, "IntentHistoryStepPhase", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_ACTOR:
+        check_call_arity(call, 1, "IntentHistoryStepActor", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_SLOT:
+        check_call_arity(call, 1, "IntentHistoryStepSlot", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE:
+        check_call_arity(call, 1, "IntentHistoryStepFromZone", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT:
+        check_call_arity(call, 1, "IntentHistoryStepFromSlot", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_TO_ZONE:
+        check_call_arity(call, 1, "IntentHistoryStepToZone", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_TO_SLOT:
+        check_call_arity(call, 1, "IntentHistoryStepToSlot", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
     case BUILTIN_INTENT_HISTORY_STEP_OK:
         check_call_arity(call, 1, "IntentHistoryStepOk", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
@@ -2788,6 +2841,39 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return TYPE_BOOL;
     case BUILTIN_INTENT_HISTORY_STEP_FAILURE:
         check_call_arity(call, 1, "IntentHistoryStepFailure", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_ACTIVE_COUNT:
+        check_call_arity(call, 0, "IntentActiveCount", ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_NAME:
+        check_call_arity(call, 1, "IntentActiveName", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_ACTIVE_HANDLE:
+        check_call_arity(call, 1, "IntentActiveHandle", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_TRACE_ID:
+        check_call_arity(call, 1, "IntentActiveTraceId", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_PRIORITY:
+        check_call_arity(call, 1, "IntentActivePriority", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_CONCURRENT:
+        check_call_arity(call, 1, "IntentActiveConcurrent", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    case BUILTIN_INTENT_ACTIVE_TRACE:
+        check_call_arity(call, 1, "IntentActiveTrace", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_STRING;

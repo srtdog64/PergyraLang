@@ -238,6 +238,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
     run_expect_lines "shopping_mall_checkout_refund" "$backend" \
         "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[JS] mount /cart" "[API] POST /api/intents/CheckoutPurchase" "[API] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
+    run_expect_lines "calendar_working" "$backend" \
+        "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
     run_expect_lines "pattern_library_basics" "$backend" \
         "$ROOT_DIR/examples/pattern_library_basics" "PERGYRA PATTERN LIBRARY BASICS" "CONTEXTUAL SINGLETON" "FACTORY / SPEC BUILDER" "STRATEGY CARD + RESOLVER" "EXPLICIT RELAY / OBSERVER"
     run_expect_file_lines "battle_simulator" \

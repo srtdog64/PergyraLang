@@ -186,20 +186,38 @@ priority        → Int여야 함
 더 높은 `priority` intent는 낮은 priority active intent 위로 중첩 진입할 수 있다.
 또 failed step은 reverse-order `compensate:` expression을 실행하고,
 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` /
-`IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()`로
-마지막 실행 기록의 핵심 요약을 읽을 수 있고,
+`IntentLastHandle()` / `IntentLastTraceId()` / `IntentLastStepCount()` /
+`IntentLastFailed()`로 마지막 실행 기록의 핵심 요약을 읽을 수 있고,
 `IntentHistoryCount()` / `IntentHistoryStepName(i)` /
-`IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` /
-`IntentHistoryStepFailure(i)`로 step-level typed history를 읽을 수 있다.
+`IntentHistoryStepZone(i)` / `IntentHistoryStepPhase(i)` /
+`IntentHistoryStepActor(i)` / `IntentHistoryStepSlot(i)` /
+`IntentHistoryStepFromZone(i)` / `IntentHistoryStepFromSlot(i)` /
+`IntentHistoryStepToZone(i)` / `IntentHistoryStepToSlot(i)` /
+`IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)`로 step-level typed
+history를 읽을 수 있다.
+또 `IntentActiveCount()` / `IntentActiveName(i)` /
+`IntentActiveHandle(i)` / `IntentActiveTraceId(i)` /
+`IntentActivePriority(i)` /
+`IntentActiveConcurrent(i)` / `IntentActiveTrace(i)`로 현재 active intent
+registry를 직접 읽을 수 있다.
 `using:` bound zone이 있으면 현재 `who` actor를 matching subject slot에
 실제로 materialize한 뒤 sync를 돈다. `transfer: source -> target;`가 붙으면
 source/target zone을 둘 다 live sync하고 `[transfer] ...` trace를 남기며
-target zone 쪽으로 handoff materialization을 수행한다.
+target zone 쪽으로 handoff materialization을 수행한다. 이제 step body는
+`using:` zone의 live subject slot pointer에 `who` actor alias를 재바인딩한 뒤
+실행되고, sync 후 canonical actor로 복구된다. 그래서 zone method가 deep nested
+actor state를 직접 바꿔도 clause evaluation, rollback, final actor state가 맞는다.
+rollback도 이제 intent-level policy를 가진다:
+
+- `rollback: full` = completed step 전체를 reverse-order로 보상
+- `rollback: current` = 가장 최근 completed step만 보상
+- `rollback: none` = compensate 생략
+
 즉 v0.3의 intent는 **실행 가능한 declaration + conflict scheduler +
-trace/rollback runtime + live zone-instance binding + actor-slot materialization +
-cross-zone handoff**
-까지는 들어왔고, 남은 것은 structured trace id/history model과
-richer rollback policy다.
+trace/rollback runtime + trace-id/history observability +
+live zone-instance binding + actor-slot materialization + cross-zone handoff**
+까지는 들어왔고, 남은 것은 richer multi-instance timeline query와
+richer rollback policy detail이다.
 
 ---
 

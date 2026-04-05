@@ -28,7 +28,48 @@ Route Guard          requires / authorized by / intent gate
 - `page`는 사용자가 보는 표면이다
 - `zone`은 사용자가 행동하는 도메인 경계다
 - page는 보통 `object/dto` projection을 읽고, 입력을 `intent` 또는 `action`으로 바꿔 zone을 움직인다
+- API는 zone이 아니라 transport / adapter 경계다
 - 따라서 `page == zone`은 기본 규칙이 아니라 특수한 단순 케이스다
+
+### API는 어디에 놓는가
+
+`page`와 `API`는 둘 다 표면이다. 실제 도메인 실행은 `intent`와 `zone`에서 일어난다.
+
+```text
+page / route
+  -> HTTP / server action / RPC
+  -> request adapter
+  -> Intent(...)
+  -> zone/world mutation
+  -> object/dto response
+```
+
+즉:
+
+- `page`는 projection을 읽는다
+- `API`는 request/response를 적응(adapt)한다
+- `intent`가 실제로 subject를 움직인다
+- `zone/world`가 실행/권한/효과 경계를 가진다
+
+쇼핑몰이라면:
+
+```text
+/cart page
+  -> POST /api/intents/CheckoutPurchase
+  -> HandleCheckout(request dto)
+  -> CheckoutPurchase(cartZone, paymentZone, buyer)
+  -> CheckoutResponse(dto)
+```
+
+따라서 `api/*.pgy`가 있다면 그 파일의 책임은 보통:
+
+- request dto
+- response dto
+- identity resolution
+- world/zone lookup
+- `Intent(...)` 호출
+
+까지다. zone의 business rule을 API handler 안에 직접 넣는 것은 권장하지 않는다.
 
 ---
 

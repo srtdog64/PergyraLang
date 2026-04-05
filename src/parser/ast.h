@@ -47,6 +47,12 @@ typedef enum {
     WORLD_STATE_SOURCE_ANY
 } WorldStateSourceKind;
 
+typedef enum {
+    INTENT_ROLLBACK_FULL,
+    INTENT_ROLLBACK_CURRENT,
+    INTENT_ROLLBACK_NONE
+} IntentRollbackPolicy;
+
 /* Structured comment tags */
 typedef enum {
     DOC_TAG_WHAT,
@@ -745,6 +751,7 @@ struct ASTNode
             ASTNode** steps;
             size_t step_count;
             bool is_concurrent;
+            IntentRollbackPolicy rollback_policy;
             ASTNode* priority_expr;
             ASTNode* success_expr;
             ASTNode* failure_expr;

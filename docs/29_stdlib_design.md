@@ -45,6 +45,7 @@ import "creatures.pgy";
 
 - `use` = "이 프로그램이 이 기능을 사용한다"
 - `import` = "이 파일을 이 프로그램에 포함시킨다"
+- 현재 구현에서 `use module;`는 compiler-known `stdlib/<module>.pgy`를 AST에 병합한다.
 
 ## 네이밍 규칙
 
@@ -77,6 +78,7 @@ import "creatures.pgy";
 
 | 이름 | `use` | 핵심 API | 용도 |
 |------|-------|----------|------|
+| **datetime** | `use datetime;` | `LocalDate`, `LocalTime`, `DateTime`, `FormatDate`, `FormatTime`, `FormatDateTime`, `SameDate` | 캘린더/결제/리포트 날짜 표면 |
 | **pool** | `use pool;` | `PoolNew`, `PoolSpawn`, `PoolDespawn`, `PoolGet`, `PoolAlive` | 오브젝트 풀, 엔티티 재활용 |
 | **fsm** | `use fsm;` | `FsmNew`, `FsmAddState`, `FsmTransition`, `FsmCurrent` | 상태 머신 |
 | **encounter** | `use encounter;` | `EncounterNew`, `EncounterStep`, `EncounterResolve`, `TurnOrder` | 전투/조우 상태 머신 |
