@@ -1456,6 +1456,10 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     }
     case AST_FUNC_DECL:
         return type_check_func_decl(node, ctx);
+    case AST_TYPE_ALIAS:
+        if (node->data.type_alias.target_type != NULL)
+            (void)resolve_type_node(node->data.type_alias.target_type, ctx);
+        return !ctx->has_error;
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);
     case AST_EXTERN_BLOCK:
@@ -2135,7 +2139,16 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
      */
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
-        if (stmt->type == AST_FUNC_DECL) {
+        if (stmt->type == AST_TYPE_ALIAS) {
+            const char *tname = stmt->data.type_alias.name;
+            if (tname != NULL && scope_lookup_current(ctx->scope, tname) == NULL) {
+                Symbol *s = symbol_create_function(tname, TYPE_UNKNOWN,
+                    stmt->line, stmt->column);
+                if (s != NULL)
+                    s->kind = SYMBOL_CLASS;
+                scope_declare(ctx->scope, s);
+            }
+        } else if (stmt->type == AST_FUNC_DECL) {
             const char *fname = stmt->data.func_decl.name;
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
                 /* Forward-declare with correct param count so that
@@ -2328,6 +2341,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         }
+    }
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt->type != AST_TYPE_ALIAS || stmt->data.type_alias.name == NULL)
+            continue;
+
+        Symbol *sym = scope_lookup_current(ctx->scope, stmt->data.type_alias.name);
+        if (sym == NULL)
+            continue;
+        sym->type = resolve_type_node(stmt->data.type_alias.target_type, ctx);
     }
 
     /*

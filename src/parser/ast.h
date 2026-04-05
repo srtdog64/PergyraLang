@@ -332,6 +332,12 @@ struct ASTNode
             bool     is_mutable;
         } let_decl;
 
+        /* type UserId = Int; */
+        struct {
+            char*    name;
+            ASTNode* target_type;
+        } type_alias;
+
         /* let (a, b, c) = expr; — positional destructuring */
         struct {
             char**   names;
@@ -1036,6 +1042,7 @@ ASTNode* ast_create_object(const char* name);
 ASTNode* ast_create_dto(const char* name);
 ASTNode* ast_create_extern_block(const char* abi);
 ASTNode* ast_create_let_declaration(const char* name);
+ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type);
 ASTNode* ast_create_with_statement(void);
 ASTNode* ast_create_parallel_block(void);
 ASTNode* ast_create_block(void);

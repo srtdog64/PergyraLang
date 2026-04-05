@@ -24,7 +24,11 @@ typedef struct
     bool        do_run;
     bool        dump_tokens;
     bool        dump_ast;
+    bool        dump_dir;
+    bool        dump_rir;
+    bool        dump_mir;
     bool        dump_hir;
+    HIRDumpMode hir_dump_mode;
     bool        verbose;
     bool        repl;
     BackendKind backend;

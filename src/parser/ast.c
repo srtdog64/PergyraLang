@@ -170,6 +170,14 @@ ASTNode* ast_create_let_declaration(const char* name) {
     return node;
 }
 
+ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type) {
+    ASTNode* node = ast_create_node(AST_TYPE_ALIAS);
+    if (!node) return NULL;
+    node->data.type_alias.name = pergyra_strdup(name);
+    node->data.type_alias.target_type = target_type;
+    return node;
+}
+
 // with 문
 ASTNode* ast_create_with_statement(void) {
     ASTNode* node = ast_create_node(AST_WITH_STMT);
@@ -1229,6 +1237,10 @@ void ast_destroy(ASTNode* node) {
             free(node->data.let_decl.name);
             ast_destroy(node->data.let_decl.type);
             ast_destroy(node->data.let_decl.initializer);
+            break;
+        case AST_TYPE_ALIAS:
+            free(node->data.type_alias.name);
+            ast_destroy(node->data.type_alias.target_type);
             break;
 
         case AST_LET_DESTRUCTURE:

@@ -2702,6 +2702,46 @@ test_stdlib_and_enum_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("type aliases lower to typedefs and preserve specialized collection types");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "type UserId = Int;\n"
+            "type PartyIndex = HashMap<String, Player>;\n"
+            "func Load(id: UserId, registry: PartyIndex) -> Player {\n"
+            "    return MapGet(registry, \"hero\");\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let id: UserId = 7;\n"
+            "    let registry: PartyIndex = MapNew();\n"
+            "    MapSet(registry, \"hero\", Player(42));\n"
+            "    let hero = Load(id, registry);\n"
+            "    Log(ToString(hero.hp));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef int32_t UserId;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "typedef PgyHashMap_Player PartyIndex;");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_HASHMAP_DEFINE(Player, Player)");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "Player Load(UserId id, PartyIndex registry);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "UserId id = 7;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PartyIndex registry = pgy_map_new_Player();");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("nested HashMap<String, List<String>> parses and lowers");
     {
         const char *source =

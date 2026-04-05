@@ -21,6 +21,7 @@ parse_args(int argc, char *argv[])
     f.backend = BACKEND_C;
 #endif
     f.opt_profile = PGY_OPT_RELEASE;
+    f.hir_dump_mode = HIR_DUMP_SUMMARY;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -48,8 +49,24 @@ parse_args(int argc, char *argv[])
             f.dump_tokens = true;
         } else if (strcmp(argv[i], "--ast") == 0) {
             f.dump_ast = true;
+        } else if (strcmp(argv[i], "--dir") == 0) {
+            f.dump_dir = true;
+        } else if (strcmp(argv[i], "--rir") == 0) {
+            f.dump_rir = true;
+        } else if (strcmp(argv[i], "--mir") == 0) {
+            f.dump_mir = true;
         } else if (strcmp(argv[i], "--hir") == 0) {
             f.dump_hir = true;
+            f.hir_dump_mode = HIR_DUMP_SUMMARY;
+        } else if (strcmp(argv[i], "--hir-cfg") == 0) {
+            f.dump_hir = true;
+            f.hir_dump_mode = HIR_DUMP_CFG;
+        } else if (strcmp(argv[i], "--hir-dom") == 0) {
+            f.dump_hir = true;
+            f.hir_dump_mode = HIR_DUMP_DOM;
+        } else if (strcmp(argv[i], "--hir-ssa") == 0) {
+            f.dump_hir = true;
+            f.hir_dump_mode = HIR_DUMP_SSA;
         } else if (strcmp(argv[i], "--repl") == 0) {
             f.repl = true;
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {

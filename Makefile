@@ -129,6 +129,9 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
+                   $(COMPILER_DIR)/dir.c \
+                   $(COMPILER_DIR)/rir.c \
+                   $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/hir.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
@@ -163,6 +166,9 @@ TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
 TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
 TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
 TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
+TEST_DIR_SRC            = $(SRC_DIR)/test_dir.c
+TEST_RIR_SRC            = $(SRC_DIR)/test_rir.c
+TEST_MIR_SRC            = $(SRC_DIR)/test_mir.c
 TEST_HIR_SRC            = $(SRC_DIR)/test_hir.c
 DRIVER_SRC              = $(SRC_DIR)/pgy_driver.c
 LSP_SRC                 = $(SRC_DIR)/lsp/pgy_lsp.c
@@ -191,6 +197,9 @@ TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
 TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
 TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
 TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
+TEST_DIR_OBJ           = $(BUILD_DIR)/test_dir.o
+TEST_RIR_OBJ           = $(BUILD_DIR)/test_rir.o
+TEST_MIR_OBJ           = $(BUILD_DIR)/test_mir.o
 TEST_HIR_OBJ           = $(BUILD_DIR)/test_hir.o
 DRIVER_OBJ             = $(BUILD_DIR)/pgy_driver.o
 LSP_OBJ                = $(BUILD_DIR)/lsp/pgy_lsp.o
@@ -211,6 +220,9 @@ SEMANTIC_TEST       = $(BIN_DIR)/test_semantic
 TRANSPILE_TEST      = $(BIN_DIR)/test_transpile
 MEMORY_TEST         = $(BIN_DIR)/test_memory_layout
 CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency
+DIR_TEST            = $(BIN_DIR)/test_dir
+RIR_TEST            = $(BIN_DIR)/test_rir
+MIR_TEST            = $(BIN_DIR)/test_mir
 HIR_TEST            = $(BIN_DIR)/test_hir
 PGY                 = $(BIN_DIR)/pgy
 PGY_LSP             = $(BIN_DIR)/pgy-lsp
@@ -275,6 +287,21 @@ $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
 
 # Concurrency runtime test
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# DIR lowering test
+$(DIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/dir.o $(TEST_DIR_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# HIR lowering test
+$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
+# MIR lowering test
+$(MIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
@@ -373,6 +400,18 @@ test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
 	"$(CONCURRENCY_TEST)"
 
+test-dir: $(DIR_TEST)
+	@echo "=== DIR Test ==="
+	"$(DIR_TEST)"
+
+test-rir: $(RIR_TEST)
+	@echo "=== RIR Test ==="
+	"$(RIR_TEST)"
+
+test-mir: $(MIR_TEST)
+	@echo "=== MIR Test ==="
+	"$(MIR_TEST)"
+
 test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
 	"$(HIR_TEST)"
@@ -384,6 +423,9 @@ test-all:
 	$(MAKE) test-transpile
 	$(MAKE) test-memory
 	$(MAKE) test-concurrency
+	$(MAKE) test-dir
+	$(MAKE) test-rir
+	$(MAKE) test-mir
 	$(MAKE) test-hir
 	@echo "=== All Frontend Tests Completed ==="
 
@@ -404,6 +446,15 @@ llvm-test-memory:
 
 llvm-test-concurrency:
 	$(MAKE) LLVM_ENABLED=1 test-concurrency
+
+llvm-test-rir:
+	$(MAKE) LLVM_ENABLED=1 test-rir
+
+llvm-test-mir:
+	$(MAKE) LLVM_ENABLED=1 test-mir
+
+llvm-test-dir:
+	$(MAKE) LLVM_ENABLED=1 test-dir
 
 llvm-test-hir:
 	$(MAKE) LLVM_ENABLED=1 test-hir
@@ -526,8 +577,8 @@ memcheck: debug
 lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
-        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-hir test-all \
-        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
+        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-dir test-rir test-mir test-hir test-all \
+        llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added `MIR` as a real code layer with [`src/compiler/mir.h`](/mnt/e/PergyraLang/src/compiler/mir.h),
+  [`src/compiler/mir.c`](/mnt/e/PergyraLang/src/compiler/mir.c), `pgy --mir`,
+  and [`src/test_mir.c`](/mnt/e/PergyraLang/src/test_mir.c). The current MIR
+  is a routine/block/instruction skeleton that bridges HIR CFG blocks and RIR
+  ops, including intent cleanup blocks for `CompensateIntentStep` and
+  `AbortIntent`.
+- Extended `RIR` from a pure op/fact dump to a normalized resource summary
+  layer. Each scope now materializes tracked resource/projection state with
+  `initial_state`, `final_state`, `last_op`, and transition-error flags, and
+  `pgy --rir` shows those summaries directly.
+- Extended `DIR` from a coarse declaration graph to a richer intent graph.
+  It now records participant-to-type edges, step-to-zone/ability/authority/
+  effect edges, and explicit predecessor dependencies between ordered intent
+  steps.
+- Extended `RIR` zone/world collection so layer slots and world zone handles
+  are now materialized as resource facts, and lifecycle ops such as
+  `AttachEffect` / `DetachEffect` / `LinkRelation` / `UnlinkRelation` update
+  normalized state summaries instead of remaining dump-only metadata.
+- Updated pipeline docs and TODOs so the repository now describes the actual
+  code-layer status as `HIR + DIR + RIR + MIR started`, instead of treating
+  MIR as a documentation-only future placeholder.
+
 - Fixed nested generic type-argument parsing so practical types such as
   `HashMap<String, List<String>>` now parse as real type arguments instead of
   falling through the declaration-only generic parser path.
@@ -496,6 +518,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   checkout/refund/account sync steps
 # 2026-04-05
 
+- compiler/rir: started the new Resource IR layer with [`src/compiler/rir.h`](/mnt/e/PergyraLang/src/compiler/rir.h) and [`src/compiler/rir.c`](/mnt/e/PergyraLang/src/compiler/rir.c). `pgy --rir` now dumps scope-based resource facts and explicit ops for slot claim/read/write/release, projection refresh/publish, zone lifecycle operations, authority/capability facts, and intent commit/abort/compensate skeletons.
+- tests/docs: added [`src/test_rir.c`](/mnt/e/PergyraLang/src/test_rir.c), `make test-rir`, and updated the compiler pipeline docs so `DIR` and `RIR` are both documented as started-but-not-backend-owning layers. The fixed compiler contracts now explicitly drive the implementation instead of living only as design notes.
+- docs/architecture: fixed the compiler contract around `HIR -> DIR -> RIR -> MIR` and separated it from the current implementation state. Added [`docs/37_compiler_contracts.md`](/mnt/e/PergyraLang/docs/37_compiler_contracts.md) to pin the IR layer responsibilities, the resource state lattice, the intent compensation model, the projection sync contract, and the authority/capability split as the forward compiler contract.
+- docs/dir: strengthened the new DIR start point so `pgy --dir` now prints stable unresolved ids, resolved zone-parameter participants, and `transfer: source -> target` metadata in intent steps instead of ambiguous `-0` output. Added a second DIR regression covering transfer aliases and zone-typed intent participants.
+
 - intent/runtime: added richer trace-id and identity-aware step history. `IntentLastTraceId()` and `IntentActiveTraceId()` now expose per-instance trace ids, and `IntentHistoryStepPhase/Actor/Slot/FromZone/FromSlot/ToZone/ToSlot` now expose typed step identity for materialize/transfer flows on both C and LLVM.
 - intent/codegen: cross-world handoff traces are now reflected in typed history instead of only flat trace strings, so transfer/materialize debugging can be done through builtins rather than transcript scraping.
 - transpiler/llvm: fixed Bool stringification parity around intent/result reporting and world-zone query reporting. `ToString(Bool)` now prints `true/false` consistently on LLVM, and C type inference now recognizes `HasZoneProjection/HasZoneLayer/HasZoneState` plus intent observability builtins as Bool/Int/String instead of falling back to integer lowering.
@@ -508,3 +535,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Lifted `shopping_mall_checkout_refund` onto real `use http; use storage; use page;` surfaces. The example now emits `HttpIntentRequest/HttpIntentResponse`, page route/action binding lines, and transcript persistence through `SaveTranscript(...)` / `RenderStorageWrite(...)` instead of direct ad hoc transport/storage strings.
 - Fixed stdlib `use` deduplication in the import resolver so repeated `use http; use storage; use page;` across imported files no longer redeclare the same stdlib types.
 - Fixed CI portability in `tests/example_contract_smoke.sh` by normalizing CRLF/LF in exact comparisons and running generated example binaries from a repo-local `.tmp` directory instead of `/tmp`, which avoided `noexec` failures in GitHub Actions. Updated `.github/workflows/ci.yml` to `actions/checkout@v5`.
+# 2026-04-05
+
+- HIR를 순수 top-level bucket classifier에서 한 단계 올려 `decl index` / `routine summary` / direct-call snapshot을 가진 indexed program view로 확장했다. `hir_find_decl(...)`, `hir_find_routine(...)`, `HIRPhase`, `HIRRoutine.direct_calls`가 추가되어 향후 최적화 패스와 분석 패스가 AST 전체를 다시 훑지 않고도 top-level/routine 수준 정보를 읽을 수 있다.
+- 같은 HIR 확장선에서 `HIRRoutine.signature_type_refs`와 `hir_run_routine_pass(...)`를 추가했다. 이제 패스는 함수/intent의 시그니처 타입 의존성과 control-flow/action-like 플래그를 기준으로 루틴을 필터링해 순회할 수 있다.
+- function body에 대해 CFG v0를 추가했다. `HIRRoutine.cfg`는 basic block, branch/goto/return/unreachable terminator, loop-header 표식을 가지며, AST 블록을 그대로 backend에 던지는 대신 루틴 수준 분석/최적화 패스의 시작점을 제공한다.
+- HIR CFG를 SSA 준비 단계까지 더 밀었다. basic block predecessor edge를 materialize하고, direct-call name을 실제 routine index로 연결하는 `callee_routine_ids`와 보수적 `is_entry_reachable` 비트를 추가했다. 이제 HIR는 단순 routine summary를 넘어 inter-routine graph와 block predecessor를 함께 제공한다.
+- 같은 CFG 정규화 위에 block reachability, reverse-post-order, immediate dominator 계산까지 추가했다. 이제 SSA 재구성이나 dominance 기반 dead-code/inlining 후보 분석이 HIR 위에서 직접 시작될 수 있다.
+- dominance 위에 `dominance_frontier`와 natural-loop `loop_depth`도 추가했다. 이제 HIR block은 backedge 기반 loop membership과 phi placement 직전 정보를 직접 들고 있으므로, 다음 단계의 SSA 재구성이나 loop pass가 AST 재탐색 없이 HIR만으로 시작될 수 있다.
+- HIR를 SSA 직전 분석 표면까지 더 확장했다. 각 block은 `local_defs`와 `phi_candidates`를 갖고, 각 routine은 `reachable_block_count`, `dead_block_count`, `phi_candidate_count`, `phi_candidate_block_count`를 요약한다. 또한 `pgy --hir-cfg`, `--hir-dom`, `--hir-ssa` dump view를 추가해 CFG/dominance/SSA-prep 상태를 직접 확인할 수 있게 했다.
+- HIR SSA-prep를 한 단계 더 밀었다. 각 block은 이제 dominator-tree child와 `phi_nodes` skeleton을 갖고, 각 phi node는 아직 rename 전이지만 incoming predecessor 목록까지 materialize한다. `hir_run_block_pass(...)`도 추가해서 routine-level이 아니라 block-level analysis/cleanup pass를 HIR 위에서 직접 시작할 수 있게 했다.

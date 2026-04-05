@@ -1,5 +1,7 @@
 # Intent 지향 오케스트레이션 초안 (2026-04-05)
 
+이 문서는 intent 개념과 사용자-facing 의미를 설명한다. compensation, rollback, observability, authority/capability의 고정 계약은 [`37_compiler_contracts.md`](./37_compiler_contracts.md)를 기준으로 한다.
+
 ## 풀고자 하는 문제
 
 > **구현이 이종 파편화되어도, 의도만 명확하면 구현할 수 있어야 한다.**

@@ -18,6 +18,9 @@
 #include "../common/string_compat.h"
 #include "../lexer/lexer.h"
 #include "../semantic/semantic.h"
+#include "dir.h"
+#include "rir.h"
+#include "mir.h"
 #include "hir.h"
 #include "module_loader.h"
 #include "path_utils.h"
@@ -843,6 +846,9 @@ driver_run_pipeline(const DriverFlags *flags)
 {
     ASTNode *ast = NULL;
     SemanticResult *sem = NULL;
+    DIRProgram *dir = NULL;
+    RIRProgram *rir = NULL;
+    MIRProgram *mir = NULL;
     HIRProgram *hir = NULL;
     int exit_code = 1;
     char *load_error = NULL;
@@ -888,6 +894,30 @@ driver_run_pipeline(const DriverFlags *flags)
         goto cleanup;
     }
 
+    if (flags->dump_dir) {
+        dir = dir_lower(sem->annotated_ast, &hir_error);
+        if (dir == NULL) {
+            fprintf(stderr, "pgy: DIR lowering failed: %s\n",
+                    hir_error != NULL ? hir_error : "out of memory");
+            goto cleanup;
+        }
+        dir_dump(dir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
+    if (flags->dump_rir) {
+        rir = rir_lower(sem->annotated_ast, &hir_error);
+        if (rir == NULL) {
+            fprintf(stderr, "pgy: RIR lowering failed: %s\n",
+                    hir_error != NULL ? hir_error : "out of memory");
+            goto cleanup;
+        }
+        rir_dump(rir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
     hir = hir_lower(sem->annotated_ast, &hir_error);
     if (hir == NULL) {
         fprintf(stderr, "pgy: HIR lowering failed: %s\n",
@@ -895,8 +925,26 @@ driver_run_pipeline(const DriverFlags *flags)
         goto cleanup;
     }
 
+    if (flags->dump_mir) {
+        rir = rir_lower(sem->annotated_ast, &hir_error);
+        if (rir == NULL) {
+            fprintf(stderr, "pgy: RIR lowering failed: %s\n",
+                    hir_error != NULL ? hir_error : "out of memory");
+            goto cleanup;
+        }
+        mir = mir_lower(hir, rir, &hir_error);
+        if (mir == NULL) {
+            fprintf(stderr, "pgy: MIR lowering failed: %s\n",
+                    hir_error != NULL ? hir_error : "out of memory");
+            goto cleanup;
+        }
+        mir_dump(mir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
     if (flags->dump_hir) {
-        hir_dump(hir, stdout);
+        hir_dump_mode(hir, stdout, flags->hir_dump_mode);
         exit_code = 0;
         goto cleanup;
     }
@@ -911,6 +959,9 @@ driver_run_pipeline(const DriverFlags *flags)
 cleanup:
     free(load_error);
     free(hir_error);
+    dir_destroy(dir);
+    mir_destroy(mir);
+    rir_destroy(rir);
     hir_destroy(hir);
     semantic_result_destroy(sem);
     ast_destroy(ast);
@@ -939,7 +990,13 @@ driver_print_usage(void)
         "  dto      boundary packet\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
-        "  pgy --hir    <source.pgy>     dump lowered HIR summary\n"
+        "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"
+        "  pgy --rir    <source.pgy>     dump lowered RIR summary\n"
+        "  pgy --mir    <source.pgy>     dump lowered MIR summary\n"
+        "  pgy --hir     <source.pgy>     dump lowered HIR summary\n"
+        "  pgy --hir-cfg <source.pgy>     dump HIR CFG view\n"
+        "  pgy --hir-dom <source.pgy>     dump HIR dominance view\n"
+        "  pgy --hir-ssa <source.pgy>     dump HIR SSA-prep view\n"
 #ifdef PGY_LLVM_ENABLED
         "  default backend: LLVM\n"
         "  pgy <source.pgy> --backend=llvm   use LLVM native backend\n"

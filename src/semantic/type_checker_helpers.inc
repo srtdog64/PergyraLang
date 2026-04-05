@@ -184,6 +184,45 @@ semantic_print_diagnostics(SemanticContext *ctx)
  * Utility — resolve AST type node to Type*
  * ----------------------------------------------------------------- */
 
+static ASTNode *
+find_type_alias_decl(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_TYPE_ALIAS
+            || stmt->data.type_alias.name == NULL) {
+            continue;
+        }
+        if (strcmp(stmt->data.type_alias.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+static Type *
+resolve_type_alias_decl(ASTNode *alias_decl, SemanticContext *ctx, unsigned depth)
+{
+    if (alias_decl == NULL || alias_decl->type != AST_TYPE_ALIAS)
+        return TYPE_UNKNOWN;
+
+    if (depth > 32) {
+        semantic_error(ctx, alias_decl,
+            "Type alias resolution exceeded maximum depth near '%s'",
+            alias_decl->data.type_alias.name != NULL
+                ? alias_decl->data.type_alias.name : "<alias>");
+        return TYPE_UNKNOWN;
+    }
+
+    if (alias_decl->data.type_alias.target_type == NULL)
+        return TYPE_UNKNOWN;
+
+    return resolve_type_node(alias_decl->data.type_alias.target_type, ctx);
+}
+
 static Type *
 resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
 {
@@ -209,8 +248,18 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "Option") == 0) return TYPE_OPTION;
 
     Symbol *sym = scope_lookup(ctx->scope, name);
-    if (sym != NULL)
+    if (sym != NULL && sym->type != TYPE_UNKNOWN)
         return sym->type;
+
+    if (ctx != NULL && ctx->program_root != NULL) {
+        ASTNode *alias_decl = find_type_alias_decl(ctx->program_root, name);
+        if (alias_decl != NULL) {
+            Type *resolved = resolve_type_alias_decl(alias_decl, ctx, 0);
+            if (sym != NULL && resolved != NULL)
+                sym->type = resolved;
+            return resolved != NULL ? resolved : TYPE_UNKNOWN;
+        }
+    }
 
     semantic_error(ctx, site, "Unknown type '%s'", name);
     return TYPE_UNKNOWN;

@@ -1,5 +1,7 @@
 # Zone-Page 매핑 가이드 (2026-04-05)
 
+projection sync validity, authority/capability 경계의 고정 의미는 [`37_compiler_contracts.md`](./37_compiler_contracts.md)를 기준으로 한다.
+
 ## 한 줄 요약
 
 > Zone은 페이지가 아니다.  

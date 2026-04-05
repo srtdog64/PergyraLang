@@ -1107,9 +1107,9 @@ main(void)
             1
         },
         {
-            "Type Alias Declaration (currently unsupported)",
+            "Type Alias Declaration",
             "type UserId = Int;",
-            0
+            1
         }
     };
 

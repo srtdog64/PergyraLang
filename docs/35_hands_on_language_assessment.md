@@ -5,6 +5,60 @@
 이 문서는 실제로 `intent`, `zone/world`, 대형 시나리오, pattern 예제,
 C/LLVM parity를 직접 구현하면서 드러난 Pergyra의 강점과 약점을 정리한다.
 
+## 우선순위 정리
+
+### P0 — 당장 막는 허점
+
+이 단계의 기준은 단순하다.
+
+- 실전 예제를 쓰다가 바로 막히는가
+- 문법/시맨틱/코드젠 중 하나가 비어 있어서 일반적인 앱 코드를 못 쓰는가
+- C/LLVM practical parity가 깨져서 기본 회귀가 흔들리는가
+
+현재 P0는 이렇다.
+
+| 항목 | 상태 | 메모 |
+|------|------|------|
+| `for-in` / `List<T>` / `${expr}` | 해결 | 캘린더/실전 예제로 확인 |
+| `HashMap<String, Subject/Class>` | 해결 | practical C/LLVM parity 확보 |
+| `use datetime;` | 해결 | 실제 stdlib module화 완료 |
+| `type alias` (`type UserId = Int`) | 해결 | parser/semantic/C/LLVM lowering 연결 |
+| `page/report/api adapter` 최소 표면 | 해결 | 쇼핑몰 예제로 실제 사용 |
+| collection/runtime practical LLVM parity | 해결 | practical examples 기준 닫힘 |
+
+즉 지금의 P0는 더 이상 “캘린더조차 못 만든다” 류가 아니다.
+이번 패스에서 `type alias`까지 들어가면서, 일반적인 앱/시뮬레이터를 막는
+직접적인 문법 공백은 많이 줄었다.
+
+### P1 — 6개월 안에 채워야 할 공백
+
+이 단계는 “돌아가긴 하지만 계속 아프다”에 해당한다.
+
+- richer stdlib (`http/storage/page/datetime`) 두께
+- iterator/protocol/collection ergonomics
+- generic constraint depth
+- function value / higher-order ergonomics 고도화
+- diagnostics / tooling / scaffold 성숙도
+- projection/binding grouped surface
+- richer app adapter patterns
+
+즉 P1은 존재론이 아니라 생산성과 라이브러리 두께를 끌어올리는 단계다.
+
+### P2 — 장기 연구 과제
+
+이 단계는 언어 철학을 더 밀어붙이는 연구 주제다.
+
+- richer intent orchestration engine
+- deeper rollback / compensation model
+- richer cross-world identity semantics
+- long-running multi-instance orchestration
+- deeper effect/cost model
+- distributed world semantics
+- generalized resource protocol beyond current slot/future/channel surface
+
+즉 P2는 “당장 못 써서 아픈 것”이 아니라,
+Pergyra가 어디까지 자기 철학을 밀고 갈 수 있는가의 문제다.
+
 ## 강점
 
 ### 1. 존재론이 크고 복잡한 코드를 덜 섞이게 한다
@@ -193,7 +247,8 @@ intent ViewSchedule { concurrent; }   // 보기는 동시에 가능
 | **제네릭 컬렉션** | C backend 기준 `List<Event>`, `HashMap<String, Subject>` 등 가능 |
 | **문자열 보간** | `${expr}` 지원, embedded expression은 `ToString(...)`으로 lowering |
 
-현재 캘린더를 막는 최상위 P0는 “문법 부재”보다 backend parity와 richer stdlib 쪽이다.
+현재 캘린더를 막는 최상위 P0는 거의 닫혔고,
+남은 문제는 “문법 부재”보다 richer stdlib와 app ergonomics 쪽이다.
 
 | 남은 P0 | 현재 상태 | 필요한 것 |
 |--------|----------|----------|
@@ -206,6 +261,7 @@ intent ViewSchedule { concurrent; }   // 보기는 동시에 가능
 - `for-in` / `List<T>` / `${expr}` 자체는 더 이상 P0가 아니다
 - `HashMap<String, Subject>`도 더 이상 C-only가 아니고, 실전 예제 기준으로 LLVM까지 닫혔다
 - `use datetime;`도 문서 placeholder가 아니라 실제 stdlib surface가 되었다
+- `type alias`도 이제 실제 parser/semantic/C/LLVM vertical slice로 들어왔다
 - 이제 남은 문제는 “캘린더조차 못 만든다” 류의 P0라기보다, richer stdlib와 app/report ergonomics다
 
 ## Adapter-heavy 예제 — 추가 확인 (2026-04-05)

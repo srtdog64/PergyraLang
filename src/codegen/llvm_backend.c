@@ -1066,6 +1066,7 @@ llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name)
 }
 
 static char *llvm_render_type_name(ASTNode *type_node);
+static LLVMGenCtx *g_llvm_type_render_ctx = NULL;
 
 void
 llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
@@ -1315,12 +1316,27 @@ llvm_constructed_arg_name_at(const char *type_name, int arg_index)
 static char *
 llvm_render_type_name(ASTNode *type_node)
 {
+    ASTNode *alias_decl = NULL;
+
     if (type_node == NULL)
         return pergyra_strdup("Void");
     if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
         return pergyra_strdup("Int");
     if (type_node->data.type.generic_args == NULL
         || type_node->data.type.generic_args->count == 0) {
+        if (g_llvm_type_render_ctx != NULL && g_llvm_type_render_ctx->hir != NULL) {
+            for (size_t i = 0; i < g_llvm_type_render_ctx->hir->type_count; i++) {
+                ASTNode *stmt = g_llvm_type_render_ctx->hir->types[i];
+                if (stmt != NULL && stmt->type == AST_TYPE_ALIAS
+                    && stmt->data.type_alias.name != NULL
+                    && strcmp(stmt->data.type_alias.name, type_node->data.type.name) == 0) {
+                    alias_decl = stmt;
+                    break;
+                }
+            }
+        }
+        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL)
+            return llvm_render_type_name(alias_decl->data.type_alias.target_type);
         return pergyra_strdup(type_node->data.type.name);
     }
 
@@ -3615,6 +3631,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     ctx->hir = hir;
+    g_llvm_type_render_ctx = ctx;
 
     /* Declare runtime functions */
     llvm_declare_runtime(ctx);
@@ -4222,6 +4239,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         /* Return 0 from main */
         LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
     }
+
+    g_llvm_type_render_ctx = NULL;
 }
 
 /* =================================================================

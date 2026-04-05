@@ -5,6 +5,12 @@
 ## 요약
 
 - 컴파일러 파이프라인은 `Lexer → Parser → Semantic → HIR → Backend`로 고정됨.
+- 별도 설계 축으로 `DIR -> RIR -> MIR` 계층 분리가 문서화됐고, 현재는 `DIR`, `RIR`, `MIR` 코드 계층이 모두 시작되어 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution skeleton을 덤프할 수 있음. 다만 backend는 아직 `HIR`를 직접 입력으로 받는다.
+- `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
+- HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
+- RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함
+- DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency까지 직접 가진다
+- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함
 - LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.

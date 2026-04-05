@@ -6,6 +6,7 @@
 - [x] **AES-256 실구현** — XOR 가짜 암호를 FIPS 197 AES-256-CTR + HMAC-SHA256 인증으로 교체 (외부 의존성 없음)
 - [x] **`auto __tmp` 제거** — `PGY_RESULT_TRY` 매크로에서 GCC 확장 `auto` 제거, C11 호환 (명시적 타입 파라미터)
 - [x] **REPL 고정 파일명** — `_pgy_repl_tmp.*` → `TMPDIR/pgy_repl_{pid}.*` (PID 기반 유니크 경로)
+- [x] **`type alias` vertical slice** — `type UserId = Int;` parser/semantic/C/LLVM lowering 연결, 실전 annotation/typedef 경로 확보
 
 ## P1 — 다음 단계
 
@@ -22,19 +23,19 @@
 ## P1.58 — 표준 라이브러리 인프라
 
 - [x] **`use datetime;` 실제 stdlib module화**
-- [ ] **`use http;` v0.1**
+- [x] **`use http;` v0.1**
   - `HttpRequest`, `HttpResponse`, `RouteSpec`
   - `OkResponse`, `ErrorResponse`, `JsonResponse`
   - intent adapter handler 예제와 연결
-- [ ] **`use storage;` v0.1**
+- [x] **`use storage;` v0.1**
   - `SnapshotMeta`, `SnapshotRecord`
   - `StorageSave`, `StorageLoad`, `StorageAppendLog`
   - world/session snapshot 예제와 연결
-- [ ] **`use page;` v0.1**
+- [x] **`use page;` v0.1**
   - `PageRoute`, `PageAction`, `PageMessage`
   - `MountPage`, `BindAction`, `RenderSection`
   - projection surface / action binder 예제와 연결
-- [ ] **쇼핑몰 예제를 stdlib 인프라 사용 버전으로 리프트**
+- [x] **쇼핑몰 예제를 stdlib 인프라 사용 버전으로 리프트**
   - `pages/` -> `use page;`
   - `api/` -> `use http;`
   - `report/storage` -> `use storage;`
@@ -405,3 +406,46 @@
 - [ ] **SBOM (SPDX) + provenance (SLSA)** — 공급망 투명성
 - [ ] **릴리스 아티팩트** — 서명된 바이너리, 체크섬, 설치 스크립트
 - [ ] **3rd-party NOTICE** — OpenSSL/LLVM/pthread 라이선스 정리
+
+## IR 파이프라인 재구성
+
+- [x] **컴파일러 계약 고정** — `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability를 `docs/37_compiler_contracts.md`에 고정
+
+- [~] **DIR (Domain IR)** — declaration graph / intent step graph 시작
+  - 완료: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
+  - 완료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
+  - 남음: role/ability completeness edge, richer zone/world membership graph
+- [~] **RIR (Resource IR)** — slot/resource/authority/lifecycle 의미론 전용 계층
+  - 범위: `Slot`, `SecureSlot`, `DeviceSlot`, projection validity, authority, effect/relation lifecycle, intent compensation resource edge
+  - 완료: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
+  - 완료: scope별 normalized state summary (`initial_state`, `final_state`, `last_op`, `transition error`)
+  - 완료: relation/effect layer slot와 world zone slot도 resource fact로 materialize
+  - 출력: 단순 map이 아니라 `Resource Graph + Transfer Ops + Static Ownership Facts`
+  - explicit op 정규화:
+    - `Claim/Read/Write/Release`
+    - `Move/BorrowRead/BorrowWrite`
+    - `ProjectRefresh/ProjectPublish`
+    - `AttachEffect/DetachEffect`
+    - `LinkRelation/UnlinkRelation`
+    - `Authorize/AwaitRemote`
+    - `CommitIntent/AbortIntent/CompensateIntentStep`
+  - state lattice 초안:
+    - `Uninit`
+    - `Owned`
+    - `BorrowedRead`
+    - `BorrowedWrite`
+    - `Moved`
+    - `Released`
+    - `Invalid`
+    - `Measured`
+    - `RemotePending`
+  - CFG 의존 branch/join/loop/phi merge는 MIR로 이월
+- [~] **MIR (Machine / Execution IR)** — CFG/SSA/liveness/optimization 계층
+  - 범위: basic block, explicit instruction, phi, liveness, CFG-dependent resource merge, dead code elimination
+  - 완료: `src/compiler/mir.h`, `src/compiler/mir.c`, `pgy --mir`, `test-mir`
+  - 완료: HIR CFG -> MIR block bridge
+  - 완료: RIR op -> MIR instruction bridge
+  - 완료: intent cleanup block skeleton
+  - 필요: `RIR-flow` merge 정책
+  - 필요: phi merge policy
+  - 필요: cleanup / rollback / detach-invalidation edge

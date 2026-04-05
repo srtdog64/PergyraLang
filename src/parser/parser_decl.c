@@ -307,6 +307,20 @@ ASTNode* parse_type(Parser* parser) {
     return type_node;
 }
 
+ASTNode* parse_type_alias_declaration(Parser *parser) {
+    Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected alias name after 'type'");
+    parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after alias name");
+    ASTNode *target_type = parse_type(parser);
+    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after type alias");
+
+    ASTNode *alias = ast_create_type_alias(name.text, target_type);
+    if (alias != NULL) {
+        alias->line = name.line;
+        alias->column = name.column;
+    }
+    return alias;
+}
+
 // 타입 제약조건 파싱
 ASTNode* parse_type_constraint(Parser* parser) {
     // 단순 버전 - 향후 확장 필요

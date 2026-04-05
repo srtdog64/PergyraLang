@@ -215,6 +215,31 @@ test_misc_grammar_edges(void)
         ast_destroy(opt);
     }
 
+    TEST("type alias annotations resolve in program declarations");
+    {
+        const char *source =
+            "type UserId = Int;\n"
+            "type NameList = List<String>;\n"
+            "func Main() -> Void {\n"
+            "    let id: UserId = 7;\n"
+            "    let names: NameList = ListNew();\n"
+            "    ListPush(names, \"gyri\");\n"
+            "    Log(id);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("for-in over List<subject> type-checks");
     {
         const char *source =

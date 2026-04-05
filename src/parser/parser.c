@@ -160,6 +160,7 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_STRUCT:
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
+            case TOKEN_TYPE:
             case TOKEN_LET:
             case TOKEN_ABILITY:
             case TOKEN_ROLE:
@@ -498,6 +499,7 @@ parser_is_exportable_decl(ASTNode *node)
         case AST_CLASS_DECL:
         case AST_EXTERN_BLOCK:
         case AST_LET_DECL:
+        case AST_TYPE_ALIAS:
         case AST_ACTOR_DECL:
         case AST_ABILITY_DECL:
         case AST_ROLE_DECL:
@@ -551,6 +553,8 @@ parser_parse_export_declaration(Parser *parser)
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
     } else if (parser_match(parser, TOKEN_EXTERN))
         node = parse_extern_block(parser);
+    else if (parser_match(parser, TOKEN_TYPE))
+        node = parse_type_alias_declaration(parser);
     else if (parser_check(parser, TOKEN_CLASS)) {
         bool is_subject = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "subject") == 0;
@@ -771,6 +775,10 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // extern 블록
     if (parser_match(parser, TOKEN_EXTERN)) {
         return parser_finalize_statement(parser, parse_extern_block(parser));
+    }
+
+    if (parser_match(parser, TOKEN_TYPE)) {
+        return parser_finalize_statement(parser, parse_type_alias_declaration(parser));
     }
 
     // 클래스 / subject 선언

@@ -27,6 +27,7 @@ void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
+static void emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx);
 static bool
 select_case_parts(ASTNode *case_node, ASTNode **channel_out,
                   const char **bind_name_out, ASTNode **body_out)
@@ -83,6 +84,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     const char *name = node->data.let_decl.name;
     ASTNode    *init = node->data.let_decl.initializer;
     ASTNode    *ann  = node->data.let_decl.type;
+    ASTNode    *resolved_ann = resolve_type_alias_target(ctx, ann);
     char       *ann_type_name = ann != NULL ? render_type_name(ann) : NULL;
     ASTNode    *callable_type = NULL;
     ASTNode    *callable_decl = NULL;
@@ -486,25 +488,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    if (ann != NULL
-        && ann->type == AST_TYPE
-        && ann->data.type.name != NULL
-        && (strcmp(ann->data.type.name, "HashMap") == 0
-            || strcmp(ann->data.type.name, "List") == 0
-            || strcmp(ann->data.type.name, "Queue") == 0)
+    if (resolved_ann != NULL
+        && resolved_ann->type == AST_TYPE
+        && resolved_ann->data.type.name != NULL
+        && (strcmp(resolved_ann->data.type.name, "HashMap") == 0
+            || strcmp(resolved_ann->data.type.name, "List") == 0
+            || strcmp(resolved_ann->data.type.name, "Queue") == 0)
         && init != NULL
         && init->type == AST_CALL
         && init->data.call.callee != NULL
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *callee_name = init->data.call.callee->data.identifier.name;
-        const char *type_name = ann->data.type.name;
+        const char *type_name = resolved_ann->data.type.name;
         const char *inner = slot_inner_type_name(ann_type_name);
         if (strcmp(callee_name, "MapNew") == 0
             && strcmp(type_name, "HashMap") == 0
-            && ann->data.type.generic_args != NULL
-            && ann->data.type.generic_args->count == 2) {
-            GenericParam *key_param = ann->data.type.generic_args->params[0];
-            GenericParam *value_param = ann->data.type.generic_args->params[1];
+            && resolved_ann->data.type.generic_args != NULL
+            && resolved_ann->data.type.generic_args->count == 2) {
+            GenericParam *key_param = resolved_ann->data.type.generic_args->params[0];
+            GenericParam *value_param = resolved_ann->data.type.generic_args->params[1];
             char *key = (key_param != NULL && key_param->constraint != NULL)
                 ? render_type_name(key_param->constraint)
                 : pergyra_strdup((key_param != NULL && key_param->name != NULL)
@@ -1983,6 +1985,24 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
  * Statement dispatcher
  * ----------------------------------------------------------------- */
 
+static void
+emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx)
+{
+    const char *alias_name;
+    const char *target_c_type;
+
+    if (node == NULL || node->type != AST_TYPE_ALIAS
+        || node->data.type_alias.name == NULL
+        || node->data.type_alias.target_type == NULL) {
+        return;
+    }
+
+    alias_name = node->data.type_alias.name;
+    ensure_type_specializations_from_ast(ctx, node->data.type_alias.target_type);
+    target_c_type = pergyra_ast_type_to_c(node->data.type_alias.target_type);
+    codebuf_write(ctx->out, "typedef %s %s;\n", target_c_type, alias_name);
+}
+
 void
 emit_statement(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -1992,6 +2012,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     switch (node->type) {
     case AST_LET_DECL:
         emit_let_decl(node, ctx);
+        break;
+    case AST_TYPE_ALIAS:
+        emit_type_alias_decl(node, ctx);
         break;
     case AST_LET_DESTRUCTURE:
     {
@@ -3229,15 +3252,17 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     for (size_t i = 0; i < hir->ability_count; i++)
         emit_ability_decl(hir->abilities[i], ctx);
 
-    /* Pass 1.5: enums */
+    /* Pass 1.5: enums + type aliases */
     for (size_t i = 0; i < hir->type_count; i++) {
-        if (hir->types[i] != NULL && hir->types[i]->type == AST_ENUM_DECL)
+        if (hir->types[i] != NULL
+            && (hir->types[i]->type == AST_ENUM_DECL
+                || hir->types[i]->type == AST_TYPE_ALIAS))
             emit_statement(hir->types[i], ctx);
     }
 
     /* Pass 2: classes */
     for (size_t i = 0; i < hir->type_count; i++) {
-        if (hir->types[i] != NULL && hir->types[i]->type != AST_ENUM_DECL)
+        if (hir->types[i] != NULL && hir->types[i]->type == AST_CLASS_DECL)
             emit_class_decl(hir->types[i], ctx);
     }
 

@@ -375,6 +375,43 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
 }
 
 static ASTNode *
+find_type_alias_decl(TranspilerCtx *ctx, const char *alias_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || alias_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt != NULL && stmt->type == AST_TYPE_ALIAS
+            && stmt->data.type_alias.name != NULL
+            && strcmp(stmt->data.type_alias.name, alias_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    unsigned depth = 0;
+
+    while (ctx != NULL && type_node != NULL
+           && type_node->type == AST_TYPE
+           && type_node->data.type.name != NULL
+           && depth < 32) {
+        ASTNode *alias_decl = find_type_alias_decl(ctx, type_node->data.type.name);
+        if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+            break;
+        type_node = alias_decl->data.type_alias.target_type;
+        depth++;
+    }
+
+    return type_node;
+}
+
+static ASTNode *
 find_actor_decl(TranspilerCtx *ctx, const char *actor_name)
 {
     if (ctx == NULL || ctx->hir == NULL || actor_name == NULL)
@@ -2652,6 +2689,14 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
 
     if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
         return;
+
+    {
+        ASTNode *alias_decl = find_type_alias_decl(ctx, type_node->data.type.name);
+        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+            ensure_type_specializations_from_ast(ctx, alias_decl->data.type_alias.target_type);
+            return;
+        }
+    }
 
     if (type_node->data.type.generic_args != NULL) {
         for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {

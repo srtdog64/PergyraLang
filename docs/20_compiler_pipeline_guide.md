@@ -1,6 +1,6 @@
 # Pergyra 컴파일러 파이프라인 가이드
 
-마지막 업데이트: 2026-03-18
+마지막 업데이트: 2026-04-05
 
 이 문서는 "현재 저장소가 실제로 어떻게 동작하는가"를 설명한다. 이상적인 미래 설계가 아니라, 다음 기여자가 바로 코드를 따라 들어갈 수 있게 만드는 contributor guide다.
 
@@ -14,8 +14,11 @@
   -> import inline merge                [src/pgy_driver.c]
   -> semantic_analyze()                 [src/semantic/*]
   -> annotated AST
+  -> (optional) dir_lower()             [src/compiler/dir.c]
+  -> (optional) rir_lower()             [src/compiler/rir.c]
+  -> (optional) mir_lower()             [src/compiler/mir.c]
   -> hir_lower()                        [src/compiler/hir.c]
-  -> HIRProgram (top-level buckets)
+  -> HIRProgram (indexed decl/routine view + function CFG)
   -> backend dispatch                   [src/pgy_driver.c]
        -> LLVM backend (default if enabled)
           -> object file
@@ -29,8 +32,11 @@
 중요한 점은 세 가지다.
 
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
-- 백엔드 진입점은 이제 AST 루트가 아니라 `HIRProgram`이다.
-- HIR는 SSA 같은 깊은 IR이 아니라, "top-level 분류 버킷 + 원래 AST 노드 참조"에 가깝다.
+- 백엔드 진입점은 현재 `HIRProgram`이다.
+- `DIR`는 막 도입된 domain-graph 계층이지만, 아직 backend 입력은 아니다.
+- `RIR`는 explicit resource op + static fact + normalized state summary를 가진 resource-op 계층이지만, 아직 backend 입력은 아니다.
+- `MIR`는 코드 계층이 시작됐지만, 아직 backend 입력은 아니다.
+- HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 
 ## 2. 어디서 시작하나
 
@@ -152,7 +158,129 @@
 
 중요한 점은 `annotated_ast`가 새로운 트리를 만드는 게 아니라, 기존 AST에 타입 정보와 검증 결과를 붙인 같은 트리라는 것이다. 이후 HIR lowering은 이 annotated AST를 입력으로 받는다.
 
-### 3.5 HIR Lowering
+### 3.5 DIR Lowering
+
+관련 파일:
+
+- `src/compiler/dir.h`
+- `src/compiler/dir.c`
+
+주 진입점:
+
+- `DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message)`
+
+현재 DIR의 역할은 "도메인 선언과 관계를 독립 그래프로 정리하는 시작점"이다. 아직 backend나 최적화 패스의 기준 IR은 아니고, `--dir` 디버그/설계 검증 경로에서만 사용된다.
+
+현재 DIR가 하는 일:
+
+- `ability`, `role`, `party`, `systemic`, `world`, `relation`, `effect`, `zone`, `intent`를 node로 수집
+- `role -> for type`, `role -> impl ability`, `party -> ability slot`, `world -> zone`, `zone -> effect/relation slot` 같은 declaration edge를 수집
+- `intent`는 별도 `participant/step` 메타로 정리
+  - `where`
+  - `using`
+  - `who`
+  - `requires`
+  - `authorized by`
+  - `causes`
+  - `transfer`
+  - step predecessor dependency
+- intent 관련 edge도 직접 수집
+  - `participant -> type`
+  - `step -> zone`
+  - `step -> who alias`
+  - `step -> required ability`
+  - `step -> authorized-by alias`
+  - `step -> causes effect`
+  - `step(n) -> step(n+1)` dependency
+
+즉 지금 DIR는 "도메인 관계 그래프"다. 아직 flow-sensitive IR은 아니다.
+
+### 3.6 RIR Lowering
+
+관련 파일:
+
+- `src/compiler/rir.h`
+- `src/compiler/rir.c`
+
+주 진입점:
+
+- `RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message)`
+
+현재 RIR의 역할은 "explicit resource op와 static fact를 실제 코드 계층으로 여는 시작점"이다. 아직 DIR를 직접 입력으로 삼는 완성형은 아니고, annotated AST에서 직접 수집한다.
+
+현재 RIR가 하는 일:
+
+- scope 수집
+  - `function`
+  - `method`
+  - `intent`
+  - `zone`
+  - `relation`
+  - `effect`
+  - `world`
+- fact 수집
+  - `resource`
+  - `projection`
+  - `authority`
+  - `capability`
+  - `intent-policy`
+- op 수집
+  - `Claim`
+  - `Read`
+  - `Write`
+  - `Release`
+  - `Move`
+  - `ProjectRefresh`
+  - `ProjectPublish`
+  - `AttachEffect`
+  - `DetachEffect`
+  - `LinkRelation`
+  - `UnlinkRelation`
+  - `Authorize`
+  - `AwaitRemote`
+  - `CommitIntent`
+  - `AbortIntent`
+  - `CompensateIntentStep`
+
+추가로, 현재 RIR는 scope별 normalized state summary를 만든다.
+
+- tracked resource/projection마다 `initial_state`
+- linear scan 이후 `final_state`
+- 마지막 관련 op
+- transition error 여부
+
+즉 지금 RIR는 "resource graph + transfer ops + static ownership facts"를 넘어서 **CFG 비의존 선형 경로의 normalized state summary**까지 가진다. 다만 branch/join/loop/phi merge는 여전히 MIR로 이월한다.
+
+### 3.7 MIR Lowering
+
+관련 파일:
+
+- `src/compiler/mir.h`
+- `src/compiler/mir.c`
+
+주 진입점:
+
+- `MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)`
+
+현재 MIR의 역할은 "RIR와 HIR CFG를 붙여 실행-지향 블록/명령 스켈레톤을 만드는 시작점"이다.
+
+현재 MIR가 하는 일:
+
+- routine 수집
+  - `function`
+  - `method`
+  - `intent`
+- block 수집
+  - HIR CFG가 있으면 block/predecessor/reachability를 그대로 가져옴
+  - 없으면 단일 entry block 생성
+- instruction 수집
+  - RIR op를 `resource-op` instruction으로 entry block에 배치
+  - intent의 `CompensateIntentStep` / `AbortIntent`는 cleanup block에 배치
+  - HIR phi skeleton은 `phi` placeholder instruction으로 반영
+
+즉 지금 MIR는 "실행 구조 스켈레톤 + cleanup edge 시작점"이다. 아직 SSA rename, liveness, DCE, RIR-flow merge는 없다. 하지만 이미 `intent` compensation/abort path를 cleanup block으로 분리하므로, 이후 cleanup semantics를 깊게 만드는 기반은 준비됐다.
+
+### 3.8 HIR Lowering
 
 관련 파일:
 
@@ -162,8 +290,10 @@
 주 진입점:
 
 - `HIRProgram *hir_lower(ASTNode *annotated_ast, char **error_message)`
+- `void hir_dump_mode(const HIRProgram *hir, FILE *out, HIRDumpMode mode)`
+- `bool hir_run_block_pass(HIRProgram *hir, HIRBlockPass *pass, char **error_message)`
 
-현재 HIR의 역할은 "깊은 중간표현 생성"이 아니라 "top-level program 분류와 백엔드 입력 정규화"에 가깝다.
+현재 HIR의 역할은 아직 "깊은 중간표현 생성"보다는 "top-level program 분류와 백엔드 입력 정규화"에 가깝다. 다만 최근 구조화로 `decl index`와 `routine summary`가 들어와, 단순 버킷 분류기에서 "백엔드/최적화 패스가 읽을 수 있는 indexed view"로 한 단계 올라왔다.
 
 `HIRProgram`이 갖는 핵심 버킷:
 
@@ -182,16 +312,52 @@
 
 여기서 `items`는 선언 순서를 보존하는 ordered top-level 목록이고, 나머지 배열들은 종류별 빠른 접근용 버킷이다.
 
+추가로, 지금 HIR는 아래 인덱스를 제공한다.
+
+- `decls`
+  - 모든 top-level declaration/executable에 대해 stable `id`, `kind`, `phase`, `name`, `ast`를 기록한다.
+- `routines`
+  - `func`와 `intent`를 별도 summary로 모은다.
+  - `direct_calls`
+  - `signature_type_refs`
+  - `has_control_flow`
+  - `is_hosted`
+  - `is_action_like`
+  같은 최소 분석 결과를 담는다.
+  - `func`는 추가로 `cfg`를 가진다.
+    - `basic block`
+    - `branch/goto/return/unreachable terminator`
+    - `loop header` 표식
+    - natural loop depth
+    - predecessor edge
+    - reachability bit
+    - dead block count
+    - reverse-post-order index
+    - immediate dominator
+    - dominance frontier
+    - dominator tree children
+    - block-local def set
+    - phi-candidate placement skeleton
+    - phi-node skeleton (incoming predecessor list only)
+- `callee_routine_ids`
+  - direct call name을 실제 routine index로 연결한 call-edge 목록
+- `is_entry_reachable`
+  - `Main`, exported function, top-level intent를 root로 잡아 계산한 보수적 reachability bit
+
+또한 `hir_run_routine_pass(...)`와 `hir_run_block_pass(...)`가 있어서, 새 패스는 AST 전체를 다시 재귀 순회하는 대신 HIR routine/block summary를 기준으로 "어떤 루틴/블록을 볼지" 먼저 고를 수 있다. 현재 이 pass-friendly 표면 위에 `func` body는 CFG v0로 정규화되고, predecessor/call-edge/reachability/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton까지 계산된다.
+
 중요한 구현 특성:
 
 - HIR는 AST 노드를 복사하지 않는다.
 - 각 버킷 원소는 여전히 `ASTNode *`다.
+- 따라서 현재 HIR는 owning IR이 아니라 annotated AST를 빌려 쓰는 indexed view다.
+- lifetime 규칙은 `HIR -> SemanticResult/annotated AST` 순서가 아니라, 반드시 `HIR를 먼저 파기하고 그 다음 annotated AST를 파기`하는 쪽이다.
 - `Main` 함수 존재 여부는 lowering 단계에서 `has_main_function`으로 기록된다.
 - `AST_IMPORT_DECL`은 여기 오기 전에 드라이버에서 이미 해소되어 skip된다.
 
-즉, 현재 HIR는 "백엔드가 AST 전체를 다시 뒤지지 않도록 top-level 구조를 정리한 뷰"라고 보는 편이 맞다.
+즉, 현재 HIR는 "백엔드가 AST 전체를 다시 뒤지지 않도록 top-level 구조를 정리한 뷰"이면서, 동시에 "초기 최적화 패스와 분석 패스가 읽을 수 있는 indexed program view"라고 보는 편이 맞다. 아직 SSA rename 단계는 아니지만, 최소한 routine graph, inter-routine edge, block predecessor, immediate dominator, dominance frontier, dominator tree, natural loop depth, block-local defs, phi candidate, phi-node skeleton은 HIR에서 직접 읽을 수 있다.
 
-### 3.6 Backend: LLVM과 C
+### 3.9 Backend: LLVM과 C
 
 관련 파일:
 
@@ -242,7 +408,7 @@ LLVM 경로는 대략 다음 순서다.
 
 중요한 점은 C 백엔드도 이제 AST 루트를 직접 받지 않고 `HIRProgram`을 입력으로 받는다는 것이다.
 
-### 3.7 Runtime / Link
+### 3.10 Runtime / Link
 
 관련 파일:
 
@@ -343,13 +509,16 @@ make llvm-test-backend-compare
 ./bin/pgy examples/hello.pgy --tokens
 ./bin/pgy examples/hello.pgy --ast
 ./bin/pgy examples/hello.pgy --hir
+./bin/pgy examples/hello.pgy --hir-cfg
+./bin/pgy examples/hello.pgy --hir-dom
+./bin/pgy examples/hello.pgy --hir-ssa
 ```
 
 ## 7. 현재 구조에서 꼭 알아야 할 제약
 
 ### 7.1 HIR는 아직 얕다
 
-이름은 HIR지만, 지금은 top-level 분류기가 더 가깝다. expression/statement 수준이 별도 IR 노드로 재구성되지는 않는다.
+이름은 HIR지만, 여전히 expression/statement 수준이 전면 SSA 값 그래프로 재구성되지는 않는다. 다만 이제는 단순 버킷 분류만 있는 것이 아니라 `decl index` / `routine summary` / `signature_type_refs` / direct-call 스냅샷 / routine call-edge / entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)` / function CFG v0 / immediate dominator / dominance frontier / dominator tree / natural loop depth / block-local def / phi-candidate placement skeleton / phi-node skeleton이 있으므로, 이후 pass는 최소한 "무엇을 최적화할지"와 "어떤 routine/block이 연결되는지"를 AST 전체 재탐색 없이 고를 수 있다.
 
 ### 7.2 import는 드라이버 책임이다
 
@@ -358,6 +527,8 @@ make llvm-test-backend-compare
 ### 7.3 annotated AST가 프론트엔드의 실질 기준 구조다
 
 semantic 단계 이후에도 많은 정보는 AST에 달려 있다. 따라서 AST 구조를 바꾸면 semantic, HIR, 백엔드가 함께 영향을 받는다.
+
+HIR도 여전히 이 annotated AST를 참조한다. 즉 현재의 HIR는 "AST와 분리된 독립 IR"이 아니라 "AST를 빌려 쓰는 pass-friendly view"에 가깝다.
 
 ### 7.4 LLVM가 기본이지만 런타임 의존은 남아 있다
 

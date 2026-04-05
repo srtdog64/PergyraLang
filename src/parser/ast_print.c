@@ -564,6 +564,12 @@ void ast_print(ASTNode* node, int indent) {
             ast_print_inline(node->data.let_decl.initializer);
             printf("\n");
             break;
+
+        case AST_TYPE_ALIAS:
+            printf("TypeAlias: %s = ", node->data.type_alias.name);
+            ast_print_inline(node->data.type_alias.target_type);
+            printf("\n");
+            break;
             
         case AST_WITH_STMT:
             printf("With %s<", node->data.with_stmt.is_secure ? "SecureSlot" : "slot");
