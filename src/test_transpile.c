@@ -1279,7 +1279,7 @@ test_program_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_program(hir, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t\nAdd(int32_t a, int32_t b)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Add(int32_t a, int32_t b)");
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
     }
@@ -1323,7 +1323,7 @@ test_program_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Identity_Int(int32_t x);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t\nIdentity_Int(int32_t x)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t Identity_Int(int32_t x)");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t echoed = Identity_Int(sum);");
 
         transpiler_ctx_destroy(ctx);
@@ -2532,6 +2532,45 @@ test_stdlib_and_enum_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("function typed locals and returns lower as function pointers");
+    {
+        const char *source =
+            "func AddOne(x: Int) -> Int {\n"
+            "    return x + 1;\n"
+            "}\n"
+            "func MakeAdder() -> func(Int) -> Int {\n"
+            "    return AddOne;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let f: func(Int) -> Int = AddOne;\n"
+            "    let g = MakeAdder();\n"
+            "    Log(f(4));\n"
+            "    Log(g(9));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "int32_t (*MakeAdder(void))(int32_t);");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "int32_t (*MakeAdder(void))(int32_t)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "int32_t (*f)(int32_t) = AddOne;");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "int32_t (*g)(int32_t) = MakeAdder();");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("List<subject> typed let emits specialized helpers");
     {
         const char *source =
@@ -2554,7 +2593,7 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "PgyList_Player roster = pgy_list_new_Player();");
         EXPECT_STR_CONTAINS(ctx->out->data, "Player recruit = (Player){ .hp = 10 };");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_list_push_Player(&roster, recruit)");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_LIST_DEFINE(Player, Player)");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_LIST_DEFINE(Player, Player)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -2618,7 +2657,7 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Weapon bow = (Weapon){ .name = \"Bow\" };");
         EXPECT_STR_CONTAINS(ctx->out->data, "PgyQueue_Weapon satchel = pgy_queue_new_Weapon();");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_push_Weapon(&satchel, bow)");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -2654,7 +2693,85 @@ test_stdlib_and_enum_emit(void)
             "pgy_map_set_Player(&registry, \"hero\", hero)");
         EXPECT_STR_CONTAINS(ctx->out->data,
             "Player loaded = pgy_map_get_Player(&registry, \"hero\");");
-        EXPECT_STR_CONTAINS(ctx->helpers->data, "PGY_HASHMAP_DEFINE(Player, Player)");
+        EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_HASHMAP_DEFINE(Player, Player)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("nested HashMap<String, List<String>> parses and lowers");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let events: List<String> = ListNew();\n"
+            "    ListPush(events, \"a\");\n"
+            "    let buckets: HashMap<String, List<String>> = MapNew();\n"
+            "    MapSet(buckets, \"today\", events);\n"
+            "    let loaded = MapGet(buckets, \"today\");\n"
+            "    Log(ToString(ListSize(loaded)));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyList_String events = pgy_list_new_string();");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyHashMap_List_String_ buckets = pgy_map_new_List_String_();");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "pgy_map_set_List_String_(&buckets, \"today\", events)");
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "PgyList_String loaded = pgy_map_get_List_String_(&buckets, \"today\");");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("nested specialized collection signatures emit type defs before prototypes");
+    {
+        const char *source =
+            "func BuildBuckets() -> HashMap<String, List<String>> {\n"
+            "    let events: List<String> = ListNew();\n"
+            "    let buckets: HashMap<String, List<String>> = MapNew();\n"
+            "    MapSet(buckets, \"today\", events);\n"
+            "    return buckets;\n"
+            "}\n"
+            "func RenderBuckets(buckets: HashMap<String, List<String>>) -> String {\n"
+            "    let loaded = MapGet(buckets, \"today\");\n"
+            "    return ListGet(loaded, 0);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+        char *map_define_pos;
+        char *build_decl_pos;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "PGY_HASHMAP_DEFINE(List_String_, PgyList_String)");
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "PgyHashMap_List_String_ BuildBuckets(void);");
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "char* RenderBuckets(PgyHashMap_List_String_ buckets);");
+
+        map_define_pos = strstr(ctx->decls->data,
+            "PGY_HASHMAP_DEFINE(List_String_, PgyList_String)");
+        build_decl_pos = strstr(ctx->decls->data,
+            "PgyHashMap_List_String_ BuildBuckets(void);");
+        EXPECT(map_define_pos != NULL && build_decl_pos != NULL && map_define_pos < build_decl_pos);
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

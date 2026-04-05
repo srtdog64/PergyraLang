@@ -1,0 +1,27 @@
+import "common.pgy";
+import "pages/surfaces.pgy";
+import "report/pipeline.pgy";
+
+func Main() -> Void
+{
+    let page = BuildCartPage("Hana");
+    let checkout = BuildCheckoutRequest(page, 49);
+    let refund = BuildRefundRequest(page, 12);
+
+    let checkoutAdapter = RouteAdapter(checkout.route, "checkout");
+    let refundAdapter = RouteAdapter(refund.route, "refund");
+
+    let checkoutFormatter = PickFormatter("verbose");
+    let refundFormatter: func(String, Bool, Int) -> String = CompactFormatter;
+
+    let checkoutEnvelope = BuildEnvelope(checkoutAdapter, true, 4101, checkoutFormatter);
+    let refundEnvelope = BuildEnvelope(refundAdapter, true, 8831, refundFormatter);
+
+    let report = BuildAdapterReport(
+        checkoutAdapter.Banner() + " | " + RenderCartPage(page),
+        RenderEnvelope(checkoutEnvelope),
+        RenderEnvelope(refundEnvelope)
+    );
+    Log(report);
+    WriteFile("examples/adapter_policy_stack/results.txt", report + "\n");
+}

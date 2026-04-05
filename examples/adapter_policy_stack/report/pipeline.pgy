@@ -1,0 +1,27 @@
+func RenderBucketLines(name: String, lines: List<String>) -> String
+{
+    let out = "-- " + name + " --";
+    for line in lines
+    {
+        out = out + "\n" + line;
+    }
+    return out;
+}
+
+func BuildAdapterReport(
+    pageLine: String,
+    checkoutLine: String,
+    refundLine: String
+) -> String
+{
+    let pageLines: List<String> = ListNew();
+    ListPush(pageLines, pageLine);
+
+    let apiLines: List<String> = ListNew();
+    ListPush(apiLines, checkoutLine);
+    ListPush(apiLines, refundLine);
+
+    return "=== ADAPTER POLICY STACK ===\n"
+        + RenderBucketLines("pages", pageLines) + "\n"
+        + RenderBucketLines("api", apiLines);
+}

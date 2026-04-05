@@ -11,7 +11,38 @@
 
 static LLVMValueRef llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
                                                 LLVMTypeRef *out_field_type);
+static LLVMTypeRef llvm_function_signature_from_event_type(LLVMGenCtx *ctx,
+                                                           ASTNode *type_node);
 #include "llvm_expr_helpers.inc"
+
+static LLVMTypeRef
+llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
+{
+    size_t param_count;
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef ret_type = ctx->type_void;
+    LLVMTypeRef fn_type;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+
+    param_count = type_node->data.event_handler_type.param_count;
+    if (type_node->data.event_handler_type.return_type != NULL)
+        ret_type = ast_type_to_llvm(ctx, type_node->data.event_handler_type.return_type);
+
+    if (param_count > 0) {
+        param_types = calloc(param_count, sizeof(LLVMTypeRef));
+        if (param_types == NULL)
+            return LLVMFunctionType(ret_type, NULL, 0, 0);
+        for (size_t i = 0; i < param_count; i++)
+            param_types[i] = ast_type_to_llvm(ctx,
+                type_node->data.event_handler_type.param_types[i]);
+    }
+
+    fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
+    free(param_types);
+    return fn_type;
+}
 static LLVMValueRef
 llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
 {
@@ -3094,6 +3125,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (callee_var != NULL) {
             if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
                 fn_type = LLVMGetElementType(callee_var->type);
+            if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
+                ASTNode *callable_type = llvm_lookup_callable_var(ctx, callee_name);
+                if (callable_type != NULL)
+                    fn_type = llvm_function_signature_from_event_type(ctx, callable_type);
+            }
             if ((fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
                 && ctx->current_function != NULL) {
                 const char *current_name = LLVMGetValueName(ctx->current_function);

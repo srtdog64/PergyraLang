@@ -20,6 +20,7 @@
 
 /* --- Generic / type utilities --- */
 GenericParams  *parse_generic_params(Parser *parser);
+GenericParams  *parse_type_arguments(Parser *parser);
 WhereClause    *parse_where_clause(Parser *parser);
 ASTNode        *parse_type(Parser *parser);
 ASTNode        *parse_type_constraint(Parser *parser);

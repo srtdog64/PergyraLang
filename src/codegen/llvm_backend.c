@@ -477,6 +477,7 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->list_vars);
     free(ctx->queue_vars);
     free(ctx->map_vars);
+    free(ctx->callable_vars);
     free(ctx->event_types);
     free(ctx->enum_variants);
     free(ctx->generic_templates);
@@ -1041,6 +1042,120 @@ llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name)
             return ctx->map_vars[i].value_type;
     }
     return NULL;
+}
+
+void
+llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
+                           ASTNode *type_node)
+{
+    PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
+                      ctx->callable_var_capacity, LLVMCallableVarEntry);
+    ctx->callable_vars[ctx->callable_var_count].var_name = var_name;
+    ctx->callable_vars[ctx->callable_var_count].type_node = type_node;
+    ctx->callable_var_count++;
+}
+
+ASTNode *
+llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->callable_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->callable_vars[i].var_name, var_name) == 0)
+            return ctx->callable_vars[i].type_node;
+    }
+    return NULL;
+}
+
+static char *llvm_render_type_name(ASTNode *type_node);
+
+void
+llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
+                        ASTNode *type_node)
+{
+    const char *type_name;
+
+    if (ctx == NULL || var_name == NULL || type_node == NULL)
+        return;
+
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        llvm_register_callable_var(ctx, var_name, type_node);
+        return;
+    }
+
+    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+        return;
+
+    type_name = type_node->data.type.name;
+
+    if ((strcmp(type_name, "Array") == 0 || strcmp(type_name, "Slice") == 0)
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *elem_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
+        LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
+        llvm_register_array_var(ctx, var_name, elem_type, -1);
+        free(elem_name);
+    }
+
+    if (strcmp(type_name, "List") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
+        llvm_register_list_var(ctx, var_name, inner_name);
+        return;
+    }
+
+    if (strcmp(type_name, "Queue") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
+        llvm_register_queue_var(ctx, var_name, inner_name);
+        return;
+    }
+
+    if (strcmp(type_name, "HashMap") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 1
+        && type_node->data.type.generic_args->params[1] != NULL
+        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
+        char *value_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[1]->constraint);
+        llvm_register_map_var(ctx, var_name, value_name);
+        return;
+    }
+
+    if ((strcmp(type_name, "Future") == 0 || strcmp(type_name, "RemoteFuture") == 0)
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
+        llvm_register_future_var(ctx, var_name, inner_name,
+            strcmp(type_name, "RemoteFuture") == 0);
+        return;
+    }
+
+    if (strcmp(type_name, "Channel") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
+        llvm_register_channel_var(ctx, var_name, inner_name);
+        return;
+    }
+
+    if (llvm_lookup_class(ctx, type_name) != NULL)
+        llvm_register_var_class(ctx, var_name, type_name);
 }
 
 void
@@ -3907,12 +4022,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                     LLVMBuildStore(ctx->builder,
                         LLVMGetParam(fn, llvm_pidx++), alloca);
                     llvm_scope_declare(ctx, p->name, alloca, pt);
-                    if (p->type != NULL && p->type->type == AST_TYPE
-                        && p->type->data.type.name != NULL
-                        && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
-                        llvm_register_var_class(ctx, p->name,
-                                                p->type->data.type.name);
-                    }
+                    llvm_register_typed_var(ctx, p->name, p->type);
                 }
 
                 if (method->data.func_decl.body != NULL)
@@ -4006,12 +4116,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMBuildStore(ctx->builder,
                     LLVMGetParam(fn, lpidx++), a);
                 llvm_scope_declare(ctx, p->name, a, pt);
-                if (p->type != NULL && p->type->type == AST_TYPE
-                    && p->type->data.type.name != NULL
-                    && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
-                    llvm_register_var_class(ctx, p->name,
-                                            p->type->data.type.name);
-                }
+                llvm_register_typed_var(ctx, p->name, p->type);
             }
 
             if (method->data.func_decl.body != NULL)

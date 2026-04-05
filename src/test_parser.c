@@ -527,6 +527,29 @@ main(void)
             1
         },
         {
+            "Nested Generic Type Arguments",
+            "func Main() -> Void {\n"
+            "    let buckets: HashMap<String, List<String>> = MapNew();\n"
+            "}",
+            1
+        },
+        {
+            "Function Typed Locals And Returns",
+            "func AddOne(x: Int) -> Int {\n"
+            "    return x + 1;\n"
+            "}\n"
+            "func MakeAdder() -> func(Int) -> Int {\n"
+            "    return AddOne;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let f: func(Int) -> Int = AddOne;\n"
+            "    let g = MakeAdder();\n"
+            "    Log(f(4));\n"
+            "    Log(g(9));\n"
+            "}",
+            1
+        },
+        {
             "Function with Where Clause",
             "func Sort<T>(items: Array<T>) -> Array<T>\n"
             "    where T: Comparable {\n"

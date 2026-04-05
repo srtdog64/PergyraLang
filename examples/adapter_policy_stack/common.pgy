@@ -1,0 +1,57 @@
+class RouteAdapter
+{
+    let route: String;
+    let label: String;
+
+    func Banner(self) -> String
+    {
+        return "[Route] " + label + " -> " + route;
+    }
+}
+
+dto ApiEnvelope
+{
+    let route: String;
+    let handle: Int;
+    let ok: Bool;
+    let line: String;
+}
+
+func VerboseFormatter(route: String, ok: Bool, handle: Int) -> String
+{
+    return route + " ok=" + ToString(ok) + " handle=" + ToString(handle);
+}
+
+func CompactFormatter(route: String, ok: Bool, handle: Int) -> String
+{
+    return route + "#" + ToString(handle) + ":" + ToString(ok);
+}
+
+func PickFormatter(mode: String) -> func(String, Bool, Int) -> String
+{
+    if mode == "compact"
+    {
+        return CompactFormatter;
+    }
+    return VerboseFormatter;
+}
+
+func BuildEnvelope(
+    adapter: RouteAdapter,
+    ok: Bool,
+    handle: Int,
+    formatter: func(String, Bool, Int) -> String
+) -> ApiEnvelope
+{
+    return ApiEnvelope(
+        adapter.route,
+        handle,
+        ok,
+        formatter(adapter.route, ok, handle)
+    );
+}
+
+func RenderEnvelope(envelope: ApiEnvelope) -> String
+{
+    return "[API] " + envelope.line;
+}

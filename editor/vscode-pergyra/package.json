@@ -1,0 +1,34 @@
+{
+  "name": "pergyra-lang",
+  "displayName": "Pergyra Language",
+  "description": "Language support for Pergyra (.pgy)",
+  "version": "0.1.0",
+  "publisher": "pergyra",
+  "icon": "icons/pergyra-logo.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "pergyra",
+        "aliases": ["Pergyra", "pgy"],
+        "extensions": [".pgy"],
+        "icon": {
+          "light": "./icons/pgy-icon-light.png",
+          "dark": "./icons/pgy-icon-dark.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pergyra",
+        "scopeName": "source.pergyra",
+        "path": "./syntaxes/pergyra.tmLanguage.json"
+      }
+    ]
+  }
+}

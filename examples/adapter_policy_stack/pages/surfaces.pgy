@@ -1,0 +1,40 @@
+object CartPage
+{
+    let route: String;
+    let shopper: String;
+    let state: String;
+}
+
+dto CheckoutRequest
+{
+    let route: String;
+    let shopper: String;
+    let amount: Int;
+}
+
+dto RefundRequest
+{
+    let route: String;
+    let shopper: String;
+    let amount: Int;
+}
+
+func BuildCartPage(shopper: String) -> CartPage
+{
+    return CartPage("/cart", shopper, "ready");
+}
+
+func BuildCheckoutRequest(page: CartPage, amount: Int) -> CheckoutRequest
+{
+    return CheckoutRequest("/api/checkout", page.shopper, amount);
+}
+
+func BuildRefundRequest(page: CartPage, amount: Int) -> RefundRequest
+{
+    return RefundRequest("/api/refund", page.shopper, amount);
+}
+
+func RenderCartPage(page: CartPage) -> String
+{
+    return "[Page] " + page.route + " shopper=" + page.shopper + " state=" + page.state;
+}

@@ -167,6 +167,40 @@ GenericParams* parse_generic_params(Parser* parser) {
     return params;
 }
 
+// 타입 인자 파싱: <String, List<Event>, HashMap<String, Int>>
+GenericParams* parse_type_arguments(Parser* parser) {
+    if (!parser_match(parser, TOKEN_LESS)) return NULL;
+
+    GenericParams* params = calloc(1, sizeof(GenericParams));
+    params->count = 0;
+    params->params = NULL;
+
+    while (!parser_check(parser, TOKEN_GREATER) && !parser_is_at_end(parser)) {
+        GenericParam* param = calloc(1, sizeof(GenericParam));
+        ASTNode* arg_type = parse_type(parser);
+
+        if (arg_type != NULL && arg_type->type == AST_TYPE
+            && arg_type->data.type.name != NULL) {
+            param->name = pergyra_strdup(arg_type->data.type.name);
+        } else if (arg_type != NULL && arg_type->type == AST_EVENT_HANDLER_TYPE) {
+            param->name = pergyra_strdup("func");
+        } else {
+            param->name = pergyra_strdup("TypeArg");
+        }
+        param->constraint = arg_type;
+
+        params->count++;
+        params->params = realloc(params->params, params->count * sizeof(GenericParam*));
+        params->params[params->count - 1] = param;
+
+        if (!parser_match(parser, TOKEN_COMMA)) break;
+    }
+
+    parser_consume(parser, TOKEN_GREATER, "Expected '>' after type arguments");
+
+    return params;
+}
+
 // where 절 파싱: where T: Comparable + Clone
 WhereClause* parse_where_clause(Parser* parser) {
     if (!parser_match(parser, TOKEN_WHERE)) return NULL;
@@ -267,9 +301,8 @@ ASTNode* parse_type(Parser* parser) {
     free(qualified_name);
 
     // 제네릭 인자
-    if (parser_check(parser, TOKEN_LESS)) {
-        type_node->data.type.generic_args = parse_generic_params(parser);
-    }
+    if (parser_check(parser, TOKEN_LESS))
+        type_node->data.type.generic_args = parse_type_arguments(parser);
 
     return type_node;
 }

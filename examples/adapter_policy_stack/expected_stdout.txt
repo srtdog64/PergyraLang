@@ -1,0 +1,6 @@
+=== ADAPTER POLICY STACK ===
+-- pages --
+[Route] checkout -> /api/checkout | [Page] /cart shopper=Hana state=ready
+-- api --
+[API] /api/checkout ok=true handle=4101
+[API] /api/refund#8831:true

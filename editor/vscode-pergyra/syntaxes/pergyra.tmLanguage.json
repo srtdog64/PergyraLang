@@ -1,0 +1,100 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Pergyra",
+  "scopeName": "source.pergyra",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#keywords" },
+    { "include": "#domain-keywords" },
+    { "include": "#intent-keywords" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#types" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.pergyra",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.pergyra",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.pergyra",
+          "match": "\\b(if|else|while|for|in|return|break|continue|match|spawn|await)\\b"
+        },
+        {
+          "name": "keyword.declaration.pergyra",
+          "match": "\\b(let|func|action|use|import)\\b"
+        },
+        {
+          "name": "storage.type.pergyra",
+          "match": "\\b(subject|class|struct|vessel|object|dto|ability|role|relation|effect|zone|world|party|systemic|channel)\\b"
+        }
+      ]
+    },
+    "domain-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.domain.pergyra",
+          "match": "\\b(requires|within|causes|authorized|by|slot|shared|domain|sync|event|state|projection|bind)\\b"
+        }
+      ]
+    },
+    "intent-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.intent.pergyra",
+          "match": "\\b(intent|step|involves|exclusive|concurrent|on|pre|post|guard|invariant|success|failure|where|who)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.pergyra",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.pergyra",
+              "match": "\\\\."
+            },
+            {
+              "name": "variable.other.interpolation.pergyra",
+              "match": "\\$\\{[^}]+\\}"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.pergyra",
+          "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.pergyra",
+          "match": "\\b(Int|Float|String|Bool|Void|Result|HashMap|List|Set|Queue|Fsm|Timer|Cooldown|Optional)\\b"
+        },
+        {
+          "name": "entity.name.type.user.pergyra",
+          "match": "\\b[A-Z][a-zA-Z0-9]+\\b"
+        }
+      ]
+    }
+  }
+}

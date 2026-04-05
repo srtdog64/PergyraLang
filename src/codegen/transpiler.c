@@ -84,6 +84,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     ASTNode    *init = node->data.let_decl.initializer;
     ASTNode    *ann  = node->data.let_decl.type;
     char       *ann_type_name = ann != NULL ? render_type_name(ann) : NULL;
+    ASTNode    *callable_type = NULL;
+    ASTNode    *callable_decl = NULL;
 
     /* Generic class monomorphization trigger:
      * If the annotation is a user-defined generic class (e.g. Node<Int>),
@@ -101,6 +103,26 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             /* Replace ann_type_name with the specialized name */
             free(ann_type_name);
             ann_type_name = pergyra_strdup(generic_class_spec_name);
+        }
+    }
+
+    if (ann != NULL && ann->type == AST_EVENT_HANDLER_TYPE) {
+        callable_type = ann;
+    } else if (init != NULL && init->type == AST_CALL
+               && init->data.call.callee != NULL
+               && init->data.call.callee->type == AST_IDENTIFIER
+               && init->data.call.callee->data.identifier.name != NULL) {
+        ASTNode *decl = find_function_decl(ctx, init->data.call.callee->data.identifier.name);
+        if (decl != NULL && decl->type == AST_FUNC_DECL
+            && decl->data.func_decl.return_type != NULL
+            && decl->data.func_decl.return_type->type == AST_EVENT_HANDLER_TYPE) {
+            callable_type = decl->data.func_decl.return_type;
+        }
+    } else if (init != NULL && init->type == AST_IDENTIFIER
+               && init->data.identifier.name != NULL) {
+        ASTNode *decl = find_function_decl(ctx, init->data.identifier.name);
+        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+            callable_decl = decl;
         }
     }
 
@@ -616,7 +638,19 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     write_indent(ctx);
-    if (init != NULL) {
+    if (callable_type != NULL || callable_decl != NULL) {
+        char *decl = callable_type != NULL
+            ? pergyra_ast_typed_declarator(callable_type, name)
+            : pergyra_func_pointer_declarator_from_decl(callable_decl, name);
+        if (init != NULL) {
+            char *init_expr = emit_expression(init, ctx);
+            codebuf_write(ctx->out, "%s = %s;\n", decl, init_expr);
+            free(init_expr);
+        } else {
+            codebuf_write(ctx->out, "%s = 0;\n", decl);
+        }
+        free(decl);
+    } else if (init != NULL) {
         char *init_expr = emit_expression(init, ctx);
         codebuf_write(ctx->out, "%s %s = %s;\n", c_type, name, init_expr);
         free(init_expr);
@@ -657,13 +691,11 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                              CodeBuf *buf, TranspilerCtx *ctx)
 {
     const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
-    const char *ret_type = "void";
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    CodeBuf *params_sig = codebuf_create();
+    char *header_decl = NULL;
     g_type_render_ctx = ctx;
-    if (node->data.func_decl.return_type != NULL)
-        ret_type = pergyra_ast_type_to_c(node->data.func_decl.return_type);
-
-    codebuf_write(buf, "%s %s(", ret_type, name);
+    ensure_type_specializations_from_ast(ctx, node->data.func_decl.return_type);
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = "int32_t";
@@ -672,9 +704,11 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         bool boundary_slot = false;
         bool secure_slot = false;
         if (p->type != NULL)
+            ensure_type_specializations_from_ast(ctx, p->type);
+        if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         if (i > 0)
-            codebuf_write(buf, ", ");
+            codebuf_write(params_sig, ", ");
         if (p->type != NULL)
             type_name = render_type_name(p->type);
         boundary_slot = type_name != NULL
@@ -684,23 +718,27 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
         if (boundary_slot) {
             const char *inner = slot_inner_type_name(type_name);
-            codebuf_write(buf, "%s *%s", pt, p->name);
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
-                codebuf_write(buf, ", PgyToken_%s %s_token", inner, p->name);
+                codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
         } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
             decl = pergyra_ast_typed_declarator(p->type, p->name);
-            codebuf_write(buf, "%s", decl);
+            codebuf_write(params_sig, "%s", decl);
         } else if (p->name != NULL && strcmp(p->name, "self") != 0
                    && type_name != NULL
                    && is_pointer_self_host_type_name(ctx, type_name)) {
-            codebuf_write(buf, "%s *%s", pt, p->name);
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
         } else {
-            codebuf_write(buf, "%s %s", pt, p->name);
+            codebuf_write(params_sig, "%s %s", pt, p->name);
         }
         free(decl);
         free(type_name);
     }
-    codebuf_write(buf, ");\n");
+    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+        name, params_sig != NULL ? params_sig->data : "void");
+    codebuf_write(buf, "%s;\n", header_decl);
+    free(header_decl);
+    codebuf_destroy(params_sig);
     g_type_render_ctx = saved_render_ctx;
 }
 
@@ -720,14 +758,13 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
     char saved_return_type[128];
-
-    const char *ret_type = "void";
+    CodeBuf *params_sig = codebuf_create();
+    char *header_decl = NULL;
     ctx->out = buf;
     g_type_render_ctx = ctx;
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
     if (node->data.func_decl.return_type != NULL) {
-        ret_type = pergyra_ast_type_to_c(node->data.func_decl.return_type);
         {
             char *rendered = render_type_name(node->data.func_decl.return_type);
             snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
@@ -738,7 +775,6 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
     }
 
-    codebuf_write(ctx->out, "\n%s\n%s(", ret_type, name);
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = "int32_t";
@@ -748,7 +784,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         bool secure_slot = false;
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
-        if (i > 0) codebuf_write(ctx->out, ", ");
+        if (i > 0) codebuf_write(params_sig, ", ");
         if (p->type != NULL)
             type_name = render_type_name(p->type);
         boundary_slot = type_name != NULL
@@ -758,25 +794,28 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
         if (boundary_slot) {
             const char *inner = slot_inner_type_name(type_name);
-            codebuf_write(ctx->out, "%s *%s", pt, p->name);
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
-                codebuf_write(ctx->out, ", PgyToken_%s %s_token", inner, p->name);
+                codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
         } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
             decl = pergyra_ast_typed_declarator(p->type, p->name);
-            codebuf_write(ctx->out, "%s", decl);
+            codebuf_write(params_sig, "%s", decl);
         } else if (p->name != NULL && strcmp(p->name, "self") != 0
                    && type_name != NULL
                    && is_pointer_self_host_type_name(ctx, type_name)) {
             /* Subject parameters are passed by pointer (reference semantics) */
-            codebuf_write(ctx->out, "%s *%s", pt, p->name);
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
         } else {
-            codebuf_write(ctx->out, "%s %s", pt, p->name);
+            codebuf_write(params_sig, "%s %s", pt, p->name);
         }
         free(decl);
         free(type_name);
     }
-    codebuf_write(ctx->out, ")\n");
-    codebuf_write(ctx->out, "{\n");
+    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+        name, params_sig != NULL ? params_sig->data : "void");
+    codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
+    free(header_decl);
+    codebuf_destroy(params_sig);
 
     ctx->indent++;
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {

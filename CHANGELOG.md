@@ -6,6 +6,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Fixed nested generic type-argument parsing so practical types such as
+  `HashMap<String, List<String>>` now parse as real type arguments instead of
+  falling through the declaration-only generic parser path.
+- Fixed C backend lowering for function-typed locals and function-returning
+  functions. Local policy values such as
+  `let f: func(Int) -> Int = AddOne;` and returned callables now emit proper C
+  function-pointer declarators instead of degrading to `void *` / scalar locals.
+- Fixed the remaining C forward-declaration edge for nested specialized
+  collections in function signatures. Types such as
+  `HashMap<String, List<String>>` and `HashMap<String, Player>` now emit their
+  collection specializations before forward prototypes, so the generated C
+  compiles without the old unknown-type/conflicting-prototype failure.
+- Fixed LLVM parameter metadata registration for collection-typed and
+  function-typed parameters across free functions and hosted methods. Practical
+  examples now keep `List<T>`, `HashMap<String, V>`, and callable parameter
+  semantics when accessed from parameters, not only from local `let` bindings.
+- Added `examples/adapter_policy_stack/` as a practical adapter-heavy scenario
+  demonstrating function-valued policy injection, nested collection composition,
+  and `page / api / report` library layering on both C and LLVM.
+
 - Added compiler-known stdlib module resolution for `use <module>;`.
   The import resolver now locates `stdlib/<module>.pgy` and merges it into
   the AST, so `use datetime;` is an actual language surface instead of a

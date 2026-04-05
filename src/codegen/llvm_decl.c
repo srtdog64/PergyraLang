@@ -236,12 +236,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef alloca = llvm_create_entry_alloca(ctx, pt, p->name);
         LLVMBuildStore(ctx->builder, LLVMGetParam(fn, llvm_pidx++), alloca);
         llvm_scope_declare(ctx, p->name, alloca, pt);
-
-        if (p->type != NULL && p->type->type == AST_TYPE
-            && p->type->data.type.name != NULL
-            && llvm_lookup_class(ctx, p->type->data.type.name) != NULL) {
-            llvm_register_var_class(ctx, p->name, p->type->data.type.name);
-        }
+        llvm_register_typed_var(ctx, p->name, p->type);
     }
 
     /* Emit body */

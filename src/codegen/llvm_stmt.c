@@ -5,6 +5,48 @@
  * Statement emission
  * ================================================================= */
 
+static char *
+llvm_stmt_render_type_arg(GenericParam *param)
+{
+    ASTNode *type = NULL;
+
+    if (param == NULL)
+        return pergyra_strdup("Int");
+
+    type = param->constraint;
+    if (type != NULL && type->type == AST_TYPE && type->data.type.name != NULL) {
+        if (type->data.type.generic_args == NULL || type->data.type.generic_args->count == 0)
+            return pergyra_strdup(type->data.type.name);
+
+        char *result = pergyra_strdup(type->data.type.name);
+        for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
+            char *arg = llvm_stmt_render_type_arg(type->data.type.generic_args->params[i]);
+            char *grown = realloc(result, strlen(result) + strlen(arg) + 4);
+            if (grown == NULL) {
+                free(result);
+                free(arg);
+                return pergyra_strdup("Int");
+            }
+            result = grown;
+            strcat(result, i == 0 ? "<" : ", ");
+            strcat(result, arg);
+            free(arg);
+        }
+        {
+            char *grown = realloc(result, strlen(result) + 2);
+            if (grown != NULL) {
+                result = grown;
+                strcat(result, ">");
+            }
+        }
+        return result;
+    }
+
+    if (param->name != NULL)
+        return pergyra_strdup(param->name);
+    return pergyra_strdup("Int");
+}
+
 static ASTNode *
 llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
 {
@@ -60,6 +102,24 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
             return stmt;
         }
     }
+    return NULL;
+}
+
+static ASTNode *
+llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->function_count; i++) {
+        ASTNode *stmt = ctx->hir->functions[i];
+        if (stmt != NULL && stmt->type == AST_FUNC_DECL
+            && stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, name) == 0) {
+            return stmt;
+        }
+    }
+
     return NULL;
 }
 
@@ -944,7 +1004,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             const char *inner = "Int";
             if (type_ann->data.type.generic_args != NULL
                 && type_ann->data.type.generic_args->count > 0)
-                inner = type_ann->data.type.generic_args->params[0]->name;
+                inner = llvm_stmt_render_type_arg(type_ann->data.type.generic_args->params[0]);
 
             LLVMVarEntry *source = llvm_scope_lookup(ctx, source_name);
             if (source == NULL)
@@ -994,9 +1054,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
         if (type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL
-            && type_ann->data.type.generic_args->params[0]->name != NULL) {
-            inner = type_ann->data.type.generic_args->params[0]->name;
+            && type_ann->data.type.generic_args->params[0] != NULL) {
+            inner = llvm_stmt_render_type_arg(type_ann->data.type.generic_args->params[0]);
         }
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
@@ -1042,9 +1101,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
             if (type_ann->data.type.generic_args != NULL
                 && type_ann->data.type.generic_args->count > 1
-                && type_ann->data.type.generic_args->params[1] != NULL
-                && type_ann->data.type.generic_args->params[1]->name != NULL) {
-                value_type = type_ann->data.type.generic_args->params[1]->name;
+                && type_ann->data.type.generic_args->params[1] != NULL) {
+                value_type = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[1]);
             }
             value_ty = pergyra_type_to_llvm(ctx, value_type);
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
@@ -1396,6 +1455,42 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     llvm_scope_declare(ctx, name, alloca, var_type);
 
+    if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE) {
+        llvm_register_callable_var(ctx, name, type_ann);
+    } else if (init != NULL && init->type == AST_IDENTIFIER
+               && init->data.identifier.name != NULL) {
+        ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,
+            init->data.identifier.name);
+        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+            ASTNode *handler_type = ast_create_event_handler_type();
+            handler_type->data.event_handler_type.param_count =
+                decl->data.func_decl.param_count;
+            if (decl->data.func_decl.param_count > 0) {
+                handler_type->data.event_handler_type.param_types = calloc(
+                    decl->data.func_decl.param_count, sizeof(ASTNode *));
+                for (size_t i = 0; i < decl->data.func_decl.param_count; i++) {
+                    FuncParam *p = decl->data.func_decl.params[i];
+                    handler_type->data.event_handler_type.param_types[i] =
+                        p != NULL ? p->type : NULL;
+                }
+            }
+            handler_type->data.event_handler_type.return_type =
+                decl->data.func_decl.return_type;
+            llvm_register_callable_var(ctx, name, handler_type);
+        }
+    } else if (init != NULL && init->type == AST_CALL
+               && init->data.call.callee != NULL
+               && init->data.call.callee->type == AST_IDENTIFIER
+               && init->data.call.callee->data.identifier.name != NULL) {
+        ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,
+            init->data.call.callee->data.identifier.name);
+        if (decl != NULL && decl->type == AST_FUNC_DECL
+            && decl->data.func_decl.return_type != NULL
+            && decl->data.func_decl.return_type->type == AST_EVENT_HANDLER_TYPE) {
+            llvm_register_callable_var(ctx, name, decl->data.func_decl.return_type);
+        }
+    }
+
     {
         LLVMClassTypeEntry *value_cls = llvm_stmt_lookup_class_by_type(ctx, var_type);
         if (value_cls != NULL)
@@ -1421,9 +1516,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             || strcmp(type_ann->data.type.name, "Slice") == 0)
         && type_ann->data.type.generic_args != NULL
         && type_ann->data.type.generic_args->count > 0) {
-        LLVMTypeRef elem_type = pergyra_type_to_llvm(
-            ctx, type_ann->data.type.generic_args->params[0]->name);
+        char *elem_name = llvm_stmt_render_type_arg(
+            type_ann->data.type.generic_args->params[0]);
+        LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, name, elem_type, -1);
+        free(elem_name);
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
@@ -1432,21 +1529,24 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (strcmp(ann_name, "List") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL
-            && type_ann->data.type.generic_args->params[0]->name != NULL) {
-            llvm_register_list_var(ctx, name, type_ann->data.type.generic_args->params[0]->name);
+            && type_ann->data.type.generic_args->params[0] != NULL) {
+            char *inner_name = llvm_stmt_render_type_arg(
+                type_ann->data.type.generic_args->params[0]);
+            llvm_register_list_var(ctx, name, inner_name);
         } else if (strcmp(ann_name, "Queue") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL
-            && type_ann->data.type.generic_args->params[0]->name != NULL) {
-            llvm_register_queue_var(ctx, name, type_ann->data.type.generic_args->params[0]->name);
+            && type_ann->data.type.generic_args->params[0] != NULL) {
+            char *inner_name = llvm_stmt_render_type_arg(
+                type_ann->data.type.generic_args->params[0]);
+            llvm_register_queue_var(ctx, name, inner_name);
         } else if (strcmp(ann_name, "HashMap") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 1
-            && type_ann->data.type.generic_args->params[1] != NULL
-            && type_ann->data.type.generic_args->params[1]->name != NULL) {
-            llvm_register_map_var(ctx, name, type_ann->data.type.generic_args->params[1]->name);
+            && type_ann->data.type.generic_args->params[1] != NULL) {
+            char *value_name = llvm_stmt_render_type_arg(
+                type_ann->data.type.generic_args->params[1]);
+            llvm_register_map_var(ctx, name, value_name);
         }
     }
 

@@ -2616,20 +2616,82 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
     ctx->collection_spec_count++;
 
     if (strcmp(kind, "List") == 0) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->decls,
             "\n/* PGY_COLLECTION_LIST_%s */\n"
             "PGY_LIST_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     } else if (strcmp(kind, "Queue") == 0) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->decls,
             "\n/* PGY_COLLECTION_QUEUE_%s */\n"
             "PGY_QUEUE_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     } else if (strcmp(kind, "Map") == 0) {
-        codebuf_write(ctx->helpers,
+        codebuf_write(ctx->decls,
             "\n/* PGY_COLLECTION_MAP_%s */\n"
             "PGY_HASHMAP_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
+    }
+}
+
+static void
+ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    if (ctx == NULL || type_node == NULL)
+        return;
+
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        if (type_node->data.event_handler_type.return_type != NULL)
+            ensure_type_specializations_from_ast(ctx,
+                type_node->data.event_handler_type.return_type);
+        for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+            ensure_type_specializations_from_ast(ctx,
+                type_node->data.event_handler_type.param_types[i]);
+        }
+        return;
+    }
+
+    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+        return;
+
+    if (type_node->data.type.generic_args != NULL) {
+        for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
+            GenericParam *arg = type_node->data.type.generic_args->params[i];
+            if (arg != NULL && arg->constraint != NULL)
+                ensure_type_specializations_from_ast(ctx, arg->constraint);
+        }
+    }
+
+    if (strcmp(type_node->data.type.name, "List") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
+        ensure_collection_specialization(ctx, "List", inner);
+        free(inner);
+        return;
+    }
+
+    if (strcmp(type_node->data.type.name, "Queue") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 0
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
+        ensure_collection_specialization(ctx, "Queue", inner);
+        free(inner);
+        return;
+    }
+
+    if (strcmp(type_node->data.type.name, "HashMap") == 0
+        && type_node->data.type.generic_args != NULL
+        && type_node->data.type.generic_args->count > 1
+        && type_node->data.type.generic_args->params[1] != NULL
+        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
+        char *value = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
+        ensure_collection_specialization(ctx, "Map", value);
+        free(value);
+        return;
     }
 }
 
@@ -3201,6 +3263,101 @@ pergyra_ast_typed_declarator(ASTNode *type_node, const char *name)
         name != NULL ? name : "value");
 }
 
+static char *
+pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
+{
+    CodeBuf *params = NULL;
+    char *ret_type = NULL;
+    char *result = NULL;
+
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return strdup_fmt("void (*%s)(void)", name != NULL ? name : "value");
+
+    params = codebuf_create();
+    ret_type = pergyra_strdup("void");
+    if (func_decl->data.func_decl.return_type != NULL) {
+        const char *rendered = pergyra_ast_type_to_c(func_decl->data.func_decl.return_type);
+        free(ret_type);
+        ret_type = pergyra_strdup(rendered);
+    }
+
+    if (params == NULL) {
+        result = strdup_fmt("%s (*%s)(void)", ret_type,
+            name != NULL ? name : "value");
+        free(ret_type);
+        return result;
+    }
+
+    if (func_decl->data.func_decl.param_count == 0) {
+        codebuf_write(params, "void");
+    } else {
+        for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
+            FuncParam *p = func_decl->data.func_decl.params[i];
+            if (i > 0)
+                codebuf_write(params, ", ");
+            codebuf_write(params, "%s",
+                p != NULL && p->type != NULL
+                    ? pergyra_ast_type_to_c(p->type)
+                    : "int32_t");
+        }
+    }
+
+    result = strdup_fmt("%s (*%s)(%s)", ret_type,
+        name != NULL ? name : "value", params->data);
+    codebuf_destroy(params);
+    free(ret_type);
+    return result;
+}
+
+static char *
+pergyra_func_signature_declarator(ASTNode *return_type, const char *name,
+                                  const char *params_sig)
+{
+    const char *fn_name = name != NULL ? name : "value";
+    const char *sig = (params_sig != NULL && params_sig[0] != '\0')
+        ? params_sig : "void";
+
+    if (return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE) {
+        CodeBuf *handler_params = codebuf_create();
+        char *ret_type = pergyra_strdup("void");
+        char *result;
+
+        if (return_type->data.event_handler_type.return_type != NULL) {
+            const char *rendered = pergyra_ast_type_to_c(
+                return_type->data.event_handler_type.return_type);
+            free(ret_type);
+            ret_type = pergyra_strdup(rendered);
+        }
+
+        if (handler_params == NULL) {
+            result = strdup_fmt("%s (*%s(%s))(void)", ret_type, fn_name, sig);
+            free(ret_type);
+            return result;
+        }
+
+        if (return_type->data.event_handler_type.param_count == 0) {
+            codebuf_write(handler_params, "void");
+        } else {
+            for (size_t i = 0; i < return_type->data.event_handler_type.param_count; i++) {
+                if (i > 0)
+                    codebuf_write(handler_params, ", ");
+                codebuf_write(handler_params, "%s",
+                    pergyra_ast_type_to_c(
+                        return_type->data.event_handler_type.param_types[i]));
+            }
+        }
+
+        result = strdup_fmt("%s (*%s(%s))(%s)", ret_type, fn_name, sig,
+            handler_params->data);
+        codebuf_destroy(handler_params);
+        free(ret_type);
+        return result;
+    }
+
+    return strdup_fmt("%s %s(%s)",
+        pergyra_ast_type_to_c(return_type), fn_name, sig);
+}
+
 static bool
 transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node)
 {
@@ -3405,6 +3562,7 @@ emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
     const char *ret_type = "void";
     if (method_name == NULL)
         return;
+    ensure_type_specializations_from_ast(ctx, method->data.func_decl.return_type);
     if (method->data.func_decl.return_type != NULL)
         ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
 
@@ -3420,6 +3578,8 @@ emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
             continue;
 
         const char *pt = "int32_t";
+        if (p->type != NULL)
+            ensure_type_specializations_from_ast(ctx, p->type);
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         {

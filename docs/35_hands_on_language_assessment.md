@@ -208,6 +208,38 @@ intent ViewSchedule { concurrent; }   // 보기는 동시에 가능
 - `use datetime;`도 문서 placeholder가 아니라 실제 stdlib surface가 되었다
 - 이제 남은 문제는 “캘린더조차 못 만든다” 류의 P0라기보다, richer stdlib와 app/report ergonomics다
 
+## Adapter-heavy 예제 — 추가 확인 (2026-04-05)
+
+### 예제: `examples/adapter_policy_stack/`
+
+이 예제는 세 가지를 동시에 밀어본 회귀 자산이다.
+
+- function-typed local / return
+- nested generic parsing and lowering
+- `page / api / report`의 라이브러리형 분리
+
+### 이번에 닫힌 실제 결함
+
+- C backend:
+  - function-typed local과 function-returning-function 선언이 `void *`/`int32_t`로 잘못 내려가던 문제를 수정
+- parser:
+  - `HashMap<String, List<String>>` 같은 nested type arguments가 선언용 generic parser를 잘못 타던 문제를 수정
+- LLVM backend:
+  - collection-typed / function-typed parameter가 scope에 들어올 때 메타 등록이 누락되어 `ListGet(lines, 0)`나 local function call이 잘못 추론되던 문제를 수정
+- C backend:
+  - nested specialized collection type이 함수 시그니처에 직접 들어갈 때
+    forward declaration이 specialized typedef보다 먼저 나와 깨지던 경로를 수정
+
+### 현재 판단
+
+이제 practical example 기준으로는
+
+- function value
+- nested generic collection
+- adapter-heavy composition
+
+까지도 C/LLVM 둘 다 “돌아가는 수준”에는 올라왔다.
+
 ### 약점 발견 — P1 (캘린더는 만들 수 있지만 고통스러움)
 
 | 부족한 기능 | 구체적 장면 | 필요한 것 |

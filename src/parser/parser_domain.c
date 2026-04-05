@@ -1364,8 +1364,8 @@ ASTNode* parse_role_declaration(Parser* parser) {
             ASTNode* inc = ast_create_include_statement(role_name.text);
             inc->line = role_name.line;
             inc->column = role_name.column;
-            /* Optional generic args */
-            inc->data.include_stmt.type_args = parse_generic_params(parser);
+            /* Optional type args */
+            inc->data.include_stmt.type_args = parse_type_arguments(parser);
 
             role->data.role_decl.include_count++;
             role->data.role_decl.includes = realloc(

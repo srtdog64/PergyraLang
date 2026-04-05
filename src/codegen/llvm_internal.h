@@ -234,6 +234,12 @@ typedef struct
 
 typedef struct
 {
+    const char *var_name;
+    ASTNode    *type_node;
+} LLVMCallableVarEntry;
+
+typedef struct
+{
     const char *enum_name;
     const char *variant_name;
     int         value;
@@ -394,6 +400,10 @@ typedef struct LLVMGenCtx
     int                   map_var_count;
     int                   map_var_capacity;
 
+    LLVMCallableVarEntry *callable_vars;
+    int                   callable_var_count;
+    int                   callable_var_capacity;
+
     LLVMEventTypeEntry   *event_types;
     int                   event_type_count;
     int                   event_type_capacity;
@@ -460,8 +470,13 @@ void llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
                              const char *inner_type);
 const char *llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
-                           const char *value_type);
+                      const char *value_type);
 const char *llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
+                                ASTNode *type_node);
+ASTNode *llvm_lookup_callable_var(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
+                             ASTNode *type_node);
 
 /* =================================================================
  * Function registry (llvm_backend.c)
