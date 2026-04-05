@@ -1589,6 +1589,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
 
+        /* Auto-infer 'within' when action is inside a zone */
+        if (node->data.func_decl.within_zone == NULL
+            && ctx->current_zone != NULL
+            && ctx->current_zone->type == AST_ZONE_DECL) {
+            node->data.func_decl.within_zone =
+                pergyra_strdup(ctx->current_zone->data.zone_decl.name);
+        }
+
         if (node->data.func_decl.within_zone != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 node->data.func_decl.within_zone) == NULL) {

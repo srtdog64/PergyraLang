@@ -37,6 +37,21 @@ rir_scope_resource_kind(const RIRScope *scope, const char *name)
 }
 
 static unsigned int
+rir_refine_flow_semantics(unsigned int flags)
+{
+    if ((flags & RIR_FLOW_AUTHORITY) != 0
+        && ((flags & RIR_FLOW_INVALIDATION) != 0
+            || (flags & RIR_FLOW_WORLD_HANDOFF) != 0)) {
+        flags |= RIR_FLOW_AUTHORITY_LOSS;
+    }
+    if ((flags & RIR_FLOW_PROJECTION) != 0
+        && (flags & RIR_FLOW_INVALIDATION) != 0) {
+        flags |= RIR_FLOW_PROJECTION_INVALIDATION;
+    }
+    return flags;
+}
+
+static unsigned int
 rir_flow_semantics_for_scope(const RIRScope *scope)
 {
     unsigned int flags = RIR_FLOW_NONE;
@@ -91,7 +106,7 @@ rir_flow_semantics_for_scope(const RIRScope *scope)
         }
     }
 
-    return flags;
+    return rir_refine_flow_semantics(flags);
 }
 
 static unsigned int
@@ -105,16 +120,16 @@ rir_flow_semantics_for_op(const RIRScope *scope, const RIROp *op)
 
     switch (op->kind) {
         case RIR_OP_AUTHORIZE:
-            return RIR_FLOW_AUTHORITY;
+            return rir_refine_flow_semantics(RIR_FLOW_AUTHORITY);
         case RIR_OP_PROJECT_REFRESH:
         case RIR_OP_PROJECT_PUBLISH:
-            return RIR_FLOW_PROJECTION;
+            return rir_refine_flow_semantics(RIR_FLOW_PROJECTION);
         case RIR_OP_RELEASE:
         case RIR_OP_DETACH_EFFECT:
         case RIR_OP_UNLINK_RELATION:
         case RIR_OP_ABORT_INTENT:
         case RIR_OP_COMPENSATE_INTENT_STEP:
-            return RIR_FLOW_INVALIDATION;
+            return rir_refine_flow_semantics(RIR_FLOW_INVALIDATION);
         case RIR_OP_MOVE:
         case RIR_OP_CLAIM:
             subject_kind = rir_scope_resource_kind(scope, op->subject);
@@ -123,11 +138,11 @@ rir_flow_semantics_for_op(const RIRScope *scope, const RIROp *op)
                 || subject_kind == RIR_RESOURCE_WORLD_HANDLE
                 || arg0_kind == RIR_RESOURCE_ZONE_HANDLE
                 || arg0_kind == RIR_RESOURCE_WORLD_HANDLE) {
-                return RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_INVALIDATION;
+                return rir_refine_flow_semantics(RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_INVALIDATION);
             }
             if (subject_kind == RIR_RESOURCE_PROJECTION_OBJECT
                 || subject_kind == RIR_RESOURCE_PROJECTION_DTO) {
-                return RIR_FLOW_INVALIDATION;
+                return rir_refine_flow_semantics(RIR_FLOW_INVALIDATION);
             }
             return RIR_FLOW_NONE;
         default:
@@ -382,7 +397,7 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
         return true;
     if (!rir_prepare_flow_blocks(scope, hir_routine))
         return false;
-    baseline_semantics = scope->conservative_semantics;
+    baseline_semantics = rir_refine_flow_semantics(scope->conservative_semantics);
 
     block_ops = calloc(hir_routine->cfg.block_count, sizeof(RIROp *));
     block_op_counts = calloc(hir_routine->cfg.block_count, sizeof(size_t));
@@ -428,6 +443,9 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
 
             for (size_t op_i = 0; op_i < block_op_counts[block_id]; op_i++)
                 exit_semantics |= rir_flow_semantics_for_op(scope, &block_ops[block_id][op_i]);
+
+            merged_semantics = rir_refine_flow_semantics(merged_semantics);
+            exit_semantics = rir_refine_flow_semantics(exit_semantics);
 
             if (flow->entry_semantics != merged_semantics || flow->exit_semantics != exit_semantics)
                 changed = true;

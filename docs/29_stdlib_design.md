@@ -14,7 +14,7 @@ encounter/turn/state machine, strategy/AI, content tables는 언어 키워드로
 올리지 않고 `use` 표면의 std/game 라이브러리로 둔다.
 
 이유:
-- 코어 언어는 `subject / vessel / object / dto / relation / effect / zone / world / Slot<T>` 의미론을 작고 강하게 유지해야 함
+- 코어 언어는 `subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` 의미론을 작고 강하게 유지해야 함
 - 대규모 게임 설계는 프로젝트별 조합 폭이 커서 코어 키워드보다 library/DSL 형태가 더 적합함
 - 같은 개념이라도 텍스트 RPG, 전술 RPG, 오픈월드 시뮬레이터가 요구하는 pool/fsm/strategy 모양이 다르므로 코어에 고정하면 오히려 빨리 굳어짐
 
@@ -153,7 +153,7 @@ GOF 기초 패턴도 같은 원칙으로 번역한다.
 즉 앱 구조는 보통 다음을 따른다.
 
 ```text
-page -> http adapter -> intent -> zone/world -> dto/object -> page
+page -> http adapter -> intent -> zone/world -> tobject/object -> page
                      \-> storage
 ```
 

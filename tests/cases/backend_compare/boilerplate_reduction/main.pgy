@@ -1,0 +1,90 @@
+// Test: boilerplate reduction features
+// 1. zone action within auto-inference
+// 2. intent-level who/where propagation
+// 3. action with optional clauses (no within, no authorized by, no causes)
+
+subject Adventurer
+{
+    let name: String;
+    let hp: Int;
+
+    action Climb(self) -> Void
+        requires Climber
+        // no within, no authorized by, no causes
+    {
+        hp = hp + 1;
+    }
+}
+
+ability Climber
+{
+    require hp: Int;
+    func CanClimb() -> Bool;
+}
+
+role AdventurerClimber for Adventurer
+{
+    impl ability Climber
+    {
+        func CanClimb() -> Bool
+        {
+            return true;
+        }
+    }
+}
+
+// Test 4: group slot syntax — subjects [a, b]: Type
+zone CampZone
+{
+    subjects [camper, guide]: Adventurer
+
+    // within CampZone is auto-inferred — not written explicitly
+    action Rest(self) -> Void
+        requires Climber
+    {
+        camper.hp = camper.hp + 5;
+    }
+}
+
+intent MountainTrip(explorer: Adventurer)
+{
+    exclusive;
+    who: explorer;          // intent-level — all steps inherit
+
+    step prepare
+    {
+        where: CampZone;
+        // who: explorer ← inherited from intent level
+        on: explorer.Climb();
+        post: explorer.hp > 0;
+    }
+
+    step summit
+    {
+        where: CampZone;
+        // who: explorer ← inherited
+        on: explorer.Climb();
+        post: explorer.hp > 1;
+    }
+
+    success: explorer.hp > 0;
+    failure: false;
+}
+
+func Main() -> Void
+{
+    let hero = Adventurer("Alice", 10);
+
+    // Test 1: action without within (Climb has no within)
+    hero.Climb();
+    Log("after climb hp=" + ToString(hero.hp));
+
+    // Test 2: zone action with auto-inferred within
+    let camp = CampZone(Adventurer("Bob", 5));
+    // camp.Rest() would use within CampZone automatically
+
+    // Test 3: intent with inherited who
+    let ok = MountainTrip(hero);
+    Log("intent ok=" + ToString(ok));
+    Log("final hp=" + ToString(hero.hp));
+}

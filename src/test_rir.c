@@ -185,13 +185,13 @@ test_rir_lowering(void)
             "    impl ability Payable { func Pay() -> Void { return; } }\n"
             "}\n"
             "object BuyerView { let hp: Int; }\n"
-            "dto BuyerDto { let hp: Int; }\n"
+            "tobject BuyerDto { let hp: Int; }\n"
             "relation CartLink for source: Buyer, target: Buyer { }\n"
             "effect PaymentEffect for bearer: Buyer { }\n"
             "zone PaymentZone {\n"
             "    subject slot buyer: Buyer\n"
             "    object slot view: BuyerView\n"
-            "    dto slot packet: BuyerDto\n"
+            "    tobject slot packet: BuyerDto\n"
             "    relation slot cart: CartLink\n"
             "    effect slot paymentFx: PaymentEffect\n"
             "    authority buyer requires Payable\n"
@@ -245,9 +245,13 @@ test_rir_lowering(void)
                && zone_ok
                && intent_ok
                && scope_has_conservative_semantics(zone,
-                                                   RIR_FLOW_PROJECTION | RIR_FLOW_INVALIDATION)
+                                                   RIR_FLOW_PROJECTION
+                                                       | RIR_FLOW_INVALIDATION
+                                                       | RIR_FLOW_PROJECTION_INVALIDATION)
                && scope_has_conservative_semantics(intent,
-                                                   RIR_FLOW_AUTHORITY | RIR_FLOW_INVALIDATION));
+                                                   RIR_FLOW_AUTHORITY
+                                                       | RIR_FLOW_INVALIDATION
+                                                       | RIR_FLOW_AUTHORITY_LOSS));
         rir_destroy(rir);
         hir_destroy(hir);
     }
@@ -444,13 +448,13 @@ test_rir_lowering(void)
         const char *src =
             "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
             "object BuyerView { let hp: Int; }\n"
-            "dto BuyerDto { let hp: Int; }\n"
+            "tobject BuyerDto { let hp: Int; }\n"
             "zone PaymentZone { subject slot buyer: Buyer }\n"
             "func MergeProjection(flag: Bool, buyer: Buyer) -> Void {\n"
             "    if flag {\n"
             "        ToObject(BuyerView, buyer);\n"
             "    } else {\n"
-            "        ToDto(BuyerDto, buyer);\n"
+            "        ToTObject(BuyerDto, buyer);\n"
             "    }\n"
             "}\n"
             "intent Route(payment: PaymentZone, refund: PaymentZone, buyer: Buyer) {\n"
@@ -470,7 +474,57 @@ test_rir_lowering(void)
                && flow->has_flow_sensitive_merge
                && scope_has_flow_semantics(flow, RIR_FLOW_PROJECTION)
                && intent != NULL
-               && scope_has_conservative_semantics(intent, RIR_FLOW_WORLD_HANDOFF));
+               && scope_has_conservative_semantics(intent,
+                                                  RIR_FLOW_WORLD_HANDOFF
+                                                      | RIR_FLOW_INVALIDATION));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR derives authority-loss and projection-invalidation semantics conservatively");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer { impl ability Payable { func Pay() -> Void { return; } } }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "effect PaymentEffect for bearer: Buyer { }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    effect slot paymentFx: PaymentEffect\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "    detach paymentFx from buyer by buyer\n"
+            "}\n"
+            "intent Route(payment: PaymentZone, refund: PaymentZone, buyer: Buyer) {\n"
+            "    step move {\n"
+            "        where: PaymentZone;\n"
+            "        who: buyer;\n"
+            "        requires: Payable;\n"
+            "        authorized by: buyer;\n"
+            "        transfer: payment -> refund;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *zone = find_scope(rir, "PaymentZone", RIR_SCOPE_ZONE);
+        const RIRScope *intent = find_scope(rir, "Route", RIR_SCOPE_INTENT);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && zone != NULL
+               && intent != NULL
+               && scope_has_conservative_semantics(zone,
+                                                  RIR_FLOW_PROJECTION
+                                                      | RIR_FLOW_INVALIDATION
+                                                      | RIR_FLOW_PROJECTION_INVALIDATION)
+               && scope_has_conservative_semantics(intent,
+                                                  RIR_FLOW_AUTHORITY
+                                                      | RIR_FLOW_WORLD_HANDOFF
+                                                      | RIR_FLOW_INVALIDATION
+                                                      | RIR_FLOW_AUTHORITY_LOSS));
         rir_destroy(rir);
         hir_destroy(hir);
     }

@@ -28,7 +28,7 @@
 - 타입과 내장 API는 PascalCase
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 - identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
-- value 타입 (`struct`, `vessel`, `class`, `object`, `dto`)은 복사 전달
+- value 타입 (`struct`, `vessel`, `class`, `object`, `tobject`)은 복사 전달
 
 ### 예약 키워드 (reserved — 식별자로 사용 불가)
 
@@ -43,7 +43,7 @@
 | 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override`, `super` |
 | 블록 | `with`, `parallel`, `trait`, `private`, `public` |
 | 리터럴 | `true`, `false` |
-| 값 타입 | `dto`, `object` |
+| 값 타입 | `tobject`, `object` |
 
 ### 컨텍스트 키워드 (contextual — 선언 위치에서만 키워드, 그 외에는 식별자)
 
@@ -294,7 +294,7 @@ object PlayerView {
     name: String;
 }
 
-dto PlayerDto {
+tobject PlayerDto {
     hp: Int;
     name: String;
 }
@@ -310,7 +310,7 @@ enum Color { Red, Green, Blue }
 지원:
 - `struct`
 - `object`
-- `dto`
+- `tobject`
 - `subject`
 - `class`
 - `enum`
@@ -322,16 +322,16 @@ enum Color { Red, Green, Blue }
 
 주의:
 - `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
-- `object`, `dto`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
-- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `dto slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
+- `object`, `tobject`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
+- `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.
 - `zone`은 `authority subjectSlot`, `state name: effect ... on ...`, `state name: relation ... between ..., ...`를 지원한다.
 - `authority subjectSlot`은 optional `requires Ability[, Ability]` 절을 붙일 수 있다.
 - `zone`은 `apply/detach/link/unlink/refresh/publish/bind/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
-- `zone`은 `publish dtoSlot from subjectSlot`로 dto projection 갱신을 명시할 수 있다.
-- `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 추론할 수 있다. object slot이면 `refresh`, dto slot이면 `publish`와 같은 semantic 계약으로 해석된다.
+- `zone`은 `publish packetSlot from subjectSlot`로 tobject projection 갱신을 명시할 수 있다.
+- `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 추론할 수 있다. object slot이면 `refresh`, tobject slot이면 `publish`와 같은 semantic 계약으로 해석된다.
 - `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다. C backend는 generated helper를 통해 zone rdlock과 generation stale-warning을 자동 삽입한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.
@@ -699,7 +699,7 @@ world GameWorld {
 ```
 
 이 축은 파서/시맨틱에 들어와 있지만, 일반 문법보다 실험성이 더 높다.
-현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`dto slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
+현재 `relation`, `effect`, `zone`은 `for ...` header와 `subject slot`/`object slot`/`tobject slot`/`refresh`/`publish`/`bind`/`shared`/`func`까지의 최소 표면이 구현돼 있고, domain slot은 optional initializer를 받을 수 있다. `relation` / `effect` / `zone`은 projection sync를 공유하고, `zone`은 추가로 `relation slot`/`effect slot`, `effect pool damage: DamageEffect capacity 8` 같은 fixed-capacity effect pool slot, `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`, `link relationSlot between left, right`, `unlink relationSlot between left, right`, `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`를 가진다. `world`는 `zone` slot까지 최소 조립 표면이 구현돼 있다.
 
 ## 9. 구현 기준 네이밍
 
@@ -709,7 +709,7 @@ world GameWorld {
 - 파일명: `snake_case.pgy`
 
 대표 내장 API:
-`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`, `Split`, `Join`, `ToInt`, `ToFloat`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse`, `ArrayLength`, `ArrayPush`, `ArrayPop`, `ArraySet`, `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`, `ChannelSpace`, `ChannelFull`, `ChannelClosed`, `ChannelLength`, `ChannelCapacity`, `ChannelReady`, `TryRecv`, `TrySend`, `Cancel`, `IsCancelled`, `SpawnBlocking`, `ToObject`, `ToDto`, `HasState`, `HasZone`
+`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`, `Split`, `Join`, `ToInt`, `ToFloat`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse`, `ArrayLength`, `ArrayPush`, `ArrayPop`, `ArraySet`, `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`, `ChannelSpace`, `ChannelFull`, `ChannelClosed`, `ChannelLength`, `ChannelCapacity`, `ChannelReady`, `TryRecv`, `TrySend`, `Cancel`, `IsCancelled`, `SpawnBlocking`, `ToObject`, `ToTObject`, `HasState`, `HasZone`
 
 ## 10. 문서 사용법
 

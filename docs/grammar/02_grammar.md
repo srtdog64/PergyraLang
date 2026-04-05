@@ -12,7 +12,7 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- 예약 키워드 (57개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `dto`, `object`
+- 예약 키워드 (57개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `tobject`, `object`
 - 컨텍스트 키워드: `world`, `systemic`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
   선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - `context`는 현재 ordinary identifier다.
@@ -28,7 +28,7 @@
 - `subject`, `relation`, `effect`, `zone`, `world`는 identity-bearing 타입이다.
 - 이 타입들을 함수 파라미터로 전달하면 **자동으로 reference(참조) 전달**된다.
 - 사용자는 포인터를 의식하지 않아도 된다 -- 언어가 내부적으로 처리한다.
-- `struct`, `vessel`, `class`, `object`, `dto`는 value 타입이다 -- 복사 전달된다.
+- `struct`, `vessel`, `class`, `object`, `tobject`는 value 타입이다 -- 복사 전달된다.
 
 ## 2. 리터럴과 표현식
 
@@ -279,7 +279,7 @@ enum Shape {
 - `object` (`struct` alias)
 - `subject` (`class` alias)
 - `class`
-- `dto` (`struct` alias)
+- `tobject` (`struct` alias for transfer object)
 - `enum`
 - `relation`
 - `effect`
@@ -287,13 +287,13 @@ enum Shape {
 - `extern "C"` block
 
 추가 메모:
-- `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `dto slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.
+- `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `tobject slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.
 - `shared`는 visibility 키워드가 아니라 host-local contextual state marker다. 즉 `party` / `relation` / `effect` / `zone` / `world`가 문맥 전체에서 공동으로 읽고 갱신하는 상태를 뜻한다.
-- `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/dto projection slot을 Bool로 조회한다.
+- `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/tobject projection slot을 Bool로 조회한다.
 - `relation` / `effect` / `zone`의 domain slot은 optional initializer를 받을 수 있다.
-- `zone` body는 현재 `subject slot`, `object slot`, `dto slot`, `relation slot`, `effect slot`, `effect pool <name>: <EffectType> capacity <N>`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <dtoSlot> from <subjectSlot>`, `bind <slotName> from <subjectOrObjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
+- `zone` body는 현재 `subject slot`, `object slot`, `tobject slot`, `relation slot`, `effect slot`, `effect pool <name>: <EffectType> capacity <N>`, `authority <subjectSlot> [requires <Ability>[, ...]]`, `state <name>: effect <effectSlot> on <targetSlot>`, `state <name>: relation <relationSlot> between <left>, <right>`, `apply <effectSlot> to <targetSlot>`, `apply <stateName>`, `detach <effectSlot> from <targetSlot>`, `detach <stateName>`, `link <relationSlot> between <left>, <right>`, `link <stateName>`, `unlink <relationSlot> between <left>, <right>`, `unlink <stateName>`, `refresh <objectSlot> from <subjectSlot>`, `publish <tobjectSlot> from <subjectSlot>`, `bind <slotName> from <subjectOrObjectSlot>`, `maintain <effectSlot> on <targetSlot>`, `maintain <relationSlot> between <left>, <right>`, `maintain <stateName>`, `shared`, `func`를 지원한다.
 - `zone`의 `apply/link/detach/unlink/refresh/publish/bind/maintain`은 optional `by <subjectSlot>` authority annotation을 받을 수 있다.
-- `bind <slotName> from <sourceSlot>`는 target slot kind를 declaration에서 추론한다. object slot이면 `refresh`, dto slot이면 `publish`와 같은 projection contract를 사용한다.
+- `bind <slotName> from <sourceSlot>`는 target slot kind를 declaration에서 추론한다. object slot이면 `refresh`, tobject slot이면 `publish`와 같은 projection contract를 사용한다.
 - `HasLayer(<layerSlot>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 relation/effect layer slot을 Bool로 조회한다. C backend는 generated helper가 `PGY_ZONE_RDLOCK`과 generation stale-warning을 자동으로 감싼다.
 - `HasState(<stateName>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 zone state alias를 Bool로 조회한다. 인자는 identifier나 string literal을 받을 수 있다.
 - `HasState(<effectState>, <targetSlot>)`와 `HasState(<relationState>, <leftSlot>, <rightSlot>)`는 선언된 state alias와 slot 조합이 정확히 맞는지까지 검증한다.
@@ -301,7 +301,7 @@ enum Shape {
 - `world` body는 `systemic`, `zone`, `state <name>: zone <zoneSlot>`, `state <name>: zone <zoneSlot> projection <projectionSlot>`, `state <name>: zone <zoneSlot> layer <layerSlot>`, `state <name>: zone <zoneSlot> state <zoneStateName>`, `state <name>: all <zoneOrState>[, ...]`, `state <name>: any <zoneOrState>[, ...]`, `activate <zoneOrState>`, `deactivate <zoneOrState>`, `maintain <zoneOrState>`, `shared`, `func`를 지원한다.
 - `shared`는 프로그램 전역 global이 아니라 해당 host에 귀속된 "local-global" 상태다. 예: `zone`의 `shared round`, `relation`의 `shared trust`, `world`의 `shared season`.
 - `HasZone(<zoneOrState>)`는 world declaration / world method 안에서만 유효하며, 선언된 zone slot 또는 world state alias를 Bool로 조회한다.
-- `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/dto projection slot sync-ready flag를 Bool로 조회한다.
+- `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/tobject projection slot sync-ready flag를 Bool로 조회한다.
 - `HasZoneLayer(<zoneSlot>, <layerSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 relation/effect layer active flag를 Bool로 조회한다.
 - `HasZoneState(<zoneSlot>, <stateName>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 state alias flag를 Bool로 조회한다.
 - `intent`는 parser/semantic/HIR/codegen이 직접 이해하는 orchestration declaration이다. 현재는 `intent Name(args...)`, legacy `involves`, `step`, `exclusive`/`concurrent`, `rollback`, `priority`, `where`, `who`, `using`, `transfer`, repeated `on`, repeated `compensate`, `pre`, `guard`, `post`, `invariant`, `requires`, `authorized by`, `causes`, `expect`, `success`, `failure`를 파싱하고 검증하며, `Intent(args...)` 호출은 C/LLVM generated function으로 lowering된다.

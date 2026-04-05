@@ -6,7 +6,9 @@ DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="/tmp/pgy-PergyraLang-bin/pgy"
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
-elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
+elif [[ -x "$DEFAULT_PGY" ]]; then
+    PGY="$DEFAULT_PGY"
+elif [[ -x "$TMP_PGY" ]]; then
     PGY="$TMP_PGY"
 else
     PGY="$DEFAULT_PGY"

@@ -11,14 +11,14 @@ class HttpResponse {
     let body: String;
 }
 
-dto HttpIntentRequest
+tobject HttpIntentRequest
 {
     let intentName: String;
     let actorKey: String;
     let request: HttpRequest;
 }
 
-dto HttpIntentResponse
+tobject HttpIntentResponse
 {
     let ok: Bool;
     let intentName: String;

@@ -373,7 +373,7 @@ scaffold_dto_file(const char *target)
     }
 
     snprintf(content, sizeof(content),
-        "dto %s\n"
+        "tobject %s\n"
         "{\n"
         "    label: String;\n"
         "    value: Int;\n"
@@ -382,7 +382,7 @@ scaffold_dto_file(const char *target)
 
     rc = scaffold_write_file(path, content);
     if (rc == 0)
-        printf("pgy: scaffolded dto -> %s\n", path);
+        printf("pgy: scaffolded tobject -> %s\n", path);
     free(path);
     free(name);
     return rc;
@@ -485,7 +485,7 @@ scaffold_simulator_dir(const char *target)
         "// - subject: active agent / who acts\n"
         "// - class: passive tool or thing with hosted func\n"
         "// - object: passive view/state target\n"
-        "// - dto: boundary packet\n"
+        "// - tobject: boundary packet\n"
         "\n"
         "vessel Cycle\n"
         "{\n"
@@ -534,7 +534,7 @@ scaffold_simulator_dir(const char *target)
         "    tool: ToolCard;\n"
         "}\n"
         "\n"
-        "dto CreaturePacket\n"
+        "tobject CreaturePacket\n"
         "{\n"
         "    name: String;\n"
         "    energy: Int;\n"
@@ -545,7 +545,7 @@ scaffold_simulator_dir(const char *target)
         "{\n"
         "    subject slot creature: Creature\n"
         "    object slot view: CreatureView\n"
-        "    dto slot packet: CreaturePacket\n"
+        "    tobject slot packet: CreaturePacket\n"
         "    authority creature\n"
         "    refresh view from creature by creature\n"
         "    publish packet from creature by creature\n"
@@ -811,7 +811,7 @@ driver_run_scaffold_command(int argc, char *argv[])
             "  subject  = active agent / who acts\n"
             "  class    = passive tool or thing with hosted func\n"
             "  object   = passive view or state target\n"
-            "  tobject  = transfer object (boundary data, commonly known as DTO)\n");
+            "  tobject  = transfer object (boundary data)\n");
         return 1;
     }
 
@@ -826,7 +826,7 @@ driver_run_scaffold_command(int argc, char *argv[])
         return scaffold_vessel_file(target);
     if (strcmp(kind, "object") == 0)
         return scaffold_object_file(target);
-    if (strcmp(kind, "tobject") == 0 || strcmp(kind, "dto") == 0)
+    if (strcmp(kind, "tobject") == 0)
         return scaffold_dto_file(target);
     if (strcmp(kind, "zone") == 0)
         return scaffold_zone_file(target);
@@ -1011,7 +1011,7 @@ driver_print_usage(void)
         "  subject  active agent / who acts\n"
         "  class    passive tool or thing with hosted func\n"
         "  object   passive view or state target\n"
-        "  dto      boundary packet\n"
+        "  tobject  boundary packet\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
         "  pgy --dir    <source.pgy>     dump lowered DIR summary\n"

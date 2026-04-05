@@ -530,11 +530,11 @@ test_effect_inference(void)
             "    vessel traits: Traits;\n"
             "}\n"
             "object CreatureView { age: Int; fatigue: Int; metabolism: Int; }\n"
-            "dto CreaturePacket { age: Int; metabolism: Int; }\n"
+            "tobject CreaturePacket { age: Int; metabolism: Int; }\n"
             "zone MeadowZone {\n"
             "    subject slot grazer: Creature\n"
             "    object slot grazerView: CreatureView = ToObject(CreatureView, grazer)\n"
-            "    dto slot grazerPacket: CreaturePacket = ToDto(CreaturePacket, grazer)\n"
+            "    tobject slot grazerPacket: CreaturePacket = ToTObject(CreaturePacket, grazer)\n"
             "    refresh grazerView from grazer\n"
             "    publish grazerPacket from grazer\n"
             "}\n";

@@ -322,14 +322,14 @@ test_misc_grammar_edges(void)
         ast_destroy(call);
     }
 
-    TEST("ToDto returns dto projection type but warns outside domain context");
+    TEST("ToTObject returns tobject projection type but warns outside domain context");
     {
         const char *source =
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
-            "    let snapshot: PlayerDto = ToDto(PlayerDto, player);\n"
+            "    let snapshot: PlayerDto = ToTObject(PlayerDto, player);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -345,16 +345,16 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToDto accepts actor source as subject profile");
+    TEST("ToTObject accepts actor source as subject profile");
     {
         const char *source =
-            "dto BotDto { hp: Int; }\n"
+            "tobject BotDto { hp: Int; }\n"
             "subject Bot actor {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
             "    let bot: Bot = Bot();\n"
-            "    let snapshot: BotDto = ToDto(BotDto, bot);\n"
+            "    let snapshot: BotDto = ToTObject(BotDto, bot);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -373,21 +373,21 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToDto rejects missing fields, non-dto targets, and unnamed sources");
+    TEST("ToTObject rejects missing fields, non-tobject targets, and unnamed sources");
     {
         const char *source =
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "object PlayerView { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; }\n"
             "class PassivePlayer { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
             "    let passive: PassivePlayer = PassivePlayer();\n"
-            "    let missing: PlayerDto = ToDto(PlayerDto, player);\n"
-            "    let wrong = ToDto(Player, player);\n"
-            "    let wrongView = ToDto(PlayerView, player);\n"
-            "    let anon = ToDto(PlayerDto, Player());\n"
-            "    let legacy = ToDto(PlayerDto, passive);\n"
+            "    let missing: PlayerDto = ToTObject(PlayerDto, player);\n"
+            "    let wrong = ToTObject(Player, player);\n"
+            "    let wrongView = ToTObject(PlayerView, player);\n"
+            "    let anon = ToTObject(PlayerDto, Player());\n"
+            "    let legacy = ToTObject(PlayerDto, passive);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -429,7 +429,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("object and dto declarations may carry passive helper funcs");
+    TEST("object and tobject declarations may carry passive helper funcs");
     {
         const char *source =
             "object PlayerView {\n"
@@ -438,7 +438,7 @@ test_misc_grammar_edges(void)
             "        return hp;\n"
             "    }\n"
             "}\n"
-            "dto PlayerDto {\n"
+            "tobject PlayerDto {\n"
             "    hp: Int;\n"
             "    func Export(self) -> Int {\n"
             "        return hp;\n"
@@ -640,7 +640,7 @@ test_misc_grammar_edges(void)
     {
         const char *source =
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; }\n"
             "subject Player { let hp: Int; }\n"
             "class PassivePlayer { let hp: Int; }\n"
             "func Main() -> Void {\n"
@@ -875,12 +875,12 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("HasProjection works inside relation/effect/zone methods for declared object and dto slots");
+    TEST("HasProjection works inside relation/effect/zone methods for declared object and tobject slots");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    subject slot left: Player\n"
             "    subject slot right: Player\n"
@@ -894,7 +894,7 @@ test_misc_grammar_edges(void)
             "}\n"
             "effect Poisoned for bearer: Player {\n"
             "    subject slot player: Player\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    publish snapshot from player\n"
             "    func Tick() -> Void {\n"
             "        if HasProjection(\"snapshot\") {\n"
@@ -905,7 +905,7 @@ test_misc_grammar_edges(void)
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    refresh playerView from player\n"
             "    publish snapshot from player\n"
             "    func Update() -> Void {\n"

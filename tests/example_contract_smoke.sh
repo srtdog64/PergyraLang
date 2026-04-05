@@ -257,6 +257,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/resource_scheduler_async_probe" "=== ASYNC RESOURCE SCHEDULER PROBE ===" "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11" "[Remote] 103 105 207 211" "[Score] 144 147 240 245 total=776" "saving examples/resource_scheduler_async_probe/results.txt"
     run_expect_lines "calendar_working" "$backend" \
         "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
+    run_expect_lines "subject_object_tobject" "$backend" \
+        "$ROOT_DIR/examples/subject_object_tobject.pgy" "Alice" "100" "5"
     run_expect_lines "adapter_policy_stack" "$backend" \
         "$ROOT_DIR/examples/adapter_policy_stack/main.pgy" "=== ADAPTER POLICY STACK ===" "[Route] checkout -> /api/checkout" "[API] /api/checkout ok=true handle=4101" "[API] /api/refund#8831:true"
     run_expect_lines "pattern_library_basics" "$backend" \

@@ -63,6 +63,48 @@ static ASTNode* ast_create_node(ASTNodeType type) {
     return node;
 }
 
+static GenericParams*
+ast_clone_generic_params(GenericParams* params)
+{
+    GenericParams* clone;
+
+    if (params == NULL)
+        return NULL;
+
+    clone = calloc(1, sizeof(GenericParams));
+    if (clone == NULL)
+        return NULL;
+
+    clone->count = params->count;
+    if (params->count == 0)
+        return clone;
+
+    clone->params = calloc(params->count, sizeof(GenericParam*));
+    if (clone->params == NULL) {
+        free(clone);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < params->count; i++) {
+        GenericParam* src = params->params[i];
+        GenericParam* dst;
+
+        if (src == NULL)
+            continue;
+
+        dst = calloc(1, sizeof(GenericParam));
+        if (dst == NULL)
+            continue;
+
+        dst->name = pergyra_strdup(src->name);
+        dst->constraint = ast_clone(src->constraint);
+        dst->default_type = ast_clone(src->default_type);
+        clone->params[i] = dst;
+    }
+
+    return clone;
+}
+
 // 프로그램 노드
 ASTNode* ast_create_program(void) {
     ASTNode* node = ast_create_node(AST_PROGRAM);
@@ -445,6 +487,9 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.success_expr = NULL;
     node->data.intent_decl.failure_expr = NULL;
     node->data.intent_decl.doc_comment = NULL;
+    node->data.intent_decl.default_who_names = NULL;
+    node->data.intent_decl.default_who_count = 0;
+    node->data.intent_decl.default_where_type = NULL;
     return node;
 }
 
@@ -941,6 +986,49 @@ ASTNode* ast_create_type(const char* name) {
     node->data.type.name = pergyra_strdup(name);
     node->data.type.generic_args = NULL;
     return node;
+}
+
+ASTNode*
+ast_clone(ASTNode* node)
+{
+    ASTNode* clone;
+
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+        case AST_IDENTIFIER:
+            clone = ast_create_identifier(node->data.identifier.name);
+            break;
+        case AST_TYPE:
+            clone = ast_create_type(node->data.type.name);
+            clone->data.type.generic_args =
+                ast_clone_generic_params(node->data.type.generic_args);
+            break;
+        case AST_CHANNEL_TYPE:
+            clone = ast_create_channel_type(
+                ast_clone(node->data.channel_type.element_type));
+            clone->data.channel_type.capacity =
+                ast_clone(node->data.channel_type.capacity);
+            break;
+        case AST_FUTURE_TYPE:
+            clone = ast_create_future_type(
+                ast_clone(node->data.future_type.value_type));
+            break;
+        case AST_EVENT_HANDLER_TYPE:
+            clone = ast_create_event_handler_type();
+            break;
+        default:
+            clone = NULL;
+            break;
+    }
+
+    if (clone != NULL) {
+        clone->line = node->line;
+        clone->column = node->column;
+    }
+
+    return clone;
 }
 
 ASTNode* ast_create_async_function(const char* name, bool is_async) {
@@ -1520,6 +1608,10 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.intent_decl.success_expr);
             ast_destroy(node->data.intent_decl.failure_expr);
             ast_destroy_structured_comment(node->data.intent_decl.doc_comment);
+            for (size_t i = 0; i < node->data.intent_decl.default_who_count; i++)
+                free(node->data.intent_decl.default_who_names[i]);
+            free(node->data.intent_decl.default_who_names);
+            ast_destroy(node->data.intent_decl.default_where_type);
             break;
 
         case AST_INTENT_INVOLVES:

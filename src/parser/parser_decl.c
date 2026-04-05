@@ -536,7 +536,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     else if (decl_kind == NOMINAL_DECL_OBJECT)
         kind_name = "object";
     else if (decl_kind == NOMINAL_DECL_DTO)
-        kind_name = "dto";
+        kind_name = "tobject";
 
     // 클래스 이름
     Token name = parser_consume(parser, TOKEN_IDENTIFIER,

@@ -447,7 +447,7 @@ intent Purchase
      `who` actor를 source/target zone의 matching subject slot에 materialize한 뒤
      양쪽 zone을 sync한다.
    → 즉 현재는 "cross-world consume-move"가 아니라 "live handoff materialization"이다.
-   → dto는 여전히 경계 투영 역할을 맡고, richer identity handoff는 다음 단계다.
+   → tobject는 여전히 경계 투영 역할을 맡고, richer identity handoff는 다음 단계다.
 
 4. 각 world의 컴파일 타임 계약은 유지
    → PaymentWorld 안의 action 제약은 여전히 컴파일러가 검증.
@@ -755,7 +755,159 @@ intent CustomerSupport { ... }
 // Member는 Purchase에도, Refund에도 참여
 ```
 
-### 9.2 선언적이다
+### 9.2 Intent 오케스트레이션 — intent 안에 intent
+
+intent는 step만 가지는 게 아니라 **하위 intent를 포함**할 수 있다. 대목차 안에 소목차가 있는 것과 같다.
+
+```pergyra
+// 소목차 intent들
+intent BrowseCatalog(buyer: Member)
+{
+    who: buyer;
+    step search { where: SearchZone; }
+    step filter { where: SearchZone; }
+    success: true;
+}
+
+intent ProcessPayment(buyer: Member)
+{
+    who: buyer;
+    step verify { where: PaymentZone; requires: Payable; }
+    step charge { where: PaymentZone; authorized by: buyer; }
+    success: true;
+}
+
+intent ArrangeShipping(buyer: Member)
+{
+    who: buyer;
+    step address { where: ShippingZone; }
+    step dispatch { where: ShippingZone; }
+    success: true;
+}
+
+// 대목차 — 하위 intent들을 오케스트레이션
+intent CompletePurchase(buyer: Member)
+{
+    exclusive;
+    who: buyer;
+
+    step browse
+    {
+        intent: BrowseCatalog(buyer);       // 하위 intent 호출
+        post: buyer.cart.size > 0;
+    }
+
+    step pay
+    {
+        intent: ProcessPayment(buyer);      // 하위 intent 호출
+        post: buyer.payment_done;
+    }
+
+    step ship
+    {
+        intent: ArrangeShipping(buyer);     // 하위 intent 호출
+        post: buyer.shipping_arranged;
+    }
+
+    success: buyer.order_complete;
+    failure: rollback;
+}
+```
+
+#### 구조
+
+```
+CompletePurchase (대목차)
+  ├── BrowseCatalog (소목차)
+  │     ├── step search
+  │     └── step filter
+  ├── ProcessPayment (소목차)
+  │     ├── step verify
+  │     └── step charge
+  └── ArrangeShipping (소목차)
+        ├── step address
+        └── step dispatch
+```
+
+#### 규칙
+
+```
+1. step 안에서 intent: 로 하위 intent를 호출할 수 있다
+2. 하위 intent가 실패하면 상위 step도 실패한다
+3. 상위 intent의 compensate는 하위 intent의 compensate를 역순으로 호출한다
+4. 하위 intent는 독립적으로도 호출 가능하다 (소목차만 단독 실행)
+5. 깊이 제한은 없지만, 3단 이상 중첩은 설계 냄새
+```
+
+#### DI(Dependency Injection)와의 비교
+
+```
+DI:              "이 클래스가 필요로 하는 의존성을 외부에서 주입한다"
+                 → 객체 단위 조립
+
+Intent 오케스트레이션: "이 의도가 필요로 하는 하위 의도를 조립한다"
+                 → 목적 단위 조립
+```
+
+하위 intent는 교체 가능하다. 구현이 아니라 계약(step 구조)에 의존하기 때문:
+
+```pergyra
+// 프로덕션
+intent CompletePurchase(buyer: Member)
+{
+    step pay { intent: ProcessPayment(buyer); }
+}
+
+// 테스트 — 결제를 모킹
+intent CompletePurchase(buyer: Member)
+{
+    step pay { intent: MockPayment(buyer); }   // 교체
+}
+```
+
+DI가 객체의 조립이라면, intent 오케스트레이션은 **목적의 조립**이다.
+
+#### 구현 상태
+
+```
+현재: 미구현. step에서 다른 intent를 호출하는 문법이 없다.
+필요: parser에 step 내 intent: 절 파싱 + 코드젠에서 nested intent call 생성
+```
+
+### 9.3 닫힌 시스템 철학
+
+Pergyra 프로그램은 **업데이트를 전제하지 않는 닫힌 시스템**을 지향한다.
+
+```
+기존 사고: "이 시스템은 계속 업데이트될 것이다"
+  → 확장 포인트, 플러그인 인터페이스, feature flag
+  → 필요하지 않은 추상화가 쌓인다
+
+Pergyra 사고: "이 시스템은 이 문제를 완결한다"
+  → 딱 필요한 intent만 선언
+  → 필요한 subject, zone, action만 구현
+  → 업데이트는 새 intent 추가로 — 기존 코드를 변경하지 않는다
+```
+
+intent가 이 철학을 가능하게 한다:
+
+```
+v1.0:
+  intents/
+    purchase.pgy
+    refund.pgy
+
+v1.1 (새 기능 추가):
+  intents/
+    purchase.pgy      ← 변경 없음
+    refund.pgy        ← 변경 없음
+    gift_card.pgy     ← 새 intent 추가
+
+기존 intent는 닫혀 있다. 새 intent가 추가될 뿐이다.
+Open-Closed Principle이 intent 단위로 자연스럽게 적용된다.
+```
+
+### 9.4 선언적이다
 
 intent의 step은 **실행 순서가 아니라 의미론적 단계**다.
 
@@ -814,10 +966,10 @@ project/
         applicant.pgy
 
   commons/                        ← 도메인 무관 공유 자원
-    types/                        ← 수동 데이터 (class, struct, object, dto)
+    types/                        ← 수동 데이터 (class, struct, object, tobject)
       product.pgy                 ← class Product { ... }
       payment_payload.pgy         ← struct PaymentPayload { ... }
-      order_receipt.pgy           ← dto OrderReceipt { ... }
+      order_receipt.pgy           ← tobject OrderReceipt { ... }
     infra/                        ← 외부 세계와의 I/O (FFI, DB, HTTP)
       stripe_client.pgy           ← extern "C" { ... }
 
@@ -842,7 +994,7 @@ project/
    특정 intent 하나의 부산물로만 취급되지 않는다.
 
 4. commons/는 intent를 발생시키지 않는 수동 데이터와 인프라다.
-   class, struct, dto, object는 types/에,
+   class, struct, tobject, object는 types/에,
    FFI, DB, HTTP 클라이언트는 infra/에 격리한다.
 
 5. 독해의 시작점은 intent다.

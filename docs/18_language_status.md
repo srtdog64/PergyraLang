@@ -29,7 +29,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `intent` declaration이 parser/semantic/HIR/codegen 표면에 반영되어 world/zone/action 계약을 참조하는 executable orchestration declaration으로 동작함
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation`, `effect` constructor는 positional nominal constructor로 type-check되며, runtime instance를 직접 만들 수 있음
-- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` 최소 표면까지 parser/semantic에 반영됨
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` 최소 표면까지 parser/semantic에 반영됨
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 projection/resulting object wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 고정하는 최소 표면까지 반영됨
 - `relation`, `effect`는 optional `for object ...` header로 object endpoint/target도 고정하는 최소 표면까지 반영됨
@@ -37,7 +37,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot` 최소 attachment 표면까지 parser/semantic에 반영됨
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right` 최소 relation wiring 표면까지 parser/semantic에 반영됨
 - `zone`은 `refresh objectSlot from subjectSlot`으로 projection 갱신을 명시할 수 있음
-- `zone`은 `publish dtoSlot from subjectSlot`으로 dto projection 갱신을 명시할 수 있음
+- `zone`은 `publish dtoSlot from subjectSlot`으로 tobject projection 갱신을 명시할 수 있음
 - `zone`은 `bind slotName from sourceSlot`으로 target slot kind 기반 projection sync를 명시할 수 있음
 - `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 직접 가질 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 둘 수 있음
@@ -72,13 +72,13 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - zone method 안에서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read가 LLVM runtime smoke로 검증된다
 - `apply/detach`는 `effect`의 bindable target arity/type와 기본 정합성을 검사하며 object target도 허용함
 - `link/unlink`는 `relation`의 bindable endpoint arity/type와 기본 정합성을 검사하며 object endpoint도 허용함
-- `refresh`/`publish`/`bind`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
+- `refresh`/`publish`/`bind`는 object/tobject slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 tobject source는 금지함
 - `maintain`은 duplicate/conflicting lifecycle rule을 warning으로 보고함
 - `authority`는 선언된 subject slot만 받을 수 있고, authority가 선언된 zone에서 mutable rule이 `by`를 생략하면 warning을 냄
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
-- `actor`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToDto`, subject copy restriction 경로에 실제로 참여함
+- `actor`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
 - `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
@@ -90,8 +90,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 타입처럼 parameter/return/copy가 가능함
 - C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
 - `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
-- `dto` keyword alias가 parser/LSP surface에 반영되어 `dto`와 `struct`가 같은 declaration으로 파싱됨
-- `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 projection/value 형식임
+- `tobject` keyword alias가 parser/LSP surface에 반영되어 `tobject`와 `struct`가 같은 declaration으로 파싱됨
+- `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `tobject`는 더 좁은 projection/value 형식임
 - `subject`는 일반 `func`와 공적 `action`을 모두 가질 수 있음
 - `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
@@ -99,8 +99,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
 - 현재 회귀 수치: `semantic 486 passed`, `transpile 406 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
-- `ToDto(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 dto surface로 C/LLVM에 반영됨
-- relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToDto`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `dto slot`과 projection sync(`refresh` / `publish` / `bind`)임
+- `ToTObject(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 tobject surface로 C/LLVM에 반영됨
+- relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToTObject`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `tobject slot`과 projection sync(`refresh` / `publish` / `bind`)임
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
@@ -111,11 +111,11 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
 - `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state까지 올라왔지만, 더 깊은 propagation model은 아직 남아 있다
-- projection의 중심은 `dto` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
-- `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
+- projection의 중심은 `tobject` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
+- `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
-- `subject slot`과 `ToObject` / `ToDto` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
+- `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
 - `actor`는 subject-profile semantic에 편입됐고 `subject Name actor { ... }` subject-first surface도 추가됐다
 - standalone `actor Name { ... }`는 아직 허용되지만, semantic warning과 함께 transitional syntax로 취급된다
 - plain/secure `Slot<subject>`와 `Slot<actor>`는 local object-cell anchor로 동작한다

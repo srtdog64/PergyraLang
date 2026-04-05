@@ -762,6 +762,10 @@ struct ASTNode
             ASTNode* success_expr;
             ASTNode* failure_expr;
             StructuredComment* doc_comment;
+            /* Intent-level defaults (propagated to steps) */
+            char** default_who_names;
+            size_t default_who_count;
+            ASTNode* default_where_type;
         } intent_decl;
 
         /* Intent participant binding */
@@ -1152,6 +1156,7 @@ ASTNode* ast_create_event_subscribe(ASTNode* event, ASTNode* handler);
 ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler);
 ASTNode* ast_create_event_invoke(ASTNode* event);
 ASTNode* ast_create_event_handler_type(void);
+ASTNode* ast_clone(ASTNode* node);
 ASTNode* ast_create_lambda_expression(void);
 
 /* Module system AST creation */

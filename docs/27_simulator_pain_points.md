@@ -49,7 +49,7 @@ examples such as the battle simulator and biome simulator.
 - `bind <slot> from <source>` now exists for `relation` / `effect` / `zone`.
   It keeps the explicit projection contract but removes the extra `refresh` vs
   `publish` split from many scenario declarations by inferring `object` vs
-  `dto` from the target slot kind.
+  `tobject` from the target slot kind.
 
 - `fsm_factory` no longer needs the old `ResetFactory()` workaround to seed
   `world shared` defaults before simulation. Current C and LLVM runs now agree
@@ -83,7 +83,7 @@ examples such as the battle simulator and biome simulator.
   backend, where strategic/world report lines collapsed many numbers to the
   same value. `pgy_int_to_string` now returns a fresh string, so C and LLVM
   agree on large report-style outputs.
-- Projection no longer stops at direct host fields. `ToObject`/`ToDto` and
+- Projection no longer stops at direct host fields. `ToObject`/`ToTObject` and
   domain-local `refresh`/`publish` now resolve nested vessel-backed fields such
   as `cycle.age` or `traits.metabolism` automatically.
 - Zone ecology/state no longer has to explode into many `shared Int` fields.

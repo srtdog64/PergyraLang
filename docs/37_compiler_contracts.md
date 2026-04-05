@@ -39,7 +39,7 @@
 - import splice 흡수
 - 이름 바인딩 완료
 - 타입 추론/어노테이션 부착
-- `subject / class / object / dto / ability / role / relation / effect / zone / world / intent`를 first-class로 유지
+- `subject / class / object / tobject / ability / role / relation / effect / zone / world / intent`를 first-class로 유지
 
 출력:
 
@@ -167,7 +167,7 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 
 - RIR는 이미 scope-level summary를 넘어서 HIR CFG 기반 `flow-block[...]`를 materialize한다.
 - 각 flow fact는 `entry/exit`, `merged_from_join`, `widened_by_loop`, `entry_conflict`, `exit_conflict`를 가진다.
-- flow block은 resource fact가 없어도 버리지 않고, 최소한 `authority`, `projection`, `world-handoff`, `invalidation` conservative semantic flag를 `sem-entry/sem-exit`로 보존한다.
+- flow block은 resource fact가 없어도 버리지 않고, 최소한 `authority`, `projection`, `world-handoff`, `invalidation`, `authority-loss`, `projection-invalidation` conservative semantic flag를 `sem-entry/sem-exit`로 보존한다.
 - handle merge는 resource kind를 함께 읽는다.
   - `zone/world handle`은 ownership/borrow 중심
   - `relation/effect handle`은 detach/sync/dirty lifecycle 중심
@@ -218,6 +218,7 @@ MIR로 이월하는 것:
 - block별 `ssa_entry_versions` / `ssa_exit_versions`를 저장해 phi incoming과 use edge가 predecessor exit map을 직접 참조한다
 - reachable intent block마다 cleanup successor edge를 두고, cleanup convergence root 아래에 rollback block과 invalidation block을 분리한다
 - routine-level value summary를 만들어 def/use/live/cleanup 도달 여부를 후속 pass가 재사용할 수 있게 한다
+- lowering 안에서 실제 liveness 재계산과 dead `def/phi` 제거 DCE pass를 수행한다
 
 즉 MIR는 아직 full optimizer IR은 아니지만, pure placeholder를 넘어서
 `phi`, versioned local value, instruction-level use, routine-level value summary, cleanup convergence, rollback/invalidation edge를 직접 가지는 실행 그래프다.
@@ -342,7 +343,7 @@ projection sync는 부수 효과가 아니라 언어 계약이다.
 
 - `object`
   - 읽기 전용 스냅샷
-- `dto`
+- `tobject`
   - 경계 밖 전달용 projection
 
 ## 4.2 projection 연산
@@ -350,9 +351,9 @@ projection sync는 부수 효과가 아니라 언어 계약이다.
 - `refresh`
   - subject/object source에서 object target을 갱신
 - `publish`
-  - subject/object source에서 dto target을 갱신
+  - subject/object source에서 tobject target을 갱신
 - `bind`
-  - declaration site에서 object/dto target kind를 유지한 채 source를 연결
+  - declaration site에서 object/tobject target kind를 유지한 채 source를 연결
 
 ## 4.3 validity 상태
 
@@ -368,7 +369,7 @@ projection은 최소한 아래 상태를 가진다.
 
 - source subject/object가 mutate되면 projection은 자동 또는 명시 sync 전까지 `Dirty`
 - detach/unlink/authority loss/lifecycle end가 projection source를 끊으면 `Invalid` 또는 `Detached`
-- `publish`는 dto 전달 완료를 의미하지만 source mutation을 막지는 않음
+- `publish`는 tobject 전달 완료를 의미하지만 source mutation을 막지는 않음
 
 ## 4.4 zone/world 계약
 

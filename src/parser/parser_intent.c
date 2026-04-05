@@ -273,6 +273,25 @@ parse_intent_declaration(Parser *parser)
             continue;
         }
 
+        /* Intent-level who: / where: — propagated to steps that omit them */
+        if (parser_intent_match_keyword(parser, "who")) {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'who'");
+            parse_intent_name_list(parser,
+                &intent->data.intent_decl.default_who_names,
+                &intent->data.intent_decl.default_who_count,
+                "Expected involves alias after 'who:'");
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who clause");
+            continue;
+        }
+
+        if (parser_match(parser, TOKEN_WHERE)) {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'where'");
+            ast_destroy(intent->data.intent_decl.default_where_type);
+            intent->data.intent_decl.default_where_type = parse_type(parser);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level where clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "involves")) {
             Token alias = consume_name_token(parser, "Expected involves alias");
             ASTNode *involves = ast_create_intent_involves(alias.text);
@@ -312,5 +331,30 @@ parse_intent_declaration(Parser *parser)
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after intent body");
+
+    /* Propagate intent-level who/where to steps that omit them */
+    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
+        ASTNode *step = intent->data.intent_decl.steps[i];
+        if (step == NULL)
+            continue;
+
+        /* If step has no who, copy intent-level default */
+        if (step->data.intent_step.who_count == 0
+            && intent->data.intent_decl.default_who_count > 0) {
+            for (size_t j = 0; j < intent->data.intent_decl.default_who_count; j++) {
+                intent_append_name(&step->data.intent_step.who_names,
+                    &step->data.intent_step.who_count,
+                    intent->data.intent_decl.default_who_names[j]);
+            }
+        }
+
+        /* If step has no where, copy intent-level default */
+        if (step->data.intent_step.where_type == NULL
+            && intent->data.intent_decl.default_where_type != NULL) {
+            step->data.intent_step.where_type =
+                ast_clone(intent->data.intent_decl.default_where_type);
+        }
+    }
+
     return intent;
 }

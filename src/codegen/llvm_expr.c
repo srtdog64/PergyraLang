@@ -1062,7 +1062,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    if ((strcmp(callee_name, "ToDto") == 0 || strcmp(callee_name, "ToObject") == 0)
+    if ((strcmp(callee_name, "ToTObject") == 0 || strcmp(callee_name, "ToObject") == 0)
         && node->data.call.arg_count == 2) {
         return llvm_emit_subject_projection(node, ctx);
     }

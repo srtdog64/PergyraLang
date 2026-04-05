@@ -24,7 +24,7 @@ subject가 직접 맡지 않는 것:
 
 - 큰 상태 보유 --> vessel로 분리
 - 계산 세부사항 --> vessel의 func로 위임
-- 데이터 변환과 외부 표면 --> object/dto로 위임
+- 데이터 변환과 외부 표면 --> object/tobject로 위임
 
 ### vessel은 피동적 수용체다
 
@@ -35,7 +35,7 @@ vessel은 subject 안에서 운용되는 내부 수용체로, 다섯 가지 피�
 | 상태 피동 | HP, inventory, cooldown, status stack | `vessel HealthState { current: Int; max: Int; }` |
 | 행위 피동 | 스스로 결정하지 않지만 호출되면 수행 | `func ApplyDamage(self, amount: Int)` |
 | 자원 피동 | handle, slot, connection, device | `vessel ResourceHolder { conn: Slot<Connection>; }` |
-| 투영 피동 | object/dto로 나가는 projection source | vessel 기반 projection이 자연스러움 |
+| 투영 피동 | object/tobject로 나가는 projection source | vessel 기반 projection이 자연스러움 |
 | 규칙 피동 | effect 적용 대상, relation 연결 대상 | zone/world 규칙이 덮이는 지점 |
 
 한 줄 정의:
@@ -59,7 +59,7 @@ Pergyra에서 "method"라는 용어는 쓰지 않는다. 타입 안에 선언되
 - **hosted func**: 타입에 귀속된 func (self 바인딩)
 - **general func**: subject 안의 일반 func (사적 판단)
 
-func는 데이터에 붙은 계산이다. struct, vessel, object, dto, role, subject 안에서 사용된다.
+func는 데이터에 붙은 계산이다. struct, vessel, object, tobject, role, subject 안에서 사용된다.
 
 ```pergyra
 vessel HealthState {
@@ -116,7 +116,7 @@ action의 5가지 속성:
 
 | 키워드 | 동사 | 성격 |
 |--------|------|------|
-| struct / dto | func | 순수 계산 (상태 변이 없음) |
+| struct / tobject | func | 순수 계산 (상태 변이 없음) |
 | object | func | 피동 반응과 helper 계산 |
 | vessel | func | 읽기 전용 계산 (value-self, mutation 없음) |
 | role | func | ability 이행 (계약의 구체화) |
@@ -283,7 +283,7 @@ vessel    = 피동 상태+메서드 (기관/organ)
 subject   = 능동 오케스트레이터 (유기체)
 class     = 도구/사물 (값 타입, func 있음, action 없음)
 object    = 읽기 전용 투영 (그림자)
-dto       = 경계 밖 전송 투영 (소식/평판)
+tobject       = 경계 밖 전송 투영 (소식/평판)
 ability   = 행위 계약 (유전형질)
 role      = 행위 이행 (표현형)
 action    = 플롯 행위 (주인공의 행동)
@@ -367,7 +367,7 @@ ability  = 주인공의 재능
 role     = 주인공이 맡은 역할
 action   = 주인공의 행동 (플롯 비트)
 object   = 주인공의 모습 (스냅샷)
-dto      = 주인공에 대한 소문/편지
+tobject      = 주인공에 대한 소문/편지
 relation = 주인공 간의 관계
 effect   = 행동의 결과/시련
 zone     = 장면/무대
@@ -393,7 +393,7 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 ```
            상태 없음          상태 있음
          +----------------+----------------+
-행위 없음 | struct / dto    |                |
+행위 없음 | struct / tobject    |                |
          | 순수 값          |  (해당 없음)    |
          +----------------+----------------+
 행위 있음 | ability         | vessel         |
@@ -409,7 +409,7 @@ role    = "어떤 자격으로 행동하는가" (행위 자격)
 | 키워드 | func 허용 | action 허용 |
 |--------|----------|-------------|
 | struct | O | X |
-| dto | O | X |
+| tobject | O | X |
 | object | O | X |
 | vessel | O | X |
 | role | O (ability 이행) | X |

@@ -10,9 +10,9 @@
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
-- RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함. 최근 패스로 HIR CFG를 받아 `flow-block[...]` 단위의 branch/join lattice propagation, join conflict, loop widening 정보를 함께 덤프하며, `relation/effect/zone/world` nominal handle도 function param / intent participant / `using` / `transfer` 경로에서 explicit fact/op로 정규화함. 추가로 resource fact가 없는 CFG block도 `authority/projection/world-handoff/invalidation` conservative semantic flag를 유지해서 scope-level `semantics=`와 block-level `sem-entry/sem-exit` 표면에 남김
+- RIR는 scope-based explicit resource op/fact 계층으로 시작됐고, tracked resource/projection마다 `initial_state` / `final_state` / `last_op` / `transition error`를 가진 normalized state summary를 materialize함. 최근 패스로 HIR CFG를 받아 `flow-block[...]` 단위의 branch/join lattice propagation, join conflict, loop widening 정보를 함께 덤프하며, `relation/effect/zone/world` nominal handle도 function param / intent participant / `using` / `transfer` 경로에서 explicit fact/op로 정규화함. 추가로 resource fact가 없는 CFG block도 `authority/projection/world-handoff/invalidation/authority-loss/projection-invalidation` conservative semantic flag를 유지해서 scope-level `semantics=`와 block-level `sem-entry/sem-exit` 표면에 남김
 - DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency까지 직접 가진다
-- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. 추가로 C backend에는 branch/return-only top-level function subset과 intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음.
+- MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. 추가로 lowering 경로에서 실제 `liveness` 재계산과 dead `def/phi` 제거 DCE pass가 돌고, C backend에는 branch/return-only top-level function subset과 intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음.
 - LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
@@ -23,10 +23,10 @@
 - `intent` declaration이 parser/AST/semantic/HIR/codegen에 반영되어 `intent Name(args...)`, legacy `involves`, `step`, `exclusive`/`concurrent`, `priority`, `where`, `who`, repeated `on`, `pre`, `post`, `requires`, `authorized by`, `causes`, `expect`, `success`, `failure`를 검증하고 executable generated function으로 lowering함
 - `intent` runtime은 이제 same-subject conflict registry를 가져서 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행함. step-level `guard` / `invariant`도 실행되며, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작하고, `IntentHistoryCount()` / `IntentHistoryStep*()`로 마지막 completed intent의 typed step history도 읽을 수 있으며, `using: zoneAlias;`와 `transfer: source -> target;`를 통해 live zone instance sync, actor-to-zone-slot materialization, cross-zone handoff materialization도 수행함
 - hosted `func` / `action` body 안의 bare field access와 bare helper call은 이제 subject/class/relation/effect/zone/world 전반에서 implicit `self`로 해석되며, `self.`는 선택적 표기로 남음
-- `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `dto`는 더 좁은 transfer/projection declaration alias로 동작함.
+- `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `tobject`는 더 좁은 transfer/projection declaration alias로 동작함.
 - `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
-- `ToDto(TargetDto, subjectBinding)` 최소 dto projection surface가 semantic/C/LLVM backend에 반영됨.
-- relation/effect/zone/world 바깥의 direct `ToObject` / `ToDto`는 여전히 허용되지만 semantic warning으로 낮춰졌고, 권장 경로는 domain-local projection wiring임.
+- `ToTObject(TargetDto, subjectBinding)` 최소 tobject projection surface가 semantic/C/LLVM backend에 반영됨.
+- relation/effect/zone/world 바깥의 direct `ToObject` / `ToTObject`는 여전히 허용되지만 semantic warning으로 낮춰졌고, 권장 경로는 domain-local projection wiring임.
 - `entity`는 코어 언어 존재론에 넣지 않고, 필요하면 프레임워크/도메인 용어로만 취급함.
 - 상위 레이어로 갈수록 더 덜 구속적인 문맥 계층이라는 원칙을 채택함.
 
@@ -34,11 +34,11 @@
 
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
-- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/dto`, `ability/role/party/relation/effect/zone/systemic/world`, `event`, `actor`, `import/export/namespace`
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/tobject`, `ability/role/party/relation/effect/zone/systemic/world`, `event`, `actor`, `import/export/namespace`
 - `world`, `systemic`, `relation`, `effect`, `zone`은 declaration position에서만 키워드처럼 동작하고, local variable / expression position에서는 식별자로 그대로 쓸 수 있음
-- `subject`, `class`, `struct`, `object`, `dto` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
+- `subject`, `class`, `struct`, `object`, `tobject` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
 - 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
-- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `dto slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
+- `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
 - `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 declaration body에서 직접 가질 수 있음
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
 - `relation`, `effect`는 optional `for ...` header로 subject endpoint/target을 declaration header에 고정할 수 있음
@@ -48,9 +48,9 @@
 - `zone`은 `apply effectSlot to targetSlot`, `detach effectSlot from targetSlot`으로 local effect attachment/detachment를 최소 surface로 표현할 수 있음
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
-- `zone`은 `publish dtoSlot from subjectSlot`으로 subject -> dto projection 갱신을 명시할 수 있음
-- `zone`은 `bind slotName from sourceSlot`으로 object/dto target kind를 slot declaration에서 추론하는 projection sync surface를 가짐
-- `HasProjection(slotName)` builtin은 relation/effect/zone declaration / method 안에서 선언된 object/dto projection slot의 sync-ready 여부를 Bool query로 읽을 수 있음
+- `zone`은 `publish dtoSlot from subjectSlot`으로 subject -> tobject projection 갱신을 명시할 수 있음
+- `zone`은 `bind slotName from sourceSlot`으로 object/tobject target kind를 slot declaration에서 추론하는 projection sync surface를 가짐
+- `HasProjection(slotName)` builtin은 relation/effect/zone declaration / method 안에서 선언된 object/tobject projection slot의 sync-ready 여부를 Bool query로 읽을 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`은 `authority subjectSlot`으로 mutation/projection 승인 주체를 선언할 수 있음
 - `zone` authority는 `authority subjectSlot requires Ability[, Ability]`로 승인 주체가 수행 가능한 ability 계약까지 명시할 수 있음
@@ -87,9 +87,9 @@
 - C backend에서 `HasLayer(...)`는 zone rdlock + generation stale-warning을 감싼 generated helper로 lowering되고, `HasState(...)` / `HasZone(...)`는 zone/world method 문맥 안에서 실제 `self->__state_*` / `self->__zone_*` 필드 질의로 lowering됨
 - `zone`의 `apply/detach`는 `effect` declaration의 bindable target 수와 타입을 검사하며 object target도 허용함
 - `zone`의 `link/unlink`는 `relation` declaration의 bindable endpoint 수와 타입을 검사하며 object endpoint도 허용함
-- `zone` / `relation` / `effect`의 `refresh`/`publish`/`bind`는 object/dto slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 dto source는 금지함
+- `zone` / `relation` / `effect`의 `refresh`/`publish`/`bind`는 object/tobject slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 tobject source는 금지함
 - `zone` subject slot은 이제 bare `class`가 아니라 subject host (`subject`, `actor`)만 허용함
-- `ToObject` / `ToDto` source projection은 이제 bare `class`가 아니라 subject host binding만 허용함
+- `ToObject` / `ToTObject` source projection은 이제 bare `class`가 아니라 subject host binding만 허용함
 - `role`은 이제 non-subject nominal declaration에 바인딩되면 semantic error를 냄
 - `party` role slot은 이제 subject-bound role impl이 실제로 존재하는 ability만 협력 슬롯으로 받을 수 있음
 - `zone`의 `maintain`은 `effect/relation` contract를 재사용하고 duplicate/conflicting lifecycle rule에 warning을 냄
@@ -98,9 +98,9 @@
 - `zone`은 현재 subject가 0개이거나 4개를 크게 넘는 형태에 대해 운영 lint를 냄
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
-- `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToDto` source, subject copy restriction에 참여함
+- `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
 - `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
-- `dto`는 `object`보다 더 좁은 경계 전달/투영 형식으로 유지됨
+- `tobject`는 `object`보다 더 좁은 경계 전달/투영 형식으로 유지됨
 - `subject`는 이제 일반 `func`와 공적 `action`을 모두 가질 수 있음
 - `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함

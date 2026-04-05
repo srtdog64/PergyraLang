@@ -16,7 +16,7 @@ projection sync validity, authority/capability 경계의 고정 의미는 [`37_c
 Web/App              Pergyra                역할
 ────────────────────────────────────────────────────────────
 App 전체             world                  실행/신뢰/실패 경계
-Page / Route         object/dto surface     사용자에게 보이는 투영 표면
+Page / Route         object/tobject surface     사용자에게 보이는 투영 표면
 Execution Boundary   zone                   행위/권한/효과가 검증되는 문맥
 Component / Section  page fragment or zone  UI 조각 또는 행위 구역
 UI Element           subject / class        행동 주체 / 도구
@@ -29,7 +29,7 @@ Route Guard          requires / authorized by / intent gate
 
 - `page`는 사용자가 보는 표면이다
 - `zone`은 사용자가 행동하는 도메인 경계다
-- page는 보통 `object/dto` projection을 읽고, 입력을 `intent` 또는 `action`으로 바꿔 zone을 움직인다
+- page는 보통 `object/tobject` projection을 읽고, 입력을 `intent` 또는 `action`으로 바꿔 zone을 움직인다
 - API는 zone이 아니라 transport / adapter 경계다
 - 따라서 `page == zone`은 기본 규칙이 아니라 특수한 단순 케이스다
 
@@ -43,7 +43,7 @@ page / route
   -> request adapter
   -> Intent(...)
   -> zone/world mutation
-  -> object/dto response
+  -> object/tobject response
 ```
 
 즉:
@@ -58,15 +58,15 @@ page / route
 ```text
 /cart page
   -> POST /api/intents/CheckoutPurchase
-  -> HandleCheckout(request dto)
+  -> HandleCheckout(request tobject)
   -> CheckoutPurchase(cartZone, paymentZone, buyer)
-  -> CheckoutResponse(dto)
+  -> CheckoutResponse(tobject)
 ```
 
 따라서 `api/*.pgy`가 있다면 그 파일의 책임은 보통:
 
-- request dto
-- response dto
+- request tobject
+- response tobject
 - identity resolution
 - world/zone lookup
 - `Intent(...)` 호출
@@ -109,7 +109,7 @@ page/route는 zone 판단과 별개다. page는 보통 사용자 경험과 내�
 
 ```
 이건 "페이지"인가 "실행 경계"인가?
-  ├─ 페이지/라우트다 → object/dto projection surface로 먼저 본다
+  ├─ 페이지/라우트다 → object/tobject projection surface로 먼저 본다
   └─ 실행 경계다
       이 구역에서 행동하는 subject가 다른가?
   ├─ YES → zone 분리
@@ -189,7 +189,7 @@ subject SupportAgent
 // --- zone 선언 ---
 
 // 상품 정보는 보통 projection surface다.
-// 별도 행위 규칙이 없다면 zone보다 object/dto 쪽이 먼저다.
+// 별도 행위 규칙이 없다면 zone보다 object/tobject 쪽이 먼저다.
 object ProductSummary
 {
     let title: String;
@@ -257,7 +257,7 @@ world ShoppingApp
 
 ```text
 ProductPage
-  -> ProductSummary object/dto projection
+  -> ProductSummary object/tobject projection
   -> ReviewZone
   -> CartZone
   -> SupportChatZone
@@ -376,7 +376,7 @@ world MobileApp
 탭 전환은 UI 생명주기다.  
 그 자체가 곧 zone이라는 뜻은 아니다.
 
-- Home 탭: projection 위주면 object/dto surface
+- Home 탭: projection 위주면 object/tobject surface
 - Search 탭: 실제 검색 action이 있으면 `SearchZone`
 - Profile 탭: 수정/승인이 있으면 `AccountZone`
 - Notification 탭: 읽음 처리 규칙이 있으면 `NotificationZone`
@@ -489,17 +489,17 @@ Nano Zone:  자격이 같은 action들을 여러 zone에 → 합쳐라
 | 프레임워크 | 개념 | Pergyra 대응 |
 |-----------|------|-------------|
 | React | App | world |
-| React | Page (react-router) | object/dto projection surface + zone 조합 |
-| React | Component | zone, object, dto 중 하나의 소비 표면 |
+| React | Page (react-router) | object/tobject projection surface + zone 조합 |
+| React | Component | zone, object, tobject 중 하나의 소비 표면 |
 | React | useState/useReducer | vessel |
 | React | Context/Provider | zone의 subject slot |
 | Next.js | Route Group | world 내 zone 그룹 |
 | Next.js | Middleware | requires / authorized by |
 | Flutter | MaterialApp | world |
-| Flutter | Screen/Page | object/dto projection surface + zone 조합 |
+| Flutter | Screen/Page | object/tobject projection surface + zone 조합 |
 | Flutter | Widget | zone consumer, object view, 또는 class |
 | SwiftUI | App | world |
-| SwiftUI | View + NavigationStack | object/dto projection surface + zone 조합 |
+| SwiftUI | View + NavigationStack | object/tobject projection surface + zone 조합 |
 | SwiftUI | @State/@ObservedObject | vessel |
 
 ---
@@ -521,7 +521,7 @@ Nano Zone:  자격이 같은 action들을 여러 zone에 → 합쳐라
    - 본인만 승인 vs 관리자 승인 → zone 분리
 
 4. **읽기 전용 구역이 있는가?**
-   - action 없는 순수 표시 → 보통 object/dto projection surface
+   - action 없는 순수 표시 → 보통 object/tobject projection surface
    - 굳이 zone으로 올리는 것은 그 구역 자체가 독립 실행 경계일 때만
 
 5. **나눈 zone이 3개 이상이면 → 안티패턴 점검**

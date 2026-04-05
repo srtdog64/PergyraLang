@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- compiler/rir: refined conservative flow merge semantics with derived
+  `authority-loss` and `projection-invalidation` flags. `--rir` now preserves
+  these semantics at both scope and `flow-block` level, and regression tests
+  lock the new authority/projection merge behavior.
+- compiler/mir: promoted liveness and DCE from analysis-only scaffolding to
+  real lowering passes. MIR lowering now recomputes liveness, removes dead
+  `def` / dead `phi` instructions conservatively, records per-routine
+  `dce_removed_count`, and requires DCE state in MIR validation.
 - Fixed the `relation ... between ...` parser surface so `subject`, `class`,
   and `subject[]`/`class[]` endpoints are consumed through the normal
   name-token path instead of incorrectly requiring raw `TOKEN_IDENTIFIER`.

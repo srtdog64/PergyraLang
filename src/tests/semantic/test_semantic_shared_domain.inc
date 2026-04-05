@@ -299,16 +299,16 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone object/dto slot initializer can project from subject slot without direct-projection warning");
+    TEST("zone object/tobject slot initializer can project from subject slot without direct-projection warning");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
-            "    dto slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
+            "    tobject slot snapshot: PlayerDto = ToTObject(PlayerDto, player)\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -348,14 +348,14 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone dto slot and publish project dto from subject slot");
+    TEST("zone tobject slot and publish project tobject from subject slot");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
-            "    dto slot snapshot: PlayerDto = ToDto(PlayerDto, player)\n"
+            "    tobject slot snapshot: PlayerDto = ToTObject(PlayerDto, player)\n"
             "    publish snapshot from player\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -372,16 +372,16 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone bind infers object and dto projection targets from slot kind");
+    TEST("zone bind infers object and tobject projection targets from slot kind");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from player\n"
             "    bind snapshot from player\n"
             "}\n";
@@ -399,7 +399,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone publish requires dto slot target");
+    TEST("zone publish requires tobject slot target");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -428,11 +428,11 @@ test_shared_memory_features(void)
         const char *source =
             "subject Player { let hp: Int; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; }\n"
             "zone BrokenZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    refresh player from player\n"
             "    refresh playerView from packet\n"
             "}\n";
@@ -450,16 +450,16 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone bind rejects non object/dto targets and dto sources");
+    TEST("zone bind rejects non object/tobject targets and tobject sources");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; }\n"
             "zone BrokenZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    bind player from player\n"
             "    bind playerView from packet\n"
             "}\n";
@@ -999,16 +999,16 @@ test_shared_memory_features(void)
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    refresh snapshot from source\n"
             "    publish packet from target\n"
             "}\n"
             "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    refresh view from bearer\n"
             "    publish packet from bearer\n"
             "}\n";
@@ -1027,21 +1027,21 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("relation/effect bind infers object and dto projection targets from slot kind");
+    TEST("relation/effect bind infers object and tobject projection targets from slot kind");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    bind snapshot from source\n"
             "    bind packet from target\n"
             "}\n"
             "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
-            "    dto slot packet: PlayerDto\n"
+            "    tobject slot packet: PlayerDto\n"
             "    bind view from bearer\n"
             "    bind packet from bearer\n"
             "}\n";
@@ -1267,6 +1267,41 @@ test_shared_memory_features(void)
         ASTNode *rel = program->data.program.statements[1];
         EXPECT(rel->data.relation_decl.between_left_many);
         EXPECT(rel->data.relation_decl.between_right_many);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone link uses relation between subject and object/class contracts");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object Villager { let mood: Int; }\n"
+            "class Item { let name: String; }\n"
+            "relation Marriage between subject, object { shared years: Int = 0 }\n"
+            "relation Ownership between subject, class { shared acquired_at: Int = 0 }\n"
+            "zone Town {\n"
+            "    subject slot player: Player\n"
+            "    object slot wife: Villager\n"
+            "    object slot wrongItemView: Villager\n"
+            "    object slot wrongWifeView: Villager\n"
+            "    object slot itemOwnerView: Villager\n"
+            "    subject slot backup: Player\n"
+            "    relation slot marriage: Marriage\n"
+            "    relation slot ownership: Ownership\n"
+            "    link marriage between player, wife\n"
+            "    link ownership between player, wrongItemView\n"
+            "    link marriage between player, backup\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count >= 2);
 
         semantic_result_destroy(result);
         ast_destroy(program);

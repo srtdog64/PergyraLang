@@ -207,6 +207,25 @@ find_value_summary_prefix_with_use(const MIRRoutine *routine, const char *prefix
     return best;
 }
 
+static bool
+routine_has_result_prefix(const MIRRoutine *routine, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    if (routine == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (inst->result_name != NULL
+                && strncmp(inst->result_name, prefix, prefix_len) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static void
 test_mir_lowering(void)
 {
@@ -389,11 +408,47 @@ test_mir_lowering(void)
                && has_branch
                && has_return
                && merge->has_liveness
+               && merge->has_dce
                && merge->live_value_count > 0
                && merge->has_use_def_summary
                && score_summary != NULL
                && score_summary->use_count > 0
                && score_summary->live_out_block_count > 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR DCE removes dead SSA defs and dead phi merges");
+    {
+        const char *src =
+            "func DeadMerge(flag: Bool) -> Int {\n"
+            "    let live = 1;\n"
+            "    let dead = 0;\n"
+            "    if flag {\n"
+            "        dead = 2;\n"
+            "    } else {\n"
+            "        dead = 3;\n"
+            "    }\n"
+            "    return live;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *dead_merge = NULL;
+        const MIRValueSummary *live_summary = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            dead_merge = find_mir_routine(mir, "DeadMerge", MIR_SCOPE_FUNCTION);
+        if (dead_merge != NULL)
+            live_summary = find_value_summary_prefix_with_use(dead_merge, "live.");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && dead_merge != NULL
+               && dead_merge->has_dce
+               && dead_merge->dce_removed_count > 0
+               && live_summary != NULL
+               && !routine_has_result_prefix(dead_merge, "dead."));
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

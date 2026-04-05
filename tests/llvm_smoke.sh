@@ -210,7 +210,7 @@ subject Player {
     let name: String;
 }
 
-dto PlayerDto {
+tobject PlayerDto {
     hp: Int;
     name: String;
 }
@@ -221,7 +221,7 @@ object PlayerView {
 
 func Main() -> Void {
     let player: Player = Player(42, "neo");
-    let snapshot: PlayerDto = ToDto(PlayerDto, player);
+    let snapshot: PlayerDto = ToTObject(PlayerDto, player);
     let view: PlayerView = ToObject(PlayerView, player);
     Log(snapshot.hp);
     Log(view.hp);
@@ -284,14 +284,14 @@ object PlayerView {
     hp: Int;
 }
 
-dto PlayerDto {
+tobject PlayerDto {
     hp: Int;
     name: String;
 }
 
 relation TrustedLink for source: Player, target: Player {
     object slot snapshot: PlayerView
-    dto slot packet: PlayerDto
+    tobject slot packet: PlayerDto
     refresh snapshot from source
     publish packet from target
 
@@ -305,7 +305,7 @@ relation TrustedLink for source: Player, target: Player {
 
 effect Poisoned for bearer: Player {
     object slot view: PlayerView
-    dto slot packet: PlayerDto
+    tobject slot packet: PlayerDto
     refresh view from bearer
     publish packet from bearer
 
@@ -335,7 +335,7 @@ object PlayerView {
     hp: Int;
 }
 
-dto PlayerDto {
+tobject PlayerDto {
     hp: Int;
 }
 
@@ -346,7 +346,7 @@ zone BattleZone {
     subject slot player: Player
     subject slot enemy: Player
     object slot playerView: PlayerView
-    dto slot snapshot: PlayerDto
+    tobject slot snapshot: PlayerDto
     effect slot poison: Poisoned
     relation slot trust: TrustedLink
     state poisoned: effect poison on player
@@ -423,7 +423,7 @@ object PlayerView {
     hp: Int;
 }
 
-dto PlayerDto {
+tobject PlayerDto {
     name: String;
 }
 
@@ -433,7 +433,7 @@ effect Poisoned for bearer: Player {
 }
 
 relation TrustedLink for source: Player, target: Player {
-    dto slot packet: PlayerDto
+    tobject slot packet: PlayerDto
     publish packet from target
 }
 

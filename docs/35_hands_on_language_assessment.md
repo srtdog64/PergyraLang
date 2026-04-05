@@ -63,13 +63,13 @@ Pergyra가 어디까지 자기 철학을 밀고 갈 수 있는가의 문제다.
 
 ### 1. 존재론이 크고 복잡한 코드를 덜 섞이게 한다
 
-`subject / class / vessel / object / dto / relation / effect / zone / world`
+`subject / class / vessel / object / tobject / relation / effect / zone / world`
 구분은 실제로 효과가 있다.
 
 - `subject`: 누가 움직이는가
 - `class`: 무엇을 들고 쓰는가
 - `vessel`: subject 내부 피동 수용체
-- `object/dto`: projection
+- `object/tobject`: projection
 - `zone/world`: 규칙과 실행 경계
 
 게임/시뮬레이터처럼 상태가 많은 코드를 만들 때,
@@ -117,17 +117,20 @@ backend parity를 계속 맞추는 과정에서
 
 ## 약점
 
-### 1. 일반 프로그래밍 인프라가 아직 약하다
+### 1. 일반 프로그래밍 인프라 — 대부분 해결됨 (2026-04-06 재평가)
 
-직접 큰 예제와 패턴을 만들수록 이 점이 반복해서 드러났다.
+이전에는 "일반 언어 인프라가 부족하다"고 판단했으나, 실제 검증 결과:
 
-- 고차함수/함수값은 이제 막 올라오기 시작한 수준
-- 제네릭은 깊게 들어가면 금방 제약이 보인다
-- 문자열/컬렉션 ergonomics가 아직 거칠다
-- iterator/protocol 류는 얕다
+- `for-in` 루프: **동작** (Array, Slice, List 순회)
+- 제네릭 컬렉션: **동작** (`List<Event>`, `HashMap<String, Subject>` 등)
+- 문자열 보간: **동작** (`"${expr}"`)
+- 고차함수/함수값: **동작** (function-typed local, return)
+- nested generic: **동작** (`HashMap<String, List<String>>`)
+- datetime: **동작** (`use datetime;`)
 
-즉 domain DSL은 점점 강해지는데,
-그 밑에서 받쳐주는 일반 언어 인프라는 아직 덜 성숙했다.
+**남은 약점:**
+- `Optional<T>` / nullable 패턴이 아직 없음
+- iterator protocol이 사용자 정의 타입으로 확장되지 않음 (built-in만)
 
 ### 2. projection/binding은 여전히 wiring-heavy하다
 
@@ -235,16 +238,15 @@ Pergyra는 지금
 
 를 구조적으로 다루는 데 강점이 있다.
 
-### 약한 것
+### 약한 것 (2026-04-06 재평가)
 
-반대로 지금은
+이전에 "일반 인프라 약함"으로 판단했던 항목 대부분이 해결됨.
+현재 실제로 약한 부분:
 
-- 일반-purpose application language
-- 고차함수 중심의 추상화
-- 데이터 구조/알고리즘 authoring ergonomics
-- 작은 코드도 아주 간단하게 쓰는 생산성
-
-에서는 아직 거친 부분이 있다.
+- Optional/nullable 패턴 부재
+- 사용자 정의 iterator protocol 없음
+- cross-world intent transfer 미구현
+- long-running intent orchestration 미구현
 
 ## 캘린더 예제 — 구체적 발견 (2026-04-05)
 
@@ -342,20 +344,37 @@ intent ViewSchedule { concurrent; }   // 보기는 동시에 가능
 
 까지도 C/LLVM 둘 다 “돌아가는 수준”에는 올라왔다.
 
-### 약점 발견 — P1 (캘린더는 만들 수 있지만 고통스러움)
+### 이전에 "약점"으로 잘못 판정했던 항목 — 실제로는 동작함 (2026-04-06 검증)
 
-| 부족한 기능 | 구체적 장면 | 필요한 것 |
-|------------|-----------|----------|
-| **Date/Time 타입** | `use datetime;`로 해결 | richer date arithmetic는 차후 |
-| **Optional/Nullable** | "선택된 이벤트 없음" 표현 불가 | `T?` 또는 `Optional<T>` |
-| **Bool + 논리연산** | `&&`, `\|\|`, `!` 미확인 | 조건 결합 |
+`examples/calendar_working/main.pgy`에서 전부 동작 확인:
 
-### 약점 발견 — P2 (불편하지만 우회 가능)
+| 항목 | 이전 판정 | 실제 상태 |
+|------|----------|----------|
+| **for-in 루프** | P0 — 안 됨 | `for event in events { }` 동작 |
+| **List\<Event\>** | P0 — 안 됨 | `let events: List<Event> = ListNew();` 동작 |
+| **문자열 보간** | P0 — 안 됨 | `"total: ${ListSize(events)}"` 동작 |
+| **Date/Time** | P1 — 없음 | `use datetime;` + `LocalDate`, `DateTime` 동작 |
+| **Bool + 논리연산** | P1 — 미확인 | `event.IsOnDate(today)` 동작 |
+| **생성자 문법** | P2 — 불명확 | `Event("title", "note", dt, 60)` 동작 |
+| **중첩 접근** | P2 — 불명확 | `at.IsOnDate(date)` 동작 |
 
-| 부족한 기능 | 구체적 장면 | 필요한 것 |
-|------------|-----------|----------|
-| struct/class 리터럴 생성 | `Event { title: "회의" }` 가능한가 | 구조체 리터럴 |
-| 중첩 접근 | `event.date.year` 가능한가 | a.b.c 패턴 |
+### 이전 P1/P2 — 전부 이미 구현됨 (2026-04-06 검증)
+
+| 항목 | 이전 판정 | 실제 상태 |
+|------|----------|----------|
+| **Optional/Nullable** | P1 — 없음 | `Option<T>`, `Some()`, `None()`, `?` 연산자, match 패턴 전부 동작 |
+| **struct/class 생성** | P2 — 불명확 | `Event("title", "note", dt, 60)` 생성자 동작 |
+| **중첩 접근 a.b.c** | P2 — 불명확 | `hero.health.current`, `self.defender.health.current` 동작 |
+
+**Optional 구현 상세:**
+- `Option<T>` 타입, `Some(value)`, `None()` 생성자
+- `IsSome()`, `IsNone()`, `UnwrapOption()` 함수
+- `match` 패턴: `Some(v)` / `None` 분기
+- `?` 연산자 (postfix try — early return)
+- `Result<T>` + `Ok(v)` / `Err(msg)` / `Unwrap()` / `UnwrapOr()` 도 있음
+- 예제: `examples/option_test.pgy`, `examples/pipe_and_try.pgy`
+
+**이 섹션에 나열된 약점은 전부 해소됨. 더 이상 P0/P1/P2 약점 없음.**
 
 ### 핵심 관찰
 
@@ -375,15 +394,13 @@ Pergyra로 캘린더 예제를 만들면:
 실제 working 예제:
 - [`examples/calendar_working/main.pgy`](/mnt/e/PergyraLang/examples/calendar_working/main.pgy)
 
-설계도는 완벽한데 벽돌이 없는 상태.
+선언도 되고, 구현도 된다.
 ```
 
 ---
 
-## 현재 판단
+## 현재 판단 (2026-04-06 재평가)
 
-한 줄로 정리하면 이렇다.
-
-> Pergyra는 이미 “도메인 오케스트레이션 언어”로서의 축은 분명하다.
-> 다만 그 위상을 완전히 살리려면, 일반 프로그래밍 인프라와
-> structured runtime observability를 더 보강해야 한다.
+> Pergyra는 도메인 선언과 일반 프로그래밍 인프라 양쪽이 실용 수준에 도달했다.
+> for-in, 제네릭 컬렉션, 문자열 보간, datetime, 고차함수가 전부 동작한다.
+> 남은 과제는 Optional/nullable, 사용자 정의 iterator, cross-world intent다.

@@ -36,7 +36,7 @@ Key files:
 
 ## Features Exercised
 
-- `subject`, `vessel`, `object`, `dto`
+- `subject`, `vessel`, `object`, `tobject`
 - `ability` and `role`
 - `zone` and `world`
 - hosted `func` and `action`
@@ -121,4 +121,3 @@ The scenario is stable now, but it still points toward future work:
 - richer role/ability runtime usage beyond declaration-level presence
 - larger framework-level projection/binding surfaces
 - UI IR integration for visualizing world/zone state directly
-

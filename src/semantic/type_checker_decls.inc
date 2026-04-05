@@ -996,7 +996,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 if (detail_decl == NULL
                     || detail_decl->data.domain_slot.is_subject) {
                     semantic_error(ctx, state,
-                        "World state '%s' references unknown object/dto projection slot '%s' in zone '%s'",
+                        "World state '%s' references unknown object/tobject projection slot '%s' in zone '%s'",
                         state->data.world_state.state_name != NULL
                             ? state->data.world_state.state_name : "<unknown>",
                         detail_name,
@@ -1771,7 +1771,7 @@ type_check_projection_contract(ASTNode **slots,
     if (object_slot->data.domain_slot.is_subject
         || object_slot->data.domain_slot.is_vessel) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must be an object/dto slot",
+            "%s %s target slot '%s' must be an object/tobject slot",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
@@ -1783,7 +1783,7 @@ type_check_projection_contract(ASTNode **slots,
             : site->data.zone_refresh.requires_dto);
     if (requires_dto && !object_slot->data.domain_slot.is_dto) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must be a dto slot",
+            "%s %s target slot '%s' must be a tobject slot",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>");
         return true;
@@ -1798,7 +1798,7 @@ type_check_projection_contract(ASTNode **slots,
     target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must use an object/dto projection type, got '%s'",
+            "%s %s target slot '%s' must use an object/tobject projection type, got '%s'",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             target_type->name != NULL ? target_type->name : "<unknown>");
@@ -1808,7 +1808,7 @@ type_check_projection_contract(ASTNode **slots,
         NominalDeclKind expected_kind =
             requires_dto ? NOMINAL_DECL_DTO : NOMINAL_DECL_OBJECT;
         const char *expected_label =
-            requires_dto ? "dto" : "object";
+            requires_dto ? "tobject" : "object";
 
         if (target_decl->data.class_decl.nominal_kind != expected_kind) {
             semantic_error(ctx, site,
@@ -1823,7 +1823,7 @@ type_check_projection_contract(ASTNode **slots,
 
     if (source_slot->data.domain_slot.is_dto) {
         semantic_error(ctx, site,
-            "%s %s source slot '%s' cannot be a dto slot",
+            "%s %s source slot '%s' cannot be a tobject slot",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type != NULL && source_type->name != NULL
@@ -1868,7 +1868,7 @@ type_check_projection_contract(ASTNode **slots,
         }
         if (source_status == 2) {
             semantic_error(ctx, site,
-                "%s %s target field '%s' is ambiguous in source slot '%s'; rename the field or expose it through a dedicated object/dto field",
+                "%s %s target field '%s' is ambiguous in source slot '%s'; rename the field or expose it through a dedicated object/tobject field",
                 owner_label, action_name,
                 target_field->name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
@@ -1966,6 +1966,49 @@ type_check_zone_effect_contract(ASTNode *zone,
 }
 
 static bool
+relation_slot_matches_between_kind(ASTNode *slot,
+                                   Type *slot_type,
+                                   const char *kind,
+                                   SemanticContext *ctx)
+{
+    ASTNode *decl;
+
+    if (slot == NULL || kind == NULL)
+        return false;
+
+    if (strcmp(kind, "subject") == 0)
+        return slot->data.domain_slot.is_subject;
+
+    if (strcmp(kind, "object") == 0) {
+        if (slot->data.domain_slot.is_subject)
+            return false;
+        if (slot->data.domain_slot.is_dto)
+            return true;
+        decl = find_named_class_decl_local(ctx->program_root,
+            slot_type != NULL ? slot_type->name : NULL);
+        return decl != NULL
+            && decl->data.class_decl.is_struct
+            && (decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
+                || decl->data.class_decl.nominal_kind == NOMINAL_DECL_DTO);
+    }
+
+    if (strcmp(kind, "class") == 0) {
+        if (slot->data.domain_slot.is_subject || slot->data.domain_slot.is_dto)
+            return false;
+        decl = find_named_class_decl_local(ctx->program_root,
+            slot_type != NULL ? slot_type->name : NULL);
+        if (decl == NULL)
+            return true;
+        return decl->data.class_decl.nominal_kind != NOMINAL_DECL_OBJECT
+            && decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO;
+    }
+
+    return slot_type != NULL
+        && slot_type->name != NULL
+        && strcmp(slot_type->name, kind) == 0;
+}
+
+static bool
 type_check_zone_relation_contract(ASTNode *zone,
                                   ASTNode *link_like,
                                   const char *relation_slot_name,
@@ -1985,6 +2028,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     Type *decl_left_type;
     Type *decl_right_type;
     size_t endpoint_count;
+    const char *between_left;
+    const char *between_right;
 
     relation_slot = find_zone_relation_slot(zone, relation_slot_name);
     left_slot = find_zone_domain_slot(zone, left_slot_name);
@@ -1996,6 +2041,36 @@ type_check_zone_relation_contract(ASTNode *zone,
         relation_slot->data.zone_layer_slot.layer_type);
     if (relation_decl == NULL)
         return false;
+
+    between_left = relation_decl->data.relation_decl.between_left;
+    between_right = relation_decl->data.relation_decl.between_right;
+    left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
+    right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
+
+    if (between_left != NULL && between_right != NULL) {
+        if (!relation_slot_matches_between_kind(left_slot, left_type, between_left, ctx)) {
+            semantic_error(ctx, link_like,
+                "Zone %s left slot '%s' does not satisfy relation '%s' between-left contract '%s'",
+                action_name,
+                left_slot_name != NULL ? left_slot_name : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                between_left);
+        }
+
+        if (!relation_slot_matches_between_kind(right_slot, right_type, between_right, ctx)) {
+            semantic_error(ctx, link_like,
+                "Zone %s right slot '%s' does not satisfy relation '%s' between-right contract '%s'",
+                action_name,
+                right_slot_name != NULL ? right_slot_name : "<unknown>",
+                relation_decl->data.relation_decl.name != NULL
+                    ? relation_decl->data.relation_decl.name
+                    : "<unknown>",
+                between_right);
+        }
+        return true;
+    }
 
     endpoint_count = count_bindable_domain_slots(relation_decl->data.relation_decl.slots,
         relation_decl->data.relation_decl.slot_count,
@@ -2023,8 +2098,6 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (decl_left == NULL || decl_right == NULL)
         return false;
 
-    left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
-    right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
     decl_left_type = resolve_type_node(decl_left->data.domain_slot.type, ctx);
     decl_right_type = resolve_type_node(decl_right->data.domain_slot.type, ctx);
 
@@ -2196,7 +2269,9 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         node->data.relation_decl.slot_count,
         node->data.relation_decl.refreshes,
         node->data.relation_decl.refresh_count);
-    if (endpoint_count == 0) {
+    if (endpoint_count == 0
+        && !(node->data.relation_decl.between_left != NULL
+            && node->data.relation_decl.between_right != NULL)) {
         semantic_warning(ctx, node,
             "Relation '%s' should declare at least one endpoint slot; use 'for name: Type' or a bindable subject/object slot",
             node->data.relation_decl.name);

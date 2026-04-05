@@ -27,6 +27,18 @@ rir_dump_flow_semantics(FILE *out, unsigned int flags)
         if (wrote)
             fputc('|', out);
         fputs("invalidation", out);
+        wrote = true;
+    }
+    if ((flags & RIR_FLOW_AUTHORITY_LOSS) != 0U) {
+        if (wrote)
+            fputc('|', out);
+        fputs("authority-loss", out);
+        wrote = true;
+    }
+    if ((flags & RIR_FLOW_PROJECTION_INVALIDATION) != 0U) {
+        if (wrote)
+            fputc('|', out);
+        fputs("projection-invalidation", out);
     }
 }
 

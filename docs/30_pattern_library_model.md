@@ -17,9 +17,9 @@ Pergyra의 라이브러리는 단순 API 모음이 아니라 **패턴 라이브�
 - `subject`: 패턴의 능동 orchestrator
 - `class`: 패턴이 소비하는 도구/정책/카드/설정 값
 - `object`: 패턴의 수동 view/state target
-- `dto`: 패턴의 외부 전송 packet
+- `tobject`: 패턴의 외부 전송 packet
 
-즉 scaffold와 라이브러리 설계의 첫 단계는 "무슨 패턴인가"보다 "이 host가 `subject/class/object/dto` 중 무엇인가"이다.
+즉 scaffold와 라이브러리 설계의 첫 단계는 "무슨 패턴인가"보다 "이 host가 `subject/class/object/tobject` 중 무엇인가"이다.
 
 ## Generic-to-Domain Injection
 
@@ -86,7 +86,7 @@ Pergyra 코어는 이미 다음 존재론을 갖고 있다.
 - `subject`
 - `vessel`
 - `object`
-- `dto`
+- `tobject`
 - `ability`
 - `role`
 - `relation`

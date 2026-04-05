@@ -33,8 +33,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !mir_populate_instructions(&routine)
             || !mir_apply_ssa_rename(&routine)
             || !mir_populate_use_edges(&routine)
-            || !mir_compute_liveness(&routine)
             || !mir_materialize_cleanup_edges(&routine)
+            || !mir_recompute_analysis(&routine)
             || !append_routine(mir, routine)) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
@@ -43,7 +43,87 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         }
     }
 
+    if (!mir_run_dce_pass(mir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
+
     return mir;
+}
+
+bool
+mir_run_liveness_pass(MIRProgram *mir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (mir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("MIR program is null");
+        return false;
+    }
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        if (!mir_recompute_analysis(&mir->routines[i])) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "failed to compute liveness for MIR routine '%s'",
+                    mir->routines[i].name != NULL ? mir->routines[i].name : "(anonymous)");
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
+bool
+mir_run_dce_pass(MIRProgram *mir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (mir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("MIR program is null");
+        return false;
+    }
+
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        MIRRoutine *routine = &mir->routines[i];
+        bool changed = false;
+
+        routine->dce_removed_count = 0;
+        routine->has_dce = false;
+        if (!mir_recompute_analysis(routine)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "failed to prepare MIR routine '%s' for DCE",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            return false;
+        }
+
+        do {
+            changed = false;
+            if (!mir_run_dce_on_routine(routine, &changed)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "failed to run DCE on MIR routine '%s'",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                return false;
+            }
+            if (changed && !mir_recompute_analysis(routine)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "failed to recompute MIR analysis after DCE for routine '%s'",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                return false;
+            }
+        } while (changed);
+
+        routine->has_dce = true;
+    }
+
+    return true;
 }
 
 void
@@ -162,6 +242,14 @@ mir_validate(const MIRProgram *mir, char **error_message)
             }
             return false;
         }
+        if (routine->block_count > 0 && !routine->has_dce) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' is missing DCE pass state",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+            }
+            return false;
+        }
         if (routine->has_rollback_block && !routine->has_cleanup_block) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -240,7 +328,7 @@ mir_dump(const MIRProgram *mir, FILE *out)
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         fprintf(out,
-                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu\n",
+                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu dce=%zu\n",
                 i,
                 mir_scope_kind_name(routine->kind),
                 routine->name != NULL ? routine->name : "(anonymous)",
@@ -253,7 +341,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 routine->renamed_value_count,
                 routine->cleanup_edge_count,
                 routine->use_edge_count,
-                routine->live_value_count);
+                routine->live_value_count,
+                routine->dce_removed_count);
         if (routine->has_use_def_summary) {
             fprintf(out, "    values=%zu\n", routine->value_summary_count);
             for (size_t j = 0; j < routine->value_summary_count; j++) {

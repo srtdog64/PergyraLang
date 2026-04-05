@@ -9,6 +9,10 @@
 
 #include "mir_base.inc"
 
+static void mir_clear_block_name_set(const char ***names, size_t *count);
+static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
+static bool mir_compute_liveness(MIRRoutine *routine);
+
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block, const HIRBasicBlock *hir_block)
 {
@@ -530,6 +534,7 @@ mir_populate_use_edges(MIRRoutine *routine)
         const HIRBasicBlock *hir_block = &hir_routine->cfg.blocks[block_id];
         MIRBasicBlock *block = &routine->blocks[block_id];
         size_t *current_versions;
+        size_t stmt_index = 0;
         if (block->ssa_entry_versions == NULL || block->ssa_version_count != ssa_name_count)
             continue;
         for (size_t n = 0; n < ssa_name_count; n++) {
@@ -572,6 +577,48 @@ mir_populate_use_edges(MIRRoutine *routine)
                 continue;
             }
             if (inst->kind == MIR_INST_DEF) {
+                while (hir_block != NULL && stmt_index < hir_block->statement_count) {
+                    ASTNode *stmt = hir_block->statements[stmt_index];
+                    if (stmt != NULL
+                        && (stmt->type == AST_LET_DECL
+                            || (stmt->type == AST_ASSIGNMENT
+                                && stmt->data.assignment.target != NULL
+                                && stmt->data.assignment.target->type == AST_IDENTIFIER))) {
+                        break;
+                    }
+                    stmt_index++;
+                }
+                if (hir_block != NULL && stmt_index < hir_block->statement_count) {
+                    ASTNode *stmt = hir_block->statements[stmt_index];
+                    ASTNode *expr = NULL;
+                    const char **raw_uses = NULL;
+                    size_t raw_use_count = 0;
+                    if (stmt != NULL && stmt->type == AST_LET_DECL)
+                        expr = stmt->data.let_decl.initializer;
+                    else if (stmt != NULL && stmt->type == AST_ASSIGNMENT)
+                        expr = stmt->data.assignment.value;
+                    if (expr != NULL
+                        && !mir_collect_expr_identifier_uses(expr, &raw_uses, &raw_use_count)) {
+                        free((void *)raw_uses);
+                        free(current_versions);
+                        free((void *)ssa_names);
+                        return false;
+                    }
+                    for (size_t j = 0; j < raw_use_count; j++) {
+                        int idx = mir_find_ssa_name_index(ssa_names, ssa_name_count, raw_uses[j]);
+                        if (idx >= 0) {
+                            if (!mir_append_versioned_use(inst, raw_uses[j], current_versions[idx])) {
+                                free((void *)raw_uses);
+                                free(current_versions);
+                                free((void *)ssa_names);
+                                return false;
+                            }
+                            routine->use_edge_count++;
+                        }
+                    }
+                    free((void *)raw_uses);
+                    stmt_index++;
+                }
                 if (inst->result_name != NULL) {
                     char base[128];
                     size_t version = 0;
@@ -853,6 +900,130 @@ mir_build_value_summaries(MIRRoutine *routine)
     }
 
     routine->has_use_def_summary = true;
+    return true;
+}
+
+static bool
+mir_free_instruction_payload(MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return true;
+    free((void *)inst->result_name);
+    inst->result_name = NULL;
+    for (size_t i = 0; i < inst->use_count; i++)
+        free((void *)inst->uses[i]);
+    free((void *)inst->uses);
+    inst->uses = NULL;
+    inst->use_count = 0;
+    if (inst->phi_incomings != NULL) {
+        for (size_t i = 0; i < inst->phi_incoming_count; i++)
+            free((void *)inst->phi_incomings[i].value_name);
+    }
+    free(inst->phi_incomings);
+    inst->phi_incomings = NULL;
+    inst->phi_incoming_count = 0;
+    return true;
+}
+
+static void
+mir_reset_routine_analysis(MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return;
+    routine->live_value_count = 0;
+    routine->has_liveness = false;
+    routine->has_use_def_summary = false;
+    for (size_t i = 0; i < routine->value_summary_count; i++)
+        free((void *)routine->value_summaries[i].name);
+    free(routine->value_summaries);
+    routine->value_summaries = NULL;
+    routine->value_summary_count = 0;
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        MIRBasicBlock *block = &routine->blocks[i];
+        mir_clear_block_name_set(&block->def_names, &block->def_name_count);
+        mir_clear_block_name_set(&block->use_names, &block->use_name_count);
+        mir_clear_block_name_set(&block->live_in_names, &block->live_in_name_count);
+        mir_clear_block_name_set(&block->live_out_names, &block->live_out_name_count);
+    }
+}
+
+static bool
+mir_recompute_analysis(MIRRoutine *routine)
+{
+    mir_reset_routine_analysis(routine);
+    return mir_compute_liveness(routine);
+}
+
+static bool
+mir_remove_instruction(MIRBasicBlock *block, size_t index)
+{
+    if (block == NULL || index >= block->instruction_count)
+        return false;
+    mir_free_instruction_payload(&block->instructions[index]);
+    if (index + 1 < block->instruction_count) {
+        memmove(&block->instructions[index],
+                &block->instructions[index + 1],
+                (block->instruction_count - index - 1) * sizeof(MIRInstruction));
+    }
+    block->instruction_count--;
+    if (block->instruction_count == 0) {
+        free(block->instructions);
+        block->instructions = NULL;
+    } else {
+        MIRInstruction *shrunk = realloc(block->instructions,
+                                         block->instruction_count * sizeof(MIRInstruction));
+        if (shrunk != NULL)
+            block->instructions = shrunk;
+    }
+    return true;
+}
+
+static bool
+mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *inst)
+{
+    int idx;
+    const MIRValueSummary *summary;
+
+    if (routine == NULL || inst == NULL || inst->result_name == NULL)
+        return false;
+    if (inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
+        return false;
+
+    idx = mir_find_value_summary(routine, inst->result_name);
+    if (idx < 0)
+        return false;
+    summary = &routine->value_summaries[idx];
+    return summary->use_count == 0
+           && summary->live_in_block_count == 0
+           && summary->live_out_block_count == 0
+           && !summary->reaches_cleanup;
+}
+
+static bool
+mir_run_dce_on_routine(MIRRoutine *routine, bool *changed_out)
+{
+    bool changed = false;
+
+    if (changed_out != NULL)
+        *changed_out = false;
+    if (routine == NULL)
+        return false;
+
+    for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
+        MIRBasicBlock *block = &routine->blocks[block_id];
+        for (size_t inst_id = block->instruction_count; inst_id-- > 0;) {
+            if (!mir_instruction_is_dead_value(routine, &block->instructions[inst_id]))
+                continue;
+            if (!mir_remove_instruction(block, inst_id))
+                return false;
+            routine->dce_removed_count++;
+            changed = true;
+        }
+    }
+
+    if (changed_out != NULL)
+        *changed_out = changed;
     return true;
 }
 

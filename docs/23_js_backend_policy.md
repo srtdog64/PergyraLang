@@ -58,7 +58,7 @@ Pergyra 코어에 `extends` / `super` / prototype-chain 중심 사고를 들이�
 - 필요하면 JS `class` 또는 plain factory/object로 lowering 가능
 - 코어 의미론상 `subject`와 동일시하지 않는다
 
-### object / dto
+### object / tobject
 
 - projection / transfer representation
 - field-only surface를 우선
@@ -87,7 +87,7 @@ Pergyra 코어에 `extends` / `super` / prototype-chain 중심 사고를 들이�
 JS 백엔드도 이 계층을 inheritance로 풀지 않는다.
 
 - `relation` / `effect`는 overlay state object
-- `zone`은 subject/object/dto projection과 lifecycle state를 가진 coordinator object
+- `zone`은 subject/object/tobject projection과 lifecycle state를 가진 coordinator object
 - `world`는 zone registry + lifecycle orchestrator
 
 즉 deeper runtime semantics는 JS에서도
@@ -112,7 +112,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 0. 공통 UI IR 우선
    - `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
    - `subject`는 직접 UI node가 아니라 projection source
-   - `object` / `dto` / projection surface가 UI 소비 표면
+   - `object` / `tobject` / projection surface가 UI 소비 표면
    - `zone` / `world` dirty sync가 UI 갱신 contract
 
 1. 코어 의미론 유지
@@ -129,7 +129,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
    - `struct`
    - `class`
    - `subject`
-   - `dto`
+   - `tobject`
    - basic function / method / projection
 
 4. UI IR consumer로서 web surface 연결

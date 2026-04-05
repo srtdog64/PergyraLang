@@ -1885,26 +1885,26 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     bool first = true;
 
     if (call->data.call.arg_count != 2)
-        return pergyra_strdup("/* ToDto: invalid args */");
+        return pergyra_strdup("/* ToTObject: invalid args */");
 
     target_arg = call->data.call.arguments[0];
     source_arg = call->data.call.arguments[1];
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {
-        return pergyra_strdup("/* ToDto: need target dto type */");
+        return pergyra_strdup("/* ToTObject: need target tobject type */");
     }
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER) {
-        return pergyra_strdup("/* ToDto: need named subject source */");
+        return pergyra_strdup("/* ToTObject: need named subject source */");
     }
 
     target_decl = find_class_decl(ctx, target_arg->data.identifier.name);
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct)
-        return pergyra_strdup("/* ToDto: target must be dto/struct */");
+        return pergyra_strdup("/* ToTObject: target must be tobject/struct */");
 
     source_type_name = infer_expression_type_name(ctx, source_arg);
     source_decl = find_class_decl(ctx, source_type_name);
     if (source_decl == NULL)
-        return pergyra_strdup("/* ToDto: source subject type not found */");
+        return pergyra_strdup("/* ToTObject: source subject type not found */");
 
     source_expr = emit_expression(source_arg, ctx);
     buf = codebuf_create();
@@ -3107,7 +3107,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 if (strncmp(opt_type, "Option<", 7) == 0)
                     return slot_inner_type_name(opt_type);
             }
-            if (strcmp(name, "ToDto") == 0 && expr->data.call.arg_count >= 1
+            if (strcmp(name, "ToTObject") == 0 && expr->data.call.arg_count >= 1
                 && expr->data.call.arguments[0] != NULL
                 && expr->data.call.arguments[0]->type == AST_IDENTIFIER
                 && expr->data.call.arguments[0]->data.identifier.name != NULL) {

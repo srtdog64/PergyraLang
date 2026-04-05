@@ -146,7 +146,7 @@ void parser_synchronize(Parser* parser) {
         if (parser_check_contextual_keyword(parser, "object")
             || parser_check_contextual_keyword(parser, "vessel")
             || parser_check_contextual_keyword(parser, "intent")
-            || parser_check_contextual_keyword(parser, "dto")
+            || parser_check_contextual_keyword(parser, "tobject")
             || parser_check_contextual_keyword(parser, "world")
             || parser_check_contextual_keyword(parser, "roster")
             || parser_check_contextual_keyword(parser, "systemic")  /* deprecated */
@@ -570,7 +570,7 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_intent_declaration(parser);
     else if (parser_check(parser, TOKEN_STRUCT)) {
         bool is_dto = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "dto") == 0;
+            && strcmp(parser->current_token.text, "tobject") == 0;
         parser_advance(parser);
         node = is_dto ? parse_dto_declaration(parser)
                       : parse_struct_declaration(parser);
@@ -809,10 +809,10 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_intent_declaration(parser));
     }
 
-    // dto / struct 선언
+    // tobject / struct 선언
     if (parser_check(parser, TOKEN_STRUCT)) {
         bool is_dto = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "dto") == 0;
+            && strcmp(parser->current_token.text, "tobject") == 0;
         parser_advance(parser);
         return parser_finalize_statement(parser,
             is_dto ? parse_dto_declaration(parser)

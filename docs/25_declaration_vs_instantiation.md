@@ -124,7 +124,7 @@ world (생태계)
       ability (유전형질)
       role (표현형)
       action (플롯 행위)
-      object/dto (피동 대상/투영)
+      object/tobject (피동 대상/투영)
       party (무리)
 ```
 
@@ -161,7 +161,7 @@ Pergyra는 **subject-first** 언어다. 프로그램 설계는 소설을 쓰는 
 1단계: 누가 움직이는가? → subject (행동 주체)
 2단계: 무엇을 쓰는가?  → class (도구/사물)
 3단계: 내부 상태는?    → vessel (피동 수용체)
-4단계: 뭘 보여주는가?  → object/dto (투영)
+4단계: 뭘 보여주는가?  → object/tobject (투영)
 5단계: 어디서?         → zone/world (무대)
 ```
 
@@ -177,7 +177,7 @@ action   = 주인공의 행동 (플롯 비트, zone/effect와 연동)
 party    = 주인공의 일행 (협력 단위)
 
 object   = 주인공/사물의 읽기 전용 스냅샷 (투영)
-dto      = 외부에 전달되는 소식/평판 (경계 투영)
+tobject      = 외부에 전달되는 소식/평판 (경계 투영)
 
 relation = 주인공과 다른 주인공 사이의 관계 (동맹, 적대, 사제)
 effect   = 주인공에게 닥치는 시련/축복 (독, 저주, 강화)

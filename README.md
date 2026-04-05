@@ -100,7 +100,7 @@ Pergyra uses 6 keywords to declare types. Each keyword carries distinct semantic
 | `struct` | Pure data | Value | None |
 | `vessel` | Internal state (inside subject) | Value | None |
 | `object` | Read-only view | Value | func only |
-| `tobject` | Transfer object (DTO) | Value | None |
+| `tobject` | Transfer object | Value | None |
 
 ```pergyra
 subject Player

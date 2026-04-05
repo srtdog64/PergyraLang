@@ -373,10 +373,10 @@ cleanup:
 }
 
 static int
-run_dto_keyword_alias_test(void)
+run_tobject_keyword_test(void)
 {
     const char *code =
-        "dto PlayerDto {\n"
+        "tobject PlayerDto {\n"
         "    hp: Int;\n"
         "    name: String;\n"
         "}\n";
@@ -386,7 +386,7 @@ run_dto_keyword_alias_test(void)
     ASTNode *ast = NULL;
     ASTNode *decl = NULL;
 
-    printf("\n=== Test: DTO Keyword Alias ===\n");
+    printf("\n=== Test: TObject Keyword ===\n");
 
     if (lexer == NULL) {
         printf("[FAIL] Failed to create lexer\n");
@@ -416,19 +416,84 @@ run_dto_keyword_alias_test(void)
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO) {
-        printf("[FAIL] Expected 'dto' to parse as struct-compatible declaration\n");
+        printf("[FAIL] Expected 'tobject' to parse as struct-compatible declaration\n");
         failed = 1;
         goto cleanup;
     }
 
     if (strcmp(decl->data.class_decl.name, "PlayerDto") != 0
         || decl->data.class_decl.field_count != 2) {
-        printf("[FAIL] DTO declaration members were not parsed correctly\n");
+        printf("[FAIL] tobject declaration members were not parsed correctly\n");
         failed = 1;
         goto cleanup;
     }
 
-    printf("DTO keyword parsed successfully as struct-compatible declaration!\n");
+    printf("TObject keyword parsed successfully as struct-compatible declaration!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_tobject_keyword_alias_test(void)
+{
+    const char *code =
+        "tobject PlayerPacket {\n"
+        "    hp: Int;\n"
+        "    name: String;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+
+    printf("\n=== Test: TObject Keyword Surface ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO) {
+        printf("[FAIL] Expected 'tobject' to parse as transfer-object declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (strcmp(decl->data.class_decl.name, "PlayerPacket") != 0
+        || decl->data.class_decl.field_count != 2) {
+        printf("[FAIL] TObject declaration members were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("TObject keyword parsed successfully as transfer-object declaration!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -900,7 +965,7 @@ main(void)
             "Relation Declaration",
             "relation TrustedLink for source: Player, target: Player {\n"
             "    object slot snapshot: PlayerView\n"
-            "    dto slot packet: LinkDto\n"
+            "    tobject slot packet: LinkDto\n"
             "    bind snapshot from source\n"
             "    bind packet from target\n"
             "    shared trust: Int = 100\n"
@@ -914,7 +979,7 @@ main(void)
             "Effect Declaration",
             "effect Poisoned for bearer: Player {\n"
             "    object slot view: PlayerView\n"
-            "    dto slot packet: StatusDto\n"
+            "    tobject slot packet: StatusDto\n"
             "    bind view from bearer\n"
             "    bind packet from bearer\n"
             "    shared stacks: Int = 1\n"
@@ -930,7 +995,7 @@ main(void)
             "    subject slot player: Player\n"
             "    subject slot enemy: Player\n"
             "    object slot playerView: PlayerView = ToObject(PlayerView, player)\n"
-            "    dto slot playerDto: PlayerDto = ToDto(PlayerDto, player)\n"
+            "    tobject slot playerDto: PlayerDto = ToTObject(PlayerDto, player)\n"
             "    relation slot trust: TrustedLink\n"
             "    effect slot poison: Poisoned\n"
             "    authority player requires Commandable, Damageable\n"
@@ -961,11 +1026,11 @@ main(void)
             "Zone Bind Declaration",
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from player\n"
             "    bind snapshot from player by player\n"
             "}\n",
@@ -1140,7 +1205,9 @@ main(void)
     printf("\n");
     failures += run_subject_keyword_alias_test();
     printf("\n");
-    failures += run_dto_keyword_alias_test();
+    failures += run_tobject_keyword_alias_test();
+    printf("\n");
+    failures += run_tobject_keyword_test();
     printf("\n");
     failures += run_object_keyword_alias_test();
     printf("\n");

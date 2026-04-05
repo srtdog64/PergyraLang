@@ -43,24 +43,24 @@ Pergyra는 도메인 파편화를 줄이기 위해
 객체적 행위와 자원 셀을 연결하는 `subject` 중심 타입이다.
 현재 구현은 그 역할을 `subject` 중심으로 옮기기 시작했고, `class`는 별도 nominal surface로 남겨두고 있다.
 
-## 2. subject, object, dto, entity
+## 2. subject, object, tobject, entity
 
 - `subject`는 상태와 identity를 가지고 능동적으로 행위를 수행하는 코어 타입이다
 - `object`는 intent를 시작하지 않는 피동 상태 대상이다
 - `object`는 상태를 가질 수 있고 effect를 받을 수 있으며 relation의 대상이 될 수 있고 시간에 따라 반응할 수 있다
 - 현재 compiler surface는 `effect Name for object target: T` / `relation Name for object a: A, object b: B`를 받아 object를 직접 layer contract 대상으로 삼을 수 있다
-- 현재 compiler surface는 domain-local projection sync(`refresh` / `publish` / `bind`)에서 object를 projection source로도 허용한다. 다만 `dto`는 sink이며 source로는 허용하지 않는다
-- `dto`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
-- 현재 compiler surface는 `object` / `dto`를 `struct` 호환 declaration alias로 받는다
-- 현재 compiler surface는 `object`를 passive state/value host로, `dto`를 더 좁은 projection/value 형식으로 취급하며 helper `func`는 허용한다
+- 현재 compiler surface는 domain-local projection sync(`refresh` / `publish` / `bind`)에서 object를 projection source로도 허용한다. 다만 `tobject`는 sink이며 source로는 허용하지 않는다
+- `tobject`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
+- 현재 compiler surface는 `object` / `tobject`를 `struct` 호환 declaration alias로 받는다
+- 현재 compiler surface는 `object`를 passive state/value host로, `tobject`를 더 좁은 projection/value 형식으로 취급하며 helper `func`는 허용한다
 - 현재 compiler surface는 `ToObject(TargetObject, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
-- 현재 compiler surface는 `ToDto(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
-- 다만 `ToObject` / `ToDto`를 relation/effect/zone/world 바깥 일반 함수에서 직접 쓰면 semantic warning을 내고, 권장 경로는 domain-local slot + projection sync 흐름이다
+- 현재 compiler surface는 `ToTObject(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
+- 다만 `ToObject` / `ToTObject`를 relation/effect/zone/world 바깥 일반 함수에서 직접 쓰면 semantic warning을 내고, 권장 경로는 domain-local slot + projection sync 흐름이다
 - relation/effect는 현재 subject projection 문맥을 담는 overlay nominal host로도 동작하며, positional constructor와 runtime instance method call이 C/LLVM에 연결돼 있다
 - 즉 subject는 본질적으로 능동적이지만, 특정 문맥에서 object화되면 intent 생성 능력을 잃고 피동 상태 대상으로 소비된다
 - `entity`는 이 둘을 묶는 넓은 프레임워크 용어가 될 수는 있지만, Pergyra 코어 존재론에는 넣지 않는다
-- projection의 중심은 `dto` 본체가 아니라 `relation/effect/zone/world` 문맥과 그 안의 projection sync 흐름이다
-- 즉 현재 구현에서 `object`는 단순 projection 결과물이 아니라 passive state host이면서 layer target/source가 될 수 있고, `dto`는 여전히 더 좁은 외부 경계 projection 형식으로 남는다
+- projection의 중심은 `tobject` 본체가 아니라 `relation/effect/zone/world` 문맥과 그 안의 projection sync 흐름이다
+- 즉 현재 구현에서 `object`는 단순 projection 결과물이 아니라 passive state host이면서 layer target/source가 될 수 있고, `tobject`는 여전히 더 좁은 외부 경계 projection 형식으로 남는다
 
 ## 3. 최종 정의
 
@@ -109,7 +109,7 @@ vessel HealthState {
 - `subject`는 `vessel`뿐 아니라 일반 `class` field도 값으로 소유할 수 있다. `let weapon: Item;`은 subject-owned tool/thing surface다.
 
 현재 surface syntax에서는 `subject`와 `class`가 모두 허용되지만, 둘은 더 이상 같은 declaration으로 기록되지 않는다.
-`subject slot`, `ToObject`, `ToDto`처럼 주체성을 요구하는 표면은 현재 subject host (`subject`, `actor`)만 받는다.
+`subject slot`, `ToObject`, `ToTObject`처럼 주체성을 요구하는 표면은 현재 subject host (`subject`, `actor`)만 받는다.
 또한 plain copy / plain value parameter / plain value return은 `subject`에 대해서는 금지되고, `class`에 대해서는 허용된다.
 
 ```pergyra
@@ -180,7 +180,7 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - `subject`는 plain structural copy의 기본 대상으로 보지 않는다
 - `class`는 현재 passive nominal value로서 plain copy / value parameter / value return이 가능하다
 - `object`는 subject와 같은 능동 주체는 아니지만, 수동 상태를 담는 host가 될 수 있다
-- `dto`는 `object`보다 더 좁은 경계 전달/투영 형식이다
+- `tobject`는 `object`보다 더 좁은 경계 전달/투영 형식이다
 - `subject` 내부에서 `class`는 별도 키워드 없이 일반 field로 embed된다. `vessel health: HP;`는 내부 상태 수용체를 뜻하고, `let weapon: Item;`는 도구/사물을 뜻한다.
 
 ### 작성 순서 권장
@@ -190,7 +190,7 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - `subject`: 능동 주체, identity, `action`, zone/world orchestration
 - `class`: 피동 도구/사물, value semantics, hosted `func`
 - `object`: 읽기 전용 또는 수동 상태 대상
-- `dto`: 경계 밖 전송 표면
+- `tobject`: 경계 밖 전송 표면
 
 즉 실전 authoring과 scaffold의 첫 질문은 보통 "이것이 `subject`인가 `class`인가 `object`인가"여야 한다.
 
@@ -281,7 +281,7 @@ object Door {
 
 - actor는 subject와 병렬인 존재론적 계층이 아니다
 - actor는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
-- 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToDto`, subject copy restriction에 actor를 포함한다
+- 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToTObject`, subject copy restriction에 actor를 포함한다
 - 현재 parser surface는 standalone `actor Counter { ... }`와 subject-first `subject Counter actor { ... }`를 모두 받는다
 - standalone `actor Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter actor { ... }`다
 - 즉 장기 모델에서도 구현 상태에서도 `actor`보다 `subject`가 먼저다

@@ -401,7 +401,7 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
     if ((parser_check(parser, TOKEN_IDENTIFIER)
          || parser_check(parser, TOKEN_STRUCT))
         && parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "dto") == 0) {
+        && strcmp(parser->current_token.text, "tobject") == 0) {
         parser_advance(parser);
         if (is_subject != NULL)
             *is_subject = false;
@@ -444,7 +444,7 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
             : (is_vessel
                 ? "Expected 'slot' after 'vessel' in domain body"
             : (is_dto
-                ? "Expected 'slot' after 'dto' in domain body"
+                ? "Expected 'slot' after 'tobject' in domain body"
                 : "Expected 'slot' after 'object' in domain body")));
     Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected slot name");
@@ -623,16 +623,16 @@ ASTNode* parse_relation_declaration(Parser* parser) {
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 infer_target_kind
-                    ? "Expected object/dto slot name after 'bind'"
+                    ? "Expected object/tobject slot name after 'bind'"
                     : (requires_dto
-                        ? "Expected dto slot name after 'publish'"
+                        ? "Expected tobject slot name after 'publish'"
                         : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
                     infer_target_kind
                         ? "Expected 'from' after slot name in bind"
                         : (requires_dto
-                            ? "Expected 'from' after dto slot name in publish"
+                            ? "Expected 'from' after tobject slot name in publish"
                             : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
@@ -663,7 +663,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in relation body");
+                "Expected 'subject slot', 'object slot', 'tobject slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in relation body");
             parser_advance(parser);
         }
     }
@@ -732,16 +732,16 @@ ASTNode* parse_effect_declaration(Parser* parser) {
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 infer_target_kind
-                    ? "Expected object/dto slot name after 'bind'"
+                    ? "Expected object/tobject slot name after 'bind'"
                     : (requires_dto
-                        ? "Expected dto slot name after 'publish'"
+                        ? "Expected tobject slot name after 'publish'"
                         : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
                     infer_target_kind
                         ? "Expected 'from' after slot name in bind"
                         : (requires_dto
-                            ? "Expected 'from' after dto slot name in publish"
+                            ? "Expected 'from' after tobject slot name in publish"
                             : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
@@ -772,7 +772,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in effect body");
+                "Expected 'subject slot', 'object slot', 'tobject slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in effect body");
             parser_advance(parser);
         }
     }
@@ -792,6 +792,71 @@ ASTNode* parse_zone_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
+        /* Group slot syntax: subjects [a, b, c]: Type */
+        if (parser_match_identifier_keyword(parser, "subjects")
+            || parser_match_identifier_keyword(parser, "objects")
+            || parser_match_identifier_keyword(parser, "tobjects")) {
+            bool is_subject = parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "subjects") == 0;
+            bool is_dto = parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "tobjects") == 0;
+            parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group slot keyword");
+            /* Collect names */
+            char **names = NULL;
+            size_t name_count = 0;
+            do {
+                Token n = consume_name_token(parser, "Expected slot name in group");
+                names = realloc(names, (name_count + 1) * sizeof(char *));
+                names[name_count++] = pergyra_strdup(n.text);
+            } while (parser_match(parser, TOKEN_COMMA));
+            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after group slot names");
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after group slot list");
+            ASTNode *slot_type = parse_type(parser);
+            /* Expand into individual slots */
+            for (size_t gi = 0; gi < name_count; gi++) {
+                ASTNode *slot = ast_create_domain_slot(names[gi], is_subject);
+                slot->data.domain_slot.is_dto = is_dto;
+                slot->data.domain_slot.type = (gi == 0) ? slot_type : ast_clone(slot_type);
+                slot->line = zone->line;
+                slot->column = zone->column;
+                append_domain_slot(&zone->data.zone_decl.slots,
+                    &zone->data.zone_decl.slot_count, slot);
+                free(names[gi]);
+            }
+            free(names);
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else if (parser_match_identifier_keyword(parser, "effects")
+                   || parser_match_identifier_keyword(parser, "relations")) {
+            bool is_relation = parser->previous_token.text != NULL
+                && strcmp(parser->previous_token.text, "relations") == 0;
+            parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group layer keyword");
+            char **names = NULL;
+            size_t name_count = 0;
+            do {
+                Token n = consume_name_token(parser, "Expected slot name in group");
+                names = realloc(names, (name_count + 1) * sizeof(char *));
+                names[name_count++] = pergyra_strdup(n.text);
+            } while (parser_match(parser, TOKEN_COMMA));
+            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after group layer names");
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after group layer list");
+            Token layer_type = parser_consume(parser, TOKEN_IDENTIFIER,
+                is_relation ? "Expected relation type" : "Expected effect type");
+            for (size_t gi = 0; gi < name_count; gi++) {
+                ASTNode *layer_slot = ast_create_zone_layer_slot(
+                    names[gi], layer_type.text, is_relation);
+                layer_slot->line = zone->line;
+                layer_slot->column = zone->column;
+                append_child_node(&zone->data.zone_decl.layer_slots,
+                    &zone->data.zone_decl.layer_slot_count, layer_slot);
+                free(names[gi]);
+            }
+            free(names);
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        }
+        /* Original single slot syntax */
+        else {
         ASTNode *slot = parse_domain_slot_entry(parser, "zone");
         if (slot != NULL) {
             append_domain_slot(&zone->data.zone_decl.slots,
@@ -964,16 +1029,16 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 && strcmp(parser->previous_token.text, "publish") == 0;
             Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                 infer_target_kind
-                    ? "Expected object/dto slot name after 'bind'"
+                    ? "Expected object/tobject slot name after 'bind'"
                     : (requires_dto
-                        ? "Expected dto slot name after 'publish'"
+                        ? "Expected tobject slot name after 'publish'"
                         : "Expected object slot name after 'refresh'"));
             if (!parser_match_identifier_keyword(parser, "from")) {
                 parser_error(parser,
                     infer_target_kind
                         ? "Expected 'from' after slot name in bind"
                         : (requires_dto
-                            ? "Expected 'from' after dto slot name in publish"
+                            ? "Expected 'from' after tobject slot name in publish"
                             : "Expected 'from' after object slot name in refresh"));
                 parser_advance(parser);
                 continue;
@@ -1155,9 +1220,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'subject slot', 'object slot', 'dto slot', 'relation slot', 'effect slot', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'bind', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
+                "Expected 'subject slot', 'object slot', 'tobject slot', 'relation slot', 'effect slot', 'subjects', 'effects', 'relations', 'apply', 'link', 'detach', 'unlink', 'refresh', 'publish', 'bind', 'maintain', 'authority', 'state', 'shared', or 'func' in zone body");
             parser_advance(parser);
         }
+        } /* end outer else (single slot branch) */
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after zone body");

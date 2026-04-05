@@ -325,8 +325,11 @@
   - resource-op / cleanup instruction도 AST 기반 identifier use를 수집
   - block별 `entry:` / `exit:` version dump를 유지
   - routine-level value summary를 만들어 `def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`를 후속 pass가 직접 읽을 수 있게 유지
+- 실제 pass
+  - lowering 중 `liveness` 재계산 수행
+  - dead `def` / dead `phi` 제거 DCE pass 수행
 
-즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full liveness, DCE, `RIR-flow` merge의 최종 근거는 아직 아니지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, C backend에는 branch/return-only top-level function subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
+즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full optimizer나 backend 전체를 아직 대체하진 않지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, lowering 안에서 실제 liveness/DCE pass가 돌며, C backend에는 branch/return-only top-level function subset과 intent cleanup CFG를 MIR block/terminator에서 직접 emit하는 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
 
 ### 3.8 HIR Lowering
 

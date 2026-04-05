@@ -6,7 +6,7 @@
 - `page / api / report` split as library-shaped adapters instead of domain execution boundaries
 
 **Layout**
-- `common.pgy`: route adapter class, API envelope dto, formatter policies
+- `common.pgy`: route adapter class, API envelope tobject, formatter policies
 - `pages/surfaces.pgy`: page object plus request builders/renderers
 - `report/pipeline.pgy`: report assembly helpers over list buckets
 - `main.pgy`: adapter-heavy composition entry

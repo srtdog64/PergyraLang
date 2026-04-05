@@ -579,26 +579,41 @@ binary_op_to_c(TokenType op)
 char *
 emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 {
-    /* String concatenation: "a" + "b" → StringConcat(a, b)
-     * Walk the left spine of chained + to find the leftmost leaf;
-     * if that leaf is String, the whole chain is string concat. */
+    /* String concatenation: detect String anywhere in the + chain so
+     * parameter/local-backed cases like `name + "..."` lower correctly. */
     if (expr->data.binary.op.type == TOKEN_PLUS) {
+        bool is_string_literal_chain = false;
         const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
-        bool is_string = (lt != NULL && strcmp(lt, "String") == 0);
+        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
+        bool is_string =
+            (lt != NULL && strcmp(lt, "String") == 0)
+            || (rt != NULL && strcmp(rt, "String") == 0);
+        if (expr->data.binary.left != NULL && expr->data.binary.left->type == AST_STRING)
+            is_string_literal_chain = true;
+        if (expr->data.binary.right != NULL && expr->data.binary.right->type == AST_STRING)
+            is_string_literal_chain = true;
+
         if (!is_string) {
-            /* Walk left spine of + chain to find leftmost operand */
-            ASTNode *cursor = expr->data.binary.left;
+            ASTNode *cursor = expr;
             while (cursor != NULL && cursor->type == AST_BINARY
                    && cursor->data.binary.op.type == TOKEN_PLUS) {
+                const char *left_leaf_t = infer_expression_type_name(ctx, cursor->data.binary.left);
+                const char *right_leaf_t = infer_expression_type_name(ctx, cursor->data.binary.right);
+                if ((cursor->data.binary.left != NULL
+                        && cursor->data.binary.left->type == AST_STRING)
+                    || (cursor->data.binary.right != NULL
+                        && cursor->data.binary.right->type == AST_STRING)) {
+                    is_string_literal_chain = true;
+                }
+                if ((left_leaf_t != NULL && strcmp(left_leaf_t, "String") == 0)
+                    || (right_leaf_t != NULL && strcmp(right_leaf_t, "String") == 0)) {
+                    is_string = true;
+                    break;
+                }
                 cursor = cursor->data.binary.left;
             }
-            if (cursor != NULL) {
-                const char *leaf_t = infer_expression_type_name(ctx, cursor);
-                if (leaf_t != NULL && strcmp(leaf_t, "String") == 0)
-                    is_string = true;
-            }
         }
-        if (is_string) {
+        if (is_string || is_string_literal_chain) {
             char *left  = emit_expression(expr->data.binary.left,  ctx);
             char *right = emit_expression(expr->data.binary.right, ctx);
             char *result = strdup_fmt("StringConcat(%s, %s)", left, right);

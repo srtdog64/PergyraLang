@@ -634,14 +634,14 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("ToDto(PlayerDto, player) → dto projection literal");
+    TEST("ToTObject(PlayerDto, player) → tobject projection literal");
     {
         const char *source =
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "subject Player { let hp: Int; let name: String; }\n"
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
-            "    let snapshot: PlayerDto = ToDto(PlayerDto, player);\n"
+            "    let snapshot: PlayerDto = ToTObject(PlayerDto, player);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -695,11 +695,11 @@ test_expression_emit(void)
             "vessel Traits { metabolism: Int; }\n"
             "subject Creature { vessel cycle: Cycle; vessel traits: Traits; }\n"
             "object CreatureView { age: Int; fatigue: Int; metabolism: Int; }\n"
-            "dto CreaturePacket { age: Int; metabolism: Int; }\n"
+            "tobject CreaturePacket { age: Int; metabolism: Int; }\n"
             "func Main() -> Void {\n"
             "    let creature: Creature = Creature();\n"
             "    let view: CreatureView = ToObject(CreatureView, creature);\n"
-            "    let packet: CreaturePacket = ToDto(CreaturePacket, creature);\n"
+            "    let packet: CreaturePacket = ToTObject(CreaturePacket, creature);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -789,7 +789,7 @@ test_expression_emit(void)
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    subject slot left: Player\n"
             "    subject slot right: Player\n"
@@ -798,13 +798,13 @@ test_expression_emit(void)
             "}\n"
             "effect Poisoned for bearer: Player {\n"
             "    subject slot player: Player\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind snapshot from player\n"
             "}\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from player\n"
             "    bind snapshot from player\n"
             "}\n";
@@ -860,26 +860,26 @@ test_expression_emit(void)
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
             "object PlayerView { hp: Int; }\n"
-            "dto PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    subject slot left: Player\n"
             "    subject slot right: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from left\n"
             "    bind snapshot from right\n"
             "}\n"
             "effect Poisoned for bearer: Player {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from player\n"
             "    bind snapshot from player\n"
             "}\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
             "    object slot playerView: PlayerView\n"
-            "    dto slot snapshot: PlayerDto\n"
+            "    tobject slot snapshot: PlayerDto\n"
             "    bind playerView from player\n"
             "    bind snapshot from player\n"
             "}\n";

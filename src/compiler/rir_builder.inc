@@ -25,7 +25,7 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
         } else if (strcmp(name, "ToObject") == 0 && argc >= 2) {
             if (!add_op(scope, RIR_OP_PROJECT_REFRESH, expr_name(args[1]), expr_name(args[0]), NULL, node))
                 return false;
-        } else if (strcmp(name, "ToDto") == 0 && argc >= 2) {
+        } else if (strcmp(name, "ToTObject") == 0 && argc >= 2) {
             if (!add_op(scope, RIR_OP_PROJECT_PUBLISH, expr_name(args[1]), expr_name(args[0]), NULL, node))
                 return false;
         }
@@ -376,18 +376,18 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
 
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
-        bool dto = refresh->data.zone_refresh.requires_dto;
+        bool tobject = refresh->data.zone_refresh.requires_dto;
         if (!add_projection_fact(&scope,
                                  refresh->data.zone_refresh.object_slot_name,
                                  refresh->data.zone_refresh.source_slot_name,
-                                 dto ? "publish" : (refresh->data.zone_refresh.infer_target_kind ? "bind" : "refresh"),
-                                 dto ? RIR_STATE_PUBLISHED
+                                 tobject ? "publish" : (refresh->data.zone_refresh.infer_target_kind ? "bind" : "refresh"),
+                                 tobject ? RIR_STATE_PUBLISHED
                                      : (refresh->data.zone_refresh.infer_target_kind ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
-                                 dto ? RIR_RESOURCE_PROJECTION_DTO : RIR_RESOURCE_PROJECTION_OBJECT,
+                                 tobject ? RIR_RESOURCE_PROJECTION_DTO : RIR_RESOURCE_PROJECTION_OBJECT,
                                  refresh))
             goto oom;
         if (!add_op(&scope,
-                    dto ? RIR_OP_PROJECT_PUBLISH : RIR_OP_PROJECT_REFRESH,
+                    tobject ? RIR_OP_PROJECT_PUBLISH : RIR_OP_PROJECT_REFRESH,
                     refresh->data.zone_refresh.object_slot_name,
                     refresh->data.zone_refresh.source_slot_name,
                     refresh->data.zone_refresh.actor_slot_name,

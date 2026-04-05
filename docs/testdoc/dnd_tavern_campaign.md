@@ -44,7 +44,7 @@ This scenario should exercise:
 
 - `subject`
 - `vessel`
-- `object` / `dto`
+- `object` / `tobject`
 - `ability`
 - `role`
 - `relation`
@@ -210,7 +210,7 @@ This scenario is likely to expose:
 - Scene/event pacing is now also card-driven. GM prompts, stakes, rewards,
   companion reactions, and boss phase intent all come from story-card
   factories instead of only the core world loop
-- Journey projection wiring now uses `bind ... from ...` so object/dto target
+- Journey projection wiring now uses `bind ... from ...` so object/tobject target
   kind comes from slot declarations instead of forcing repeated `refresh` /
   `publish` choices in the scenario body
 - `results.txt` is transcript-first and now captures the entire scenario flow,

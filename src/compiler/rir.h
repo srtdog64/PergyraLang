@@ -91,7 +91,9 @@ typedef enum
     RIR_FLOW_AUTHORITY = 1 << 0,
     RIR_FLOW_PROJECTION = 1 << 1,
     RIR_FLOW_WORLD_HANDOFF = 1 << 2,
-    RIR_FLOW_INVALIDATION = 1 << 3
+    RIR_FLOW_INVALIDATION = 1 << 3,
+    RIR_FLOW_AUTHORITY_LOSS = 1 << 4,
+    RIR_FLOW_PROJECTION_INVALIDATION = 1 << 5
 } RIRFlowSemanticFlags;
 
 typedef struct

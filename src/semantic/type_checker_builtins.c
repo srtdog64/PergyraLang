@@ -568,7 +568,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
         semantic_error(ctx, call,
-            "HasProjection(...) requires an object/dto slot name");
+            "HasProjection(...) requires an object/tobject slot name");
         return TYPE_BOOL;
     }
 
@@ -578,13 +578,13 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         slot_name = arg->data.string.value;
     } else {
         semantic_error(ctx, arg,
-            "HasProjection(...) expects an object/dto slot identifier or string literal");
+            "HasProjection(...) expects an object/tobject slot identifier or string literal");
         return TYPE_BOOL;
     }
 
     if (slot_name == NULL) {
         semantic_error(ctx, arg,
-            "HasProjection(...) requires a valid object/dto slot name");
+            "HasProjection(...) requires a valid object/tobject slot name");
         return TYPE_BOOL;
     }
 
@@ -983,7 +983,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "BoxIsValid")      == 0) return BUILTIN_BOX_IS_VALID;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
-    if (strcmp(name, "ToDto")           == 0) return BUILTIN_TO_DTO;
+    if (strcmp(name, "ToTObject")       == 0) return BUILTIN_TO_DTO;
     if (strcmp(name, "HasProjection")   == 0) return BUILTIN_HAS_PROJECTION;
     if (strcmp(name, "HasLayer")        == 0) return BUILTIN_HAS_LAYER;
     if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
@@ -2597,7 +2597,7 @@ type_check_projection_call(ASTNode *call,
 
     if (!in_projection_context) {
         semantic_warning(ctx, call,
-            "%s is being used as a direct projection outside relation/effect/zone/world context; prefer domain-local object/dto slots and refresh/publish flow",
+            "%s is being used as a direct projection outside relation/effect/zone/world context; prefer domain-local object/tobject slots and refresh/publish flow",
             builtin_name);
     }
 
@@ -2605,10 +2605,10 @@ type_check_projection_call(ASTNode *call,
 }
 
 static Type *
-type_check_to_dto(ASTNode *call, SemanticContext *ctx)
+type_check_to_tobject(ASTNode *call, SemanticContext *ctx)
 {
-    return type_check_projection_call(call, ctx, "ToDto",
-        NOMINAL_DECL_DTO, "dto");
+    return type_check_projection_call(call, ctx, "ToTObject",
+        NOMINAL_DECL_DTO, "tobject");
 }
 
 static Type *
@@ -2687,8 +2687,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_box_array_builtin(call, ctx);
     case BUILTIN_TO_OBJECT:
         return type_check_to_object(call, ctx);
-    case BUILTIN_TO_DTO:
-        return type_check_to_dto(call, ctx);
+        case BUILTIN_TO_DTO:
+            return type_check_to_tobject(call, ctx);
     case BUILTIN_HAS_PROJECTION:
         return type_check_has_projection(call, ctx);
     case BUILTIN_HAS_LAYER:

@@ -126,7 +126,9 @@ typedef struct
     size_t             cleanup_edge_count;
     size_t             use_edge_count;
     size_t             live_value_count;
+    size_t             dce_removed_count;
     bool               has_liveness;
+    bool               has_dce;
     MIRValueSummary   *value_summaries;
     size_t             value_summary_count;
     bool               has_use_def_summary;
@@ -139,6 +141,8 @@ struct MIRProgram
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
+bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
+bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
 bool        mir_validate(const MIRProgram *mir, char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);

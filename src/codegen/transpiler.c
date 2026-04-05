@@ -1036,8 +1036,37 @@ emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
     if (node->type == AST_BINARY) {
         char *left = emit_expression_with_ssa_map(node->data.binary.left, ctx, base_names, versioned_names, map_count);
         char *right = emit_expression_with_ssa_map(node->data.binary.right, ctx, base_names, versioned_names, map_count);
-        char *expr = strdup_fmt("(%s %s %s)", left,
-            token_type_to_string(node->data.binary.op.type), right);
+        const char *lt = infer_expression_type_name(ctx, node->data.binary.left);
+        const char *rt = infer_expression_type_name(ctx, node->data.binary.right);
+        bool string_concat =
+            node->data.binary.op.type == TOKEN_PLUS
+            && (((lt != NULL && strcmp(lt, "String") == 0)
+                 || (rt != NULL && strcmp(rt, "String") == 0))
+                || (node->data.binary.left != NULL
+                    && node->data.binary.left->type == AST_STRING)
+                || (node->data.binary.right != NULL
+                    && node->data.binary.right->type == AST_STRING));
+        bool string_eq =
+            (node->data.binary.op.type == TOKEN_EQUAL
+             || node->data.binary.op.type == TOKEN_NOT_EQUAL)
+            && (((lt != NULL && strcmp(lt, "String") == 0)
+                 || (rt != NULL && strcmp(rt, "String") == 0))
+                || (node->data.binary.left != NULL
+                    && node->data.binary.left->type == AST_STRING)
+                || (node->data.binary.right != NULL
+                    && node->data.binary.right->type == AST_STRING));
+        char *expr;
+        if (string_concat) {
+            expr = strdup_fmt("StringConcat(%s, %s)", left, right);
+        } else if (string_eq) {
+            if (node->data.binary.op.type == TOKEN_EQUAL)
+                expr = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
+            else
+                expr = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
+        } else {
+            expr = strdup_fmt("(%s %s %s)", left,
+                binary_op_to_c(node->data.binary.op.type), right);
+        }
         free(left);
         free(right);
         return expr;
@@ -1139,7 +1168,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
                     || def_inst->arg0 == NULL || def_inst->result_name == NULL
                     || strcmp(def_inst->arg0, stmt->data.let_decl.name) != 0) {
-                    return false;
+                    /* Dead SSA defs may be removed by MIR DCE. In that case the
+                     * original let initializer is semantically dead in the MIR
+                     * subset and should not be emitted back into C. */
+                    continue;
                 }
                 char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
                 char *rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx,
@@ -1169,7 +1201,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
                     || def_inst->arg0 == NULL || def_inst->result_name == NULL
                     || strcmp(def_inst->arg0, target_name) != 0) {
-                    return false;
+                    /* Dead assignment versions are also removed by MIR DCE. */
+                    continue;
                 }
                 char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
                 char *rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx,
@@ -1399,6 +1432,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     for (size_t i = 0; i < mir_routine->block_count; i++) {
         const MIRBasicBlock *block = &mir_routine->blocks[i];
+        bool terminator_emitted = false;
         if (block->is_cleanup || !block->is_reachable)
             continue;
         write_indent(ctx);
@@ -1443,6 +1477,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 free(cond);
                 for (size_t k = 0; k < map_count; k++)
                     free((void *)base_names[k]);
+                terminator_emitted = true;
             } else if (inst->kind == MIR_INST_RETURN) {
                 if (inst->ast != NULL) {
                     const char *base_names[256];
@@ -1468,9 +1503,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return;\n");
                 }
+                terminator_emitted = true;
             }
         }
-        if (block->instruction_count == 0 && block->has_succ_true) {
+        if (!terminator_emitted && block->has_succ_true) {
             transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
                 &mir_routine->blocks[block->succ_true]);
             write_indent(ctx);

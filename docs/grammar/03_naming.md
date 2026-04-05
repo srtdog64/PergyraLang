@@ -38,7 +38,7 @@ export
 subject
 class
 struct
-dto
+tobject
 enum
 actor
 ability

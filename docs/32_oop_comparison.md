@@ -177,7 +177,7 @@ Pergyra는 **키워드가 곧 관심사 경계**.
 
 ```java
 // Java -- class 하나로 전부
-class Player { }      // 엔티티? 값? 서비스? DTO? → 읽어봐야 안다
+class Player { }      // 엔티티? 값? 서비스? transfer object? → 읽어봐야 안다
 class Vec2 { }        // 위와 문법적으로 동일
 class PlayerView { }  // 위와 문법적으로 동일
 ```
@@ -189,7 +189,7 @@ class Item { }        // 값 타입, func만, 도구/사물
 struct Vec2 { }       // 순수 데이터, 최소 타입
 vessel HP { }         // 피동 수용체, subject 내부
 object PlayerView { } // 읽기 전용 스냅샷
-dto PlayerPacket { }  // 경계 밖 전송용
+tobject PlayerPacket { }  // 경계 밖 전송용
 ```
 
 | 키워드 | self | 전달 방식 | action | zone 통합 | 용도 |
@@ -199,7 +199,7 @@ dto PlayerPacket { }  // 경계 밖 전송용
 | struct | value | 복사 | X | X | 순수 데이터 |
 | vessel | value | 복사 | X | X | 내부 수용체 |
 | object | value | 복사 | X | X | 읽기 스냅샷 |
-| dto | value | 복사 | X | X | 경계 전송 |
+| tobject | value | 복사 | X | X | 경계 전송 |
 
 ### 5. 세계 모델이 언어에 내장되어 있다
 
@@ -273,7 +273,7 @@ Pergyra:
 
 | 측면 | OOP (Java/C#) | Pergyra |
 |------|---------------|---------|
-| 타입 키워드 | 1 (`class`) | 6 (`subject`, `class`, `struct`, `vessel`, `object`, `dto`) |
+| 타입 키워드 | 1 (`class`) | 6 (`subject`, `class`, `struct`, `vessel`, `object`, `tobject`) |
 | 상속 | 있음 | 없음 |
 | 인터페이스 | 1 (`interface`) | 2 (`ability` + `role`) |
 | 행위 제약 | 없음 (런타임 assertion) | 4 (`requires`, `within`, `causes`, `authorized by`) |
