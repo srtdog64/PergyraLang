@@ -1920,6 +1920,14 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
          * Nothing to emit — the imported declarations are
          * already present in the merged AST. */
         break;
+    case AST_USE_DECL:
+        /* use module; — standard library modules.
+         * Runtime functions are always available via pgy_runtime.h.
+         * Future: emit module-specific includes/initializers here. */
+        codebuf_write(ctx->out, "/* use %s */\n",
+            node->data.use_decl.module_name != NULL
+                ? node->data.use_decl.module_name : "unknown");
+        break;
     case AST_UNSAFE_BLOCK:
         /* unsafe { ... } → emit body directly (no safety wrappers) */
         write_indent(ctx);

@@ -1410,6 +1410,9 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_IMPORT_DECL:
         /* Already resolved by driver — skip */
         return true;
+    case AST_USE_DECL:
+        /* Standard library module activation — resolved at codegen */
+        return true;
     case AST_UNSAFE_BLOCK:
         /* Type-check body normally; safety constraints relaxed at codegen */
         if (node->data.unsafe_block.body != NULL)

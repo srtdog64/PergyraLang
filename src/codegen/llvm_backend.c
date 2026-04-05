@@ -1394,7 +1394,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "ToInt", ctx->type_i32,
               { ctx->type_i8ptr }, 1 },
-            { "ToFloat", ctx->type_float,
+            { "ToFloat", ctx->type_f32,
               { ctx->type_i8ptr }, 1 },
             { "Random", ctx->type_i32,
               { ctx->type_i32 }, 1 },

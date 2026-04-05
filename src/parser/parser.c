@@ -719,6 +719,19 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_function_declaration(parser));
     }
 
+    // use 선언 (standard library)
+    if (parser_match(parser, TOKEN_USE)) {
+        Token mod_name = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected module name after 'use'");
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after use");
+        ASTNode *use_node = calloc(1, sizeof(ASTNode));
+        use_node->type = AST_USE_DECL;
+        use_node->line = mod_name.line;
+        use_node->column = mod_name.column;
+        use_node->data.use_decl.module_name = pergyra_strndup(mod_name.text, mod_name.length);
+        return parser_finalize_statement(parser, use_node);
+    }
+
     // import 선언
     if (parser_match(parser, TOKEN_IMPORT)) {
         Token path = parser_consume(parser, TOKEN_STRING,

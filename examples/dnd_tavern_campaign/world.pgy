@@ -268,6 +268,82 @@ world TavernCampaignWorld
         return seat;
     }
 
+    func LoadoutLine(self, seat: Int) -> String
+    {
+        let weapon = WeaponFactory(MemberClassCode(seat));
+        return MemberName(seat) + " equips " + weapon.name + " [" + weapon.style + "]";
+    }
+
+    func ResolveSkirmishSeat(self, stateId: Int, seat: Int, option: Int, pulse: Int) -> Int
+    {
+        let weapon = WeaponFactory(MemberClassCode(seat));
+        let strategy = CombatStrategyFactory(stateId, option, MemberClassCode(seat), pulse);
+        let strain = Max(SkirmishStrain(stateId, weapon, strategy, pulse), 1);
+        let loot = Max(SkirmishLoot(stateId, weapon, strategy, pulse), 1);
+        let xp = Max(SkirmishXP(stateId, weapon, strategy, pulse), 1);
+
+        if seat == 0
+        {
+            journey.fighter.Fight(strain, loot, xp);
+            journey.fighter.effects.shield = journey.fighter.effects.shield + strategy.guardBias;
+            journey.fighter.stats.focus = Max(journey.fighter.stats.focus + strategy.focusShift, 0);
+        }
+        else if seat == 1
+        {
+            journey.cleric.Fight(strain, loot, xp);
+            journey.cleric.effects.bless = journey.cleric.effects.bless + Max(strategy.effectBias, 0);
+            journey.cleric.stats.focus = Max(journey.cleric.stats.focus + strategy.focusShift, 0);
+        }
+        else if seat == 2
+        {
+            journey.rogue.Fight(strain, loot, xp);
+            journey.rogue.stats.focus = Max(journey.rogue.stats.focus + strategy.focusShift + 1, 0);
+            journey.rogue.effects.shield = journey.rogue.effects.shield + Max(strategy.guardBias - 1, 0);
+        }
+        else
+        {
+            journey.mage.Fight(strain, loot, xp);
+            journey.mage.effects.bless = journey.mage.effects.bless + Max(strategy.effectBias, 0);
+            journey.mage.stats.focus = Max(journey.mage.stats.focus + strategy.focusShift, 0);
+        }
+
+        journey.morale = Max(journey.morale + strategy.moraleSwing, 0);
+        return strain;
+    }
+
+    func ResolveDragonSeat(self, seat: Int, option: Int, pulse: Int) -> Int
+    {
+        let weapon = WeaponFactory(MemberClassCode(seat));
+        let strategy = CombatStrategyFactory(4, option, MemberClassCode(seat), pulse);
+        let pressure = Max(BossPressure(weapon, strategy, pulse), 1);
+        let burn = BossBurn(weapon, strategy, pulse);
+        let xp = 3 + strategy.aggression + weapon.power + pulse;
+
+        if seat == 0
+        {
+            journey.fighter.FaceDragon(pressure, burn, xp);
+            journey.fighter.effects.shield = journey.fighter.effects.shield + strategy.guardBias;
+        }
+        else if seat == 1
+        {
+            journey.cleric.FaceDragon(pressure, burn, xp);
+            journey.cleric.effects.bless = journey.cleric.effects.bless + Max(strategy.effectBias, 0);
+        }
+        else if seat == 2
+        {
+            journey.rogue.FaceDragon(pressure, burn, xp);
+            journey.rogue.stats.focus = journey.rogue.stats.focus + 1 + Max(strategy.focusShift, 0);
+        }
+        else
+        {
+            journey.mage.FaceDragon(pressure, burn, xp);
+            journey.mage.effects.bless = journey.mage.effects.bless + Max(strategy.effectBias, 0);
+        }
+
+        journey.morale = Max(journey.morale + strategy.moraleSwing, 0);
+        return pressure;
+    }
+
     func MemberShortState(self, seat: Int) -> String
     {
         if seat == 0 { return "hp=" + ToString(journey.fighter.stats.hp) + " focus=" + ToString(journey.fighter.stats.focus); }
@@ -461,41 +537,35 @@ world TavernCampaignWorld
         while round <= 3
         {
             let pulse = CombatRoll(stateId, round, option);
+            let fighterWeapon = WeaponFactory(0);
+            let clericWeapon = WeaponFactory(1);
+            let rogueWeapon = WeaponFactory(2);
+            let mageWeapon = WeaponFactory(3);
+            let fighterStrategy = CombatStrategyFactory(stateId, option, 0, pulse);
+            let clericStrategy = CombatStrategyFactory(stateId, option, 1, pulse);
+            let rogueStrategy = CombatStrategyFactory(stateId, option, 2, pulse);
+            let mageStrategy = CombatStrategyFactory(stateId, option, 3, pulse);
             Broadcast("  [Round " + ToString(round) + "] pulse=" + ToString(pulse));
-            Broadcast("    [Action] " + journey.fighter.name + " " + CombatVerb(0, pulse) + " into " + CombatTarget(stateId, round, 0));
-            Broadcast("    [Effect] " + CombatEffectLine(0, pulse));
-            Broadcast("    [Action] " + journey.cleric.name + " " + CombatVerb(1, pulse) + " at " + CombatTarget(stateId, round, 1));
-            Broadcast("    [Effect] " + CombatEffectLine(1, pulse));
-            Broadcast("    [Action] " + journey.rogue.name + " " + CombatVerb(2, pulse) + " against " + CombatTarget(stateId, round, 2));
-            Broadcast("    [Effect] " + CombatEffectLine(2, pulse));
-            Broadcast("    [Action] " + journey.mage.name + " " + CombatVerb(3, pulse) + " through " + CombatTarget(stateId, round, 3));
-            Broadcast("    [Effect] " + CombatEffectLine(3, pulse));
+            Broadcast("    [Action] " + journey.fighter.name + " " + StrategyActionText(fighterWeapon, fighterStrategy) + " into " + CombatTarget(stateId, round, 0));
+            Broadcast("    [Effect] " + StrategyEffectText(fighterWeapon, fighterStrategy));
+            Broadcast("    [Action] " + journey.cleric.name + " " + StrategyActionText(clericWeapon, clericStrategy) + " at " + CombatTarget(stateId, round, 1));
+            Broadcast("    [Effect] " + StrategyEffectText(clericWeapon, clericStrategy));
+            Broadcast("    [Action] " + journey.rogue.name + " " + StrategyActionText(rogueWeapon, rogueStrategy) + " against " + CombatTarget(stateId, round, 2));
+            Broadcast("    [Effect] " + StrategyEffectText(rogueWeapon, rogueStrategy));
+            Broadcast("    [Action] " + journey.mage.name + " " + StrategyActionText(mageWeapon, mageStrategy) + " through " + CombatTarget(stateId, round, 3));
+            Broadcast("    [Effect] " + StrategyEffectText(mageWeapon, mageStrategy));
 
-            if stateId == 1
-            {
-                journey.fighter.Fight(1 + pulse, 1, 2 + pulse);
-                journey.rogue.Fight(1 + (pulse / 2), 1, 2);
-                if pulse >= 3 { journey.cleric.DrinkPotion(2 + pulse); }
-                journey.threat = Max(journey.threat - 1, 0);
-                journey.treasure = journey.treasure + pulse;
-            }
-            else if stateId == 2
-            {
-                journey.fighter.Fight(2 + pulse, 1, 3 + pulse);
-                journey.mage.Fight(2 + pulse, 1, 3 + pulse);
-                if pulse % 2 == 0 { journey.rogue.BondEvent(1, 1); }
-                journey.trapLevel = Max(journey.trapLevel - 1, 0);
-                journey.morale = journey.morale + 1;
-            }
-            else
-            {
-                journey.fighter.Fight(3 + pulse, 2, 4 + pulse);
-                journey.rogue.Fight(2 + pulse, 2, 4 + pulse);
-                journey.mage.Fight(2 + pulse, 2, 5 + pulse);
-                if pulse >= 3 { journey.cleric.DrinkPotion(3 + pulse); }
-                journey.threat = Max(journey.threat - 1, 0);
-                journey.keyCount = journey.keyCount + 1;
-            }
+            ResolveSkirmishSeat(stateId, 0, option, pulse);
+            ResolveSkirmishSeat(stateId, 1, option, pulse);
+            ResolveSkirmishSeat(stateId, 2, option, pulse);
+            ResolveSkirmishSeat(stateId, 3, option, pulse);
+
+            if pulse % 2 == 0 { journey.rogue.BondEvent(1, 1); }
+            if pulse >= 3 { journey.cleric.DrinkPotion(2 + pulse); }
+            if stateId == 3 { journey.keyCount = journey.keyCount + 1; }
+            journey.threat = Max(journey.threat - 1, 0);
+            journey.trapLevel = Max(journey.trapLevel - 1, 0);
+            journey.treasure = journey.treasure + pulse + (stateId - 1);
 
             Broadcast("    [Resolve] Ari " + MemberShortState(0));
             Broadcast("    [Resolve] Mira " + MemberShortState(1));
@@ -512,22 +582,30 @@ world TavernCampaignWorld
         while round <= 4
         {
             let pulse = CombatRoll(4, round, option);
+            let fighterWeapon = WeaponFactory(0);
+            let clericWeapon = WeaponFactory(1);
+            let rogueWeapon = WeaponFactory(2);
+            let mageWeapon = WeaponFactory(3);
+            let fighterStrategy = CombatStrategyFactory(4, option, 0, pulse);
+            let clericStrategy = CombatStrategyFactory(4, option, 1, pulse);
+            let rogueStrategy = CombatStrategyFactory(4, option, 2, pulse);
+            let mageStrategy = CombatStrategyFactory(4, option, 3, pulse);
             Broadcast("  [BossPhase " + ToString(round) + "] " + BossPhaseName(round));
             Broadcast("    [Narration] " + StoryBeat(4, option, round));
             Broadcast("  [BossRound " + ToString(round) + "] pulse=" + ToString(pulse));
-            Broadcast("    [Action] " + journey.fighter.name + " " + CombatVerb(0, pulse) + " into " + CombatTarget(4, round, 0));
-            Broadcast("    [Effect] " + CombatEffectLine(0, pulse));
-            Broadcast("    [Action] " + journey.cleric.name + " " + CombatVerb(1, pulse) + " at " + CombatTarget(4, round, 1));
-            Broadcast("    [Effect] " + CombatEffectLine(1, pulse));
-            Broadcast("    [Action] " + journey.rogue.name + " " + CombatVerb(2, pulse) + " against " + CombatTarget(4, round, 2));
-            Broadcast("    [Effect] " + CombatEffectLine(2, pulse));
-            Broadcast("    [Action] " + journey.mage.name + " " + CombatVerb(3, pulse) + " through " + CombatTarget(4, round, 3));
-            Broadcast("    [Effect] " + CombatEffectLine(3, pulse));
+            Broadcast("    [Action] " + journey.fighter.name + " " + StrategyActionText(fighterWeapon, fighterStrategy) + " into " + CombatTarget(4, round, 0));
+            Broadcast("    [Effect] " + StrategyEffectText(fighterWeapon, fighterStrategy));
+            Broadcast("    [Action] " + journey.cleric.name + " " + StrategyActionText(clericWeapon, clericStrategy) + " at " + CombatTarget(4, round, 1));
+            Broadcast("    [Effect] " + StrategyEffectText(clericWeapon, clericStrategy));
+            Broadcast("    [Action] " + journey.rogue.name + " " + StrategyActionText(rogueWeapon, rogueStrategy) + " against " + CombatTarget(4, round, 2));
+            Broadcast("    [Effect] " + StrategyEffectText(rogueWeapon, rogueStrategy));
+            Broadcast("    [Action] " + journey.mage.name + " " + StrategyActionText(mageWeapon, mageStrategy) + " through " + CombatTarget(4, round, 3));
+            Broadcast("    [Effect] " + StrategyEffectText(mageWeapon, mageStrategy));
 
-            journey.fighter.FaceDragon(2 + pulse, 0, 3 + pulse);
-            journey.cleric.FaceDragon(1 + pulse, 0, 2 + pulse);
-            journey.rogue.FaceDragon(2 + pulse, 1, 3 + pulse);
-            journey.mage.FaceDragon(3 + pulse, 1, 4 + pulse);
+            ResolveDragonSeat(0, option, pulse);
+            ResolveDragonSeat(1, option, pulse);
+            ResolveDragonSeat(2, option, pulse);
+            ResolveDragonSeat(3, option, pulse);
 
             journey.dragonHp = Max(journey.dragonHp
                 - (journey.fighter.CombatPower()
@@ -635,6 +713,10 @@ world TavernCampaignWorld
                     Broadcast("[Recruit] " + clericCard.bargain);
                     Broadcast("[Recruit] " + rogueCard.bargain);
                     Broadcast("[Recruit] " + mageCard.bargain);
+                    Broadcast("[Loadout] " + LoadoutLine(0));
+                    Broadcast("[Loadout] " + LoadoutLine(1));
+                    Broadcast("[Loadout] " + LoadoutLine(2));
+                    Broadcast("[Loadout] " + LoadoutLine(3));
                     Broadcast("[Tavern] " + fighterCard.opener);
                     Broadcast("[Tavern] " + clericCard.promise);
                     Broadcast("[Tavern] " + rogueCard.promise);

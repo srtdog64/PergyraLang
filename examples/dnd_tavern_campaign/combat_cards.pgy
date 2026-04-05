@@ -1,0 +1,143 @@
+struct WeaponCard
+{
+    let name: String;
+    let style: String;
+    let power: Int;
+    let guardBreak: Int;
+    let focusCost: Int;
+    let effectTag: String;
+}
+
+struct CombatStrategyCard
+{
+    let name: String;
+    let posture: String;
+    let aggression: Int;
+    let guardBias: Int;
+    let focusShift: Int;
+    let moraleSwing: Int;
+    let effectBias: Int;
+}
+
+func WeaponFactory(classCode: Int) -> WeaponCard
+{
+    if classCode == 0
+    {
+        return WeaponCard("Iron Kite Shieldblade", "line-break", 3, 2, 1, "guard crack");
+    }
+    if classCode == 1
+    {
+        return WeaponCard("Sunlance Censer", "radiant reach", 2, 1, 1, "saint flare");
+    }
+    if classCode == 2
+    {
+        return WeaponCard("Crowhook Knives", "shadow cut", 3, 1, 0, "bleed feint");
+    }
+    return WeaponCard("Emberglass Staff", "arcane burst", 4, 0, 2, "cinder arc");
+}
+
+func CombatStrategyFactory(stateId: Int, option: Int, classCode: Int, pulse: Int) -> CombatStrategyCard
+{
+    let aggression = pulse;
+    let guardBias = 0;
+    let focusShift = 0;
+    let moraleSwing = 0;
+    let effectBias = 0;
+    let name = "tempo line";
+    let posture = "measured";
+
+    if option == 1
+    {
+        name = "anchor drive";
+        posture = "front-footed";
+        guardBias = 1;
+        moraleSwing = 1;
+    }
+    else if option == 2
+    {
+        name = "ward weave";
+        posture = "guarded";
+        guardBias = 2;
+        focusShift = 1;
+    }
+    else if option == 3
+    {
+        name = "shadow cut";
+        posture = "flanking";
+        aggression = aggression + 1;
+        effectBias = 1;
+    }
+    else
+    {
+        name = "ember surge";
+        posture = "reckless";
+        aggression = aggression + 2;
+        focusShift = -1;
+        moraleSwing = -1;
+        effectBias = 2;
+    }
+
+    if classCode == 0
+    {
+        guardBias = guardBias + 1;
+    }
+    else if classCode == 1
+    {
+        moraleSwing = moraleSwing + 1;
+        focusShift = focusShift + 1;
+    }
+    else if classCode == 2
+    {
+        effectBias = effectBias + 1;
+    }
+    else
+    {
+        aggression = aggression + 1;
+    }
+
+    if stateId == 4
+    {
+        aggression = aggression + 1;
+        moraleSwing = moraleSwing + 1;
+    }
+
+    return CombatStrategyCard(name, posture, aggression, guardBias, focusShift, moraleSwing, effectBias);
+}
+
+func StrategyActionText(weapon: WeaponCard, strategy: CombatStrategyCard) -> String
+{
+    return strategy.name + " with " + weapon.name + " in a " + strategy.posture + " pattern";
+}
+
+func StrategyEffectText(weapon: WeaponCard, strategy: CombatStrategyCard) -> String
+{
+    return weapon.effectTag
+        + ", aggression=" + ToString(strategy.aggression)
+        + ", guard=" + ToString(strategy.guardBias)
+        + ", morale=" + ToString(strategy.moraleSwing);
+}
+
+func SkirmishStrain(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
+{
+    return 1 + stateId + pulse + weapon.power - strategy.guardBias;
+}
+
+func SkirmishLoot(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
+{
+    return Max((weapon.power / 2) + strategy.effectBias + (pulse / 2) + (stateId - 1), 1);
+}
+
+func SkirmishXP(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
+{
+    return 2 + stateId + weapon.power + strategy.aggression + pulse;
+}
+
+func BossPressure(weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
+{
+    return 1 + weapon.power + strategy.aggression + pulse;
+}
+
+func BossBurn(weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
+{
+    return Max(strategy.effectBias + pulse - strategy.guardBias, 0);
+}

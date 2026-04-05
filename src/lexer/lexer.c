@@ -57,6 +57,7 @@ static const KeywordEntry keywords[] = {
     /* "event" is now a contextual keyword — parsed as TOKEN_IDENTIFIER */
     {"match",    TOKEN_MATCH},
     {"import",   TOKEN_IMPORT},
+    {"use",      TOKEN_USE},
     {"unsafe",   TOKEN_UNSAFE},
     {"defer",    TOKEN_DEFER},
     {"bind",     TOKEN_BIND},
@@ -502,6 +503,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_SPAWN: return "SPAWN";
         case TOKEN_EVENT: return "EVENT";
         case TOKEN_IMPORT: return "IMPORT";
+        case TOKEN_USE: return "USE";
         case TOKEN_UNSAFE: return "UNSAFE";
         case TOKEN_DEFER: return "DEFER";
         case TOKEN_BIND: return "BIND";

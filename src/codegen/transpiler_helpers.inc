@@ -2211,6 +2211,24 @@ channel_inner_type_name(TranspilerCtx *ctx, ASTNode *expr)
 const char *
 pergyra_type_to_c(const char *name)
 {
+    if (strcmp(name, "HashMap") == 0)
+        return "PgyHashMap_Int";
+    if (strcmp(name, "HashMapStr") == 0)
+        return "PgyHashMap_String";
+    if (strcmp(name, "List") == 0)
+        return "PgyList_Int";
+    if (strcmp(name, "ListStr") == 0)
+        return "PgyList_String";
+    if (strcmp(name, "Set") == 0)
+        return "PgySet_String";
+    if (strcmp(name, "Queue") == 0)
+        return "PgyQueue_Int";
+    if (strcmp(name, "Fsm") == 0)
+        return "PgyFsm";
+    if (strcmp(name, "Timer") == 0)
+        return "PgyTimer";
+    if (strcmp(name, "Cooldown") == 0)
+        return "PgyCooldown";
     if (strcmp(name, "Allocator") == 0)
         return "PgyAllocator";
     if (strncmp(name, "RemoteFuture<", 13) == 0)
@@ -2534,6 +2552,20 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *name = expr->data.call.callee->data.identifier.name;
+            if (strcmp(name, "MapNew") == 0)
+                return "HashMap";
+            if (strcmp(name, "ListNew") == 0)
+                return "List";
+            if (strcmp(name, "SetNew") == 0)
+                return "Set";
+            if (strcmp(name, "QueueNew") == 0)
+                return "Queue";
+            if (strcmp(name, "FsmNew") == 0)
+                return "Fsm";
+            if (strcmp(name, "TimerNew") == 0)
+                return "Timer";
+            if (strcmp(name, "CooldownNew") == 0)
+                return "Cooldown";
             if (strcmp(name, "ClaimQubit") == 0)
                 return "QubitSlot";
             if (strcmp(name, "ClaimDeviceSlot") == 0)

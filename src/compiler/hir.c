@@ -210,6 +210,7 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             break;
 
         case AST_IMPORT_DECL:
+        case AST_USE_DECL:
             /* Already resolved by driver — skip */
             break;
         case AST_UNSAFE_BLOCK:

@@ -29,8 +29,14 @@ The scenario models this flow:
 4. Each floor has traps, monsters, and affinity-sensitive companion events.
 5. The party reaches the dragon lair and defeats the final boss.
 
-The runtime is deterministic. The “random dungeon” is represented as a seeded,
-scripted route/threat pattern so exact goldens remain stable on both backends.
+The scenario now supports three execution modes:
+
+- scripted regression mode
+- seeded random mode
+- player-input mode
+
+Scripted mode remains exact-golden-friendly. Random and player mode run the
+same world state machine, but swap the choice/combat roll source.
 
 ## Intended Language Surface
 
@@ -64,17 +70,25 @@ Current source/golden layout:
 - `views.pgy`
 - `units.pgy`
 - `tables.pgy`
+- `dialogue.pgy`
+- `combat_text.pgy`
+- `combat_cards.pgy`
+- `events.pgy`
 - `journey.pgy`
 - `world.pgy`
 - `setup.pgy`
 - `report.pgy`
 - `main.pgy`
+- `random_main.pgy`
+- `player_main.pgy`
 - `expected_stdout.txt`
 - `expected_results.txt`
 
 Generated at runtime:
 
 - `results.txt`
+- `results.random.txt`
+- `results.player.txt`
 
 ## Systems
 
@@ -143,9 +157,15 @@ This scenario is likely to expose:
 - Multi-file implementation is running end to end on both C and LLVM
 - The campaign now runs as an explicit world-owned game state machine:
   tavern -> floor 1 -> floor 2 -> floor 3 -> dragon -> epilogue
+- The same state machine now runs in three public entry modes:
+  `RunCampaignScripted()`, `RunCampaignRandom(seed)`, and
+  `RunCampaignPlayer()`
 - Each phase now exposes four numbered options and logs the rolled
   deterministic choice, so the transcript reads like a GM-driven scenario
   instead of a straight-line function dump
+- Player mode now records prompts and chosen inputs directly into the
+  transcript, so the same report can be read either as a regression transcript
+  or as an interactive text-campaign log
 - The transcript is now substantially denser: each major phase emits explicit
   state-entry/state-exit markers, six scene beats, five node/event beats,
   and more detailed combat rounds before the final report snapshot
@@ -167,6 +187,10 @@ This scenario is likely to expose:
   `HasZoneState(...)` showing up in the final report path
 - Those layers now affect actual campaign math: tavern morale, route pressure,
   trap pressure, and dragon preparation all change based on bond/blessing state
+- Combat resolution is now driven by game-layer factories and strategy cards.
+  Each seat resolves through weapon loadout factories plus per-round strategy
+  selection, so class flavor, posture, aggression, guard pressure, and effect
+  text come from data-shaped helpers instead of one-off hard-coded lines
 - Journey projection wiring now uses `bind ... from ...` so object/dto target
   kind comes from slot declarations instead of forcing repeated `refresh` /
   `publish` choices in the scenario body
@@ -206,6 +230,9 @@ This scenario is likely to expose:
   still create backend-sensitive behavior. The campaign hit this when the new
   FSM choice fields were added; the fix was to make the root world constructor
   explicit about every trailing shared field used by the state machine.
+- Runtime hashmap helpers used raw `strdup(...)`, which leaked portability
+  warnings into larger example builds. The runtime now routes those copies
+  through `pgy_runtime_strdup(...)` instead.
 - Hosted slot built-ins and method sugar used to diverge for non-primitive
   payloads. While tightening this scenario, `let v = Read(slot)` and
   `let v = slot.Read()` on `Slot<Vec2>` exposed separate C and LLVM failures.
@@ -213,18 +240,15 @@ This scenario is likely to expose:
 
 ## Remaining Follow-up
 
-- The scenario is now regression-grade, but it is still deterministic. If the
-  campaign grows further, a seeded random surface may want a first-class helper
-  instead of ad hoc deterministic-roll funcs in `setup.pgy`.
+- Scripted, random, and player mode now all exist, but only scripted mode is
+  exact-golden-covered in the default smoke path. If player mode becomes part
+  of normal regression, the smoke harness will need a first-class stdin script
+  layer.
 - The campaign currently stresses `subject/vessel/role/ability/zone/world`
   heavily, and now includes relation/effect runtime values that directly modify
   campaign flow, but the combat engine still stops short of a full tactical
   rules engine with initiative stacks, per-target targeting rules, and deeper
   status-resolution ordering.
-- Tavern dialogue and companion affinity are now choice-driven, but they are
-  still auto-rolled. A future iteration may want a first-class interactive
-  choice/input surface so the exact same state machine can run in both scripted
-  regression mode and player-driven mode.
-- The campaign now looks like a state machine in the transcript, but combat is
-  still essentially scripted round resolution rather than a deeper target/
-  initiative/status ordering engine.
+- The campaign now looks like a game state machine in the transcript, but the
+  encounter engine is still world-hosted orchestration rather than a
+  standalone encounter/turn DSL with richer AI policy authoring.

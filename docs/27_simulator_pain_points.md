@@ -8,10 +8,10 @@ examples such as the battle simulator and biome simulator.
 - Projection sync is lighter now, but larger framework work still wants a
   richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
   bindings and deeper auto-propagation are the next pressure point.
-- Large story scenarios can now produce compact GM-style transcripts, but they
-  still want a more first-class interactive choice/input surface if the same
-  state machine is expected to run in both deterministic regression mode and
-  actual player-driven mode.
+- Large story scenarios now support scripted, seeded-random, and player-input
+  modes, but the encounter engine is still world-hosted orchestration rather
+  than a first-class encounter/turn DSL with richer AI policy authoring and
+  deeper tactical resolution ordering.
 
 ## Recently Resolved
 
@@ -92,3 +92,13 @@ examples such as the battle simulator and biome simulator.
   comparisons for class-sensitive flavor text. Campaign dialogue/combat text
   now keys off stable role/class codes, so dense story transcripts run without
   backend-specific warnings leaking into stdout.
+- DND campaign execution is no longer regression-only. The same world state
+  machine now runs in scripted, seeded-random, and player-input mode, with
+  prompts and choices recorded directly into the transcript.
+- DND combat narration is no longer only a world-hosted string table. Weapon
+  factories and strategy cards now drive seat-by-seat combat text, so class
+  flavor, posture, guard pressure, and effect hints come from game-layer
+  factories rather than one-off combat strings.
+- Runtime hashmap helpers no longer leak raw `strdup(...)` warnings into large
+  example builds. They now route string duplication through the local
+  `pgy_runtime_strdup(...)` wrapper.

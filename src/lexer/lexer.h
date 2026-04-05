@@ -113,6 +113,7 @@ typedef enum
 
     /* Module keywords */
     TOKEN_IMPORT,
+    TOKEN_USE,
 
     /* Safety keywords */
     TOKEN_UNSAFE,

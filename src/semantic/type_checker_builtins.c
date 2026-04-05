@@ -1527,6 +1527,191 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         return TYPE_VOID;
     }
+    /* HashMap builtins */
+    if (strcmp(name, "MapNew") == 0) {
+        return TYPE_UNKNOWN; /* type resolved from let annotation */
+    }
+    if (strcmp(name, "MapSet") == 0) {
+        if (expr->data.call.arg_count >= 3) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+            type_check_expression(expr->data.call.arguments[2], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "MapGet") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_UNKNOWN; /* resolved from context */
+    }
+    if (strcmp(name, "MapHas") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "MapRemove") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "MapSize") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    /* List builtins */
+    if (strcmp(name, "ListNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "ListPush") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ListGet") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_INT;
+    }
+    if (strcmp(name, "ListSet") == 0) {
+        if (expr->data.call.arg_count >= 3) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+            type_check_expression(expr->data.call.arguments[2], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ListSize") == 0 || strcmp(name, "ListRemove") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    /* Set builtins */
+    if (strcmp(name, "SetNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "SetAdd") == 0 || strcmp(name, "SetRemove") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "SetHas") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "SetSize") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    /* Queue builtins */
+    if (strcmp(name, "QueueNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "QueuePush") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "QueuePop") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "QueueSize") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "QueueEmpty") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    }
+    /* FSM builtins */
+    if (strcmp(name, "FsmNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "FsmAddState") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_INT;
+    }
+    if (strcmp(name, "FsmTransition") == 0) {
+        if (expr->data.call.arg_count >= 4) {
+            for (size_t ai = 0; ai < 4; ai++)
+                type_check_expression(expr->data.call.arguments[ai], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "FsmStep") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "FsmCurrent") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "FsmCurrentName") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    }
+    /* Timer builtins */
+    if (strcmp(name, "TimerNew") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_UNKNOWN;
+    }
+    if (strcmp(name, "TimerTick") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "TimerRemaining") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "TimerDone") == 0 || strcmp(name, "CooldownReady") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    }
+    if (strcmp(name, "TimerReset") == 0 || strcmp(name, "CooldownTrigger") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "CooldownNew") == 0) {
+        if (expr->data.call.arg_count >= 1)
+            type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_UNKNOWN;
+    }
+    if (strcmp(name, "CooldownTick") == 0) {
+        if (expr->data.call.arg_count >= 2) {
+            type_check_expression(expr->data.call.arguments[0], ctx);
+            type_check_expression(expr->data.call.arguments[1], ctx);
+        }
+        return TYPE_VOID;
+    }
     if (strcmp(name, "ArrayLength") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;

@@ -185,6 +185,7 @@ typedef enum
 
     /* Module system */
     AST_IMPORT_DECL,
+    AST_USE_DECL,
     AST_NAMESPACE_DECL,
 
     /* Safety */
@@ -937,6 +938,11 @@ struct ASTNode
         struct {
             char* path;                /* Module path (string or identifier) */
         } import_decl;
+
+        /* use pool; */
+        struct {
+            char* module_name;         /* Standard library module name */
+        } use_decl;
 
         /* namespace Foo { ... } */
         struct {

@@ -11,6 +11,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added multithreaded zone layer stress coverage to `test_concurrency`.
 
 ### Added
+- Scripted, seeded-random, and player-input entry modes for
+  `examples/dnd_tavern_campaign/`, including `random_main.pgy` and
+  `player_main.pgy` plus transcript-bearing `results.random.txt` and
+  `results.player.txt`
 - `OpenTavernCampaign()` factory entry for `examples/dnd_tavern_campaign/` so
   the scenario now opens through a place/campaign builder instead of spelling a
   long `TavernCampaignWorld(...)` constructor inline in `main.pgy`
@@ -55,12 +59,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- `examples/dnd_tavern_campaign/` combat flow now uses game-layer weapon
+  factories and strategy cards instead of only world-hosted fixed action text,
+  so seat-by-seat combat narration carries class-shaped loadout and posture
+  data through the state-machine transcript
 - `examples/dnd_tavern_campaign/` now emits a denser GM-style transcript with
   explicit state-entry/state-exit markers, six scene beats per phase, five
   node/event beats per floor, and more detailed skirmish/boss round logging
 - DND transcript helpers now key class-sensitive flavor text off stable class
   codes instead of comparing strings to literals in generated C, eliminating
   backend warnings from the richer story/combat logging path
+- Runtime hashmap helpers now use `pgy_runtime_strdup(...)` instead of raw
+  `strdup(...)`, removing portability warnings from larger C example builds
 - C domain/world constructor lowering now preserves omitted `shared` default
   initializers in generated compound literals, fixing `fsm_factory` parity for
   `gridNoise` and related world-shared defaults

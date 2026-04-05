@@ -1094,6 +1094,605 @@ static inline char* pgy_int_to_string(int32_t val) {
     return buf;
 }
 
+/* Console I/O: Input(prompt), Print(msg) are already defined below as
+ * pgy_input() and pgy_print(). See type_checker_builtins.c for semantic. */
+
+/* =================================================================
+ * HashMap<String, T> — open-addressing, string keys
+ * ================================================================= */
+
+#define PGY_HASHMAP_INIT_CAP 16
+#define PGY_HASHMAP_LOAD_FACTOR 0.75
+
+typedef struct
+{
+    char   **keys;
+    int32_t *values;
+    uint8_t *occupied;
+    size_t   count;
+    size_t   capacity;
+} PgyHashMap_Int;
+
+static inline uint32_t pgy_hash_string(const char *s)
+{
+    uint32_t h = 5381;
+    if (s == NULL) return h;
+    while (*s) { h = ((h << 5) + h) ^ (uint32_t)*s++; }
+    return h;
+}
+
+static inline PgyHashMap_Int pgy_map_new_int(void)
+{
+    PgyHashMap_Int m;
+    m.capacity = PGY_HASHMAP_INIT_CAP;
+    m.count = 0;
+    m.keys     = (char **)calloc(m.capacity, sizeof(char *));
+    m.values   = (int32_t *)calloc(m.capacity, sizeof(int32_t));
+    m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
+    return m;
+}
+
+static inline void pgy_map_grow_int(PgyHashMap_Int *m)
+{
+    size_t old_cap = m->capacity;
+    char **old_keys = m->keys;
+    int32_t *old_vals = m->values;
+    uint8_t *old_occ = m->occupied;
+
+    m->capacity *= 2;
+    m->keys     = (char **)calloc(m->capacity, sizeof(char *));
+    m->values   = (int32_t *)calloc(m->capacity, sizeof(int32_t));
+    m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t));
+    m->count = 0;
+
+    for (size_t i = 0; i < old_cap; i++) {
+        if (old_occ[i]) {
+            uint32_t h = pgy_hash_string(old_keys[i]) % (uint32_t)m->capacity;
+            while (m->occupied[h]) h = (h + 1) % (uint32_t)m->capacity;
+            m->keys[h] = old_keys[i];
+            m->values[h] = old_vals[i];
+            m->occupied[h] = 1;
+            m->count++;
+        }
+    }
+    free(old_keys); free(old_vals); free(old_occ);
+}
+
+static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t val)
+{
+    if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR)
+        pgy_map_grow_int(m);
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    while (m->occupied[h]) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            m->values[h] = val;
+            return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity;
+    }
+    m->keys[h] = pgy_runtime_strdup(key);
+    m->values[h] = val;
+    m->occupied[h] = 1;
+    m->count++;
+}
+
+static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m->count == 0) return 0;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0)
+            return m->values[h];
+        h = (h + 1) % (uint32_t)m->capacity;
+        probes++;
+    }
+    return 0;
+}
+
+static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m->count == 0) return false;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0)
+            return true;
+        h = (h + 1) % (uint32_t)m->capacity;
+        probes++;
+    }
+    return false;
+}
+
+static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
+{
+    if (m->count == 0) return;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            free(m->keys[h]);
+            m->keys[h] = NULL;
+            m->values[h] = 0;
+            m->occupied[h] = 0;
+            m->count--;
+            return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity;
+        probes++;
+    }
+}
+
+static inline int32_t pgy_map_size_int(PgyHashMap_Int *m)
+{
+    return (int32_t)m->count;
+}
+
+/* String-value variant */
+typedef struct
+{
+    char   **keys;
+    char   **values;
+    uint8_t *occupied;
+    size_t   count;
+    size_t   capacity;
+} PgyHashMap_String;
+
+static inline PgyHashMap_String pgy_map_new_string(void)
+{
+    PgyHashMap_String m;
+    m.capacity = PGY_HASHMAP_INIT_CAP;
+    m.count = 0;
+    m.keys     = (char **)calloc(m.capacity, sizeof(char *));
+    m.values   = (char **)calloc(m.capacity, sizeof(char *));
+    m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
+    return m;
+}
+
+static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, const char *val)
+{
+    if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) {
+        size_t old_cap = m->capacity;
+        char **ok = m->keys; char **ov = m->values; uint8_t *oo = m->occupied;
+        m->capacity *= 2;
+        m->keys = (char **)calloc(m->capacity, sizeof(char *));
+        m->values = (char **)calloc(m->capacity, sizeof(char *));
+        m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t));
+        m->count = 0;
+        for (size_t i = 0; i < old_cap; i++) {
+            if (oo[i]) {
+                uint32_t h2 = pgy_hash_string(ok[i]) % (uint32_t)m->capacity;
+                while (m->occupied[h2]) h2 = (h2 + 1) % (uint32_t)m->capacity;
+                m->keys[h2] = ok[i]; m->values[h2] = ov[i]; m->occupied[h2] = 1; m->count++;
+            }
+        }
+        free(ok); free(ov); free(oo);
+    }
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    while (m->occupied[h]) {
+        if (m->keys[h] && strcmp(m->keys[h], key) == 0) {
+            free(m->values[h]);
+            m->values[h] = pgy_runtime_strdup(val);
+            return;
+        }
+        h = (h + 1) % (uint32_t)m->capacity;
+    }
+    m->keys[h] = pgy_runtime_strdup(key); m->values[h] = pgy_runtime_strdup(val);
+    m->occupied[h] = 1; m->count++;
+}
+
+static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
+{
+    if (m->count == 0) return "";
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t p = 0;
+    while (m->occupied[h] && p < m->capacity) {
+        if (m->keys[h] && strcmp(m->keys[h], key) == 0)
+            return m->values[h] ? m->values[h] : "";
+        h = (h + 1) % (uint32_t)m->capacity; p++;
+    }
+    return "";
+}
+
+static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
+{
+    if (m->count == 0) return false;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    size_t p = 0;
+    while (m->occupied[h] && p < m->capacity) {
+        if (m->keys[h] && strcmp(m->keys[h], key) == 0) return true;
+        h = (h + 1) % (uint32_t)m->capacity; p++;
+    }
+    return false;
+}
+
+/* =================================================================
+ * List<Int> — dynamic array (grows automatically)
+ * ================================================================= */
+
+typedef struct
+{
+    int32_t *data;
+    size_t   count;
+    size_t   capacity;
+} PgyList_Int;
+
+static inline PgyList_Int pgy_list_new_int(void)
+{
+    PgyList_Int l;
+    l.capacity = 16;
+    l.count = 0;
+    l.data = (int32_t *)calloc(l.capacity, sizeof(int32_t));
+    return l;
+}
+
+static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
+{
+    if (l->count >= l->capacity) {
+        l->capacity *= 2;
+        l->data = (int32_t *)realloc(l->data, l->capacity * sizeof(int32_t));
+    }
+    l->data[l->count++] = val;
+}
+
+static inline int32_t pgy_list_get_int(PgyList_Int *l, int32_t index)
+{
+    if (index < 0 || (size_t)index >= l->count) return 0;
+    return l->data[index];
+}
+
+static inline void pgy_list_set_int(PgyList_Int *l, int32_t index, int32_t val)
+{
+    if (index >= 0 && (size_t)index < l->count) l->data[index] = val;
+}
+
+static inline int32_t pgy_list_size_int(PgyList_Int *l) { return (int32_t)l->count; }
+
+static inline void pgy_list_remove_int(PgyList_Int *l, int32_t index)
+{
+    if (index < 0 || (size_t)index >= l->count) return;
+    for (size_t i = (size_t)index; i < l->count - 1; i++)
+        l->data[i] = l->data[i + 1];
+    l->count--;
+}
+
+/* String variant */
+typedef struct
+{
+    char   **data;
+    size_t   count;
+    size_t   capacity;
+} PgyList_String;
+
+static inline PgyList_String pgy_list_new_string(void)
+{
+    PgyList_String l;
+    l.capacity = 16;
+    l.count = 0;
+    l.data = (char **)calloc(l.capacity, sizeof(char *));
+    return l;
+}
+
+static inline void pgy_list_push_string(PgyList_String *l, const char *val)
+{
+    if (l->count >= l->capacity) {
+        l->capacity *= 2;
+        l->data = (char **)realloc(l->data, l->capacity * sizeof(char *));
+    }
+    l->data[l->count++] = strdup(val ? val : "");
+}
+
+static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
+{
+    if (index < 0 || (size_t)index >= l->count) return "";
+    return l->data[index] ? l->data[index] : "";
+}
+
+static inline int32_t pgy_list_size_string(PgyList_String *l) { return (int32_t)l->count; }
+
+/* =================================================================
+ * Set<String> — hash set (string keys)
+ * ================================================================= */
+
+typedef struct
+{
+    char   **keys;
+    uint8_t *occupied;
+    size_t   count;
+    size_t   capacity;
+} PgySet_String;
+
+static inline PgySet_String pgy_set_new_string(void)
+{
+    PgySet_String s;
+    s.capacity = 16;
+    s.count = 0;
+    s.keys = (char **)calloc(s.capacity, sizeof(char *));
+    s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t));
+    return s;
+}
+
+static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
+{
+    if (s->count == 0 || key == NULL) return false;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
+    size_t p = 0;
+    while (s->occupied[h] && p < s->capacity) {
+        if (s->keys[h] && strcmp(s->keys[h], key) == 0) return true;
+        h = (h + 1) % (uint32_t)s->capacity; p++;
+    }
+    return false;
+}
+
+static inline void pgy_set_add_string(PgySet_String *s, const char *key)
+{
+    if (pgy_set_has_string(s, key)) return;
+    if ((double)s->count / (double)s->capacity > 0.75) {
+        size_t oc = s->capacity; char **ok = s->keys; uint8_t *oo = s->occupied;
+        s->capacity *= 2;
+        s->keys = (char **)calloc(s->capacity, sizeof(char *));
+        s->occupied = (uint8_t *)calloc(s->capacity, sizeof(uint8_t));
+        s->count = 0;
+        for (size_t i = 0; i < oc; i++) {
+            if (oo[i]) { pgy_set_add_string(s, ok[i]); free(ok[i]); }
+        }
+        free(ok); free(oo);
+    }
+    uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
+    while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity;
+    s->keys[h] = strdup(key); s->occupied[h] = 1; s->count++;
+}
+
+static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
+{
+    if (s->count == 0 || key == NULL) return;
+    uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
+    size_t p = 0;
+    while (s->occupied[h] && p < s->capacity) {
+        if (s->keys[h] && strcmp(s->keys[h], key) == 0) {
+            free(s->keys[h]); s->keys[h] = NULL; s->occupied[h] = 0; s->count--;
+            return;
+        }
+        h = (h + 1) % (uint32_t)s->capacity; p++;
+    }
+}
+
+static inline int32_t pgy_set_size_string(PgySet_String *s) { return (int32_t)s->count; }
+
+/* =================================================================
+ * Queue<Int> — ring buffer FIFO
+ * ================================================================= */
+
+typedef struct
+{
+    int32_t *data;
+    size_t   head;
+    size_t   tail;
+    size_t   count;
+    size_t   capacity;
+} PgyQueue_Int;
+
+static inline PgyQueue_Int pgy_queue_new_int(void)
+{
+    PgyQueue_Int q;
+    q.capacity = 16;
+    q.count = q.head = q.tail = 0;
+    q.data = (int32_t *)calloc(q.capacity, sizeof(int32_t));
+    return q;
+}
+
+static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
+{
+    if (q->count >= q->capacity) {
+        size_t nc = q->capacity * 2;
+        int32_t *nd = (int32_t *)calloc(nc, sizeof(int32_t));
+        for (size_t i = 0; i < q->count; i++)
+            nd[i] = q->data[(q->head + i) % q->capacity];
+        free(q->data); q->data = nd;
+        q->head = 0; q->tail = q->count; q->capacity = nc;
+    }
+    q->data[q->tail] = val;
+    q->tail = (q->tail + 1) % q->capacity;
+    q->count++;
+}
+
+static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
+{
+    if (q->count == 0) return 0;
+    int32_t val = q->data[q->head];
+    q->head = (q->head + 1) % q->capacity;
+    q->count--;
+    return val;
+}
+
+static inline int32_t pgy_queue_size_int(PgyQueue_Int *q) { return (int32_t)q->count; }
+static inline bool pgy_queue_empty_int(PgyQueue_Int *q) { return q->count == 0; }
+
+/* =================================================================
+ * Object Pool — fixed-capacity reusable slot pool
+ * use pool;
+ * ================================================================= */
+
+typedef struct
+{
+    void    *data;          /* flat array of items */
+    uint8_t *alive;         /* alive flags */
+    size_t   item_size;
+    size_t   capacity;
+    size_t   count;
+} PgyPool;
+
+static inline PgyPool pgy_pool_create(size_t item_size, size_t capacity)
+{
+    PgyPool p;
+    p.item_size = item_size;
+    p.capacity = capacity;
+    p.count = 0;
+    p.data = calloc(capacity, item_size);
+    p.alive = (uint8_t *)calloc(capacity, sizeof(uint8_t));
+    return p;
+}
+
+static inline int32_t pgy_pool_spawn(PgyPool *p, const void *item)
+{
+    for (size_t i = 0; i < p->capacity; i++) {
+        if (!p->alive[i]) {
+            memcpy((char *)p->data + i * p->item_size, item, p->item_size);
+            p->alive[i] = 1;
+            p->count++;
+            return (int32_t)i;
+        }
+    }
+    return -1; /* pool full */
+}
+
+static inline void pgy_pool_despawn(PgyPool *p, int32_t index)
+{
+    if (index >= 0 && (size_t)index < p->capacity && p->alive[index]) {
+        p->alive[index] = 0;
+        p->count--;
+    }
+}
+
+static inline void *pgy_pool_get(PgyPool *p, int32_t index)
+{
+    if (index < 0 || (size_t)index >= p->capacity || !p->alive[index])
+        return NULL;
+    return (char *)p->data + (size_t)index * p->item_size;
+}
+
+static inline bool pgy_pool_alive(PgyPool *p, int32_t index)
+{
+    return index >= 0 && (size_t)index < p->capacity && p->alive[index];
+}
+
+static inline int32_t pgy_pool_count(PgyPool *p) { return (int32_t)p->count; }
+static inline int32_t pgy_pool_capacity(PgyPool *p) { return (int32_t)p->capacity; }
+
+/* =================================================================
+ * FSM — Finite State Machine
+ * use fsm;
+ * ================================================================= */
+
+#define PGY_FSM_MAX_STATES 32
+
+typedef struct
+{
+    int32_t current;
+    int32_t transitions[PGY_FSM_MAX_STATES][PGY_FSM_MAX_STATES]; /* transition[from][input] = to */
+    char   *state_names[PGY_FSM_MAX_STATES];
+    size_t  state_count;
+} PgyFsm;
+
+static inline PgyFsm pgy_fsm_new(void)
+{
+    PgyFsm f;
+    memset(&f, 0, sizeof(f));
+    f.current = 0;
+    for (int i = 0; i < PGY_FSM_MAX_STATES; i++)
+        for (int j = 0; j < PGY_FSM_MAX_STATES; j++)
+            f.transitions[i][j] = -1;
+    return f;
+}
+
+static inline int32_t pgy_fsm_add_state(PgyFsm *f, const char *name)
+{
+    if (f->state_count >= PGY_FSM_MAX_STATES) return -1;
+    int32_t id = (int32_t)f->state_count;
+    f->state_names[id] = strdup(name ? name : "");
+    f->state_count++;
+    return id;
+}
+
+static inline void pgy_fsm_add_transition(PgyFsm *f, int32_t from, int32_t input, int32_t to)
+{
+    if (from >= 0 && from < PGY_FSM_MAX_STATES && input >= 0 && input < PGY_FSM_MAX_STATES)
+        f->transitions[from][input] = to;
+}
+
+static inline bool pgy_fsm_step(PgyFsm *f, int32_t input)
+{
+    if (f->current < 0 || f->current >= PGY_FSM_MAX_STATES) return false;
+    int32_t next = f->transitions[f->current][input];
+    if (next < 0) return false;
+    f->current = next;
+    return true;
+}
+
+static inline int32_t pgy_fsm_current(PgyFsm *f) { return f->current; }
+
+static inline const char *pgy_fsm_current_name(PgyFsm *f)
+{
+    if (f->current < 0 || (size_t)f->current >= f->state_count) return "";
+    return f->state_names[f->current] ? f->state_names[f->current] : "";
+}
+
+/* =================================================================
+ * Timer / Cooldown
+ * use timer;
+ * ================================================================= */
+
+typedef struct
+{
+    int32_t duration;
+    int32_t remaining;
+    bool    done;
+} PgyTimer;
+
+static inline PgyTimer pgy_timer_new(int32_t duration)
+{
+    PgyTimer t;
+    t.duration = duration;
+    t.remaining = duration;
+    t.done = false;
+    return t;
+}
+
+static inline void pgy_timer_tick(PgyTimer *t, int32_t delta)
+{
+    if (t->done) return;
+    t->remaining -= delta;
+    if (t->remaining <= 0) {
+        t->remaining = 0;
+        t->done = true;
+    }
+}
+
+static inline bool pgy_timer_done(PgyTimer *t) { return t->done; }
+static inline int32_t pgy_timer_remaining(PgyTimer *t) { return t->remaining; }
+
+static inline void pgy_timer_reset(PgyTimer *t)
+{
+    t->remaining = t->duration;
+    t->done = false;
+}
+
+typedef struct
+{
+    int32_t cooldown;
+    int32_t remaining;
+} PgyCooldown;
+
+static inline PgyCooldown pgy_cooldown_new(int32_t cooldown)
+{
+    PgyCooldown c;
+    c.cooldown = cooldown;
+    c.remaining = 0;
+    return c;
+}
+
+static inline void pgy_cooldown_tick(PgyCooldown *c, int32_t delta)
+{
+    c->remaining = (c->remaining > delta) ? c->remaining - delta : 0;
+}
+
+static inline bool pgy_cooldown_ready(PgyCooldown *c) { return c->remaining <= 0; }
+
+static inline void pgy_cooldown_trigger(PgyCooldown *c)
+{
+    c->remaining = c->cooldown;
+}
+
 /* =================================================================
  * Parallel Support (OpenMP or Sequential Fallback)
  * ================================================================= */

@@ -13,10 +13,13 @@ examples/*.exe
 examples/**/*.exe
 examples/**/*.o
 examples/**/main
+examples/**/player_main
+examples/**/random_main
 
 # Example runtime output (regenerated on run)
 # Keep one representative scenario report tracked.
 examples/**/results.txt
+examples/**/results.*.txt
 !examples/raid_graph_fsm/results.txt
 
 # Example expected output — keep ONE canonical expected_stdout.txt per project,

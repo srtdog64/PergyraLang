@@ -1738,6 +1738,10 @@ void ast_destroy(ASTNode* node) {
             free(node->data.import_decl.path);
             break;
 
+        case AST_USE_DECL:
+            free(node->data.use_decl.module_name);
+            break;
+
         case AST_NAMESPACE_DECL:
             free(node->data.namespace_decl.name);
             for (size_t i = 0; i < node->data.namespace_decl.count; i++) {

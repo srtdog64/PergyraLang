@@ -271,6 +271,22 @@
 ### 대표 프로그램
 - [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명
 
+## P1.85 — 게임 프레임워크 계층
+
+- [ ] **게임 프레임워크 라이브러리 경계 고정**
+  - 원칙: `entity/object pool`은 언어 코어 기능이 아니라 `use pool;` 같은 게임/앱 라이브러리 계층으로 둔다
+  - 원칙: `encounter/turn/state machine`, `strategy/AI`, `content tables`도 동일하게 코어 문법이 아니라 프레임워크 surface로 쌓는다
+  - 원칙: 이 계층은 “도메인 라이브러리”보다 “generic pattern library + domain injection”으로 정의한다
+  - 이유: 코어 언어는 `subject / vessel / object / dto / relation / effect / zone / world / Slot<T>` 의미론을 유지하고, 대규모 게임 설계는 그 위의 library/DSL 계층으로 올리는 편이 확장성과 설명력이 더 좋다
+  - 목표: “게임을 만들 수 있는 코어 언어”와 “게임을 실제로 만드는 프레임워크”를 분리
+- [ ] **게임 stdlib/use surface 초안**
+  - 후보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
+  - 방향: pool/fsm/strategy/table은 `.pgy` 또는 stdlib 모듈로 제공하고, 언어 키워드로 승격하지 않는다
+  - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming을 우선한다
+- [ ] **DND/campaign 시나리오를 게임 프레임워크 검증장으로 사용**
+  - `dnd_tavern_campaign`를 기준으로 pool/fsm/strategy/table이 실제로 충분한지 검증
+  - language core 부족이 아니라 framework layer 부족인지 계속 분리해서 기록
+
 ## P1.8 — 멀티 타겟
 
 - [ ] **공통 UI IR 고정** — Kotlin/Android 개별 백엔드보다 먼저, 모든 플랫폼이 공유하는 scene/projection UI IR을 정의
