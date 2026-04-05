@@ -2415,6 +2415,34 @@ resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
                               ASTNode *step, const char *alias);
 
 static const char *
+resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
+                                       const char *zone_type_name, const char *alias);
+
+static const char *
+intent_step_effective_zone_alias(ASTNode *step)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return NULL;
+    if (step->data.intent_step.using_expr != NULL
+        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
+        return step->data.intent_step.using_expr->data.identifier.name;
+    }
+    return step->data.intent_step.transfer_to_alias;
+}
+
+static const char *
+intent_zone_binding_type_name(ASTNode *intent, const char *alias)
+{
+    ASTNode *involves = find_intent_actor_local(intent, alias);
+    if (involves != NULL
+        && involves->data.intent_involves.subject_type != NULL
+        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+        return involves->data.intent_involves.subject_type->data.type.name;
+    }
+    return NULL;
+}
+
+static const char *
 intent_involves_type_name_local(ASTNode *involves)
 {
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
@@ -2451,20 +2479,62 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
 {
     const char *zone_alias;
     const char *zone_type;
+    const char *from_alias;
+    const char *from_zone_type;
 
     if (out == NULL || ctx == NULL || intent == NULL || step == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.using_expr == NULL
-        || step->data.intent_step.using_expr->type != AST_IDENTIFIER
         || step->data.intent_step.where_type == NULL
         || step->data.intent_step.where_type->type != AST_TYPE) {
         return;
     }
 
-    zone_alias = step->data.intent_step.using_expr->data.identifier.name;
+    zone_alias = intent_step_effective_zone_alias(step);
     zone_type = step->data.intent_step.where_type->data.type.name;
     if (zone_alias == NULL || zone_type == NULL)
         return;
+
+    from_alias = step->data.intent_step.transfer_from_alias;
+    from_zone_type = intent_zone_binding_type_name(intent, from_alias);
+
+    if (from_alias != NULL && from_zone_type != NULL) {
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names[i];
+            const char *from_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
+                from_zone_type, alias);
+            const char *to_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
+                zone_type, alias);
+            if (alias == NULL)
+                continue;
+            if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", from_alias, from_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_materialize_export(__intent_handle, \"%s\", \"%s\", \"%s\");\n",
+                    alias, from_slot_name, from_zone_type);
+            }
+            if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0) {
+                write_indent(ctx);
+                codebuf_write(out, "%s->%s = *%s;\n", zone_alias, to_slot_name, alias);
+                write_indent(ctx);
+                codebuf_write(out,
+                    "pgy_intent_trace_transfer_export(__intent_handle, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
+                    alias,
+                    from_zone_type != NULL ? from_zone_type : "<zone>",
+                    from_slot_name != NULL ? from_slot_name : "<unbound>",
+                    zone_type,
+                    to_slot_name);
+            }
+        }
+        write_indent(ctx);
+        codebuf_write(out, "%s_sync(%s);\n", from_zone_type, from_alias);
+        if (strcmp(from_alias, zone_alias) != 0 || strcmp(from_zone_type, zone_type) != 0) {
+            write_indent(ctx);
+            codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+        }
+        return;
+    }
 
     for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
         const char *alias = step->data.intent_step.who_names[i];
@@ -2486,19 +2556,30 @@ static const char *
 resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
                               ASTNode *step, const char *alias)
 {
-    ASTNode *zone_decl = NULL;
-    const char *actor_type = NULL;
-    ASTNode *named_match = NULL;
-    ASTNode *typed_match = NULL;
-
     if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
         || step->data.intent_step.where_type == NULL
         || step->data.intent_step.where_type->type != AST_TYPE
         || step->data.intent_step.where_type->data.type.name == NULL) {
         return "<unbound>";
     }
+    return resolve_intent_zone_slot_name_for_zone(ctx, intent,
+        step->data.intent_step.where_type->data.type.name, alias);
+}
 
-    zone_decl = find_zone_decl_in_hir(ctx, step->data.intent_step.where_type->data.type.name);
+static const char *
+resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
+                                       const char *zone_type_name, const char *alias)
+{
+    ASTNode *zone_decl = NULL;
+    const char *actor_type = NULL;
+    ASTNode *named_match = NULL;
+    ASTNode *typed_match = NULL;
+
+    if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
+        return "<unbound>";
+    }
+
+    zone_decl = find_zone_decl_in_hir(ctx, zone_type_name);
     actor_type = intent_actor_type_name(intent, alias);
     if (zone_decl == NULL)
         return "<unbound>";

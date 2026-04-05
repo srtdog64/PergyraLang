@@ -451,6 +451,8 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.name = name ? pergyra_strdup(name) : NULL;
     node->data.intent_step.where_type = NULL;
     node->data.intent_step.using_expr = NULL;
+    node->data.intent_step.transfer_from_alias = NULL;
+    node->data.intent_step.transfer_to_alias = NULL;
     node->data.intent_step.who_names = NULL;
     node->data.intent_step.who_count = 0;
     node->data.intent_step.on_exprs = NULL;
@@ -1516,6 +1518,8 @@ void ast_destroy(ASTNode* node) {
             free(node->data.intent_step.name);
             ast_destroy(node->data.intent_step.where_type);
             ast_destroy(node->data.intent_step.using_expr);
+            free(node->data.intent_step.transfer_from_alias);
+            free(node->data.intent_step.transfer_to_alias);
             for (size_t i = 0; i < node->data.intent_step.who_count; i++)
                 free(node->data.intent_step.who_names[i]);
             free(node->data.intent_step.who_names);

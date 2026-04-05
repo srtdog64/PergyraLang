@@ -275,6 +275,26 @@ pgy_intent_trace_materialize_export(int32_t handle, const char *actor_name,
 }
 
 static inline void
+pgy_intent_trace_transfer_export(int32_t handle, const char *actor_name,
+                                 const char *from_zone_name, const char *from_slot_name,
+                                 const char *to_zone_name, const char *to_slot_name)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[384];
+        snprintf(line, sizeof(line), "[transfer] %s: %s.%s -> %s.%s\n",
+            actor_name != NULL ? actor_name : "<actor>",
+            from_zone_name != NULL ? from_zone_name : "<zone>",
+            from_slot_name != NULL ? from_slot_name : "<unbound>",
+            to_zone_name != NULL ? to_zone_name : "<zone>",
+            to_slot_name != NULL ? to_slot_name : "<unbound>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+static inline void
 pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
 {
     pthread_mutex_lock(&pgy_intent_registry_mutex);

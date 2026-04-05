@@ -24,9 +24,11 @@ examples such as the battle simulator and biome simulator.
   step-level history for the last completed intent.
   `using: zoneAlias;` now gives intent steps a live concrete zone instance and
   now also materializes bound `who` actors into matching zone subject slots
-  before sync. The remaining gaps are structured trace/history data instead of
-  richer trace ids beyond the current last-intent surface, richer rollback
-  policy, and cross-world transfer semantics.
+  before sync. `transfer: source -> target;` now also performs v1 cross-world
+  handoff materialization and leaves explicit transfer trace lines on both C
+  and LLVM. The remaining gaps are structured trace/history data instead of
+  richer trace ids beyond the current last-intent surface and richer rollback
+  policy.
 
 ## Recently Resolved
 

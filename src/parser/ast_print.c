@@ -1093,6 +1093,12 @@ void ast_print(ASTNode* node, int indent) {
                 printf(" using ");
                 ast_print_inline(node->data.intent_step.using_expr);
             }
+            if (node->data.intent_step.transfer_from_alias != NULL
+                && node->data.intent_step.transfer_to_alias != NULL) {
+                printf(" transfer %s -> %s",
+                    node->data.intent_step.transfer_from_alias,
+                    node->data.intent_step.transfer_to_alias);
+            }
             printf("\n");
             if (node->data.intent_step.who_count > 0) {
                 print_indent(indent + 1);
@@ -1108,6 +1114,13 @@ void ast_print(ASTNode* node, int indent) {
                 printf("Using: ");
                 ast_print_inline(node->data.intent_step.using_expr);
                 printf("\n");
+            }
+            if (node->data.intent_step.transfer_from_alias != NULL
+                && node->data.intent_step.transfer_to_alias != NULL) {
+                print_indent(indent + 1);
+                printf("Transfer: %s -> %s\n",
+                    node->data.intent_step.transfer_from_alias,
+                    node->data.intent_step.transfer_to_alias);
             }
             if (node->data.intent_step.on_expr_count > 0) {
                 for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++) {

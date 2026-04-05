@@ -421,3 +421,4 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   via `tests/cases/backend_compare/intent_trace_compensate`
 - documented the post-implementation strengths and weaknesses of Pergyra in
   `docs/35_hands_on_language_assessment.md`
+- intent: added `transfer: source -> target;` to `intent step`, with semantic validation that both bindings are zone participants, target matches `where`, and `who` actors match subject slots on both sides; C/LLVM lowering now performs live handoff materialization, dual-zone sync, and `[transfer] ...` runtime trace lines, with backend parity coverage in `tests/cases/backend_compare/intent_cross_world_transfer/`

@@ -116,6 +116,7 @@ main() {
         "tests/cases/backend_compare/intent_conflict_runtime"
         "tests/cases/backend_compare/intent_trace_compensate"
         "tests/cases/backend_compare/intent_zone_binding"
+        "tests/cases/backend_compare/intent_cross_world_transfer"
     )
 
     if [[ "$#" -gt 0 ]]; then

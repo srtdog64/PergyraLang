@@ -407,6 +407,70 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
 
+        if (step->data.intent_step.transfer_from_alias != NULL
+            || step->data.intent_step.transfer_to_alias != NULL) {
+            const char *from_alias = step->data.intent_step.transfer_from_alias;
+            const char *to_alias = step->data.intent_step.transfer_to_alias;
+            ASTNode *from_involves = find_intent_involves_local(node, from_alias);
+            ASTNode *to_involves = find_intent_involves_local(node, to_alias);
+            Type *from_type = from_involves != NULL
+                ? resolve_type_node(from_involves->data.intent_involves.subject_type, ctx) : NULL;
+            Type *to_type = to_involves != NULL
+                ? resolve_type_node(to_involves->data.intent_involves.subject_type, ctx) : NULL;
+            ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                from_type != NULL ? from_type->name : NULL);
+            ASTNode *to_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                to_type != NULL ? to_type->name : NULL);
+            Type *where_zone_type = step->data.intent_step.where_type != NULL
+                ? resolve_type_node(step->data.intent_step.where_type, ctx) : NULL;
+
+            if (from_alias == NULL || to_alias == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer clause requires both source and target zone aliases",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            }
+            if (from_alias != NULL && from_involves == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer source '%s' is not a declared intent binding",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    from_alias);
+            }
+            if (to_alias != NULL && to_involves == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer target '%s' is not a declared intent binding",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias);
+            }
+            if (from_involves != NULL && from_zone_decl == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer source '%s' must be a zone binding",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    from_alias != NULL ? from_alias : "<source>");
+            }
+            if (to_involves != NULL && to_zone_decl == NULL) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer target '%s' must be a zone binding",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias != NULL ? to_alias : "<target>");
+            }
+            if (to_type != NULL && where_zone_type != NULL && !type_equals(to_type, where_zone_type)) {
+                semantic_error(ctx, step,
+                    "Intent step '%s' transfer target '%s' must match where zone '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias != NULL ? to_alias : "<target>",
+                    where_zone_type->name != NULL ? where_zone_type->name : "<zone>");
+            }
+            if (step->data.intent_step.using_expr != NULL
+                && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+                && to_alias != NULL
+                && strcmp(step->data.intent_step.using_expr->data.identifier.name, to_alias) != 0) {
+                semantic_error(ctx, step->data.intent_step.using_expr,
+                    "Intent step '%s' using binding must match transfer target '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    to_alias);
+            }
+        }
+
         if (step->data.intent_step.who_count == 0) {
             semantic_error(ctx, step, "Intent step '%s' requires at least one who actor",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
@@ -458,6 +522,25 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     alias != NULL ? alias : "<actor>",
                     actor_type_name,
                     zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+            }
+            if (step->data.intent_step.transfer_from_alias != NULL && actor_type_name != NULL) {
+                ASTNode *from_involves = find_intent_involves_local(node,
+                    step->data.intent_step.transfer_from_alias);
+                Type *from_type = from_involves != NULL
+                    ? resolve_type_node(from_involves->data.intent_involves.subject_type, ctx) : NULL;
+                ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                    from_type != NULL ? from_type->name : NULL);
+                if (from_zone_decl != NULL
+                    && !domain_has_subject_slot_type(from_zone_decl->data.zone_decl.slots,
+                        from_zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                    semantic_error(ctx, step,
+                        "Intent step '%s' transfer source zone '%s' has no matching subject slot for actor '%s' of type '%s'",
+                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        from_zone_decl->data.zone_decl.name != NULL
+                            ? from_zone_decl->data.zone_decl.name : "<zone>",
+                        alias != NULL ? alias : "<actor>",
+                        actor_type_name);
+                }
             }
 
             if (involves->data.intent_involves.subject_type != NULL

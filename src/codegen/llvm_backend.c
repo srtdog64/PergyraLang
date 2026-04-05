@@ -1406,6 +1406,10 @@ llvm_intent_actor_type_name(ASTNode *intent, const char *alias)
 }
 
 static const char *
+llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
+                                            const char *zone_type_name, const char *alias);
+
+static const char *
 llvm_intent_involves_type_name(ASTNode *involves)
 {
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
@@ -1500,22 +1504,57 @@ llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves)
 }
 
 static const char *
+llvm_intent_step_effective_zone_alias(ASTNode *step)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return NULL;
+    if (step->data.intent_step.using_expr != NULL
+        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
+        return step->data.intent_step.using_expr->data.identifier.name;
+    }
+    return step->data.intent_step.transfer_to_alias;
+}
+
+static const char *
+llvm_intent_zone_binding_type_name(ASTNode *intent, const char *alias)
+{
+    ASTNode *involves = llvm_find_intent_actor_local(intent, alias);
+    if (involves != NULL
+        && involves->data.intent_involves.subject_type != NULL
+        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+        return involves->data.intent_involves.subject_type->data.type.name;
+    }
+    return NULL;
+}
+
+static const char *
 llvm_resolve_intent_zone_slot_name(LLVMGenCtx *ctx, ASTNode *intent,
                                    ASTNode *step, const char *alias)
 {
-    ASTNode *zone_decl = NULL;
-    const char *actor_type = NULL;
-    ASTNode *named_match = NULL;
-    ASTNode *typed_match = NULL;
-
     if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
         || step->data.intent_step.where_type == NULL
         || step->data.intent_step.where_type->type != AST_TYPE
         || step->data.intent_step.where_type->data.type.name == NULL) {
         return "<unbound>";
     }
+    return llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent,
+        step->data.intent_step.where_type->data.type.name, alias);
+}
 
-    zone_decl = llvm_find_zone_decl_in_hir(ctx, step->data.intent_step.where_type->data.type.name);
+static const char *
+llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
+                                            const char *zone_type_name, const char *alias)
+{
+    ASTNode *zone_decl = NULL;
+    const char *actor_type = NULL;
+    ASTNode *named_match = NULL;
+    ASTNode *typed_match = NULL;
+
+    if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
+        return "<unbound>";
+    }
+
+    zone_decl = llvm_find_zone_decl_in_hir(ctx, zone_type_name);
     actor_type = llvm_intent_actor_type_name(intent, alias);
     if (zone_decl == NULL)
         return "<unbound>";
@@ -1555,22 +1594,23 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
 {
     const char *zone_alias;
     const char *zone_type_name;
+    const char *from_alias;
+    const char *from_zone_type_name;
     LLVMVarEntry *zone_var;
     LLVMValueRef zone_ptr;
     char sync_name[256];
     LLVMFuncEntry *sync_fn;
     LLVMClassTypeEntry *zone_cls;
     LLVMFuncEntry *trace_materialize_fn;
+    LLVMFuncEntry *trace_transfer_fn;
 
     if (ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.using_expr == NULL
-        || step->data.intent_step.using_expr->type != AST_IDENTIFIER
         || step->data.intent_step.where_type == NULL
         || step->data.intent_step.where_type->type != AST_TYPE) {
         return;
     }
 
-    zone_alias = step->data.intent_step.using_expr->data.identifier.name;
+    zone_alias = llvm_intent_step_effective_zone_alias(step);
     zone_type_name = step->data.intent_step.where_type->data.type.name;
     if (zone_alias == NULL || zone_type_name == NULL)
         return;
@@ -1587,6 +1627,125 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
     trace_materialize_fn = llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export");
+    trace_transfer_fn = llvm_lookup_function(ctx, "pgy_intent_trace_transfer_export");
+    from_alias = step->data.intent_step.transfer_from_alias;
+    from_zone_type_name = llvm_intent_zone_binding_type_name(intent, from_alias);
+
+    if (from_alias != NULL && from_zone_type_name != NULL) {
+        LLVMVarEntry *from_zone_var = llvm_scope_lookup(ctx, from_alias);
+        LLVMValueRef from_zone_ptr;
+        LLVMClassTypeEntry *from_zone_cls = llvm_lookup_class(ctx, from_zone_type_name);
+        char from_sync_name[256];
+        LLVMFuncEntry *from_sync_fn;
+
+        if (from_zone_var == NULL || LLVMGetTypeKind(from_zone_var->type) != LLVMPointerTypeKind)
+            return;
+
+        from_zone_ptr = LLVMBuildLoad2(ctx->builder, from_zone_var->type,
+            from_zone_var->alloca, llvm_tmp_name(ctx));
+        if (LLVMGetTypeKind(LLVMTypeOf(from_zone_ptr)) != LLVMPointerTypeKind)
+            return;
+
+        if (from_zone_cls != NULL) {
+            for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+                const char *alias = step->data.intent_step.who_names[i];
+                const char *from_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
+                    ctx, intent, from_zone_type_name, alias);
+                const char *to_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
+                    ctx, intent, zone_type_name, alias);
+                ASTNode *involves;
+                LLVMVarEntry *actor_var;
+                LLVMTypeRef actor_ptr_type;
+                LLVMTypeRef actor_value_type;
+                LLVMValueRef actor_ptr;
+                LLVMValueRef actor_value;
+                LLVMValueRef handle;
+
+                if (alias == NULL)
+                    continue;
+
+                involves = llvm_find_intent_actor_local(intent, alias);
+                actor_var = llvm_scope_lookup(ctx, alias);
+                if (involves == NULL || actor_var == NULL
+                    || involves->data.intent_involves.subject_type == NULL) {
+                    continue;
+                }
+
+                actor_ptr_type = actor_var->type;
+                actor_value_type = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
+                    llvm_tmp_name(ctx));
+                actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
+                    llvm_tmp_name(ctx));
+                handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
+                    ? LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                        llvm_scope_lookup(ctx, "__intent_handle")->alloca,
+                        llvm_tmp_name(ctx))
+                    : LLVMConstInt(ctx->type_i32, 0, 0);
+
+                if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
+                    int from_field_idx = llvm_class_field_index(from_zone_cls, from_slot_name);
+                    if (from_field_idx >= 0) {
+                        LLVMValueRef from_slot_ptr = LLVMBuildStructGEP2(ctx->builder,
+                            from_zone_cls->struct_type, from_zone_ptr, (unsigned)from_field_idx,
+                            llvm_tmp_name(ctx));
+                        LLVMBuildStore(ctx->builder, actor_value, from_slot_ptr);
+                        if (trace_materialize_fn != NULL) {
+                            LLVMValueRef args[] = {
+                                handle,
+                                LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder, from_slot_name, llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder, from_zone_type_name, llvm_tmp_name(ctx))
+                            };
+                            LLVMBuildCall2(ctx->builder, trace_materialize_fn->fn_type,
+                                trace_materialize_fn->fn, args, 4, "");
+                        }
+                    }
+                }
+
+                if (to_slot_name != NULL && strcmp(to_slot_name, "<unbound>") != 0
+                    && zone_cls != NULL) {
+                    int to_field_idx = llvm_class_field_index(zone_cls, to_slot_name);
+                    if (to_field_idx >= 0) {
+                        LLVMValueRef to_slot_ptr = LLVMBuildStructGEP2(ctx->builder,
+                            zone_cls->struct_type, zone_ptr, (unsigned)to_field_idx,
+                            llvm_tmp_name(ctx));
+                        LLVMBuildStore(ctx->builder, actor_value, to_slot_ptr);
+                        if (trace_transfer_fn != NULL) {
+                            LLVMValueRef transfer_args[] = {
+                                handle,
+                                LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder, from_zone_type_name, llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder,
+                                    from_slot_name != NULL ? from_slot_name : "<unbound>",
+                                    llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder, zone_type_name, llvm_tmp_name(ctx)),
+                                LLVMBuildGlobalStringPtr(ctx->builder, to_slot_name, llvm_tmp_name(ctx))
+                            };
+                            LLVMBuildCall2(ctx->builder, trace_transfer_fn->fn_type,
+                                trace_transfer_fn->fn, transfer_args, 6, "");
+                        }
+                    }
+                }
+            }
+        }
+
+        snprintf(from_sync_name, sizeof(from_sync_name), "%s_sync", from_zone_type_name);
+        from_sync_fn = llvm_lookup_function(ctx, from_sync_name);
+        if (from_sync_fn != NULL) {
+            LLVMValueRef args[] = { from_zone_ptr };
+            LLVMBuildCall2(ctx->builder, from_sync_fn->fn_type, from_sync_fn->fn, args, 1, "");
+        }
+        if (strcmp(from_alias, zone_alias) != 0 || strcmp(from_zone_type_name, zone_type_name) != 0) {
+            snprintf(sync_name, sizeof(sync_name), "%s_sync", zone_type_name);
+            sync_fn = llvm_lookup_function(ctx, sync_name);
+            if (sync_fn != NULL) {
+                LLVMValueRef args[] = { zone_ptr };
+                LLVMBuildCall2(ctx->builder, sync_fn->fn_type, sync_fn->fn, args, 1, "");
+            }
+        }
+        return;
+    }
 
     if (zone_cls != NULL) {
         for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
@@ -2241,7 +2400,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         struct {
             const char *name;
             LLVMTypeRef ret;
-            LLVMTypeRef params[5];
+            LLVMTypeRef params[6];
             unsigned param_count;
         } builtins[] = {
             { "StringContains", ctx->type_i1,
@@ -2304,6 +2463,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i32 }, 1 },
             { "pgy_intent_trace_materialize_export", ctx->type_void,
               { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
+            { "pgy_intent_trace_transfer_export", ctx->type_void,
+              { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 6 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "pgy_write_file", ctx->type_void,

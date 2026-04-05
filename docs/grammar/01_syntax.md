@@ -180,6 +180,7 @@ Purchase(hero, merchant);
 - `compensate:`는 여러 번 선언할 수 있고, failure 시 reverse-order로 실행된다
 - `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` builtin으로 마지막 intent 실행 기록 요약을 읽을 수 있다
 - `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
+- `transfer: source -> target;`는 intent step에서 cross-zone handoff를 선언한다. 현재 구현은 source/target 양쪽 zone을 live sync하고, `who` actor를 matching subject slot에 materialize하며, trace에 `[transfer] ...`를 남긴다.
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
@@ -187,7 +188,7 @@ Purchase(hero, merchant);
 - 새 intent와 active intent가 모두 `concurrent`이면 병행 가능하다
 - 새 intent의 `priority`가 더 높으면 낮은 priority active intent 위로 중첩 진입할 수 있다
 - step ordering, basic trace/history, basic rollback/compensation은 현재 구현되어 있다
-- 아직 남은 건 structured trace/history API, cross-world transfer, richer rollback policy다
+- 아직 남은 건 richer trace id/history API와 richer rollback policy다
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.

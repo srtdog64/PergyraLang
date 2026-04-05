@@ -75,6 +75,10 @@ intent는 step이 있어서 절차적으로 **보이지만**, 본질이 다르�
   }
   → "사용자의 목적"이 핵심. 각 step에 맥락(누가, 어디서, 자격, 승인)이 있다.
   → 순서는 목적의 부산물이지, 목적 자체가 아니다.
+
+여기서 `ProductView` 같은 이름은 "페이지"를 뜻하지 않는다.
+Pergyra에서 page/route는 보통 projection surface이고,
+`where`는 execution/authority boundary인 zone을 가리킨다.
 ```
 
 절차형은 **"어떻게"**를 기술한다. intent는 **"왜"**를 기술하고, "어떻게"는 언어의 프리미티브(zone, action, ability)가 이행한다.
@@ -188,11 +192,14 @@ priority        → Int여야 함
 `IntentHistoryStepZone(i)` / `IntentHistoryStepOk(i)` /
 `IntentHistoryStepFailure(i)`로 step-level typed history를 읽을 수 있다.
 `using:` bound zone이 있으면 현재 `who` actor를 matching subject slot에
-실제로 materialize한 뒤 sync를 돈다.
+실제로 materialize한 뒤 sync를 돈다. `transfer: source -> target;`가 붙으면
+source/target zone을 둘 다 live sync하고 `[transfer] ...` trace를 남기며
+target zone 쪽으로 handoff materialization을 수행한다.
 즉 v0.3의 intent는 **실행 가능한 declaration + conflict scheduler +
-trace/rollback runtime + live zone-instance binding + actor-slot materialization**
-까지는 들어왔고, 남은 것은 structured trace id/history model,
-cross-world transfer, richer rollback policy다.
+trace/rollback runtime + live zone-instance binding + actor-slot materialization +
+cross-zone handoff**
+까지는 들어왔고, 남은 것은 structured trace id/history model과
+richer rollback policy다.
 
 ---
 
@@ -246,14 +253,18 @@ intent가 `where: PaymentZone`으로 zone 타입을 참조하면, 그 zone 안�
 현재는 `who`/`authorized by`와 zone subject slot 타입 적합성, `requires` 능력 구현 여부,
 `causes` effect 존재까지는 정적으로 묶이고, runtime은 실제 `who -> zone subject slot`
 materialization과 trace line까지 수행한다.
-다만 cross-world transfer, richer trace id/history model,
-rollback policy는 아직 완전히 명세되지 않았다.
+다만 richer trace id/history model과 richer rollback policy는 아직 완전히
+명세되지 않았다. cross-world transfer v1은 이제 구현되어, `transfer: cart -> payment;`
+같이 source/target zone binding을 선언하면 runtime이 source/target 양쪽을 live sync하고
+actor를 target zone slot으로 handoff materialization한다.
 
 구체적으로 다음이 정의되어야 한다:
 
 ```
 Q1. step이 실행될 때, 해당 zone의 action만 호출 가능하도록 어떻게 제한하는가?
 Q2. step이 여러 zone/world 경계를 넘을 때 transfer identity를 어떻게 유지하는가?
+   → v1은 "consume"이 아니라 handoff materialization이다.
+   → source/target zone 둘 다 sync되고 trace에 `[transfer] actor: From.slot -> To.slot`가 남는다.
 Q3. step 간 전이 history를 typed API로 어떻게 노출하는가?
 ```
 
@@ -276,6 +287,7 @@ causes ✓                     intent 성공/실패 판정
 연결 지점 (부분 구현 / 남은 것):
   step ↔ zone action 바인딩
   step ↔ concrete zone instance 바인딩 (`using:` + actor-slot materialization 있음)
+  step ↔ cross-world zone handoff (`transfer:` v1 있음)
   step ↔ step 상태 전달
   typed trace/history API (v1 step surface는 구현됨)
 ```
@@ -321,6 +333,8 @@ intent Purchase
     step pay
     {
         where: PaymentZone;
+        using: payment;
+        transfer: cart -> payment;
         who: buyer;
         requires: Payable;
         causes: PaymentEffect;
@@ -408,9 +422,12 @@ intent Purchase
    → admin override (관리자 강제 개입)
    → 이것들은 intent와 다른 메커니즘이며, 별도 primitive로 정의 필요.
 
-3. 전이 시 subject의 상태 직렬화/역직렬화
-   → dto가 경계 투영 역할.
-   → 구체적 직렬화 포맷/identity 유지 방식은 미정의.
+3. 전이 시 subject handoff
+   → v1 구현은 `transfer: source -> target;`로 concrete zone binding을 잡고,
+     `who` actor를 source/target zone의 matching subject slot에 materialize한 뒤
+     양쪽 zone을 sync한다.
+   → 즉 현재는 "cross-world consume-move"가 아니라 "live handoff materialization"이다.
+   → dto는 여전히 경계 투영 역할을 맡고, richer identity handoff는 다음 단계다.
 
 4. 각 world의 컴파일 타임 계약은 유지
    → PaymentWorld 안의 action 제약은 여전히 컴파일러가 검증.

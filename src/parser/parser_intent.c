@@ -107,6 +107,25 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "transfer")) {
+            Token from_alias;
+            Token to_alias;
+
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'transfer'");
+            from_alias = consume_name_token(parser, "Expected source zone alias after 'transfer:'");
+            if (!parser_match(parser, TOKEN_ARROW)) {
+                parser_consume(parser, TOKEN_MINUS, "Expected '->' in transfer clause");
+                parser_consume(parser, TOKEN_GREATER, "Expected '->' in transfer clause");
+            }
+            to_alias = consume_name_token(parser, "Expected target zone alias after '->'");
+            free(step->data.intent_step.transfer_from_alias);
+            free(step->data.intent_step.transfer_to_alias);
+            step->data.intent_step.transfer_from_alias = pergyra_strdup(from_alias.text);
+            step->data.intent_step.transfer_to_alias = pergyra_strdup(to_alias.text);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step transfer clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "on")) {
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'on'");
             intent_append_node(&step->data.intent_step.on_exprs,

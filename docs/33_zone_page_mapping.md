@@ -2,23 +2,33 @@
 
 ## 한 줄 요약
 
-> Zone은 "페이지"가 아니라 **"페이지 안의 독립된 행위 구역"**이다. 페이지는 zone의 조합이다.
+> Zone은 페이지가 아니다.  
+> **page/route는 projection surface**이고,  
+> **zone은 execution / authority boundary**다.
 
 ---
 
 ## 1. 핵심 매핑
 
 ```
-Web/App              Pergyra          역할
-──────────────────────────────────────────────────
-App 전체             world            실행/신뢰/실패 경계
-Page / Screen        zone 조합         하나 이상의 zone으로 구성
-Component / Section  zone             행위가 허용되는 독립 구역
-UI Element           subject / class  행동 주체 / 도구
-State                vessel           내부 상태 수용체
-API Call / Mutation  action           맥락 검증된 행위
-Route Guard          requires / authorized by   진입 자격
+Web/App              Pergyra                역할
+────────────────────────────────────────────────────────────
+App 전체             world                  실행/신뢰/실패 경계
+Page / Route         object/dto surface     사용자에게 보이는 투영 표면
+Execution Boundary   zone                   행위/권한/효과가 검증되는 문맥
+Component / Section  page fragment or zone  UI 조각 또는 행위 구역
+UI Element           subject / class        행동 주체 / 도구
+State                vessel                 내부 상태 수용체
+API Call / Mutation  action / intent        맥락 검증된 행위 / 사용자 의지
+Route Guard          requires / authorized by / intent gate
 ```
+
+### 핵심 원칙
+
+- `page`는 사용자가 보는 표면이다
+- `zone`은 사용자가 행동하는 도메인 경계다
+- page는 보통 `object/dto` projection을 읽고, 입력을 `intent` 또는 `action`으로 바꿔 zone을 움직인다
+- 따라서 `page == zone`은 기본 규칙이 아니라 특수한 단순 케이스다
 
 ---
 
@@ -38,14 +48,27 @@ zone을 나눠야 하는 3가지 신호:
 
 | 신호 | 설명 | 예시 |
 |------|------|------|
-| **같은 주체, 같은 자격** | 행위 제약이 동일 | 프로필 보기 + 프로필 수정 |
+| **같은 주체, 같은 자격, 같은 규칙** | 행위 제약이 동일 | 프로필 보기 + 수정이 완전히 같은 권한 모델 |
 | **하나가 없으면 다른 하나도 의미 없음** | 생명주기가 결합 | 로그인 폼 + 비밀번호 찾기 |
 | **action이 1~2개** | 나누면 오히려 과분할 | 설정 페이지의 토글 하나 |
 
-### 2.3 판단 흐름도
+### 2.3 page를 나누는 신호
+
+page/route는 zone 판단과 별개다. page는 보통 사용자 경험과 내비게이션 기준으로 나눈다.
+
+| 신호 | 설명 | 예시 |
+|------|------|------|
+| **내비게이션이 다르다** | URL / screen 전환이 생김 | `/cart` → `/checkout` |
+| **보여주는 projection이 다르다** | 같은 zone이라도 다른 읽기 표면 | mini cart vs full cart |
+| **정보 밀도가 다르다** | 같은 실행 경계를 서로 다른 UI로 표현 | 모바일 프로필 요약 vs 데스크톱 상세 |
+
+### 2.4 판단 흐름도
 
 ```
-이 구역에서 행동하는 subject가 다른가?
+이건 "페이지"인가 "실행 경계"인가?
+  ├─ 페이지/라우트다 → object/dto projection surface로 먼저 본다
+  └─ 실행 경계다
+      이 구역에서 행동하는 subject가 다른가?
   ├─ YES → zone 분리
   └─ NO
       이 구역의 action에 필요한 ability가 다른가?
@@ -60,7 +83,7 @@ zone을 나눠야 하는 3가지 신호:
 
 ## 3. 패턴별 예제
 
-### 3.1 단순 페이지 — zone 1개 = page 1개
+### 3.1 단순 페이지 — page 1개가 zone 1개를 거의 그대로 비추는 경우
 
 로그인, 404, 설정처럼 단일 맥락인 페이지.
 
@@ -75,13 +98,13 @@ ability Authenticatable
     func Authenticate(self, password: String) -> Result;
 }
 
-zone LoginPage
+zone LoginZone
 {
     subject slot user: Guest;
 
     action Login(self, id: String, pw: String)
         requires Authenticatable
-        within LoginPage
+        within LoginZone
     {
         // 인증 로직
     }
@@ -89,15 +112,20 @@ zone LoginPage
 
 world App
 {
-    zone login: LoginPage;
+    zone login: LoginZone;
 }
 ```
 
-**1 page = 1 zone.** 주체도 하나, 자격도 하나, 생명주기도 하나.
+이 경우에도 엄밀히는:
+
+- page = 로그인 화면
+- zone = 인증 실행 경계
+
+다만 둘의 구조가 거의 같아서 1:1처럼 보여도 무방하다.
 
 ---
 
-### 3.2 복합 페이지 — zone 여러 개 = page 1개
+### 3.2 복합 페이지 — page 1개가 여러 zone을 비추는 경우
 
 쇼핑몰 상품 페이지처럼 여러 행위 구역이 공존하는 경우.
 
@@ -117,41 +145,42 @@ subject SupportAgent
 
 // --- zone 선언 ---
 
-// 상품 정보: 읽기 전용, action 없음
-zone ProductView
+// 상품 정보는 보통 projection surface다.
+// 별도 행위 규칙이 없다면 zone보다 object/dto 쪽이 먼저다.
+object ProductSummary
 {
-    subject slot viewer: Member;
-    // action 없음 — 순수 열람
+    let title: String;
+    let price: Int;
 }
 
 // 리뷰 영역: 작성 자격 필요
-zone ReviewSection
+zone ReviewZone
 {
     subject slot reviewer: Member;
 
     action WriteReview(self, text: String)
         requires Reviewable
-        within ReviewSection
+        within ReviewZone
     {
         // 리뷰 작성
     }
 }
 
 // 장바구니: 구매 자격 필요
-zone CartSection
+zone CartZone
 {
     subject slot buyer: Member;
 
     action AddToCart(self, item_id: Int)
         requires Purchasable
-        within CartSection
+        within CartZone
     {
         // 장바구니 추가
     }
 
     action Checkout(self)
         requires Purchasable
-        within CartSection
+        within CartZone
         authorized by buyer
     {
         // 결제 진행
@@ -159,40 +188,48 @@ zone CartSection
 }
 
 // 채팅: 독립 생명주기 (열기/닫기)
-zone ChatWidget
+zone SupportChatZone
 {
     subject slot customer: Member;
     subject slot agent: SupportAgent;
 
     action SendMessage(self, msg: String)
-        within ChatWidget
+        within SupportChatZone
     {
         // 메시지 전송
     }
 }
 
-// --- world: page = zone 조합 ---
+// --- world: domain boundaries ---
 
 world ShoppingApp
 {
-    // "상품 페이지" = 4개 zone
-    zone productView: ProductView;
-    zone reviewSection: ReviewSection;
-    zone cartSection: CartSection;
-    zone chatWidget: ChatWidget;
+    zone review: ReviewZone;
+    zone cart: CartZone;
+    zone supportChat: SupportChatZone;
 }
 ```
 
-**왜 나눴는가:**
+그리고 실제 page는 대략 이렇게 읽는다.
 
-| zone | 주체 | 자격 | 생명주기 |
-|------|------|------|----------|
-| ProductView | Member (열람) | 없음 | 항상 활성 |
-| ReviewSection | Member (작성) | Reviewable | 항상 활성 |
-| CartSection | Member (구매) | Purchasable | 항상 활성 |
-| ChatWidget | Member + Agent | 없음 | 독립 (열기/닫기) |
+```text
+ProductPage
+  -> ProductSummary object/dto projection
+  -> ReviewZone
+  -> CartZone
+  -> SupportChatZone
+```
 
-주체가 다르거나(ChatWidget), 자격이 다르거나(Review vs Cart), 생명주기가 다르면(ChatWidget) 분리.
+**왜 이렇게 나누는가:**
+
+| 경계 | 역할 | 비고 |
+|------|------|------|
+| ProductSummary | 읽기 전용 projection | page surface |
+| ReviewZone | 리뷰 작성 규칙 | 실행 경계 |
+| CartZone | 장바구니/구매 규칙 | 실행 경계 |
+| SupportChatZone | 고객-상담원 대화 규칙 | 실행 경계 |
+
+즉 상품 페이지는 page 1개지만, 그 안의 도메인 경계는 여러 개다.
 
 ---
 
@@ -242,45 +279,44 @@ world AdminDashboard
 
 ---
 
-### 3.4 모바일 네비게이션 — 탭 = zone
+### 3.4 모바일 네비게이션 — 탭은 page이고, zone일 수도 아닐 수도 있다
 
 ```pergyra
-zone HomeTab
+object HomeFeedView
 {
-    subject slot user: Member;
-    // 피드 표시
+    let summary: String;
 }
 
-zone SearchTab
+zone SearchZone
 {
     subject slot user: Member;
 
     action Search(self, query: String)
-        within SearchTab
+        within SearchZone
     {
         // 검색 실행
     }
 }
 
-zone ProfileTab
+zone AccountZone
 {
     subject slot user: Member;
 
     action EditProfile(self)
         requires ProfileOwner
-        within ProfileTab
+        within AccountZone
         authorized by user
     {
         // 프로필 수정
     }
 }
 
-zone NotificationTab
+zone NotificationZone
 {
     subject slot user: Member;
 
     action MarkRead(self, notif_id: Int)
-        within NotificationTab
+        within NotificationZone
     {
         // 읽음 처리
     }
@@ -288,14 +324,19 @@ zone NotificationTab
 
 world MobileApp
 {
-    zone home: HomeTab;
-    zone search: SearchTab;
-    zone profile: ProfileTab;
-    zone notifications: NotificationTab;
+    zone search: SearchZone;
+    zone account: AccountZone;
+    zone notifications: NotificationZone;
 }
 ```
 
-모바일 탭은 **생명주기가 독립적**(탭 전환)이므로 자연스럽게 zone 분리.
+탭 전환은 UI 생명주기다.  
+그 자체가 곧 zone이라는 뜻은 아니다.
+
+- Home 탭: projection 위주면 object/dto surface
+- Search 탭: 실제 검색 action이 있으면 `SearchZone`
+- Profile 탭: 수정/승인이 있으면 `AccountZone`
+- Notification 탭: 읽음 처리 규칙이 있으면 `NotificationZone`
 
 ---
 
@@ -359,11 +400,11 @@ world SignupFlow
 
 ## 4. 안티패턴
 
-### 4.1 God Zone — 모든 것을 하나에
+### 4.1 God Zone — 페이지를 zone 하나로 뭉개는 경우
 
 ```pergyra
 // BAD: 모든 행위가 한 zone에
-zone ProductPage
+zone ProductPageZone
 {
     subject slot viewer: Member;
     subject slot reviewer: Member;
@@ -378,7 +419,7 @@ zone ProductPage
 }
 ```
 
-**문제:** 모든 action이 같은 zone에 있으므로 `within` 제약이 무의미해진다. 리뷰 작성과 결제가 같은 맥락에서 허용되는 셈.
+**문제:** page라는 이유만으로 같은 zone에 넣어버리면 `within` 제약이 무의미해진다. 리뷰 작성과 결제가 같은 실행 경계가 되어버린다.
 
 ### 4.2 Nano Zone — 과도한 분리
 
@@ -405,17 +446,17 @@ Nano Zone:  자격이 같은 action들을 여러 zone에 → 합쳐라
 | 프레임워크 | 개념 | Pergyra 대응 |
 |-----------|------|-------------|
 | React | App | world |
-| React | Page (react-router) | zone 조합 |
-| React | Component | zone (행위 있으면) 또는 object (읽기 전용이면) |
+| React | Page (react-router) | object/dto projection surface + zone 조합 |
+| React | Component | zone, object, dto 중 하나의 소비 표면 |
 | React | useState/useReducer | vessel |
 | React | Context/Provider | zone의 subject slot |
 | Next.js | Route Group | world 내 zone 그룹 |
 | Next.js | Middleware | requires / authorized by |
 | Flutter | MaterialApp | world |
-| Flutter | Screen/Page | zone 조합 |
-| Flutter | Widget | zone 또는 class |
+| Flutter | Screen/Page | object/dto projection surface + zone 조합 |
+| Flutter | Widget | zone consumer, object view, 또는 class |
 | SwiftUI | App | world |
-| SwiftUI | View + NavigationStack | zone 조합 |
+| SwiftUI | View + NavigationStack | object/dto projection surface + zone 조합 |
 | SwiftUI | @State/@ObservedObject | vessel |
 
 ---
@@ -425,17 +466,20 @@ Nano Zone:  자격이 같은 action들을 여러 zone에 → 합쳐라
 새 페이지를 설계할 때:
 
 1. **이 페이지에서 행동하는 subject는 몇 명인가?**
-   - 1명이고 자격도 하나 → zone 1개
+   - 이 질문은 page가 아니라 zone 후보에 대해 묻는 것이다
+   - 1명이고 자격도 하나 → zone 1개로 충분할 수 있다
    - 여러 명이거나 자격이 다름 → zone 분리 검토
 
 2. **독립적으로 열리고 닫히는 구역이 있는가?**
-   - 모달, 드로어, 채팅 위젯 → 별도 zone
+   - UI 생명주기만 다르면 page fragment일 수 있다
+   - 그 안의 규칙/권한/효과가 독립적이면 zone
 
 3. **action의 authorized by가 다른가?**
    - 본인만 승인 vs 관리자 승인 → zone 분리
 
 4. **읽기 전용 구역이 있는가?**
-   - action 없는 순수 표시 → zone (action 없음) 또는 object로 투영
+   - action 없는 순수 표시 → 보통 object/dto projection surface
+   - 굳이 zone으로 올리는 것은 그 구역 자체가 독립 실행 경계일 때만
 
 5. **나눈 zone이 3개 이상이면 → 안티패턴 점검**
    - 같은 주체 + 같은 자격인 zone이 있으면 합칠 수 있는지 확인
