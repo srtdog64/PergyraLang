@@ -1,0 +1,21 @@
+role CourierRoute for Courier
+{
+    impl ability Routable
+    {
+        func RouteMark() -> String
+        {
+            return "route-ready";
+        }
+    }
+}
+
+role DispatcherApprove for Dispatcher
+{
+    impl ability Approvable
+    {
+        func ApprovalMark() -> String
+        {
+            return "approval-ready";
+        }
+    }
+}

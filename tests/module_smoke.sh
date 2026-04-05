@@ -112,3 +112,72 @@ func Main() -> Void { Log(1); }
 EOF
 run_fail "circular_import" "circular import detected" \
     "$WORK_DIR/circular/main.pgy"
+
+mkdir -p "$WORK_DIR/intent_failure_result"
+cat > "$WORK_DIR/intent_failure_result/main.pgy" <<'EOF'
+subject Driver {
+    let hp: Int;
+    let started: Bool;
+
+    action Ignite(self) -> Void {
+        started = true;
+        hp = hp + 1;
+    }
+
+    action RollbackIgnite(self) -> Void {
+        started = false;
+        hp = hp - 1;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent DriveCar(cockpit: CockpitZone, driver: Driver) {
+    step Ignite {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.Ignite();
+        compensate: driver.RollbackIgnite();
+        guard: false;
+        post: driver.started;
+    }
+
+    success: true;
+    failure: true;
+}
+
+func Main() -> Void {
+    let d = Driver(0, false);
+    let cockpit = CockpitZone(Driver(99, true));
+    Log(DriveCar(cockpit, d));
+    Log(IntentLastFailed());
+}
+EOF
+run_ok "intent_failure_result" "$WORK_DIR/intent_failure_result/main.pgy" "false" "true"
+
+mkdir -p "$WORK_DIR/parallel_ref_slot_conflict"
+cat > "$WORK_DIR/parallel_ref_slot_conflict/main.pgy" <<'EOF'
+subject WorkerLedger {
+    let reserved: Int;
+}
+
+func Reserve(ref ledger: Slot<WorkerLedger>, load: Int) -> Int {
+    let cur: WorkerLedger = Read(ledger);
+    let next: WorkerLedger = WorkerLedger(cur.reserved + load);
+    Write(ledger, next);
+    return next.reserved;
+}
+
+func Main() -> Void {
+    let left: Slot<WorkerLedger> = WorkerLedger(0);
+    parallel {
+        Reserve(left, 3);
+        Reserve(left, 5);
+    }
+}
+EOF
+run_fail "parallel_ref_slot_conflict" "Parallel slot conflict on 'left'" \
+    "$WORK_DIR/parallel_ref_slot_conflict/main.pgy"

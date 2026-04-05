@@ -16,12 +16,12 @@
 #ifdef PGY_LLVM_ENABLED
 
 int
-llvm_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
+llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
 {
     if (flags->emit_llvm_ir) {
         CompilerResult *result = flags->output_path != NULL
-            ? compiler_emit_llvm_ir_to_file(hir, "pergyra_module", flags->output_path)
-            : compiler_emit_llvm_ir(hir, "pergyra_module");
+            ? compiler_emit_llvm_ir_to_file(bundle, "pergyra_module", flags->output_path)
+            : compiler_emit_llvm_ir(bundle, "pergyra_module");
         if (result == NULL || !result->success) {
             fprintf(stderr, "pgy: LLVM IR generation failed: %s\n",
                     result != NULL ? result->error_message : "out of memory");
@@ -49,7 +49,7 @@ llvm_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
         return 1;
     }
 
-    result = compiler_build_native_llvm(hir, obj_path, bin_path, flags->verbose,
+    result = compiler_build_native_llvm(bundle, obj_path, bin_path, flags->verbose,
                                         flags->opt_profile);
     if (result == NULL || !result->success) {
         fprintf(stderr, "pgy: LLVM compile failed: %s\n",
@@ -77,10 +77,10 @@ llvm_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
 #else /* !PGY_LLVM_ENABLED */
 
 int
-llvm_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
+llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
 {
     (void)flags;
-    (void)hir;
+    (void)bundle;
     fprintf(stderr, "pgy: LLVM backend not available in this build\n");
     return 1;
 }

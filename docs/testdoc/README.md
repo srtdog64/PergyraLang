@@ -39,4 +39,7 @@ For a regression-grade scenario:
 ## Current Testdoc-Grade Scenarios
 
 - `campaign_graph_fsm`
-
+- `dnd_tavern_campaign`
+- `shopping_mall_checkout_refund`
+- `logistics_intent_probe`
+- `resource_scheduler_async_probe`

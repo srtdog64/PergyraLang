@@ -6,6 +6,43 @@
 #include "ast.h"
 #include <stdio.h>
 
+static void
+print_escaped_string(const char *value)
+{
+    const unsigned char *p = (const unsigned char *)value;
+
+    printf("\"");
+    if (p == NULL) {
+        printf("\"");
+        return;
+    }
+
+    while (*p != '\0') {
+        switch (*p) {
+        case '\\':
+            printf("\\\\");
+            break;
+        case '"':
+            printf("\\\"");
+            break;
+        case '\n':
+            printf("\\n");
+            break;
+        case '\r':
+            printf("\\r");
+            break;
+        case '\t':
+            printf("\\t");
+            break;
+        default:
+            putchar((int)*p);
+            break;
+        }
+        p++;
+    }
+    printf("\"");
+}
+
 static const char *
 nominal_decl_kind_name(NominalDeclKind kind)
 {
@@ -77,7 +114,7 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_STRING:
-            printf("\"%s\"", node->data.string.value);
+            print_escaped_string(node->data.string.value);
             break;
 
         case AST_BOOLEAN:
@@ -233,6 +270,22 @@ ast_print_compact(ASTNode* node)
             }
             break;
 
+        case AST_LET_DESTRUCTURE:
+            printf("let (");
+            for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+                if (i > 0)
+                    printf(", ");
+                printf("%s", node->data.let_destructure.names[i] != NULL
+                                ? node->data.let_destructure.names[i]
+                                : "?");
+            }
+            printf(")");
+            if (node->data.let_destructure.initializer != NULL) {
+                printf(" = ");
+                ast_print_compact(node->data.let_destructure.initializer);
+            }
+            break;
+
         case AST_LET_DECL:
             printf("let %s", node->data.let_decl.name);
             if (node->data.let_decl.type != NULL) {
@@ -293,8 +346,26 @@ ast_print_compact(ASTNode* node)
             ast_print_compact(node->data.if_stmt.condition);
             break;
 
+        case AST_BREAK:
+            printf("break");
+            break;
+
+        case AST_CONTINUE:
+            printf("continue");
+            break;
+
         case AST_PARTY_INSTANCE:
             printf("%s{...}", node->data.party_instance.party_type);
+            break;
+
+        case AST_ARRAY_LITERAL:
+            printf("[");
+            for (size_t i = 0; i < node->data.array_literal.count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.array_literal.elements[i]);
+            }
+            printf("]");
             break;
 
         case AST_LAMBDA_EXPR:
@@ -1528,6 +1599,31 @@ void ast_print(ASTNode* node, int indent) {
             printf("Import: \"%s\"\n", node->data.import_decl.path);
             break;
 
+        case AST_USE_DECL:
+            printf("Use: %s\n", node->data.use_decl.module_name != NULL
+                                     ? node->data.use_decl.module_name
+                                     : "<unknown>");
+            break;
+
+        case AST_ENUM_DECL:
+            printf("Enum: %s", node->data.enum_decl.name != NULL
+                                  ? node->data.enum_decl.name
+                                  : "<anonymous>");
+            if (node->data.enum_decl.variant_count > 0) {
+                printf(" { ");
+                for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                    if (i > 0)
+                        printf(", ");
+                    printf("%s",
+                           node->data.enum_decl.variants[i] != NULL
+                               ? node->data.enum_decl.variants[i]
+                               : "?");
+                }
+                printf(" }");
+            }
+            printf("\n");
+            break;
+
         case AST_NAMESPACE_DECL:
             printf("Namespace: %s\n", node->data.namespace_decl.name);
             for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
@@ -1556,6 +1652,18 @@ void ast_print(ASTNode* node, int indent) {
                    node->data.bind_stmt.role_name != NULL
                        ? node->data.bind_stmt.role_name
                        : "<unknown>");
+            break;
+
+        case AST_BREAK:
+            printf("Break\n");
+            break;
+
+        case AST_CONTINUE:
+            printf("Continue\n");
+            break;
+
+        case AST_PARTY_METHOD:
+            printf("PartyMethod\n");
             break;
             
         default:

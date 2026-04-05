@@ -1,0 +1,9 @@
+ability Routable
+{
+    func RouteMark() -> String;
+}
+
+ability Approvable
+{
+    func ApprovalMark() -> String;
+}

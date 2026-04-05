@@ -1,0 +1,8 @@
+=== ASYNC RESOURCE SCHEDULER PROBE ===
+[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11
+[Plan] left queued=2 finished=0 load=8 | right queued=2 finished=0 load=18 | budget.remaining=14 reserved=26
+[Remote] 103 105 207 211
+[Score] 144 147 240 245 total=776
+[Final] left queued=2 finished=2 load=8 | right queued=2 finished=2 load=18
+[Final] budget.remaining=14 reserved=26
+saving examples/resource_scheduler_async_probe/results.txt

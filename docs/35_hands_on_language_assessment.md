@@ -1,6 +1,6 @@
 # Hands-On Language Assessment
 
-마지막 업데이트: 2026-04-05
+마지막 업데이트: 2026-04-06
 
 이 문서는 실제로 `intent`, `zone/world`, 대형 시나리오, pattern 예제,
 C/LLVM parity를 직접 구현하면서 드러난 Pergyra의 강점과 약점을 정리한다.
@@ -140,6 +140,23 @@ projection/state propagation은 아직 수작업이 많다.
 - 더 높은 수준의 propagation surface
 - structured trace/history API
 
+### 2.5. async resource discipline은 강해졌지만 아직 sharp edge가 있다
+
+`examples/resource_scheduler_async_probe/`를 만들면서 확인한 점은 분명하다.
+
+- `Channel<Int>` + `parallel` + `Slot<subject>` + `DeviceSlot<Int>` +
+  `RemoteFuture<Int>`를 한 시나리오에서 실제로 돌릴 수 있다
+- helper function이 `ref Slot<subject>`를 받는 경우까지 병렬 conflict를
+  추적하게 되면서, "겉으로는 함수 호출"인 변이도 보수적으로 막을 수 있다
+
+하지만 아직 남아 있는 sharp edge도 있다.
+
+- `spawn` + `ref Slot<subject>` async parameter wrapper path
+- `SecureSlot` view mutation across `await`
+
+즉 "엄격한 자원관리"의 방향은 맞지만, 가장 거친 경계는 아직 async wrapper와
+secure-view 쪽이다.
+
 ### 3. intent runtime은 강해졌지만 아직 fully rich engine은 아니다
 
 현재는 이미 다음이 된다.
@@ -175,6 +192,35 @@ parser/semantic/codegen/runtime/LSP/doc/scaffold를 같이 흔든다.
 - zone binding을 넣으면 backend lowering이 같이 필요
 
 즉 철학적으로 강한 기능은 구현 비용도 크다.
+
+### 5. 표면 문법은 강하지만, 문서와 예전 설명이 아직 완전히 수렴하지 않았다
+
+실제 구현을 계속 만지다 보니 "언어 표면이 이상하다"기보다
+"오래된 문서가 최신 surface를 완전히 따라오지 못하는" 지점이 더 눈에 띄었다.
+
+대표적으로:
+
+- 일부 오래된 문서는 아직 `subject`와 `class`를 같은 선언처럼 설명한다
+- page/zone 관계를 예전에는 1:1처럼 설명한 흔적이 남아 있다
+- `intent`는 이제 executable orchestration인데, 몇몇 설명은 여전히 declaration-only처럼 읽힌다
+
+즉 현재의 surface weirdness는 parser보다 문서 동기화 문제에 더 가깝다.
+이건 언어 설계 자체의 허점이라기보다, 진화 속도를 문서가 못 따라온 결과다.
+
+### 6. debug/AST printer 표면은 아직 군데군데 거칠다
+
+이번 패스에서 escaped string literal과 `enum` / `break` / `continue`
+pretty-print는 바로 고쳤지만, 아직 AST debug 출력 자체는 완전히 매끈하지 않다.
+
+대표적으로:
+
+- nested generic type pretty-print가 너무 장황하다
+- 일부 node는 여전히 compact printer에서 `<node:...>` 같은 내부 표현을 노출한다
+- event parameter나 array literal 일부 표현은 surface syntax보다 AST storage 형태를 더 드러낸다
+
+즉 parser/semantic이 틀린 것이 아니라, debug view가 언어 표면과 1:1로 대응하지 않는
+부분이 남아 있다. 이건 diagnostics와 학습 경험에 직접 영향을 주므로
+계속 다듬어야 한다.
 
 ## 직접 구현해보며 느낀 결론
 

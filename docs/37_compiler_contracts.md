@@ -1,6 +1,6 @@
 # Pergyra 컴파일러 계약 고정안
 
-마지막 업데이트: 2026-04-05
+마지막 업데이트: 2026-04-06
 
 이 문서는 앞으로 흔들리면 안 되는 다섯 가지 핵심 계약을 고정한다.
 
@@ -161,6 +161,15 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 - relation/effect lifecycle
 - intent compensation resource edge
 - cross-zone/world handoff resource fact
+- nominal `relation/effect/zone/world` handle fact와 handoff op
+
+현재 구현 메모:
+
+- RIR는 이미 scope-level summary를 넘어서 HIR CFG 기반 `flow-block[...]`를 materialize한다.
+- 각 flow fact는 `entry/exit`, `merged_from_join`, `widened_by_loop`, `entry_conflict`, `exit_conflict`를 가진다.
+- handle merge는 resource kind를 함께 읽는다.
+  - `zone/world handle`은 ownership/borrow 중심
+  - `relation/effect handle`은 detach/sync/dirty lifecycle 중심
 
 MIR로 이월하는 것:
 
@@ -198,6 +207,18 @@ MIR로 이월하는 것:
 한 줄 정의:
 
 > MIR는 "RIR가 해석된 뒤의 실행 그래프"다.
+
+현재 코드 계층 최소 구현:
+
+- HIR CFG block을 MIR block으로 복사
+- HIR phi skeleton을 MIR phi node로 materialize
+- HIR local def를 `def` instruction + block-local SSA rename 형태로 materialize
+- branch/return/resource-op/cleanup instruction use를 versioned name으로 기록
+- block별 `ssa_entry_versions` / `ssa_exit_versions`를 저장해 phi incoming과 use edge가 predecessor exit map을 직접 참조한다
+- reachable intent block마다 cleanup successor edge를 두고, cleanup convergence root 아래에 rollback block과 invalidation block을 분리한다
+
+즉 MIR는 아직 full optimizer IR은 아니지만, pure placeholder를 넘어서
+`phi`, versioned local value, instruction-level use, cleanup convergence, rollback/invalidation edge를 직접 가지는 실행 그래프다.
 
 ## 2. Resource State Lattice 계약
 

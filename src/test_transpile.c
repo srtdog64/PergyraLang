@@ -16,6 +16,9 @@
 #include "codegen/transpiler.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "semantic/semantic.h"
+#include "compiler/rir.h"
+#include "compiler/mir.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
 
@@ -156,6 +159,92 @@ lower_program(ASTNode *program)
     }
     free(error);
     return hir;
+}
+
+static bool
+lower_pipeline_from_source(const char *source,
+                           ASTNode **program_out,
+                           HIRProgram **hir_out,
+                           RIRProgram **rir_out,
+                           MIRProgram **mir_out)
+{
+    bool ok = false;
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *program = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(program);
+    char *hir_error = NULL;
+    char *rir_error = NULL;
+    char *mir_error = NULL;
+
+    *program_out = program;
+    *hir_out = NULL;
+    *rir_out = NULL;
+    *mir_out = NULL;
+
+    if (!parser_has_error(parser) && sem != NULL && sem->success) {
+        *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        *rir_out = rir_lower(sem->annotated_ast, &rir_error);
+        if (*hir_out != NULL && *rir_out != NULL)
+            (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
+        if (*hir_out != NULL && *rir_out != NULL)
+            *mir_out = mir_lower(*hir_out, *rir_out, &mir_error);
+    }
+
+    ok = (*hir_out != NULL && *rir_out != NULL && *mir_out != NULL);
+    if (!ok) {
+        if (hir_error != NULL)
+            fprintf(stderr, "HIR lowering failed in test: %s\n", hir_error);
+        if (rir_error != NULL)
+            fprintf(stderr, "RIR lowering failed in test: %s\n", rir_error);
+        if (mir_error != NULL)
+            fprintf(stderr, "MIR lowering failed in test: %s\n", mir_error);
+    }
+
+    free(hir_error);
+    free(rir_error);
+    free(mir_error);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return ok;
+}
+
+static char *
+read_file_text(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    long size;
+    char *data;
+    if (f == NULL)
+        return NULL;
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return NULL;
+    }
+    size = ftell(f);
+    if (size < 0) {
+        fclose(f);
+        return NULL;
+    }
+    if (fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        return NULL;
+    }
+    data = calloc((size_t)size + 1, 1);
+    if (data == NULL) {
+        fclose(f);
+        return NULL;
+    }
+    if (size > 0) {
+        size_t read_bytes = fread(data, 1, (size_t)size, f);
+        if (read_bytes != (size_t)size) {
+            free(data);
+            fclose(f);
+            return NULL;
+        }
+    }
+    fclose(f);
+    return data;
 }
 
 static ASTNode *
@@ -2962,6 +3051,52 @@ test_stdlib_and_enum_emit(void)
     }
 }
 
+static void
+test_mir_vertical_slice_emit(void)
+{
+    printf("\n[mir_vertical_slice]\n");
+
+    TEST("simple branch-return function body emits from MIR");
+    {
+        const char *source =
+            "func Score(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 7;\n"
+            "    }\n"
+            "    return 3;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *path = "/tmp/pgy_test_mir_vertical_slice.c";
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok
+               && output != NULL
+               && strstr(output, "/* emitted-from-mir */") != NULL
+               && strstr(output, "goto _pgy_mir_bb_Score_0;") != NULL
+               && strstr(output, "if (flag) goto _pgy_mir_bb_Score_1; else goto _pgy_mir_bb_Score_2;") != NULL
+               && strstr(output, "return 7;") != NULL
+               && strstr(output, "return 3;") != NULL);
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+}
+
 /* -----------------------------------------------------------------
  * Main
  * ----------------------------------------------------------------- */
@@ -2984,6 +3119,7 @@ main(void)
     test_async_emit();
     test_slot_sugar();
     test_stdlib_and_enum_emit();
+    test_mir_vertical_slice_emit();
 
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
 

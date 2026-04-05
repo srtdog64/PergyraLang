@@ -6,7 +6,7 @@
 
 - `struct`: 최소 값 타입. 복사/비교가 자연스러운 데이터
 - `subject`: ability를 수행하는 주체 타입. 상태와 identity를 가진다
-- 현재 surface syntax는 `subject`와 `class`를 같은 declaration으로 허용한다
+- `class`: 값으로 들고 쓰는 도구/사물 타입. 메서드는 가질 수 있지만 identity/zone/action 의미는 붙지 않는다
 - `ability`: subject가 수행할 수 있는 행위 계약
 - `role`: 특정 subject가 ability를 어떻게 수행하는지 바인딩하는 계층
 
@@ -73,10 +73,10 @@ struct Vec3
 - ability의 실제 수행 주체가 된다
 - subject의 행위는 항상 `self` 객체 셀 위에서 실행된다고 본다
 
-현재 syntax 예시는 호환성을 위해 `class`를 사용한다. `subject`도 같은 의미로 허용된다.
+현재 stable surface는 `subject`와 `class`를 구분한다. 아래 예시는 주체 타입을 설명하므로 `subject`를 쓰는 편이 맞다.
 
 ```pergyra
-class Player
+subject Player
 {
     _healthSlot: SecureSlot<Int>
     _token: Token

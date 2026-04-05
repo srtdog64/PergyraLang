@@ -27,6 +27,8 @@ typedef enum
     DIR_EDGE_ROLE_FOR_TYPE,
     DIR_EDGE_ROLE_INCLUDE,
     DIR_EDGE_ROLE_IMPL_ABILITY,
+    DIR_EDGE_ROLE_COMPLETES_ABILITY,
+    DIR_EDGE_ROLE_MISSING_ABILITY_METHOD,
     DIR_EDGE_PARTY_SLOT_ABILITY,
     DIR_EDGE_SYSTEMIC_PARTY,
     DIR_EDGE_WORLD_SYSTEMIC,
@@ -109,6 +111,7 @@ struct DIRProgram
 };
 
 DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message);
+bool        dir_validate(const DIRProgram *dir, char **error_message);
 void        dir_destroy(DIRProgram *dir);
 void        dir_dump(const DIRProgram *dir, FILE *out);
 const char *dir_node_kind_name(DIRNodeKind kind);

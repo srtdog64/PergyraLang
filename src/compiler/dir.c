@@ -1,5 +1,6 @@
 #include "dir.h"
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -16,6 +17,33 @@ append_node(DIRNode **nodes, size_t *count, DIRNode node)
     *nodes = grown;
     (*count)++;
     return true;
+}
+
+static char *
+dir_strdup_fmt(const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int length;
+    char *result;
+
+    va_start(args, fmt);
+    va_copy(copy, args);
+    length = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if (length < 0) {
+        va_end(args);
+        return NULL;
+    }
+
+    result = malloc((size_t)length + 1);
+    if (result == NULL) {
+        va_end(args);
+        return NULL;
+    }
+    vsnprintf(result, (size_t)length + 1, fmt, args);
+    va_end(args);
+    return result;
 }
 
 static bool
@@ -162,6 +190,42 @@ dir_find_relation_node_by_name(const DIRProgram *dir, const char *name)
     return dir_find_node_by_name_kind(dir, name, DIR_NODE_RELATION);
 }
 
+static ASTNode *
+dir_find_ability_decl_ast(ASTNode *program, const char *name)
+{
+    if (program == NULL || name == NULL || program->type != AST_PROGRAM)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt != NULL
+            && stmt->type == AST_ABILITY_DECL
+            && stmt->data.ability_decl.name != NULL
+            && strcmp(stmt->data.ability_decl.name, name) == 0) {
+            return stmt;
+        }
+    }
+    return NULL;
+}
+
+static bool
+dir_impl_has_method_named(ASTNode *impl, const char *method_name)
+{
+    if (impl == NULL || impl->type != AST_IMPL_ABILITY || method_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < impl->data.impl_ability.method_count; i++) {
+        ASTNode *method = impl->data.impl_ability.methods[i];
+        if (method != NULL
+            && method->type == AST_FUNC_DECL
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool
 dir_add_node(DIRProgram *dir, DIRNodeKind kind, const char *name, ASTNode *ast)
 {
@@ -267,7 +331,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
 }
 
 static bool
-dir_collect_role_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
+dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNode *node)
 {
     const char *for_type = type_name(node->data.role_decl.for_type);
     if (for_type != NULL) {
@@ -291,6 +355,7 @@ dir_collect_role_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 
     for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
         ASTNode *impl = node->data.role_decl.impl_abilities[i];
+        ASTNode *ability_decl = NULL;
         if (impl == NULL)
             continue;
         ssize_t to = dir_find_ability_node_by_name(dir, impl->data.impl_ability.ability_name);
@@ -299,6 +364,38 @@ dir_collect_role_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 "impl",
                                 impl->data.impl_ability.ability_name))
             return false;
+
+        ability_decl = dir_find_ability_decl_ast(program, impl->data.impl_ability.ability_name);
+        if (ability_decl != NULL) {
+            bool complete = true;
+            for (size_t j = 0; j < ability_decl->data.ability_decl.method_count; j++) {
+                ASTNode *ability_method = ability_decl->data.ability_decl.methods[j];
+                const char *method_name = ability_method != NULL
+                    ? ability_method->data.func_decl.name
+                    : NULL;
+                if (method_name == NULL)
+                    continue;
+                if (!dir_impl_has_method_named(impl, method_name)) {
+                    complete = false;
+                    if (!dir_add_named_edge(dir,
+                                            DIR_EDGE_ROLE_MISSING_ABILITY_METHOD,
+                                            from_id,
+                                            to >= 0 ? (size_t)to : SIZE_MAX,
+                                            impl->data.impl_ability.ability_name,
+                                            method_name))
+                        return false;
+                }
+            }
+            if (complete) {
+                if (!dir_add_named_edge(dir,
+                                        DIR_EDGE_ROLE_COMPLETES_ABILITY,
+                                        from_id,
+                                        to >= 0 ? (size_t)to : SIZE_MAX,
+                                        "complete",
+                                        impl->data.impl_ability.ability_name))
+                    return false;
+            }
+        }
     }
     return true;
 }
@@ -568,7 +665,7 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
         switch (node->type) {
             case AST_ROLE_DECL:
                 from = dir_find_role_node_by_name(dir, node->data.role_decl.name);
-                if (from >= 0 && !dir_collect_role_edges(dir, (size_t)from, node))
+                if (from >= 0 && !dir_collect_role_edges(dir, program, (size_t)from, node))
                     return false;
                 break;
             case AST_PARTY_DECL:
@@ -680,6 +777,8 @@ dir_edge_kind_name(DIREdgeKind kind)
         case DIR_EDGE_ROLE_FOR_TYPE: return "role-for";
         case DIR_EDGE_ROLE_INCLUDE: return "role-include";
         case DIR_EDGE_ROLE_IMPL_ABILITY: return "role-impl";
+        case DIR_EDGE_ROLE_COMPLETES_ABILITY: return "role-complete";
+        case DIR_EDGE_ROLE_MISSING_ABILITY_METHOD: return "role-missing-method";
         case DIR_EDGE_PARTY_SLOT_ABILITY: return "party-slot";
         case DIR_EDGE_SYSTEMIC_PARTY: return "systemic-party";
         case DIR_EDGE_WORLD_SYSTEMIC: return "world-systemic";
@@ -697,6 +796,94 @@ dir_edge_kind_name(DIREdgeKind kind)
         case DIR_EDGE_INTENT_STEP_DEPENDS_ON: return "intent-step-depends-on";
         default: return "unknown";
     }
+}
+
+bool
+dir_validate(const DIRProgram *dir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (dir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("DIR program is null");
+        return false;
+    }
+
+    for (size_t i = 0; i < dir->edge_count; i++) {
+        const DIREdge *edge = &dir->edges[i];
+        if (edge->from_node_id >= dir->node_count) {
+            if (error_message != NULL)
+                *error_message = dir_strdup_fmt("DIR edge[%zu] has invalid from_node_id", i);
+            return false;
+        }
+        if (edge->to_node_id != SIZE_MAX && edge->to_node_id >= dir->node_count) {
+            if (error_message != NULL)
+                *error_message = dir_strdup_fmt("DIR edge[%zu] has invalid to_node_id", i);
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < dir->intent_count; i++) {
+        const DIRIntentInfo *intent = &dir->intents[i];
+        if (intent->node_id >= dir->node_count) {
+            if (error_message != NULL)
+                *error_message = dir_strdup_fmt("DIR intent[%zu] has invalid node id", i);
+            return false;
+        }
+        for (size_t j = 0; j < intent->participant_count; j++) {
+            const DIRIntentParticipant *participant = &intent->participants[j];
+            if (participant->subject_type_node_id == SIZE_MAX
+                || participant->subject_type_node_id >= dir->node_count) {
+                if (error_message != NULL) {
+                    *error_message = dir_strdup_fmt(
+                        "DIR intent[%zu] participant '%s' is unresolved",
+                        i,
+                        participant->alias != NULL ? participant->alias : "-");
+                }
+                return false;
+            }
+        }
+        for (size_t j = 0; j < intent->step_count; j++) {
+            const DIRIntentStep *step = &intent->steps[j];
+            if (step->index != j) {
+                if (error_message != NULL)
+                    *error_message = dir_strdup_fmt("DIR intent[%zu] step[%zu] has unstable index", i, j);
+                return false;
+            }
+            if (step->where_type_name != NULL
+                && (step->where_type_node_id == SIZE_MAX
+                    || step->where_type_node_id >= dir->node_count)) {
+                if (error_message != NULL) {
+                    *error_message = dir_strdup_fmt(
+                        "DIR intent[%zu] step '%s' has unresolved where zone",
+                        i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->predecessor_step_name != NULL && j == 0) {
+                if (error_message != NULL) {
+                    *error_message = dir_strdup_fmt(
+                        "DIR intent[%zu] first step '%s' cannot have predecessor",
+                        i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if (step->predecessor_step_name != NULL
+                && step->predecessor_step_index >= j) {
+                if (error_message != NULL) {
+                    *error_message = dir_strdup_fmt(
+                        "DIR intent[%zu] step '%s' has invalid predecessor index",
+                        i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 static void

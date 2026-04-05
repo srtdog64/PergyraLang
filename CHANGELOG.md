@@ -6,12 +6,59 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added `examples/resource_scheduler_async_probe/` as a strict async/parallel
+  resource-discipline probe. It combines `Channel<Int>`, `parallel`,
+  `Slot<subject>`, helper-based `ref Slot<subject>` mutation,
+  `DeviceSlot<Int>`, and `RemoteFuture<Int>` in one example, with exact
+  stdout/results goldens and smoke coverage.
+- Fixed async parser handling so `async func` parameters now accept `ref` /
+  `own` modifiers the same way as regular function declarations.
+- Deepened the parallel slot analyzer so helper calls with `ref Slot<subject>`
+  or `own Slot<subject>` parameters are tracked conservatively. Patterns such
+  as two parallel tasks mutating the same slot through a helper call are now
+  rejected with a real parallel slot conflict instead of slipping through.
+- Added `examples/logistics_intent_probe/` as a four-layer compiler probe that
+  deliberately crosses `DIR`, `RIR`, `MIR`, and runtime intent execution in one
+  small scenario. It includes exact stdout/results goldens and a dedicated
+  `tests/ir_pipeline_probe.sh` dump smoke for `--dir`, `--rir`, and `--mir`.
+- Fixed intent lowering so failed intents now return `false` instead of
+  returning the value of the `failure:` predicate. This bug surfaced while
+  building the new logistics probe: a failed step could previously produce
+  `ok=true` if the failure predicate evaluated to `true`.
+- Fixed C intent lowering so `__intent_failed` is now set on all failure paths,
+  not only when the intent had compensation steps.
+- Deepened `RIR` handle semantics so nominal `relation/effect/zone/world`
+  types are now explicit resource facts in function params and intent
+  participants, and `using:` / `transfer:` lower to conservative handle ops
+  (`Read`, `Move`, `Claim`) instead of staying purely declarative metadata.
+- Deepened `MIR` SSA and exceptional CFG again. Blocks now retain explicit
+  `ssa_entry_versions` / `ssa_exit_versions`, phi incoming values read
+  predecessor exit maps directly, and intent exceptional flow now converges
+  through a real cleanup root before splitting into rollback and invalidation
+  blocks.
+- Deepened `RIR` branch/join handling into an actual lattice-propagation layer.
+  Scope dumps now include `flow-block[...]` facts with `entry_state`,
+  `exit_state`, join markers, loop widening markers, and separate entry/exit
+  conflict flags instead of only flat normalized summaries.
+- Deepened `MIR` from block-local rename into an instruction-oriented SSA/use
+  skeleton. MIR now materializes `def` instructions, block entry/exit SSA
+  versions, versioned phi inputs, and versioned uses on branch/return/resource
+  instructions.
+- Expanded MIR exceptional control flow beyond a single cleanup edge. Intent
+  routines now expose rollback and invalidation cleanup structure separately,
+  so `rollback` policy and detach/invalidation markers live in richer
+  exceptional CFG blocks instead of a single undifferentiated cleanup block.
 - Added `MIR` as a real code layer with [`src/compiler/mir.h`](/mnt/e/PergyraLang/src/compiler/mir.h),
   [`src/compiler/mir.c`](/mnt/e/PergyraLang/src/compiler/mir.c), `pgy --mir`,
   and [`src/test_mir.c`](/mnt/e/PergyraLang/src/test_mir.c). The current MIR
   is a routine/block/instruction skeleton that bridges HIR CFG blocks and RIR
   ops, including intent cleanup blocks for `CompensateIntentStep` and
   `AbortIntent`.
+- Deepened `MIR` so it is no longer a pure block shell. `phi` nodes are now
+  materialized with incoming predecessor values, block-local defs get
+  versioned SSA-style names, branch/return terminators are recorded as MIR
+  instructions, and intent routines now expose explicit cleanup successor edges
+  in addition to the cleanup block itself.
 - Extended `RIR` from a pure op/fact dump to a normalized resource summary
   layer. Each scope now materializes tracked resource/projection state with
   `initial_state`, `final_state`, `last_op`, and transition-error flags, and
@@ -20,6 +67,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   It now records participant-to-type edges, step-to-zone/ability/authority/
   effect edges, and explicit predecessor dependencies between ordered intent
   steps.
+- Extended `DIR` role analysis so ability completeness is now explicit in the
+  graph. Complete role impls emit a `role-complete` edge and incomplete impls
+  emit `role-missing-method` edges that point at the missing ability method.
 - Extended `RIR` zone/world collection so layer slots and world zone handles
   are now materialized as resource facts, and lifecycle ops such as
   `AttachEffect` / `DetachEffect` / `LinkRelation` / `UnlinkRelation` update
@@ -545,3 +595,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - dominance 위에 `dominance_frontier`와 natural-loop `loop_depth`도 추가했다. 이제 HIR block은 backedge 기반 loop membership과 phi placement 직전 정보를 직접 들고 있으므로, 다음 단계의 SSA 재구성이나 loop pass가 AST 재탐색 없이 HIR만으로 시작될 수 있다.
 - HIR를 SSA 직전 분석 표면까지 더 확장했다. 각 block은 `local_defs`와 `phi_candidates`를 갖고, 각 routine은 `reachable_block_count`, `dead_block_count`, `phi_candidate_count`, `phi_candidate_block_count`를 요약한다. 또한 `pgy --hir-cfg`, `--hir-dom`, `--hir-ssa` dump view를 추가해 CFG/dominance/SSA-prep 상태를 직접 확인할 수 있게 했다.
 - HIR SSA-prep를 한 단계 더 밀었다. 각 block은 이제 dominator-tree child와 `phi_nodes` skeleton을 갖고, 각 phi node는 아직 rename 전이지만 incoming predecessor 목록까지 materialize한다. `hir_run_block_pass(...)`도 추가해서 routine-level이 아니라 block-level analysis/cleanup pass를 HIR 위에서 직접 시작할 수 있게 했다.
+- compiler: `driver_run_pipeline()` now always lowers and validates `DIR/RIR/MIR` before backend dispatch, and backend runners accept a `CompilerIRBundle` even though current C/LLVM codegen is still HIR-driven internally.
+- compiler: added structural validators for `DIR`, `RIR`, and `MIR`, and wired validator coverage into `test_dir`, `test_rir`, and `test_mir`.
+- parser: AST pretty-printer now re-escapes string literals so escaped JSON/newline output matches parsed surface syntax during parser/debug tests.
+# 2026-04-06
+
+- codegen/compiler/tests: add the first real `MIR -> C backend` vertical slice. The C backend now accepts `transpile_with_mir(...)`, `compiler_emit_c()` passes `bundle->mir`, and a conservative subset of simple top-level branch/return functions is emitted from MIR blocks/terminators instead of the AST/HIR body walker. Added a transpile regression that locks the emitted `goto _pgy_mir_bb_*` body shape and `/* emitted-from-mir */` marker.
+- docs: update the compiler pipeline/development status docs so they no longer claim `DIR/RIR/MIR` are analysis-only in every case; they now explicitly note the first MIR-driven codegen slice while preserving the larger point that most backend emission is still HIR-driven.
+- tests: tighten `read_file_text()` in `src/test_transpile.c` to check `fread()` results instead of ignoring them, keeping the transpile suite warning-free under the new MIR vertical-slice regression.

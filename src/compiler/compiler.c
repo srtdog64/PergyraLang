@@ -117,9 +117,19 @@ compiler_success(const char *output_c_path, const char *output_binary_path)
 }
 
 static int
-invoke_c_backend(const HIRProgram *hir, const char *output_c_path, char **error_message)
+invoke_c_backend(const CompilerIRBundle *bundle, const char *output_c_path, char **error_message)
 {
-    TranspileResult *transpile_result = transpile(hir, output_c_path);
+    TranspileResult *transpile_result;
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+        || bundle->rir == NULL || bundle->mir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("IR bundle is incomplete");
+        return 1;
+    }
+
+    transpile_result = transpile_with_mir(bundle->hir, bundle->mir, output_c_path);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;
@@ -138,10 +148,10 @@ invoke_c_backend(const HIRProgram *hir, const char *output_c_path, char **error_
 }
 
 CompilerResult *
-compiler_emit_c(const HIRProgram *hir, const char *output_c_path)
+compiler_emit_c(const CompilerIRBundle *bundle, const char *output_c_path)
 {
     char *error_message = NULL;
-    int rc = invoke_c_backend(hir, output_c_path, &error_message);
+    int rc = invoke_c_backend(bundle, output_c_path, &error_message);
     if (rc != 0) {
         CompilerResult *result = compiler_error(error_message != NULL
             ? error_message
@@ -154,14 +164,14 @@ compiler_emit_c(const HIRProgram *hir, const char *output_c_path)
 }
 
 CompilerResult *
-compiler_build_native(const HIRProgram *hir,
+compiler_build_native(const CompilerIRBundle *bundle,
                       const char *output_c_path,
                       const char *output_binary_path,
                       bool verbose,
                       PgyOptProfile opt_profile)
 {
     char *error_message = NULL;
-    int rc = invoke_c_backend(hir, output_c_path, &error_message);
+    int rc = invoke_c_backend(bundle, output_c_path, &error_message);
     if (rc != 0) {
         CompilerResult *result = compiler_error(error_message != NULL
             ? error_message
@@ -233,9 +243,14 @@ compiler_run_binary(const char *binary_path, bool verbose)
 #ifdef PGY_LLVM_ENABLED
 
 CompilerResult *
-compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
+compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
 {
-    LLVMGenResult *gen = llvm_codegen(hir, module_name);
+    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+        || bundle->rir == NULL || bundle->mir == NULL) {
+        return compiler_error("IR bundle is incomplete");
+    }
+
+    LLVMGenResult *gen = llvm_codegen(bundle->hir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -256,14 +271,18 @@ compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
 }
 
 CompilerResult *
-compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
+compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
                               const char *module_name,
                               const char *output_ir_path)
 {
     if (!pgy_path_is_safe(output_ir_path))
         return compiler_error("Unsafe characters in file path");
+    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+        || bundle->rir == NULL || bundle->mir == NULL) {
+        return compiler_error("IR bundle is incomplete");
+    }
 
-    LLVMGenResult *gen = llvm_codegen(hir, module_name);
+    LLVMGenResult *gen = llvm_codegen(bundle->hir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -290,16 +309,20 @@ compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
 }
 
 CompilerResult *
-compiler_build_native_llvm(const HIRProgram *hir,
+compiler_build_native_llvm(const CompilerIRBundle *bundle,
                            const char *output_obj_path,
                            const char *output_binary_path,
                            bool verbose,
                            PgyOptProfile opt_profile)
 {
+    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+        || bundle->rir == NULL || bundle->mir == NULL) {
+        return compiler_error("IR bundle is incomplete");
+    }
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
-    LLVMGenResult *gen = llvm_codegen_to_object(hir, "pergyra_module",
+    LLVMGenResult *gen = llvm_codegen_to_object(bundle->hir, "pergyra_module",
                                                  output_obj_path,
                                                  opt_profile == PGY_OPT_RELEASE);
     if (gen == NULL)
@@ -368,32 +391,32 @@ compiler_build_native_llvm(const HIRProgram *hir,
 #ifndef PGY_LLVM_ENABLED
 
 CompilerResult *
-compiler_emit_llvm_ir(const HIRProgram *hir, const char *module_name)
+compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
 {
-    (void)hir;
+    (void)bundle;
     (void)module_name;
     return compiler_error("LLVM backend not available in this build");
 }
 
 CompilerResult *
-compiler_emit_llvm_ir_to_file(const HIRProgram *hir,
+compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
                               const char *module_name,
                               const char *output_ir_path)
 {
-    (void)hir;
+    (void)bundle;
     (void)module_name;
     (void)output_ir_path;
     return compiler_error("LLVM backend not available in this build");
 }
 
 CompilerResult *
-compiler_build_native_llvm(const HIRProgram *hir,
+compiler_build_native_llvm(const CompilerIRBundle *bundle,
                            const char *output_obj_path,
                            const char *output_binary_path,
                            bool verbose,
                            PgyOptProfile opt_profile)
 {
-    (void)hir;
+    (void)bundle;
     (void)output_obj_path;
     (void)output_binary_path;
     (void)verbose;

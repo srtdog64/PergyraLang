@@ -296,7 +296,7 @@ $(DIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # HIR lowering test
-$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
@@ -470,6 +470,10 @@ stdlib-test-smoke:
 module-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" bash tests/module_smoke.sh
+
+ir-pipeline-test-smoke:
+	$(MAKE) $(PGY)
+	PGY_BIN="$(abspath $(PGY))" bash tests/ir_pipeline_probe.sh
 
 llvm-test-backend-compare:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)

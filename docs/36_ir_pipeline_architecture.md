@@ -1,6 +1,6 @@
 # Pergyra IR 파이프라인 설계
 
-마지막 업데이트: 2026-04-05
+마지막 업데이트: 2026-04-06
 
 이 문서는 "현재 저장소가 이미 그렇게 동작한다"는 설명이 아니라, 앞으로 Pergyra 컴파일러가 정리돼야 할 IR 계층 구조를 적는다.
 
@@ -141,12 +141,12 @@ RIR는 단순 "맵"이 아니다. 최소한 아래 연산은 표면 sugar가 아
 
 현재 저장소는 완전히 이 구조로 넘어간 상태가 아니다.
 
-- AST / Semantic / HIR / Backend는 실제로 동작 중
+- AST / Semantic / HIR / DIR / RIR / MIR / Backend dispatch는 실제로 동작 중
 - 현재 구현 HIR는 목표 HIR 전체를 다 먹은 상태는 아니고, semantic typed AST 위의 indexed/pass-friendly view에 더 가깝다
 - HIR는 이제 단순 bucket classifier를 넘어서 CFG/dominance/phi-skeleton까지 갖고 있음
-- DIR는 새로 도입된 시작점이며 `--dir`로 domain declaration graph를 볼 수 있음
-- RIR도 새로 도입된 skeleton이며 `--rir`로 explicit resource op, static fact, normalized state summary를 볼 수 있음
-- MIR도 이제 code skeleton이 시작되어 `--mir`로 routine/block/instruction/cleanup 구조를 볼 수 있음. 다만 아직 SSA rename/liveness/DCE는 없다.
+- DIR는 `--dir`로 domain declaration graph를 볼 수 있고, compile driver는 backend dispatch 전에 항상 structural validation까지 수행한다.
+- RIR는 `--rir`로 explicit resource op, static fact, normalized state summary, branch/join `flow-block[...]` lattice summary를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/enrich/validation을 수행한다. 최근에는 `relation/effect/zone/world` nominal handle을 function param, intent participant, `using`, `transfer` 경로에서 explicit fact/op로 정규화한다.
+- MIR는 `--mir`로 routine/block/instruction/cleanup 구조를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/validation을 수행한다. 최근 패스로 phi materialization, instruction-level `def/use`, block entry/exit SSA version, cleanup convergence root, rollback/invalidation exceptional CFG까지 올라왔고, C backend에는 simple top-level function CFG subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔다. 다만 full liveness/DCE와 최종 MIR-level `RIR-flow` merge는 아직 없다.
 
 즉 현재 구현 현실은:
 
@@ -154,10 +154,15 @@ RIR는 단순 "맵"이 아니다. 최소한 아래 연산은 표면 sugar가 아
 AST
 -> Semantic typed AST
 -> HIR
--> Backend
+-> DIR
+-> RIR
+-> MIR
+-> Backend dispatch
 ```
 
-이고, 목표 구조는:
+다만 backend emission의 중심 자료구조는 아직 `HIR`다. 현재 backend runner는 `CompilerIRBundle`을 받아 structural validation을 강제하고, C backend에는 simple top-level function CFG subset을 `bundle->mir`에서 직접 emit하는 첫 vertical slice가 들어가 있지만, 실제 C/LLVM codegen의 대부분은 아직 `bundle->hir`를 기준으로 수행한다.
+
+장기 목표 구조는:
 
 ```text
 AST
@@ -215,6 +220,7 @@ Pergyra는 일반적인 expression language가 아니라:
 - DIR edge 확장
 - RIR normalize/lattice propagation 고도화
 - MIR phi merge / cleanup edge 정책 구현 심화
+- MIR rename을 full def-use chain / liveness 단계까지 밀기
 - MIR 도입 전 HIR의 역할 경계 명시
 
 ## Rust와 비교 가능한 지점

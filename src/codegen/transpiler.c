@@ -68,6 +68,16 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 }
 
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
+static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
+                                                      const ASTNode *func_decl);
+static bool transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
+                                                  const ASTNode *func_decl,
+                                                  const MIRRoutine **mir_routine_out);
+static void emit_func_decl_from_mir_named(ASTNode *node,
+                                          const MIRRoutine *mir_routine,
+                                          const char *emitted_name,
+                                          CodeBuf *buf,
+                                          TranspilerCtx *ctx);
 
 /* Forward declarations for generic class monomorphization */
 static bool class_has_generic_params(ASTNode *node);
@@ -750,10 +760,220 @@ emit_func_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     emit_func_forward_decl_named(node, node->data.func_decl.name, buf, ctx);
 }
 
+static const MIRRoutine *
+transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
+{
+    if (ctx == NULL || ctx->mir == NULL || func_decl == NULL
+        || func_decl->type != AST_FUNC_DECL
+        || func_decl->data.func_decl.name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
+        const MIRRoutine *routine = &ctx->mir->routines[i];
+        if (routine->kind != MIR_SCOPE_FUNCTION
+            || routine->name == NULL
+            || strcmp(routine->name, func_decl->data.func_decl.name) != 0) {
+            continue;
+        }
+        if (routine->hir_routine != NULL && routine->hir_routine->ast == func_decl)
+            return routine;
+    }
+
+    return NULL;
+}
+
+static bool
+transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
+                                      const ASTNode *func_decl,
+                                      const MIRRoutine **mir_routine_out)
+{
+    const MIRRoutine *routine = transpiler_find_mir_function(ctx, func_decl);
+    if (mir_routine_out != NULL)
+        *mir_routine_out = NULL;
+    if (routine == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+
+    if (routine->kind != MIR_SCOPE_FUNCTION
+        || routine->hir_routine == NULL
+        || routine->hir_routine->is_hosted
+        || routine->hir_routine->is_action_like
+        || routine->has_cleanup_block
+        || routine->phi_inserted_count != 0
+        || routine->renamed_value_count != 0) {
+        return false;
+    }
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (!block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            MIRInstKind kind = block->instructions[j].kind;
+            if (kind != MIR_INST_BRANCH && kind != MIR_INST_RETURN)
+                return false;
+        }
+    }
+
+    if (mir_routine_out != NULL)
+        *mir_routine_out = routine;
+    return true;
+}
+
+static void
+emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
+                              const char *emitted_name, CodeBuf *buf,
+                              TranspilerCtx *ctx)
+{
+    const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
+    int saved_slot_count = ctx->slot_var_count;
+    int saved_typed_count = ctx->typed_var_count;
+    CodeBuf *saved_out = ctx->out;
+    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    char saved_return_type[128];
+    CodeBuf *params_sig = codebuf_create();
+    char *header_decl = NULL;
+
+    ctx->out = buf;
+    g_type_render_ctx = ctx;
+    snprintf(saved_return_type, sizeof(saved_return_type), "%s",
+        ctx->current_return_type);
+    if (node->data.func_decl.return_type != NULL) {
+        char *rendered = render_type_name(node->data.func_decl.return_type);
+        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+            "%s", rendered);
+        free(rendered);
+    } else {
+        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
+    }
+
+    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
+        FuncParam *p = node->data.func_decl.params[i];
+        const char *pt = "int32_t";
+        char *type_name = NULL;
+        char *decl = NULL;
+        bool boundary_slot = false;
+        bool secure_slot = false;
+        if (p->type != NULL)
+            pt = pergyra_ast_type_to_c(p->type);
+        if (i > 0)
+            codebuf_write(params_sig, ", ");
+        if (p->type != NULL)
+            type_name = render_type_name(p->type);
+        boundary_slot = type_name != NULL
+            && (strncmp(type_name, "Slot<", 5) == 0
+                || strncmp(type_name, "SecureSlot<", 11) == 0)
+            && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+        secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
+        if (boundary_slot) {
+            const char *inner = slot_inner_type_name(type_name);
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
+            if (secure_slot)
+                codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
+        } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
+            decl = pergyra_ast_typed_declarator(p->type, p->name);
+            codebuf_write(params_sig, "%s", decl);
+        } else if (p->name != NULL && strcmp(p->name, "self") != 0
+                   && type_name != NULL
+                   && is_pointer_self_host_type_name(ctx, type_name)) {
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
+        } else {
+            codebuf_write(params_sig, "%s %s", pt, p->name);
+        }
+        free(decl);
+        free(type_name);
+    }
+
+    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+        name, params_sig != NULL ? params_sig->data : "void");
+    codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
+    free(header_decl);
+    codebuf_destroy(params_sig);
+
+    ctx->indent++;
+    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
+        FuncParam *p = node->data.func_decl.params[i];
+        if (p == NULL || p->name == NULL || p->type == NULL)
+            continue;
+        char *type_name = render_type_name(p->type);
+        if (type_name != NULL) {
+            bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
+                               || strncmp(type_name, "SecureSlot<", 11) == 0)
+                && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
+            register_typed_var(ctx, p->name, type_name);
+            if (p->name != NULL && strcmp(p->name, "self") != 0
+                && is_pointer_self_host_type_name(ctx, type_name)) {
+                TypedVarEntry *entry = lookup_typed_entry(ctx, p->name);
+                if (entry != NULL)
+                    entry->is_subject_ref = true;
+            }
+            if (strncmp(type_name, "Slot<", 5) == 0)
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false, boundary_slot);
+            else if (strncmp(type_name, "SecureSlot<", 11) == 0)
+                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true, boundary_slot);
+            free(type_name);
+        }
+    }
+
+    write_indent(ctx);
+    codebuf_write(ctx->out, "/* emitted-from-mir */\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, mir_routine->entry_block);
+
+    for (size_t i = 0; i < mir_routine->block_count; i++) {
+        const MIRBasicBlock *block = &mir_routine->blocks[i];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_BRANCH) {
+                char *cond = emit_expression(inst->ast, ctx);
+                write_indent(ctx);
+                codebuf_write(ctx->out,
+                    "if (%s) goto _pgy_mir_bb_%s_%zu; else goto _pgy_mir_bb_%s_%zu;\n",
+                    cond != NULL ? cond : "false",
+                    name, block->succ_true,
+                    name, block->succ_false);
+                free(cond);
+            } else if (inst->kind == MIR_INST_RETURN) {
+                if (inst->ast != NULL) {
+                    char *ret_expr = emit_expression(inst->ast, ctx);
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "return %s;\n", ret_expr);
+                    free(ret_expr);
+                } else {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "return;\n");
+                }
+            }
+        }
+        if (block->instruction_count == 0 && block->has_succ_true) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
+        }
+    }
+
+    ctx->indent--;
+    codebuf_write(ctx->out, "}\n");
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+        "%s", saved_return_type);
+    g_type_render_ctx = saved_render_ctx;
+    ctx->out = saved_out;
+}
+
 void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx)
 {
+    const MIRRoutine *mir_routine = NULL;
+    if (transpiler_can_emit_function_from_mir(ctx, node, &mir_routine)) {
+        emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
+        return;
+    }
     const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
@@ -2900,10 +3120,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     write_indent(ctx);
     codebuf_write(ctx->out, "bool __intent_result = false;\n");
-    if (has_compensate_steps) {
-        write_indent(ctx);
-        codebuf_write(ctx->out, "bool __intent_failed = false;\n");
-    }
+    write_indent(ctx);
+    codebuf_write(ctx->out, "bool __intent_failed = false;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "(void)__intent_failed;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "int32_t __intent_handle = 0;\n");
     if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
@@ -2950,25 +3170,18 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         free(priority);
     }
     {
-        char *failure = node->data.intent_decl.failure_expr != NULL
-            ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-            : pergyra_strdup("false");
         write_indent(ctx);
         codebuf_write(ctx->out, "if (__intent_handle == 0) {\n");
         ctx->indent++;
-        if (has_compensate_steps) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "__intent_failed = true;\n");
-        }
         write_indent(ctx);
-        codebuf_write(ctx->out, "__intent_result = %s;\n",
-            failure != NULL ? failure : "false");
+        codebuf_write(ctx->out, "__intent_failed = true;\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_result = false;\n");
         write_indent(ctx);
         codebuf_write(ctx->out, "goto __intent_cleanup;\n");
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
-        free(failure);
     }
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
@@ -3000,36 +3213,24 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
         if (step->data.intent_step.pre_expr != NULL) {
             char *pre = emit_expression(step->data.intent_step.pre_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(pre);
-            free(failure);
         }
 
         if (step->data.intent_step.invariant_expr != NULL) {
             char *invariant = emit_expression(step->data.intent_step.invariant_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(invariant);
-            free(failure);
         }
 
         if (step->data.intent_step.on_expr_count > 0) {
@@ -3075,70 +3276,46 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
         if (step->data.intent_step.guard_expr != NULL) {
             char *guard = emit_expression(step->data.intent_step.guard_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(guard);
-            free(failure);
         }
 
         if (step->data.intent_step.expect_expr != NULL) {
             char *expect = emit_expression(step->data.intent_step.expect_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(expect);
-            free(failure);
         }
 
         if (step->data.intent_step.post_expr != NULL) {
             char *post = emit_expression(step->data.intent_step.post_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(post);
-            free(failure);
         }
 
         if (step->data.intent_step.invariant_expr != NULL) {
             char *invariant = emit_expression(step->data.intent_step.invariant_expr, ctx);
-            char *failure = node->data.intent_decl.failure_expr != NULL
-                ? emit_expression(node->data.intent_decl.failure_expr, ctx)
-                : pergyra_strdup("false");
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
-            if (has_compensate_steps)
-                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
             codebuf_write(ctx->out,
-                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                failure != NULL ? failure : "false");
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = false; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             free(invariant);
-            free(failure);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
@@ -3404,6 +3581,12 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 TranspileResult *
 transpile(const HIRProgram *hir, const char *output_path)
 {
+    return transpile_with_mir(hir, NULL, output_path);
+}
+
+TranspileResult *
+transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
+{
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     if (result == NULL)
         return NULL;
@@ -3415,6 +3598,7 @@ transpile(const HIRProgram *hir, const char *output_path)
         return result;
     }
 
+    ctx->mir = mir;
     emit_program(hir, ctx);
 
     if (output_path != NULL) {

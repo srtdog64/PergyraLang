@@ -850,9 +850,11 @@ driver_run_pipeline(const DriverFlags *flags)
     RIRProgram *rir = NULL;
     MIRProgram *mir = NULL;
     HIRProgram *hir = NULL;
+    CompilerIRBundle bundle;
     int exit_code = 1;
     char *load_error = NULL;
     char *hir_error = NULL;
+    memset(&bundle, 0, sizeof(bundle));
 
     if (flags->dump_tokens) {
         char *source = path_read_file(flags->source_path);
@@ -894,30 +896,6 @@ driver_run_pipeline(const DriverFlags *flags)
         goto cleanup;
     }
 
-    if (flags->dump_dir) {
-        dir = dir_lower(sem->annotated_ast, &hir_error);
-        if (dir == NULL) {
-            fprintf(stderr, "pgy: DIR lowering failed: %s\n",
-                    hir_error != NULL ? hir_error : "out of memory");
-            goto cleanup;
-        }
-        dir_dump(dir, stdout);
-        exit_code = 0;
-        goto cleanup;
-    }
-
-    if (flags->dump_rir) {
-        rir = rir_lower(sem->annotated_ast, &hir_error);
-        if (rir == NULL) {
-            fprintf(stderr, "pgy: RIR lowering failed: %s\n",
-                    hir_error != NULL ? hir_error : "out of memory");
-            goto cleanup;
-        }
-        rir_dump(rir, stdout);
-        exit_code = 0;
-        goto cleanup;
-    }
-
     hir = hir_lower(sem->annotated_ast, &hir_error);
     if (hir == NULL) {
         fprintf(stderr, "pgy: HIR lowering failed: %s\n",
@@ -925,19 +903,65 @@ driver_run_pipeline(const DriverFlags *flags)
         goto cleanup;
     }
 
+    dir = dir_lower(sem->annotated_ast, &hir_error);
+    if (dir == NULL) {
+        fprintf(stderr, "pgy: DIR lowering failed: %s\n",
+                hir_error != NULL ? hir_error : "out of memory");
+        goto cleanup;
+    }
+    if (!dir_validate(dir, &hir_error)) {
+        fprintf(stderr, "pgy: DIR validation failed: %s\n",
+                hir_error != NULL ? hir_error : "invalid DIR");
+        goto cleanup;
+    }
+
+    rir = rir_lower(sem->annotated_ast, &hir_error);
+    if (rir == NULL) {
+        fprintf(stderr, "pgy: RIR lowering failed: %s\n",
+                hir_error != NULL ? hir_error : "out of memory");
+        goto cleanup;
+    }
+    if (!rir_enrich_with_hir_flow(rir, hir, &hir_error)) {
+        fprintf(stderr, "pgy: RIR flow enrichment failed: %s\n",
+                hir_error != NULL ? hir_error : "out of memory");
+        goto cleanup;
+    }
+    if (!rir_validate(rir, &hir_error)) {
+        fprintf(stderr, "pgy: RIR validation failed: %s\n",
+                hir_error != NULL ? hir_error : "invalid RIR");
+        goto cleanup;
+    }
+
+    mir = mir_lower(hir, rir, &hir_error);
+    if (mir == NULL) {
+        fprintf(stderr, "pgy: MIR lowering failed: %s\n",
+                hir_error != NULL ? hir_error : "out of memory");
+        goto cleanup;
+    }
+    if (!mir_validate(mir, &hir_error)) {
+        fprintf(stderr, "pgy: MIR validation failed: %s\n",
+                hir_error != NULL ? hir_error : "invalid MIR");
+        goto cleanup;
+    }
+
+    bundle.hir = hir;
+    bundle.dir = dir;
+    bundle.rir = rir;
+    bundle.mir = mir;
+
+    if (flags->dump_dir) {
+        dir_dump(dir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
+    if (flags->dump_rir) {
+        rir_dump(rir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
     if (flags->dump_mir) {
-        rir = rir_lower(sem->annotated_ast, &hir_error);
-        if (rir == NULL) {
-            fprintf(stderr, "pgy: RIR lowering failed: %s\n",
-                    hir_error != NULL ? hir_error : "out of memory");
-            goto cleanup;
-        }
-        mir = mir_lower(hir, rir, &hir_error);
-        if (mir == NULL) {
-            fprintf(stderr, "pgy: MIR lowering failed: %s\n",
-                    hir_error != NULL ? hir_error : "out of memory");
-            goto cleanup;
-        }
         mir_dump(mir, stdout);
         exit_code = 0;
         goto cleanup;
@@ -951,9 +975,9 @@ driver_run_pipeline(const DriverFlags *flags)
 
     /* Dispatch to backend runner */
     if (flags->backend == BACKEND_LLVM && !flags->emit_c_only) {
-        exit_code = llvm_runner_execute(flags, hir);
+        exit_code = llvm_runner_execute(flags, &bundle);
     } else {
-        exit_code = c_runner_execute(flags, hir);
+        exit_code = c_runner_execute(flags, &bundle);
     }
 
 cleanup:

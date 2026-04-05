@@ -1,0 +1,29 @@
+func ProbeHeader() -> String
+{
+    return "=== PERGYRA LOGISTICS INTENT PROBE ===";
+}
+
+func ProbeSubtitle() -> String
+{
+    return "DIR validates domain edges; RIR tracks resources; MIR shows merge and cleanup.";
+}
+
+func MergeRouteScore(flag: Bool, base: Int) -> Int
+{
+    let score = base;
+    if flag
+    {
+        score = score + 7;
+    }
+    else
+    {
+        score = score + 13;
+    }
+
+    if base > 3
+    {
+        score = score + 1;
+    }
+
+    return score;
+}

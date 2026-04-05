@@ -1,6 +1,6 @@
 # Pergyra 컴파일러 파이프라인 가이드
 
-마지막 업데이트: 2026-04-05
+마지막 업데이트: 2026-04-06
 
 이 문서는 "현재 저장소가 실제로 어떻게 동작하는가"를 설명한다. 이상적인 미래 설계가 아니라, 다음 기여자가 바로 코드를 따라 들어갈 수 있게 만드는 contributor guide다.
 
@@ -14,11 +14,11 @@
   -> import inline merge                [src/pgy_driver.c]
   -> semantic_analyze()                 [src/semantic/*]
   -> annotated AST
-  -> (optional) dir_lower()             [src/compiler/dir.c]
-  -> (optional) rir_lower()             [src/compiler/rir.c]
-  -> (optional) mir_lower()             [src/compiler/mir.c]
   -> hir_lower()                        [src/compiler/hir.c]
-  -> HIRProgram (indexed decl/routine view + function CFG)
+  -> dir_lower() + dir_validate()       [src/compiler/dir.c]
+  -> rir_lower() + rir_validate()       [src/compiler/rir.c]
+  -> mir_lower() + mir_validate()       [src/compiler/mir.c]
+  -> CompilerIRBundle
   -> backend dispatch                   [src/pgy_driver.c]
        -> LLVM backend (default if enabled)
           -> object file
@@ -32,10 +32,9 @@
 중요한 점은 세 가지다.
 
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
-- 백엔드 진입점은 현재 `HIRProgram`이다.
-- `DIR`는 막 도입된 domain-graph 계층이지만, 아직 backend 입력은 아니다.
-- `RIR`는 explicit resource op + static fact + normalized state summary를 가진 resource-op 계층이지만, 아직 backend 입력은 아니다.
-- `MIR`는 코드 계층이 시작됐지만, 아직 backend 입력은 아니다.
+- driver는 backend 진입 전에 항상 `HIR`, `DIR`, `RIR`, `MIR`를 모두 만든다.
+- backend runner는 현재 `CompilerIRBundle`을 받는다.
+- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice가 들어가 있다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 
 ## 2. 어디서 시작하나
@@ -50,6 +49,8 @@
 - import 해석과 AST 병합
 - 시맨틱 분석 호출
 - HIR lowering 호출
+- DIR / RIR / MIR lowering + structural validation
+- `CompilerIRBundle` 생성
 - LLVM 또는 C 백엔드 선택
 - 네이티브 바이너리 링크 및 `--run` 실행
 
@@ -169,7 +170,7 @@
 
 - `DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message)`
 
-현재 DIR의 역할은 "도메인 선언과 관계를 독립 그래프로 정리하는 시작점"이다. 아직 backend나 최적화 패스의 기준 IR은 아니고, `--dir` 디버그/설계 검증 경로에서만 사용된다.
+현재 DIR의 역할은 "도메인 선언과 관계를 독립 그래프로 정리하는 시작점"이다. backend codegen의 직접 입력은 아니지만, driver는 backend dispatch 전에 항상 `dir_lower()`와 `dir_validate()`를 수행한다.
 
 현재 DIR가 하는 일:
 
@@ -206,7 +207,7 @@
 
 - `RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message)`
 
-현재 RIR의 역할은 "explicit resource op와 static fact를 실제 코드 계층으로 여는 시작점"이다. 아직 DIR를 직접 입력으로 삼는 완성형은 아니고, annotated AST에서 직접 수집한다.
+현재 RIR의 역할은 "explicit resource op와 static fact를 실제 코드 계층으로 여는 시작점"이다. 아직 DIR를 직접 입력으로 삼는 완성형은 아니고, annotated AST에서 직접 수집한다. backend codegen의 직접 입력은 아니지만, driver는 backend dispatch 전에 항상 `rir_lower()`, `rir_enrich_with_hir_flow()`, `rir_validate()`를 수행한다.
 
 현재 RIR가 하는 일:
 
@@ -224,6 +225,7 @@
   - `authority`
   - `capability`
   - `intent-policy`
+  - nominal `relation/effect/zone/world` handle
 - op 수집
   - `Claim`
   - `Read`
@@ -241,6 +243,7 @@
   - `CommitIntent`
   - `AbortIntent`
   - `CompensateIntentStep`
+  - `using:` / `transfer:`에서 파생되는 conservative handle op
 
 추가로, 현재 RIR는 scope별 normalized state summary를 만든다.
 
@@ -249,7 +252,22 @@
 - 마지막 관련 op
 - transition error 여부
 
-즉 지금 RIR는 "resource graph + transfer ops + static ownership facts"를 넘어서 **CFG 비의존 선형 경로의 normalized state summary**까지 가진다. 다만 branch/join/loop/phi merge는 여전히 MIR로 이월한다.
+즉 지금 RIR는 "resource graph + transfer ops + static ownership facts"를 넘어서 **CFG 비의존 선형 경로의 normalized state summary**와 **HIR-enriched `flow-block[...]` branch/join lattice summary**까지 가진다. 각 flow fact는 최소한:
+
+- `entry_state`
+- `exit_state`
+- `merged_from_join`
+- `widened_by_loop`
+- `entry_conflict`
+- `exit-conflict`
+
+를 덤프한다. 완전한 CFG 기반 cleanup/exception merge는 여전히 MIR로 이월한다.
+
+현재 merge는 resource kind를 함께 본다.
+
+- `zone/world handle`은 ownership/borrow 중심으로 병합
+- `relation/effect handle`은 detach/sync/dirty lifecycle 중심으로 병합
+- move/release와 live state가 섞이면 보수적으로 conflict + invalid로 간다
 
 ### 3.7 MIR Lowering
 
@@ -275,10 +293,32 @@
   - 없으면 단일 entry block 생성
 - instruction 수집
   - RIR op를 `resource-op` instruction으로 entry block에 배치
-  - intent의 `CompensateIntentStep` / `AbortIntent`는 cleanup block에 배치
-  - HIR phi skeleton은 `phi` placeholder instruction으로 반영
+  - block-local SSA def는 `def` instruction으로 materialize
+  - intent의 `CompensateIntentStep` / `AbortIntent`는 rollback block에 배치
+  - intent의 `using/transfer` cleanup은 invalidation block에 `DetachInvalidation` marker로 배치
+  - HIR phi skeleton은 실제 `phi` instruction으로 반영
+- SSA-prep 보강
+  - HIR `local_defs`를 block-local renamed value로 materialize
+  - HIR `phi` incoming predecessor를 MIR `phi` incoming value 목록으로 materialize
+  - versioned name (`score.1`, `score.2`, ...)를 통해 최소 SSA rename skeleton을 유지
+  - block별 `ssa_entry_versions` / `ssa_exit_versions`를 유지
+- cleanup edge 보강
+  - cleanup block이 있는 intent routine은 reachable normal block마다 explicit cleanup successor edge를 가짐
+  - richer exceptional CFG:
+    - normal block -> cleanup root
+    - cleanup root -> rollback block
+    - cleanup root -> invalidation block
+    - rollback block -> invalidation block
+    - block별 `cleanup` / `rollback` / `invalidation` successor 여부를 dump
+- terminator 반영
+  - HIR branch/return terminator를 MIR `branch` / `return` instruction으로 기록
+- use-def 보강
+  - phi incoming values는 versioned use로 materialize
+  - branch/return은 terminator expression에서 identifier use를 수집
+  - resource-op / cleanup instruction도 AST 기반 identifier use를 수집
+  - block별 `entry:` / `exit:` version dump를 유지
 
-즉 지금 MIR는 "실행 구조 스켈레톤 + cleanup edge 시작점"이다. 아직 SSA rename, liveness, DCE, RIR-flow merge는 없다. 하지만 이미 `intent` compensation/abort path를 cleanup block으로 분리하므로, 이후 cleanup semantics를 깊게 만드는 기반은 준비됐다.
+즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + exceptional CFG 시작점"이다. full liveness, DCE, `RIR-flow` merge의 최종 근거는 아직 아니지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, C backend에는 branch/return-only top-level function subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
 
 ### 3.8 HIR Lowering
 

@@ -46,6 +46,8 @@ lower_mir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
         *hir_out = hir_lower(sem->annotated_ast, &hir_error);
         *rir_out = rir_lower(sem->annotated_ast, &rir_error);
         if (*hir_out != NULL && *rir_out != NULL)
+            (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
+        if (*hir_out != NULL && *rir_out != NULL)
             *mir_out = mir_lower(*hir_out, *rir_out, &mir_error);
     }
 
@@ -93,12 +95,82 @@ block_has_inst_kind(const MIRBasicBlock *block, MIRInstKind kind)
 }
 
 static bool
+block_has_entry_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->ssa_entry_value_count; i++) {
+        if (block->ssa_entry_values[i] != NULL
+            && strncmp(block->ssa_entry_values[i], prefix, prefix_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+block_has_exit_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->ssa_exit_value_count; i++) {
+        if (block->ssa_exit_values[i] != NULL
+            && strncmp(block->ssa_exit_values[i], prefix, prefix_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_inst_named(const MIRBasicBlock *block, const char *name)
 {
     for (size_t i = 0; i < block->instruction_count; i++) {
         if (block->instructions[i].name != NULL
             && strcmp(block->instructions[i].name, name) == 0) {
             return true;
+        }
+    }
+    return false;
+}
+
+static bool
+block_has_phi_result_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind == MIR_INST_PHI
+            && inst->result_name != NULL
+            && strncmp(inst->result_name, prefix, prefix_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+block_has_renamed_local_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->renamed_local_count; i++) {
+        if (block->renamed_locals[i] != NULL
+            && strncmp(block->renamed_locals[i], prefix, prefix_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+block_has_use_prefix(const MIRBasicBlock *block, const char *prefix)
+{
+    size_t prefix_len = strlen(prefix);
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        for (size_t j = 0; j < inst->use_count; j++) {
+            if (inst->uses[j] != NULL
+                && strncmp(inst->uses[j], prefix, prefix_len) == 0) {
+                return true;
+            }
         }
     }
     return false;
@@ -126,6 +198,7 @@ test_mir_lowering(void)
         if (ok)
             flow = find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
         EXPECT(ok
+               && mir_validate(mir, NULL)
                && flow != NULL
                && flow->block_count >= 1
                && flow->instruction_count >= 4
@@ -141,12 +214,18 @@ test_mir_lowering(void)
     TEST("MIR builds cleanup block for intent compensation");
     {
         const char *src =
-            "subject Buyer { action Pay(self) -> Void { return; } }\n"
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
             "ability Payable { func Pay() -> Void; }\n"
             "role BuyerPay for Buyer {\n"
             "    impl ability Payable { func Pay() -> Void { return; } }\n"
             "}\n"
-            "zone PaymentZone { subject slot buyer: Buyer authority buyer requires Payable }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
             "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
             "    rollback: full;\n"
             "    step pay {\n"
@@ -164,19 +243,113 @@ test_mir_lowering(void)
         MIRProgram *mir = NULL;
         const MIRRoutine *purchase = NULL;
         bool cleanup_has_compensate = false;
+        bool cleanup_has_policy = false;
+        bool cleanup_has_invalidation = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             purchase = find_mir_routine(mir, "Purchase", MIR_SCOPE_INTENT);
-        if (purchase != NULL && purchase->has_cleanup_block) {
-            const MIRBasicBlock *cleanup = &purchase->blocks[purchase->cleanup_block];
-            cleanup_has_compensate = block_has_inst_kind(cleanup, MIR_INST_CLEANUP_EDGE)
-                                     && block_has_inst_named(cleanup, "CompensateIntentStep");
+        if (purchase != NULL && purchase->has_rollback_block) {
+            const MIRBasicBlock *rollback = &purchase->blocks[purchase->rollback_block];
+            cleanup_has_compensate = block_has_inst_kind(rollback, MIR_INST_CLEANUP_EDGE)
+                                     && block_has_inst_named(rollback, "CompensateIntentStep");
+            cleanup_has_policy = block_has_inst_named(rollback, "RollbackPolicy");
+        }
+        if (purchase != NULL && purchase->has_invalidation_block) {
+            const MIRBasicBlock *invalidation = &purchase->blocks[purchase->invalidation_block];
+            cleanup_has_invalidation = block_has_inst_named(invalidation, "DetachInvalidation");
         }
         EXPECT(ok
+               && mir_validate(mir, NULL)
                && purchase != NULL
                && purchase->has_cleanup_block
-               && purchase->cleanup_instruction_count >= 1
-               && cleanup_has_compensate);
+               && purchase->has_rollback_block
+               && purchase->has_invalidation_block
+               && purchase->cleanup_instruction_count >= 2
+               && purchase->cleanup_edge_count >= 1
+               && purchase->blocks[purchase->entry_block].has_cleanup_succ
+               && purchase->blocks[purchase->entry_block].cleanup_succ == purchase->cleanup_block
+               && purchase->blocks[purchase->cleanup_block].has_rollback_succ
+               && purchase->blocks[purchase->cleanup_block].rollback_succ == purchase->rollback_block
+               && purchase->blocks[purchase->cleanup_block].has_invalidation_succ
+               && purchase->blocks[purchase->cleanup_block].invalidation_succ == purchase->invalidation_block
+               && purchase->blocks[purchase->rollback_block].has_cleanup_succ
+               && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->invalidation_block
+               && cleanup_has_compensate
+               && cleanup_has_policy
+               && cleanup_has_invalidation);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR inserts phi nodes and SSA-renamed locals on merge");
+    {
+        const char *src =
+            "func Merge(flag: Bool) -> Int {\n"
+            "    let score = 0;\n"
+            "    if flag {\n"
+            "        score = 1;\n"
+            "    } else {\n"
+            "        score = 2;\n"
+            "    }\n"
+            "    return score;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *merge = NULL;
+        bool has_phi = false;
+        bool has_phi_inputs = false;
+        bool has_renamed_local = false;
+        bool has_branch = false;
+        bool has_return = false;
+        bool has_uses = false;
+        bool has_def = false;
+        bool has_entry = false;
+        bool has_exit = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            merge = find_mir_routine(mir, "Merge", MIR_SCOPE_FUNCTION);
+        if (merge != NULL) {
+            for (size_t i = 0; i < merge->block_count; i++) {
+                const MIRBasicBlock *block = &merge->blocks[i];
+                if (block_has_phi_result_prefix(block, "score."))
+                    has_phi = true;
+                if (block_has_renamed_local_prefix(block, "score."))
+                    has_renamed_local = true;
+                if (block_has_use_prefix(block, "score."))
+                    has_uses = true;
+                if (block_has_inst_kind(block, MIR_INST_DEF))
+                    has_def = true;
+                if (block_has_entry_prefix(block, "score."))
+                    has_entry = true;
+                if (block_has_exit_prefix(block, "score."))
+                    has_exit = true;
+                for (size_t j = 0; j < block->instruction_count; j++) {
+                    const MIRInstruction *inst = &block->instructions[j];
+                    if (inst->kind == MIR_INST_PHI && inst->phi_incoming_count >= 2)
+                        has_phi_inputs = true;
+                    if (inst->kind == MIR_INST_BRANCH)
+                        has_branch = true;
+                    if (inst->kind == MIR_INST_RETURN)
+                        has_return = true;
+                }
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && merge != NULL
+               && merge->phi_inserted_count > 0
+               && merge->renamed_value_count > 0
+               && has_phi
+               && has_phi_inputs
+               && has_renamed_local
+               && has_def
+               && has_entry
+               && has_exit
+               && has_uses
+               && has_branch
+               && has_return);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

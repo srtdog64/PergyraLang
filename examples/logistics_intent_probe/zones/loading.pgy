@@ -1,0 +1,45 @@
+zone LoadingZone
+{
+    subject slot courier: Courier
+    subject slot dispatcher: Dispatcher
+    object slot courierView: CourierView = ToObject(CourierView, courier)
+    dto slot dispatchPacket: DispatchPacket = ToDto(DispatchPacket, dispatcher)
+
+    effect slot seal: CargoSeal
+    relation slot route: RouteLink
+
+    shared stage: String = "loading"
+    shared staged: Int = 0
+    shared routeScore: Int = 0
+
+    authority courier requires Routable
+    authority dispatcher requires Approvable
+
+    refresh courierView from courier by courier
+    publish dispatchPacket from dispatcher by dispatcher
+    apply seal to courier by courier
+    link route between courier, dispatcher by dispatcher
+
+    state sealed: effect seal on courier
+    state linked: relation route between courier, dispatcher
+
+    func Stage(self, qty: Int) -> Int
+    {
+        let prepared = courier.Prepare(qty);
+        dispatcher.ApproveDispatch(prepared);
+        self.seal.qty = prepared;
+        self.route.lane = "loading-bay";
+        staged = prepared;
+        routeScore = MergeRouteScore(true, qty);
+        stage = "staged";
+        return staged;
+    }
+
+    func Snapshot(self) -> String
+    {
+        return stage
+            + " staged=" + ToString(staged)
+            + " score=" + ToString(routeScore)
+            + " sealed=" + ToString(self.seal.qty);
+    }
+}

@@ -1,0 +1,41 @@
+intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier, dispatcher: Dispatcher)
+{
+    rollback: full;
+    exclusive;
+    priority: 11;
+
+    step stage
+    {
+        where: LoadingZone;
+        using: loading;
+        who: courier;
+        requires: Routable;
+        authorized by: courier;
+        on: loading.Stage(5);
+        pre: courier.prepared == 0;
+        guard: loading.staged > 0;
+        post: loading.staged > 0;
+        invariant: courier.cargo.claimed >= 0;
+        compensate: courier.RollbackPrepare();
+    }
+
+    step handoff
+    {
+        where: DeliveryZone;
+        using: delivery;
+        transfer: loading -> delivery;
+        who: courier;
+        requires: Routable;
+        authorized by: courier;
+        causes: CargoSeal;
+        on: delivery.Receive(3);
+        pre: loading.staged > 0;
+        guard: delivery.received > 0;
+        post: delivery.received > 0;
+        invariant: courier.delivered >= 0;
+        compensate: courier.RollbackDelivery();
+    }
+
+    success: delivery.received > 0;
+    failure: delivery.received == 0;
+}

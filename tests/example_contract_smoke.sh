@@ -251,6 +251,10 @@ run_stable_examples() {
         "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
     run_expect_lines "shopping_mall_checkout_refund" "$backend" \
         "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[JS] mount /cart" "[API] POST /api/intents/CheckoutPurchase" "[API] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
+    run_expect_lines "logistics_intent_probe" "$backend" \
+        "$ROOT_DIR/examples/logistics_intent_probe" "=== PERGYRA LOGISTICS INTENT PROBE ===" "merge.true=12" "[Intent] RouteCargo ok=true" "[transfer] courier: LoadingZone.courier -> DeliveryZone.courier" "saving examples/logistics_intent_probe/results.txt"
+    run_expect_lines "resource_scheduler_async_probe" "$backend" \
+        "$ROOT_DIR/examples/resource_scheduler_async_probe" "=== ASYNC RESOURCE SCHEDULER PROBE ===" "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11" "[Remote] 103 105 207 211" "[Score] 144 147 240 245 total=776" "saving examples/resource_scheduler_async_probe/results.txt"
     run_expect_lines "calendar_working" "$backend" \
         "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
     run_expect_lines "adapter_policy_stack" "$backend" \
@@ -271,6 +275,10 @@ run_stable_examples() {
         "$backend" "$ROOT_DIR/examples/dnd_tavern_campaign/results.txt" "DND TAVERN CAMPAIGN REPORT" "dragonHp=0 victory=1" "Ari [Vanguard]" "Sol [Mage]"
     run_expect_file_lines "shopping_mall_checkout_refund" \
         "$backend" "$ROOT_DIR/examples/shopping_mall_checkout_refund/results.txt" "SHOPPING CHECKOUT + REFUND REPORT" "CheckoutPurchase ok=1" "RefundPurchase ok=1" "SyncAccountProfile ok=1"
+    run_expect_file_lines "logistics_intent_probe" \
+        "$backend" "$ROOT_DIR/examples/logistics_intent_probe/results.txt" "PERGYRA LOGISTICS INTENT PROBE" "RouteCargo ok=true" "delivery=received" "seal=Ivo seal qty=8"
+    run_expect_file_lines "resource_scheduler_async_probe" \
+        "$backend" "$ROOT_DIR/examples/resource_scheduler_async_probe/results.txt" "ASYNC RESOURCE SCHEDULER PROBE" "budget.remaining=14 reserved=26" "[Remote] 103 105 207 211" "total=776"
     run_expect_file_lines "adapter_policy_stack" \
         "$backend" "$ROOT_DIR/examples/adapter_policy_stack/results.txt" "ADAPTER POLICY STACK" "/api/checkout" "/api/refund#8831:true"
 }

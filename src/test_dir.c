@@ -105,6 +105,7 @@ test_dir_lowering(void)
         bool has_intent_requires_edge = false;
         bool has_intent_authorized_edge = false;
         bool has_intent_causes_edge = false;
+        bool has_role_complete_edge = false;
 
         if (dir != NULL) {
             for (size_t i = 0; i < dir->edge_count; i++) {
@@ -169,6 +170,11 @@ test_dir_lowering(void)
                     && strcmp(edge->target_name, "PaymentEffect") == 0) {
                     has_intent_causes_edge = true;
                 }
+                if (edge->kind == DIR_EDGE_ROLE_COMPLETES_ABILITY
+                    && edge->target_name != NULL
+                    && strcmp(edge->target_name, "Payable") == 0) {
+                    has_role_complete_edge = true;
+                }
             }
 
             if (dir->intent_count == 1) {
@@ -193,6 +199,7 @@ test_dir_lowering(void)
         }
 
         EXPECT(dir != NULL
+               && dir_validate(dir, NULL)
                && dir->node_count >= 9
                && dir->edge_count >= 6
                && dir->intent_count == 1
@@ -201,6 +208,7 @@ test_dir_lowering(void)
                && has_world_zone
                && has_zone_layer
                && has_zone_auth
+               && has_role_complete_edge
                && has_intent_participant_edge
                && has_intent_zone_edge
                && has_intent_requires_edge
@@ -276,7 +284,38 @@ test_dir_lowering(void)
             }
         }
 
-        EXPECT(ok);
+        EXPECT(ok && dir_validate(dir, NULL));
+        dir_destroy(dir);
+    }
+
+    TEST("DIR reports missing ability methods on incomplete role impl");
+    {
+        const char *src =
+            "subject Buyer { action Pay(self) -> Void { return; } }\n"
+            "ability Payable {\n"
+            "    func Pay() -> Void;\n"
+            "    func Audit() -> Void;\n"
+            "}\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable {\n"
+            "        func Pay() -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        bool has_missing = false;
+        if (dir != NULL) {
+            for (size_t i = 0; i < dir->edge_count; i++) {
+                const DIREdge *edge = &dir->edges[i];
+                if (edge->kind == DIR_EDGE_ROLE_MISSING_ABILITY_METHOD
+                    && edge->label != NULL
+                    && strcmp(edge->label, "Payable") == 0
+                    && edge->target_name != NULL
+                    && strcmp(edge->target_name, "Audit") == 0) {
+                    has_missing = true;
+                }
+            }
+        }
+        EXPECT(dir != NULL && dir_validate(dir, NULL) && has_missing);
         dir_destroy(dir);
     }
 }

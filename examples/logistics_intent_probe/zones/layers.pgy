@@ -1,0 +1,19 @@
+effect CargoSeal for bearer: Courier
+{
+    shared qty: Int = 0
+
+    func Label(self) -> String
+    {
+        return bearer.name + " seal qty=" + ToString(qty);
+    }
+}
+
+relation RouteLink for source: Courier, target: Dispatcher
+{
+    shared lane: String = "unset"
+
+    func Label(self) -> String
+    {
+        return source.name + " -> " + target.name + " lane=" + lane;
+    }
+}

@@ -35,6 +35,7 @@ typedef struct
     SlotLifetimeEntry* entries;
     size_t             entry_count;
     size_t             entry_capacity;
+    ASTNode*           program_root;
 } SlotAnalyzer;
 
 /* -----------------------------------------------------------------

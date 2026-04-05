@@ -21,7 +21,7 @@
 #include "path_utils.h"
 
 int
-c_runner_execute(const DriverFlags *flags, const HIRProgram *hir)
+c_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
 {
     if (flags->emit_c_only) {
         char *output_c = flags->output_path != NULL
@@ -37,7 +37,7 @@ CompilerResult *result;
         if (flags->verbose)
             printf("pgy: generating C → %s\n", output_c);
 
-        result = compiler_emit_c(hir, output_c);
+        result = compiler_emit_c(bundle, output_c);
         if (result == NULL || !result->success) {
             fprintf(stderr, "pgy: C generation failed: %s\n",
                     result != NULL ? result->error_message : "out of memory");
@@ -99,7 +99,7 @@ CompilerResult *result;
     if (flags->verbose)
         printf("pgy: generating C → %s\n", tmp_c);
 
-    result = compiler_build_native(hir, tmp_c, bin_path, flags->verbose,
+    result = compiler_build_native(bundle, tmp_c, bin_path, flags->verbose,
                                    flags->opt_profile);
     remove(tmp_c);
 

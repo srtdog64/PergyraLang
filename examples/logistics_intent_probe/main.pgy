@@ -1,0 +1,58 @@
+import "common.pgy";
+import "subjects/vessels.pgy";
+import "subjects/abilities.pgy";
+import "subjects/actors.pgy";
+import "subjects/roles.pgy";
+import "zones/surfaces.pgy";
+import "zones/layers.pgy";
+import "zones/loading.pgy";
+import "zones/delivery.pgy";
+import "intents/logistics_intents.pgy";
+import "world.pgy";
+import "setup.pgy";
+
+func AuditHandles(world: LogisticsWorld, loading: LoadingZone, route: RouteLink, seal: CargoSeal) -> String
+{
+    let bias = 0;
+    if world.completed > 0
+    {
+        bias = bias + 2;
+    }
+    else
+    {
+        bias = bias + 1;
+    }
+    return "audit loading=" + ToString(loading.staged)
+        + " lane=" + route.lane
+        + " seal=" + ToString(seal.qty)
+        + " bias=" + ToString(bias);
+}
+
+func Main() -> Void
+{
+    let world = OpenLogisticsWorld();
+    world.Broadcast(ProbeHeader());
+    world.Broadcast(ProbeSubtitle());
+    world.Blank();
+
+    let mergeA = MergeRouteScore(true, 4);
+    let mergeB = MergeRouteScore(false, 4);
+    world.Broadcast("merge.true=" + ToString(mergeA));
+    world.Broadcast("merge.false=" + ToString(mergeB));
+
+    let ok = RouteCargo(world.loading, world.delivery, world.loading.courier, world.loading.dispatcher);
+    world.completed = ok;
+    world.Broadcast("[Intent] RouteCargo ok=" + ToString(ok));
+    world.Broadcast("  [Runtime] name=" + IntentLastName() + " handle=" + ToString(IntentLastHandle()) + " failed=" + ToString(IntentLastFailed()));
+    world.Broadcast("  [Runtime] steps=" + ToString(IntentLastStepCount()));
+    world.Broadcast("  [Trace] " + IntentLastTrace());
+    world.Broadcast("  [HistoryCount] " + ToString(IntentHistoryCount()));
+    world.Blank();
+
+    world.Broadcast(AuditHandles(world, world.loading, world.delivery.route, world.delivery.seal));
+    world.FinalSnapshot();
+    world.Blank();
+
+    world.Broadcast("saving examples/logistics_intent_probe/results.txt");
+    WriteFile("examples/logistics_intent_probe/results.txt", world.transcript + "\n");
+}

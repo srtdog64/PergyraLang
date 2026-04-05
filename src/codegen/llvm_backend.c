@@ -2561,14 +2561,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMPositionBuilderAtEnd(ctx->builder, fail_enter_bb);
     {
-        LLVMValueRef failure = node->data.intent_decl.failure_expr != NULL
-            ? llvm_emit_expression(node->data.intent_decl.failure_expr, ctx)
-            : LLVMConstInt(ctx->type_i1, 0, 0);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), failed_alloca);
         LLVMBuildStore(ctx->builder,
             LLVMBuildGlobalStringPtr(ctx->builder, "enter-conflict", llvm_tmp_name(ctx)),
             fail_reason_alloca);
-        LLVMBuildStore(ctx->builder, failure, result_alloca);
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), result_alloca);
         LLVMBuildBr(ctx->builder, cleanup_bb);
     }
 
@@ -2789,10 +2786,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef trace_args[] = { handle, reason };
         LLVMBuildCall2(ctx->builder, trace_fail_fn->fn_type, trace_fail_fn->fn, trace_args, 2, "");
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), failed_alloca);
-        LLVMValueRef failure = node->data.intent_decl.failure_expr != NULL
-            ? llvm_emit_expression(node->data.intent_decl.failure_expr, ctx)
-            : LLVMConstInt(ctx->type_i1, 0, 0);
-        LLVMBuildStore(ctx->builder, failure, result_alloca);
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), result_alloca);
         LLVMBuildBr(ctx->builder, cleanup_bb);
     }
 

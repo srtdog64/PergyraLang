@@ -1,0 +1,15 @@
+object CourierView
+{
+    let name: String;
+    let prepared: Int;
+    let delivered: Int;
+    let lastPhase: String;
+}
+
+dto DispatchPacket
+{
+    let name: String;
+    let lane: String;
+    let approved: Int;
+    let shipped: Int;
+}

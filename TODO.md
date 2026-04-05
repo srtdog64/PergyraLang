@@ -44,6 +44,31 @@
   - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
   - optional `pages/ api/ report/` app adapter starter
 
+## IR 파이프라인
+
+- [x] **DIR code layer 시작**
+  - declaration graph
+  - intent participant/step edge
+  - role/ability completeness edge
+- [x] **RIR code layer 시작**
+  - explicit resource/projection/authority/capability/intent-policy fact
+  - explicit resource op
+  - scope-level normalized state summary
+  - HIR-enriched branch/join `flow-block[...]` lattice summary
+- [x] **MIR code layer 시작**
+  - block/instruction skeleton
+  - phi materialization
+  - block-local SSA rename
+  - instruction-level `def/use` 시작
+  - rollback/invalidation exceptional CFG 시작
+- [ ] **RIR lattice propagation 심화**
+  - relation/effect/zone/world handle merge는 시작됨, conditional handle invalidation과 world-handoff lattice를 더 밀기
+  - conditional authority/projection invalidation fact 확장
+- [ ] **MIR full SSA / flow merge**
+  - block-level version map은 시작됨, rename을 full def-use chain/liveness 수준으로 확장
+  - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
+- [ ] **backend 입력을 HIR에서 MIR로 전환**
+
 ## P1.55 — 언어 기능 확장
 
 ### 기반 타입 시스템
@@ -414,7 +439,8 @@
 - [~] **DIR (Domain IR)** — declaration graph / intent step graph 시작
   - 완료: `src/compiler/dir.h`, `src/compiler/dir.c`, `pgy --dir`, `test-dir`
   - 완료: intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency
-  - 남음: role/ability completeness edge, richer zone/world membership graph
+  - 완료: role/ability completeness edge, missing-ability-method edge
+  - 남음: richer zone/world membership graph
 - [~] **RIR (Resource IR)** — slot/resource/authority/lifecycle 의미론 전용 계층
   - 범위: `Slot`, `SecureSlot`, `DeviceSlot`, projection validity, authority, effect/relation lifecycle, intent compensation resource edge
   - 완료: `src/compiler/rir.h`, `src/compiler/rir.c`, `pgy --rir`, `test-rir`
@@ -446,6 +472,9 @@
   - 완료: HIR CFG -> MIR block bridge
   - 완료: RIR op -> MIR instruction bridge
   - 완료: intent cleanup block skeleton
+  - 완료: phi materialization + incoming predecessor value list
+  - 완료: block-local SSA rename skeleton
+  - 완료: intent cleanup successor edge skeleton
   - 필요: `RIR-flow` merge 정책
-  - 필요: phi merge policy
-  - 필요: cleanup / rollback / detach-invalidation edge
+  - 필요: richer phi merge policy
+  - 필요: cleanup / rollback / detach-invalidation edge 고도화

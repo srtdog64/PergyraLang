@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include "../parser/ast.h"
 #include "../compiler/hir.h"
+#include "../compiler/mir.h"
 #include "../semantic/type_system.h"
 #include "../semantic/semantic.h"
 #include "../common/arena.h"
@@ -116,6 +117,7 @@ typedef struct
     int               indent;       /* current indent level          */
     bool              in_parallel;  /* inside a Parallel block       */
     const HIRProgram *hir;          /* owning lowered HIR program    */
+    const MIRProgram *mir;          /* optional MIR program          */
 
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
@@ -190,6 +192,9 @@ typedef struct
 } TranspileResult;
 
 TranspileResult *transpile(const HIRProgram *hir, const char *output_path);
+TranspileResult *transpile_with_mir(const HIRProgram *hir,
+                                    const MIRProgram *mir,
+                                    const char *output_path);
 void             transpile_result_destroy(TranspileResult *res);
 
 /* -----------------------------------------------------------------

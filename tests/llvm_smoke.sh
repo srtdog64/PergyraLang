@@ -230,6 +230,50 @@ func Main() -> Void {
 EOF
 run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
 
+cat > "$TMPDIR/intent_failure_result.pgy" <<'EOF'
+subject Driver {
+    let hp: Int;
+    let started: Bool;
+
+    action Ignite(self) -> Void {
+        started = true;
+        hp = hp + 1;
+    }
+
+    action RollbackIgnite(self) -> Void {
+        started = false;
+        hp = hp - 1;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent DriveCar(cockpit: CockpitZone, driver: Driver) {
+    step Ignite {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.Ignite();
+        compensate: driver.RollbackIgnite();
+        guard: false;
+        post: driver.started;
+    }
+
+    success: true;
+    failure: true;
+}
+
+func Main() -> Void {
+    let d = Driver(0, false);
+    let cockpit = CockpitZone(Driver(99, true));
+    Log(DriveCar(cockpit, d));
+    Log(IntentLastFailed());
+}
+EOF
+run_case "intent_failure_result" "$TMPDIR/intent_failure_result.pgy" "false" "true"
+
 cat > "$TMPDIR/relation_effect_projection_sync.pgy" <<'EOF'
 subject Player {
     let hp: Int;

@@ -1,0 +1,160 @@
+subject BudgetLedger {
+    let remaining: Int;
+    let reserved: Int;
+}
+
+subject WorkerLedger {
+    let name: String;
+    let queued: Int;
+    let finished: Int;
+    let load: Int;
+}
+
+func AppendLine(report: String, line: String) -> String {
+    if StringLength(report) == 0 {
+        return line;
+    }
+    return report + "\n" + line;
+}
+
+func QueueLoad(ref ledger: Slot<WorkerLedger>, amount: Int) -> Int {
+    let cur: WorkerLedger = Read(ledger);
+    let next: WorkerLedger = WorkerLedger(cur.name, cur.queued + 1, cur.finished, cur.load + amount);
+    Write(ledger, next);
+    return next.load;
+}
+
+func FinishLoad(ref ledger: Slot<WorkerLedger>) -> Int {
+    let cur: WorkerLedger = Read(ledger);
+    let next: WorkerLedger = WorkerLedger(cur.name, cur.queued, cur.finished + 1, cur.load);
+    Write(ledger, next);
+    return next.finished;
+}
+
+func DebitBudget(ref budget: Slot<BudgetLedger>, amount: Int) -> Int {
+    let cur: BudgetLedger = Read(budget);
+    let next: BudgetLedger = BudgetLedger(cur.remaining - amount, cur.reserved + amount);
+    Write(budget, next);
+    return next.remaining;
+}
+
+func BudgetSnapshot(ref budget: Slot<BudgetLedger>) -> String {
+    let cur: BudgetLedger = Read(budget);
+    return "remaining=" + ToString(cur.remaining) + " reserved=" + ToString(cur.reserved);
+}
+
+func WorkerSnapshot(ref ledger: Slot<WorkerLedger>) -> String {
+    let cur: WorkerLedger = Read(ledger);
+    return cur.name
+        + " queued=" + ToString(cur.queued)
+        + " finished=" + ToString(cur.finished)
+        + " load=" + ToString(cur.load);
+}
+
+async func Main() -> Void {
+    let report: String = "";
+
+    let laneA: Channel<Int> = Channel(2);
+    let laneB: Channel<Int> = Channel(2);
+    let budget: Slot<BudgetLedger> = BudgetLedger(40, 0);
+    let left: Slot<WorkerLedger> = WorkerLedger("left", 0, 0, 0);
+    let right: Slot<WorkerLedger> = WorkerLedger("right", 0, 0, 0);
+    Log("=== ASYNC RESOURCE SCHEDULER PROBE ===");
+    report = AppendLine(report, "=== ASYNC RESOURCE SCHEDULER PROBE ===");
+
+    parallel {
+        laneA <- 3;
+        laneA <- 5;
+        laneB <- 7;
+        laneB <- 11;
+    }
+
+    Log("[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11");
+    report = AppendLine(report, "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11");
+
+    let a0: Int = <- laneA;
+    let a1: Int = <- laneA;
+    let b0: Int = <- laneB;
+    let b1: Int = <- laneB;
+
+    let loadA0: Int = QueueLoad(left, a0);
+    let remainA0: Int = DebitBudget(budget, a0);
+    let loadA1: Int = QueueLoad(left, a1);
+    let remainA1: Int = DebitBudget(budget, a1);
+    let loadB0: Int = QueueLoad(right, b0);
+    let remainB0: Int = DebitBudget(budget, b0);
+    let loadB1: Int = QueueLoad(right, b1);
+    let remainB1: Int = DebitBudget(budget, b1);
+
+    let planLine: String = "[Plan] " + WorkerSnapshot(left)
+        + " | " + WorkerSnapshot(right)
+        + " | budget." + BudgetSnapshot(budget);
+    Log(planLine);
+    report = AppendLine(report, planLine);
+
+    let d0: DeviceSlot<Int> = ClaimDeviceSlot();
+    let d1: DeviceSlot<Int> = ClaimDeviceSlot();
+    let d2: DeviceSlot<Int> = ClaimDeviceSlot();
+    let d3: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(d0, 100 + a0);
+    DeviceWrite(d1, 100 + a1);
+    DeviceWrite(d2, 200 + b0);
+    DeviceWrite(d3, 200 + b1);
+    let f0: RemoteFuture<Int> = SubmitDeviceRead(d0);
+    let f1: RemoteFuture<Int> = SubmitDeviceRead(d1);
+    let f2: RemoteFuture<Int> = SubmitDeviceRead(d2);
+    let f3: RemoteFuture<Int> = SubmitDeviceRead(d3);
+
+    let r0: Result<Int> = await f0;
+    let r1: Result<Int> = await f1;
+    let r2: Result<Int> = await f2;
+    let r3: Result<Int> = await f3;
+    ReleaseDeviceSlot(d0);
+    ReleaseDeviceSlot(d1);
+    ReleaseDeviceSlot(d2);
+    ReleaseDeviceSlot(d3);
+
+    let remote0: Int = Unwrap(r0);
+    let remote1: Int = Unwrap(r1);
+    let remote2: Int = Unwrap(r2);
+    let remote3: Int = Unwrap(r3);
+
+    let remoteLine: String = "[Remote] "
+        + ToString(remote0) + " "
+        + ToString(remote1) + " "
+        + ToString(remote2) + " "
+        + ToString(remote3);
+    Log(remoteLine);
+    report = AppendLine(report, remoteLine);
+
+    let doneA0: Int = FinishLoad(left);
+    let doneA1: Int = FinishLoad(left);
+    let doneB0: Int = FinishLoad(right);
+    let doneB1: Int = FinishLoad(right);
+
+    let score0: Int = remote0 + remainA0 + loadA0 + doneA0;
+    let score1: Int = remote1 + remainA1 + loadA1 + doneA1;
+    let score2: Int = remote2 + remainB0 + loadB0 + doneB0;
+    let score3: Int = remote3 + remainB1 + loadB1 + doneB1;
+    let total: Int = score0 + score1 + score2 + score3;
+
+    let scoreLine: String = "[Score] "
+        + ToString(score0) + " "
+        + ToString(score1) + " "
+        + ToString(score2) + " "
+        + ToString(score3) + " total=" + ToString(total);
+    Log(scoreLine);
+    report = AppendLine(report, scoreLine);
+
+    let finalWorkers: String = "[Final] " + WorkerSnapshot(left) + " | " + WorkerSnapshot(right);
+    Log(finalWorkers);
+    report = AppendLine(report, finalWorkers);
+
+    let finalBudget: String = "[Final] budget." + BudgetSnapshot(budget);
+    Log(finalBudget);
+    report = AppendLine(report, finalBudget);
+
+    Log("saving examples/resource_scheduler_async_probe/results.txt");
+    report = AppendLine(report, "saving examples/resource_scheduler_async_probe/results.txt");
+    WriteFile("examples/resource_scheduler_async_probe/results.txt", report + "\n");
+}

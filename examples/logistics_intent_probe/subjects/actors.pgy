@@ -1,0 +1,90 @@
+subject Courier
+{
+    let name: String;
+    let badge: String;
+    vessel cargo: CargoState;
+    let prepared: Int;
+    let delivered: Int;
+    let lastPhase: String;
+
+    action Prepare(self, qty: Int) -> Int
+    {
+        let staged = cargo.Claim(qty, "bay-a");
+        prepared = staged;
+        lastPhase = "prepared";
+        return staged;
+    }
+
+    action Deliver(self, bonus: Int) -> Int
+    {
+        let shipped = cargo.Deliver(bonus);
+        delivered = shipped;
+        lastPhase = "delivered";
+        return shipped;
+    }
+
+    action RollbackPrepare(self) -> Int
+    {
+        cargo.Reset();
+        prepared = 0;
+        delivered = 0;
+        lastPhase = "rollback-prepare";
+        return prepared;
+    }
+
+    action RollbackDelivery(self) -> Int
+    {
+        delivered = 0;
+        cargo.delivered = 0;
+        lastPhase = "rollback-delivery";
+        return delivered;
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " badge=" + badge
+            + " prepared=" + ToString(prepared)
+            + " delivered=" + ToString(delivered)
+            + " phase=" + lastPhase;
+    }
+}
+
+subject Dispatcher
+{
+    let name: String;
+    vessel ledger: DispatchLedger;
+    let lane: String;
+    let lastPhase: String;
+
+    action ApproveDispatch(self, qty: Int) -> Int
+    {
+        let approved = ledger.Approve(qty);
+        lastPhase = "approved";
+        return approved;
+    }
+
+    action ConfirmDelivery(self, qty: Int) -> Int
+    {
+        let shipped = ledger.Ship(qty);
+        lastPhase = "shipped";
+        return shipped;
+    }
+
+    action RollbackDispatch(self) -> Int
+    {
+        let rolled = ledger.Rollback();
+        lastPhase = "rollback";
+        return rolled;
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " lane=" + lane
+            + " approved=" + ToString(ledger.approved)
+            + " shipped=" + ToString(ledger.shipped)
+            + " rolled=" + ToString(ledger.rolledBack)
+            + " phase=" + lastPhase;
+    }
+}

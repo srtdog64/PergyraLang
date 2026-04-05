@@ -8,11 +8,12 @@
 #include <string.h>
 
 #include "lexer/lexer.h"
-#include "parser/parser.h"
 #include "parser/ast.h"
+#include "parser/parser.h"
 #include "semantic/type_system.h"
 
-typedef struct {
+typedef struct
+{
     const char *name;
     const char *code;
     int expect_success;
@@ -554,6 +555,16 @@ main(void)
             "func Main() -> Void {\n"
             "    Log(\"{\\\"ok\\\":true}\\n\");\n"
             "}",
+            1
+        },
+        {
+            "Async Function With Ref Slot Param",
+            "subject WorkerLedger {\n"
+            "    let load: Int;\n"
+            "}\n"
+            "async func Worker(jobs: Channel<Int>, ref ledger: Slot<WorkerLedger>) -> Int {\n"
+            "    return 1;\n"
+            "}\n",
             1
         },
         {

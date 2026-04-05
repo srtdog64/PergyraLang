@@ -2,7 +2,7 @@
   "name": "pergyra-lang",
   "displayName": "Pergyra Language",
   "description": "Language support for Pergyra (.pgy)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "pergyra",
   "icon": "icons/pergyra-logo.png",
   "engines": {
@@ -11,6 +11,10 @@
   "categories": [
     "Programming Languages"
   ],
+  "activationEvents": [
+    "onLanguage:pergyra"
+  ],
+  "main": "./extension.js",
   "contributes": {
     "languages": [
       {
@@ -20,7 +24,8 @@
         "icon": {
           "light": "./icons/pgy-icon-light.png",
           "dark": "./icons/pgy-icon-dark.png"
-        }
+        },
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
@@ -35,6 +40,51 @@
         "language": "pergyra",
         "path": "./snippets/pergyra.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "pergyra.run",
+        "title": "Run Pergyra File",
+        "icon": "$(play)",
+        "category": "Pergyra"
+      },
+      {
+        "command": "pergyra.build",
+        "title": "Build Pergyra File",
+        "icon": "$(gear)",
+        "category": "Pergyra"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "pergyra.run",
+          "when": "resourceLangId == pergyra",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "pergyra.run",
+        "key": "ctrl+shift+r",
+        "when": "resourceLangId == pergyra"
+      }
+    ],
+    "configuration": {
+      "title": "Pergyra",
+      "properties": {
+        "pergyra.compilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to pgy compiler. Leave empty to auto-detect from workspace or PATH."
+        },
+        "pergyra.runFlags": {
+          "type": "string",
+          "default": "--run",
+          "description": "Flags to pass when running a .pgy file."
+        }
+      }
+    }
   }
 }

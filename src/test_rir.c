@@ -10,6 +10,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "compiler/hir.h"
 #include "compiler/rir.h"
 
 static int g_pass = 0;
@@ -24,26 +25,37 @@ static int g_fail = 0;
         else      { printf("✗  (line %d)\n", __LINE__); g_fail++; } \
     } while (0)
 
-static RIRProgram *
-lower_rir_from_source(const char *source)
+static bool
+lower_rir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir_out)
 {
     Lexer *lexer = lexer_create(source);
     Parser *parser = parser_create(lexer);
     ASTNode *ast = parser_parse_program(parser);
     SemanticResult *sem = semantic_analyze(ast);
+    char *hir_error = NULL;
     char *rir_error = NULL;
-    RIRProgram *rir = NULL;
+    *hir_out = NULL;
+    *rir_out = NULL;
 
-    if (!parser_has_error(parser) && sem != NULL && sem->success)
-        rir = rir_lower(sem->annotated_ast, &rir_error);
+    if (!parser_has_error(parser) && sem != NULL && sem->success) {
+        *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        *rir_out = rir_lower(sem->annotated_ast, &rir_error);
+        if (*hir_out != NULL && *rir_out != NULL)
+            (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
+    }
 
-    if (rir == NULL && rir_error != NULL)
-        fprintf(stderr, "RIR lowering error: %s\n", rir_error);
+    if ((*hir_out == NULL || *rir_out == NULL) && (hir_error != NULL || rir_error != NULL)) {
+        if (hir_error != NULL)
+            fprintf(stderr, "HIR lowering error: %s\n", hir_error);
+        if (rir_error != NULL)
+            fprintf(stderr, "RIR lowering error: %s\n", rir_error);
+    }
 
+    free(hir_error);
     free(rir_error);
     parser_destroy(parser);
     lexer_destroy(lexer);
-    return rir;
+    return *hir_out != NULL && *rir_out != NULL;
 }
 
 static bool
@@ -51,6 +63,18 @@ scope_has_op(const RIRScope *scope, RIROpKind kind)
 {
     for (size_t i = 0; i < scope->op_count; i++) {
         if (scope->ops[i].kind == kind)
+            return true;
+    }
+    return false;
+}
+
+static bool
+scope_has_op_subject(const RIRScope *scope, RIROpKind kind, const char *subject)
+{
+    for (size_t i = 0; i < scope->op_count; i++) {
+        if (scope->ops[i].kind == kind
+            && scope->ops[i].subject != NULL
+            && strcmp(scope->ops[i].subject, subject) == 0)
             return true;
     }
     return false;
@@ -107,6 +131,7 @@ test_rir_lowering(void)
 
     TEST("RIR captures slot claim/read/write/release in function scope");
     {
+        HIRProgram *hir = NULL;
         const char *src =
             "func Flow() -> Void {\n"
             "    let s: Slot<Int> = ClaimSlot<Int>();\n"
@@ -114,19 +139,24 @@ test_rir_lowering(void)
             "    let v = Read(s);\n"
             "    Release(s);\n"
             "}\n";
-        RIRProgram *rir = lower_rir_from_source(src);
+        RIRProgram *rir = NULL;
+        bool ok = lower_rir_from_source(src, &hir, &rir);
         const RIRScope *flow = find_scope(rir, "Flow", RIR_SCOPE_FUNCTION);
-        EXPECT(flow != NULL
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
                && scope_has_resource_fact(flow, "s", RIR_RESOURCE_LOCAL_SLOT)
                && scope_has_op(flow, RIR_OP_CLAIM)
                && scope_has_op(flow, RIR_OP_WRITE)
                && scope_has_op(flow, RIR_OP_READ)
                && scope_has_op(flow, RIR_OP_RELEASE));
         rir_destroy(rir);
+        hir_destroy(hir);
     }
 
     TEST("RIR captures projection, authority, lifecycle, and intent compensation");
     {
+        HIRProgram *hir = NULL;
         const char *src =
             "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
             "ability Payable { func Pay() -> Void; }\n"
@@ -163,7 +193,8 @@ test_rir_lowering(void)
             "        compensate: buyer.Pay();\n"
             "    }\n"
             "}\n";
-        RIRProgram *rir = lower_rir_from_source(src);
+        RIRProgram *rir = NULL;
+        bool ok = lower_rir_from_source(src, &hir, &rir);
         const RIRScope *zone = find_scope(rir, "PaymentZone", RIR_SCOPE_ZONE);
         const RIRScope *intent = find_scope(rir, "Purchase", RIR_SCOPE_INTENT);
         const RIRStateSummary *payment_fx = scope_find_state_summary(zone, "paymentFx");
@@ -188,28 +219,160 @@ test_rir_lowering(void)
                          && scope_has_op(intent, RIR_OP_COMPENSATE_INTENT_STEP)
                          && scope_has_op(intent, RIR_OP_ABORT_INTENT)
                          && scope_has_op(intent, RIR_OP_COMMIT_INTENT);
-        EXPECT(zone_ok && intent_ok);
+        EXPECT(ok && rir_validate(rir, NULL) && zone_ok && intent_ok);
         rir_destroy(rir);
+        hir_destroy(hir);
     }
 
     TEST("RIR normalizes final resource state for valid linear flow");
     {
+        HIRProgram *hir = NULL;
         const char *src =
             "func FlowEnd() -> Void {\n"
             "    let s: Slot<Int> = ClaimSlot<Int>();\n"
             "    Read(s);\n"
             "    Release(s);\n"
             "}\n";
-        RIRProgram *rir = lower_rir_from_source(src);
+        RIRProgram *rir = NULL;
+        bool ok = lower_rir_from_source(src, &hir, &rir);
         const RIRScope *flow = find_scope(rir, "FlowEnd", RIR_SCOPE_FUNCTION);
         const RIRStateSummary *summary = scope_find_state_summary(flow, "s");
-        EXPECT(flow != NULL
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
                && !flow->has_state_errors
                && summary != NULL
                && summary->initial_state == RIR_STATE_OWNED
                && summary->final_state == RIR_STATE_RELEASED
                && !summary->has_transition_error);
         rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR enriches branch join with conservative flow merge facts");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "func MergeSlot(flag: Bool) -> Void {\n"
+            "    let s: Slot<Int> = ClaimSlot<Int>();\n"
+            "    if flag {\n"
+            "        let rv: ReadView<Int> = ViewRead(s);\n"
+            "    } else {\n"
+            "        let wv: WriteView<Int> = ViewWrite(s);\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "MergeSlot", RIR_SCOPE_FUNCTION);
+        bool found_join_merge = false;
+        if (flow != NULL) {
+            for (size_t i = 0; i < flow->flow_block_count; i++) {
+                const RIRFlowBlock *block = &flow->flow_blocks[i];
+                if (!block->is_join)
+                    continue;
+                for (size_t j = 0; j < block->fact_count; j++) {
+                    const RIRFlowFact *fact = &block->facts[j];
+                    if (fact->name != NULL
+                        && strcmp(fact->name, "s") == 0
+                        && fact->merged_from_join
+                        && !fact->has_merge_conflict
+                        && fact->entry_state == RIR_STATE_BORROWED_WRITE) {
+                        found_join_merge = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && flow->flow_block_count > 0
+               && flow->has_flow_sensitive_merge
+               && found_join_merge);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR marks loop-header joins as widened flow states");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "func LoopSlot(flag: Bool) -> Void {\n"
+            "    let s: Slot<Int> = ClaimSlot<Int>();\n"
+            "    while flag {\n"
+            "        let rv: ReadView<Int> = ViewRead(s);\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "LoopSlot", RIR_SCOPE_FUNCTION);
+        bool found_widened = false;
+        if (flow != NULL) {
+            for (size_t i = 0; i < flow->flow_block_count; i++) {
+                const RIRFlowBlock *block = &flow->flow_blocks[i];
+                for (size_t j = 0; j < block->fact_count; j++) {
+                    const RIRFlowFact *fact = &block->facts[j];
+                    if (fact->name != NULL
+                        && strcmp(fact->name, "s") == 0
+                        && fact->widened_by_loop) {
+                        found_widened = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && flow->has_flow_sensitive_merge
+               && found_widened);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR materializes zone/world/relation/effect handles and intent transfer ops");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "relation CartLink for source: Buyer, target: Buyer { }\n"
+            "effect PaymentEffect for bearer: Buyer { }\n"
+            "zone PaymentZone { subject slot buyer: Buyer }\n"
+            "world CommerceWorld { zone payment: PaymentZone activate payment }\n"
+            "func HandleInfra(payment: PaymentZone, commerce: CommerceWorld, link: CartLink, fx: PaymentEffect) -> Void {\n"
+            "    return;\n"
+            "}\n"
+            "intent Route(payment: PaymentZone, refund: PaymentZone, buyer: Buyer) {\n"
+            "    step move {\n"
+            "        where: PaymentZone;\n"
+            "        who: buyer;\n"
+            "        transfer: payment -> refund;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "    step settle {\n"
+            "        where: PaymentZone;\n"
+            "        using: refund;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *infra = find_scope(rir, "HandleInfra", RIR_SCOPE_FUNCTION);
+        const RIRScope *intent = find_scope(rir, "Route", RIR_SCOPE_INTENT);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && infra != NULL
+               && scope_has_resource_fact(infra, "payment", RIR_RESOURCE_ZONE_HANDLE)
+               && scope_has_resource_fact(infra, "commerce", RIR_RESOURCE_WORLD_HANDLE)
+               && scope_has_resource_fact(infra, "link", RIR_RESOURCE_RELATION_INSTANCE)
+               && scope_has_resource_fact(infra, "fx", RIR_RESOURCE_EFFECT_INSTANCE)
+               && intent != NULL
+               && scope_has_resource_fact(intent, "payment", RIR_RESOURCE_ZONE_HANDLE)
+               && scope_has_resource_fact(intent, "refund", RIR_RESOURCE_ZONE_HANDLE)
+               && scope_has_op_subject(intent, RIR_OP_READ, "refund")
+               && scope_has_op_subject(intent, RIR_OP_MOVE, "payment")
+               && scope_has_op_subject(intent, RIR_OP_CLAIM, "refund"));
+        rir_destroy(rir);
+        hir_destroy(hir);
     }
 }
 

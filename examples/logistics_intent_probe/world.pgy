@@ -1,0 +1,45 @@
+world LogisticsWorld
+{
+    zone loading: LoadingZone
+    zone delivery: DeliveryZone
+
+    shared transcript: String = ""
+    shared completed: Int = 0
+
+    activate loading
+    activate delivery
+
+    func Record(self, line: String) -> Void
+    {
+        if StringLength(transcript) == 0
+        {
+            transcript = line;
+        }
+        else
+        {
+            transcript = transcript + "\n" + line;
+        }
+    }
+
+    func Broadcast(self, line: String) -> Void
+    {
+        Log(line);
+        Record(line);
+    }
+
+    func Blank(self) -> Void
+    {
+        Log("");
+        Record("");
+    }
+
+    func FinalSnapshot(self) -> Void
+    {
+        Broadcast("loading=" + loading.Snapshot());
+        Broadcast("delivery=" + delivery.Snapshot());
+        Broadcast("courier=" + loading.courier.Summary());
+        Broadcast("dispatcher=" + loading.dispatcher.Summary());
+        Broadcast("route=" + delivery.route.Label());
+        Broadcast("seal=" + delivery.seal.Label());
+    }
+}

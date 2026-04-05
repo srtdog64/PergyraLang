@@ -1,0 +1,54 @@
+vessel CargoState
+{
+    let claimed: Int;
+    let delivered: Int;
+    let lane: String;
+
+    func Claim(self, qty: Int, laneName: String) -> Int
+    {
+        claimed = qty;
+        lane = laneName;
+        return claimed;
+    }
+
+    func Deliver(self, bonus: Int) -> Int
+    {
+        delivered = claimed + bonus;
+        return delivered;
+    }
+
+    func Reset(self) -> Int
+    {
+        claimed = 0;
+        delivered = 0;
+        lane = "";
+        return claimed;
+    }
+}
+
+vessel DispatchLedger
+{
+    let approved: Int;
+    let shipped: Int;
+    let rolledBack: Int;
+
+    func Approve(self, qty: Int) -> Int
+    {
+        approved = qty;
+        return approved;
+    }
+
+    func Ship(self, qty: Int) -> Int
+    {
+        shipped = qty;
+        return shipped;
+    }
+
+    func Rollback(self) -> Int
+    {
+        rolledBack = rolledBack + 1;
+        approved = 0;
+        shipped = 0;
+        return rolledBack;
+    }
+}

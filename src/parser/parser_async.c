@@ -31,10 +31,17 @@ ASTNode* parser_parse_async_function(Parser* parser)
     
     // Parse parameters (similar to regular function)
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+        ParamMode mode = PARAM_MODE_DEFAULT;
+        if (parser_match(parser, TOKEN_OWN))
+            mode = PARAM_MODE_OWN;
+        else if (parser_match(parser, TOKEN_REF))
+            mode = PARAM_MODE_REF;
+
         Token param_name = consume_name_token(parser, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);
+        param->mode = mode;
 
         // self parameter: no type annotation needed
         if (strcmp(param_name.text, "self") == 0

@@ -8,6 +8,7 @@
 #include "../parser/ast.h"
 
 typedef struct RIRProgram RIRProgram;
+typedef struct HIRProgram HIRProgram;
 
 typedef enum
 {
@@ -98,6 +99,26 @@ typedef struct
 
 typedef struct
 {
+    const char       *name;
+    RIRResourceState  entry_state;
+    RIRResourceState  exit_state;
+    bool              merged_from_join;
+    bool              widened_by_loop;
+    bool              entry_conflict;
+    bool              has_merge_conflict;
+} RIRFlowFact;
+
+typedef struct
+{
+    size_t        block_id;
+    bool          is_reachable;
+    bool          is_join;
+    RIRFlowFact  *facts;
+    size_t        fact_count;
+} RIRFlowBlock;
+
+typedef struct
+{
     RIRFactKind      kind;
     const char      *name;
     const char      *arg0;
@@ -130,6 +151,9 @@ typedef struct
     RIRStateSummary *state_summaries;
     size_t           state_summary_count;
     bool             has_state_errors;
+    RIRFlowBlock    *flow_blocks;
+    size_t           flow_block_count;
+    bool             has_flow_sensitive_merge;
 } RIRScope;
 
 struct RIRProgram
@@ -139,6 +163,8 @@ struct RIRProgram
 };
 
 RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message);
+bool        rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_message);
+bool        rir_validate(const RIRProgram *rir, char **error_message);
 void        rir_destroy(RIRProgram *rir);
 void        rir_dump(const RIRProgram *rir, FILE *out);
 
