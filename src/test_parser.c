@@ -1001,6 +1001,30 @@ main(void)
             1
         },
         {
+            "Context Identifier Allowed",
+            "struct StrategyContext {\n"
+            "    let threat: Int;\n"
+            "}\n"
+            "func ReadThreat(context: StrategyContext) -> Int {\n"
+            "    return context.threat;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let context = StrategyContext(7);\n"
+            "    Log(ReadThreat(context));\n"
+            "}",
+            1
+        },
+        {
+            "Function Type Parameter Syntax",
+            "struct StrategyContext {\n"
+            "    let morale: Int;\n"
+            "}\n"
+            "func Apply(base: Int, ctx: StrategyContext, policy: func(Int, StrategyContext) -> Int) -> Int {\n"
+            "    return policy(base, ctx);\n"
+            "}\n",
+            1
+        },
+        {
             "Else If Chain",
             "func Main() -> Void {\n"
             "    if true {\n"

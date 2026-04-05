@@ -737,6 +737,15 @@ char *StringConcat(const char *a, const char *b)
     return buf;
 }
 
+bool pgy_string_equals(const char *a, const char *b)
+{
+    if (a == NULL)
+        a = "";
+    if (b == NULL)
+        b = "";
+    return strcmp(a, b) == 0;
+}
+
 /* -----------------------------------------------------------------
  * StringSplit / StringJoin / ToInt / ToFloat / Math
  * ----------------------------------------------------------------- */

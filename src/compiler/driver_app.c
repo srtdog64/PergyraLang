@@ -252,6 +252,41 @@ scaffold_subject_file(const char *target)
 }
 
 static int
+scaffold_class_file(const char *target)
+{
+    char *path = scaffold_file_path_dup(target);
+    char *name = scaffold_base_name_dup(target);
+    char content[2048];
+    int rc;
+
+    if (path == NULL || name == NULL) {
+        free(path);
+        free(name);
+        return 1;
+    }
+
+    snprintf(content, sizeof(content),
+        "class %s\n"
+        "{\n"
+        "    let label: String;\n"
+        "    let bonus: Int;\n"
+        "\n"
+        "    func Summary(self) -> String\n"
+        "    {\n"
+        "        return label + \" (+\" + ToString(bonus) + \")\";\n"
+        "    }\n"
+        "}\n",
+        name);
+
+    rc = scaffold_write_file(path, content);
+    if (rc == 0)
+        printf("pgy: scaffolded class -> %s\n", path);
+    free(path);
+    free(name);
+    return rc;
+}
+
+static int
 scaffold_vessel_file(const char *target)
 {
     char *path = scaffold_file_path_dup(target);
@@ -443,6 +478,12 @@ scaffold_simulator_dir(const char *target)
         goto cleanup;
 
     snprintf(hosts_content, sizeof(hosts_content),
+        "// Ontology first:\n"
+        "// - subject: active agent / who acts\n"
+        "// - class: passive tool or thing with hosted func\n"
+        "// - object: passive view/state target\n"
+        "// - dto: boundary packet\n"
+        "\n"
         "vessel Cycle\n"
         "{\n"
         "    age: Int;\n"
@@ -453,21 +494,33 @@ scaffold_simulator_dir(const char *target)
         "    }\n"
         "}\n"
         "\n"
+        "class ToolCard\n"
+        "{\n"
+        "    let label: String;\n"
+        "    let recovery: Int;\n"
+        "\n"
+        "    func Summary(self) -> String\n"
+        "    {\n"
+        "        return label + \" (+\" + ToString(recovery) + \")\";\n"
+        "    }\n"
+        "}\n"
+        "\n"
         "subject Creature\n"
         "{\n"
         "    let name: String;\n"
         "    let energy: Int;\n"
+        "    let tool: ToolCard;\n"
         "    vessel cycle: Cycle;\n"
         "\n"
         "    func Rest(self) -> Void\n"
         "    {\n"
-        "        energy = energy + 1;\n"
+        "        energy = energy + tool.recovery;\n"
         "        cycle.Advance();\n"
         "    }\n"
         "\n"
         "    func Status(self) -> String\n"
         "    {\n"
-        "        return name;\n"
+        "        return name + \" using \" + tool.Summary();\n"
         "    }\n"
         "}\n"
         "\n"
@@ -475,12 +528,14 @@ scaffold_simulator_dir(const char *target)
         "{\n"
         "    name: String;\n"
         "    energy: Int;\n"
+        "    tool: ToolCard;\n"
         "}\n"
         "\n"
         "dto CreaturePacket\n"
         "{\n"
         "    name: String;\n"
         "    energy: Int;\n"
+        "    tool: ToolCard;\n"
         "}\n"
         "\n"
         "zone Habitat\n"
@@ -527,7 +582,7 @@ scaffold_simulator_dir(const char *target)
         "\n"
         "func Main() -> Void\n"
         "{\n"
-        "    let habitat = Habitat(Creature(\"Fox\", 5, Cycle(0)));\n"
+        "    let habitat = Habitat(Creature(\"Fox\", 5, ToolCard(\"Camp Tea\", 1), Cycle(0)));\n"
         "    let sim = %sWorld(habitat);\n"
         "    sim.Tick();\n"
         "    sim.Tick();\n"
@@ -574,6 +629,12 @@ scaffold_project_dir(const char *target)
         goto cleanup;
 
     snprintf(domain_content, sizeof(domain_content),
+        "// Start by choosing the host kind.\n"
+        "// subject: active agent / who acts\n"
+        "// class: passive tool or thing with hosted func\n"
+        "// object: passive view/state target\n"
+        "// dto: boundary packet\n"
+        "\n"
         "vessel Health\n"
         "{\n"
         "    current: Int;\n"
@@ -584,14 +645,26 @@ scaffold_project_dir(const char *target)
         "    }\n"
         "}\n"
         "\n"
+        "class Tool\n"
+        "{\n"
+        "    let label: String;\n"
+        "    let recovery: Int;\n"
+        "\n"
+        "    func Summary(self) -> String\n"
+        "    {\n"
+        "        return label + \" (+\" + ToString(recovery) + \")\";\n"
+        "    }\n"
+        "}\n"
+        "\n"
         "subject Actor\n"
         "{\n"
         "    let name: String;\n"
+        "    let tool: Tool;\n"
         "    vessel health: Health;\n"
         "\n"
         "    func Tick(self) -> Void\n"
         "    {\n"
-        "        health.Heal(1);\n"
+        "        health.Heal(tool.recovery);\n"
         "    }\n"
         "\n"
         "    action Step(self) -> Void\n"
@@ -603,6 +676,7 @@ scaffold_project_dir(const char *target)
         "object ActorView\n"
         "{\n"
         "    name: String;\n"
+        "    tool: Tool;\n"
         "}\n"
         "\n"
         "zone MainZone\n"
@@ -640,7 +714,7 @@ scaffold_project_dir(const char *target)
         "\n"
         "func Main() -> Void\n"
         "{\n"
-        "    let zone = MainZone(Actor(\"hero\", Health(10)));\n"
+        "    let zone = MainZone(Actor(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
         "    let app = %sWorld(zone);\n"
         "    app.Step();\n"
         "    app.Step();\n"
@@ -674,8 +748,14 @@ driver_run_scaffold_command(int argc, char *argv[])
     if (argc < 3) {
         fprintf(stderr,
             "Usage:\n"
-            "  pgy scaffold <subject|vessel|object|dto|zone|world|simulator|project> <target>\n"
-            "  pgy new <project-dir>\n");
+            "  pgy scaffold <subject|class|vessel|object|dto|zone|world|simulator|project> <target>\n"
+            "  pgy new <project-dir>\n"
+            "\n"
+            "Ontology first:\n"
+            "  subject = active agent / who acts\n"
+            "  class   = passive tool or thing with hosted func\n"
+            "  object  = passive view or state target\n"
+            "  dto     = boundary packet\n");
         return 1;
     }
 
@@ -684,6 +764,8 @@ driver_run_scaffold_command(int argc, char *argv[])
 
     if (strcmp(kind, "subject") == 0)
         return scaffold_subject_file(target);
+    if (strcmp(kind, "class") == 0)
+        return scaffold_class_file(target);
     if (strcmp(kind, "vessel") == 0)
         return scaffold_vessel_file(target);
     if (strcmp(kind, "object") == 0)
@@ -796,6 +878,12 @@ driver_print_usage(void)
         "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
         "  pgy scaffold <kind> <target> create starter files\n"
         "  pgy new <project-dir>         scaffold a starter project\n"
+        "\n"
+        "Ontology-first scaffold kinds:\n"
+        "  subject  active agent / who acts\n"
+        "  class    passive tool or thing with hosted func\n"
+        "  object   passive view or state target\n"
+        "  dto      boundary packet\n"
         "  pgy --tokens <source.pgy>     dump token stream\n"
         "  pgy --ast    <source.pgy>     dump merged/normalized AST\n"
         "  pgy --hir    <source.pgy>     dump lowered HIR summary\n"

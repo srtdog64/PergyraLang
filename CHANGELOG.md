@@ -11,6 +11,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added multithreaded zone layer stress coverage to `test_concurrency`.
 
 ### Added
+- Ontology-first scaffold guidance in `pgy scaffold` / `pgy new`, including a
+  new `class` scaffold kind and starter project/simulator templates that begin
+  from the `subject/class/object/dto` split instead of only dumping a raw world
+  shell
 - `examples/dnd_tavern_campaign/story_cards.pgy` for scene-choice cards,
   companion reaction cards, and boss phase cards that drive denser transcript
   narration
@@ -62,6 +66,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
+- LLVM nominal lookup is now scope-aware for class dispatch. In larger
+  scenarios, stale local class tracking no longer shadows current host fields,
+  so subject-owned class tools such as `Adventurer.weapon: WeaponCard` can call
+  `weapon.Summary()` and similar hosted funcs consistently on both backends.
+- LLVM nominal inference now tracks unqualified host methods that return class
+  values, closing backend mismatches on flows such as
+  `let weapon = MemberWeapon(); weapon.Strain(...)`.
 - `examples/dnd_tavern_campaign/` scene/event pacing is now more data-driven:
   GM prompts, stakes, rewards, companion reactions, and boss phase intent are
   emitted from story-card factories instead of only the main world loop
@@ -318,3 +329,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   concatenation now produces stable values on the C backend, and
   `examples/campaign_graph_fsm/` is promoted to an exact-golden multi-file
   scenario with matching stdout/results on both backends.
+- ci/examples: make `tests/example_contract_smoke.sh` exact-golden comparison resilient when external `diff` is unavailable by falling back through `cmp`, `git diff --no-index`, or Python unified diff output; update `examples/biome_simulator/expected_results.txt` to the current stable report so generic expected data no longer lags behind the backend-specific goldens.
+- codegen/runtime: fix `String == ...` / `String != ...` lowering so C and LLVM both route through `pgy_string_equals(...)` instead of pointer comparison, add runtime support plus a transpile regression, and unblock packet/sink filtering in the upgraded observer pattern example without leaking compiler warnings into exact stdout.
+- examples/docs: deepen `examples/pattern_library_basics/` observer translation from hardcoded `PublishCombat/PublishUi/PublishAudit` sink helpers into `RelaySinkSpec` + `RelayPacket` + `RelayBundle` + `DispatchPacket(...)`, update the exact golden output, and align pattern-library docs so `observer` now consistently means explicit relay bundles and sink specs instead of a handful of ad hoc sink functions.
+- examples/docs: deepen `examples/pattern_library_basics/` state translation from a raw `TransitionState(current, event)` helper into `TransitionRuleFactory(...)` + `TransitionContext` + `ApplyTransitionRule(...)`, update the exact golden output, and align pattern-library docs so `state` now consistently means explicit transition rule tables with context application rather than a single opaque transition function.
+- transpiler/examples: fix C backend local type inference for string-concat initializers so `let title = a + \"...\" + b` emits `char*` instead of falling back to `int32_t`, add a regression in `test-transpile`, and unblock staged factory/spec-builder examples that finalize titles through local concat.
+- examples/docs: deepen `examples/pattern_library_basics/` factory translation from a single `UnitFactory(...)` helper into a staged `RoleTemplateFactory(...)` + `OriginTemplateFactory(...)` + `UnitDraft` + `FinalizeUnitSpec(...)` spec-builder path, update the exact golden output, and align pattern-library docs so `factory` now consistently means staged template/spec composition rather than a one-step constructor wrapper.
+- docs/examples: add Pergyra-style GOF pattern catalog and `examples/pattern_library_basics/` covering `singleton`, `factory`, `strategy`, `state`, and `observer` as contextual registry, spec builder, policy card, explicit transition, and relay sink patterns rather than inheritance-heavy OOP clones; document higher-order function injection (`picker` / resolver policy) as the next pattern-library step while keeping the stable example on the current card/resolver path, register the example with exact stdout golden, and document it in `docs/testdoc/pattern_library_basics.md`.
+- examples/docs: deepen the stable strategy pattern path in `pattern_library_basics` from plain card lookup into `StrategyContext` / `ApplyStrategy(card, context)`, showing the same resolver reused across different injected domains (`raid`, `dispatch`) while higher-order function injection remains the next-step target.
+- parser/examples: avoid `context` as a local variable or parameter name in the upgraded strategy example because it currently behaves like a contextual-reserved identifier; use `ctx` instead and note the sharp edge in the testdoc.
+- parser: downgrade `context` from a global lexer keyword so it can be used as an ordinary identifier in locals, parameters, and fields; add parser coverage and update grammar/testdoc notes accordingly.
+- parser/semantic/codegen/examples: add `func(...) -> ...` type syntax for callable parameters, preserve typed lambda parameters in the AST, lower callable parameters through C function pointers and LLVM function-pointer calls, and upgrade `pattern_library_basics/strategy.pgy` to real injected score/line policies including lambda-based overrides.
+- examples/tests/docs: promote `examples/dnd_tavern_campaign/WeaponCard` into a real `class`, embed it directly into `Adventurer`, route loadout/combat narration through subject-owned class methods, and add semantic/transpile regressions for `subject` owning a `class` value and calling its hosted `func`.

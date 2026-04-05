@@ -144,16 +144,16 @@ layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari
       [Reaction] He treats old ruins and live combat like the same unfinished proof.
       [Shift] Pattern turns into leverage.
 [Substate] tavern.recruitment
-[Creation] Ari the Vanguard from guild orphan carries the iron wolf and favors shield-first
+[Creation] Ari the Vanguard from guild orphan carries the iron wolf and favors shield-first through Iron Kite Shieldblade [line-break]
 [Hook] fresh guild charter
 [Creation] Ari sheet STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9
-[Creation] Mira the Cleric from cathedral exile carries the sun chalice and favors saint-fire
+[Creation] Mira the Cleric from cathedral exile carries the sun chalice and favors saint-fire through Sunlance Censer [radiant reach]
 [Hook] ruins touched by saint-fire
 [Creation] Mira sheet STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14
-[Creation] Nyx the Rogue from vault runner carries the crow lockpick and favors shadow-step
+[Creation] Nyx the Rogue from vault runner carries the crow lockpick and favors shadow-step through Crowhook Knives [shadow cut]
 [Hook] hidden vault keys
 [Creation] Nyx sheet STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13
-[Creation] Sol the Mage from academy dropout carries the ember eye and favors wyrm-lexicon
+[Creation] Sol the Mage from academy dropout carries the ember eye and favors wyrm-lexicon through Emberglass Staff [arcane burst]
 [Hook] dragon library
 [Creation] Sol sheet STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13
 [Recruit] She wants proof the ruin still keeps saint-fire.
@@ -1051,14 +1051,14 @@ ready=1/1
 layers=1/1
 states=1/1
 layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-fighter: Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=7 hp=46 mp=23 sta=2 atk=13 grd=9 focus=23 affinity=9 trust=8 relics=29 gold=73 fx=0/2/1/20 dragon=16
-cleric: Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=28 affinity=12 trust=8 relics=27 gold=68 fx=0/1/5/0 dragon=13
-rogue: Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=7 hp=42 mp=22 sta=0 atk=11 grd=9 focus=37 affinity=13 trust=10 relics=39 gold=84 fx=1/3/3/0 dragon=15
-mage: Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=8 hp=27 mp=34 sta=2 atk=14 grd=9 focus=26 affinity=7 trust=6 relics=38 gold=85 fx=1/4/2/0 dragon=19
+fighter: Ari [Vanguard] crest=iron wolf weapon=Iron Kite Shieldblade [line-break] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=7 hp=46 mp=23 sta=2 atk=13 grd=9 focus=23 affinity=9 trust=8 relics=29 gold=73 fx=0/2/1/20 dragon=16
+cleric: Mira [Cleric] crest=sun chalice weapon=Sunlance Censer [radiant reach] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=28 affinity=12 trust=8 relics=27 gold=68 fx=0/1/5/0 dragon=13
+rogue: Nyx [Rogue] crest=crow lockpick weapon=Crowhook Knives [shadow cut] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=7 hp=42 mp=22 sta=0 atk=11 grd=9 focus=37 affinity=13 trust=10 relics=39 gold=84 fx=1/3/3/0 dragon=15
+mage: Sol [Mage] crest=ember eye weapon=Emberglass Staff [arcane burst] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=8 hp=27 mp=34 sta=2 atk=14 grd=9 focus=26 affinity=7 trust=6 relics=38 gold=85 fx=1/4/2/0 dragon=19
 
 --- JOURNEY ---
 stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=93 keys=6 dragonHp=0 victory=1
-Ari [Vanguard] crest=iron wolf state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=7 hp=46 mp=23 sta=2 atk=13 grd=9 focus=23 affinity=9 trust=8 relics=29 gold=73 fx=0/2/1/20 dragon=16
-Mira [Cleric] crest=sun chalice state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=28 affinity=12 trust=8 relics=27 gold=68 fx=0/1/5/0 dragon=13
-Nyx [Rogue] crest=crow lockpick state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=7 hp=42 mp=22 sta=0 atk=11 grd=9 focus=37 affinity=13 trust=10 relics=39 gold=84 fx=1/3/3/0 dragon=15
-Sol [Mage] crest=ember eye state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=8 hp=27 mp=34 sta=2 atk=14 grd=9 focus=26 affinity=7 trust=6 relics=38 gold=85 fx=1/4/2/0 dragon=19
+Ari [Vanguard] crest=iron wolf weapon=Iron Kite Shieldblade [line-break] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=7 hp=46 mp=23 sta=2 atk=13 grd=9 focus=23 affinity=9 trust=8 relics=29 gold=73 fx=0/2/1/20 dragon=16
+Mira [Cleric] crest=sun chalice weapon=Sunlance Censer [radiant reach] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=28 affinity=12 trust=8 relics=27 gold=68 fx=0/1/5/0 dragon=13
+Nyx [Rogue] crest=crow lockpick weapon=Crowhook Knives [shadow cut] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=7 hp=42 mp=22 sta=0 atk=11 grd=9 focus=37 affinity=13 trust=10 relics=39 gold=84 fx=1/3/3/0 dragon=15
+Sol [Mage] crest=ember eye weapon=Emberglass Staff [arcane burst] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=8 hp=27 mp=34 sta=2 atk=14 grd=9 focus=26 affinity=7 trust=6 relics=38 gold=85 fx=1/4/2/0 dragon=19

@@ -1,0 +1,37 @@
+=== PERGYRA PATTERN LIBRARY BASICS ===
+singleton / factory / strategy / state / observer translated into Pergyra hosts
+
+== CONTEXTUAL SINGLETON ==
+registry reserved two quest ids inside one world-owned context
+RuntimeRegistry(prefix=QUEST, nextId=1002, openedBy=pattern-library)
+
+== FACTORY / SPEC BUILDER ==
+draft origin=Frontier March / role=Vanguard / tool=shieldblade
+Kesh -> Vanguard of the Frontier March / shieldblade
+power=7, guard=5
+draft origin=Veil Market / role=Night Scout / tool=crow-knives
+Mira -> Night Scout of the Veil Market / crow-knives
+power=7, guard=2
+
+== STRATEGY CARD + RESOLVER ==
+feint route -> trade safety for initiative
+score=7
+final lock -> close the arena and deny retreat
+score=6
+raid: feint route score=10 guardShift=1
+dispatch: final lock score=5 guardShift=3
+raid: feint route injectedScore=16 pressure=7
+dispatch: final lock injectedScore=9 reserve=9
+
+== EXPLICIT FSM / TRANSITION TABLE ==
+state=READY
+raid: READY --spawn--> PRESSURE / front opens and pressure begins
+siege: PRESSURE --commit--> PRESSURE / pressure converts into a finishing lane
+siege: PRESSURE --break--> FINISH / pressure stabilizes but does not break
+
+== EXPLICIT RELAY BUNDLE / OBSERVER ==
+campaign-relay sinks=3 lines=3
+--- relay fan-out ---
+[combat] dragon phase shifted into pressure
+[ui] party morale widget requested update
+[audit] transcript sink appended 2 notices

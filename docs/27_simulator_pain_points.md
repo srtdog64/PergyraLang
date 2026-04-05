@@ -15,6 +15,17 @@ examples such as the battle simulator and biome simulator.
 
 ## Recently Resolved
 
+- LLVM nominal dispatch no longer lets stale local class-tracking shadow the
+  current host field. Larger scenarios such as `dnd_tavern_campaign` exposed
+  this sharply once `subject` started owning `class` tools directly
+  (`Adventurer.weapon: WeaponCard`): a previous function's `weapon` local could
+  leak into later host methods and collapse `weapon.Summary()` to `0` on the
+  LLVM path. Current lookup now prefers in-scope locals and then current host
+  fields, so subject-owned class tools dispatch consistently on both C and LLVM.
+- LLVM nominal inference now follows unqualified host methods that return class
+  values. Paths such as `let weapon = MemberWeapon(); weapon.Strain(...)` are
+  now regression-covered and backend-equal instead of losing the returned class
+  identity on the LLVM side.
 - `bind <slot> from <source>` now exists for `relation` / `effect` / `zone`.
   It keeps the explicit projection contract but removes the extra `refresh` vs
   `publish` split from many scenario declarations by inferring `object` vs
@@ -65,6 +76,10 @@ examples such as the battle simulator and biome simulator.
 - Scenario stdout is no longer substring-only. Example smoke now supports
   backend-aware exact normalized stdout goldens, so richer simulators can pin
   full console transcripts separately for C and LLVM.
+- Example smoke no longer hard-depends on external `diff` for exact golden
+  checks. CI paths such as GitHub Actions on Windows can now fall back through
+  `cmp`, `git diff --no-index`, or Python unified diff output instead of
+  failing before the actual example comparison runs.
 - Host-owned fields no longer require mandatory `self.` in hosted `func` /
   `action` bodies. Bare field access now works across subject/class/relation/
   effect/zone/world hosts, with `self.` still available as an explicit form.

@@ -20,6 +20,14 @@ if [[ ! -x "$PGY" ]]; then
 fi
 
 BACKENDS="${PGY_EXAMPLE_BACKENDS:-c llvm}"
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    fi
+fi
 
 normalize_output() {
     sed \
@@ -45,6 +53,65 @@ pick_expected_file() {
     return 1
 }
 
+files_equal() {
+    local left="$1"
+    local right="$2"
+
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_bytes()
+right = pathlib.Path(sys.argv[2]).read_bytes()
+raise SystemExit(0 if left == right else 1)
+PY
+        return $?
+    fi
+
+    [[ "$(cat "$left")" == "$(cat "$right")" ]]
+}
+
+show_diff() {
+    local left="$1"
+    local right="$2"
+
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
+        return 0
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import difflib, pathlib, sys
+left_path = pathlib.Path(sys.argv[1])
+right_path = pathlib.Path(sys.argv[2])
+left = left_path.read_text(encoding="utf-8", errors="replace").splitlines(True)
+right = right_path.read_text(encoding="utf-8", errors="replace").splitlines(True)
+sys.stdout.writelines(difflib.unified_diff(left, right, fromfile=str(left_path), tofile=str(right_path)))
+PY
+        return 0
+    fi
+
+    echo "--- expected ---"
+    cat "$left"
+    echo "--- actual ---"
+    cat "$right"
+}
+
 run_exact_output_if_present() {
     local name="$1"
     local backend="$2"
@@ -52,6 +119,8 @@ run_exact_output_if_present() {
     local expected
     local cleaned_output
     local cleaned_expected
+    local expected_file
+    local output_file
 
     if ! expected="$(pick_expected_file "$ROOT_DIR/examples/$name/expected_stdout" "$backend")"; then
         return 1
@@ -59,9 +128,13 @@ run_exact_output_if_present() {
 
     cleaned_output="$(printf '%s' "$output" | normalize_output)"
     cleaned_expected="$(cat "$expected" | normalize_output)"
-    if ! diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >/dev/null; then
+    expected_file="$(mktemp "$WORK_DIR/${name}_${backend}_expected.XXXXXX")"
+    output_file="$(mktemp "$WORK_DIR/${name}_${backend}_actual.XXXXXX")"
+    printf '%s' "$cleaned_expected" > "$expected_file"
+    printf '%s' "$cleaned_output" > "$output_file"
+    if ! files_equal "$expected_file" "$output_file"; then
         echo "[example-smoke] $name backend=$backend stdout mismatch" >&2
-        diff -u <(printf '%s' "$cleaned_expected") <(printf '%s' "$cleaned_output") >&2 || true
+        show_diff "$expected_file" "$output_file" >&2
         exit 1
     fi
     echo "[example-smoke] $name backend=$backend stdout exact ok"
@@ -125,9 +198,9 @@ run_expect_file_lines() {
     fi
     content="$(cat "$file")"
     if [[ -n "$expected" ]]; then
-        if ! diff -u "$expected" "$file" >/dev/null; then
+        if ! files_equal "$expected" "$file"; then
             echo "[example-smoke] $name file mismatch" >&2
-            diff -u "$expected" "$file" >&2 || true
+            show_diff "$expected" "$file" >&2
             exit 1
         fi
         echo "[example-smoke] $name file exact ok"
@@ -163,6 +236,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/campaign_graph_fsm" "PERGYRA CAMPAIGN GRAPH + FSM" "CAMPAIGN DAY 1" "[Watch] view Iris" "FINAL CAMPAIGN SNAPSHOT" "saving examples/campaign_graph_fsm/results.txt"
     run_expect_lines "dnd_tavern_campaign" "$backend" \
         "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
+    run_expect_lines "pattern_library_basics" "$backend" \
+        "$ROOT_DIR/examples/pattern_library_basics" "PERGYRA PATTERN LIBRARY BASICS" "CONTEXTUAL SINGLETON" "FACTORY / SPEC BUILDER" "STRATEGY CARD + RESOLVER" "EXPLICIT RELAY / OBSERVER"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \

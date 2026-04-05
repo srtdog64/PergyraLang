@@ -30,11 +30,33 @@
 - identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
 - value 타입 (`struct`, `vessel`, `class`, `object`, `dto`)은 복사 전달
 
-대표 키워드:
-`let`, `func`, `async`, `await`, `spawn`, `with`, `parallel`, `if`, `else`, `for`, `while`, `match`, `select`, `case`, `default`, `return`, `break`, `continue`, `import`, `namespace`, `export`, `extern`, `subject`, `class`, `struct`, `object`, `dto`, `enum`, `event`, `actor`, `ability`, `role`, `party`, `relation`, `effect`, `zone`, `systemic`, `world`
+### 예약 키워드 (reserved — 식별자로 사용 불가)
+
+| 분류 | 키워드 |
+|------|--------|
+| 선언 | `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party` |
+| 제어 | `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue` |
+| 비동기 | `async`, `await`, `spawn`, `select`, `channel` |
+| 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
+| 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
+| 안전 | `unsafe`, `defer`, `secure` |
+| 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override`, `super` |
+| 블록 | `with`, `parallel`, `trait`, `private`, `public` |
+| 리터럴 | `true`, `false` |
+| 값 타입 | `dto`, `object` |
+
+### 컨텍스트 키워드 (contextual — 선언 위치에서만 키워드, 그 외에는 식별자)
+
+| 키워드 | 용도 |
+|--------|------|
+| `world`, `systemic`, `zone`, `relation`, `effect` | 도메인 선언 |
+| `vessel` | 피동 수용체 선언 |
+| `event` | 이벤트 선언 |
+| `action` | subject 전용 플롯 행위 |
+| `requires`, `within`, `causes`, `authorized`, `by` | action clause |
 
 주의:
-- `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다. 선언 위치에서는 키워드처럼 동작하지만, 지역 변수나 일반 표현식 자리에서는 식별자로 쓸 수 있다.
+- `context`는 현재 전역 예약어가 아니다. 일반 로컬 변수, 파라미터, 필드 이름으로 사용할 수 있다.
 - `HasProjection(slotName)`는 현재 relation/effect/zone 문맥에서만 유효한 projection sync-ready query다.
 - `world state`의 `projection` / `layer` / `state` suffix는 같은 줄에서만 해석된다. 다음 줄의 `state` 선언 시작을 suffix로 삼키지 않는다.
 
@@ -84,6 +106,17 @@ subject Fighter {
         requires Combatable within BattleZone
         causes DamageEffect { ... }
 }
+
+class Item {
+    let name: String;
+    let damage: Int;
+    func Description(self) -> String { return name; }
+}
+
+subject Ranger {
+    let weapon: Item;                                  // subject-owned class value
+    func Loadout(self) -> String { return weapon.Description(); }
+}
 ```
 
 `->` 는 함수 반환 타입을 지정하는 문법이다.
@@ -97,6 +130,7 @@ func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
 - free func, hosted func, general func, action
 - 제네릭 함수, `where` 제약
 - `async func`
+- `subject`는 일반 field로 `class`를 값 소유할 수 있다 (`let weapon: Item;`)
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.
@@ -525,6 +559,20 @@ func Main() -> Void {
     OnHit(77);
 }
 ```
+
+callable type 표면도 같이 열린다.
+
+```pergyra
+func Apply(base: Int,
+           policy: func(Int) -> Int) -> Int {
+    return policy(base);
+}
+```
+
+정리:
+- lambda는 `(x: Int) => expr` 또는 `(x: Int) => { ... }`
+- callable parameter type은 `func(T1, T2) -> TResult`
+- 현재 안정 경로는 `func(...) -> ...` 파라미터 주입이다
 
 ### 8.2 ability / role
 

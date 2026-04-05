@@ -12,6 +12,15 @@ Pergyra의 라이브러리는 단순 API 모음이 아니라 **패턴 라이브�
 
 이 문서는 그 원칙을 `pgy` 기준으로 고정한다.
 
+라이브러리 authoring도 동일하다. generic pattern을 만들기 전에 먼저 host ontology를 고른다.
+
+- `subject`: 패턴의 능동 orchestrator
+- `class`: 패턴이 소비하는 도구/정책/카드/설정 값
+- `object`: 패턴의 수동 view/state target
+- `dto`: 패턴의 외부 전송 packet
+
+즉 scaffold와 라이브러리 설계의 첫 단계는 "무슨 패턴인가"보다 "이 host가 `subject/class/object/dto` 중 무엇인가"이다.
+
 ## Generic-to-Domain Injection
 
 기본 아이디어는 다음과 같다.
@@ -33,6 +42,15 @@ let aiPolicy = StrategyTable<BattleContext, ActionChoice>.New();
 let lootTable = WeightedTable<LootDrop>.New();
 ```
 
+이 generic pattern은 장기적으로 단순 data table에 머물지 않고
+**function injection**까지 함께 가져가는 방향이 맞다.
+
+```pergyra
+func AggressivePolicy(pulse: Int) -> Int { ... }
+// 목표 shape
+let score = DynamicStrategyResolve(stateId, threat, pulse, AggressivePolicy);
+```
+
 그리고 실제 시나리오에서 domain을 주입한다.
 
 ```pergyra
@@ -48,6 +66,16 @@ let relicLoot = WeightedTable<RelicDrop>.New();
 - `StateMachine<TState, TEvent>`는 FSM 패턴
 - `StrategyTable<TContext, TChoice>`는 AI/행동 전략 패턴
 - `WeightedTable<T>`는 콘텐츠/확률 테이블 패턴
+- 필요할 때는 `Resolver<TContext, TResult>`나 `Picker<TInput, TChoice>` 같은
+  **고차함수형 주입 표면**도 패턴 라이브러리의 다음 단계로 들어가야 한다
+
+그 직전 안정 단계는:
+
+- `StrategyCard`
+- `StrategyContext`
+- `ApplyStrategy(card, context)`
+
+같은 **context-to-outcome layer**다.
 
 이고, `Goblin`, `Dragon`, `Relic`은 라이브러리가 아니라 사용자 도메인이다.
 
@@ -106,6 +134,14 @@ language core = 의미론
 pattern library = 재사용 가능한 구조
 domain code = 실제 게임/앱 내용
 ```
+
+즉 Pergyra 패턴 라이브러리는:
+
+- **data injection**
+- **function injection**
+
+둘 다 가져야 한다. 다만 현재 저장소 기준으로는 `data/card/table` 경로가 안정 경로이고,
+`function injection`은 다음 단계 목표다.
 
 ## `use` 계층의 의미
 
@@ -198,6 +234,18 @@ stdlib/game/
 - domain은 DND지만, 패턴은 generic하게 뽑을 수 있는가
 
 즉 DND 예제는 “게임 구현”이면서 동시에 “패턴 라이브러리 검증장”이다.
+
+`examples/pattern_library_basics/`는 그보다 더 작은 기준 예제다.
+
+- `singleton` -> contextual runtime registry
+- `factory` -> staged template/spec builder
+- `strategy` -> card + resolver
+- `dynamic strategy` -> policy func injection
+- `state` -> transition rule + context application
+- `observer` -> relay bundle + sink spec
+
+즉 이 예제는 GOF의 “이름”을 그대로 두더라도,
+Pergyra가 그것을 어떤 shape로 다시 쓰는지 보여준다.
 
 ## 결론
 

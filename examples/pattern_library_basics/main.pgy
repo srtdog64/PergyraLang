@@ -1,0 +1,90 @@
+import "common.pgy";
+import "singleton.pgy";
+import "factory.pgy";
+import "strategy.pgy";
+import "state_flow.pgy";
+import "observer.pgy";
+
+func Main() -> Void
+{
+    Log(PatternHeader());
+    Log(PatternSubtitle());
+    Log("");
+
+    Log("== CONTEXTUAL SINGLETON ==");
+    let registry = OpenRuntimeRegistry();
+    registry.ClaimId();
+    registry.ClaimId();
+    Log("registry reserved two quest ids inside one world-owned context");
+    Log(registry.Summary());
+    Log("");
+
+    Log("== FACTORY / SPEC BUILDER ==");
+    let vanguard = UnitFactory("Kesh", 0, 0, 2);
+    let scout = UnitFactory("Mira", 2, 2, 3);
+    Log(UnitFactorySummary("Kesh", 0, 0, 2));
+    Log(vanguard.name + " -> " + vanguard.title + " / " + vanguard.tool);
+    Log("power=" + ToString(vanguard.power) + ", guard=" + ToString(vanguard.guard));
+    Log(UnitFactorySummary("Mira", 2, 2, 3));
+    Log(scout.name + " -> " + scout.title + " / " + scout.tool);
+    Log("power=" + ToString(scout.power) + ", guard=" + ToString(scout.guard));
+    Log("");
+
+    Log("== STRATEGY CARD + RESOLVER ==");
+    let opening = StrategyFactory(0, 2);
+    let finish = StrategyFactory(2, 1);
+    let openingScore = ResolveStrategy(opening, 3, 1);
+    let finishScore = ResolveStrategy(finish, 4, 2);
+    let raidContext = BuildRaidContext(4, 2, 3, 1);
+    let dispatchContext = BuildDispatchContext(2, 1, 2, 3);
+    let injectedRaid = ApplyInjectedStrategyLine(
+        opening, raidContext, AggressiveScorePolicy, RaidLinePolicy);
+    let injectedDispatch = ApplyInjectedStrategyLine(
+        finish, dispatchContext,
+        (base: Int, ctx: StrategyContext) => Max(base + ctx.morale + 2, 0),
+        DispatchLinePolicy);
+    Log(opening.name + " -> " + opening.note);
+    Log("score=" + ToString(openingScore));
+    Log(finish.name + " -> " + finish.note);
+    Log("score=" + ToString(finishScore));
+    Log(ApplyStrategyLine(opening, raidContext));
+    Log(ApplyStrategyLine(finish, dispatchContext));
+    Log(injectedRaid);
+    Log(injectedDispatch);
+    Log("");
+
+    Log("== EXPLICIT FSM / TRANSITION TABLE ==");
+    let current = 0;
+    let raidFlow = BuildRaidTransitionContext(3, 2);
+    let siegeFlow = BuildSiegeTransitionContext(1, 5);
+    Log("state=" + StateLabel(current));
+    let openRule = TransitionRuleFactory(current, 0);
+    current = ApplyTransitionRule(openRule, raidFlow);
+    Log(TransitionTrace(openRule, raidFlow));
+    let commitRule = TransitionRuleFactory(current, 1);
+    current = ApplyTransitionRule(commitRule, siegeFlow);
+    Log(TransitionTrace(commitRule, siegeFlow));
+    let breakRule = TransitionRuleFactory(current, 2);
+    current = ApplyTransitionRule(breakRule, siegeFlow);
+    Log(TransitionTrace(breakRule, siegeFlow));
+    Log("");
+
+    Log("== EXPLICIT RELAY BUNDLE / OBSERVER ==");
+    let relay = OpenRelayBundle("campaign-relay", 3);
+    let combatSink = CombatSinkFactory();
+    let uiSink = UiSinkFactory();
+    let auditSink = AuditSinkFactory();
+    let combatPacket = PacketFactory("combat", "dragon phase shifted into pressure", 2);
+    let uiPacket = PacketFactory("ui", "party morale widget requested update", 1);
+    let auditPacket = PacketFactory("audit", "transcript sink appended 2 notices", 3);
+    let combatLog = DispatchPacket(combatSink, combatPacket);
+    let uiLog = DispatchPacket(uiSink, uiPacket);
+    let auditLog = DispatchPacket(auditSink, auditPacket);
+    let relayLines = 0;
+    relayLines = relayLines + 3;
+    Log(RelaySummary(relay, relayLines));
+    Log("--- relay fan-out ---");
+    Log(combatLog);
+    Log(uiLog);
+    Log(auditLog);
+}

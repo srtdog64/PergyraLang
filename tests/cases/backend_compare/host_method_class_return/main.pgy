@@ -1,0 +1,35 @@
+struct Strategy {
+    let aggression: Int;
+    let guardBias: Int;
+}
+
+class Weapon {
+    let power: Int;
+
+    func Strain(self, stateId: Int, strategy: Strategy, pulse: Int) -> Int {
+        return 1 + stateId + pulse + power - strategy.guardBias;
+    }
+}
+
+subject Hero {
+    let weapon: Weapon;
+}
+
+class Arena {
+    let hero: Hero;
+
+    func MemberWeapon(self) -> Weapon {
+        return hero.weapon;
+    }
+
+    func Hit(self, strategy: Strategy) -> Int {
+        let w = MemberWeapon();
+        return w.Strain(2, strategy, 1);
+    }
+}
+
+func Main() -> Void {
+    let arena = Arena(Hero(Weapon(3)));
+    let strategy = Strategy(5, 1);
+    Log("hit=" + ToString(arena.Hit(strategy)));
+}

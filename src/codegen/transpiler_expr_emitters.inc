@@ -608,6 +608,25 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         }
     }
 
+    if (expr->data.binary.op.type == TOKEN_EQUAL
+        || expr->data.binary.op.type == TOKEN_NOT_EQUAL) {
+        const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
+        const char *rt = infer_expression_type_name(ctx, expr->data.binary.right);
+        if ((lt != NULL && strcmp(lt, "String") == 0)
+            || (rt != NULL && strcmp(rt, "String") == 0)) {
+            char *left = emit_expression(expr->data.binary.left, ctx);
+            char *right = emit_expression(expr->data.binary.right, ctx);
+            char *result = NULL;
+            if (expr->data.binary.op.type == TOKEN_EQUAL)
+                result = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
+            else
+                result = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
+            free(left);
+            free(right);
+            return result;
+        }
+    }
+
     {
         const char *lt = infer_expression_type_name(ctx, expr->data.binary.left);
         ASTNode *overload = find_operator_overload_decl(ctx, lt, expr->data.binary.op.type);

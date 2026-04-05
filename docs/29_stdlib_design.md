@@ -118,6 +118,17 @@ strategy ...
 그리고 이 계층은 단순 stdlib보다 **generic pattern library**에 가깝다.
 즉 먼저 generic pattern을 제공하고, 실제 프로젝트가 domain을 주입한다.
 
+GOF 기초 패턴도 같은 원칙으로 번역한다.
+
+- `singleton` -> process-global static이 아니라 contextual runtime registry
+- `factory` -> subclass hierarchy가 아니라 staged template/spec builder
+- `strategy` -> interface object보다 policy card / policy table
+- `strategy` -> function-typed picker / resolver도 허용
+- `state` -> hidden state object보다 explicit FSM / transition rule + context application
+- `observer` -> hidden callback graph보다 relay bundle / sink spec / report sink / event bus
+
+자세한 번역 기준은 [`31_gof_pattern_catalog.md`](/mnt/e/PergyraLang/docs/31_gof_pattern_catalog.md)를 따른다.
+
 ### Tier 3 — 기존 (이미 빌트인)
 
 | 카테고리 | API |

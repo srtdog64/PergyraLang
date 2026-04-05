@@ -1,0 +1,129 @@
+struct RoleTemplate
+{
+    let title: String;
+    let basePower: Int;
+    let baseGuard: Int;
+    let tool: String;
+}
+
+struct OriginTemplate
+{
+    let title: String;
+    let bonusPower: Int;
+    let bonusGuard: Int;
+    let note: String;
+}
+
+struct UnitDraft
+{
+    let name: String;
+    let roleTitle: String;
+    let originTitle: String;
+    let power: Int;
+    let guard: Int;
+    let tool: String;
+    let rank: Int;
+}
+
+struct UnitSpec
+{
+    let name: String;
+    let title: String;
+    let power: Int;
+    let guard: Int;
+    let tool: String;
+}
+
+func RoleTemplateFactory(roleCode: Int) -> RoleTemplate
+{
+    if roleCode == 0
+    {
+        return RoleTemplate("Vanguard", 4, 3, "shieldblade");
+    }
+    if roleCode == 1
+    {
+        return RoleTemplate("Banner Sage", 2, 2, "sun-book");
+    }
+    if roleCode == 2
+    {
+        return RoleTemplate("Night Scout", 3, 1, "crow-knives");
+    }
+    return RoleTemplate("Ash Caller", 5, 1, "ember-staff");
+}
+
+func OriginTemplateFactory(originCode: Int) -> OriginTemplate
+{
+    if originCode == 0
+    {
+        return OriginTemplate("Frontier March", 1, 1, "raised in siege roads and cold watchfires");
+    }
+    if originCode == 1
+    {
+        return OriginTemplate("Sun Choir", 0, 2, "trained under ritual shields and liturgy");
+    }
+    if originCode == 2
+    {
+        return OriginTemplate("Veil Market", 1, 0, "grew among smugglers, ropes, and silent ledgers");
+    }
+    return OriginTemplate("Ash Steppe", 2, 0, "survived ember storms and long fire migrations");
+}
+
+func BeginUnitDraft(name: String, rank: Int) -> UnitDraft
+{
+    return UnitDraft(name, "", "", 0, 0, "", rank);
+}
+
+func ApplyRoleTemplate(draft: UnitDraft, template: RoleTemplate) -> UnitDraft
+{
+    return UnitDraft(
+        draft.name,
+        template.title,
+        draft.originTitle,
+        template.basePower + draft.rank,
+        template.baseGuard + (draft.rank / 2),
+        template.tool,
+        draft.rank
+    );
+}
+
+func ApplyOriginTemplate(draft: UnitDraft, template: OriginTemplate) -> UnitDraft
+{
+    return UnitDraft(
+        draft.name,
+        draft.roleTitle,
+        template.title,
+        draft.power + template.bonusPower,
+        draft.guard + template.bonusGuard,
+        draft.tool,
+        draft.rank
+    );
+}
+
+func DraftSummary(draft: UnitDraft) -> String
+{
+    return "draft origin=" + draft.originTitle
+        + " / role=" + draft.roleTitle
+        + " / tool=" + draft.tool;
+}
+
+func FinalizeUnitSpec(draft: UnitDraft) -> UnitSpec
+{
+    let title = draft.roleTitle + " of the " + draft.originTitle;
+    return UnitSpec(draft.name, title, draft.power, draft.guard, draft.tool);
+}
+
+func UnitFactory(name: String, roleCode: Int, originCode: Int, rank: Int) -> UnitSpec
+{
+    let draft0 = BeginUnitDraft(name, rank);
+    let draft1 = ApplyRoleTemplate(draft0, RoleTemplateFactory(roleCode));
+    let draft2 = ApplyOriginTemplate(draft1, OriginTemplateFactory(originCode));
+    return FinalizeUnitSpec(draft2);
+}
+
+func UnitFactorySummary(name: String, roleCode: Int, originCode: Int, rank: Int) -> String
+{
+    let draft0 = BeginUnitDraft(name, rank);
+    let draft1 = ApplyRoleTemplate(draft0, RoleTemplateFactory(roleCode));
+    let draft2 = ApplyOriginTemplate(draft1, OriginTemplateFactory(originCode));
+    return DraftSummary(draft2);
+}

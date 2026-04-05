@@ -1,13 +1,3 @@
-struct WeaponCard
-{
-    let name: String;
-    let style: String;
-    let power: Int;
-    let guardBreak: Int;
-    let focusCost: Int;
-    let effectTag: String;
-}
-
 struct CombatStrategyCard
 {
     let name: String;
@@ -17,6 +7,59 @@ struct CombatStrategyCard
     let focusShift: Int;
     let moraleSwing: Int;
     let effectBias: Int;
+}
+
+class WeaponCard
+{
+    let name: String;
+    let style: String;
+    let power: Int;
+    let guardBreak: Int;
+    let focusCost: Int;
+    let effectTag: String;
+
+    func Summary(self) -> String
+    {
+        return name + " [" + style + "]";
+    }
+
+    func ActionLine(self, strategy: CombatStrategyCard) -> String
+    {
+        return strategy.name + " with " + name + " in a " + strategy.posture + " pattern";
+    }
+
+    func EffectLine(self, strategy: CombatStrategyCard) -> String
+    {
+        return effectTag
+            + ", aggression=" + ToString(strategy.aggression)
+            + ", guard=" + ToString(strategy.guardBias)
+            + ", morale=" + ToString(strategy.moraleSwing);
+    }
+
+    func SkirmishStrain(self, stateId: Int, strategy: CombatStrategyCard, pulse: Int) -> Int
+    {
+        return 1 + stateId + pulse + power - strategy.guardBias;
+    }
+
+    func SkirmishLoot(self, stateId: Int, strategy: CombatStrategyCard, pulse: Int) -> Int
+    {
+        return Max((power / 2) + strategy.effectBias + (pulse / 2) + (stateId - 1), 1);
+    }
+
+    func SkirmishXP(self, stateId: Int, strategy: CombatStrategyCard, pulse: Int) -> Int
+    {
+        return 2 + stateId + power + strategy.aggression + pulse;
+    }
+
+    func BossPressure(self, strategy: CombatStrategyCard, pulse: Int) -> Int
+    {
+        return 1 + power + strategy.aggression + pulse;
+    }
+
+    func BossBurn(self, strategy: CombatStrategyCard, pulse: Int) -> Int
+    {
+        return Max(strategy.effectBias + pulse - strategy.guardBias, 0);
+    }
 }
 
 func WeaponFactory(classCode: Int) -> WeaponCard
@@ -102,42 +145,4 @@ func CombatStrategyFactory(stateId: Int, option: Int, classCode: Int, pulse: Int
     }
 
     return CombatStrategyCard(name, posture, aggression, guardBias, focusShift, moraleSwing, effectBias);
-}
-
-func StrategyActionText(weapon: WeaponCard, strategy: CombatStrategyCard) -> String
-{
-    return strategy.name + " with " + weapon.name + " in a " + strategy.posture + " pattern";
-}
-
-func StrategyEffectText(weapon: WeaponCard, strategy: CombatStrategyCard) -> String
-{
-    return weapon.effectTag
-        + ", aggression=" + ToString(strategy.aggression)
-        + ", guard=" + ToString(strategy.guardBias)
-        + ", morale=" + ToString(strategy.moraleSwing);
-}
-
-func SkirmishStrain(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
-{
-    return 1 + stateId + pulse + weapon.power - strategy.guardBias;
-}
-
-func SkirmishLoot(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
-{
-    return Max((weapon.power / 2) + strategy.effectBias + (pulse / 2) + (stateId - 1), 1);
-}
-
-func SkirmishXP(stateId: Int, weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
-{
-    return 2 + stateId + weapon.power + strategy.aggression + pulse;
-}
-
-func BossPressure(weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
-{
-    return 1 + weapon.power + strategy.aggression + pulse;
-}
-
-func BossBurn(weapon: WeaponCard, strategy: CombatStrategyCard, pulse: Int) -> Int
-{
-    return Max(strategy.effectBias + pulse - strategy.guardBias, 0);
 }

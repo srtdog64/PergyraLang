@@ -267,6 +267,11 @@
 ### 툴링 / 표준면
 - [ ] **stable stdlib surface 재고정**
 - [ ] **툴링 단계 진입** — formatter, LSP 진단 품질
+- [~] **ontology-first scaffold 정렬**
+  - 완료: `pgy scaffold` help를 `subject/class/object/dto` 우선 분기로 정렬
+  - 완료: `class` scaffold kind 추가
+  - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/dto`로 투영하는 starter shape를 생성
+  - 남음: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
 
 ### 대표 프로그램
 - [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명
@@ -283,6 +288,21 @@
   - 후보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
   - 방향: pool/fsm/strategy/table은 `.pgy` 또는 stdlib 모듈로 제공하고, 언어 키워드로 승격하지 않는다
   - 방향: `Pool<T>`, `StateMachine<TState, TEvent>`, `StrategyTable<TContext, TChoice>`, `WeightedTable<T>`처럼 generic-first naming을 우선한다
+  - 방향: GOF 기초 패턴도 inheritance/object graph가 아니라 Pergyra host 기준으로 번역한다
+    - `singleton` -> contextual runtime registry / host-local shared state
+    - `factory` -> staged template/spec builder
+    - `strategy` -> policy card / policy table + function injection
+    - `state` -> explicit FSM / transition rule + context application
+    - `observer` -> relay bundle / sink spec / report sink / event bus
+  - 방향: generic pattern library는 static spec/table만이 아니라 function-typed picker/resolver 주입도 기본 표면으로 포함한다
+    - 예: `Picker<TInput, TChoice>`
+    - 예: `Resolver<TContext, TResult>`
+    - 예: `StrategyApply(context, AggressivePolicy)`
+  - 현재 상태: `data/card/table` 경로는 안정, custom function injection도 V1 표면이 올라옴
+  - 현재 전략 패턴의 안정 단계:
+    - `StrategyCard`
+    - `StrategyContext`
+    - `ApplyStrategy(card, context)`
   - 이번 예제 기준 라이브러리화 후보:
     - `use strategy;`
       - `WeaponCard` / `CombatStrategyCard`
@@ -308,6 +328,11 @@
       - scripted / random / player mode runner
       - input script playback
       - seeded choice resolver
+- [ ] **GOF 기초 패턴을 Pergyra식 pattern catalog로 정리**
+  - 기준 문서: `docs/31_gof_pattern_catalog.md`
+  - 기준 예제: `examples/pattern_library_basics/`
+  - 목표: 전통 OOP 패턴 이름을 유지하더라도 실제 구현 shape는 `subject / vessel / shared / spec / card / relay`로 재정의
+  - 비목표: inheritance / `super` / hidden callback graph를 패턴 구현의 기본값으로 채택하지 않음
 - [ ] **DND/campaign 시나리오를 게임 프레임워크 검증장으로 사용**
   - `dnd_tavern_campaign`를 기준으로 pool/fsm/strategy/table이 실제로 충분한지 검증
   - language core 부족이 아니라 framework layer 부족인지 계속 분리해서 기록

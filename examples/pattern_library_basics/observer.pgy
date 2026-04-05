@@ -1,0 +1,73 @@
+struct RelaySinkSpec
+{
+    let sinkName: String;
+    let topicTag: String;
+    let prefix: String;
+}
+
+struct RelayPacket
+{
+    let topicTag: String;
+    let message: String;
+    let priority: Int;
+}
+
+struct RelayBundle
+{
+    let relayName: String;
+    let sinkCount: Int;
+}
+
+func CombatSinkFactory() -> RelaySinkSpec
+{
+    return RelaySinkSpec("combat", "combat", "[combat]");
+}
+
+func UiSinkFactory() -> RelaySinkSpec
+{
+    return RelaySinkSpec("ui", "ui", "[ui]");
+}
+
+func AuditSinkFactory() -> RelaySinkSpec
+{
+    return RelaySinkSpec("audit", "audit", "[audit]");
+}
+
+func PacketFactory(topicTag: String, message: String, priority: Int) -> RelayPacket
+{
+    return RelayPacket(topicTag, message, priority);
+}
+
+func OpenRelayBundle(name: String, sinkCount: Int) -> RelayBundle
+{
+    return RelayBundle(name, sinkCount);
+}
+
+func PacketAccepted(spec: RelaySinkSpec, packet: RelayPacket) -> Bool
+{
+    if spec.topicTag == packet.topicTag
+    {
+        return true;
+    }
+    if spec.sinkName == "audit" && packet.priority >= 1
+    {
+        return true;
+    }
+    return false;
+}
+
+func DispatchPacket(spec: RelaySinkSpec, packet: RelayPacket) -> String
+{
+    if PacketAccepted(spec, packet)
+    {
+        return spec.prefix + " " + packet.message;
+    }
+    return spec.prefix + " <filtered>";
+}
+
+func RelaySummary(bundle: RelayBundle, lineCount: Int) -> String
+{
+    return bundle.relayName
+        + " sinks=" + ToString(bundle.sinkCount)
+        + " lines=" + ToString(lineCount);
+}

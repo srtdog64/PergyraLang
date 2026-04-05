@@ -209,6 +209,36 @@ WhereClause* parse_where_clause(Parser* parser) {
 
 // 타입 파싱: Type<T, U>
 ASTNode* parse_type(Parser* parser) {
+    if (parser_match(parser, TOKEN_FUNC)) {
+        ASTNode *handler_type = ast_create_event_handler_type();
+
+        parser_consume(parser, TOKEN_LPAREN,
+            "Expected '(' after 'func' in function type");
+
+        while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
+            ASTNode *param_type = parse_type(parser);
+            handler_type->data.event_handler_type.param_count++;
+            handler_type->data.event_handler_type.param_types = realloc(
+                handler_type->data.event_handler_type.param_types,
+                handler_type->data.event_handler_type.param_count * sizeof(ASTNode *));
+            handler_type->data.event_handler_type.param_types[
+                handler_type->data.event_handler_type.param_count - 1] = param_type;
+
+            if (!parser_match(parser, TOKEN_COMMA))
+                break;
+        }
+
+        parser_consume(parser, TOKEN_RPAREN,
+            "Expected ')' after function type parameters");
+
+        if (parser_match(parser, TOKEN_ARROW))
+            handler_type->data.event_handler_type.return_type = parse_type(parser);
+        else
+            handler_type->data.event_handler_type.return_type = ast_create_type("Void");
+
+        return handler_type;
+    }
+
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
     char *qualified_name = pergyra_strdup(type_name.text);
 

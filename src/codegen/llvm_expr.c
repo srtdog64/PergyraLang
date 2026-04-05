@@ -107,6 +107,26 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
+    if ((node->data.binary.op.type == TOKEN_EQUAL
+         || node->data.binary.op.type == TOKEN_NOT_EQUAL)
+        && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_string_equals");
+        if (left_type != ctx->type_i8ptr)
+            left = llvm_coerce_value_to_string(left, ctx);
+        if (right_type != ctx->type_i8ptr)
+            right = llvm_coerce_value_to_string(right, ctx);
+        if (fn != NULL && left != NULL && right != NULL
+            && LLVMTypeOf(left) == ctx->type_i8ptr
+            && LLVMTypeOf(right) == ctx->type_i8ptr) {
+            LLVMValueRef args[] = { left, right };
+            LLVMValueRef eq = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                             args, 2, llvm_tmp_name(ctx));
+            if (node->data.binary.op.type == TOKEN_EQUAL)
+                return eq;
+            return LLVMBuildNot(ctx->builder, eq, llvm_tmp_name(ctx));
+        }
+    }
+
     /* Promote: if one side is double, convert the other */
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
                   || right_type == ctx->type_f64 || right_type == ctx->type_f32);
@@ -527,12 +547,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
 
             const char *var_name = obj_node->data.identifier.name;
-            const char *class_name = llvm_lookup_var_class(ctx, var_name);
             LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
+            const char *class_name = var != NULL
+                ? llvm_lookup_var_class(ctx, var_name)
+                : NULL;
             LLVMClassTypeEntry *parent_cls = NULL;
             int field_idx = -1;
 
-            if (class_name == NULL && ctx->current_class_name != NULL) {
+            if (var == NULL && ctx->current_class_name != NULL) {
                 class_name = llvm_current_field_class_name(ctx, var_name);
                 if (class_name != NULL) {
                     parent_cls = llvm_lookup_class(ctx, ctx->current_class_name);
@@ -545,12 +567,24 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, class_name);
                 if (cls != NULL) {
                     char full_name[256];
+                    LLVMFuncEntry *fn;
+                    LLVMValueRef fn_value;
+                    LLVMTypeRef fn_type;
+                    LLVMTypeRef ret_type;
                     snprintf(full_name, sizeof(full_name), "%s_%s",
                              class_name, method_name);
-                    LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                    fn = llvm_lookup_function(ctx, full_name);
+                    fn_value = fn != NULL ? fn->fn
+                        : LLVMGetNamedFunction(ctx->module, full_name);
+                    fn_type = fn != NULL
+                        ? fn->fn_type
+                        : (fn_value != NULL ? LLVMGetElementType(LLVMTypeOf(fn_value)) : NULL);
+                    ret_type = fn != NULL
+                        ? fn->ret_type
+                        : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
                     ASTNode *method_decl = llvm_find_nominal_host_method_decl(ctx,
                         class_name, method_name);
-                    if (fn != NULL) {
+                    if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                         /* subject methods receive a self pointer; class methods a self value */
                         size_t argc = node->data.call.arg_count;
                         LLVMValueRef *args = calloc(argc + 1,
@@ -629,13 +663,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
 
                         LLVMValueRef result;
-                        if (fn->ret_type == ctx->type_void) {
-                            LLVMBuildCall2(ctx->builder, fn->fn_type,
-                                fn->fn, args, (unsigned)(argc + 1), "");
+                        if (ret_type == ctx->type_void) {
+                            LLVMBuildCall2(ctx->builder, fn_type,
+                                fn_value, args, (unsigned)(argc + 1), "");
                             result = LLVMConstInt(ctx->type_i32, 0, 0);
                         } else {
                             result = LLVMBuildCall2(ctx->builder,
-                                fn->fn_type, fn->fn, args,
+                                fn_type, fn_value, args,
                                 (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         }
                         free(args);
@@ -654,6 +688,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             if (host_cls != NULL) {
                 char full_name[256];
                 LLVMFuncEntry *fn;
+                LLVMValueRef fn_value;
+                LLVMTypeRef fn_type;
+                LLVMTypeRef ret_type;
                 ASTNode *method_decl;
                 size_t argc = node->data.call.arg_count;
                 LLVMValueRef *args;
@@ -662,9 +699,17 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 snprintf(full_name, sizeof(full_name), "%s_%s",
                     class_name, method_name);
                 fn = llvm_lookup_function(ctx, full_name);
+                fn_value = fn != NULL ? fn->fn
+                    : LLVMGetNamedFunction(ctx->module, full_name);
+                fn_type = fn != NULL
+                    ? fn->fn_type
+                    : (fn_value != NULL ? LLVMGetElementType(LLVMTypeOf(fn_value)) : NULL);
+                ret_type = fn != NULL
+                    ? fn->ret_type
+                    : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
                 method_decl = llvm_find_nominal_host_method_decl(ctx,
                     class_name, method_name);
-                if (fn != NULL) {
+                if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     args = calloc(argc + 1, sizeof(LLVMValueRef));
                     self_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
                     if (self_ptr == NULL) {
@@ -720,8 +765,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         args[i + 1] = arg_val;
                     }
 
-                    if (fn->ret_type == ctx->type_void) {
-                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                    if (ret_type == ctx->type_void) {
+                        LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                             args, (unsigned)(argc + 1), "");
                         free(args);
                         return LLVMConstInt(ctx->type_i32, 0, 0);
@@ -729,7 +774,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
                     {
                         LLVMValueRef result = LLVMBuildCall2(ctx->builder,
-                            fn->fn_type, fn->fn, args,
+                            fn_type, fn_value, args,
                             (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         free(args);
                         return result;
@@ -2343,6 +2388,75 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     if (func == NULL) {
+        LLVMVarEntry *callee_var = NULL;
+        LLVMValueRef fn_ptr = NULL;
+        LLVMTypeRef fn_type = NULL;
+        LLVMValueRef result;
+
+        if (node->data.call.callee->type == AST_IDENTIFIER)
+            callee_var = llvm_scope_lookup(ctx, callee_name);
+        if (callee_var != NULL) {
+            if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
+                fn_type = LLVMGetElementType(callee_var->type);
+            if ((fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
+                && ctx->current_function != NULL) {
+                const char *current_name = LLVMGetValueName(ctx->current_function);
+                ASTNode *current_decl = current_name != NULL
+                    ? llvm_find_function_decl(ctx, current_name) : NULL;
+                if (current_decl != NULL && current_decl->type == AST_FUNC_DECL) {
+                    for (size_t i = 0; i < current_decl->data.func_decl.param_count; i++) {
+                        FuncParam *p = current_decl->data.func_decl.params[i];
+                        if (p == NULL || p->name == NULL || p->type == NULL)
+                            continue;
+                        if (strcmp(p->name, callee_name) != 0)
+                            continue;
+                        if (p->type->type == AST_EVENT_HANDLER_TYPE) {
+                            size_t pc = p->type->data.event_handler_type.param_count;
+                            LLVMTypeRef *pts = NULL;
+                            LLVMTypeRef ret = ctx->type_void;
+                            if (p->type->data.event_handler_type.return_type != NULL)
+                                ret = ast_type_to_llvm(ctx,
+                                    p->type->data.event_handler_type.return_type);
+                            if (pc > 0) {
+                                pts = calloc(pc, sizeof(LLVMTypeRef));
+                                if (pts != NULL) {
+                                    for (size_t pi = 0; pi < pc; pi++) {
+                                        pts[pi] = ast_type_to_llvm(ctx,
+                                            p->type->data.event_handler_type.param_types[pi]);
+                                    }
+                                }
+                            }
+                            fn_type = LLVMFunctionType(ret, pts, (unsigned)pc, 0);
+                            free(pts);
+                        } else {
+                            LLVMTypeRef declared_ptr_ty = ast_type_to_llvm(ctx, p->type);
+                            if (LLVMGetTypeKind(declared_ptr_ty) == LLVMPointerTypeKind)
+                                fn_type = LLVMGetElementType(declared_ptr_ty);
+                            else
+                                fn_type = declared_ptr_ty;
+                        }
+                        break;
+                    }
+                }
+            }
+            fn_ptr = LLVMBuildLoad2(ctx->builder, callee_var->type,
+                callee_var->alloca, llvm_tmp_name(ctx));
+            if (fn_type == NULL && LLVMGetTypeKind(LLVMTypeOf(fn_ptr)) == LLVMFunctionTypeKind)
+                fn_type = LLVMTypeOf(fn_ptr);
+            if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind) {
+                if (LLVMGetReturnType(fn_type) == ctx->type_void) {
+                    LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
+                        args, emitted_argc, "");
+                    result = LLVMConstInt(ctx->type_i32, 0, 0);
+                } else {
+                    result = LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
+                        args, emitted_argc, llvm_tmp_name(ctx));
+                }
+                free(args);
+                return result;
+            }
+        }
+
         fprintf(stderr, "[llvm] warning: unknown function '%s'\n", callee_name);
         free(args);
         return LLVMConstInt(ctx->type_i32, 0, 0);

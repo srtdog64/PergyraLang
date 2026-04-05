@@ -106,6 +106,7 @@ vessel HealthState {
 - `func`는 계산/보조 판단/국소 상태 갱신을 담당하고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사다
 - role의 receiver
 - party role slot에 배치되는 대상
+- `subject`는 `vessel`뿐 아니라 일반 `class` field도 값으로 소유할 수 있다. `let weapon: Item;`은 subject-owned tool/thing surface다.
 
 현재 surface syntax에서는 `subject`와 `class`가 모두 허용되지만, 둘은 더 이상 같은 declaration으로 기록되지 않는다.
 `subject slot`, `ToObject`, `ToDto`처럼 주체성을 요구하는 표면은 현재 subject host (`subject`, `actor`)만 받는다.
@@ -115,6 +116,7 @@ vessel HealthState {
 subject Player {
     _health: Slot<Int>;
     name: String;
+    weapon: Item;
 }
 ```
 
@@ -179,6 +181,18 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - `class`는 현재 passive nominal value로서 plain copy / value parameter / value return이 가능하다
 - `object`는 subject와 같은 능동 주체는 아니지만, 수동 상태를 담는 host가 될 수 있다
 - `dto`는 `object`보다 더 좁은 경계 전달/투영 형식이다
+- `subject` 내부에서 `class`는 별도 키워드 없이 일반 field로 embed된다. `vessel health: HP;`는 내부 상태 수용체를 뜻하고, `let weapon: Item;`는 도구/사물을 뜻한다.
+
+### 작성 순서 권장
+
+새 host를 만들 때는 구현보다 먼저 존재론을 고르는 편이 맞다.
+
+- `subject`: 능동 주체, identity, `action`, zone/world orchestration
+- `class`: 피동 도구/사물, value semantics, hosted `func`
+- `object`: 읽기 전용 또는 수동 상태 대상
+- `dto`: 경계 밖 전송 표면
+
+즉 실전 authoring과 scaffold의 첫 질문은 보통 "이것이 `subject`인가 `class`인가 `object`인가"여야 한다.
 
 ### 현재 단계의 권장 해석
 

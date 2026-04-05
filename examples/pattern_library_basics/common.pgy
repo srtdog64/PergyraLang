@@ -1,0 +1,9 @@
+func PatternHeader() -> String
+{
+    return "=== PERGYRA PATTERN LIBRARY BASICS ===";
+}
+
+func PatternSubtitle() -> String
+{
+    return "singleton / factory / strategy / state / observer translated into Pergyra hosts";
+}

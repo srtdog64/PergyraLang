@@ -1,0 +1,25 @@
+world RuntimeRegistry
+{
+    shared nextId: Int = 1000
+    shared prefix: String = "QUEST"
+    shared openedBy: String = "pattern-library"
+
+    func ClaimId(self) -> Int
+    {
+        let id = nextId;
+        nextId = nextId + 1;
+        return id;
+    }
+
+    func Summary(self) -> String
+    {
+        return "RuntimeRegistry(prefix=" + prefix
+            + ", nextId=" + ToString(nextId)
+            + ", openedBy=" + openedBy + ")";
+    }
+}
+
+func OpenRuntimeRegistry() -> RuntimeRegistry
+{
+    return RuntimeRegistry(1000, "QUEST", "pattern-library");
+}

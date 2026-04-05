@@ -1,0 +1,126 @@
+struct StrategyCard
+{
+    let name: String;
+    let pressure: Int;
+    let caution: Int;
+    let note: String;
+}
+
+struct StrategyContext
+{
+    let threat: Int;
+    let pulse: Int;
+    let morale: Int;
+    let terrain: Int;
+    let domainTag: String;
+}
+
+func StrategyFactory(stateId: Int, option: Int) -> StrategyCard
+{
+    if stateId == 0
+    {
+        if option == 1
+        {
+            return StrategyCard("anchor line", 2, 3, "hold ground and bleed no tempo");
+        }
+        if option == 2
+        {
+            return StrategyCard("feint route", 4, 1, "trade safety for initiative");
+        }
+        return StrategyCard("ember probe", 3, 2, "test the defense and map its heat");
+    }
+
+    if stateId == 1
+    {
+        if option == 1
+        {
+            return StrategyCard("shield climb", 3, 3, "advance with disciplined cover");
+        }
+        if option == 2
+        {
+            return StrategyCard("knife burst", 5, 1, "break posture before the enemy settles");
+        }
+        return StrategyCard("ward chant", 2, 4, "stabilize the line and restore morale");
+    }
+
+    if option == 1
+    {
+        return StrategyCard("final lock", 4, 4, "close the arena and deny retreat");
+    }
+    if option == 2
+    {
+        return StrategyCard("dragon break", 6, 1, "commit to decisive pressure");
+    }
+    return StrategyCard("saint flare", 5, 2, "convert morale into finishing force");
+}
+
+func ResolveStrategy(card: StrategyCard, threat: Int, pulse: Int) -> Int
+{
+    return Max(card.pressure + pulse + threat - card.caution, 0);
+}
+
+func BuildRaidContext(threat: Int, pulse: Int, morale: Int, terrain: Int) -> StrategyContext
+{
+    return StrategyContext(threat, pulse, morale, terrain, "raid");
+}
+
+func BuildDispatchContext(threat: Int, pulse: Int, morale: Int, terrain: Int) -> StrategyContext
+{
+    return StrategyContext(threat, pulse, morale, terrain, "dispatch");
+}
+
+func ApplyStrategyScore(card: StrategyCard, ctx: StrategyContext) -> Int
+{
+    let score = ResolveStrategy(card, ctx.threat + ctx.terrain, ctx.pulse);
+    if ctx.morale <= 2
+    {
+        return Max(score - 1, 0);
+    }
+    return score;
+}
+
+func ApplyStrategyLine(card: StrategyCard, ctx: StrategyContext) -> String
+{
+    let score = ApplyStrategyScore(card, ctx);
+    let guardShift = Max(card.caution - (ctx.terrain / 2), 0);
+    return ctx.domainTag + ": " + card.name + " score=" + ToString(score) + " guardShift=" + ToString(guardShift);
+}
+
+func AggressiveScorePolicy(base: Int, ctx: StrategyContext) -> Int
+{
+    return Max(base + ctx.threat + ctx.morale - ctx.terrain, 0);
+}
+
+func GuardedScorePolicy(base: Int, ctx: StrategyContext) -> Int
+{
+    return Max(base + ctx.morale + ctx.terrain - 1, 0);
+}
+
+func RaidLinePolicy(card: StrategyCard, ctx: StrategyContext, score: Int) -> String
+{
+    let pressure = Max(card.pressure + ctx.threat - card.caution, 0);
+    return ctx.domainTag + ": " + card.name + " injectedScore=" + ToString(score)
+        + " pressure=" + ToString(pressure);
+}
+
+func DispatchLinePolicy(card: StrategyCard, ctx: StrategyContext, score: Int) -> String
+{
+    let reserve = Max(ctx.morale + ctx.terrain + card.caution, 0);
+    return ctx.domainTag + ": " + card.name + " injectedScore=" + ToString(score)
+        + " reserve=" + ToString(reserve);
+}
+
+func ApplyInjectedStrategyScore(card: StrategyCard, ctx: StrategyContext,
+                                scorePolicy: func(Int, StrategyContext) -> Int) -> Int
+{
+    let base = ApplyStrategyScore(card, ctx);
+    return scorePolicy(base, ctx);
+}
+
+func ApplyInjectedStrategyLine(card: StrategyCard, ctx: StrategyContext,
+                               scorePolicy: func(Int, StrategyContext) -> Int,
+                               linePolicy: func(StrategyCard, StrategyContext, Int) -> String) -> String
+{
+    let score = ApplyInjectedStrategyScore(card, ctx, scorePolicy);
+    return linePolicy(card, ctx, score);
+}

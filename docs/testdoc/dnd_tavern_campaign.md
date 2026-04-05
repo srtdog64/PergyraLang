@@ -114,6 +114,7 @@ Each adventurer carries multiple state groups:
 - quest/FSM state
 
 This is specifically meant to stress the `subject + vessel` model.
+It also stresses subject-owned `class` tools: `Adventurer.weapon: WeaponCard` is embedded as a passive value object and used through hosted `func` calls inside the campaign flow.
 
 ### Dungeon Graph
 

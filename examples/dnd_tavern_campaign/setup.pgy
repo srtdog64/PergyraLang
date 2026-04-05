@@ -8,6 +8,7 @@ struct AdventurerSpec
     let signature: String;
     let seat: Int;
     let recruited: Int;
+    let weapon: WeaponCard;
     let sheet: DndSheetVessel;
     let stats: StatsVessel;
     let bond: BondVessel;
@@ -184,6 +185,7 @@ func BuildAdventurerSpec(profile: CharacterProfile) -> AdventurerSpec
         template.signature,
         profile.seat,
         1,
+        WeaponFactory(profile.classCode),
         sheet,
         MakeStatsFromSheet(profile.classCode, sheet),
         MakeBond(profile.affinity, profile.trust, profile.courage),
@@ -200,10 +202,10 @@ func BuildJourneyZone() -> JourneyZone
     let rogueSpec = MakeNyxSpec();
     let mageSpec = MakeSolSpec();
 
-    let fighter = Adventurer(fighterSpec.name, fighterSpec.className, fighterSpec.background, fighterSpec.intro, fighterSpec.crest, fighterSpec.signature, fighterSpec.seat, fighterSpec.recruited, fighterSpec.sheet, fighterSpec.stats, fighterSpec.bond, fighterSpec.pack, fighterSpec.effects, fighterSpec.quest);
-    let cleric = Adventurer(clericSpec.name, clericSpec.className, clericSpec.background, clericSpec.intro, clericSpec.crest, clericSpec.signature, clericSpec.seat, clericSpec.recruited, clericSpec.sheet, clericSpec.stats, clericSpec.bond, clericSpec.pack, clericSpec.effects, clericSpec.quest);
-    let rogue = Adventurer(rogueSpec.name, rogueSpec.className, rogueSpec.background, rogueSpec.intro, rogueSpec.crest, rogueSpec.signature, rogueSpec.seat, rogueSpec.recruited, rogueSpec.sheet, rogueSpec.stats, rogueSpec.bond, rogueSpec.pack, rogueSpec.effects, rogueSpec.quest);
-    let mage = Adventurer(mageSpec.name, mageSpec.className, mageSpec.background, mageSpec.intro, mageSpec.crest, mageSpec.signature, mageSpec.seat, mageSpec.recruited, mageSpec.sheet, mageSpec.stats, mageSpec.bond, mageSpec.pack, mageSpec.effects, mageSpec.quest);
+    let fighter = Adventurer(fighterSpec.name, fighterSpec.className, fighterSpec.background, fighterSpec.intro, fighterSpec.crest, fighterSpec.signature, fighterSpec.seat, fighterSpec.recruited, fighterSpec.weapon, fighterSpec.sheet, fighterSpec.stats, fighterSpec.bond, fighterSpec.pack, fighterSpec.effects, fighterSpec.quest);
+    let cleric = Adventurer(clericSpec.name, clericSpec.className, clericSpec.background, clericSpec.intro, clericSpec.crest, clericSpec.signature, clericSpec.seat, clericSpec.recruited, clericSpec.weapon, clericSpec.sheet, clericSpec.stats, clericSpec.bond, clericSpec.pack, clericSpec.effects, clericSpec.quest);
+    let rogue = Adventurer(rogueSpec.name, rogueSpec.className, rogueSpec.background, rogueSpec.intro, rogueSpec.crest, rogueSpec.signature, rogueSpec.seat, rogueSpec.recruited, rogueSpec.weapon, rogueSpec.sheet, rogueSpec.stats, rogueSpec.bond, rogueSpec.pack, rogueSpec.effects, rogueSpec.quest);
+    let mage = Adventurer(mageSpec.name, mageSpec.className, mageSpec.background, mageSpec.intro, mageSpec.crest, mageSpec.signature, mageSpec.seat, mageSpec.recruited, mageSpec.weapon, mageSpec.sheet, mageSpec.stats, mageSpec.bond, mageSpec.pack, mageSpec.effects, mageSpec.quest);
 
     return JourneyZone(
         fighter,

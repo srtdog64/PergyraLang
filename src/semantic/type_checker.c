@@ -188,6 +188,29 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         return type_create_constructed(TYPE_FUTURE, args, 1);
     }
 
+    if (node->type == AST_EVENT_HANDLER_TYPE) {
+        size_t param_count = node->data.event_handler_type.param_count;
+        Type **param_types = calloc(param_count > 0 ? param_count : 1, sizeof(Type *));
+        Type *return_type = TYPE_VOID;
+        Type *result;
+
+        if (param_types == NULL)
+            return TYPE_UNKNOWN;
+
+        for (size_t i = 0; i < param_count; i++) {
+            param_types[i] = resolve_type_node(
+                node->data.event_handler_type.param_types[i], ctx);
+        }
+
+        if (node->data.event_handler_type.return_type != NULL)
+            return_type = resolve_type_node(
+                node->data.event_handler_type.return_type, ctx);
+
+        result = type_create_function(param_types, param_count, return_type);
+        free(param_types);
+        return result != NULL ? result : TYPE_UNKNOWN;
+    }
+
     if (node->type != AST_TYPE)
         return TYPE_UNKNOWN;
 
@@ -312,6 +335,64 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     case AST_BOOLEAN:
         return TYPE_BOOL;
+
+    case AST_LAMBDA_EXPR: {
+        size_t param_count = expr->data.lambda_expr.param_count;
+        Type **param_types = calloc(param_count > 0 ? param_count : 1, sizeof(Type *));
+        Type *return_type = TYPE_VOID;
+        Type *result;
+
+        if (param_types == NULL)
+            return TYPE_UNKNOWN;
+
+        scope_enter(&ctx->scope, SCOPE_FUNCTION);
+        for (size_t i = 0; i < param_count; i++) {
+            ASTNode *param = expr->data.lambda_expr.params[i];
+            const char *param_name = NULL;
+            Type *param_type = TYPE_UNKNOWN;
+
+            if (param != NULL && param->type == AST_LET_DECL) {
+                param_name = param->data.let_decl.name;
+                if (param->data.let_decl.type != NULL)
+                    param_type = resolve_type_node(param->data.let_decl.type, ctx);
+            } else if (param != NULL && param->type == AST_IDENTIFIER) {
+                param_name = param->data.identifier.name;
+            }
+
+            if (param_name != NULL) {
+                Symbol *param_sym = symbol_create_variable(
+                    param_name, param_type, expr->line, expr->column);
+                if (param_sym != NULL)
+                    scope_declare(ctx->scope, param_sym);
+            }
+            param_types[i] = param_type;
+        }
+
+        if (expr->data.lambda_expr.return_type != NULL) {
+            return_type = resolve_type_node(expr->data.lambda_expr.return_type, ctx);
+        } else if (expr->data.lambda_expr.body != NULL
+                   && expr->data.lambda_expr.body->type != AST_BLOCK) {
+            return_type = type_check_expression(expr->data.lambda_expr.body, ctx);
+        } else {
+            return_type = TYPE_VOID;
+        }
+
+        if (expr->data.lambda_expr.body != NULL
+            && expr->data.lambda_expr.body->type == AST_BLOCK) {
+            bool saved_in_async = ctx->in_async_func;
+            Type *saved_return = ctx->current_return;
+            ctx->in_async_func = expr->data.lambda_expr.is_async;
+            ctx->current_return = return_type;
+            type_check_block(expr->data.lambda_expr.body, ctx);
+            ctx->current_return = saved_return;
+            ctx->in_async_func = saved_in_async;
+        }
+
+        scope_exit(&ctx->scope);
+        result = type_create_function(param_types, param_count, return_type);
+        free(param_types);
+        return result != NULL ? result : TYPE_UNKNOWN;
+    }
 
     case AST_IDENTIFIER: {
         Symbol *sym = scope_lookup(ctx->scope,

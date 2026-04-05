@@ -8,6 +8,7 @@ subject Adventurer
     let signature: String;
     let seat: Int;
     let recruited: Int;
+    let weapon: WeaponCard;
 
     vessel sheet: DndSheetVessel;
     vessel stats: StatsVessel;
@@ -49,6 +50,7 @@ subject Adventurer
         return name
             + " [" + className + "]"
             + " crest=" + crest
+            + " weapon=" + weapon.Summary()
             + " state=" + StateLabel()
             + " floor=" + FloorName(stats.floor)
             + " sheet={" + sheet.Summary() + "}"
@@ -73,12 +75,18 @@ subject Adventurer
             + " the " + className
             + " from " + background
             + " carries the " + crest
-            + " and favors " + signature;
+            + " and favors " + signature
+            + " through " + weapon.Summary();
     }
 
     func TavernPitch(self) -> String
     {
         return intro;
+    }
+
+    func Loadout(self) -> String
+    {
+        return name + " equips " + weapon.Summary();
     }
 
     action Toast(self, rumorGain: Int, affinityGain: Int) -> Int

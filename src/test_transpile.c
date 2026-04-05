@@ -1600,6 +1600,49 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("subject may own class values and call class func through self field");
+    {
+        const char *source =
+            "class Item {\n"
+            "    let name: String;\n"
+            "    let damage: Int;\n"
+            "    func Info(self) -> String {\n"
+            "        return self.name + \" dmg:\" + ToString(self.damage);\n"
+            "    }\n"
+            "}\n"
+            "subject Player {\n"
+            "    let name: String;\n"
+            "    let weapon: Item;\n"
+            "    let hp: Int;\n"
+            "    func ShowWeapon(self) -> String {\n"
+            "        return name + \" holds \" + weapon.Info();\n"
+            "    }\n"
+            "    action Strike(self, target: Player) -> Int {\n"
+            "        let dmg = weapon.damage;\n"
+            "        target.hp = target.hp - dmg;\n"
+            "        return dmg;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "Item weapon;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Item_Info(self->weapon)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t dmg = self->weapon.damage;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "target->hp = (target->hp - dmg);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone methods lower bare shared fields and helper calls through implicit self");
     {
         const char *source =
@@ -2394,6 +2437,93 @@ test_stdlib_and_enum_emit(void)
         const char *out = emit_stmt_to_str(node, &ctx);
         EXPECT_STR_CONTAINS(out, "StringConcat(\"a\", \"b\")");
         transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("string equality lowers through runtime helper");
+    {
+        const char *source =
+            "func Match(name: String) -> Bool {\n"
+            "    return name == \"audit\";\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_string_equals(name, \"audit\")");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("string concat let inference emits char* local");
+    {
+        const char *source =
+            "struct UnitDraft {\n"
+            "    roleTitle: String;\n"
+            "    originTitle: String;\n"
+            "}\n"
+            "func FinalizeUnitSpec(draft: UnitDraft) -> String {\n"
+            "    let title = draft.roleTitle + \" of the \" + draft.originTitle;\n"
+            "    return title;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "char* title = StringConcat(StringConcat(draft.roleTitle, \" of the \"), draft.originTitle);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("function type params lower to callable declarators and typed lambdas");
+    {
+        const char *source =
+            "struct StrategyContext {\n"
+            "    morale: Int;\n"
+            "}\n"
+            "func Apply(base: Int, ctx: StrategyContext, policy: func(Int, StrategyContext) -> Int) -> Int {\n"
+            "    return policy(base, ctx);\n"
+            "}\n"
+            "func Run() -> Int {\n"
+            "    let ctx = StrategyContext(3);\n"
+            "    return Apply(2, ctx, (base: Int, ctx: StrategyContext) => base + ctx.morale);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data,
+            "int32_t Apply(int32_t base, StrategyContext ctx, int32_t (*policy)(int32_t, StrategyContext))");
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "static int32_t pgy_lambda_");
+        EXPECT_STR_CONTAINS(ctx->decls->data,
+            "int32_t base, StrategyContext ctx");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("enum variant identifier emits qualified C enum constant");

@@ -111,6 +111,7 @@ main() {
         "tests/cases/backend_compare/string_io"
         "tests/cases/backend_compare/module_namespace"
         "tests/cases/backend_compare/role_operator"
+        "tests/cases/backend_compare/host_method_class_return"
     )
 
     if [[ "$#" -gt 0 ]]; then

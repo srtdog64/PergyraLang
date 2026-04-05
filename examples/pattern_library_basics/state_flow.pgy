@@ -1,0 +1,87 @@
+struct TransitionRule
+{
+    let fromState: Int;
+    let eventId: Int;
+    let toState: Int;
+    let note: String;
+}
+
+struct TransitionContext
+{
+    let morale: Int;
+    let pressure: Int;
+    let phaseTag: String;
+}
+
+func StateLabel(stateId: Int) -> String
+{
+    if stateId == 0 { return "READY"; }
+    if stateId == 1 { return "PRESSURE"; }
+    if stateId == 2 { return "FINISH"; }
+    return "DONE";
+}
+
+func EventLabel(eventId: Int) -> String
+{
+    if eventId == 0 { return "spawn"; }
+    if eventId == 1 { return "commit"; }
+    if eventId == 2 { return "break"; }
+    return "close";
+}
+
+func TransitionRuleFactory(current: Int, eventId: Int) -> TransitionRule
+{
+    if current == 0
+    {
+        if eventId == 0 { return TransitionRule(0, 0, 1, "front opens and pressure begins"); }
+        return TransitionRule(0, eventId, 0, "ready state ignores the signal");
+    }
+
+    if current == 1
+    {
+        if eventId == 1 { return TransitionRule(1, 1, 2, "pressure converts into a finishing lane"); }
+        if eventId == 2 { return TransitionRule(1, 2, 1, "pressure stabilizes but does not break"); }
+        return TransitionRule(1, eventId, 1, "pressure holds while the line resets");
+    }
+
+    if current == 2
+    {
+        if eventId == 2 { return TransitionRule(2, 2, 3, "finish collapses the encounter into done"); }
+        return TransitionRule(2, eventId, 2, "finish remains committed");
+    }
+
+    return TransitionRule(3, eventId, 3, "done state remains closed");
+}
+
+func BuildRaidTransitionContext(morale: Int, pressure: Int) -> TransitionContext
+{
+    return TransitionContext(morale, pressure, "raid");
+}
+
+func BuildSiegeTransitionContext(morale: Int, pressure: Int) -> TransitionContext
+{
+    return TransitionContext(morale, pressure, "siege");
+}
+
+func ApplyTransitionRule(rule: TransitionRule, ctx: TransitionContext) -> Int
+{
+    if rule.toState == 2 && ctx.morale <= 1
+    {
+        return 1;
+    }
+    if rule.toState == 1 && ctx.pressure >= 5 && rule.eventId == 2
+    {
+        return 2;
+    }
+    return rule.toState;
+}
+
+func TransitionTrace(rule: TransitionRule, ctx: TransitionContext) -> String
+{
+    let resolved = ApplyTransitionRule(rule, ctx);
+    return ctx.phaseTag + ": "
+        + StateLabel(rule.fromState)
+        + " --" + EventLabel(rule.eventId) + "--> "
+        + StateLabel(resolved)
+        + " / " + rule.note;
+}

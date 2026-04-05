@@ -281,6 +281,7 @@ world GameWorld {
 struct    = 순수 값 (광물/분자)
 vessel    = 피동 상태+메서드 (기관/organ)
 subject   = 능동 오케스트레이터 (유기체)
+class     = 도구/사물 (값 타입, func 있음, action 없음)
 object    = 읽기 전용 투영 (그림자)
 dto       = 경계 밖 전송 투영 (소식/평판)
 ability   = 행위 계약 (유전형질)
@@ -292,10 +293,75 @@ zone      = 규칙 구역/무대 (바이옴)
 world     = 생태계 전체 (소설)
 ```
 
+## subject vs class (이원론)
+
+subject는 "누가 움직이는가", class는 "무엇을 쓰는가".
+
+| | `subject` | `class` |
+|--|-----------|---------|
+| 역할 | 행동 주체 (Player, Enemy) | 도구/사물 (Item, Spell, Config) |
+| self | pointer-self (`self->`) | value-self (`self.`) |
+| 동사 | func (사적) + **action** (공적) | func만 |
+| 파라미터 전달 | 자동 참조 (포인터 은닉) | 값 복사 |
+| zone slot | 가능 | 불가 |
+| vessel 소유 | 가능 | 가능 |
+| identity | 있음 (복사 불가) | 없음 (복사 가능) |
+
+```pergyra
+// subject — 행동하는 존재
+subject Player {
+    let name: String;
+    vessel health: HealthState;
+    action Attack(self, target: Player) -> Int { ... }
+}
+
+// class — 사용되는 사물
+class Item {
+    let name: String;
+    let damage: Int;
+    func Description(self) -> String { return name; }
+}
+
+// struct — 순수 데이터
+struct Vec2 { x: Float; y: Float; }
+```
+
+subject만으로는 못 짠다 -- Item을 subject로 만들면 pointer-self, zone integration, action 의미론이 붙어 과하다. class는 "메서드가 있지만 주체성이 없는 사물"을 표현한다.
+
+### subject 안의 class
+
+subject는 vessel(피동 수용체)과 class(도구/사물)을 모두 소유할 수 있다:
+
+```pergyra
+class Item {
+    let name: String;
+    let damage: Int;
+    func Info(self) -> String { return name + " dmg:" + ToString(damage); }
+}
+
+subject Player {
+    let name: String;
+    vessel health: HealthState;    // 내부 상태 수용체 (vessel 키워드)
+    let weapon: Item;              // 도구/사물 (일반 필드)
+    
+    action Strike(self, target: Player) -> Int {
+        let dmg = weapon.damage;
+        target.health.ApplyDamage(dmg);
+        return dmg;
+    }
+}
+```
+
+- `vessel` 키워드: "이건 내 내부 상태다" (의미론적 선언)
+- `let field: Class`: "이건 내가 가진 사물이다" (일반 값 필드)
+- class는 subject 안에서 값으로 embed되고, class의 hosted func를 호출할 수 있다
+- 실전 예제 기준으로는 `Adventurer.weapon: WeaponCard`처럼 subject가 class를 직접 소유하고, 전투 로그/행동 계산에서 `weapon.ActionLine(...)`, `weapon.BossPressure(...)` 같은 hosted func를 호출하는 경로가 안정적이다
+
 ## 소설 비유 (완성)
 
 ```
-subject  = 주인공
+subject  = 주인공 (움직이는 존재)
+class    = 소도구 (검, 주문서, 열쇠 -- 행동 주체가 아님)
 vessel   = 주인공의 내면/소지품/신체 기관
 ability  = 주인공의 재능
 role     = 주인공이 맡은 역할

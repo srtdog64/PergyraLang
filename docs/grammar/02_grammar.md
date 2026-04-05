@@ -12,8 +12,10 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- `world`, `systemic`, `relation`, `effect`, `zone`은 contextual keyword다.
+- 예약 키워드 (57개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `dto`, `object`
+- 컨텍스트 키워드 (14개): `world`, `systemic`, `zone`, `relation`, `effect`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`
   선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
+- `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
 - 문장 종료는 세미콜론 `;` 이다.
@@ -589,6 +591,15 @@ event OnHit(damage: Int);
 
 OnHit += (d: Int) => { Log(d); };
 OnHit(77);
+```
+
+callable type:
+
+```pergyra
+func Apply(base: Int,
+           policy: func(Int) -> Int) -> Int {
+    return policy(base);
+}
 ```
 
 ## 9. 기타 문법

@@ -570,7 +570,8 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
     ASTNode *decl = find_class_decl(ctx, type_name);
     if (decl != NULL && (!decl->data.class_decl.is_struct
-        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL))
+        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
+        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT))
         return true;
     if (find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
@@ -2505,6 +2506,37 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         return "Int";
     }
+    case AST_BINARY: {
+        TokenType op = expr->data.binary.op.type;
+        const char *left_type = infer_expression_type_name(ctx, expr->data.binary.left);
+        const char *right_type = infer_expression_type_name(ctx, expr->data.binary.right);
+        if (op == TOKEN_PLUS) {
+            if ((left_type != NULL && strcmp(left_type, "String") == 0)
+                || (right_type != NULL && strcmp(right_type, "String") == 0)) {
+                return "String";
+            }
+            {
+                ASTNode *cursor = expr->data.binary.left;
+                while (cursor != NULL && cursor->type == AST_BINARY
+                       && cursor->data.binary.op.type == TOKEN_PLUS) {
+                    cursor = cursor->data.binary.left;
+                }
+                if (cursor != NULL) {
+                    const char *leaf_type = infer_expression_type_name(ctx, cursor);
+                    if (leaf_type != NULL && strcmp(leaf_type, "String") == 0)
+                        return "String";
+                }
+            }
+            return "Int";
+        }
+        if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
+            || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
+            || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL
+            || op == TOKEN_AND || op == TOKEN_OR) {
+            return "Bool";
+        }
+        return "Int";
+    }
     case AST_CALL:
         if (expr->data.call.callee != NULL
             && expr->data.call.callee->type == AST_MEMBER_ACCESS
@@ -2827,10 +2859,61 @@ pergyra_ast_type_to_c(ASTNode *type_node)
     if (type_node == NULL)
         return "void";
 
+    if (type_node->type == AST_EVENT_HANDLER_TYPE)
+        return "void *";
+
     char *type_name = render_type_name(type_node);
     snprintf(mapped, sizeof(mapped), "%s", pergyra_type_to_c(type_name));
     free(type_name);
     return mapped;
+}
+
+static char *
+pergyra_ast_typed_declarator(ASTNode *type_node, const char *name)
+{
+    if (type_node == NULL)
+        return strdup_fmt("void %s", name != NULL ? name : "value");
+
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        char *ret_type = pergyra_strdup("void");
+        CodeBuf *params = codebuf_create();
+        char *result;
+
+        if (type_node->data.event_handler_type.return_type != NULL) {
+            const char *rendered = pergyra_ast_type_to_c(
+                type_node->data.event_handler_type.return_type);
+            free(ret_type);
+            ret_type = pergyra_strdup(rendered);
+        }
+
+        if (params == NULL) {
+            result = strdup_fmt("%s (*%s)(void)", ret_type,
+                name != NULL ? name : "value");
+            free(ret_type);
+            return result;
+        }
+
+        if (type_node->data.event_handler_type.param_count == 0) {
+            codebuf_write(params, "void");
+        } else {
+            for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+                if (i > 0)
+                    codebuf_write(params, ", ");
+                codebuf_write(params, "%s",
+                    pergyra_ast_type_to_c(
+                        type_node->data.event_handler_type.param_types[i]));
+            }
+        }
+
+        result = strdup_fmt("%s (*%s)(%s)", ret_type,
+            name != NULL ? name : "value", params->data);
+        codebuf_destroy(params);
+        free(ret_type);
+        return result;
+    }
+
+    return strdup_fmt("%s %s", pergyra_ast_type_to_c(type_node),
+        name != NULL ? name : "value");
 }
 
 static bool

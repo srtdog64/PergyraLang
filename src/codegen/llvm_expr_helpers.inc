@@ -738,6 +738,7 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
 {
     LLVMClassTypeEntry *parent_cls;
     LLVMClassTypeEntry *field_cls;
+    ASTNode *host_decl;
     int field_idx;
     const char *host_name;
 
@@ -754,7 +755,26 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         return NULL;
 
     field_cls = llvm_lookup_class_by_type(ctx, parent_cls->fields[field_idx].field_type);
-    return field_cls != NULL ? field_cls->class_name : NULL;
+    if (field_cls != NULL)
+        return field_cls->class_name;
+
+    host_decl = llvm_find_projection_nominal_decl(ctx, host_name);
+    if (host_decl != NULL) {
+        size_t field_count = llvm_projection_field_count(host_decl);
+        for (size_t i = 0; i < field_count; i++) {
+            ClassField *field = llvm_projection_field_at(host_decl, i);
+            if (field == NULL || field->name == NULL
+                || strcmp(field->name, field_name) != 0
+                || field->type == NULL || field->type->type != AST_TYPE
+                || field->type->data.type.name == NULL) {
+                continue;
+            }
+            if (llvm_lookup_class(ctx, field->type->data.type.name) != NULL)
+                return field->type->data.type.name;
+        }
+    }
+
+    return NULL;
 }
 
 static LLVMValueRef
@@ -1304,9 +1324,12 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
     switch (node->type) {
     case AST_IDENTIFIER: {
         const char *name = node->data.identifier.name;
-        const char *class_name = llvm_lookup_var_class(ctx, name);
-        if (class_name != NULL)
-            return class_name;
+        LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+        if (var != NULL) {
+            const char *class_name = llvm_lookup_var_class(ctx, name);
+            if (class_name != NULL)
+                return class_name;
+        }
         if (strcmp(name, "self") != 0) {
             const char *host_name = llvm_current_host_class_name(ctx);
             LLVMClassTypeEntry *host_cls = host_name != NULL
@@ -1367,6 +1390,21 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee);
                 if (variant != NULL)
                     return variant->enum_name;
+            }
+            {
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
+                if (fn == NULL && ctx->current_class_name != NULL) {
+                    char full_name[256];
+                    snprintf(full_name, sizeof(full_name), "%s_%s",
+                        ctx->current_class_name, callee);
+                    fn = llvm_lookup_function(ctx, full_name);
+                }
+                if (fn != NULL) {
+                    for (int i = 0; i < ctx->class_type_count; i++) {
+                        if (ctx->class_types[i].struct_type == fn->ret_type)
+                            return ctx->class_types[i].class_name;
+                    }
+                }
             }
         }
         return NULL;

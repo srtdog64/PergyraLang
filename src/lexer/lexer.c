@@ -72,7 +72,6 @@ static const KeywordEntry keywords[] = {
     
     {"slot",     TOKEN_SLOT},
     {"shared",   TOKEN_SHARED},
-    {"context",  TOKEN_CONTEXT},
     {"extends",  TOKEN_EXTENDS},
     {"dyn",      TOKEN_DYN},
     

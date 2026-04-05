@@ -1170,6 +1170,31 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
     if (type_node == NULL)
         return ctx->type_void;
 
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        size_t param_count = type_node->data.event_handler_type.param_count;
+        LLVMTypeRef *param_types = NULL;
+        LLVMTypeRef ret_type = ctx->type_void;
+        LLVMTypeRef fn_type;
+
+        if (type_node->data.event_handler_type.return_type != NULL)
+            ret_type = ast_type_to_llvm(ctx,
+                type_node->data.event_handler_type.return_type);
+
+        if (param_count > 0) {
+            param_types = calloc(param_count, sizeof(LLVMTypeRef));
+            if (param_types == NULL)
+                return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
+            for (size_t i = 0; i < param_count; i++) {
+                param_types[i] = ast_type_to_llvm(ctx,
+                    type_node->data.event_handler_type.param_types[i]);
+            }
+        }
+
+        fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
+        free(param_types);
+        return LLVMPointerType(fn_type, 0);
+    }
+
     if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
         const char *name = type_node->data.type.name;
 
@@ -1391,6 +1416,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             { "ToLower", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "StringConcat", ctx->type_i8ptr,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "pgy_string_equals", ctx->type_i1,
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "ToInt", ctx->type_i32,
               { ctx->type_i8ptr }, 1 },

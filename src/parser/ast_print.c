@@ -194,7 +194,7 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_EVENT_HANDLER_TYPE:
-            printf("EventHandler(");
+            printf("func(");
             for (size_t i = 0; i < node->data.event_handler_type.param_count; i++) {
                 if (i > 0)
                     printf(", ");
@@ -1334,7 +1334,7 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_EVENT_HANDLER_TYPE:
-            printf("EventHandler(");
+            printf("func(");
             for (size_t i = 0; i < node->data.event_handler_type.param_count; i++) {
                 if (i > 0)
                     printf(", ");

@@ -86,7 +86,24 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
 
     if (init->type == AST_IDENTIFIER && init->data.identifier.name != NULL) {
         name = init->data.identifier.name;
-        return llvm_lookup_var_class(ctx, name);
+        if (llvm_scope_lookup(ctx, name) != NULL) {
+            const char *tracked = llvm_lookup_var_class(ctx, name);
+            if (tracked != NULL)
+                return tracked;
+        }
+        if (ctx->current_class_name != NULL && strcmp(name, "self") != 0) {
+            LLVMClassTypeEntry *host_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            if (host_cls != NULL) {
+                int field_idx = llvm_class_field_index(host_cls, name);
+                if (field_idx >= 0) {
+                    LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
+                        ctx, host_cls->fields[field_idx].field_type);
+                    if (field_cls != NULL)
+                        return field_cls->class_name;
+                }
+            }
+        }
+        return NULL;
     }
 
     if (init->type == AST_CALL
@@ -98,6 +115,12 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             return name;
         {
             LLVMFuncEntry *callee_fn = llvm_lookup_function(ctx, name);
+            if (callee_fn == NULL && ctx->current_class_name != NULL) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                    ctx->current_class_name, name);
+                callee_fn = llvm_lookup_function(ctx, full_name);
+            }
             LLVMClassTypeEntry *ret_cls = callee_fn != NULL
                 ? llvm_stmt_lookup_class_by_type(ctx, callee_fn->ret_type)
                 : NULL;
@@ -215,6 +238,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ctx->type_void;
             }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
+            if (fn == NULL && ctx->current_class_name != NULL) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                    ctx->current_class_name, callee);
+                fn = llvm_lookup_function(ctx, full_name);
+            }
             if (fn != NULL)
                 return fn->ret_type;
             if (strcmp(callee, "ToString") == 0

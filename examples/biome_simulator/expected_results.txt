@@ -7,17 +7,17 @@ packet_ready: true
 --- MEADOW ---
 plants: grass=18 brush=7 berry=18
 Swift Hare E:27 H:1
-browserView fatigue=1 age=0 metabolism=2
-predatorPacket stress=1 resilience=3
+browserView fatigue=0 age=6 metabolism=2
+predatorPacket stress=0 resilience=3
 Red Deer E:29 H:1
 Boar E:30 H:1
 Grey Wolf E:30 H:1
 
 --- GROVE ---
 plants: grass=14 brush=7 berry=18
-Field Mouse E:27 H:1
-browserView fatigue=1 age=0 metabolism=2
-predatorPacket stress=1 resilience=3
+Field Mouse E:25 H:1
+browserView fatigue=0 age=6 metabolism=2
+predatorPacket stress=0 resilience=3
 Elk E:29 H:1
 Badger E:30 H:1
 Lynx E:30 H:1

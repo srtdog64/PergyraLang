@@ -495,8 +495,10 @@ ASTNode* parse_lambda_expression(Parser* parser) {
         // 타입 어노테이션 (선택적)
         if (parser_match(parser, TOKEN_COLON)) {
             ASTNode* param_type = parse_type(parser);
-            // 타입 정보를 param 에 첨부 (향후 확장)
-            (void)param_type;
+            ASTNode* typed_param = ast_create_let_declaration(param_name.text);
+            typed_param->data.let_decl.type = param_type;
+            ast_destroy(param);
+            param = typed_param;
         }
 
         lambda->data.lambda_expr.param_count++;
