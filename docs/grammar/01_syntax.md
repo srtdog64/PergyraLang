@@ -148,6 +148,7 @@ intent Purchase(buyer: Player, seller: Merchant) {
         who: buyer;
         on: buyer.Pay();
         on: buyer.LogReceipt();
+        compensate: buyer.RollbackPayment();
         requires: Payable;
         authorized by: buyer;
         causes: PaymentEffect;
@@ -173,15 +174,19 @@ Purchase(hero, merchant);
 - `requires`는 선언된 ability여야 한다
 - `causes`는 선언된 effect여야 한다
 - `pre` / `post` / `expect` / `success` / `failure`는 `Bool`이어야 한다
+- `guard` / `invariant`도 `Bool`이어야 한다
 - `priority`는 `Int`여야 한다
 - `on:`은 여러 번 선언할 수 있고 현재 lowering은 선언 순서대로 실행한다
+- `compensate:`는 여러 번 선언할 수 있고, failure 시 reverse-order로 실행된다
+- `IntentLastTrace()` / `IntentLastFailure()` builtin으로 마지막 intent 실행 기록을 읽을 수 있다
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
 - 같은 subject에 대해 `exclusive` intent가 이미 active면 새 intent는 기본적으로 거부된다
 - 새 intent와 active intent가 모두 `concurrent`이면 병행 가능하다
 - 새 intent의 `priority`가 더 높으면 낮은 priority active intent 위로 중첩 진입할 수 있다
-- step ordering, trace/history, rollback/compensation은 아직 다음 단계다
+- step ordering, basic trace/history, basic rollback/compensation은 현재 구현되어 있다
+- 아직 남은 건 richer trace id/history API, cross-world transfer, 그리고 `using:` live sync를 넘는 fuller actor-to-zone-slot materialization이다
 
 주의:
 - `async func`는 현재 제네릭/`where` 절을 지원하지 않는다.

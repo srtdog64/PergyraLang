@@ -99,12 +99,29 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "using")) {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'using'");
+            ast_destroy(step->data.intent_step.using_expr);
+            step->data.intent_step.using_expr = parser_parse_expression(parser);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step using clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "on")) {
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'on'");
             intent_append_node(&step->data.intent_step.on_exprs,
                 &step->data.intent_step.on_expr_count,
                 parser_parse_expression(parser));
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step on clause");
+            continue;
+        }
+
+        if (parser_intent_match_keyword(parser, "compensate")) {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'compensate'");
+            intent_append_node(&step->data.intent_step.compensate_exprs,
+                &step->data.intent_step.compensate_expr_count,
+                parser_parse_expression(parser));
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step compensate clause");
             continue;
         }
 

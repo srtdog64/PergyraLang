@@ -2381,6 +2381,146 @@ find_subject_action_decl(TranspilerCtx *ctx, const char *subject_name, const cha
     return NULL;
 }
 
+static ASTNode *
+find_zone_decl_in_hir(TranspilerCtx *ctx, const char *zone_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *zone = ctx->hir->zones[i];
+        if (zone != NULL && zone->type == AST_ZONE_DECL
+            && zone->data.zone_decl.name != NULL
+            && strcmp(zone->data.zone_decl.name, zone_name) == 0) {
+            return zone;
+        }
+    }
+    return NULL;
+}
+
+static const char *
+intent_actor_type_name(ASTNode *intent, const char *alias)
+{
+    ASTNode *involves = find_intent_actor_local(intent, alias);
+    if (involves != NULL
+        && involves->data.intent_involves.subject_type != NULL
+        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+        return involves->data.intent_involves.subject_type->data.type.name;
+    }
+    return NULL;
+}
+
+static const char *
+resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
+                              ASTNode *step, const char *alias);
+
+static const char *
+intent_involves_type_name_local(ASTNode *involves)
+{
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
+        || involves->data.intent_involves.subject_type == NULL
+        || involves->data.intent_involves.subject_type->type != AST_TYPE) {
+        return NULL;
+    }
+    return involves->data.intent_involves.subject_type->data.type.name;
+}
+
+static bool
+intent_involves_is_subject_participant(TranspilerCtx *ctx, ASTNode *involves)
+{
+    const char *type_name = intent_involves_type_name_local(involves);
+    if (type_name == NULL)
+        return false;
+    return is_subject_type_name(ctx, type_name)
+        || find_actor_decl(ctx, type_name) != NULL;
+}
+
+static bool
+intent_involves_uses_pointer_self(TranspilerCtx *ctx, ASTNode *involves)
+{
+    const char *type_name = intent_involves_type_name_local(involves);
+    if (type_name == NULL)
+        return false;
+    return is_pointer_self_host_type_name(ctx, type_name)
+        || find_actor_decl(ctx, type_name) != NULL;
+}
+
+static void
+emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
+                                 ASTNode *intent, ASTNode *step)
+{
+    const char *zone_alias;
+    const char *zone_type;
+
+    if (out == NULL || ctx == NULL || intent == NULL || step == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.using_expr == NULL
+        || step->data.intent_step.using_expr->type != AST_IDENTIFIER
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE) {
+        return;
+    }
+
+    zone_alias = step->data.intent_step.using_expr->data.identifier.name;
+    zone_type = step->data.intent_step.where_type->data.type.name;
+    if (zone_alias == NULL || zone_type == NULL)
+        return;
+
+    write_indent(ctx);
+    codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
+}
+
+static const char *
+resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
+                              ASTNode *step, const char *alias)
+{
+    ASTNode *zone_decl = NULL;
+    const char *actor_type = NULL;
+    ASTNode *named_match = NULL;
+    ASTNode *typed_match = NULL;
+
+    if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
+        || step->data.intent_step.where_type == NULL
+        || step->data.intent_step.where_type->type != AST_TYPE
+        || step->data.intent_step.where_type->data.type.name == NULL) {
+        return "<unbound>";
+    }
+
+    zone_decl = find_zone_decl_in_hir(ctx, step->data.intent_step.where_type->data.type.name);
+    actor_type = intent_actor_type_name(intent, alias);
+    if (zone_decl == NULL)
+        return "<unbound>";
+
+    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+            || !slot->data.domain_slot.is_subject
+            || slot->data.domain_slot.slot_name == NULL) {
+            continue;
+        }
+        if (strcmp(slot->data.domain_slot.slot_name, alias) == 0) {
+            named_match = slot;
+            break;
+        }
+        if (actor_type != NULL
+            && slot->data.domain_slot.type != NULL
+            && slot->data.domain_slot.type->type == AST_TYPE
+            && slot->data.domain_slot.type->data.type.name != NULL
+            && strcmp(slot->data.domain_slot.type->data.type.name, actor_type) == 0) {
+            if (typed_match != NULL)
+                typed_match = (ASTNode *)(uintptr_t)1;
+            else
+                typed_match = slot;
+        }
+    }
+
+    if (named_match != NULL)
+        return named_match->data.domain_slot.slot_name;
+    if (typed_match != NULL && typed_match != (ASTNode *)(uintptr_t)1)
+        return typed_match->data.domain_slot.slot_name;
+    return "<unbound>";
+}
+
 static bool
 intent_action_has_only_self(ASTNode *action_decl)
 {
@@ -2407,15 +2547,37 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         const char *pt = "int32_t";
+        bool pointer_param = false;
         if (i > 0)
             codebuf_write(buf, ", ");
-        if (involves != NULL && involves->data.intent_involves.subject_type != NULL)
+        if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
             pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
-        codebuf_write(buf, "%s *%s", pt,
+            pointer_param = intent_involves_uses_pointer_self(ctx, involves);
+        }
+        codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ",
             involves != NULL && involves->data.intent_involves.alias != NULL
                 ? involves->data.intent_involves.alias : "actor");
     }
     codebuf_write(buf, ");\n");
+}
+
+static bool
+transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
+{
+    if (ctx == NULL || intent == NULL || intent->type != AST_INTENT_DECL)
+        return false;
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        if (involves == NULL || involves->type != AST_INTENT_INVOLVES
+            || involves->data.intent_involves.subject_type == NULL) {
+            continue;
+        }
+        if (!transpiler_can_forward_declare_type_early(
+                ctx, involves->data.intent_involves.subject_type)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static void
@@ -2423,6 +2585,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {
     int saved_slot_count;
     int saved_typed_count;
+    bool has_compensate_steps = false;
+    size_t subject_count = 0;
     CodeBuf *saved_out;
     TranspilerCtx *saved_render_ctx;
 
@@ -2436,26 +2600,36 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->out = buf;
     g_type_render_ctx = ctx;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
+    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
+        ASTNode *step = node->data.intent_decl.steps[i];
+        if (step != NULL && step->type == AST_INTENT_STEP
+            && step->data.intent_step.compensate_expr_count > 0) {
+            has_compensate_steps = true;
+            break;
+        }
+    }
 
     codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         const char *pt = "int32_t";
         char *type_name = NULL;
+        bool pointer_param = false;
         if (i > 0)
             codebuf_write(ctx->out, ", ");
         if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
             pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
             type_name = render_type_name(involves->data.intent_involves.subject_type);
+            pointer_param = intent_involves_uses_pointer_self(ctx, involves);
         }
-        codebuf_write(ctx->out, "%s *%s", pt,
+        codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ",
             involves != NULL && involves->data.intent_involves.alias != NULL
                 ? involves->data.intent_involves.alias : "actor");
         if (type_name != NULL) {
             register_typed_var(ctx, involves->data.intent_involves.alias, type_name);
             TypedVarEntry *entry = lookup_typed_entry(ctx, involves->data.intent_involves.alias);
             if (entry != NULL)
-                entry->is_subject_ref = true;
+                entry->is_subject_ref = pointer_param;
             free(type_name);
         }
     }
@@ -2464,18 +2638,39 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     write_indent(ctx);
     codebuf_write(ctx->out, "bool __intent_result = false;\n");
+    if (has_compensate_steps) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "bool __intent_failed = false;\n");
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "int32_t __intent_handle = 0;\n");
-    if (node->data.intent_decl.involve_count > 0) {
+    if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "bool __intent_step_completed[%zu] = { false };\n",
+            node->data.intent_decl.step_count);
+    }
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        if (intent_involves_is_subject_participant(ctx,
+                node->data.intent_decl.involves[i])) {
+            subject_count++;
+        }
+    }
+    if (subject_count > 0) {
         write_indent(ctx);
         codebuf_write(ctx->out, "void *__intent_subjects[%zu];\n",
-            node->data.intent_decl.involve_count);
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-            ASTNode *involves = node->data.intent_decl.involves[i];
-            const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
-                ? involves->data.intent_involves.alias : "actor";
-            write_indent(ctx);
-            codebuf_write(ctx->out, "__intent_subjects[%zu] = (void *)%s;\n", i, alias);
+            subject_count);
+        {
+            size_t subject_index = 0;
+            for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+                ASTNode *involves = node->data.intent_decl.involves[i];
+                const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
+                    ? involves->data.intent_involves.alias : "actor";
+                if (!intent_involves_is_subject_participant(ctx, involves))
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "__intent_subjects[%zu] = (void *)%s;\n",
+                    subject_index++, alias);
+            }
         }
     }
     {
@@ -2486,8 +2681,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         codebuf_write(ctx->out,
             "__intent_handle = pgy_intent_enter_export(\"%s\", %s, %zu, %s, %s);\n",
             node->data.intent_decl.name,
-            node->data.intent_decl.involve_count > 0 ? "__intent_subjects" : "NULL",
-            node->data.intent_decl.involve_count,
+            subject_count > 0 ? "__intent_subjects" : "NULL",
+            subject_count,
             node->data.intent_decl.is_concurrent ? "true" : "false",
             priority != NULL ? priority : "0");
         free(priority);
@@ -2499,6 +2694,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "if (__intent_handle == 0) {\n");
         ctx->indent++;
+        if (has_compensate_steps) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_failed = true;\n");
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "__intent_result = %s;\n",
             failure != NULL ? failure : "false");
@@ -2518,6 +2717,22 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "/* intent step: %s */\n",
             step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
+            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            (step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE
+                && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name : "<zone>");
+        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+            const char *alias = step->data.intent_step.who_names[j];
+            const char *slot_name = resolve_intent_zone_slot_name(ctx, node, step, alias);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
+                alias != NULL ? alias : "<actor>",
+                slot_name != NULL ? slot_name : "<unbound>");
+        }
+        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
 
         if (step->data.intent_step.pre_expr != NULL) {
             char *pre = emit_expression(step->data.intent_step.pre_expr, ctx);
@@ -2525,8 +2740,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                pre != NULL ? pre : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(pre);
             free(failure);
@@ -2538,8 +2757,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                invariant != NULL ? invariant : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(invariant);
             free(failure);
@@ -2574,6 +2797,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
             }
         }
+        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+
+        if (has_compensate_steps) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_step_completed[%zu] = true;\n", i);
+        }
 
         if (step->data.intent_step.guard_expr != NULL) {
             char *guard = emit_expression(step->data.intent_step.guard_expr, ctx);
@@ -2581,8 +2810,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                guard != NULL ? guard : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(guard);
             free(failure);
@@ -2594,8 +2827,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                expect != NULL ? expect : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(expect);
             free(failure);
@@ -2607,8 +2844,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                post != NULL ? post : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(post);
             free(failure);
@@ -2620,12 +2861,19 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? emit_expression(node->data.intent_decl.failure_expr, ctx)
                 : pergyra_strdup("false");
             write_indent(ctx);
-            codebuf_write(ctx->out, "if (!(%s)) { __intent_result = %s; goto __intent_cleanup; }\n",
-                invariant != NULL ? invariant : "false",
+            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
+            if (has_compensate_steps)
+                codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = %s; goto __intent_cleanup; }\n",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 failure != NULL ? failure : "false");
             free(invariant);
             free(failure);
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
+            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
     }
 
     write_indent(ctx);
@@ -2642,6 +2890,35 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "__intent_cleanup:\n");
     ctx->indent++;
+    if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (__intent_failed) {\n");
+        ctx->indent++;
+        for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
+            ASTNode *step = node->data.intent_decl.steps[i];
+            if (step == NULL || step->type != AST_INTENT_STEP
+                || step->data.intent_step.compensate_expr_count == 0)
+                continue;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+            ctx->indent++;
+            for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
+                char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                if (expr != NULL && expr[0] != '\0') {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "%s;\n", expr);
+                }
+                free(expr);
+            }
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+            ctx->indent--;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+        }
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
     write_indent(ctx);
@@ -2720,8 +2997,10 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         if (transpiler_can_forward_declare_func_early(ctx, hir->functions[i]))
             emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
     }
-    for (size_t i = 0; i < hir->intent_count; i++)
-        emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    for (size_t i = 0; i < hir->intent_count; i++) {
+        if (transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
+            emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    }
 
     /* Pass 3: roles (vtable instances + free functions) */
     for (size_t i = 0; i < hir->role_count; i++)
@@ -2744,6 +3023,13 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Pass 3.8: zones (struct + methods + sync helpers) */
     for (size_t i = 0; i < hir->zone_count; i++)
         emit_zone_decl(hir->zones[i], ctx);
+
+    /* Pass 3.85: now that zones are declared, emit intent prototypes that
+     * depend on zone types before world methods are emitted. */
+    for (size_t i = 0; i < hir->intent_count; i++) {
+        if (!transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
+            emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    }
 
     /* Pass 3.9: worlds (struct + methods) */
     for (size_t i = 0; i < hir->world_count; i++)

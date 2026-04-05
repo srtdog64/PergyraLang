@@ -450,10 +450,13 @@ ASTNode* ast_create_intent_step(const char* name) {
     ASTNode* node = ast_create_node(AST_INTENT_STEP);
     node->data.intent_step.name = name ? pergyra_strdup(name) : NULL;
     node->data.intent_step.where_type = NULL;
+    node->data.intent_step.using_expr = NULL;
     node->data.intent_step.who_names = NULL;
     node->data.intent_step.who_count = 0;
     node->data.intent_step.on_exprs = NULL;
     node->data.intent_step.on_expr_count = 0;
+    node->data.intent_step.compensate_exprs = NULL;
+    node->data.intent_step.compensate_expr_count = 0;
     node->data.intent_step.pre_expr = NULL;
     node->data.intent_step.guard_expr = NULL;
     node->data.intent_step.post_expr = NULL;
@@ -1512,12 +1515,16 @@ void ast_destroy(ASTNode* node) {
         case AST_INTENT_STEP:
             free(node->data.intent_step.name);
             ast_destroy(node->data.intent_step.where_type);
+            ast_destroy(node->data.intent_step.using_expr);
             for (size_t i = 0; i < node->data.intent_step.who_count; i++)
                 free(node->data.intent_step.who_names[i]);
             free(node->data.intent_step.who_names);
             for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++)
                 ast_destroy(node->data.intent_step.on_exprs[i]);
             free(node->data.intent_step.on_exprs);
+            for (size_t i = 0; i < node->data.intent_step.compensate_expr_count; i++)
+                ast_destroy(node->data.intent_step.compensate_exprs[i]);
+            free(node->data.intent_step.compensate_exprs);
             ast_destroy(node->data.intent_step.pre_expr);
             ast_destroy(node->data.intent_step.guard_expr);
             ast_destroy(node->data.intent_step.post_expr);

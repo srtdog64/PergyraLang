@@ -1,0 +1,43 @@
+subject Driver {
+    let hp: Int;
+
+    action Ignite(self) -> Void {
+        hp = hp + 3;
+    }
+}
+
+object DriverView {
+    let hp: Int;
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+    object slot dashboard: DriverView = DriverView(0)
+
+    bind dashboard from driver by driver
+}
+
+intent SyncDrive(cockpit: CockpitZone, driver: Driver) {
+    exclusive;
+    priority: 4;
+
+    step Ignite {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: driver.Ignite();
+        post: cockpit.driver.hp == driver.hp;
+        expect: cockpit.dashboard.hp == driver.hp;
+    }
+
+    success: cockpit.dashboard.hp == 8;
+    failure: false;
+}
+
+func Main() -> Void {
+    let cockpit = CockpitZone(Driver(5), DriverView(0));
+    let ok = SyncDrive(cockpit, cockpit.driver);
+    Log("ok=" + ToString(ok));
+    Log("cockpit.driver.hp=" + ToString(cockpit.driver.hp));
+    Log("dashboard.hp=" + ToString(cockpit.dashboard.hp));
+}

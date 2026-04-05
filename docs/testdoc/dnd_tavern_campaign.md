@@ -63,20 +63,20 @@ The example lives under `examples/dnd_tavern_campaign/`.
 Current source/golden layout:
 
 - `common.pgy`
-- `vessels.pgy`
-- `abilities.pgy`
-- `roles.pgy`
-- `layers.pgy`
-- `intents.pgy`
-- `views.pgy`
-- `units.pgy`
+- `subjects/vessels.pgy`
+- `subjects/abilities.pgy`
+- `subjects/roles.pgy`
+- `subjects/views.pgy`
+- `subjects/units.pgy`
+- `zones/layers.pgy`
+- `zones/journey.pgy`
+- `intents/campaign_intents.pgy`
 - `tables.pgy`
 - `dialogue.pgy`
 - `combat_text.pgy`
 - `combat_cards.pgy`
 - `story_cards.pgy`
 - `events.pgy`
-- `journey.pgy`
 - `world.pgy`
 - `setup.pgy`
 - `report.pgy`
@@ -189,10 +189,14 @@ This scenario is likely to expose:
   party-bond links and battle-blessing layers, with `HasZoneLayer(...)` /
   `HasZoneState(...)` showing up in the final report path
 - The campaign now also carries first-class `intent` declarations in
-  `intents.pgy`, and those intents are now actually invoked from the live
+  `intents/campaign_intents.pgy`, and those intents are now actually invoked from the live
   world state machine. Tavern recruitment, floor delving, and dragon-slaying
   are no longer just static contracts; they execute as generated intent
   functions on top of the same live `JourneyZone` / `Adventurer` runtime model
+- Those DND intents now bind a concrete live zone instance through
+  `using: journey;`. The runtime no longer treats `where: JourneyZone` as
+  static metadata only; each step re-syncs the actual bound `JourneyZone`
+  instance while it orchestrates the party subjects
 - DND intent steps now use repeated `on:` clauses plus `guard` / `invariant`,
   so a single declarative
   step can orchestrate multiple subject actions in order without dropping to a
@@ -212,8 +216,8 @@ This scenario is likely to expose:
 - `results.txt` is transcript-first and now captures the entire scenario flow,
   not just a final summary
 - The current transcript/report size is now in the low-thousands of lines,
-  which is enough to read like a substantial GM transcript instead of a short
-  demo
+  and currently sits around one thousand lines per exact golden, which is
+  enough to read like a substantial GM transcript instead of a short demo
 - Exact stdout and exact `results.txt` goldens are now part of the regression shape
 
 ## Discovered Pain Points
@@ -251,9 +255,13 @@ This scenario is likely to expose:
   directly from the world state machine, and those calls lower to generated
   runtime functions on both C and LLVM.
 - The remaining intent gap is now narrower: basic runtime conflict
-  arbitration now exists for `exclusive` / `concurrent` / `priority`, so the
-  remaining gaps are trace/history, rollback/compensation, and richer
-  `step -> zone slot` instance binding.
+  arbitration now exists for `exclusive` / `concurrent` / `priority`,
+  reverse-order `compensate:` rollback is present, and
+  `IntentLastTrace()` / `IntentLastFailure()` now expose minimal execution
+  history. `using: journey;` now provides live concrete zone-instance binding
+  for scenario intents. The remaining gaps are richer trace ids/history
+  structure and a fuller actor-to-zone-slot materialization layer beyond the
+  current sync-based binding.
 - Runtime hashmap helpers used raw `strdup(...)`, which leaked portability
   warnings into larger example builds. The runtime now routes those copies
   through `pgy_runtime_strdup(...)` instead.

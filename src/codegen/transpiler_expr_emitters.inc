@@ -946,6 +946,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(msg);
         return result;
     }
+    case BUILTIN_INTENT_LAST_TRACE:
+        return pergyra_strdup("pgy_intent_last_trace_export()");
+    case BUILTIN_INTENT_LAST_FAILURE:
+        return pergyra_strdup("pgy_intent_last_failure_export()");
     default:
         break;
     }

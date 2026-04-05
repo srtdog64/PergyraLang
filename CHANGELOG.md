@@ -6,6 +6,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added `using: zoneAlias;` to `intent step` and lowered it on both C and LLVM
+  backends as a live concrete zone-instance binding path. Intent steps now
+  re-sync the bound zone instance while they execute instead of treating
+  `where: ZoneType` as static metadata only.
+- Added backend parity coverage for `intent_zone_binding`, proving `using:`
+  keeps subject state, zone state, and bound object projection in sync on both
+  backends.
+- Changed `pgy scaffold project` to emit an intent-first project shape:
+  `intents/`, `subjects/`, `zones/`, `world.pgy`, and `main.pgy` now form the
+  starter layout instead of a single flat `domain.pgy`.
+- Restructured `examples/dnd_tavern_campaign/` into intent-first folders
+  (`intents/`, `subjects/`, `zones/`) and updated the campaign intents to bind
+  the live `JourneyZone` instance through `using: journey;`.
+- Added `compensate:` to `intent step`, with reverse-order rollback on both C
+  and LLVM backends when a step fails after side effects have already run.
+- Added minimal intent observability built-ins: `IntentLastTrace()` and
+  `IntentLastFailure()` now expose the most recent runtime trace/failure
+  summary from the active intent registry.
+- Added backend parity coverage for `intent_trace_compensate`, proving
+  compensation, last-trace history, and failure strings stay equal on C and
+  LLVM.
 - Added first-class `guard` and `invariant` clauses to `intent step`. The
   parser, semantic pass, C backend, LLVM backend, backend parity tests, and
   DND campaign now all exercise them.

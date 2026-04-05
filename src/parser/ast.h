@@ -761,10 +761,13 @@ struct ASTNode
         struct {
             char* name;
             ASTNode* where_type;
+            ASTNode* using_expr;
             char** who_names;
             size_t who_count;
             ASTNode** on_exprs;
             size_t on_expr_count;
+            ASTNode** compensate_exprs;
+            size_t compensate_expr_count;
             ASTNode* pre_expr;
             ASTNode* guard_expr;
             ASTNode* post_expr;

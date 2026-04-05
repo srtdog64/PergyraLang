@@ -1014,6 +1014,8 @@ builtin_resolve(const char *name)
     if (strcmp(name, "WriteFile")       == 0) return BUILTIN_WRITE_FILE;
     if (strcmp(name, "Input")           == 0) return BUILTIN_INPUT;
     if (strcmp(name, "Print")           == 0) return BUILTIN_PRINT;
+    if (strcmp(name, "IntentLastTrace") == 0) return BUILTIN_INTENT_LAST_TRACE;
+    if (strcmp(name, "IntentLastFailure") == 0) return BUILTIN_INTENT_LAST_FAILURE;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -2739,6 +2741,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return TYPE_STRING;
     case BUILTIN_PRINT:
         return type_check_stdlib_call(call, "Print", ctx);
+    case BUILTIN_INTENT_LAST_TRACE:
+        check_call_arity(call, 0, "IntentLastTrace", ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_LAST_FAILURE:
+        check_call_arity(call, 0, "IntentLastFailure", ctx);
+        return TYPE_STRING;
     default:
         return TYPE_UNKNOWN;
     }

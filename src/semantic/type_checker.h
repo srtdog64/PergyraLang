@@ -262,6 +262,8 @@ typedef enum
     BUILTIN_WRITE_FILE,
     BUILTIN_INPUT,
     BUILTIN_PRINT,
+    BUILTIN_INTENT_LAST_TRACE,
+    BUILTIN_INTENT_LAST_FAILURE,
     BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
 } BuiltinKind;
 

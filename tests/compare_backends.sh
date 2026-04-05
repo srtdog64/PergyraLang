@@ -114,6 +114,8 @@ main() {
         "tests/cases/backend_compare/host_method_class_return"
         "tests/cases/backend_compare/intent_decl_overlay"
         "tests/cases/backend_compare/intent_conflict_runtime"
+        "tests/cases/backend_compare/intent_trace_compensate"
+        "tests/cases/backend_compare/intent_zone_binding"
     )
 
     if [[ "$#" -gt 0 ]]; then

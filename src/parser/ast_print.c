@@ -1089,6 +1089,10 @@ void ast_print(ASTNode* node, int indent) {
                 printf(" where ");
                 ast_print_inline(node->data.intent_step.where_type);
             }
+            if (node->data.intent_step.using_expr != NULL) {
+                printf(" using ");
+                ast_print_inline(node->data.intent_step.using_expr);
+            }
             printf("\n");
             if (node->data.intent_step.who_count > 0) {
                 print_indent(indent + 1);
@@ -1099,11 +1103,25 @@ void ast_print(ASTNode* node, int indent) {
                 }
                 printf("\n");
             }
+            if (node->data.intent_step.using_expr != NULL) {
+                print_indent(indent + 1);
+                printf("Using: ");
+                ast_print_inline(node->data.intent_step.using_expr);
+                printf("\n");
+            }
             if (node->data.intent_step.on_expr_count > 0) {
                 for (size_t i = 0; i < node->data.intent_step.on_expr_count; i++) {
                     print_indent(indent + 1);
                     printf("On: ");
                     ast_print_inline(node->data.intent_step.on_exprs[i]);
+                    printf("\n");
+                }
+            }
+            if (node->data.intent_step.compensate_expr_count > 0) {
+                for (size_t i = 0; i < node->data.intent_step.compensate_expr_count; i++) {
+                    print_indent(indent + 1);
+                    printf("Compensate: ");
+                    ast_print_inline(node->data.intent_step.compensate_exprs[i]);
                     printf("\n");
                 }
             }

@@ -1,0 +1,48 @@
+subject Driver {
+    let hp: Int;
+    let started: Bool;
+
+    action Ignite(self) -> Void {
+        started = true;
+        hp = hp + 1;
+    }
+
+    action RollbackIgnite(self) -> Void {
+        started = false;
+        hp = hp - 1;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent DriveCar(driver: Driver) {
+    exclusive;
+    priority: 3;
+
+    step Ignite {
+        where: CockpitZone;
+        who: driver;
+        on: driver.Ignite();
+        compensate: driver.RollbackIgnite();
+        pre: true;
+        post: driver.started;
+        guard: false;
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let d = Driver(0, false);
+    let ok = DriveCar(d);
+    Log("ok=" + ToString(ok));
+    Log("hp=" + ToString(d.hp));
+    Log("started=" + ToString(d.started));
+    Log("failure=" + IntentLastFailure());
+    Log("trace:");
+    Log(IntentLastTrace());
+}

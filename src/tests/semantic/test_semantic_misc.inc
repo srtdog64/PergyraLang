@@ -1475,11 +1475,12 @@ test_misc_grammar_edges(void)
             "zone CockpitZone {\n"
             "    subject slot driver: Driver\n"
             "}\n"
-            "intent DriveCar(driver: Driver) {\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
             "    exclusive;\n"
             "    priority: 3;\n"
             "    step Ignite {\n"
             "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
             "        who: driver;\n"
             "        on: driver.Ignite();\n"
             "        on: driver.Ignite();\n"
@@ -1537,6 +1538,49 @@ test_misc_grammar_edges(void)
             "Intent guard expression must be Bool"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Intent invariant expression must be Bool"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration supports compensate and trace builtins");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void { self.started = true; }\n"
+            "    action RollbackIgnite(self) -> Void { self.started = false; }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "}\n"
+            "intent DriveCar(driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        who: driver;\n"
+            "        on: driver.Ignite();\n"
+            "        compensate: driver.RollbackIgnite();\n"
+            "        pre: true;\n"
+            "        guard: false;\n"
+            "        post: driver.started;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(IntentLastTrace());\n"
+            "    Log(IntentLastFailure());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -69,6 +69,10 @@ typedef struct {
     int32_t subject_count;
     bool    is_concurrent;
     int32_t priority;
+    char   *trace;
+    char   *failure_reason;
+    int32_t step_count;
+    bool    failed;
     bool    active;
 } PgyIntentActiveEntry;
 
@@ -77,6 +81,40 @@ typedef struct {
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int32_t pgy_intent_next_handle = 1;
+static char *pgy_intent_last_trace = NULL;
+static char *pgy_intent_last_failure = NULL;
+
+static inline void
+pgy_intent_append_line(char **dst, const char *line)
+{
+    size_t old_len = 0;
+    size_t add_len = 0;
+    char *grown;
+
+    if (dst == NULL || line == NULL)
+        return;
+
+    if (*dst != NULL)
+        old_len = strlen(*dst);
+    add_len = strlen(line);
+    grown = (char *)realloc(*dst, old_len + add_len + 1);
+    if (grown == NULL)
+        return;
+    memcpy(grown + old_len, line, add_len + 1);
+    *dst = grown;
+}
+
+static inline PgyIntentActiveEntry *
+pgy_intent_find_active_entry(int32_t handle)
+{
+    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (pgy_intent_active_registry[i].active
+            && pgy_intent_active_registry[i].handle == handle) {
+            return &pgy_intent_active_registry[i];
+        }
+    }
+    return NULL;
+}
 
 static inline bool
 pgy_intent_subjects_overlap(void **lhs, int32_t lhs_count,
@@ -148,10 +186,94 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].subject_count = subject_count;
     pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
     pgy_intent_active_registry[free_index].priority = priority;
+    pgy_intent_active_registry[free_index].trace = NULL;
+    pgy_intent_active_registry[free_index].failure_reason = NULL;
+    pgy_intent_active_registry[free_index].step_count = 0;
+    pgy_intent_active_registry[free_index].failed = false;
     pgy_intent_active_registry[free_index].active = true;
+    {
+        char line[256];
+        snprintf(line, sizeof(line), "[intent] enter %s\n",
+            name != NULL ? name : "<intent>");
+        pgy_intent_append_line(&pgy_intent_active_registry[free_index].trace, line);
+    }
 
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return handle;
+}
+
+static inline void
+pgy_intent_trace_step_export(int32_t handle, const char *step_name, const char *zone_name)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[256];
+        snprintf(line, sizeof(line), "[step] begin %s @ %s\n",
+            step_name != NULL ? step_name : "<step>",
+            zone_name != NULL ? zone_name : "<zone>");
+        pgy_intent_append_line(&entry->trace, line);
+        entry->step_count++;
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+static inline void
+pgy_intent_trace_bind_export(int32_t handle, const char *actor_name, const char *slot_name)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[256];
+        snprintf(line, sizeof(line), "[bind] %s -> %s\n",
+            actor_name != NULL ? actor_name : "<actor>",
+            slot_name != NULL ? slot_name : "<unbound>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+static inline void
+pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[256];
+        snprintf(line, sizeof(line), "[step] ok %s\n",
+            step_name != NULL ? step_name : "<step>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+static inline void
+pgy_intent_trace_fail_export(int32_t handle, const char *reason)
+{
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[256];
+        free(entry->failure_reason);
+        entry->failure_reason = pgy_runtime_strdup(reason != NULL ? reason : "");
+        entry->failed = true;
+        snprintf(line, sizeof(line), "[fail] %s\n",
+            reason != NULL ? reason : "<failure>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+}
+
+static inline char *
+pgy_intent_last_trace_export(void)
+{
+    return pgy_intent_last_trace != NULL ? pgy_intent_last_trace : "";
+}
+
+static inline char *
+pgy_intent_last_failure_export(void)
+{
+    return pgy_intent_last_failure != NULL ? pgy_intent_last_failure : "";
 }
 
 static inline void
@@ -167,14 +289,26 @@ pgy_intent_exit_export(int32_t handle)
         if (!entry->active || entry->handle != handle)
             continue;
 
+        free(pgy_intent_last_trace);
+        free(pgy_intent_last_failure);
+        pgy_intent_last_trace = entry->trace != NULL
+            ? pgy_runtime_strdup(entry->trace) : pgy_runtime_strdup("");
+        pgy_intent_last_failure = entry->failure_reason != NULL
+            ? pgy_runtime_strdup(entry->failure_reason) : pgy_runtime_strdup("");
         free(entry->name);
         free(entry->subjects);
+        free(entry->trace);
+        free(entry->failure_reason);
         entry->handle = 0;
         entry->name = NULL;
         entry->subjects = NULL;
         entry->subject_count = 0;
         entry->is_concurrent = false;
         entry->priority = 0;
+        entry->trace = NULL;
+        entry->failure_reason = NULL;
+        entry->step_count = 0;
+        entry->failed = false;
         entry->active = false;
         break;
     }

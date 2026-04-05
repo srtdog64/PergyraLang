@@ -26,9 +26,9 @@ Pergyra의 접근: **의도를 1급 구조로 선언한다.** 구현이 어떻�
 ### 상태
 
 ```
-현재 단계: 언어 코어 v0.2
+현재 단계: 언어 코어 v0.3
 구현 형태: parser/semantic/HIR/codegen이 `intent` declaration을 직접 이해함
-성숙도:    executable runtime lowering + basic conflict scheduler 존재. trace/rollback은 아직 다음 단계.
+성숙도:    executable runtime lowering + basic conflict scheduler + minimal trace/history + rollback/compensation + live zone-instance binding 존재
 ```
 
 ---
@@ -147,7 +147,8 @@ src/semantic/type_checker_decls.inc
 현재 구현은 `intent`를 parser/AST/semantic/HIR/codegen이 직접 이해한다.
 `Intent(args...)` 호출은 현재 generated runtime function으로 lowering되며, 각 step의
 `pre` / `invariant(pre)` / repeated `on` / `guard` / `expect` / `post` / `invariant(post)`를 순서대로 실행한다.
-반면 scheduler, conflict arbitration, rollback, trace/history는 아직 별도 runtime engine 과제로 남아 있다.
+runtime은 same-subject conflict scheduler, last-trace/last-failure history,
+그리고 실패 시 reverse-order `compensate:` rollback까지 가진다.
 
 ```
 언어:
@@ -155,7 +156,7 @@ src/semantic/type_checker_decls.inc
   → 무엇이 존재하고 의도가 어떤 정적 계약을 가지는가
 
 런타임 엔진:
-  step ordering, success/failure, trace, compensation
+  step ordering, success/failure, conflict arbitration, trace, compensation
   → 그 의도를 실제로 어떻게 진행하고 실패를 다루는가
 ```
 
@@ -179,8 +180,11 @@ priority        → Int여야 함
 여기에 더해 runtime은 이제 active intent registry를 두고 같은 subject에 대한
 `exclusive` 충돌을 막고, `concurrent` / `concurrent`는 허용하며,
 더 높은 `priority` intent는 낮은 priority active intent 위로 중첩 진입할 수 있다.
-즉 v0.2의 intent는 **실행 가능한 declaration + basic conflict scheduler**지만,
-아직 full trace/FSM/rollback 엔진은 아니다.
+또 failed step은 reverse-order `compensate:` expression을 실행하고,
+`IntentLastTrace()` / `IntentLastFailure()`로 마지막 실행 기록을 읽을 수 있다.
+즉 v0.3의 intent는 **실행 가능한 declaration + basic conflict scheduler +
+minimal trace/rollback runtime + live zone-instance binding**이지만, 아직
+full trace id / rollback policy / richer actor-slot materialization 엔진은 아니다.
 
 ---
 
@@ -215,19 +219,25 @@ intent Purchase
     // guard/expect/post false → failure 반환
     // invariant(post) false   → failure 반환
     //
+    // 현재:
+    // failure 시 reverse-order compensate 실행
+    // last trace / last failure 조회 가능
+    //
     // 다음 단계:
-    // trace / history
+    // richer trace id / step history API
     // cross-world 전이 엔진
-    // rollback / compensation
+    // richer rollback policy
 }
 ```
 
 ### 연결 방식 — 일부는 생겼고, 일부는 아직 미정의
 
 intent가 `where: PaymentZone`으로 zone 타입을 참조하면, 그 zone 안의 action 계약은 언어가 이미 검증한다.
-현재는 `who`/`authorized by`와 zone subject slot 타입 적합성, `requires` 능력 구현 여부, `causes` effect 존재까지는 정적으로 묶인다.
-다만 richer `step -> zone slot instance binding`, cross-world transfer,
-trace/history, rollback/compensation은 아직 완전히 명세되지 않았다.
+현재는 `who`/`authorized by`와 zone subject slot 타입 적합성, `requires` 능력 구현 여부,
+`causes` effect 존재까지는 정적으로 묶이고, runtime trace에는 `who -> zone slot`
+binding line이 기록된다.
+다만 richer actor-slot materialization, cross-world transfer,
+trace id/history model, rollback policy는 아직 완전히 명세되지 않았다.
 
 구체적으로 다음이 정의되어야 한다:
 
@@ -253,9 +263,9 @@ within ✓                     condition 검증
 authorized by ✓              cross-world 전이
 causes ✓                     intent 성공/실패 판정
 
-연결 지점 (미정의):
+연결 지점 (부분 구현 / 남은 것):
   step ↔ zone action 바인딩
-  step ↔ subject slot 바인딩
+  step ↔ concrete zone instance 바인딩 (`using:` live sync 있음)
   step ↔ step 상태 전달
 ```
 

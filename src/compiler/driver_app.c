@@ -610,10 +610,16 @@ static int
 scaffold_project_dir(const char *target)
 {
     char *dir = pergyra_strdup(target);
-    char *domain_path = NULL;
+    char *subject_path = NULL;
+    char *zone_path = NULL;
+    char *intent_path = NULL;
+    char *world_path = NULL;
     char *main_path = NULL;
     char *name = NULL;
-    char domain_content[6144];
+    char subject_content[4096];
+    char zone_content[3072];
+    char intent_content[3072];
+    char world_content[3072];
     char main_content[2048];
     int rc = 1;
 
@@ -622,24 +628,27 @@ scaffold_project_dir(const char *target)
     if (scaffold_mkdir_p(dir) != 0)
         goto cleanup;
 
-    domain_path = path_join_dup(dir, "domain.pgy");
+    subject_path = path_join_dup(dir, "subjects/actor.pgy");
+    zone_path = path_join_dup(dir, "zones/main.pgy");
+    intent_path = path_join_dup(dir, "intents/recover_actor.pgy");
+    world_path = path_join_dup(dir, "world.pgy");
     main_path = path_join_dup(dir, "main.pgy");
     name = scaffold_base_name_dup(dir);
-    if (domain_path == NULL || main_path == NULL || name == NULL)
+    if (subject_path == NULL || zone_path == NULL || intent_path == NULL ||
+        world_path == NULL || main_path == NULL || name == NULL)
         goto cleanup;
 
-    snprintf(domain_content, sizeof(domain_content),
-        "// Start by choosing the host kind.\n"
-        "// subject: active agent / who acts\n"
-        "// class: passive tool or thing with hosted func\n"
-        "// object: passive view/state target\n"
-        "// dto: boundary packet\n"
+    snprintf(subject_content, sizeof(subject_content),
+        "// subject = who acts\n"
+        "// class   = what the subject uses\n"
+        "// object  = passive projected state\n"
+        "// vessel  = internal passive state holder\n"
         "\n"
         "vessel Health\n"
         "{\n"
         "    current: Int;\n"
         "\n"
-        "    func Heal(self, amount: Int) -> Void\n"
+        "    func Restore(self, amount: Int) -> Void\n"
         "    {\n"
         "        current = current + amount;\n"
         "    }\n"
@@ -662,14 +671,14 @@ scaffold_project_dir(const char *target)
         "    let tool: Tool;\n"
         "    vessel health: Health;\n"
         "\n"
-        "    func Tick(self) -> Void\n"
+        "    func HealUp(self) -> Void\n"
         "    {\n"
-        "        health.Heal(tool.recovery);\n"
+        "        health.Restore(tool.recovery);\n"
         "    }\n"
         "\n"
-        "    action Step(self) -> Void\n"
+        "    action Recover(self) -> Void\n"
         "    {\n"
-        "        Tick();\n"
+        "        HealUp();\n"
         "    }\n"
         "}\n"
         "\n"
@@ -677,7 +686,10 @@ scaffold_project_dir(const char *target)
         "{\n"
         "    name: String;\n"
         "    tool: Tool;\n"
-        "}\n"
+        "}\n");
+
+    snprintf(zone_content, sizeof(zone_content),
+        "import \"../subjects/actor.pgy\";\n"
         "\n"
         "zone MainZone\n"
         "{\n"
@@ -687,13 +699,36 @@ scaffold_project_dir(const char *target)
         "    refresh view from unit by unit\n"
         "    shared tick: Int = 0\n"
         "\n"
-        "    func Step(self) -> Void\n"
+        "    func Snapshot(self) -> String\n"
         "    {\n"
-        "        unit.Step();\n"
-        "        tick = tick + 1;\n"
-        "        Log(unit.name);\n"
+        "        return view.name + \" hp=\" + ToString(unit.health.current);\n"
         "    }\n"
-        "}\n"
+        "}\n");
+
+    snprintf(intent_content, sizeof(intent_content),
+        "import \"../zones/main.pgy\";\n"
+        "\n"
+        "intent RecoverActor(main: MainZone, unit: Actor)\n"
+        "{\n"
+        "    exclusive;\n"
+        "    priority: 10;\n"
+        "\n"
+        "    step Recover\n"
+        "    {\n"
+        "        where: MainZone;\n"
+        "        using: main;\n"
+        "        who: unit;\n"
+        "        on: unit.Recover();\n"
+        "        post: main.unit.health.current == unit.health.current;\n"
+        "        expect: main.view.name == unit.name;\n"
+        "    }\n"
+        "\n"
+        "    success: unit.health.current > 0;\n"
+        "    failure: false;\n"
+        "}\n");
+
+    snprintf(world_content, sizeof(world_content),
+        "import \"intents/recover_actor.pgy\";\n"
         "\n"
         "world %sWorld\n"
         "{\n"
@@ -703,25 +738,40 @@ scaffold_project_dir(const char *target)
         "\n"
         "    func Step(self) -> Void\n"
         "    {\n"
-        "        main.Step();\n"
+        "        Log(\"[Intent] RecoverActor=\" + ToString(RecoverActor(main, main.unit)));\n"
+        "        Log(main.Snapshot());\n"
         "        tick = tick + 1;\n"
         "    }\n"
+        "}\n"
+        "\n"
+        "func Open%sWorld() -> %sWorld\n"
+        "{\n"
+        "    let zone = MainZone(Actor(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
+        "    return %sWorld(zone);\n"
         "}\n",
+        name,
+        name,
+        name,
         name);
 
     snprintf(main_content, sizeof(main_content),
-        "import \"domain.pgy\";\n"
+        "import \"world.pgy\";\n"
         "\n"
         "func Main() -> Void\n"
         "{\n"
-        "    let zone = MainZone(Actor(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
-        "    let app = %sWorld(zone);\n"
+        "    let app = Open%sWorld();\n"
         "    app.Step();\n"
         "    app.Step();\n"
         "}\n",
         name);
 
-    if (scaffold_write_file(domain_path, domain_content) != 0)
+    if (scaffold_write_file(subject_path, subject_content) != 0)
+        goto cleanup;
+    if (scaffold_write_file(zone_path, zone_content) != 0)
+        goto cleanup;
+    if (scaffold_write_file(intent_path, intent_content) != 0)
+        goto cleanup;
+    if (scaffold_write_file(world_path, world_content) != 0)
         goto cleanup;
     if (scaffold_write_file(main_path, main_content) != 0)
         goto cleanup;
@@ -731,7 +781,10 @@ scaffold_project_dir(const char *target)
 
 cleanup:
     free(dir);
-    free(domain_path);
+    free(subject_path);
+    free(zone_path);
+    free(intent_path);
+    free(world_path);
     free(main_path);
     free(name);
     return rc;

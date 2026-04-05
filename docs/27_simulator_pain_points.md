@@ -16,9 +16,13 @@ examples such as the battle simulator and biome simulator.
   story scenarios can now call `Intent(args...)` and move subjects through
   repeated `on:` clauses or zero-arg same-name action dispatch, and
   `exclusive` / `concurrent` / `priority` now have a concrete runtime conflict
-  registry on both C and LLVM. Step-level `guard` / `invariant` now run too.
-  The remaining gaps are richer trace/history,
-  rollback/compensation, and deeper `step -> zone slot` binding.
+  registry on both C and LLVM. Step-level `guard` / `invariant` now run too,
+  reverse-order `compensate:` rollback works, and `IntentLastTrace()` /
+  `IntentLastFailure()` expose minimal history.
+  `using: zoneAlias;` now gives intent steps a live concrete zone instance and
+  forces sync on that bound zone while the step runs. The remaining gaps are
+  richer trace ids/history structure and a fuller actor-to-zone-slot
+  materialization layer beyond the current sync-based binding.
 
 ## Recently Resolved
 

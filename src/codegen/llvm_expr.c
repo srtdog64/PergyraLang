@@ -1891,6 +1891,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentLastTrace") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_trace_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentLastFailure") == 0
+        && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_failure_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
     if (strcmp(callee_name, "SeedRandom") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "SeedRandom");
@@ -2386,17 +2400,17 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             for (size_t i = 0; i < argc; i++) {
                 ASTNode *involves = i < intent_decl->data.intent_decl.involve_count
                     ? intent_decl->data.intent_decl.involves[i] : NULL;
-                const char *subject_name = NULL;
-                LLVMClassTypeEntry *param_cls = NULL;
+                const char *type_name = NULL;
+                bool pointer_self = false;
                 ASTNode *arg_node = node->data.call.arguments[i];
 
                 if (involves != NULL && involves->type == AST_INTENT_INVOLVES
                     && involves->data.intent_involves.subject_type != NULL
                     && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                    type_name = involves->data.intent_involves.subject_type->data.type.name;
                 }
-                param_cls = subject_name != NULL ? llvm_lookup_class(ctx, subject_name) : NULL;
-                if (param_cls != NULL && param_cls->is_pointer_self_host) {
+                pointer_self = llvm_nominal_uses_pointer_self(ctx, type_name);
+                if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                         const char *arg_name = arg_node->data.identifier.name;
                         LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
@@ -2406,6 +2420,19 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                     arg_var->alloca, llvm_tmp_name(ctx));
                             else
                                 args[i] = arg_var->alloca;
+                        } else if (ctx->current_class_name != NULL) {
+                            LLVMClassTypeEntry *host_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+                            if (host_cls != NULL) {
+                                int field_idx = llvm_class_field_index(host_cls, arg_name);
+                                if (field_idx >= 0) {
+                                    LLVMValueRef base_ptr = llvm_current_self_base_ptr(ctx, host_cls);
+                                    if (base_ptr != NULL) {
+                                        args[i] = LLVMBuildStructGEP2(ctx->builder,
+                                            host_cls->struct_type, base_ptr,
+                                            (unsigned)field_idx, llvm_tmp_name(ctx));
+                                    }
+                                }
+                            }
                         }
                     } else if (arg_node != NULL && arg_node->type == AST_MEMBER_ACCESS) {
                         args[i] = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
@@ -2435,18 +2462,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 sizeof(LLVMTypeRef));
             for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
                 ASTNode *involves = intent_decl->data.intent_decl.involves[i];
-                const char *subject_name = NULL;
-                LLVMClassTypeEntry *cls = NULL;
+                LLVMTypeRef pt = ctx->type_i8ptr;
+                const char *type_name = NULL;
 
                 if (involves != NULL && involves->type == AST_INTENT_INVOLVES
                     && involves->data.intent_involves.subject_type != NULL
                     && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                    type_name = involves->data.intent_involves.subject_type->data.type.name;
+                    pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                    if (llvm_nominal_uses_pointer_self(ctx, type_name))
+                        pt = LLVMPointerType(pt, 0);
                 }
-                cls = subject_name != NULL ? llvm_lookup_class(ctx, subject_name) : NULL;
-                param_types[i] = cls != NULL
-                    ? LLVMPointerType(cls->struct_type, 0)
-                    : ctx->type_i8ptr;
+                param_types[i] = pt;
             }
         }
 
