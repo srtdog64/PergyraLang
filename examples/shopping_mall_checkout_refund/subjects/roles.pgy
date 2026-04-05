@@ -1,0 +1,37 @@
+role CustomerRole for Member
+{
+    impl ability Purchasable
+    {
+        func PurchaseMark() -> String
+        {
+            return "purchase-ready";
+        }
+    }
+
+    impl ability Refundable
+    {
+        func RefundMark() -> String
+        {
+            return "refund-ready";
+        }
+    }
+
+    impl ability ProfileEditable
+    {
+        func ProfileMark() -> String
+        {
+            return "profile-edit-ready";
+        }
+    }
+}
+
+role MerchantRole for Merchant
+{
+    impl ability Merchanting
+    {
+        func MerchantMark() -> String
+        {
+            return "merchant-ledger";
+        }
+    }
+}

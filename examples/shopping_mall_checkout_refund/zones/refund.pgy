@@ -1,0 +1,42 @@
+zone RefundZone
+{
+    subject slot buyer: Member
+    subject slot merchant: Merchant
+    object slot buyerView: BuyerZoneView = ToObject(BuyerZoneView, buyer)
+    dto slot merchantPacket: MerchantZonePacket = ToDto(MerchantZonePacket, merchant)
+
+    effect slot refunded: RefundSeal
+    relation slot link: CommerceLink
+
+    shared route: String = "/refund"
+    shared requested: Int = 0
+    shared approved: Int = 0
+    shared stage: String = "idle"
+
+    authority buyer requires Refundable
+    authority merchant requires Merchanting
+
+    apply refunded to buyer by buyer
+    link link between buyer, merchant by merchant
+
+    state refundReady: effect refunded on buyer
+    state linked: relation link between buyer, merchant
+
+    func MirrorRefund(self, requestedAmount: Int, approvedAmount: Int) -> Int
+    {
+        self.link.medium = "web";
+        requested = requestedAmount;
+        approved = approvedAmount;
+        self.refunded.amount = approvedAmount;
+        stage = "approved";
+        return approved;
+    }
+
+    func Snapshot(self) -> String
+    {
+        return route
+            + " requested=" + ToString(requested)
+            + " approved=" + ToString(approved)
+            + " state=" + stage;
+    }
+}

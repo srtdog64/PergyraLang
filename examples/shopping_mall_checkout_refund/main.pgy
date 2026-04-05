@@ -1,0 +1,22 @@
+import "common.pgy";
+import "subjects/vessels.pgy";
+import "subjects/abilities.pgy";
+import "subjects/commerce.pgy";
+import "subjects/roles.pgy";
+import "pages/surfaces.pgy";
+import "zones/layers.pgy";
+import "zones/cart.pgy";
+import "zones/payment.pgy";
+import "zones/refund.pgy";
+import "zones/account.pgy";
+import "intents/commerce_intents.pgy";
+import "world.pgy";
+import "setup.pgy";
+
+func Main() -> Void
+{
+    let world = OpenCommerceWorld();
+    world.RunCommerceScripted();
+    Log("saving examples/shopping_mall_checkout_refund/results.txt");
+    world.SaveReport("examples/shopping_mall_checkout_refund/results.txt");
+}

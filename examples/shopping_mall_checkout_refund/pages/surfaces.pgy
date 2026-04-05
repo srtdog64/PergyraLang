@@ -1,0 +1,178 @@
+object BuyerZoneView
+{
+    let name: String;
+    let loyaltyTier: String;
+    let cartCount: Int;
+    let refundRequested: Int;
+    let privacyAccepted: Int;
+    let lastStatus: String;
+}
+
+dto MerchantZonePacket
+{
+    let name: String;
+    let orderCount: Int;
+    let refundCount: Int;
+    let lastStatus: String;
+}
+
+object CartPage
+{
+    let route: String;
+    let shopper: String;
+    let merchant: String;
+    let feature: String;
+    let qty: Int;
+    let subtotal: Int;
+    let coupon: Int;
+    let total: Int;
+    let status: String;
+}
+
+dto CheckoutPacket
+{
+    let route: String;
+    let shopper: String;
+    let payment: String;
+    let orderId: Int;
+    let amount: Int;
+    let state: String;
+}
+
+object RefundPage
+{
+    let route: String;
+    let shopper: String;
+    let ticket: String;
+    let amount: Int;
+    let status: String;
+    let merchant: String;
+}
+
+dto ProfilePacket
+{
+    let route: String;
+    let shopper: String;
+    let email: String;
+    let privacyAccepted: Int;
+    let marketingOptIn: Int;
+    let lastPage: String;
+    let refundTotal: Int;
+}
+
+func BuildBuyerZoneView(buyer: Member) -> BuyerZoneView
+{
+    return BuyerZoneView(
+        buyer.name,
+        buyer.loyaltyTier,
+        buyer.cartCount,
+        buyer.refundRequested,
+        buyer.privacyAccepted,
+        buyer.lastStatus
+    );
+}
+
+func BuildMerchantZonePacket(merchant: Merchant) -> MerchantZonePacket
+{
+    return MerchantZonePacket(
+        merchant.name,
+        merchant.orderCount,
+        merchant.refundCount,
+        merchant.lastStatus
+    );
+}
+
+func BuildCartPage(buyer: Member, merchant: Merchant, route: String) -> CartPage
+{
+    return CartPage(
+        route,
+        buyer.name,
+        merchant.name,
+        buyer.featured.title,
+        buyer.cart.quantity,
+        buyer.cart.subtotal,
+        buyer.cart.coupon,
+        buyer.cart.GrandTotal(),
+        buyer.lastStatus
+    );
+}
+
+func BuildCheckoutPacket(buyer: Member, route: String, orderId: Int, amount: Int) -> CheckoutPacket
+{
+    return CheckoutPacket(
+        route,
+        buyer.name,
+        buyer.PaymentLabel(),
+        orderId,
+        amount,
+        buyer.lastStatus
+    );
+}
+
+func BuildRefundPage(buyer: Member, merchant: Merchant, route: String) -> RefundPage
+{
+    return RefundPage(
+        route,
+        buyer.name,
+        buyer.refunds.ticket,
+        buyer.refunds.approved,
+        buyer.refunds.status,
+        merchant.name
+    );
+}
+
+func BuildProfilePacket(buyer: Member, route: String) -> ProfilePacket
+{
+    return ProfilePacket(
+        route,
+        buyer.name,
+        buyer.account.email,
+        buyer.account.privacyAccepted,
+        buyer.account.marketingOptIn,
+        buyer.account.lastPage,
+        buyer.wallet.refunded
+    );
+}
+
+func RenderCartPage(page: CartPage) -> String
+{
+    return "[Page " + page.route + "] "
+        + page.shopper
+        + " sees " + page.feature
+        + " qty=" + ToString(page.qty)
+        + " subtotal=$" + ToString(page.subtotal)
+        + " coupon=$" + ToString(page.coupon)
+        + " total=$" + ToString(page.total)
+        + " status=" + page.status;
+}
+
+func RenderCheckoutPacket(packet: CheckoutPacket) -> String
+{
+    return "[API " + packet.route + "] "
+        + packet.shopper
+        + " payment=" + packet.payment
+        + " order=" + ToString(packet.orderId)
+        + " amount=$" + ToString(packet.amount)
+        + " state=" + packet.state;
+}
+
+func RenderRefundPage(page: RefundPage) -> String
+{
+    return "[Page " + page.route + "] "
+        + page.shopper
+        + " ticket=" + page.ticket
+        + " amount=$" + ToString(page.amount)
+        + " status=" + page.status
+        + " merchant=" + page.merchant;
+}
+
+func RenderProfilePacket(packet: ProfilePacket) -> String
+{
+    return "[API " + packet.route + "] "
+        + packet.shopper
+        + " email=" + packet.email
+        + " privacy=" + ToString(packet.privacyAccepted)
+        + " marketing=" + ToString(packet.marketingOptIn)
+        + " lastPage=" + packet.lastPage
+        + " refunded=$" + ToString(packet.refundTotal);
+}

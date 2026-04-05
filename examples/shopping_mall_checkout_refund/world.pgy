@@ -1,0 +1,178 @@
+world CommerceWorld
+{
+    zone cart: CartZone
+    zone payment: PaymentZone
+    zone refund: RefundZone
+    zone account: AccountZone
+
+    shared transcript: String = ""
+    shared route: String = "/cart"
+    shared flowState: String = "cart"
+
+    activate cart
+    activate payment
+    activate refund
+    activate account
+
+    func Record(self, line: String) -> Void
+    {
+        if StringLength(transcript) == 0
+        {
+            transcript = line;
+        }
+        else
+        {
+            transcript = transcript + "\n" + line;
+        }
+    }
+
+    func Broadcast(self, line: String) -> Void
+    {
+        Log(line);
+        Record(line);
+    }
+
+    func Blank(self) -> Void
+    {
+        Log("");
+        Record("");
+    }
+
+    func BroadcastIntent(self, label: String, ok: Bool) -> Void
+    {
+        Broadcast("[Intent] " + label + " ok=" + ToString(ok));
+        Broadcast("  [Runtime] name=" + IntentLastName() + " handle=" + ToString(IntentLastHandle()) + " failed=" + ToString(IntentLastFailed()));
+        Broadcast("  [Runtime] steps=" + ToString(IntentLastStepCount()));
+    }
+
+    func BroadcastIntentHistory(self) -> Void
+    {
+        let index = 0;
+        while index < IntentHistoryCount()
+        {
+            Broadcast("  [Step] " + IntentHistoryStepName(index)
+                + " @ " + IntentHistoryStepZone(index)
+                + " ok=" + ToString(IntentHistoryStepOk(index)));
+            if !IntentHistoryStepOk(index)
+            {
+                Broadcast("    [Failure] " + IntentHistoryStepFailure(index));
+            }
+            index = index + 1;
+        }
+        Broadcast("  [Trace] " + IntentLastTrace());
+        if StringLength(IntentLastFailure()) > 0
+        {
+            Broadcast("  [LastFailure] " + IntentLastFailure());
+        }
+    }
+
+    func ShowCart(self) -> Void
+    {
+        route = cart.route;
+        let page = BuildCartPage(cart.buyer, cart.merchant, cart.route);
+        Broadcast("[JS] mount " + route);
+        Broadcast(RenderCartPage(page));
+        Broadcast("  [CartZone] " + cart.Snapshot());
+    }
+
+    func ShowCheckout(self) -> Void
+    {
+        route = payment.route;
+        let packet = BuildCheckoutPacket(cart.buyer, payment.route, payment.orderId, payment.captured);
+        Broadcast("[JS] navigate " + route);
+        Broadcast(RenderCheckoutPacket(packet));
+        Broadcast("  [PaymentZone] " + payment.Snapshot());
+        Broadcast("  [Link] " + payment.link.Label());
+        Broadcast("  [Effect] " + payment.paid.Label());
+        Broadcast("  [State] paidReady=" + ToString(HasZoneState(payment, paidReady)) + " linked=" + ToString(HasZoneState(payment, linked)));
+    }
+
+    func ShowRefund(self) -> Void
+    {
+        route = refund.route;
+        let page = BuildRefundPage(cart.buyer, cart.merchant, refund.route);
+        Broadcast("[JS] navigate " + route);
+        Broadcast(RenderRefundPage(page));
+        Broadcast("  [RefundZone] " + refund.Snapshot());
+        Broadcast("  [Link] " + refund.link.Label());
+        Broadcast("  [Effect] " + refund.refunded.Label());
+        Broadcast("  [State] refundReady=" + ToString(HasZoneState(refund, refundReady)) + " linked=" + ToString(HasZoneState(refund, linked)));
+    }
+
+    func ShowProfile(self) -> Void
+    {
+        route = account.route;
+        let packet = BuildProfilePacket(cart.buyer, account.route);
+        Broadcast("[JS] navigate " + route);
+        Broadcast(RenderProfilePacket(packet));
+        Broadcast("  [AccountZone] " + account.Snapshot());
+    }
+
+    func FinalSnapshot(self) -> Void
+    {
+        Broadcast("buyer: " + cart.buyer.Summary());
+        Broadcast("merchant: " + cart.merchant.Summary());
+        Broadcast("cart=" + cart.Snapshot());
+        Broadcast("payment=" + payment.Snapshot());
+        Broadcast("refund=" + refund.Snapshot());
+        Broadcast("account=" + account.Snapshot());
+    }
+
+    func RunCommerceScripted(self) -> Void
+    {
+        Broadcast(CommerceHeader());
+        Broadcast(CommerceSubtitle());
+        Blank();
+
+        Broadcast("[Scene] storefront opens with a JS cart page over a Pergyra backend.");
+        cart.buyer.AddFeatured(2);
+        cart.buyer.ApplyPromo(7);
+        cart.Touch();
+        ShowCart();
+        Blank();
+
+        flowState = "checkout";
+        Broadcast("[API] POST /api/intents/CheckoutPurchase");
+        let checkoutOk: Bool = CheckoutPurchase(cart, payment, cart.buyer, cart.merchant);
+        BroadcastIntent("CheckoutPurchase", checkoutOk);
+        BroadcastIntentHistory();
+        ShowCheckout();
+        Blank();
+
+        flowState = "refund";
+        Broadcast("[API] POST /api/intents/RefundPurchase");
+        let refundOk: Bool = RefundPurchase(payment, refund, cart.buyer, cart.merchant);
+        BroadcastIntent("RefundPurchase", refundOk);
+        BroadcastIntentHistory();
+        ShowRefund();
+        Blank();
+
+        flowState = "account";
+        Broadcast("[API] POST /api/intents/SyncAccountProfile");
+        let profileOk: Bool = SyncAccountProfile(refund, account, cart.buyer);
+        BroadcastIntent("SyncAccountProfile", profileOk);
+        BroadcastIntentHistory();
+        ShowProfile();
+        Blank();
+
+        Broadcast("[Summary] all page routes are projections; all state changes went through intents and zones.");
+        FinalSnapshot();
+    }
+
+    func SaveReport(self, path: String) -> Void
+    {
+        WriteFile(path,
+            "=== SHOPPING CHECKOUT + REFUND REPORT ===\n"
+            + "route=" + route + " flow=" + flowState + "\n\n"
+            + "--- TRANSCRIPT ---\n"
+            + transcript + "\n\n"
+            + "--- SNAPSHOT ---\n"
+            + "buyer: " + cart.buyer.Summary() + "\n"
+            + "merchant: " + cart.merchant.Summary() + "\n"
+            + "cart=" + cart.Snapshot() + "\n"
+            + "payment=" + payment.Snapshot() + "\n"
+            + "refund=" + refund.Snapshot() + "\n"
+            + "account=" + account.Snapshot() + "\n"
+        );
+    }
+}

@@ -1,0 +1,128 @@
+vessel CartState
+{
+    let quantity: Int;
+    let subtotal: Int;
+    let coupon: Int;
+    let shipping: Int;
+    let lastSku: String;
+
+    func AddFeatured(self, unitPrice: Int, sku: String, qty: Int) -> Int
+    {
+        quantity = quantity + qty;
+        subtotal = subtotal + (unitPrice * qty);
+        lastSku = sku;
+        return GrandTotal();
+    }
+
+    func ApplyCoupon(self, discount: Int) -> Int
+    {
+        coupon = discount;
+        return GrandTotal();
+    }
+
+    func GrandTotal(self) -> Int
+    {
+        return Max(subtotal - coupon, 0) + shipping;
+    }
+}
+
+vessel WalletState
+{
+    let credit: Int;
+    let reserved: Int;
+    let spent: Int;
+    let refunded: Int;
+
+    func Reserve(self, amount: Int) -> Int
+    {
+        reserved = amount;
+        return reserved;
+    }
+
+    func Capture(self) -> Int
+    {
+        let amount = reserved;
+        credit = Max(credit - amount, 0);
+        spent = spent + amount;
+        reserved = 0;
+        return amount;
+    }
+
+    func Refund(self, amount: Int) -> Int
+    {
+        credit = credit + amount;
+        refunded = refunded + amount;
+        return refunded;
+    }
+}
+
+vessel RefundState
+{
+    let requested: Int;
+    let approved: Int;
+    let ticket: String;
+    let status: String;
+
+    func Open(self, amount: Int, ticketId: String) -> Int
+    {
+        requested = amount;
+        approved = 0;
+        ticket = ticketId;
+        status = "requested";
+        return requested;
+    }
+
+    func Approve(self) -> Int
+    {
+        approved = requested;
+        status = "approved";
+        return approved;
+    }
+}
+
+vessel AccountState
+{
+    let email: String;
+    let privacyAccepted: Int;
+    let marketingOptIn: Int;
+    let lastPage: String;
+    let lastOrder: String;
+
+    func Visit(self, route: String) -> String
+    {
+        lastPage = route;
+        return lastPage;
+    }
+
+    func UpdatePrivacy(self, marketing: Int) -> Int
+    {
+        privacyAccepted = 1;
+        marketingOptIn = marketing;
+        lastPage = "/account/profile";
+        return marketingOptIn;
+    }
+}
+
+vessel MerchantLedger
+{
+    let orders: Int;
+    let refunds: Int;
+    let gross: Int;
+    let reversed: Int;
+    let shipments: Int;
+
+    func RecordOrder(self, amount: Int) -> Int
+    {
+        orders = orders + 1;
+        gross = gross + amount;
+        shipments = shipments + 1;
+        return gross;
+    }
+
+    func RecordRefund(self, amount: Int) -> Int
+    {
+        refunds = refunds + 1;
+        reversed = reversed + amount;
+        return reversed;
+    }
+}

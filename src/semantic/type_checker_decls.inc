@@ -641,7 +641,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (step->data.intent_step.expect_expr != NULL)
             intent_condition_is_bool(step->data.intent_step.expect_expr, ctx, "expect");
 
-        if (!matched_action) {
+        if (!matched_action && step->data.intent_step.on_expr_count == 0) {
             semantic_warning(ctx, step,
                 "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");

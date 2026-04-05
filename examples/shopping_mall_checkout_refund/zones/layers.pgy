@@ -1,0 +1,29 @@
+effect PaymentSeal for buyer: Member
+{
+    shared amount: Int = 0
+
+    func Label(self) -> String
+    {
+        return buyer.name + " payment sealed $" + ToString(amount);
+    }
+}
+
+effect RefundSeal for buyer: Member
+{
+    shared amount: Int = 0
+
+    func Label(self) -> String
+    {
+        return buyer.name + " refund issued $" + ToString(amount);
+    }
+}
+
+relation CommerceLink for source: Member, target: Merchant
+{
+    shared medium: String = "web"
+
+    func Label(self) -> String
+    {
+        return source.name + " to " + target.name + " via " + medium;
+    }
+}

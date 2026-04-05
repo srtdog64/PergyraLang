@@ -1,0 +1,9 @@
+func CommerceHeader() -> String
+{
+    return "=== PERGYRA SHOPPING CHECKOUT + REFUND ===";
+}
+
+func CommerceSubtitle() -> String
+{
+    return "pages project surfaces; zones enforce execution; intents move the customer.";
+}

@@ -1,0 +1,44 @@
+zone PaymentZone
+{
+    subject slot buyer: Member
+    subject slot merchant: Merchant
+    object slot buyerView: BuyerZoneView = ToObject(BuyerZoneView, buyer)
+    dto slot merchantPacket: MerchantZonePacket = ToDto(MerchantZonePacket, merchant)
+
+    effect slot paid: PaymentSeal
+    relation slot link: CommerceLink
+
+    shared route: String = "/checkout"
+    shared orderId: Int = 4101
+    shared captured: Int = 0
+    shared shipped: Int = 0
+    shared stage: String = "pending"
+
+    authority buyer requires Purchasable
+    authority merchant requires Merchanting
+
+    apply paid to buyer by buyer
+    link link between buyer, merchant by merchant
+
+    state paidReady: effect paid on buyer
+    state linked: relation link between buyer, merchant
+
+    func MirrorCapture(self, amount: Int, shipmentCount: Int) -> Int
+    {
+        self.link.medium = "web";
+        self.paid.amount = amount;
+        captured = amount;
+        shipped = shipmentCount;
+        stage = "captured";
+        return captured;
+    }
+
+    func Snapshot(self) -> String
+    {
+        return route
+            + " order=" + ToString(orderId)
+            + " captured=" + ToString(captured)
+            + " shipped=" + ToString(shipped)
+            + " state=" + stage;
+    }
+}

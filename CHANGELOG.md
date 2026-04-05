@@ -422,3 +422,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - documented the post-implementation strengths and weaknesses of Pergyra in
   `docs/35_hands_on_language_assessment.md`
 - intent: added `transfer: source -> target;` to `intent step`, with semantic validation that both bindings are zone participants, target matches `where`, and `who` actors match subject slots on both sides; C/LLVM lowering now performs live handoff materialization, dual-zone sync, and `[transfer] ...` runtime trace lines, with backend parity coverage in `tests/cases/backend_compare/intent_cross_world_transfer/`
+- intent/semantic: suppress the misleading "intent is declarative only" warning
+  for steps that already declare explicit `on:` expressions; same-name action
+  matching is now only warned about when a step has no executable `on:` path
+- examples/docs/tests: add `examples/shopping_mall_checkout_refund/`, an
+  intent-first commerce scenario with `intents/`, `subjects/`, `zones/`,
+  `pages/`, `world.pgy`, exact stdout/results goldens, and JS/backend flavored
+  transcript output demonstrating `page != zone`, checkout/payment/refund
+  transfer, profile sync, and runtime `IntentHistory*` inspection on both C
+  and LLVM backends

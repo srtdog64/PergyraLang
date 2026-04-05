@@ -1,0 +1,19 @@
+ability Purchasable
+{
+    func PurchaseMark() -> String;
+}
+
+ability Refundable
+{
+    func RefundMark() -> String;
+}
+
+ability ProfileEditable
+{
+    func ProfileMark() -> String;
+}
+
+ability Merchanting
+{
+    func MerchantMark() -> String;
+}

@@ -1,0 +1,174 @@
+class ProductSpec
+{
+    let sku: String;
+    let title: String;
+    let unitPrice: Int;
+    let category: String;
+
+    func Line(self, qty: Int) -> String
+    {
+        return title + " x" + ToString(qty) + " ($" + ToString(unitPrice * qty) + ")";
+    }
+}
+
+class PaymentMethod
+{
+    let brand: String;
+    let masked: String;
+    let trusted: Int;
+
+    func Label(self) -> String
+    {
+        return brand + " " + masked;
+    }
+}
+
+subject Member
+{
+    let name: String;
+    let loyaltyTier: String;
+    let featured: ProductSpec;
+    let payment: PaymentMethod;
+    vessel cart: CartState;
+    vessel wallet: WalletState;
+    vessel refunds: RefundState;
+    vessel account: AccountState;
+    let cartCount: Int;
+    let refundRequested: Int;
+    let privacyAccepted: Int;
+    let lastStatus: String;
+
+    func FeaturedLine(self) -> String
+    {
+        return featured.Line(cart.quantity);
+    }
+
+    func PaymentLabel(self) -> String
+    {
+        return payment.Label();
+    }
+
+    action BrowseCart(self) -> Int
+    {
+        account.Visit("/cart");
+        cartCount = cart.quantity;
+        privacyAccepted = account.privacyAccepted;
+        lastStatus = "browsing";
+        return cart.GrandTotal();
+    }
+
+    action AddFeatured(self, qty: Int) -> Int
+    {
+        account.Visit("/cart");
+        let total = cart.AddFeatured(featured.unitPrice, featured.sku, qty);
+        cartCount = cart.quantity;
+        lastStatus = "cart-updated";
+        return total;
+    }
+
+    action ApplyPromo(self, discount: Int) -> Int
+    {
+        let total = cart.ApplyCoupon(discount);
+        cartCount = cart.quantity;
+        lastStatus = "promo-applied";
+        return total;
+    }
+
+    action BeginCheckout(self, shipping: Int) -> Int
+    {
+        account.Visit("/checkout");
+        cart.shipping = shipping;
+        let reserved = wallet.Reserve(cart.GrandTotal());
+        cartCount = cart.quantity;
+        lastStatus = "checkout-started";
+        account.lastOrder = "pending";
+        return reserved;
+    }
+
+    action ConfirmPayment(self) -> Int
+    {
+        let amount = wallet.Capture();
+        lastStatus = "paid";
+        account.lastOrder = "paid";
+        return amount;
+    }
+
+    action OpenRefund(self, ticketSeed: Int) -> Int
+    {
+        account.Visit("/refund");
+        refundRequested = refunds.Open(wallet.spent, "RF-" + ToString(ticketSeed));
+        lastStatus = "refund-open";
+        return refundRequested;
+    }
+
+    action AcceptRefund(self) -> Int
+    {
+        let amount = refunds.Approve();
+        wallet.Refund(amount);
+        refundRequested = refunds.requested;
+        lastStatus = "refund-approved";
+        account.lastOrder = "refunded";
+        return amount;
+    }
+
+    action UpdatePrivacy(self, marketing: Int) -> Int
+    {
+        let choice = account.UpdatePrivacy(marketing);
+        privacyAccepted = account.privacyAccepted;
+        lastStatus = "profile-updated";
+        return choice;
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " tier=" + loyaltyTier
+            + " cart=" + ToString(cart.quantity)
+            + " credit=" + ToString(wallet.credit)
+            + " spent=" + ToString(wallet.spent)
+            + " refunded=" + ToString(wallet.refunded)
+            + " status=" + lastStatus;
+    }
+}
+
+subject Merchant
+{
+    let name: String;
+    let featured: ProductSpec;
+    vessel ledger: MerchantLedger;
+    let orderCount: Int;
+    let refundCount: Int;
+    let lastStatus: String;
+
+    action StageOrder(self, amount: Int) -> Int
+    {
+        lastStatus = "order-staged";
+        return amount;
+    }
+
+    action CaptureOrder(self, amount: Int) -> Int
+    {
+        ledger.RecordOrder(amount);
+        orderCount = ledger.orders;
+        lastStatus = "payment-captured";
+        return amount;
+    }
+
+    action ApproveRefund(self, amount: Int) -> Int
+    {
+        ledger.RecordRefund(amount);
+        refundCount = ledger.refunds;
+        lastStatus = "refund-approved";
+        return amount;
+    }
+
+    func Summary(self) -> String
+    {
+        return name
+            + " orders=" + ToString(ledger.orders)
+            + " refunds=" + ToString(ledger.refunds)
+            + " gross=" + ToString(ledger.gross)
+            + " reversed=" + ToString(ledger.reversed)
+            + " status=" + lastStatus;
+    }
+}

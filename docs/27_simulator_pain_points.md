@@ -148,3 +148,12 @@ examples such as the battle simulator and biome simulator.
   priority active entries. This also fixed LLVM nested intent calls that were
   incorrectly forwarding subject-pointer allocas instead of the subject
   pointer value itself.
+- Intent steps with explicit `on:` clauses no longer emit the misleading
+  warning that they are "declarative only" just because no same-name subject
+  action exists. If a step has concrete `on:` expressions, the compiler now
+  treats that as a real executable lowering path.
+- The new shopping-mall checkout/refund scenario exposed a practical boundary
+  in `using:` + actor materialization: trace and slot binding are strong, but
+  richer nested actor state is still more predictable when a canonical actor
+  is updated explicitly and zones mirror the shared execution result. The
+  example now follows that pattern and documents it as the safer v1 shape.

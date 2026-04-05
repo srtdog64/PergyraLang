@@ -1,0 +1,25 @@
+zone AccountZone
+{
+    subject slot buyer: Member
+
+    shared route: String = "/account/profile"
+    shared stage: String = "view"
+    shared marketing: Int = 0
+
+    authority buyer requires ProfileEditable
+
+    func MirrorProfile(self, marketingChoice: Int, accepted: Int) -> Int
+    {
+        marketing = marketingChoice;
+        stage = "synced";
+        return accepted;
+    }
+
+    func Snapshot(self) -> String
+    {
+        return route
+            + " privacy=" + ToString(buyer.account.privacyAccepted)
+            + " marketing=" + ToString(marketing)
+            + " last=" + buyer.lastStatus;
+    }
+}

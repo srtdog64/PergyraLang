@@ -1,0 +1,99 @@
+intent CheckoutPurchase(cart: CartZone, payment: PaymentZone, buyer: Member, merchant: Merchant)
+{
+    exclusive;
+    priority: 10;
+
+    step ReviewCart
+    {
+        where: CartZone;
+        using: cart;
+        who: buyer;
+        on: cart.Touch();
+        requires: Purchasable;
+        authorized by: buyer;
+        pre: buyer.cart.quantity > 0;
+        guard: buyer.cart.GrandTotal() > 0;
+        post: cart.lastTotal > 0;
+        invariant: buyer.wallet.credit >= 0;
+        expect: cart.lastTotal > 0;
+    }
+
+    step MoveToPayment
+    {
+        where: PaymentZone;
+        using: payment;
+        transfer: cart -> payment;
+        who: buyer;
+        on: merchant.StageOrder(buyer.cart.GrandTotal());
+        on: buyer.BeginCheckout(6);
+        on: buyer.ConfirmPayment();
+        on: merchant.CaptureOrder(buyer.wallet.spent);
+        on: payment.MirrorCapture(buyer.wallet.spent, merchant.ledger.shipments);
+        requires: Purchasable;
+        authorized by: buyer, merchant;
+        causes: PaymentSeal;
+        pre: buyer.wallet.credit >= buyer.cart.GrandTotal();
+        guard: buyer.payment.trusted >= 1;
+        post: payment.captured > 0;
+        invariant: payment.orderId > 0;
+        expect: payment.captured > 0;
+    }
+
+    success: payment.captured > 0;
+    failure: payment.captured == 0;
+}
+
+intent RefundPurchase(payment: PaymentZone, refund: RefundZone, buyer: Member, merchant: Merchant)
+{
+    exclusive;
+    priority: 20;
+
+    step MoveToRefund
+    {
+        where: RefundZone;
+        using: refund;
+        transfer: payment -> refund;
+        who: buyer;
+        on: buyer.OpenRefund(8831);
+        on: buyer.AcceptRefund();
+        on: merchant.ApproveRefund(buyer.refunds.approved);
+        on: refund.MirrorRefund(buyer.refunds.requested, buyer.refunds.approved);
+        requires: Refundable;
+        authorized by: buyer, merchant;
+        causes: RefundSeal;
+        pre: payment.captured > 0;
+        guard: buyer.refunds.approved > 0;
+        post: refund.approved > 0;
+        invariant: buyer.wallet.credit >= 0;
+        expect: refund.approved > 0;
+    }
+
+    success: refund.approved > 0;
+    failure: refund.approved == 0;
+}
+
+intent SyncAccountProfile(refund: RefundZone, account: AccountZone, buyer: Member)
+{
+    concurrent;
+    priority: 5;
+
+    step MoveToAccount
+    {
+        where: AccountZone;
+        using: account;
+        transfer: refund -> account;
+        who: buyer;
+        on: buyer.UpdatePrivacy(1);
+        on: account.MirrorProfile(buyer.account.marketingOptIn, buyer.account.privacyAccepted);
+        requires: ProfileEditable;
+        authorized by: buyer;
+        pre: buyer.wallet.refunded >= 0;
+        guard: buyer.account.email != "";
+        post: buyer.account.privacyAccepted == 1;
+        invariant: buyer.wallet.credit >= 0;
+        expect: account.marketing == 1;
+    }
+
+    success: buyer.account.privacyAccepted == 1;
+    failure: buyer.account.privacyAccepted == 0;
+}

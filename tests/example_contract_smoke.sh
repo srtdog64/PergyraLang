@@ -236,6 +236,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/campaign_graph_fsm" "PERGYRA CAMPAIGN GRAPH + FSM" "CAMPAIGN DAY 1" "[Watch] view Iris" "FINAL CAMPAIGN SNAPSHOT" "saving examples/campaign_graph_fsm/results.txt"
     run_expect_lines "dnd_tavern_campaign" "$backend" \
         "$ROOT_DIR/examples/dnd_tavern_campaign" "=== DND TAVERN CAMPAIGN ===" "== TAVERN NIGHT ==" "== FLOOR 3 ==" "== DRAGON LAIR ==" "saving examples/dnd_tavern_campaign/results.txt"
+    run_expect_lines "shopping_mall_checkout_refund" "$backend" \
+        "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[JS] mount /cart" "[API] POST /api/intents/CheckoutPurchase" "[API] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
     run_expect_lines "pattern_library_basics" "$backend" \
         "$ROOT_DIR/examples/pattern_library_basics" "PERGYRA PATTERN LIBRARY BASICS" "CONTEXTUAL SINGLETON" "FACTORY / SPEC BUILDER" "STRATEGY CARD + RESOLVER" "EXPLICIT RELAY / OBSERVER"
     run_expect_file_lines "battle_simulator" \
@@ -250,6 +252,8 @@ run_stable_examples() {
         "$backend" "$ROOT_DIR/examples/campaign_graph_fsm/results.txt" "CAMPAIGN GRAPH FSM REPORT" "WATCH" "SUMMIT" "allViewsReady=true"
     run_expect_file_lines "dnd_tavern_campaign" \
         "$backend" "$ROOT_DIR/examples/dnd_tavern_campaign/results.txt" "DND TAVERN CAMPAIGN REPORT" "dragonHp=0 victory=1" "Ari [Vanguard]" "Sol [Mage]"
+    run_expect_file_lines "shopping_mall_checkout_refund" \
+        "$backend" "$ROOT_DIR/examples/shopping_mall_checkout_refund/results.txt" "SHOPPING CHECKOUT + REFUND REPORT" "CheckoutPurchase ok=1" "RefundPurchase ok=1" "SyncAccountProfile ok=1"
 }
 
 run_qubit_example() {
