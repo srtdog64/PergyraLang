@@ -18,6 +18,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `HashMap<String, List<String>>` and `HashMap<String, Player>` now emit their
   collection specializations before forward prototypes, so the generated C
   compiles without the old unknown-type/conflicting-prototype failure.
+- Fixed lexer string scanning for escaped quotes and backslashes. JSON-like
+  payloads such as `"{\"ok\":true}"` now parse correctly, which unblocks
+  practical `http`/adapter examples and request-body literals.
 - Fixed LLVM parameter metadata registration for collection-typed and
   function-typed parameters across free functions and hosted methods. Practical
   examples now keep `List<T>`, `HashMap<String, V>`, and callable parameter

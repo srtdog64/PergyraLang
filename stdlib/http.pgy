@@ -1,0 +1,33 @@
+class HttpRequest {
+    let method: String;
+    let path: String;
+    let body: String;
+    let traceId: Int;
+}
+
+class HttpResponse {
+    let status: Int;
+    let contentType: String;
+    let body: String;
+}
+
+class RouteSpec {
+    let method: String;
+    let path: String;
+}
+
+func OkResponse(body: String) -> HttpResponse {
+    return HttpResponse(200, "text/plain", body);
+}
+
+func ErrorResponse(status: Int, body: String) -> HttpResponse {
+    return HttpResponse(status, "text/plain", body);
+}
+
+func JsonResponse(body: String) -> HttpResponse {
+    return HttpResponse(200, "application/json", body);
+}
+
+func RequestMatches(request: HttpRequest, route: RouteSpec) -> Bool {
+    return request.method == route.method && request.path == route.path;
+}

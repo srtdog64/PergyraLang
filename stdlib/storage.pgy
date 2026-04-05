@@ -1,0 +1,24 @@
+class SnapshotMeta {
+    let key: String;
+    let version: Int;
+}
+
+class SnapshotRecord {
+    let meta: SnapshotMeta;
+    let payload: String;
+}
+
+func StorageSave(meta: SnapshotMeta, payload: String) -> SnapshotRecord {
+    return SnapshotRecord(meta, payload);
+}
+
+func StorageLoad(record: SnapshotRecord) -> String {
+    return record.payload;
+}
+
+func StorageAppendLog(base: String, line: String) -> String {
+    if base == "" {
+        return line;
+    }
+    return base + "\n" + line;
+}

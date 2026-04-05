@@ -29,6 +29,12 @@
         "scopeName": "source.pergyra",
         "path": "./syntaxes/pergyra.tmLanguage.json"
       }
+    ],
+    "snippets": [
+      {
+        "language": "pergyra",
+        "path": "./snippets/pergyra.json"
+      }
     ]
   }
 }

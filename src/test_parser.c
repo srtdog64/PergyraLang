@@ -550,6 +550,13 @@ main(void)
             1
         },
         {
+            "Escaped String Literal",
+            "func Main() -> Void {\n"
+            "    Log(\"{\\\"ok\\\":true}\\n\");\n"
+            "}",
+            1
+        },
+        {
             "Function with Where Clause",
             "func Sort<T>(items: Array<T>) -> Array<T>\n"
             "    where T: Comparable {\n"

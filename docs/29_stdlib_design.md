@@ -79,6 +79,9 @@ import "creatures.pgy";
 | 이름 | `use` | 핵심 API | 용도 |
 |------|-------|----------|------|
 | **datetime** | `use datetime;` | `LocalDate`, `LocalTime`, `DateTime`, `FormatDate`, `FormatTime`, `FormatDateTime`, `SameDate` | 캘린더/결제/리포트 날짜 표면 |
+| **http** | `use http;` | `HttpRequest`, `HttpResponse`, `RouteSpec`, `OkResponse`, `ErrorResponse`, `JsonResponse` | transport/intent adapter 경계 |
+| **storage** | `use storage;` | `SnapshotMeta`, `SnapshotRecord`, `StorageSave`, `StorageLoad`, `StorageAppendLog` | snapshot/repository/persistence 표면 |
+| **page** | `use page;` | `PageRoute`, `PageAction`, `PageMessage`, `MountPage`, `BindAction`, `RenderSection` | page/projection/action binder 표면 |
 | **pool** | `use pool;` | `PoolNew`, `PoolSpawn`, `PoolDespawn`, `PoolGet`, `PoolAlive` | 오브젝트 풀, 엔티티 재활용 |
 | **fsm** | `use fsm;` | `FsmNew`, `FsmAddState`, `FsmTransition`, `FsmCurrent` | 상태 머신 |
 | **encounter** | `use encounter;` | `EncounterNew`, `EncounterStep`, `EncounterResolve`, `TurnOrder` | 전투/조우 상태 머신 |
@@ -97,6 +100,9 @@ import "creatures.pgy";
 - encounter/turn state machine
 - strategy/AI policy
 - content/loot/monster/event tables
+- http request/response transport
+- storage/repository/snapshot persistence
+- page/action/projection adapters
 
 즉 방향은:
 
@@ -106,6 +112,9 @@ use fsm;
 use encounter;
 use strategy;
 use tables;
+use http;
+use storage;
+use page;
 ```
 
 이지:
@@ -130,6 +139,25 @@ GOF 기초 패턴도 같은 원칙으로 번역한다.
 - `observer` -> hidden callback graph보다 relay bundle / sink spec / report sink / event bus
 
 자세한 번역 기준은 [`31_gof_pattern_catalog.md`](/mnt/e/PergyraLang/docs/31_gof_pattern_catalog.md)를 따른다.
+
+## 앱 인프라 경계
+
+`http`, `storage`, `page`는 **코어 문법이 아니라 표준 라이브러리 계층**이다.
+
+- `page`는 projection surface
+- `http`는 transport / adapter surface
+- `storage`는 persistence / repository surface
+- 실제 실행 경계는 여전히 `intent`와 `zone/world`
+
+즉 앱 구조는 보통 다음을 따른다.
+
+```text
+page -> http adapter -> intent -> zone/world -> dto/object -> page
+                     \-> storage
+```
+
+이는 `page == zone`, `api == zone`으로 보지 않고,
+표면과 실행 경계를 분리하려는 Pergyra 철학과 맞춘다.
 
 ### Tier 3 — 기존 (이미 빌트인)
 

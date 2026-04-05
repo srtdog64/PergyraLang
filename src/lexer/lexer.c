@@ -309,8 +309,19 @@ static Token scan_number(Lexer* lexer) {
 static Token scan_string(Lexer* lexer) {
     const char* start = lexer->current - 1;
     
-    while (peek(lexer) != '"' && !is_at_end(lexer)) {
-        if (peek(lexer) == '\n') lexer->line++;
+    while (!is_at_end(lexer)) {
+        char c = peek(lexer);
+
+        if (c == '\\') {
+            advance(lexer);
+            if (!is_at_end(lexer))
+                advance(lexer);
+            continue;
+        }
+
+        if (c == '"')
+            break;
+
         advance(lexer);
     }
     

@@ -1,0 +1,262 @@
+{
+  "Subject Declaration": {
+    "prefix": "subject",
+    "body": [
+      "/// [What]: ${1:이 subject가 무엇인가}",
+      "/// [Why]: ${2:왜 이 subject가 필요한가}",
+      "subject ${3:Name}",
+      "{",
+      "    let ${4:field}: ${5:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Subject declaration with structured comments"
+  },
+
+  "Class Declaration": {
+    "prefix": "class",
+    "body": [
+      "/// [What]: ${1:이 class가 무엇인가}",
+      "/// [Why]: ${2:왜 이 class가 필요한가}",
+      "class ${3:Name}",
+      "{",
+      "    let ${4:field}: ${5:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Class declaration with structured comments"
+  },
+
+  "Zone Declaration": {
+    "prefix": "zone",
+    "body": [
+      "/// [What]: ${1:이 zone이 관리하는 행위 경계}",
+      "/// [Why]: ${2:왜 이 zone이 필요한가}",
+      "zone ${3:Name}",
+      "{",
+      "    subject slot ${4:actor}: ${5:SubjectType};",
+      "    $0",
+      "}"
+    ],
+    "description": "Zone declaration with structured comments"
+  },
+
+  "Action Declaration": {
+    "prefix": "action",
+    "body": [
+      "/// [What]: ${1:이 action이 무엇을 하는가}",
+      "/// [Why]: ${2:왜 이 action이 필요한가}",
+      "action ${3:Name}(self${4:, params})",
+      "    requires ${5:Ability}",
+      "    within ${6:Zone}",
+      "{",
+      "    $0",
+      "}"
+    ],
+    "description": "Action declaration with requires/within"
+  },
+
+  "Action with Authorization": {
+    "prefix": "actionauth",
+    "body": [
+      "/// [What]: ${1:이 action이 무엇을 하는가}",
+      "/// [Why]: ${2:왜 승인이 필요한가}",
+      "action ${3:Name}(self${4:, params})",
+      "    requires ${5:Ability}",
+      "    within ${6:Zone}",
+      "    authorized by ${7:actor}",
+      "{",
+      "    $0",
+      "}"
+    ],
+    "description": "Action with requires/within/authorized by"
+  },
+
+  "Intent Declaration": {
+    "prefix": "intent",
+    "body": [
+      "/// [What]: ${1:사용자가 무엇을 하려 하는가}",
+      "/// [Why]: ${2:왜 이 의도가 존재하는가}",
+      "intent ${3:Name}(${4:actor}: ${5:SubjectType})",
+      "{",
+      "    ${6|exclusive,concurrent|};",
+      "",
+      "    step ${7:first_step}",
+      "    {",
+      "        where: ${8:ZoneType};",
+      "        who: ${4};",
+      "        $0",
+      "    }",
+      "}"
+    ],
+    "description": "Intent declaration with structured comments"
+  },
+
+  "Step Declaration": {
+    "prefix": "step",
+    "body": [
+      "step ${1:name}",
+      "{",
+      "    where: ${2:ZoneType};",
+      "    who: ${3:actor};",
+      "    ${4|on,pre,post,guard,invariant|}: ${5:condition};",
+      "    $0",
+      "}"
+    ],
+    "description": "Intent step with where/who/conditions"
+  },
+
+  "Ability Declaration": {
+    "prefix": "ability",
+    "body": [
+      "/// [What]: ${1:이 자격이 부여하는 능력}",
+      "ability ${2:Name}",
+      "{",
+      "    func ${3:Method}(self) -> ${4:Bool};",
+      "    $0",
+      "}"
+    ],
+    "description": "Ability declaration"
+  },
+
+  "Role Declaration": {
+    "prefix": "role",
+    "body": [
+      "/// [What]: ${1:이 역할이 구현하는 것}",
+      "role ${2:AbilityName} for ${3:SubjectType}",
+      "{",
+      "    func ${4:Method}(self) -> ${5:Bool}",
+      "    {",
+      "        $0",
+      "    }",
+      "}"
+    ],
+    "description": "Role implementation for ability"
+  },
+
+  "Vessel Declaration": {
+    "prefix": "vessel",
+    "body": [
+      "/// [What]: ${1:이 vessel이 담는 내부 상태}",
+      "vessel ${2:Name}",
+      "{",
+      "    let ${3:field}: ${4:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Vessel (passive state container)"
+  },
+
+  "World Declaration": {
+    "prefix": "world",
+    "body": [
+      "/// [What]: ${1:이 world의 실행/신뢰 경계}",
+      "world ${2:Name}",
+      "{",
+      "    zone ${3:zoneName}: ${4:ZoneType};",
+      "    $0",
+      "}"
+    ],
+    "description": "World declaration"
+  },
+
+  "Effect Declaration": {
+    "prefix": "effect",
+    "body": [
+      "/// [What]: ${1:이 효과가 무엇을 일으키는가}",
+      "/// [Why]: ${2:왜 이 효과가 필요한가}",
+      "effect ${3:Name}",
+      "{",
+      "    let ${4:field}: ${5:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Effect declaration"
+  },
+
+  "Relation Declaration": {
+    "prefix": "relation",
+    "body": [
+      "/// [What]: ${1:이 관계가 표현하는 것}",
+      "relation ${2:Name}",
+      "{",
+      "    let ${3:field}: ${4:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Relation declaration"
+  },
+
+  "Struct Declaration": {
+    "prefix": "struct",
+    "body": [
+      "/// [What]: ${1:이 struct가 담는 데이터}",
+      "struct ${2:Name}",
+      "{",
+      "    let ${3:field}: ${4:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Struct (pure data)"
+  },
+
+  "DTO Declaration": {
+    "prefix": "dto",
+    "body": [
+      "/// [What]: ${1:이 dto가 전송하는 데이터}",
+      "dto ${2:Name}",
+      "{",
+      "    let ${3:field}: ${4:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "DTO (boundary projection)"
+  },
+
+  "Object Declaration": {
+    "prefix": "object",
+    "body": [
+      "/// [What]: ${1:이 object가 투영하는 읽기 전용 뷰}",
+      "object ${2:Name}",
+      "{",
+      "    let ${3:field}: ${4:Type};",
+      "    $0",
+      "}"
+    ],
+    "description": "Object (read-only view)"
+  },
+
+  "Structured Comment Block": {
+    "prefix": "///",
+    "body": [
+      "/// [What]: ${1:무엇을 하는가}",
+      "/// [Why]: ${2:왜 필요한가}",
+      "/// [Alt]: ${3:다른 선택지와 비교}",
+      "/// [Next]: ${4:다음에 할 일}"
+    ],
+    "description": "Full structured comment block"
+  },
+
+  "Func Declaration": {
+    "prefix": "func",
+    "body": [
+      "/// [What]: ${1:이 함수가 하는 일}",
+      "func ${2:Name}(${3:params}) -> ${4:ReturnType}",
+      "{",
+      "    $0",
+      "}"
+    ],
+    "description": "Function declaration"
+  },
+
+  "Main Entry": {
+    "prefix": "main",
+    "body": [
+      "func main()",
+      "{",
+      "    $0",
+      "}"
+    ],
+    "description": "Main entry point"
+  }
+}

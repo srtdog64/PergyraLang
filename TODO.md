@@ -19,6 +19,30 @@
 - [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
 - [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
 
+## P1.58 — 표준 라이브러리 인프라
+
+- [x] **`use datetime;` 실제 stdlib module화**
+- [ ] **`use http;` v0.1**
+  - `HttpRequest`, `HttpResponse`, `RouteSpec`
+  - `OkResponse`, `ErrorResponse`, `JsonResponse`
+  - intent adapter handler 예제와 연결
+- [ ] **`use storage;` v0.1**
+  - `SnapshotMeta`, `SnapshotRecord`
+  - `StorageSave`, `StorageLoad`, `StorageAppendLog`
+  - world/session snapshot 예제와 연결
+- [ ] **`use page;` v0.1**
+  - `PageRoute`, `PageAction`, `PageMessage`
+  - `MountPage`, `BindAction`, `RenderSection`
+  - projection surface / action binder 예제와 연결
+- [ ] **쇼핑몰 예제를 stdlib 인프라 사용 버전으로 리프트**
+  - `pages/` -> `use page;`
+  - `api/` -> `use http;`
+  - `report/storage` -> `use storage;`
+
+- [ ] **`pgy scaffold project`에 app-infra starter 추가**
+  - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
+  - optional `pages/ api/ report/` app adapter starter
+
 ## P1.55 — 언어 기능 확장
 
 ### 기반 타입 시스템

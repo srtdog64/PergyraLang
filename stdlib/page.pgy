@@ -1,0 +1,26 @@
+class PageRoute {
+    let path: String;
+    let title: String;
+}
+
+class PageAction {
+    let name: String;
+    let endpoint: String;
+}
+
+class PageMessage {
+    let level: String;
+    let body: String;
+}
+
+func MountPage(route: PageRoute) -> String {
+    return "[Page] mount " + route.path + " title=" + route.title;
+}
+
+func BindAction(action: PageAction) -> String {
+    return "[Action] " + action.name + " -> " + action.endpoint;
+}
+
+func RenderSection(title: String, body: String) -> String {
+    return "== " + title + " ==\n" + body;
+}
