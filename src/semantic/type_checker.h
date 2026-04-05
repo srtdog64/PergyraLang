@@ -293,4 +293,9 @@ Type* resolve_type_node(ASTNode* type_node, SemanticContext* ctx);
 
 /*
  * Check two types are compatible for assignment (from → to).
- * Emits 
+ * Emits a semantic_error if not.
+ */
+bool require_assignable(Type* from, Type* to,
+                         const ASTNode* site, SemanticContext* ctx);
+
+#endif /* PERGYRA_TYPE_CHECKER_H */

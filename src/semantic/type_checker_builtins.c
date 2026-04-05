@@ -1020,6 +1020,11 @@ builtin_resolve(const char *name)
     if (strcmp(name, "IntentLastHandle") == 0) return BUILTIN_INTENT_LAST_HANDLE;
     if (strcmp(name, "IntentLastStepCount") == 0) return BUILTIN_INTENT_LAST_STEP_COUNT;
     if (strcmp(name, "IntentLastFailed") == 0) return BUILTIN_INTENT_LAST_FAILED;
+    if (strcmp(name, "IntentHistoryCount") == 0) return BUILTIN_INTENT_HISTORY_COUNT;
+    if (strcmp(name, "IntentHistoryStepName") == 0) return BUILTIN_INTENT_HISTORY_STEP_NAME;
+    if (strcmp(name, "IntentHistoryStepZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_ZONE;
+    if (strcmp(name, "IntentHistoryStepOk") == 0) return BUILTIN_INTENT_HISTORY_STEP_OK;
+    if (strcmp(name, "IntentHistoryStepFailure") == 0) return BUILTIN_INTENT_HISTORY_STEP_FAILURE;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -2763,6 +2768,29 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_INTENT_LAST_FAILED:
         check_call_arity(call, 0, "IntentLastFailed", ctx);
         return TYPE_BOOL;
+    case BUILTIN_INTENT_HISTORY_COUNT:
+        check_call_arity(call, 0, "IntentHistoryCount", ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_HISTORY_STEP_NAME:
+        check_call_arity(call, 1, "IntentHistoryStepName", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_ZONE:
+        check_call_arity(call, 1, "IntentHistoryStepZone", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_HISTORY_STEP_OK:
+        check_call_arity(call, 1, "IntentHistoryStepOk", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    case BUILTIN_INTENT_HISTORY_STEP_FAILURE:
+        check_call_arity(call, 1, "IntentHistoryStepFailure", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
     default:
         return TYPE_UNKNOWN;
     }
