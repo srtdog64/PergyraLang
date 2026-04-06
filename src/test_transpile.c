@@ -72,7 +72,10 @@ mir_block_slice_contains(const char *output, const char *label, const char *need
     if (start == NULL)
         return false;
     label_len = strlen(label);
-    end = strstr(start + label_len, "_pgy_mir_bb_");
+    /* Find next block label (but not within goto target of current block) */
+    end = strstr(start + label_len, "\n    _pgy_mir_bb_");
+    if (end == NULL)
+        end = strstr(start + label_len, "\n_pgy_mir_bb_");
     if (end == NULL)
         end = output + strlen(output);
     hit = strstr(start, needle);
@@ -558,6 +561,18 @@ test_expression_emit(void)
         ASTNode *args[1] = { make_number(42, 1) };
         result = emit_expression(make_call("Log", args, 1, 1), ctx);
         EXPECT(strcmp(result, "pgy_log(42)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Log(\"\\n + indentation\") → normalized multiline single string");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = {
+            make_string_lit("\n  first\n  second", 1),
+        };
+        result = emit_expression(make_call("Log", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_log(\"first\\nsecond\")") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -3121,8 +3136,12 @@ test_mir_vertical_slice_emit(void)
         EXPECT(ok && output != NULL);
         if (ok && output != NULL) {
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
-            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
-            EXPECT(count_substring(output, "goto _pgy_mir_bb_Score_") == 2);
+            /* Each MIR block appears twice in output: as label (_pgy_mir_bb_Score_N:) and as goto target */
+            /* With 3 blocks: 3 labels + 3 gotos = 6 occurrences */
+            size_t bb_count = count_substring(output, "_pgy_mir_bb_Score_");
+            size_t goto_count = count_substring(output, "goto _pgy_mir_bb_Score_");
+            EXPECT(bb_count == 6);  /* 3 labels + 3 gotos */
+            EXPECT(goto_count == 3);  /* 1 entry goto + 2 branch gotos */
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "if ("));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_1;"));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_2;"));
@@ -3171,7 +3190,9 @@ test_mir_vertical_slice_emit(void)
         if (ok && output != NULL) {
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
             EXPECT(strstr(output, "_pgy_ssa_score_") != NULL);
-            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
+            /* if-else with phi merge: 4 blocks → 4 labels + 5 gotos = 9 occurrences */
+            size_t phi_bb_count = count_substring(output, "_pgy_mir_bb_Score_");
+            EXPECT(phi_bb_count == 9);  /* 4 blocks × 2 + 1 extra goto */
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "if ("));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "if"));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_2:", "return _pgy_ssa_score_"));

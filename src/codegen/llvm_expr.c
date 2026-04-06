@@ -1335,8 +1335,26 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (node->data.call.arg_count < 1)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
-        LLVMValueRef arg = llvm_emit_expression(
-            node->data.call.arguments[0], ctx);
+        ASTNode *arg_node = node->data.call.arguments[0];
+        LLVMValueRef arg = NULL;
+
+        if (arg_node != NULL && arg_node->type == AST_STRING
+            && arg_node->data.string.value != NULL
+            && (strchr(arg_node->data.string.value, '\n') != NULL
+                || strchr(arg_node->data.string.value, '\r') != NULL)) {
+            char *normalized = llvm_normalize_banner_string_literal(
+                arg_node->data.string.value);
+            if (normalized != NULL) {
+                arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
+                                              llvm_tmp_name(ctx));
+                free(normalized);
+            } else {
+                arg = NULL;
+            }
+        } else {
+            arg = llvm_emit_expression(arg_node, ctx);
+        }
+
         if (arg == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 

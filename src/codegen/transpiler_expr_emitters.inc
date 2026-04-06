@@ -318,6 +318,22 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("printf(\"\\n\")");
 
     if (call->data.call.arg_count == 1) {
+        ASTNode *arg_node = call->data.call.arguments[0];
+        if (arg_node != NULL && arg_node->type == AST_STRING
+            && arg_node->data.string.value != NULL
+            && (strchr(arg_node->data.string.value, '\n') != NULL
+                || strchr(arg_node->data.string.value, '\r') != NULL)) {
+            char *normalized = normalize_banner_string_literal(arg_node->data.string.value);
+            if (normalized != NULL) {
+                char *escaped = escape_c_string_literal(normalized);
+                free(normalized);
+                if (escaped != NULL) {
+                    char *result = strdup_fmt("pgy_log(\"%s\")", escaped);
+                    free(escaped);
+                    return result;
+                }
+            }
+        }
         char *arg = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_log(%s)", arg);
         free(arg);

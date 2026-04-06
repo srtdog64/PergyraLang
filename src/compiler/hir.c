@@ -428,31 +428,48 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             if (!cfg_append_stmt(&block->statements, &block->statement_count, node))
                 return -1;
             ssize_t then_block = cfg_new_block(blocks, block_count);
-            ssize_t else_block = cfg_new_block(blocks, block_count);
             ssize_t join_block = cfg_new_block(blocks, block_count);
-            if (then_block < 0 || else_block < 0 || join_block < 0)
+            if (then_block < 0 || join_block < 0)
                 return -1;
-            block = &(*blocks)[(size_t)current_block];
-            cfg_set_branch(block,
-                           node->data.if_stmt.condition,
-                           (size_t)then_block,
-                           (size_t)else_block);
 
-            ssize_t then_open = hir_lower_block_body_to_cfg(node->data.if_stmt.then_branch,
-                                                            blocks,
-                                                            block_count,
-                                                            then_block);
-            if (then_open >= 0)
-                cfg_set_goto(&(*blocks)[(size_t)then_open], (size_t)join_block);
+            if (node->data.if_stmt.else_branch != NULL) {
+                /* if-else: create separate else block */
+                ssize_t else_block = cfg_new_block(blocks, block_count);
+                if (else_block < 0)
+                    return -1;
+                block = &(*blocks)[(size_t)current_block];
+                cfg_set_branch(block,
+                               node->data.if_stmt.condition,
+                               (size_t)then_block,
+                               (size_t)else_block);
 
-            ssize_t else_open = hir_lower_block_body_to_cfg(node->data.if_stmt.else_branch,
-                                                            blocks,
-                                                            block_count,
-                                                            else_block);
-            if (else_open >= 0) {
-                cfg_set_goto(&(*blocks)[(size_t)else_open], (size_t)join_block);
-            } else if (node->data.if_stmt.else_branch == NULL) {
-                cfg_set_goto(&(*blocks)[(size_t)else_block], (size_t)join_block);
+                ssize_t then_open = hir_lower_block_body_to_cfg(node->data.if_stmt.then_branch,
+                                                                blocks,
+                                                                block_count,
+                                                                then_block);
+                if (then_open >= 0)
+                    cfg_set_goto(&(*blocks)[(size_t)then_open], (size_t)join_block);
+
+                ssize_t else_open = hir_lower_block_body_to_cfg(node->data.if_stmt.else_branch,
+                                                                blocks,
+                                                                block_count,
+                                                                else_block);
+                if (else_open >= 0)
+                    cfg_set_goto(&(*blocks)[(size_t)else_open], (size_t)join_block);
+            } else {
+                /* if without else: branch directly to join for false case */
+                block = &(*blocks)[(size_t)current_block];
+                cfg_set_branch(block,
+                               node->data.if_stmt.condition,
+                               (size_t)then_block,
+                               (size_t)join_block);
+
+                ssize_t then_open = hir_lower_block_body_to_cfg(node->data.if_stmt.then_branch,
+                                                                blocks,
+                                                                block_count,
+                                                                then_block);
+                if (then_open >= 0)
+                    cfg_set_goto(&(*blocks)[(size_t)then_open], (size_t)join_block);
             }
 
             return join_block;
