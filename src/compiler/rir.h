@@ -36,10 +36,16 @@ typedef enum
     RIR_RESOURCE_LOCAL_SLOT,
     RIR_RESOURCE_SECURE_SLOT,
     RIR_RESOURCE_DEVICE_SLOT,
+    RIR_RESOURCE_AUTHORITY_HANDLE,
+    RIR_RESOURCE_CAPABILITY_TOKEN,
+    RIR_RESOURCE_SUBJECT_SLOT,
+    RIR_RESOURCE_OBJECT_SLOT,
+    RIR_RESOURCE_TOBJECT_SLOT,
+    RIR_RESOURCE_VESSEL_SLOT,
     RIR_RESOURCE_QUBIT_HANDLE,
     RIR_RESOURCE_REMOTE_FUTURE_HANDLE,
     RIR_RESOURCE_PROJECTION_OBJECT,
-    RIR_RESOURCE_PROJECTION_DTO,
+    RIR_RESOURCE_PROJECTION_TOBJECT,
     RIR_RESOURCE_EFFECT_INSTANCE,
     RIR_RESOURCE_RELATION_INSTANCE,
     RIR_RESOURCE_ZONE_HANDLE,
@@ -57,10 +63,16 @@ typedef enum
     RIR_STATE_INVALID,
     RIR_STATE_MEASURED,
     RIR_STATE_REMOTE_PENDING,
+    RIR_STATE_AUTHORIZED,
+    RIR_STATE_AUTHORITY_LOST,
     RIR_STATE_SYNCED,
     RIR_STATE_DIRTY,
+    RIR_STATE_STALE,
     RIR_STATE_DETACHED,
-    RIR_STATE_PUBLISHED
+    RIR_STATE_PUBLISHED,
+    RIR_STATE_HANDOFF_PENDING,
+    RIR_STATE_HANDED_OFF,
+    RIR_STATE_COMPENSATED
 } RIRResourceState;
 
 typedef enum
@@ -99,6 +111,7 @@ typedef enum
 typedef struct
 {
     const char       *name;
+    const char       *slot_anchor;
     RIRFactKind       origin_kind;
     RIRResourceKind   resource_kind;
     RIRResourceState  initial_state;
@@ -111,6 +124,7 @@ typedef struct
 typedef struct
 {
     const char       *name;
+    const char       *slot_anchor;
     RIRResourceState  entry_state;
     RIRResourceState  exit_state;
     bool              merged_from_join;
@@ -134,6 +148,7 @@ typedef struct
 {
     RIRFactKind      kind;
     const char      *name;
+    const char      *slot_anchor;
     const char      *arg0;
     const char      *arg1;
     RIRResourceKind  resource_kind;
@@ -145,6 +160,7 @@ typedef struct
 {
     RIROpKind        kind;
     const char      *subject;
+    const char      *slot_anchor;
     const char      *arg0;
     const char      *arg1;
     ASTNode         *ast;

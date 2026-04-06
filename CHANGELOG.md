@@ -6,6 +6,34 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- semantics/rir: tightened `object` vs `tobject` into actual compiler rules
+  rather than naming only. Direct `ToObject` vs `ToTObject` outside domain
+  contexts now produce distinct internal-vs-boundary diagnostics, `bind`
+  inherits the target slot kind so `tobject` targets lower as
+  `ProjectPublish/Published`, and RIR validation now rejects `Published` on
+  object projections plus mismatched `ProjectRefresh`/`ProjectPublish` target
+  kinds.
+- semantics/docs: lock two orthogonality boundaries more explicitly.
+  `party` is now documented as a collaboration unit rather than a state
+  boundary, while `zone/world` and `vessel` own lifecycle/state boundary
+  responsibilities. `intent` clauses now reject suspension/concurrency control
+  constructs such as `spawn`, and the compiler contracts/docs state that
+  `await/spawn/async/parallel/select` belong outside intent clauses.
+- compiler/rir: refine the resource lattice beyond coarse resource/projection
+  states. Authority and capability are now tracked as
+  `AuthorityHandle/CapabilityToken` with `Authorized/AuthorityLost`, projection
+  invalidation now surfaces as `Stale`, zone/world handoff as
+  `HandoffPending/HandedOff`, and rollback lifecycle as `Compensated`.
+- codegen/runtime/tests: MIR cleanup/resource ops in intent exceptional CFG now
+  emit direct no-op runtime hook calls via
+  `pgy_mir_cleanup_op_export(...)` / `pgy_mir_resource_op_export(...)`, and
+  regressions lock the generated C output to keep MIR-visible resource effects
+  on the codegen path.
+- codegen/compiler/tests: widened the MIR->C vertical slice so reachable MIR
+  blocks can keep emitting ordinary non-SSA statements while branch/return and
+  phi paths still come from MIR. Semantic `resource-op` instructions no longer
+  disqualify conservative MIR emission, and regression coverage now locks this
+  mixed statement path.
 - compiler/rir: refined conservative flow merge semantics with derived
   `authority-loss` and `projection-invalidation` flags. `--rir` now preserves
   these semantics at both scope and `flow-block` level, and regression tests
@@ -623,6 +651,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - codegen/compiler/tests: add the first real `MIR -> C backend` vertical slice. The C backend now accepts `transpile_with_mir(...)`, `compiler_emit_c()` passes `bundle->mir`, and a conservative subset of simple top-level branch/return functions is emitted from MIR blocks/terminators instead of the AST/HIR body walker. Added a transpile regression that locks the emitted `goto _pgy_mir_bb_*` body shape and `/* emitted-from-mir */` marker.
 - docs: update the compiler pipeline/development status docs so they no longer claim `DIR/RIR/MIR` are analysis-only in every case; they now explicitly note the first MIR-driven codegen slice while preserving the larger point that most backend emission is still HIR-driven.
 - tests: tighten `read_file_text()` in `src/test_transpile.c` to check `fread()` results instead of ignoring them, keeping the transpile suite warning-free under the new MIR vertical-slice regression.
+- intent/language: implement nested subintent orchestration with `step { intent: SomeIntent(...); }`. The parser, AST printer, semantic checker, C backend, and LLVM backend now all understand `intent:` clauses, require them to target a named `intent`, and treat a `false` subintent result as a parent-step failure.
+- tests/docs: update the subintent semantic/transpile regressions and intent design docs so orchestration steps may omit local `where` / `who`, while the called child intent must still satisfy its own `where` / `using` / `who` contract.
+- compiler/rir: make `slot` the explicit common anchor across the resource layer. `RIR` facts, ops, state summaries, and flow facts now preserve `slot_anchor`, validator enforces it, zone/relation/effect domain slots now materialize as first-class `SubjectSlot/ObjectSlot/TObjectSlot/VesselSlot` resource facts, and projection/authority/world-handoff regressions lock the slot-centered model in place.
 # 2026-04-06
 
 - compiler/codegen: expanded the first MIR->C vertical slice beyond simple function CFGs so `intent` cleanup now emits `cleanup/rollback/invalidation` labels from MIR exceptional block ids while preserving existing step semantics

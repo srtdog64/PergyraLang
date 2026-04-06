@@ -156,6 +156,14 @@ src/semantic/type_checker_decls.inc
 runtime은 same-subject conflict scheduler, last-trace/last-failure history,
 그리고 실패 시 reverse-order `compensate:` rollback까지 가진다.
 
+중요한 경계:
+
+- intent는 orchestration declaration이다
+- async/fiber는 suspension/concurrency control이다
+
+따라서 intent clause 안에 `await`, `spawn`, `async`, `parallel`, `select`, channel send/recv를 직접 넣지 않는다.
+비동기 작업은 adapter, worker, hosted action 밖에서 수행하고, intent는 그 결과를 관찰하거나 다음 state transition을 선언하는 쪽에 머문다.
+
 ```
 언어:
   subject, zone, action, effect, relation, world, intent
@@ -869,10 +877,43 @@ DI가 객체의 조립이라면, intent 오케스트레이션은 **목적의 조
 
 #### 구현 상태
 
+`step` 안의 `intent:` 하위 호출은 이제 구현됐다.
+
+```pergyra
+zone PaymentZone {
+    subject slot buyer: Member
+}
+
+intent Charge(payment: PaymentZone, buyer: Member)
+{
+    step verify
+    {
+        where: PaymentZone;
+        using: payment;
+        who: buyer;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+
+intent CompletePurchase(payment: PaymentZone, buyer: Member)
+{
+    step pay
+    {
+        intent: Charge(payment, buyer);
+        expect: true;
+    }
+}
 ```
-현재: 미구현. step에서 다른 intent를 호출하는 문법이 없다.
-필요: parser에 step 내 intent: 절 파싱 + 코드젠에서 nested intent call 생성
-```
+
+현재 의미:
+- `intent:`는 named intent call이어야 한다
+- 하위 intent는 `Bool`을 반환해야 한다
+- 하위 intent가 `false`를 반환하면 부모 step은 실패로 간주된다
+- orchestration step은 `where` / `who` 없이도 하위 intent 호출만으로 합법이다
+- 호출되는 하위 intent 자체는 여전히 자기 `where` / `using` / `who` 계약을 만족해야 한다
+- `on:`과 `intent:`를 함께 둘 수 있고, 둘 다 있으면 현재 구현은 `on:`을 먼저 실행한 뒤 하위 intent 호출을 평가한다
 
 ### 9.3 닫힌 시스템 철학
 

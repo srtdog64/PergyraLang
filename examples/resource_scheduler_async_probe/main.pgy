@@ -77,14 +77,19 @@ async func Main() -> Void {
     let b0: Int = <- laneB;
     let b1: Int = <- laneB;
 
-    let loadA0: Int = QueueLoad(left, a0);
-    let remainA0: Int = DebitBudget(budget, a0);
-    let loadA1: Int = QueueLoad(left, a1);
-    let remainA1: Int = DebitBudget(budget, a1);
-    let loadB0: Int = QueueLoad(right, b0);
-    let remainB0: Int = DebitBudget(budget, b0);
-    let loadB1: Int = QueueLoad(right, b1);
-    let remainB1: Int = DebitBudget(budget, b1);
+    let left0: Int = Min(a0, a1);
+    let left1: Int = Max(a0, a1);
+    let right0: Int = Min(b0, b1);
+    let right1: Int = Max(b0, b1);
+
+    let loadA0: Int = QueueLoad(left, left0);
+    let remainA0: Int = DebitBudget(budget, left0);
+    let loadA1: Int = QueueLoad(left, left1);
+    let remainA1: Int = DebitBudget(budget, left1);
+    let loadB0: Int = QueueLoad(right, right0);
+    let remainB0: Int = DebitBudget(budget, right0);
+    let loadB1: Int = QueueLoad(right, right1);
+    let remainB1: Int = DebitBudget(budget, right1);
 
     let planLine: String = "[Plan] " + WorkerSnapshot(left)
         + " | " + WorkerSnapshot(right)
@@ -96,10 +101,10 @@ async func Main() -> Void {
     let d1: DeviceSlot<Int> = ClaimDeviceSlot();
     let d2: DeviceSlot<Int> = ClaimDeviceSlot();
     let d3: DeviceSlot<Int> = ClaimDeviceSlot();
-    DeviceWrite(d0, 100 + a0);
-    DeviceWrite(d1, 100 + a1);
-    DeviceWrite(d2, 200 + b0);
-    DeviceWrite(d3, 200 + b1);
+    DeviceWrite(d0, 100 + left0);
+    DeviceWrite(d1, 100 + left1);
+    DeviceWrite(d2, 200 + right0);
+    DeviceWrite(d3, 200 + right1);
     let f0: RemoteFuture<Int> = SubmitDeviceRead(d0);
     let f1: RemoteFuture<Int> = SubmitDeviceRead(d1);
     let f2: RemoteFuture<Int> = SubmitDeviceRead(d2);

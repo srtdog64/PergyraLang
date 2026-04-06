@@ -10,6 +10,11 @@
 - projection sync semantics
 - authority / capability model
 
+그리고 아래 두 축도 함께 고정한다.
+
+- 각 핵심 키워드가 어느 IR 계층에서 최종 확정되는가
+- 각 키워드가 표면 문법 표식인지, 실행 의미론을 가지는지
+
 이 문서는 "현재 구현이 완전히 여기까지 왔다"는 보고서가 아니다.
 반대로, 구현이 앞으로 맞춰야 할 **컴파일러 계약**을 고정하는 문서다.
 
@@ -153,6 +158,16 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 - `AbortIntent`
 - `CompensateIntentStep`
 
+그리고 이 op/fact/state는 가능한 한 `slot`을 공통 anchor로 가져야 한다.
+
+- `Slot / SecureSlot / DeviceSlot / QubitSlot / RemoteFuture`는 직접 slot anchor다
+- projection fact는 projection target slot을 anchor로 가진다
+- authority / capability fact는 승인 주체 subject slot을 anchor로 가진다
+- relation / effect / zone / world handle fact도 해당 layer/zone slot 이름을 anchor로 가진다
+- intent `using:` / `transfer:` / `authorize:` op는 source/target/actor slot anchor를 잃지 않아야 한다
+
+즉 RIR는 "slot을 포함하는 일부 기능"이 아니라, 가능한 모든 자원 의미를 slot anchor 위에 정규화하는 계층이어야 한다.
+
 다루는 것:
 
 - `Slot / SecureSlot / DeviceSlot / QubitSlot / RemoteFuture`
@@ -171,6 +186,13 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 - handle merge는 resource kind를 함께 읽는다.
   - `zone/world handle`은 ownership/borrow 중심
   - `relation/effect handle`은 detach/sync/dirty lifecycle 중심
+- authority/capability는 `AuthorityHandle` / `CapabilityToken` kind와 `Authorized` / `AuthorityLost` 상태로 분리한다.
+- projection은 `Synced/Dirty/Published`뿐 아니라 `Stale` 상태로 invalidation 이후의 보수 상태를 남긴다.
+- `Published`는 `tobject` projection 전용 boundary state다. `object` projection은 `Published`로 승격될 수 없다.
+- `bind`는 target slot kind를 따른다. object slot이면 internal `refresh` contract, tobject slot이면 boundary `publish` contract로 확정된다.
+- zone/world handoff는 `HandoffPending` / `HandedOff` 상태로 요약될 수 있어야 한다.
+- relation/effect rollback은 `Compensated` 상태를 통해 detach와 구분될 수 있어야 한다.
+- fact/op/state summary/flow fact는 이제 모두 slot anchor를 보존하며, validator도 `intent-policy`를 제외한 모든 fact/op와 모든 state summary/flow fact에 slot anchor가 있음을 요구한다
 
 MIR로 이월하는 것:
 
@@ -223,6 +245,176 @@ MIR로 이월하는 것:
 즉 MIR는 아직 full optimizer IR은 아니지만, pure placeholder를 넘어서
 `phi`, versioned local value, instruction-level use, routine-level value summary, cleanup convergence, rollback/invalidation edge를 직접 가지는 실행 그래프다.
 
+## 1.6 키워드별 확정 계층
+
+이 표는 "이 키워드의 최종 책임 계층"을 잠근다.
+
+- `도입`: parser/HIR가 표면 문법으로 인식하는 계층
+- `정합성`: 선언/계약이 구조적으로 확정되는 계층
+- `자원`: slot/resource/capability/lifecycle 의미가 확정되는 계층
+- `흐름`: CFG/cleanup/phi/rollback path를 포함한 실행 의미가 확정되는 계층
+
+| 키워드/개념 | 도입 | 정합성 확정 | 자원 의미 확정 | 흐름 의미 확정 |
+| --- | --- | --- | --- | --- |
+| `subject` | HIR | DIR | RIR | MIR |
+| `class` | HIR | HIR | - | - |
+| `struct` | HIR | HIR | - | - |
+| `vessel` | HIR | DIR | RIR | MIR |
+| `object` | HIR | DIR | RIR | MIR |
+| `tobject` | HIR | DIR | RIR | MIR |
+| `ability` | HIR | DIR | - | - |
+| `role` | HIR | DIR | RIR | - |
+| `party` | HIR | DIR | RIR | MIR |
+| `relation` | HIR | DIR | RIR | MIR |
+| `effect` | HIR | DIR | RIR | MIR |
+| `zone` | HIR | DIR | RIR | MIR |
+| `world` | HIR | DIR | RIR | MIR |
+| `slot` (`Slot/SecureSlot/...`) | HIR | HIR | RIR | MIR |
+| projection (`refresh/publish/bind`) | HIR | DIR | RIR | MIR |
+| authority (`authority`, `authorized by`) | HIR | DIR | RIR | MIR |
+| capability (`ability`/token/role-bound permission) | HIR | DIR | RIR | MIR |
+| `intent` | HIR | DIR | RIR | MIR |
+| `compensate` / `rollback` | HIR | DIR | RIR | MIR |
+| `using` / `transfer` | HIR | DIR | RIR | MIR |
+
+규칙:
+
+- `ability / role`의 계약 완전성은 `DIR`에서 잠긴다.
+- `slot`은 `RIR`에서 공통 anchor로 잠긴다.
+- projection validity는 `RIR`에서 상태로, `MIR`에서 cleanup/merge path로 잠긴다.
+- authority/capability는 `DIR`에서 선언 정합성을, `RIR`에서 실제 자원/권한 상태를 잠근다.
+- intent compensation은 `DIR`에서 step graph를, `RIR`에서 compensation resource edge를, `MIR`에서 full cleanup/rollback path를 잠근다.
+
+한 줄 요약:
+
+> HIR는 표면을 정리하고, DIR는 계약을 잠그고, RIR는 자원 의미를 잠그고, MIR는 실행 경로를 잠근다.
+
+## 1.7 표면 문법 vs 실행 의미론
+
+모든 키워드가 같은 종류는 아니다. 어떤 것은 표면 분류 표식에 가깝고, 어떤 것은 실제 runtime/codegen 의미를 가진다.
+
+### 표면 문법 중심
+
+아래는 주로 존재론 분류나 선언 표식이다. runtime helper나 cleanup graph를 직접 만들 책임은 없다.
+
+- `class`
+- `struct`
+- `ability`
+- `role`
+- `party` 선언 자체
+
+이들은 주로 `HIR/DIR`에서 의미가 대부분 결정된다.
+
+### 표면 + 자원 의미론
+
+아래는 문법 표식이면서 동시에 `RIR`에서 실제 자원/lifecycle 의미를 갖는다.
+
+- `vessel`
+- `object`
+- `tobject`
+- `slot`
+- projection (`refresh`, `publish`, `bind`)
+- authority / capability
+- `relation`
+- `effect`
+- `zone`
+- `world`
+
+이들은 runtime에 무거운 heap graph를 남기는 것이 목적이 아니라, 컴파일러가 자원 계약을 정규화하기 위한 표면이어야 한다.
+
+### 표면 + 실행 의미론
+
+아래는 `MIR` cleanup/CFG/rollback까지 포함하는 실행 단위다.
+
+- `intent`
+- `step`
+- `on`
+- `pre`
+- `guard`
+- `post`
+- `success`
+- `failure`
+- `compensate`
+- `rollback`
+- `using`
+- `transfer`
+- `intent:` subintent orchestration
+
+이들은 단순 annotation이 아니라 실제 실행 경로를 만든다.
+
+규칙:
+
+- 표면 문법 중심 키워드는 backend가 별도 VM 객체를 만들면 안 된다.
+- 자원 의미론 키워드는 가능한 한 `RIR` fact/op/state로 정규화되어야 한다.
+- 실행 의미론 키워드는 `MIR` CFG/cleanup/rollback edge로 떨어져야 한다.
+- "문법만 있고 의미론이 없는 키워드"와 "runtime까지 가는 키워드"를 혼합하면 안 된다.
+
+위험 신호:
+
+- `slot`이 런타임 무거운 객체로 남는 경우
+- projection이 반응형 VM처럼 비대해지는 경우
+- authority/capability가 정적으로 제거 가능해도 전부 런타임까지 들고 가는 경우
+- `intent`가 작은 orchestration 단위를 넘어서 범용 workflow VM처럼 커지는 경우
+
+한 줄 요약:
+
+> 키워드는 "문법 표식", "자원 의미", "실행 의미" 중 어디까지 책임지는지 반드시 고정돼야 한다.
+
+## 1.8 직교성 경계
+
+Pergyra는 존재론이 많기 때문에, 서로 다른 축의 책임이 겹치지 않도록 아래 경계를 고정한다.
+
+### Party vs Zone / Vessel
+
+- `party`는 협력 슬롯과 역할 조합을 다룬다.
+- `vessel`은 subject 내부 상태 수용체다.
+- `zone/world`는 상태 전이, authority, projection, lifecycle의 실행 경계다.
+
+따라서:
+
+- `party`는 "누가 어떤 역할로 협력하는가"를 잠근다.
+- `zone/world`는 "어디서 어떤 상태 전이가 합법인가"를 잠근다.
+- `vessel`은 "subject 안의 상태가 어디 담기는가"를 잠근다.
+
+`party`는 state boundary가 아니다.
+`zone/world`는 collaboration roster가 아니다.
+
+실무 감각:
+
+- subject 둘이 탱커/힐러/딜러처럼 협력한다 → `party`
+- subject 둘이 동맹/결혼/독/결제중/배송중 같은 상태를 공유한다 → `relation/effect/zone`
+- HP, inventory, cooldown, token holder 같은 내부 상태를 담는다 → `vessel`
+
+### Intent vs Async / Fiber
+
+`intent`는 결정적 orchestration 계약이고, `async/fiber`는 제어권 양보와 동시 실행을 다룬다.
+
+따라서:
+
+- `intent`는 workflow VM이 아니라 stateful orchestration declaration이다.
+- `async/fiber`는 adapter, worker, runtime helper, hosted action 바깥에서 다뤄야 한다.
+- `intent` clause 자체는 suspension point를 포함하면 안 된다.
+
+고정 규칙:
+
+- `await`
+- `spawn`
+- `async`
+- `parallel`
+- `select`
+- channel send/recv
+
+는 intent clause 안에 직접 들어갈 수 없다.
+
+즉:
+
+- intent는 "무슨 순서와 계약으로 상태를 옮길 것인가"
+- async는 "작업을 언제 멈추고 재개할 것인가"
+
+를 담당한다.
+
+둘을 같은 계층에서 섞지 않는다.
+
 ## 2. Resource State Lattice 계약
 
 Pergyra의 resource lattice는 최소한 아래 상태를 가진다.
@@ -247,6 +439,26 @@ Pergyra의 resource lattice는 최소한 아래 상태를 가진다.
   - `QubitSlot`처럼 측정 이후 원래 읽기 규칙이 사라진 상태
 - `RemotePending`
   - remote completion이 확정되지 않은 상태
+- `Authorized`
+  - authority/capability가 현재 경로에서 유효함
+- `AuthorityLost`
+  - authority/capability가 handoff / abort / invalidation으로 소실됨
+- `Synced`
+  - projection 또는 lifecycle handle이 최근 source와 동기화된 상태
+- `Dirty`
+  - projection 또는 lifecycle handle이 source 대비 갱신 필요 상태
+- `Stale`
+  - projection invalidation 이후 더 이상 신뢰할 수 없는 보수 상태
+- `Detached`
+  - relation/effect/layer가 분리된 상태
+- `Published`
+  - tobject projection이 boundary publish 완료된 상태
+- `HandoffPending`
+  - zone/world handle이 transfer 중간 상태에 있음
+- `HandedOff`
+  - zone/world handle이 새 경계로 넘어간 뒤 기존 경로에서 직접 소유하지 않음
+- `Compensated`
+  - rollback/compensate가 lifecycle handle에 적용된 상태
 
 ## 2.2 병합 원칙
 
@@ -275,6 +487,8 @@ resource lattice는 값 상태만이 아니라 resource kind와 함께 읽힌다
 - `LocalSlot`
 - `SecureSlot`
 - `DeviceSlot`
+- `AuthorityHandle`
+- `CapabilityToken`
 - `QubitHandle`
 - `RemoteFutureHandle`
 - `ProjectionObject`

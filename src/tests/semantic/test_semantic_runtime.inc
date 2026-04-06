@@ -2995,7 +2995,7 @@ test_misc_grammar_edges(void)
         ast_destroy(call);
     }
 
-    TEST("ToTObject returns tobject projection type but warns outside domain context");
+    TEST("ToTObject returns tobject projection type but warns as boundary projection outside domain context");
     {
         const char *source =
             "tobject PlayerDto { hp: Int; name: String; }\n"
@@ -3011,6 +3011,9 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "direct boundary projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3038,7 +3041,7 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "direct projection outside relation/effect/zone/world context"));
+            "direct boundary projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3076,7 +3079,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToObject returns object projection type but warns outside domain context");
+    TEST("ToObject returns object projection type but warns as internal projection outside domain context");
     {
         const char *source =
             "object PlayerView { hp: Int; name: String; }\n"
@@ -3094,7 +3097,7 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "direct projection outside relation/effect/zone/world context"));
+            "direct internal projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

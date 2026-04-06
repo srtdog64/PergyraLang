@@ -2651,7 +2651,21 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 if (step->data.intent_step.on_exprs[j] != NULL)
                     (void)llvm_emit_expression(step->data.intent_step.on_exprs[j], ctx);
             }
-        } else {
+        }
+        if (step->data.intent_step.intent_expr != NULL) {
+            char reason[256];
+            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
+            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.intent_expr, ctx);
+            snprintf(reason, sizeof(reason), "intent:%s",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            LLVMBuildStore(ctx->builder,
+                LLVMBuildGlobalStringPtr(ctx->builder,
+                    reason,
+                    llvm_tmp_name(ctx)),
+                fail_reason_alloca);
+            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        } else if (step->data.intent_step.on_expr_count == 0) {
             for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
                 const char *alias = step->data.intent_step.who_names[j];
                 ASTNode *involves = llvm_find_intent_actor_local(node, alias);

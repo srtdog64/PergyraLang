@@ -16,7 +16,47 @@ static bool add_named_resource_fact(RIRScope *scope,
                                     RIRResourceKind kind,
                                     RIRResourceState state,
                                     ASTNode *ast);
+static bool add_domain_slot_fact(RIRScope *scope, ASTNode *slot);
 static ASTNode *g_rir_program_root = NULL;
+
+static ASTNode *
+rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
+{
+    ASTNode **slots = NULL;
+    size_t slot_count = 0;
+
+    if (owner == NULL || slot_name == NULL)
+        return NULL;
+
+    switch (owner->type) {
+        case AST_ZONE_DECL:
+            slots = owner->data.zone_decl.slots;
+            slot_count = owner->data.zone_decl.slot_count;
+            break;
+        case AST_RELATION_DECL:
+            slots = owner->data.relation_decl.slots;
+            slot_count = owner->data.relation_decl.slot_count;
+            break;
+        case AST_EFFECT_DECL:
+            slots = owner->data.effect_decl.slots;
+            slot_count = owner->data.effect_decl.slot_count;
+            break;
+        default:
+            return NULL;
+    }
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot != NULL
+            && slot->type == AST_DOMAIN_SLOT
+            && slot->data.domain_slot.slot_name != NULL
+            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            return slot;
+        }
+    }
+
+    return NULL;
+}
 
 static bool
 append_scope(RIRProgram *rir, RIRScope scope)
@@ -128,13 +168,17 @@ scope_ensure_state_summary(RIRScope *scope, const RIRFact *fact)
     RIRStateSummary summary;
     if (scope == NULL || fact == NULL || fact->name == NULL)
         return true;
-    if (fact->kind != RIR_FACT_RESOURCE && fact->kind != RIR_FACT_PROJECTION)
+    if (fact->kind != RIR_FACT_RESOURCE
+        && fact->kind != RIR_FACT_PROJECTION
+        && fact->kind != RIR_FACT_AUTHORITY
+        && fact->kind != RIR_FACT_CAPABILITY)
         return true;
     if (scope_find_state_summary(scope, fact->name) != NULL)
         return true;
 
     memset(&summary, 0, sizeof(summary));
     summary.name = fact->name;
+    summary.slot_anchor = fact->slot_anchor;
     summary.origin_kind = fact->kind;
     summary.resource_kind = fact->resource_kind;
     summary.initial_state = fact->state;
@@ -240,6 +284,15 @@ static RIRResourceState
 rir_default_state_for_kind(RIRResourceKind kind)
 {
     switch (kind) {
+        case RIR_RESOURCE_AUTHORITY_HANDLE:
+        case RIR_RESOURCE_CAPABILITY_TOKEN:
+            return RIR_STATE_AUTHORIZED;
+        case RIR_RESOURCE_SUBJECT_SLOT:
+        case RIR_RESOURCE_VESSEL_SLOT:
+            return RIR_STATE_OWNED;
+        case RIR_RESOURCE_OBJECT_SLOT:
+        case RIR_RESOURCE_TOBJECT_SLOT:
+            return RIR_STATE_UNINIT;
         case RIR_RESOURCE_EFFECT_INSTANCE:
         case RIR_RESOURCE_RELATION_INSTANCE:
             return RIR_STATE_DETACHED;
@@ -277,6 +330,7 @@ add_resource_fact(RIRScope *scope,
     memset(&fact, 0, sizeof(fact));
     fact.kind = RIR_FACT_RESOURCE;
     fact.name = name;
+    fact.slot_anchor = name;
     fact.arg0 = type_name(type_node);
     fact.resource_kind = kind;
     fact.state = state;
@@ -299,6 +353,39 @@ add_param_resource_fact(RIRScope *scope, const char *name, ASTNode *type_node, A
 }
 
 static bool
+add_domain_slot_fact(RIRScope *scope, ASTNode *slot)
+{
+    RIRResourceKind kind;
+    RIRResourceState state;
+
+    if (scope == NULL || slot == NULL || slot->type != AST_DOMAIN_SLOT)
+        return true;
+
+    if (slot->data.domain_slot.is_subject) {
+        kind = RIR_RESOURCE_SUBJECT_SLOT;
+        state = RIR_STATE_OWNED;
+    } else if (slot->data.domain_slot.is_vessel) {
+        kind = RIR_RESOURCE_VESSEL_SLOT;
+        state = RIR_STATE_OWNED;
+    } else if (slot->data.domain_slot.is_dto) {
+        kind = RIR_RESOURCE_TOBJECT_SLOT;
+        state = RIR_STATE_UNINIT;
+    } else if (slot->data.domain_slot.is_binding) {
+        kind = RIR_RESOURCE_OBJECT_SLOT;
+        state = RIR_STATE_UNINIT;
+    } else {
+        return true;
+    }
+
+    return add_named_resource_fact(scope,
+                                   slot->data.domain_slot.slot_name,
+                                   type_name(slot->data.domain_slot.type),
+                                   kind,
+                                   state,
+                                   slot);
+}
+
+static bool
 add_projection_fact(RIRScope *scope,
                     const char *target,
                     const char *source,
@@ -311,6 +398,7 @@ add_projection_fact(RIRScope *scope,
     memset(&fact, 0, sizeof(fact));
     fact.kind = RIR_FACT_PROJECTION;
     fact.name = target;
+    fact.slot_anchor = target != NULL ? target : source;
     fact.arg0 = source;
     fact.arg1 = mode;
     fact.resource_kind = kind;
@@ -331,6 +419,7 @@ add_named_resource_fact(RIRScope *scope,
     memset(&fact, 0, sizeof(fact));
     fact.kind = RIR_FACT_RESOURCE;
     fact.name = name;
+    fact.slot_anchor = name;
     fact.arg0 = type_name_value;
     fact.resource_kind = kind;
     fact.state = state;
@@ -345,7 +434,12 @@ add_authority_fact(RIRScope *scope, const char *actor, const char *ability, ASTN
     memset(&fact, 0, sizeof(fact));
     fact.kind = ability != NULL ? RIR_FACT_CAPABILITY : RIR_FACT_AUTHORITY;
     fact.name = actor;
+    fact.slot_anchor = actor;
     fact.arg0 = ability;
+    fact.resource_kind = ability != NULL
+        ? RIR_RESOURCE_CAPABILITY_TOKEN
+        : RIR_RESOURCE_AUTHORITY_HANDLE;
+    fact.state = RIR_STATE_AUTHORIZED;
     fact.ast = ast;
     return scope_add_fact(scope, fact);
 }
@@ -374,6 +468,7 @@ add_op(RIRScope *scope,
     memset(&op, 0, sizeof(op));
     op.kind = kind;
     op.subject = subject;
+    op.slot_anchor = subject != NULL ? subject : arg0;
     op.arg0 = arg0;
     op.arg1 = arg1;
     op.ast = ast;
@@ -395,17 +490,44 @@ rir_state_mark_error(RIRScope *scope, RIRStateSummary *summary, RIROpKind op_kin
 static void
 rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *op)
 {
+    bool projection_like = false;
+    bool authority_like = false;
+    bool handoff_like = false;
+
     if (summary == NULL || op == NULL)
         return;
 
     summary->last_op_name = rir_op_kind_name(op->kind);
+    projection_like = summary->resource_kind == RIR_RESOURCE_PROJECTION_OBJECT
+        || summary->resource_kind == RIR_RESOURCE_PROJECTION_TOBJECT;
+    authority_like = summary->resource_kind == RIR_RESOURCE_AUTHORITY_HANDLE
+        || summary->resource_kind == RIR_RESOURCE_CAPABILITY_TOKEN;
+    handoff_like = summary->resource_kind == RIR_RESOURCE_ZONE_HANDLE
+        || summary->resource_kind == RIR_RESOURCE_WORLD_HANDLE;
 
     switch (op->kind) {
         case RIR_OP_CLAIM:
+            if (handoff_like
+                && (summary->final_state == RIR_STATE_HANDOFF_PENDING
+                    || summary->final_state == RIR_STATE_HANDED_OFF
+                    || summary->final_state == RIR_STATE_OWNED)) {
+                summary->final_state = RIR_STATE_HANDED_OFF;
+                return;
+            }
+            if (authority_like) {
+                summary->final_state = RIR_STATE_AUTHORIZED;
+                return;
+            }
             summary->final_state = RIR_STATE_OWNED;
             return;
 
         case RIR_OP_READ:
+            if (authority_like) {
+                if (summary->final_state == RIR_STATE_AUTHORIZED)
+                    return;
+                rir_state_mark_error(scope, summary, op->kind);
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED
                 || summary->final_state == RIR_STATE_BORROWED_READ
                 || summary->final_state == RIR_STATE_BORROWED_WRITE
@@ -418,6 +540,10 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             return;
 
         case RIR_OP_WRITE:
+            if (projection_like) {
+                summary->final_state = RIR_STATE_DIRTY;
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED
                 || summary->final_state == RIR_STATE_BORROWED_WRITE
                 || summary->final_state == RIR_STATE_DIRTY
@@ -429,6 +555,18 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             return;
 
         case RIR_OP_RELEASE:
+            if (authority_like) {
+                summary->final_state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                summary->final_state = RIR_STATE_STALE;
+                return;
+            }
+            if (handoff_like) {
+                summary->final_state = RIR_STATE_HANDED_OFF;
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED
                 || summary->final_state == RIR_STATE_BORROWED_READ
                 || summary->final_state == RIR_STATE_BORROWED_WRITE
@@ -443,6 +581,18 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             return;
 
         case RIR_OP_MOVE:
+            if (authority_like) {
+                summary->final_state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                summary->final_state = RIR_STATE_STALE;
+                return;
+            }
+            if (handoff_like) {
+                summary->final_state = RIR_STATE_HANDOFF_PENDING;
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED
                 || summary->final_state == RIR_STATE_BORROWED_READ
                 || summary->final_state == RIR_STATE_BORROWED_WRITE
@@ -456,6 +606,12 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             return;
 
         case RIR_OP_BORROW_READ:
+            if (authority_like) {
+                if (summary->final_state == RIR_STATE_AUTHORIZED)
+                    return;
+                rir_state_mark_error(scope, summary, op->kind);
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED) {
                 summary->final_state = RIR_STATE_BORROWED_READ;
                 return;
@@ -464,6 +620,10 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             return;
 
         case RIR_OP_BORROW_WRITE:
+            if (projection_like) {
+                summary->final_state = RIR_STATE_DIRTY;
+                return;
+            }
             if (summary->final_state == RIR_STATE_OWNED) {
                 summary->final_state = RIR_STATE_BORROWED_WRITE;
                 return;
@@ -489,11 +649,39 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             summary->final_state = RIR_STATE_DETACHED;
             return;
 
+        case RIR_OP_AUTHORIZE:
+            if (authority_like) {
+                summary->final_state = RIR_STATE_AUTHORIZED;
+                return;
+            }
+            return;
+
         case RIR_OP_AWAIT_REMOTE:
             if (summary->resource_kind == RIR_RESOURCE_REMOTE_FUTURE_HANDLE)
                 summary->final_state = RIR_STATE_REMOTE_PENDING;
             else
                 rir_state_mark_error(scope, summary, op->kind);
+            return;
+
+        case RIR_OP_ABORT_INTENT:
+        case RIR_OP_COMPENSATE_INTENT_STEP:
+            if (authority_like) {
+                summary->final_state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                summary->final_state = RIR_STATE_STALE;
+                return;
+            }
+            if (summary->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
+                || summary->resource_kind == RIR_RESOURCE_RELATION_INSTANCE) {
+                summary->final_state = RIR_STATE_COMPENSATED;
+                return;
+            }
+            if (handoff_like) {
+                summary->final_state = RIR_STATE_HANDED_OFF;
+                return;
+            }
             return;
 
         default:
@@ -508,14 +696,42 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                       RIROpKind op_kind)
 {
     RIRResourceState current;
+    bool projection_like;
+    bool authority_like;
+    bool handoff_like;
     if (state == NULL)
         return;
     current = *state;
+    projection_like = resource_kind == RIR_RESOURCE_PROJECTION_OBJECT
+        || resource_kind == RIR_RESOURCE_PROJECTION_TOBJECT;
+    authority_like = resource_kind == RIR_RESOURCE_AUTHORITY_HANDLE
+        || resource_kind == RIR_RESOURCE_CAPABILITY_TOKEN;
+    handoff_like = resource_kind == RIR_RESOURCE_ZONE_HANDLE
+        || resource_kind == RIR_RESOURCE_WORLD_HANDLE;
     switch (op_kind) {
         case RIR_OP_CLAIM:
+            if (handoff_like
+                && (current == RIR_STATE_HANDOFF_PENDING
+                    || current == RIR_STATE_HANDED_OFF
+                    || current == RIR_STATE_OWNED)) {
+                *state = RIR_STATE_HANDED_OFF;
+                return;
+            }
+            if (authority_like) {
+                *state = RIR_STATE_AUTHORIZED;
+                return;
+            }
             *state = RIR_STATE_OWNED;
             return;
         case RIR_OP_READ:
+            if (authority_like) {
+                if (current == RIR_STATE_AUTHORIZED)
+                    return;
+                *state = RIR_STATE_INVALID;
+                if (had_error != NULL)
+                    *had_error = true;
+                return;
+            }
             if (current == RIR_STATE_OWNED
                 || current == RIR_STATE_BORROWED_READ
                 || current == RIR_STATE_BORROWED_WRITE
@@ -528,6 +744,10 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 *had_error = true;
             return;
         case RIR_OP_WRITE:
+            if (projection_like) {
+                *state = RIR_STATE_DIRTY;
+                return;
+            }
             if (current == RIR_STATE_OWNED
                 || current == RIR_STATE_BORROWED_WRITE
                 || current == RIR_STATE_DIRTY
@@ -540,6 +760,18 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 *had_error = true;
             return;
         case RIR_OP_RELEASE:
+            if (authority_like) {
+                *state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                *state = RIR_STATE_STALE;
+                return;
+            }
+            if (handoff_like) {
+                *state = RIR_STATE_HANDED_OFF;
+                return;
+            }
             if (current == RIR_STATE_OWNED
                 || current == RIR_STATE_BORROWED_READ
                 || current == RIR_STATE_BORROWED_WRITE
@@ -555,6 +787,18 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 *had_error = true;
             return;
         case RIR_OP_MOVE:
+            if (authority_like) {
+                *state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                *state = RIR_STATE_STALE;
+                return;
+            }
+            if (handoff_like) {
+                *state = RIR_STATE_HANDOFF_PENDING;
+                return;
+            }
             if (current == RIR_STATE_OWNED
                 || current == RIR_STATE_BORROWED_READ
                 || current == RIR_STATE_BORROWED_WRITE
@@ -569,6 +813,14 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 *had_error = true;
             return;
         case RIR_OP_BORROW_READ:
+            if (authority_like) {
+                if (current == RIR_STATE_AUTHORIZED)
+                    return;
+                *state = RIR_STATE_INVALID;
+                if (had_error != NULL)
+                    *had_error = true;
+                return;
+            }
             if (current == RIR_STATE_OWNED) {
                 *state = RIR_STATE_BORROWED_READ;
                 return;
@@ -578,6 +830,10 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 *had_error = true;
             return;
         case RIR_OP_BORROW_WRITE:
+            if (projection_like) {
+                *state = RIR_STATE_DIRTY;
+                return;
+            }
             if (current == RIR_STATE_OWNED) {
                 *state = RIR_STATE_BORROWED_WRITE;
                 return;
@@ -600,6 +856,12 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
         case RIR_OP_UNLINK_RELATION:
             *state = RIR_STATE_DETACHED;
             return;
+        case RIR_OP_AUTHORIZE:
+            if (authority_like) {
+                *state = RIR_STATE_AUTHORIZED;
+                return;
+            }
+            return;
         case RIR_OP_AWAIT_REMOTE:
             if (resource_kind == RIR_RESOURCE_REMOTE_FUTURE_HANDLE) {
                 *state = RIR_STATE_REMOTE_PENDING;
@@ -608,6 +870,26 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
             *state = RIR_STATE_INVALID;
             if (had_error != NULL)
                 *had_error = true;
+            return;
+        case RIR_OP_ABORT_INTENT:
+        case RIR_OP_COMPENSATE_INTENT_STEP:
+            if (authority_like) {
+                *state = RIR_STATE_AUTHORITY_LOST;
+                return;
+            }
+            if (projection_like) {
+                *state = RIR_STATE_STALE;
+                return;
+            }
+            if (resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
+                || resource_kind == RIR_RESOURCE_RELATION_INSTANCE) {
+                *state = RIR_STATE_COMPENSATED;
+                return;
+            }
+            if (handoff_like) {
+                *state = RIR_STATE_HANDED_OFF;
+                return;
+            }
             return;
         default:
             return;

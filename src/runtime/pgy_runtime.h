@@ -410,6 +410,30 @@ pgy_intent_trace_fail_export(int32_t handle, const char *reason)
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
 
+static inline void
+pgy_mir_resource_op_export(int32_t handle,
+                           const char *op_name,
+                           const char *slot_anchor,
+                           const char *arg_name)
+{
+    (void)handle;
+    (void)op_name;
+    (void)slot_anchor;
+    (void)arg_name;
+}
+
+static inline void
+pgy_mir_cleanup_op_export(int32_t handle,
+                          const char *op_name,
+                          const char *slot_anchor,
+                          const char *arg_name)
+{
+    (void)handle;
+    (void)op_name;
+    (void)slot_anchor;
+    (void)arg_name;
+}
+
 static inline char *
 pgy_intent_last_trace_export(void)
 {

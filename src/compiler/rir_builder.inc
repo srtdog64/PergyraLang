@@ -283,6 +283,10 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
     size_t method_count = 0;
 
     if (node->type == AST_ZONE_DECL) {
+        for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+            if (!add_domain_slot_fact(&scope, node->data.zone_decl.slots[i]))
+                goto oom;
+        }
         for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
             ASTNode *slot = node->data.zone_decl.layer_slots[i];
             if (!add_named_resource_fact(&scope,
@@ -350,11 +354,19 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
                 goto oom;
         }
     } else if (node->type == AST_RELATION_DECL) {
+        for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
+            if (!add_domain_slot_fact(&scope, node->data.relation_decl.slots[i]))
+                goto oom;
+        }
         refreshes = node->data.relation_decl.refreshes;
         refresh_count = node->data.relation_decl.refresh_count;
         methods = node->data.relation_decl.methods;
         method_count = node->data.relation_decl.method_count;
     } else if (node->type == AST_EFFECT_DECL) {
+        for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
+            if (!add_domain_slot_fact(&scope, node->data.effect_decl.slots[i]))
+                goto oom;
+        }
         refreshes = node->data.effect_decl.refreshes;
         refresh_count = node->data.effect_decl.refresh_count;
         methods = node->data.effect_decl.methods;
@@ -376,14 +388,21 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
 
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
-        bool tobject = refresh->data.zone_refresh.requires_dto;
+        ASTNode *target_slot = rir_find_domain_slot_in_owner(
+            node, refresh->data.zone_refresh.object_slot_name);
+        bool tobject =
+            refresh->data.zone_refresh.requires_dto
+            || (refresh->data.zone_refresh.infer_target_kind
+                && target_slot != NULL
+                && target_slot->data.domain_slot.is_dto);
+
         if (!add_projection_fact(&scope,
                                  refresh->data.zone_refresh.object_slot_name,
                                  refresh->data.zone_refresh.source_slot_name,
                                  tobject ? "publish" : (refresh->data.zone_refresh.infer_target_kind ? "bind" : "refresh"),
                                  tobject ? RIR_STATE_PUBLISHED
                                      : (refresh->data.zone_refresh.infer_target_kind ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
-                                 tobject ? RIR_RESOURCE_PROJECTION_DTO : RIR_RESOURCE_PROJECTION_OBJECT,
+                                 tobject ? RIR_RESOURCE_PROJECTION_TOBJECT : RIR_RESOURCE_PROJECTION_OBJECT,
                                  refresh))
             goto oom;
         if (!add_op(&scope,

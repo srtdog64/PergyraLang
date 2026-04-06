@@ -779,6 +779,7 @@ struct ASTNode
             char* name;
             ASTNode* where_type;
             ASTNode* using_expr;
+            ASTNode* intent_expr;
             char* transfer_from_alias;
             char* transfer_to_alias;
             char** who_names;

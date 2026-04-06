@@ -42,6 +42,24 @@ rir_dump_flow_semantics(FILE *out, unsigned int flags)
     }
 }
 
+static const RIRFact *
+rir_scope_find_projection_fact(const RIRScope *scope, const char *name)
+{
+    if (scope == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < scope->fact_count; i++) {
+        const RIRFact *fact = &scope->facts[i];
+        if (fact->kind == RIR_FACT_PROJECTION
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0) {
+            return fact;
+        }
+    }
+
+    return NULL;
+}
+
 void
 rir_destroy(RIRProgram *rir)
 {
@@ -93,10 +111,16 @@ rir_resource_kind_name(RIRResourceKind kind)
         case RIR_RESOURCE_LOCAL_SLOT: return "LocalSlot";
         case RIR_RESOURCE_SECURE_SLOT: return "SecureSlot";
         case RIR_RESOURCE_DEVICE_SLOT: return "DeviceSlot";
+        case RIR_RESOURCE_AUTHORITY_HANDLE: return "AuthorityHandle";
+        case RIR_RESOURCE_CAPABILITY_TOKEN: return "CapabilityToken";
+        case RIR_RESOURCE_SUBJECT_SLOT: return "SubjectSlot";
+        case RIR_RESOURCE_OBJECT_SLOT: return "ObjectSlot";
+        case RIR_RESOURCE_TOBJECT_SLOT: return "TObjectSlot";
+        case RIR_RESOURCE_VESSEL_SLOT: return "VesselSlot";
         case RIR_RESOURCE_QUBIT_HANDLE: return "QubitHandle";
         case RIR_RESOURCE_REMOTE_FUTURE_HANDLE: return "RemoteFutureHandle";
         case RIR_RESOURCE_PROJECTION_OBJECT: return "ProjectionObject";
-        case RIR_RESOURCE_PROJECTION_DTO: return "ProjectionDto";
+        case RIR_RESOURCE_PROJECTION_TOBJECT: return "ProjectionTObject";
         case RIR_RESOURCE_EFFECT_INSTANCE: return "EffectInstance";
         case RIR_RESOURCE_RELATION_INSTANCE: return "RelationInstance";
         case RIR_RESOURCE_ZONE_HANDLE: return "ZoneHandle";
@@ -118,10 +142,16 @@ rir_resource_state_name(RIRResourceState state)
         case RIR_STATE_INVALID: return "Invalid";
         case RIR_STATE_MEASURED: return "Measured";
         case RIR_STATE_REMOTE_PENDING: return "RemotePending";
+        case RIR_STATE_AUTHORIZED: return "Authorized";
+        case RIR_STATE_AUTHORITY_LOST: return "AuthorityLost";
         case RIR_STATE_SYNCED: return "Synced";
         case RIR_STATE_DIRTY: return "Dirty";
+        case RIR_STATE_STALE: return "Stale";
         case RIR_STATE_DETACHED: return "Detached";
         case RIR_STATE_PUBLISHED: return "Published";
+        case RIR_STATE_HANDOFF_PENDING: return "HandoffPending";
+        case RIR_STATE_HANDED_OFF: return "HandedOff";
+        case RIR_STATE_COMPENSATED: return "Compensated";
         default: return "unknown";
     }
 }
@@ -176,6 +206,101 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 }
                 return false;
             }
+            if (summary->slot_anchor == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' state summary '%s' is missing slot anchor",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        summary->name != NULL ? summary->name : "(unnamed)");
+                }
+                return false;
+            }
+        }
+
+        for (size_t j = 0; j < scope->fact_count; j++) {
+            const RIRFact *fact = &scope->facts[j];
+            if (fact->kind != RIR_FACT_INTENT_POLICY && fact->slot_anchor == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' fact '%s' is missing slot anchor",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        fact->name != NULL ? fact->name : "(unnamed)");
+                }
+                return false;
+            }
+            if (fact->kind == RIR_FACT_PROJECTION) {
+                if (fact->resource_kind == RIR_RESOURCE_PROJECTION_OBJECT
+                    && fact->state == RIR_STATE_PUBLISHED) {
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' object projection '%s' cannot be Published",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            fact->name != NULL ? fact->name : "(unnamed)");
+                    }
+                    return false;
+                }
+                if (fact->resource_kind == RIR_RESOURCE_PROJECTION_TOBJECT
+                    && strcmp(fact->arg1 != NULL ? fact->arg1 : "", "refresh") == 0) {
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' tobject projection '%s' cannot use refresh mode",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            fact->name != NULL ? fact->name : "(unnamed)");
+                    }
+                    return false;
+                }
+            }
+        }
+
+        for (size_t j = 0; j < scope->op_count; j++) {
+            const RIROp *op = &scope->ops[j];
+            if (op->slot_anchor == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' op '%s' is missing slot anchor",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        rir_op_kind_name(op->kind));
+                }
+                return false;
+            }
+            if (op->kind == RIR_OP_PROJECT_PUBLISH || op->kind == RIR_OP_PROJECT_REFRESH) {
+                const RIRFact *projection = rir_scope_find_projection_fact(scope, op->slot_anchor);
+                const RIRStateSummary *summary = scope_find_state_summary(
+                    (RIRScope *)scope, op->slot_anchor);
+                RIRResourceKind kind = RIR_RESOURCE_UNKNOWN;
+
+                if (projection != NULL)
+                    kind = projection->resource_kind;
+                else if (summary != NULL)
+                    kind = summary->resource_kind;
+
+                if (kind == RIR_RESOURCE_UNKNOWN) {
+                    continue;
+                }
+
+                if (op->kind == RIR_OP_PROJECT_PUBLISH
+                    && kind != RIR_RESOURCE_PROJECTION_TOBJECT
+                    && kind != RIR_RESOURCE_TOBJECT_SLOT) {
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' ProjectPublish requires tobject projection slot '%s'",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            op->slot_anchor);
+                    }
+                    return false;
+                }
+                if (op->kind == RIR_OP_PROJECT_REFRESH
+                    && kind != RIR_RESOURCE_PROJECTION_OBJECT
+                    && kind != RIR_RESOURCE_OBJECT_SLOT) {
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' ProjectRefresh requires object projection slot '%s'",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            op->slot_anchor);
+                    }
+                    return false;
+                }
+            }
         }
 
         for (size_t j = 0; j < scope->flow_block_count; j++) {
@@ -196,6 +321,16 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "RIR scope '%s' flow-block[%zu] has unnamed fact",
                             scope->name != NULL ? scope->name : "(anonymous)",
                             block->block_id);
+                    }
+                    return false;
+                }
+                if (block->facts[k].slot_anchor == NULL) {
+                    if (error_message != NULL) {
+                        *error_message = rir_strdup_fmt(
+                            "RIR scope '%s' flow-block[%zu] fact '%s' is missing slot anchor",
+                            scope->name != NULL ? scope->name : "(anonymous)",
+                            block->block_id,
+                            block->facts[k].name != NULL ? block->facts[k].name : "(unnamed)");
                     }
                     return false;
                 }
@@ -251,10 +386,11 @@ rir_dump(const RIRProgram *rir, FILE *out)
         fputc('\n', out);
         for (size_t j = 0; j < scope->fact_count; j++) {
             const RIRFact *fact = &scope->facts[j];
-            fprintf(out, "    fact[%02zu] %-13s name=%s arg0=%s arg1=%s kind=%s state=%s\n",
+            fprintf(out, "    fact[%02zu] %-13s name=%s slot=%s arg0=%s arg1=%s kind=%s state=%s\n",
                     j,
                     rir_fact_kind_name(fact->kind),
                     fact->name != NULL ? fact->name : "-",
+                    fact->slot_anchor != NULL ? fact->slot_anchor : "-",
                     fact->arg0 != NULL ? fact->arg0 : "-",
                     fact->arg1 != NULL ? fact->arg1 : "-",
                     rir_resource_kind_name(fact->resource_kind),
@@ -262,20 +398,22 @@ rir_dump(const RIRProgram *rir, FILE *out)
         }
         for (size_t j = 0; j < scope->op_count; j++) {
             const RIROp *op = &scope->ops[j];
-            fprintf(out, "    op[%02zu] %-20s subject=%s arg0=%s arg1=%s\n",
+            fprintf(out, "    op[%02zu] %-20s subject=%s slot=%s arg0=%s arg1=%s\n",
                     j,
                     rir_op_kind_name(op->kind),
                     op->subject != NULL ? op->subject : "-",
+                    op->slot_anchor != NULL ? op->slot_anchor : "-",
                     op->arg0 != NULL ? op->arg0 : "-",
                     op->arg1 != NULL ? op->arg1 : "-");
         }
         for (size_t j = 0; j < scope->state_summary_count; j++) {
             const RIRStateSummary *summary = &scope->state_summaries[j];
             fprintf(out,
-                    "    state[%02zu] %-13s name=%s kind=%s init=%s final=%s last-op=%s error=%s\n",
+                    "    state[%02zu] %-13s name=%s slot=%s kind=%s init=%s final=%s last-op=%s error=%s\n",
                     j,
                     rir_fact_kind_name(summary->origin_kind),
                     summary->name != NULL ? summary->name : "-",
+                    summary->slot_anchor != NULL ? summary->slot_anchor : "-",
                     rir_resource_kind_name(summary->resource_kind),
                     rir_resource_state_name(summary->initial_state),
                     rir_resource_state_name(summary->final_state),
@@ -297,9 +435,10 @@ rir_dump(const RIRProgram *rir, FILE *out)
             for (size_t k = 0; k < block->fact_count; k++) {
                 const RIRFlowFact *fact = &block->facts[k];
                 fprintf(out,
-                        "      flow[%02zu] name=%s entry=%s exit=%s join=%s widened=%s entry-conflict=%s exit-conflict=%s\n",
+                        "      flow[%02zu] name=%s slot=%s entry=%s exit=%s join=%s widened=%s entry-conflict=%s exit-conflict=%s\n",
                         k,
                         fact->name != NULL ? fact->name : "-",
+                        fact->slot_anchor != NULL ? fact->slot_anchor : "-",
                         rir_resource_state_name(fact->entry_state),
                         rir_resource_state_name(fact->exit_state),
                         fact->merged_from_join ? "yes" : "no",

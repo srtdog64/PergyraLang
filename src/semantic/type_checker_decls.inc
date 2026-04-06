@@ -265,6 +265,139 @@ intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
 }
 
 static const char *
+intent_forbidden_control_construct(ASTNode *node)
+{
+    const char *nested = NULL;
+
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+        case AST_AWAIT_EXPR:
+            return "await";
+        case AST_SPAWN_EXPR:
+            return "spawn";
+        case AST_ASYNC_BLOCK:
+            return "async";
+        case AST_PARALLEL_BLOCK:
+            return "parallel";
+        case AST_SELECT_STMT:
+            return "select";
+        case AST_CHANNEL_SEND:
+            return "channel send";
+        case AST_CHANNEL_RECV:
+            return "channel recv";
+        case AST_TASK_GROUP:
+            return "task-group";
+        case AST_LAMBDA_EXPR:
+            if (node->data.lambda_expr.is_async)
+                return "async lambda";
+            return intent_forbidden_control_construct(node->data.lambda_expr.body);
+        case AST_BINARY:
+            nested = intent_forbidden_control_construct(node->data.binary.left);
+            if (nested != NULL)
+                return nested;
+            return intent_forbidden_control_construct(node->data.binary.right);
+        case AST_UNARY:
+            return intent_forbidden_control_construct(node->data.unary.operand);
+        case AST_CALL:
+            nested = intent_forbidden_control_construct(node->data.call.callee);
+            if (nested != NULL)
+                return nested;
+            for (size_t i = 0; i < node->data.call.arg_count; i++) {
+                nested = intent_forbidden_control_construct(
+                    node->data.call.arguments[i]);
+                if (nested != NULL)
+                    return nested;
+            }
+            return NULL;
+        case AST_MEMBER_ACCESS:
+            return intent_forbidden_control_construct(node->data.member.object);
+        case AST_ARRAY_ACCESS:
+            nested = intent_forbidden_control_construct(
+                node->data.array_access.array);
+            if (nested != NULL)
+                return nested;
+            return intent_forbidden_control_construct(
+                node->data.array_access.index);
+        case AST_ARRAY_LITERAL:
+            for (size_t i = 0; i < node->data.array_literal.count; i++) {
+                nested = intent_forbidden_control_construct(
+                    node->data.array_literal.elements[i]);
+                if (nested != NULL)
+                    return nested;
+            }
+            return NULL;
+        case AST_ASSIGNMENT:
+            nested = intent_forbidden_control_construct(node->data.assignment.target);
+            if (nested != NULL)
+                return nested;
+            return intent_forbidden_control_construct(node->data.assignment.value);
+        case AST_MATCH_STMT:
+            nested = intent_forbidden_control_construct(node->data.match_stmt.subject);
+            if (nested != NULL)
+                return nested;
+            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+                nested = intent_forbidden_control_construct(
+                    node->data.match_stmt.cases[i]);
+                if (nested != NULL)
+                    return nested;
+            }
+            return intent_forbidden_control_construct(
+                node->data.match_stmt.default_body);
+        case AST_MATCH_CASE:
+            nested = intent_forbidden_control_construct(node->data.match_case.pattern);
+            if (nested != NULL)
+                return nested;
+            nested = intent_forbidden_control_construct(node->data.match_case.guard);
+            if (nested != NULL)
+                return nested;
+            return intent_forbidden_control_construct(node->data.match_case.body);
+        case AST_IF_STMT:
+            nested = intent_forbidden_control_construct(node->data.if_stmt.condition);
+            if (nested != NULL)
+                return nested;
+            nested = intent_forbidden_control_construct(node->data.if_stmt.then_branch);
+            if (nested != NULL)
+                return nested;
+            return intent_forbidden_control_construct(node->data.if_stmt.else_branch);
+        case AST_BLOCK:
+            for (size_t i = 0; i < node->data.block.count; i++) {
+                nested = intent_forbidden_control_construct(
+                    node->data.block.statements[i]);
+                if (nested != NULL)
+                    return nested;
+            }
+            return NULL;
+        case AST_RETURN:
+            return intent_forbidden_control_construct(node->data.return_stmt.value);
+        case AST_DEFER_STMT:
+            return intent_forbidden_control_construct(node->data.defer_stmt.body);
+        default:
+            return NULL;
+    }
+}
+
+static bool
+intent_clause_rejects_control_transfer(ASTNode *expr,
+                                       SemanticContext *ctx,
+                                       const char *step_name,
+                                       const char *label)
+{
+    const char *construct = intent_forbidden_control_construct(expr);
+
+    if (construct == NULL)
+        return true;
+
+    semantic_error(ctx, expr,
+        "Intent step '%s' %s clause cannot contain '%s'; move async/fiber control outside the intent into action or adapter code",
+        step_name != NULL ? step_name : "<step>",
+        label != NULL ? label : "expression",
+        construct);
+    return false;
+}
+
+static const char *
 intent_involves_type_name(ASTNode *involves)
 {
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
@@ -363,18 +496,21 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *step = node->data.intent_decl.steps[i];
         bool matched_action = false;
         ASTNode *zone_decl = NULL;
+        bool has_subintent = false;
 
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
 
-        if (step->data.intent_step.where_type == NULL) {
+        has_subintent = (step->data.intent_step.intent_expr != NULL);
+
+        if (step->data.intent_step.where_type == NULL && !has_subintent) {
             semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
         } else {
             Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
             zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 zone_type != NULL ? zone_type->name : NULL);
-            if (zone_decl == NULL) {
+            if (step->data.intent_step.where_type != NULL && zone_decl == NULL) {
                 semantic_error(ctx, step->data.intent_step.where_type,
                     "Intent step '%s' refers to unknown zone '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
@@ -386,6 +522,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             Type *using_type = type_check_expression(step->data.intent_step.using_expr, ctx);
             Type *zone_type = step->data.intent_step.where_type != NULL
                 ? resolve_type_node(step->data.intent_step.where_type, ctx) : NULL;
+            intent_clause_rejects_control_transfer(step->data.intent_step.using_expr, ctx,
+                step->data.intent_step.name, "using");
             if (step->data.intent_step.using_expr->type != AST_IDENTIFIER) {
                 semantic_error(ctx, step->data.intent_step.using_expr,
                     "Intent step '%s' using clause must reference an intent parameter alias",
@@ -471,27 +609,75 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
 
-        if (step->data.intent_step.who_count == 0) {
+        if (step->data.intent_step.who_count == 0 && !has_subintent) {
             semantic_error(ctx, step, "Intent step '%s' requires at least one who actor",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
         }
 
+        if (step->data.intent_step.intent_expr != NULL) {
+            Type *intent_type = type_check_expression(step->data.intent_step.intent_expr, ctx);
+            intent_clause_rejects_control_transfer(step->data.intent_step.intent_expr, ctx,
+                step->data.intent_step.name, "intent");
+            if (step->data.intent_step.intent_expr->type != AST_CALL
+                || step->data.intent_step.intent_expr->data.call.callee == NULL
+                || step->data.intent_step.intent_expr->data.call.callee->type != AST_IDENTIFIER) {
+                semantic_error(ctx, step->data.intent_step.intent_expr,
+                    "Intent step '%s' intent clause must call a named intent",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            } else {
+                const char *callee_name =
+                    step->data.intent_step.intent_expr->data.call.callee->data.identifier.name;
+                Symbol *intent_sym = callee_name != NULL ? scope_lookup(ctx->scope, callee_name) : NULL;
+                if (intent_sym == NULL || intent_sym->kind != SYMBOL_INTENT) {
+                    semantic_error(ctx, step->data.intent_step.intent_expr,
+                        "Intent step '%s' intent clause must target another intent, got '%s'",
+                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        callee_name != NULL ? callee_name : "<callee>");
+                }
+            }
+            if (intent_type != NULL && !type_equals(intent_type, TYPE_BOOL)) {
+                semantic_error(ctx, step->data.intent_step.intent_expr,
+                    "Intent step '%s' intent clause must return Bool, got '%s'",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    intent_type->name != NULL ? intent_type->name : "<type>");
+            }
+        }
+
         for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-            if (step->data.intent_step.on_exprs[j] != NULL)
+            if (step->data.intent_step.on_exprs[j] != NULL) {
+                intent_clause_rejects_control_transfer(step->data.intent_step.on_exprs[j], ctx,
+                    step->data.intent_step.name, "on");
                 type_check_expression(step->data.intent_step.on_exprs[j], ctx);
+            }
         }
         for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
-            if (step->data.intent_step.compensate_exprs[j] != NULL)
+            if (step->data.intent_step.compensate_exprs[j] != NULL) {
+                intent_clause_rejects_control_transfer(
+                    step->data.intent_step.compensate_exprs[j], ctx,
+                    step->data.intent_step.name, "compensate");
                 type_check_expression(step->data.intent_step.compensate_exprs[j], ctx);
+            }
         }
-        if (step->data.intent_step.pre_expr != NULL)
+        if (step->data.intent_step.pre_expr != NULL) {
+            intent_clause_rejects_control_transfer(step->data.intent_step.pre_expr, ctx,
+                step->data.intent_step.name, "pre");
             intent_condition_is_bool(step->data.intent_step.pre_expr, ctx, "pre");
-        if (step->data.intent_step.guard_expr != NULL)
+        }
+        if (step->data.intent_step.guard_expr != NULL) {
+            intent_clause_rejects_control_transfer(step->data.intent_step.guard_expr, ctx,
+                step->data.intent_step.name, "guard");
             intent_condition_is_bool(step->data.intent_step.guard_expr, ctx, "guard");
-        if (step->data.intent_step.post_expr != NULL)
+        }
+        if (step->data.intent_step.post_expr != NULL) {
+            intent_clause_rejects_control_transfer(step->data.intent_step.post_expr, ctx,
+                step->data.intent_step.name, "post");
             intent_condition_is_bool(step->data.intent_step.post_expr, ctx, "post");
-        if (step->data.intent_step.invariant_expr != NULL)
+        }
+        if (step->data.intent_step.invariant_expr != NULL) {
+            intent_clause_rejects_control_transfer(step->data.intent_step.invariant_expr, ctx,
+                step->data.intent_step.name, "invariant");
             intent_condition_is_bool(step->data.intent_step.invariant_expr, ctx, "invariant");
+        }
 
         for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
             const char *alias = step->data.intent_step.who_names[j];
@@ -638,10 +824,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
 
-        if (step->data.intent_step.expect_expr != NULL)
+        if (step->data.intent_step.expect_expr != NULL) {
+            intent_clause_rejects_control_transfer(step->data.intent_step.expect_expr, ctx,
+                step->data.intent_step.name, "expect");
             intent_condition_is_bool(step->data.intent_step.expect_expr, ctx, "expect");
+        }
 
-        if (!matched_action && step->data.intent_step.on_expr_count == 0) {
+        if (!matched_action && step->data.intent_step.on_expr_count == 0
+            && step->data.intent_step.intent_expr == NULL) {
             semantic_warning(ctx, step,
                 "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
@@ -650,6 +840,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
     if (node->data.intent_decl.priority_expr != NULL) {
         Type *priority_type = type_check_expression(node->data.intent_decl.priority_expr, ctx);
+        intent_clause_rejects_control_transfer(node->data.intent_decl.priority_expr, ctx,
+            name, "priority");
         if (priority_type != NULL && !type_equals(priority_type, TYPE_INT)) {
             semantic_error(ctx, node->data.intent_decl.priority_expr,
                 "Intent priority expression must be Int, got '%s'",
@@ -657,10 +849,16 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    if (node->data.intent_decl.success_expr != NULL)
+    if (node->data.intent_decl.success_expr != NULL) {
+        intent_clause_rejects_control_transfer(node->data.intent_decl.success_expr, ctx,
+            name, "success");
         intent_condition_is_bool(node->data.intent_decl.success_expr, ctx, "success");
-    if (node->data.intent_decl.failure_expr != NULL)
+    }
+    if (node->data.intent_decl.failure_expr != NULL) {
+        intent_clause_rejects_control_transfer(node->data.intent_decl.failure_expr, ctx,
+            name, "failure");
         intent_condition_is_bool(node->data.intent_decl.failure_expr, ctx, "failure");
+    }
 
     scope_exit(&ctx->scope);
     return !ctx->has_error;

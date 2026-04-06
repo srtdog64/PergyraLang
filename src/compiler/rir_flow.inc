@@ -8,6 +8,27 @@ rir_is_handle_kind(RIRResourceKind kind)
 }
 
 static bool
+rir_is_projection_kind(RIRResourceKind kind)
+{
+    return kind == RIR_RESOURCE_PROJECTION_OBJECT
+           || kind == RIR_RESOURCE_PROJECTION_TOBJECT;
+}
+
+static bool
+rir_is_authority_kind(RIRResourceKind kind)
+{
+    return kind == RIR_RESOURCE_AUTHORITY_HANDLE
+           || kind == RIR_RESOURCE_CAPABILITY_TOKEN;
+}
+
+static bool
+rir_is_handoff_kind(RIRResourceKind kind)
+{
+    return kind == RIR_RESOURCE_ZONE_HANDLE
+           || kind == RIR_RESOURCE_WORLD_HANDLE;
+}
+
+static bool
 rir_state_changed(RIRResourceState a, RIRResourceState b)
 {
     return a != b;
@@ -94,7 +115,7 @@ rir_flow_semantics_for_scope(const RIRScope *scope)
                     flags |= RIR_FLOW_WORLD_HANDOFF;
                 }
                 if (subject_kind == RIR_RESOURCE_PROJECTION_OBJECT
-                    || subject_kind == RIR_RESOURCE_PROJECTION_DTO
+                    || subject_kind == RIR_RESOURCE_PROJECTION_TOBJECT
                     || subject_kind == RIR_RESOURCE_ZONE_HANDLE
                     || subject_kind == RIR_RESOURCE_WORLD_HANDLE) {
                     flags |= RIR_FLOW_INVALIDATION;
@@ -141,7 +162,7 @@ rir_flow_semantics_for_op(const RIRScope *scope, const RIROp *op)
                 return rir_refine_flow_semantics(RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_INVALIDATION);
             }
             if (subject_kind == RIR_RESOURCE_PROJECTION_OBJECT
-                || subject_kind == RIR_RESOURCE_PROJECTION_DTO) {
+                || subject_kind == RIR_RESOURCE_PROJECTION_TOBJECT) {
                 return rir_refine_flow_semantics(RIR_FLOW_INVALIDATION);
             }
             return RIR_FLOW_NONE;
@@ -172,6 +193,16 @@ rir_merge_handle_states(RIRResourceKind kind,
         if (conflict != NULL)
             *conflict = true;
         return RIR_STATE_INVALID;
+    }
+
+    if (rir_is_handoff_kind(kind)) {
+        if (a == RIR_STATE_HANDOFF_PENDING || b == RIR_STATE_HANDOFF_PENDING)
+            return RIR_STATE_HANDOFF_PENDING;
+        if (a == RIR_STATE_HANDED_OFF && b == RIR_STATE_HANDED_OFF)
+            return RIR_STATE_HANDED_OFF;
+        if ((a == RIR_STATE_HANDED_OFF && b == RIR_STATE_OWNED)
+            || (b == RIR_STATE_HANDED_OFF && a == RIR_STATE_OWNED))
+            return RIR_STATE_HANDOFF_PENDING;
     }
 
     if (kind == RIR_RESOURCE_ZONE_HANDLE || kind == RIR_RESOURCE_WORLD_HANDLE) {
@@ -208,6 +239,46 @@ rir_merge_states_for_kind(RIRResourceKind kind,
                           RIRResourceState b,
                           bool *conflict)
 {
+    if (rir_is_authority_kind(kind)) {
+        if (a == b)
+            return a;
+        if (a == RIR_STATE_UNINIT)
+            return b;
+        if (b == RIR_STATE_UNINIT)
+            return a;
+        if (a == RIR_STATE_AUTHORITY_LOST || b == RIR_STATE_AUTHORITY_LOST)
+            return RIR_STATE_AUTHORITY_LOST;
+        if (a == RIR_STATE_AUTHORIZED && b == RIR_STATE_AUTHORIZED)
+            return RIR_STATE_AUTHORIZED;
+        if ((a == RIR_STATE_AUTHORIZED && b == RIR_STATE_AUTHORITY_LOST)
+            || (b == RIR_STATE_AUTHORIZED && a == RIR_STATE_AUTHORITY_LOST))
+            return RIR_STATE_AUTHORITY_LOST;
+        if (conflict != NULL)
+            *conflict = true;
+        return RIR_STATE_INVALID;
+    }
+    if (rir_is_projection_kind(kind)) {
+        if (a == b)
+            return a;
+        if (a == RIR_STATE_UNINIT)
+            return b;
+        if (b == RIR_STATE_UNINIT)
+            return a;
+        if (a == RIR_STATE_STALE || b == RIR_STATE_STALE)
+            return RIR_STATE_STALE;
+        if (a == RIR_STATE_DETACHED && b == RIR_STATE_DETACHED)
+            return RIR_STATE_DETACHED;
+        if (a == RIR_STATE_PUBLISHED && b == RIR_STATE_PUBLISHED)
+            return RIR_STATE_PUBLISHED;
+        if (a == RIR_STATE_SYNCED && b == RIR_STATE_SYNCED)
+            return RIR_STATE_SYNCED;
+        if ((a == RIR_STATE_SYNCED || a == RIR_STATE_DIRTY || a == RIR_STATE_PUBLISHED || a == RIR_STATE_DETACHED)
+            && (b == RIR_STATE_SYNCED || b == RIR_STATE_DIRTY || b == RIR_STATE_PUBLISHED || b == RIR_STATE_DETACHED))
+            return RIR_STATE_STALE;
+        if (conflict != NULL)
+            *conflict = true;
+        return RIR_STATE_INVALID;
+    }
     if (rir_is_handle_kind(kind))
         return rir_merge_handle_states(kind, a, b, conflict);
     if (a == b)
@@ -373,6 +444,7 @@ rir_prepare_flow_blocks(RIRScope *scope, const HIRRoutine *hir_routine)
             return false;
         for (size_t j = 0; j < flow->fact_count; j++) {
             flow->facts[j].name = scope->state_summaries[j].name;
+            flow->facts[j].slot_anchor = scope->state_summaries[j].slot_anchor;
             flow->facts[j].entry_state = RIR_STATE_UNINIT;
             flow->facts[j].exit_state = RIR_STATE_UNINIT;
             flow->facts[j].merged_from_join = false;

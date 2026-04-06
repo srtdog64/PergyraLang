@@ -6,6 +6,68 @@
 
 ---
 
+## 두 가지 정체성
+
+### 1차 정체성 — 도메인 모델링 언어
+
+복잡한 도메인에서 **누가(subject), 어디서(zone), 왜(intent), 무슨 자격으로(ability), 무슨 결과로(effect)** 행동하는가를 선언하고 컴파일 타임에 검증하는 언어.
+
+### 2차 정체성 — A2M(Agent-to-Machine) 인터페이스 언어
+
+AI 에이전트가 기계, 장비, 공정, 외부 시스템을 **안전하게** 통제하기 위해 사용하는 인터페이스 언어.
+
+```
+A2M 핵심 요구                    Pergyra의 대응
+──────────────────────────────────────────────────────────
+의도 표현이 명확해야 한다         intent 선언 — 왜 하는가
+자원 점유/해제가 추적 가능        Slot 프로토콜 — claim/release 추적
+승인과 실행 자격이 분리           requires + authorized by — 자격/승인 분리
+원격/지연/실패/보상 경로가 보여야 함  Result<T> + compensate + rollback policy
+닫힌 시스템으로 완결 가능          intent-first — 필요한 것만, 업데이트 전제 안 함
+```
+
+AI 에이전트가 Pergyra intent를 발행하면:
+- **의도가 명시적** — "이 기계를 가동하라"가 아니라 "StartMachine intent: 자격 MachineOperator, zone FactoryFloor, 승인 supervisor"
+- **자원이 추적됨** — 기계의 slot을 claim하고, 작업 후 release. 점유 중 다른 에이전트 접근 차단
+- **실패가 보상됨** — step 실패 시 compensate로 안전 상태 복원
+- **인간이 읽을 수 있음** — intent 선언을 읽으면 에이전트가 뭘 하려는지 인간도 안다
+
+```pergyra
+// AI 에이전트가 발행하는 intent
+intent StartProduction(operator: AIAgent)
+{
+    exclusive;
+    who: operator;
+
+    step prepare
+    {
+        where: FactoryFloor;
+        requires: MachineOperator;
+        authorized by: supervisor;     // 인간 승인 필요
+        on: operator.InitMachine();
+        compensate: operator.EmergencyStop();
+    }
+
+    step run
+    {
+        where: FactoryFloor;
+        on: operator.RunCycle();
+        post: machine.output > 0;
+        guard: machine.temperature < 100;  // 실시간 안전 조건
+        compensate: operator.CoolDown();
+    }
+
+    success: machine.output >= target;
+    failure: rollback;
+}
+```
+
+에이전트가 아무리 복잡한 intent를 발행해도, Pergyra의 계약(requires, authorized by, guard, compensate)이 안전 경계를 보장한다. 인간은 intent 선언을 읽어서 에이전트의 의도를 감사(audit)할 수 있다.
+
+**"인간도 잘 쓰면 좋고"** — Pergyra는 AI-first가 아니라 intent-first다. intent가 명확하면 발행자가 AI든 인간이든 상관없다.
+
+---
+
 ## 핵심 통찰
 
 ### 메모리는 자원의 한 종류일 뿐이다

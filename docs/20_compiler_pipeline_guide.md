@@ -34,7 +34,7 @@
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
 - driver는 backend 진입 전에 항상 `HIR`, `DIR`, `RIR`, `MIR`를 모두 만든다.
 - backend runner는 현재 `CompilerIRBundle`을 받는다.
-- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice와, intent cleanup/rollback/invalidation CFG를 `bundle->mir` exceptional block으로 직접 emit하는 보강 경로가 들어가 있다.
+- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice와, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG를 `bundle->mir` exceptional block으로 직접 emit하는 보강 경로가 들어가 있다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 - compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base.inc`](../src/compiler/mir_base.inc) / [`mir_public.inc`](../src/compiler/mir_public.inc)로 떼어내고, `rir.c`도 [`rir_flow.inc`](../src/compiler/rir_flow.inc) / [`rir_builder.inc`](../src/compiler/rir_builder.inc) / [`rir_public.inc`](../src/compiler/rir_public.inc)로 분리해 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
 
@@ -329,7 +329,7 @@
   - lowering 중 `liveness` 재계산 수행
   - dead `def` / dead `phi` 제거 DCE pass 수행
 
-즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full optimizer나 backend 전체를 아직 대체하진 않지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, lowering 안에서 실제 liveness/DCE pass가 돌며, C backend에는 branch/return-only top-level function subset과 intent cleanup CFG를 MIR block/terminator에서 직접 emit하는 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다.
+즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full optimizer나 backend 전체를 아직 대체하진 않지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, lowering 안에서 실제 liveness/DCE pass가 돌며, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup CFG를 MIR block/terminator에서 직접 emit하는 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다. 추가로 intent exceptional CFG에 있는 cleanup/resource op는 현재 `pgy_mir_cleanup_op_export(...)` no-op runtime hook 호출로 직접 emit되어, 분석용 op가 codegen 경로에도 명시적으로 남는다.
 
 ### 3.8 HIR Lowering
 

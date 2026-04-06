@@ -322,7 +322,7 @@ test_misc_grammar_edges(void)
         ast_destroy(call);
     }
 
-    TEST("ToTObject returns tobject projection type but warns outside domain context");
+    TEST("ToTObject returns tobject projection type but warns as boundary projection outside domain context");
     {
         const char *source =
             "tobject PlayerDto { hp: Int; name: String; }\n"
@@ -365,7 +365,7 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "direct projection outside relation/effect/zone/world context"));
+            "direct boundary projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -403,7 +403,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToObject returns object projection type but warns outside domain context");
+    TEST("ToObject returns object projection type but warns as internal projection outside domain context");
     {
         const char *source =
             "object PlayerView { hp: Int; name: String; }\n"
@@ -421,7 +421,7 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(result != NULL && result->warning_count == 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "direct projection outside relation/effect/zone/world context"));
+            "direct internal projection outside relation/effect/zone/world context"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -845,6 +845,9 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "no explicit authority set"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1719,6 +1722,116 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step may orchestrate a subintent without local where/who");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Touch() -> Void { return; }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Charge(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step verify {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        intent: Charge(checkout, buyer);\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent declaration rejects spawn inside step clauses");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        on: spawn Touch();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "on clause cannot contain 'spawn'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step intent clause must target another intent");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    func Pay(self) -> Bool { return true; }\n"
+            "}\n"
+            "func Charge(buyer: Buyer) -> Bool { return true; }\n"
+            "intent Checkout(buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        intent: Charge(buyer);\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "intent clause must target another intent"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

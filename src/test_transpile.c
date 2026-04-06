@@ -3140,6 +3140,52 @@ test_mir_vertical_slice_emit(void)
         ast_destroy(program);
     }
 
+    TEST("non-SSA statements in CFG blocks still emit from MIR");
+    {
+        const char *source =
+            "func Touch() -> Void {\n"
+            "    Log(\"touch\");\n"
+            "    return;\n"
+            "}\n"
+            "func Score(flag: Bool) -> Int {\n"
+            "    Touch();\n"
+            "    if flag {\n"
+            "        Touch();\n"
+            "        return 7;\n"
+            "    }\n"
+            "    return 3;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *path = "/tmp/pgy_test_mir_stmt_slice.c";
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok
+               && output != NULL
+               && strstr(output, "/* emitted-from-mir */") != NULL
+               && strstr(output, "_pgy_mir_bb_Score_0:") != NULL
+               && strstr(output, "Touch();") != NULL
+               && strstr(output, "return 7;") != NULL
+               && strstr(output, "return 3;") != NULL);
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("intent cleanup CFG emits from MIR exceptional blocks");
     {
         const char *source =
@@ -3191,7 +3237,62 @@ test_mir_vertical_slice_emit(void)
                && strstr(output, "_pgy_mir_bb_Purchase_2:") != NULL
                && strstr(output, "_pgy_mir_bb_Purchase_3:") != NULL
                && strstr(output, "if (__intent_failed)") != NULL
+               && strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"CompensateIntentStep\"") != NULL
+               && strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"DetachInvalidation\"") != NULL
                && strstr(output, "pgy_intent_exit_export(__intent_handle)") != NULL);
+
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("intent step subintent call lowers as bool-gated orchestration");
+    {
+        const char *source =
+            "subject Buyer { let hp: Int; }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Charge(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step verify {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        intent: Charge(checkout, buyer);\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const char *path = "/tmp/pgy_test_intent_subintent.c";
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        if (ok) {
+            TranspileResult *res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+            transpile_result_destroy(res);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok
+               && output != NULL
+               && strstr(output, "if (!(Charge(checkout, buyer)))") != NULL
+               && strstr(output, "intent:pay") != NULL);
 
         free(output);
         remove(path);

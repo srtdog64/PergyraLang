@@ -95,6 +95,64 @@ scope_has_resource_fact(const RIRScope *scope, const char *name, RIRResourceKind
     return false;
 }
 
+static bool
+scope_has_fact_slot_anchor(const RIRScope *scope,
+                           RIRFactKind kind,
+                           const char *name,
+                           const char *slot_anchor)
+{
+    if (scope == NULL)
+        return false;
+    for (size_t i = 0; i < scope->fact_count; i++) {
+        const RIRFact *fact = &scope->facts[i];
+        if (fact->kind == kind
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0
+            && fact->slot_anchor != NULL
+            && strcmp(fact->slot_anchor, slot_anchor) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+scope_has_projection_fact_kind(const RIRScope *scope,
+                               const char *name,
+                               RIRResourceKind kind,
+                               RIRResourceState state)
+{
+    if (scope == NULL)
+        return false;
+    for (size_t i = 0; i < scope->fact_count; i++) {
+        const RIRFact *fact = &scope->facts[i];
+        if (fact->kind == RIR_FACT_PROJECTION
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0
+            && fact->resource_kind == kind
+            && fact->state == state) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+scope_has_op_slot_anchor(const RIRScope *scope, RIROpKind kind, const char *slot_anchor)
+{
+    if (scope == NULL)
+        return false;
+    for (size_t i = 0; i < scope->op_count; i++) {
+        const RIROp *op = &scope->ops[i];
+        if (op->kind == kind
+            && op->slot_anchor != NULL
+            && strcmp(op->slot_anchor, slot_anchor) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static const RIRStateSummary *
 scope_find_state_summary(const RIRScope *scope, const char *name)
 {
@@ -167,6 +225,7 @@ test_rir_lowering(void)
                && rir_validate(rir, NULL)
                && flow != NULL
                && scope_has_resource_fact(flow, "s", RIR_RESOURCE_LOCAL_SLOT)
+               && scope_has_fact_slot_anchor(flow, RIR_FACT_RESOURCE, "s", "s")
                && scope_has_op(flow, RIR_OP_CLAIM)
                && scope_has_op(flow, RIR_OP_WRITE)
                && scope_has_op(flow, RIR_OP_READ)
@@ -221,6 +280,10 @@ test_rir_lowering(void)
         const RIRStateSummary *payment_fx = scope_find_state_summary(zone, "paymentFx");
         const RIRStateSummary *cart = scope_find_state_summary(zone, "cart");
         bool zone_ok = zone != NULL
+                       && scope_has_fact_slot_anchor(zone, RIR_FACT_AUTHORITY, "buyer", "buyer")
+                       && scope_has_fact_slot_anchor(zone, RIR_FACT_CAPABILITY, "buyer", "buyer")
+                       && scope_has_fact_slot_anchor(zone, RIR_FACT_PROJECTION, "view", "view")
+                       && scope_has_fact_slot_anchor(zone, RIR_FACT_PROJECTION, "packet", "packet")
                        && scope_has_op(zone, RIR_OP_PROJECT_REFRESH)
                        && scope_has_op(zone, RIR_OP_PROJECT_PUBLISH)
                        && scope_has_op(zone, RIR_OP_ATTACH_EFFECT)
@@ -236,6 +299,9 @@ test_rir_lowering(void)
                        && cart->initial_state == RIR_STATE_DETACHED
                        && cart->final_state == RIR_STATE_DETACHED;
         bool intent_ok = intent != NULL
+                         && scope_has_fact_slot_anchor(intent, RIR_FACT_RESOURCE, "payment", "payment")
+                         && scope_has_op_slot_anchor(intent, RIR_OP_READ, "payment")
+                         && scope_has_op_slot_anchor(intent, RIR_OP_AUTHORIZE, "buyer")
                          && scope_has_op(intent, RIR_OP_AUTHORIZE)
                          && scope_has_op(intent, RIR_OP_COMPENSATE_INTENT_STEP)
                          && scope_has_op(intent, RIR_OP_ABORT_INTENT)
@@ -525,6 +591,155 @@ test_rir_lowering(void)
                                                       | RIR_FLOW_WORLD_HANDOFF
                                                       | RIR_FLOW_INVALIDATION
                                                       | RIR_FLOW_AUTHORITY_LOSS));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR treats slots as the common anchor across projection authority and handoff");
+    {
+        HIRProgram *hir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "effect PaymentEffect for bearer: Buyer { }\n"
+            "zone CartZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    effect slot paymentFx: PaymentEffect\n"
+            "    authority buyer\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        transfer: cart -> payment;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        RIRProgram *rir = NULL;
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *cart = find_scope(rir, "CartZone", RIR_SCOPE_ZONE);
+        const RIRScope *checkout = find_scope(rir, "Checkout", RIR_SCOPE_INTENT);
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && cart != NULL
+               && checkout != NULL
+               && scope_has_fact_slot_anchor(cart, RIR_FACT_RESOURCE, "buyer", "buyer")
+               && scope_has_fact_slot_anchor(cart, RIR_FACT_PROJECTION, "view", "view")
+               && scope_has_fact_slot_anchor(cart, RIR_FACT_AUTHORITY, "buyer", "buyer")
+               && scope_has_op_slot_anchor(cart, RIR_OP_PROJECT_REFRESH, "view")
+               && scope_has_fact_slot_anchor(checkout, RIR_FACT_RESOURCE, "cart", "cart")
+               && scope_has_fact_slot_anchor(checkout, RIR_FACT_RESOURCE, "payment", "payment")
+               && scope_has_op_slot_anchor(checkout, RIR_OP_MOVE, "cart")
+               && scope_has_op_slot_anchor(checkout, RIR_OP_CLAIM, "payment")
+               && scope_has_conservative_semantics(checkout, RIR_FLOW_WORLD_HANDOFF));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR refines capability and handoff summaries with richer lattice states");
+    {
+        HIRProgram *hir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(checkout: CheckoutZone, payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step move {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        transfer: checkout -> payment;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        RIRProgram *rir = NULL;
+        const RIRScope *intent = NULL;
+        const RIRStateSummary *capability = NULL;
+        const RIRStateSummary *checkout = NULL;
+        const RIRStateSummary *payment = NULL;
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        if (ok)
+            intent = find_scope(rir, "Checkout", RIR_SCOPE_INTENT);
+        if (intent != NULL) {
+            capability = scope_find_state_summary(intent, "move");
+            checkout = scope_find_state_summary(intent, "checkout");
+            payment = scope_find_state_summary(intent, "payment");
+        }
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && intent != NULL
+               && capability != NULL
+               && capability->resource_kind == RIR_RESOURCE_CAPABILITY_TOKEN
+               && capability->final_state == RIR_STATE_AUTHORIZED
+               && checkout != NULL
+               && checkout->final_state == RIR_STATE_HANDOFF_PENDING
+               && payment != NULL
+               && payment->final_state == RIR_STATE_HANDED_OFF);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR bind infers tobject target as published boundary projection");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "subject Buyer { let hp: Int; let name: String; }\n"
+            "object BuyerView { let hp: Int; }\n"
+            "tobject BuyerReceipt { let hp: Int; let name: String; }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot summary: BuyerView\n"
+            "    tobject slot receipt: BuyerReceipt\n"
+            "    bind summary from buyer\n"
+            "    bind receipt from buyer\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *zone = find_scope(rir, "CheckoutZone", RIR_SCOPE_ZONE);
+        const RIRStateSummary *summary = scope_find_state_summary(zone, "summary");
+        const RIRStateSummary *receipt = scope_find_state_summary(zone, "receipt");
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && zone != NULL
+               && summary != NULL
+               && receipt != NULL
+               && summary->resource_kind == RIR_RESOURCE_PROJECTION_OBJECT
+               && summary->final_state == RIR_STATE_SYNCED
+               && receipt->resource_kind == RIR_RESOURCE_TOBJECT_SLOT
+               && receipt->final_state == RIR_STATE_PUBLISHED
+               && scope_has_projection_fact_kind(zone, "summary",
+                                                RIR_RESOURCE_PROJECTION_OBJECT,
+                                                RIR_STATE_DIRTY)
+               && scope_has_projection_fact_kind(zone, "receipt",
+                                                RIR_RESOURCE_PROJECTION_TOBJECT,
+                                                RIR_STATE_PUBLISHED)
+               && scope_has_op_slot_anchor(zone, RIR_OP_PROJECT_REFRESH, "summary")
+               && scope_has_op_slot_anchor(zone, RIR_OP_PROJECT_PUBLISH, "receipt"));
         rir_destroy(rir);
         hir_destroy(hir);
     }

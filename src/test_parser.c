@@ -943,6 +943,24 @@ main(void)
             1
         },
         {
+            "Intent Step Subintent Clause",
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "intent Charge(buyer: Buyer) {\n"
+            "    step verify {\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n"
+            "intent Checkout(buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        intent: Charge(buyer);\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n",
+            1
+        },
+        {
             "Domain Keywords As Local Variables",
             "func Main() -> Void {\n"
             "    let zone = 1;\n"

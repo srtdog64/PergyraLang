@@ -107,6 +107,14 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "intent")) {
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'intent'");
+            ast_destroy(step->data.intent_step.intent_expr);
+            step->data.intent_step.intent_expr = parser_parse_expression(parser);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step intent clause");
+            continue;
+        }
+
         if (parser_intent_match_keyword(parser, "transfer")) {
             Token from_alias;
             Token to_alias;

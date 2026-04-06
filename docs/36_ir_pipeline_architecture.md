@@ -88,6 +88,10 @@ C / LLVM backend
 - relation/effect attach/detach/lifecycle
 - authority / role / capability binding
 - intent compensation / rollback resource edge
+- authority/capability의 `Authorized` / `AuthorityLost`
+- projection의 `Synced` / `Dirty` / `Stale` / `Published`
+- world handoff의 `HandoffPending` / `HandedOff`
+- lifecycle rollback의 `Compensated`
 
 출력:
 
@@ -146,7 +150,7 @@ RIR는 단순 "맵"이 아니다. 최소한 아래 연산은 표면 sugar가 아
 - HIR는 이제 단순 bucket classifier를 넘어서 CFG/dominance/phi-skeleton까지 갖고 있음
 - DIR는 `--dir`로 domain declaration graph를 볼 수 있고, compile driver는 backend dispatch 전에 항상 structural validation까지 수행한다.
 - RIR는 `--rir`로 explicit resource op, static fact, normalized state summary, branch/join `flow-block[...]` lattice summary를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/enrich/validation을 수행한다. 최근에는 `relation/effect/zone/world` nominal handle을 function param, intent participant, `using`, `transfer` 경로에서 explicit fact/op로 정규화한다.
-- MIR는 `--mir`로 routine/block/instruction/cleanup 구조를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/validation을 수행한다. 최근 패스로 phi materialization, instruction-level `def/use`, block entry/exit SSA version, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value/use-def summary까지 올라왔고, lowering 안에서 실제 liveness 재계산과 dead `def/phi` 제거 DCE pass도 돈다. C backend에는 simple top-level function CFG subset과 intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔다. 다만 full backend-driving SSA와 최종 MIR-level `RIR-flow` merge는 아직 아니다.
+- MIR는 `--mir`로 routine/block/instruction/cleanup 구조를 볼 수 있고, compile driver는 backend dispatch 전에 항상 lowering/validation을 수행한다. 최근 패스로 phi materialization, instruction-level `def/use`, block entry/exit SSA version, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value/use-def summary까지 올라왔고, lowering 안에서 실제 liveness 재계산과 dead `def/phi` 제거 DCE pass도 돈다. C backend에는 simple top-level function CFG subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 vertical slice가 들어갔다. cleanup/resource op는 현재 intent exceptional CFG에서 no-op runtime hook 호출로 직접 emit되며, 일반 function의 full slot/resource body emission은 아직 더 넓혀야 한다.
 
 즉 현재 구현 현실은:
 
@@ -184,6 +188,13 @@ Pergyra는 일반적인 expression language가 아니라:
 - `intent`
 - `Slot/SecureSlot/DeviceSlot`
 - projection / authority / lifecycle
+
+특히 여기서 `slot`은 예제용 gimmick이 아니라 최저 공통 추상화다.
+
+- resource fact는 slot anchor를 가진다
+- projection / authority / capability도 slot anchor를 가진다
+- relation / effect / zone / world handle도 slot anchor로 정규화된다
+- intent `using` / `transfer` / `authorize`는 slot anchor를 유지한 op로 내려간다
 
 를 코어 의미론으로 가진다.
 

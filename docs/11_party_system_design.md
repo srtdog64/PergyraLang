@@ -14,6 +14,15 @@ Party는 역할들의 협력적 실행 단위를 표현하기 위한 설계 요�
 - `role`은 subject가 특정 ability 묶음을 수행하도록 바인딩한다
 - `party`는 role slot에 subject를 꽂아 협력시키는 실행 단위다
 
+중요:
+
+- `party`는 collaboration unit이지 state boundary가 아니다
+- `zone/world`는 authority/projection/lifecycle을 가진 state boundary다
+- `vessel`은 subject-local state container다
+
+즉 A와 B가 협력해서 무언가를 수행하면 먼저 `party`를 의심하고,
+A와 B 사이의 공유 상태/관계/효과/승인/전이를 다루면 `zone/relation/effect`를 의심하는 것이 맞다.
+
 ## Current Implementation Surface (2026-04-03)
 
 현재 파서/시맨틱/백엔드에서 지원하는 문법:
@@ -87,6 +96,8 @@ party HolyPaladin
 ability를 수행하는 subject slot이다.
 즉 party는 struct 값을 담는 컨테이너가 아니라
 subject들의 협력 단위다.
+
+반대로 party가 직접 projection sync, lifecycle state, effect attachment, authority boundary를 소유하려 들면 zone/world와 책임이 겹친다. 그쪽은 party가 아니라 zone/relation/effect가 맡아야 한다.
 
 현재 구현은 이 철학을 향해 가는 중이지만, 아직 완전히 닫히진 않았다.
 - role slot은 ability 계약을 표현한다
