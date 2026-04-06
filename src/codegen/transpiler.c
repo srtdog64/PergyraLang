@@ -1594,9 +1594,8 @@ transpiler_expr_identifiers_mapped(const ASTNode *expr,
             return transpiler_expr_identifiers_mapped(expr->data.array_access.index, ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_ARRAY_LITERAL: {
-            const ASTNode **elements = expr->data.array_literal.elements;
             for (size_t i = 0; i < expr->data.array_literal.count; i++) {
-                if (!transpiler_expr_identifiers_mapped(elements[i], ssa_map,
+                if (!transpiler_expr_identifiers_mapped(expr->data.array_literal.elements[i], ssa_map,
                                                        routine_name, reason, reason_cap))
                     return false;
             }

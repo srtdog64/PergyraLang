@@ -17,6 +17,14 @@
 
 ## P1.5 — 언어/컴파일러 보강
 
+- [ ] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
+  - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)
+  - **RIR 유지 결정**: resource state lattice (20-state)는 slot/projection/authority lifecycle 검증에 필요
+  - **MIR 유지 결정**: SSA/CFG/cleanup edge는 intent compensation execution path에 필수
+  - **남은 과제**: Backend를 HIR 기반 → MIR 기반으로 전환해야 IR 투자 ROI 실현
+  - 참고: Rust도 AST→THIR→MIR→LLVM 4단계, Pergyra는 AST→HIR→DIR→RIR→MIR→Backend 6단계
+  - DIR은 domain graph로 HIR와 구조가 달라 별도 IR로 유지하는 것이 타당
+  - RIR 20-state lattice는 단순화 가능성 검토 (현재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized 등)
 - [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
 - [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
 
