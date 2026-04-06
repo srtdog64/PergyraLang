@@ -1,32 +1,70 @@
-class PageRoute {
+class PageRoute
+{
     let path: String;
     let title: String;
+    
+    func Description(self) -> String
+    {
+        return title + " (" + path + ")";
+    }
+    
+    func Format(self) -> String
+    {
+        return "[Route] " + title + " -> " + path;
+    }
 }
 
-class PageAction {
+class PageAction
+{
     let name: String;
     let endpoint: String;
+    
+    func Dispatch(self, payload: String) -> String
+    {
+        return "[Action] " + name + " -> " + endpoint + " payload=" + payload;
+    }
+    
+    func Format(self) -> String
+    {
+        return "[Action] " + name + " -> " + endpoint;
+    }
 }
 
-class PageMessage {
+class PageMessage
+{
     let level: String;
     let body: String;
+    
+    func IsError(self) -> Bool
+    {
+        return self.level == "error" || self.level == "critical";
+    }
+    
+    func IsSuccess(self) -> Bool
+    {
+        return self.level == "success" || self.level == "info";
+    }
+    
+    func Format(self) -> String
+    {
+        return "[" + level + "] " + body;
+    }
 }
 
 func MountPage(route: PageRoute) -> String {
-    return "[Page] mount " + route.path + " title=" + route.title;
+    return "[Page] mounted: " + route.Description();
 }
 
 func NavigatePage(route: PageRoute) -> String {
-    return "[Page] navigate " + route.path + " title=" + route.title;
+    return "[Page] navigate: " + route.Description();
 }
 
 func BindAction(action: PageAction) -> String {
-    return "[Action] " + action.name + " -> " + action.endpoint;
+    return action.Format();
 }
 
 func RenderMessage(message: PageMessage) -> String {
-    return "[PageMessage] " + message.level + " " + message.body;
+    return message.Format();
 }
 
 func RenderSection(title: String, body: String) -> String {

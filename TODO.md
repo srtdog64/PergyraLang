@@ -44,6 +44,24 @@
   - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
   - optional `pages/ api/ report/` app adapter starter
 
+## P1.58 — 표준 라이브러리 개선 (2026-04-06 분석)
+
+- [ ] **stdlib page.pgy 실제 렌더링/컴포넌트 시스템으로 확장**
+  - 현재: 단순 데이터 구조 + 렌더링 문자열 함수만
+  - 목표: 페이지 라이프사이클(마운트/언마운트/업데이트), 컴포넌트 트리, 상태 관리
+  - 제안: `Component` abstract base, `mount()`, `render()`, `update()`, `unmount()` 라이프사이클 훅
+- [ ] **stdlib storage.pgy WriteFile 추상화**
+  - 현재: `WriteFile` 내장 함수 직접 호출 → 플랫폼 의존성
+  - 목표: Slot/Device 인터페이스로 분리 (`StorageDevice` ability)
+  - 제안: `ability StorageDevice { Write(path, data) -> Result<Void, Error>; Read(path) -> Result<String, Error> }`
+- [ ] **stdlib 전반 Result<T, Error> 패턴 활용**
+  - 현재: `WriteFile`, `ReadFile` 실패 시 크래시 가능성
+  - 목표: 모든 I/O 연산이 `Result<T, Error>` 반환
+  - 제안: `?` 연산자와 조합해 에러 전파 자동화
+- [ ] **datetime.pgy 메서드 일관성 개선**
+  - 현재: `export class LocalDate` + `export func SameDate()` 혼재
+  - 제안: 메서드 일관성 (`a.SameDate(b)` vs `SameDate(a, b)`) — 하나만 남기거나 둘 다 문서화
+
 ## IR 파이프라인
 
 - [x] **DIR code layer 시작**
@@ -79,6 +97,7 @@
   - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
 - [ ] **디스트럭처링** — `let (slot, token) = ClaimSecureSlot<Int>()` 등 패턴 기반 바인딩 확장
 - [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
+- [ ] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering. 현재 `"값은 " + ToString(x)` 장황함 해소
 
 ### 에러 처리
 - [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환
