@@ -1484,6 +1484,9 @@ mir_append_cleanup_block(MIRRoutine *routine, const RIRScope *rir_scope)
     if (routine == NULL || rir_scope == NULL)
         return true;
 
+    fprintf(stdout, "[MIR CLEANUP] Checking scope for routine '%s': ops=%zu, facts=%zu\n",
+        routine->name ? routine->name : "(null)", rir_scope->op_count, rir_scope->fact_count);
+
     for (size_t i = 0; i < rir_scope->op_count; i++) {
         if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
             || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {

@@ -28,6 +28,11 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.hir_routine = hir_routine;
         routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
 
+        /* Debug: print routine info */
+        fprintf(stdout, "[MIR LOWER] Routine '%s': hir_kind=%d mir_kind=%d rir_scope=%p\n",
+            hir_routine->name ? hir_routine->name : "(null)",
+            hir_routine->kind, routine.kind, (void*)routine.rir_scope);
+
         /* Debug: print intent scope info */
         if (routine.kind == MIR_SCOPE_INTENT) {
             fprintf(stderr, "[MIR LOWER] Intent '%s': rir_scope=%p\n",
@@ -56,6 +61,18 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             mir_destroy(mir);
             return NULL;
         }
+
+        /* Debug: print routine info after construction */
+        if (routine.kind == MIR_SCOPE_INTENT) {
+            fprintf(stdout, "[MIR LOWER] Intent '%s' after build: has_cleanup=%d, blocks=%zu\n",
+                routine.name ? routine.name : "(null)",
+                routine.has_cleanup_block,
+                routine.block_count);
+            for (size_t b = 0; b < routine.block_count; b++) {
+                fprintf(stdout, "  block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d\n",
+                    b, routine.blocks[b].has_cleanup_succ, routine.blocks[b].has_rollback_succ, routine.blocks[b].has_invalidation_succ);
+            }
+        }
     }
 
     if (!mir_run_dce_pass(mir, error_message)) {
@@ -66,14 +83,20 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     /* Debug: print routine info after DCE */
     for (size_t i = 0; i < mir->routine_count; i++) {
         if (mir->routines[i].kind == MIR_SCOPE_INTENT) {
-            fprintf(stdout, "[MIR POST-DCE] Intent '%s': has_cleanup=%d, has_rollback=%d, has_invalidation=%d\n",
+            fprintf(stdout, "[MIR POST-DCE] Intent '%s': has_cleanup=%d, has_rollback=%d, has_invalidation=%d, blocks=%zu\n",
                 mir->routines[i].name ? mir->routines[i].name : "(null)",
                 mir->routines[i].has_cleanup_block,
                 mir->routines[i].has_rollback_block,
-                mir->routines[i].has_invalidation_block);
+                mir->routines[i].has_invalidation_block,
+                mir->routines[i].block_count);
+            for (size_t b = 0; b < mir->routines[i].block_count; b++) {
+                fprintf(stdout, "  block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d\n",
+                    b, mir->routines[i].blocks[b].has_cleanup_succ,
+                    mir->routines[i].blocks[b].has_rollback_succ,
+                    mir->routines[i].blocks[b].has_invalidation_succ);
+            }
         }
     }
-    fflush(stdout);
 
     return mir;
 }
@@ -776,6 +799,15 @@ mir_validate_emission_topology(const MIRRoutine *routine,
     if (error_message != NULL)
         *error_message = NULL;
 
+    fprintf(stdout, "[MIR TOPOLOGY] '%s': has_cleanup=%d, has_rollback=%d, has_invalidation=%d, require_cleanup=%d, blocks=%zu\n",
+        routine != NULL && routine->name ? routine->name : "(null)",
+        routine != NULL ? routine->has_cleanup_block : -1,
+        routine != NULL ? routine->has_rollback_block : -1,
+        routine != NULL ? routine->has_invalidation_block : -1,
+        require_cleanup,
+        routine != NULL ? routine->block_count : 0);
+    fflush(stdout);
+
     if (routine == NULL || routine->blocks == NULL)
         return false;
     if (routine->block_count == 0)
@@ -1041,6 +1073,10 @@ mir_validate_emission_topology(const MIRRoutine *routine,
                 return false;
             }
         } else if (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ) {
+            fprintf(stdout, "[MIR TOPOLOGY ERROR] '%s': block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d, routine->has_cleanup_block=%d, block->is_reachable=%d, block->is_cleanup=%d\n",
+                routine->name ? routine->name : "(anonymous)", i,
+                block->has_cleanup_succ, block->has_rollback_succ, block->has_invalidation_succ,
+                routine->has_cleanup_block, block->is_reachable, block->is_cleanup);
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] has exceptional successor without cleanup root",
