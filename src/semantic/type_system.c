@@ -161,14 +161,24 @@ type_create_constructed(Type *constructor, Type **args, size_t arg_count)
         free(t);
         return NULL;
     }
-    strcpy(t->name, constructor->name);
-    strcat(t->name, "<");
-    for (size_t i = 0; i < arg_count; i++) {
-        strcat(t->name, args[i]->name);
-        if (i + 1 < arg_count)
-            strcat(t->name, ", ");
+    {
+        size_t offset = 0;
+        size_t constructor_len = strlen(constructor->name);
+        memcpy(t->name + offset, constructor->name, constructor_len);
+        offset += constructor_len;
+        t->name[offset++] = '<';
+        for (size_t i = 0; i < arg_count; i++) {
+            size_t arg_len = strlen(args[i]->name);
+            memcpy(t->name + offset, args[i]->name, arg_len);
+            offset += arg_len;
+            if (i + 1 < arg_count) {
+                t->name[offset++] = ',';
+                t->name[offset++] = ' ';
+            }
+        }
+        t->name[offset++] = '>';
+        t->name[offset] = '\0';
     }
-    strcat(t->name, ">");
 
     t->kind = TYPE_KIND_CONSTRUCTED;
     t->data.constructed.constructor = constructor;
@@ -204,14 +214,30 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
         free(t);
         return NULL;
     }
-    strcpy(t->name, "(");
-    for (size_t i = 0; i < param_count; i++) {
-        strcat(t->name, params[i]->name);
-        if (i + 1 < param_count)
-            strcat(t->name, ", ");
+    {
+        size_t offset = 0;
+        t->name[offset++] = '(';
+        for (size_t i = 0; i < param_count; i++) {
+            size_t param_len = strlen(params[i]->name);
+            memcpy(t->name + offset, params[i]->name, param_len);
+            offset += param_len;
+            if (i + 1 < param_count) {
+                t->name[offset++] = ',';
+                t->name[offset++] = ' ';
+            }
+        }
+        t->name[offset++] = ')';
+        t->name[offset++] = ' ';
+        t->name[offset++] = '-';
+        t->name[offset++] = '>';
+        t->name[offset++] = ' ';
+        {
+            size_t ret_len = strlen(return_type->name);
+            memcpy(t->name + offset, return_type->name, ret_len);
+            offset += ret_len;
+        }
+        t->name[offset] = '\0';
     }
-    strcat(t->name, ") -> ");
-    strcat(t->name, return_type->name);
 
     t->data.function.return_type  = return_type;
     t->data.function.param_count  = param_count;
@@ -275,9 +301,19 @@ type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_
         free(t);
         return NULL;
     }
-    strcpy(t->name, prefix);
-    strcat(t->name, inner_type->name);
-    strcat(t->name, ">");
+    {
+        size_t offset = 0;
+        size_t prefix_len = strlen(prefix);
+        memcpy(t->name + offset, prefix, prefix_len);
+        offset += prefix_len;
+        {
+            size_t inner_len = strlen(inner_type->name);
+            memcpy(t->name + offset, inner_type->name, inner_len);
+            offset += inner_len;
+        }
+        t->name[offset++] = '>';
+        t->name[offset] = '\0';
+    }
 
     t->data.slot.inner_type    = inner_type;
     t->data.slot.is_secure     = is_secure;

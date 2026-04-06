@@ -110,9 +110,13 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (type_name != NULL && suffix != NULL) {
-            char fn_name[256];
-            snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, type_name);
+            size_t fn_len = strlen("operator_") + strlen(suffix) + 1 + strlen(type_name) + 1;
+            char *fn_name = malloc(fn_len);
+            if (fn_name == NULL)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            snprintf(fn_name, fn_len, "operator_%s_%s", suffix, type_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            free(fn_name);
             if (fn != NULL) {
                 LLVMValueRef args[] = { left, right };
                 if (fn->ret_type == ctx->type_void) {
@@ -571,10 +575,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
             && method_name != NULL) {
             if (llvm_is_upper_ident(obj_node)) {
-                char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s",
+                size_t fn_len = strlen(obj_node->data.identifier.name) + 1 + strlen(method_name) + 1;
+                char *full_name = malloc(fn_len);
+                if (full_name == NULL)
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                snprintf(full_name, fn_len, "%s_%s",
                          obj_node->data.identifier.name, method_name);
                 LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                free(full_name);
                 if (fn != NULL) {
                     return llvm_emit_function_call_args(ctx, fn,
                         node->data.call.arguments, node->data.call.arg_count);
@@ -601,13 +609,15 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             if (class_name != NULL && (var != NULL || (parent_cls != NULL && field_idx >= 0))) {
                 LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, class_name);
                 if (cls != NULL) {
-                    char full_name[256];
                     LLVMFuncEntry *fn;
                     LLVMValueRef fn_value;
                     LLVMTypeRef fn_type;
                     LLVMTypeRef ret_type;
-                    snprintf(full_name, sizeof(full_name), "%s_%s",
-                             class_name, method_name);
+                    size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
+                    char *full_name = malloc(fn_len);
+                    if (full_name == NULL)
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                    snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
                     fn = llvm_lookup_function(ctx, full_name);
                     fn_value = fn != NULL ? fn->fn
                         : LLVMGetNamedFunction(ctx->module, full_name);
@@ -708,8 +718,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         }
                         free(args);
+                        free(full_name);
                         return result;
                     }
+                    free(full_name);
                 }
             }
         }
@@ -721,7 +733,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 ? llvm_lookup_class(ctx, class_name) : NULL;
 
             if (host_cls != NULL) {
-                char full_name[256];
                 LLVMFuncEntry *fn;
                 LLVMValueRef fn_value;
                 LLVMTypeRef fn_type;
@@ -730,9 +741,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 size_t argc = node->data.call.arg_count;
                 LLVMValueRef *args;
                 LLVMValueRef self_ptr;
+                size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
+                char *full_name = malloc(fn_len);
+                if (full_name == NULL)
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
 
-                snprintf(full_name, sizeof(full_name), "%s_%s",
-                    class_name, method_name);
+                snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
                 fn = llvm_lookup_function(ctx, full_name);
                 fn_value = fn != NULL ? fn->fn
                     : LLVMGetNamedFunction(ctx->module, full_name);
@@ -812,9 +826,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             fn_type, fn_value, args,
                             (unsigned)(argc + 1), llvm_tmp_name(ctx));
                         free(args);
+                        free(full_name);
                         return result;
                     }
                 }
+                free(full_name);
             }
         }
 
@@ -834,9 +850,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 ? llvm_class_field_index(parent_cls, field_name) : -1;
 
             if (parent_cls != NULL && host_cls != NULL && field_idx >= 0) {
-                char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s",
-                         class_name, method_name);
+                size_t fn_len = strlen(class_name) + 1 + strlen(method_name) + 1;
+                char *full_name = malloc(fn_len);
+                if (full_name == NULL)
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                snprintf(full_name, fn_len, "%s_%s", class_name, method_name);
                 LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
                 if (fn != NULL) {
                     size_t argc = node->data.call.arg_count;

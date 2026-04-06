@@ -198,7 +198,7 @@ resolve_stdlib_module_path(const char *source_path, const char *module_name)
     if (search_dir == NULL || module_file == NULL)
         goto cleanup;
 
-    sprintf(module_file, "%s.pgy", module_name);
+    snprintf(module_file, strlen(module_name) + 5, "%s.pgy", module_name);
 
     while (search_dir != NULL) {
         char *stdlib_dir = path_join_dup(search_dir, "stdlib");

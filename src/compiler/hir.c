@@ -621,6 +621,11 @@ hir_compute_cfg_dominance(HIRRoutine *routine)
     if (routine->cfg.entry_block >= routine->cfg.block_count)
         return false;
 
+    if (routine->cfg.block_count > SIZE_MAX / sizeof(bool))
+        return false;
+    if (routine->cfg.block_count > SIZE_MAX / sizeof(size_t))
+        return false;
+
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
         routine->cfg.blocks[i].is_reachable = false;
         routine->cfg.blocks[i].rpo_index = 0;
@@ -1182,6 +1187,8 @@ hir_materialize_phi_nodes(HIRRoutine *routine)
             phi->name = block->phi_candidates[j];
             phi->incoming_predecessor_count = block->predecessor_count;
             if (block->predecessor_count > 0) {
+                if (block->predecessor_count > SIZE_MAX / sizeof(size_t))
+                    return false;
                 phi->incoming_predecessors = malloc(block->predecessor_count * sizeof(size_t));
                 if (phi->incoming_predecessors == NULL)
                     return false;

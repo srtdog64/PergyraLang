@@ -100,7 +100,11 @@ repl_run(void)
                 if (l > 0 && line[l - 1] == '\n')
                     line[--l] = '\0';
                 strncat(block, line, sizeof(block) - strlen(block) - 2);
-                strcat(block, "\n");
+                size_t block_len = strlen(block);
+                if (block_len + 2 < sizeof(block)) {
+                    block[block_len] = '\n';
+                    block[block_len + 1] = '\0';
+                }
                 for (const char *p = line; *p; p++) {
                     if (*p == '{') depth++;
                     else if (*p == '}') depth--;

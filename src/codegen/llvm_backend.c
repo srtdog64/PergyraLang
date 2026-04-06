@@ -1364,17 +1364,34 @@ llvm_render_type_name(ASTNode *type_node)
             return pergyra_strdup("Int");
         }
         result = grown;
-        strcat(result, i == 0 ? "<" : ", ");
-        strcat(result, arg_name);
+        {
+            size_t offset = strlen(result);
+            if (i == 0) {
+                result[offset++] = '<';
+            } else {
+                result[offset++] = ',';
+                result[offset++] = ' ';
+            }
+            {
+                size_t arg_len = strlen(arg_name);
+                memcpy(result + offset, arg_name, arg_len);
+                offset += arg_len;
+            }
+            result[offset] = '\0';
+        }
         free(arg_name);
     }
 
     {
-        char *grown = (char *)realloc(result, strlen(result) + 2);
-        if (grown != NULL) {
-            result = grown;
-            strcat(result, ">");
+        size_t cur_len = strlen(result);
+        char *grown = (char *)realloc(result, cur_len + 2);
+        if (grown == NULL) {
+            free(result);
+            return pergyra_strdup("Int");
         }
+        result = grown;
+        result[cur_len] = '>';
+        result[cur_len + 1] = '\0';
     }
     return result;
 }

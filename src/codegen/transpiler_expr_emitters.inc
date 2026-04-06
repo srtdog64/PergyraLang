@@ -1334,17 +1334,43 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 arg_strs[i] = emit_expression(call->data.call.arguments[i], ctx);
             /* Build argument list string */
             size_t buf_len = strlen(qualified) + 3;
-            for (size_t i = 0; i < argc; i++)
-                buf_len += strlen(arg_strs[i]) + 2;
-            char *result = malloc(buf_len);
-            strcpy(result, qualified);
-            strcat(result, "(");
             for (size_t i = 0; i < argc; i++) {
-                if (i > 0) strcat(result, ", ");
-                strcat(result, arg_strs[i]);
-                free(arg_strs[i]);
+                if (arg_strs[i] == NULL) {
+                    for (size_t j = 0; j < i; j++)
+                        free(arg_strs[j]);
+                    free(arg_strs);
+                    return NULL;
+                }
+                buf_len += strlen(arg_strs[i]) + 2;
             }
-            strcat(result, ")");
+            char *result = malloc(buf_len);
+            if (result == NULL) {
+                for (size_t i = 0; i < argc; i++)
+                    free(arg_strs[i]);
+                free(arg_strs);
+                return NULL;
+            }
+            {
+                size_t offset = 0;
+                size_t qual_len = strlen(qualified);
+                memcpy(result + offset, qualified, qual_len);
+                offset += qual_len;
+                result[offset++] = '(';
+                for (size_t i = 0; i < argc; i++) {
+                    if (i > 0) {
+                        result[offset++] = ',';
+                        result[offset++] = ' ';
+                    }
+                    {
+                        size_t arg_len = strlen(arg_strs[i]);
+                        memcpy(result + offset, arg_strs[i], arg_len);
+                        offset += arg_len;
+                    }
+                    free(arg_strs[i]);
+                }
+                result[offset++] = ')';
+                result[offset] = '\0';
+            }
             free(arg_strs);
             return result;
         }

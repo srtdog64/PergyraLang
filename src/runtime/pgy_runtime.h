@@ -2806,11 +2806,18 @@ typedef struct {                                                        \
     /* END UNSAFE_BLOCK */
 
 /* Raw pointer operations (use inside unsafe blocks) */
+static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
+{
+    void *p = malloc(size);
+    if (!p) { fprintf(stderr, "pgy: out of memory at %s:%d\n", file, line); abort(); }
+    return p;
+}
+
 #define PGY_PTR_NEW(Type) \
-    ((Type*)malloc(sizeof(Type)))
+    ((Type*)pgy_ptr_new_impl(sizeof(Type), __FILE__, __LINE__))
 
 #define PGY_PTR_NEW_ARRAY(Type, count) \
-    ((Type*)malloc(sizeof(Type) * (count)))
+    ((Type*)pgy_ptr_new_impl(sizeof(Type) * (count), __FILE__, __LINE__))
 
 #define PGY_PTR_FREE(ptr) \
     do { \

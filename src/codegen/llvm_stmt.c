@@ -21,23 +21,38 @@ llvm_stmt_render_type_arg(GenericParam *param)
         char *result = pergyra_strdup(type->data.type.name);
         for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
             char *arg = llvm_stmt_render_type_arg(type->data.type.generic_args->params[i]);
-            char *grown = realloc(result, strlen(result) + strlen(arg) + 4);
+            size_t cur_len = strlen(result);
+            size_t arg_len = strlen(arg);
+            size_t need = cur_len + arg_len + 4;
+            char *grown = realloc(result, need);
             if (grown == NULL) {
                 free(result);
                 free(arg);
                 return pergyra_strdup("Int");
             }
             result = grown;
-            strcat(result, i == 0 ? "<" : ", ");
-            strcat(result, arg);
+            size_t offset = cur_len;
+            if (i == 0) {
+                result[offset++] = '<';
+            } else {
+                result[offset++] = ',';
+                result[offset++] = ' ';
+            }
+            memcpy(result + offset, arg, arg_len);
+            offset += arg_len;
+            result[offset] = '\0';
             free(arg);
         }
         {
-            char *grown = realloc(result, strlen(result) + 2);
-            if (grown != NULL) {
-                result = grown;
-                strcat(result, ">");
+            size_t cur_len = strlen(result);
+            char *grown = realloc(result, cur_len + 2);
+            if (grown == NULL) {
+                free(result);
+                return pergyra_strdup("Int");
             }
+            result = grown;
+            result[cur_len] = '>';
+            result[cur_len + 1] = '\0';
         }
         return result;
     }

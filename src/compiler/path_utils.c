@@ -81,7 +81,8 @@ path_replace_extension(const char *path, const char *new_ext)
         return NULL;
 
     memcpy(result, path, base_len);
-    strcpy(result + base_len, new_ext);
+    strncpy(result + base_len, new_ext, new_len - base_len);
+    result[new_len - 1] = '\0';
     return result;
 }
 
