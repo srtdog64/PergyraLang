@@ -1647,12 +1647,23 @@ transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
             continue;
         if (!transpiler_emit_mir_block_with_ssa_map(&ssa_map, block))
             return false;
-        /* Add function parameters to SSA map - they're valid C identifiers, not SSA vars */
-        if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
-            for (size_t p = 0; p < func_decl->data.func_decl.param_count; p++) {
-                FuncParam *param = func_decl->data.func_decl.params[p];
-                if (param != NULL && param->name != NULL) {
-                    transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
+        /* Add function/intent parameters to SSA map - they're valid C identifiers, not SSA vars */
+        if (func_decl != NULL) {
+            if (func_decl->type == AST_FUNC_DECL) {
+                for (size_t p = 0; p < func_decl->data.func_decl.param_count; p++) {
+                    FuncParam *param = func_decl->data.func_decl.params[p];
+                    if (param != NULL && param->name != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
+                    }
+                }
+            } else if (func_decl->type == AST_INTENT_DECL) {
+                /* For intent, extract alias from involves */
+                for (size_t p = 0; p < func_decl->data.intent_decl.involve_count; p++) {
+                    ASTNode *involves = func_decl->data.intent_decl.involves[p];
+                    if (involves != NULL && involves->type == AST_INTENT_INVOLVES
+                        && involves->data.intent_involves.alias != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, involves->data.intent_involves.alias, involves->data.intent_involves.alias);
+                    }
                 }
             }
         }

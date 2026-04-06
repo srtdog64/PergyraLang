@@ -35,16 +35,11 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
 
         /* Debug: print intent scope info */
         if (routine.kind == MIR_SCOPE_INTENT) {
-            fprintf(stderr, "[MIR LOWER] Intent '%s': rir_scope=%p\n",
+            fprintf(stdout, "[MIR LOWER] Intent '%s': rir_scope=%p\n",
                 routine.name ? routine.name : "(null)", (void*)routine.rir_scope);
             if (routine.rir_scope != NULL) {
-                fprintf(stderr, "  scope ops: %zu, facts: %zu\n",
+                fprintf(stdout, "  scope ops: %zu, facts: %zu\n",
                     routine.rir_scope->op_count, routine.rir_scope->fact_count);
-                for (size_t op = 0; op < routine.rir_scope->op_count; op++) {
-                    fprintf(stderr, "  op[%zu] kind=%d name='%s'\n", op,
-                        routine.rir_scope->ops[op].kind,
-                        routine.rir_scope->ops[op].name ? routine.rir_scope->ops[op].name : "(null)");
-                }
             }
         }
 
@@ -1072,7 +1067,7 @@ mir_validate_emission_topology(const MIRRoutine *routine,
                 free(hir_block_seen);
                 return false;
             }
-        } else if (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ) {
+        } else if (!block->is_cleanup && (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ)) {
             fprintf(stdout, "[MIR TOPOLOGY ERROR] '%s': block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d, routine->has_cleanup_block=%d, block->is_reachable=%d, block->is_cleanup=%d\n",
                 routine->name ? routine->name : "(anonymous)", i,
                 block->has_cleanup_succ, block->has_rollback_succ, block->has_invalidation_succ,

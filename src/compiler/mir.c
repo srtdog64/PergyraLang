@@ -1294,11 +1294,11 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         return true;
     for (size_t i = 0; i < routine->block_count; i++) {
         MIRBasicBlock *block = &routine->blocks[i];
+        /* Skip cleanup/rollback/invalidation blocks themselves and unreachable blocks */
         if (i == routine->cleanup_block
-            || (routine->has_rollback_block && i == routine->rollback_block)
-            || (routine->has_invalidation_block && i == routine->invalidation_block)
             || !block->is_reachable)
             continue;
+        /* All reachable non-cleanup blocks get a cleanup edge to the cleanup block */
         block->cleanup_succ = routine->cleanup_block;
         block->has_cleanup_succ = true;
         routine->cleanup_edge_count++;
@@ -1320,31 +1320,74 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
             return false;
         }
     }
+    /* Rollback block gets cleanup edge pointing to cleanup block */
     if (routine->has_rollback_block) {
         MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
+        MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
         cleanup->rollback_succ = routine->rollback_block;
         cleanup->has_rollback_succ = true;
-        if (!append_index_unique(&routine->blocks[routine->rollback_block].predecessors,
-                                 &routine->blocks[routine->rollback_block].predecessor_count,
+        if (!append_index_unique(&rollback->predecessors,
+                                 &rollback->predecessor_count,
                                  cleanup->id)) {
+            return false;
+        }
+        /* Rollback block also needs cleanup edge back to cleanup block */
+        rollback->cleanup_succ = routine->cleanup_block;
+        rollback->has_cleanup_succ = true;
+        routine->cleanup_edge_count++;
+        if (!append_instruction(rollback,
+                                (MIRInstruction){
+                                    .id = routine->instruction_count++,
+                                    .kind = MIR_INST_CLEANUP_EDGE,
+                                    .name = "cleanup-edge-from-rollback",
+                                    .slot_anchor = "cleanup",
+                                    .arg0 = "cleanup",
+                                    .arg1 = NULL,
+                                    .ast = NULL,
+                                })) {
+            return false;
+        }
+        if (!append_index_unique(&cleanup->predecessors,
+                                 &cleanup->predecessor_count,
+                                 routine->rollback_block)) {
             return false;
         }
     }
     if (routine->has_invalidation_block) {
         MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
+        MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
         cleanup->invalidation_succ = routine->invalidation_block;
         cleanup->has_invalidation_succ = true;
-        if (!append_index_unique(&routine->blocks[routine->invalidation_block].predecessors,
-                                 &routine->blocks[routine->invalidation_block].predecessor_count,
+        if (!append_index_unique(&invalidation->predecessors,
+                                 &invalidation->predecessor_count,
                                  cleanup->id)) {
+            return false;
+        }
+        /* Invalidation block also needs cleanup edge back to cleanup block */
+        invalidation->cleanup_succ = routine->cleanup_block;
+        invalidation->has_cleanup_succ = true;
+        routine->cleanup_edge_count++;
+        if (!append_instruction(invalidation,
+                                (MIRInstruction){
+                                    .id = routine->instruction_count++,
+                                    .kind = MIR_INST_CLEANUP_EDGE,
+                                    .name = "cleanup-edge-from-invalidation",
+                                    .slot_anchor = "cleanup",
+                                    .arg0 = "cleanup",
+                                    .arg1 = NULL,
+                                    .ast = NULL,
+                                })) {
+            return false;
+        }
+        if (!append_index_unique(&cleanup->predecessors,
+                                 &cleanup->predecessor_count,
+                                 routine->invalidation_block)) {
             return false;
         }
     }
     if (routine->has_rollback_block && routine->has_invalidation_block) {
         MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
         MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        rollback->cleanup_succ = invalidation->id;
-        rollback->has_cleanup_succ = true;
         rollback->invalidation_succ = invalidation->id;
         rollback->has_invalidation_succ = true;
         if (!append_index_unique(&invalidation->predecessors,
