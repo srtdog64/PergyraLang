@@ -121,12 +121,16 @@ ASTNode* parse_pipe(Parser* parser) {
             size_t old_count = right->data.call.arg_count;
             ASTNode **new_args = realloc(right->data.call.arguments,
                 (old_count + 1) * sizeof(ASTNode *));
-            if (new_args != NULL) {
-                memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
-                new_args[0] = expr;
-                right->data.call.arguments = new_args;
-                right->data.call.arg_count = old_count + 1;
+            if (new_args == NULL) {
+                /* realloc 실패: expr와 right를 해제하고 NULL 반환 */
+                ast_destroy(expr);
+                ast_destroy(right);
+                return NULL;
             }
+            memmove(new_args + 1, new_args, old_count * sizeof(ASTNode *));
+            new_args[0] = expr;
+            right->data.call.arguments = new_args;
+            right->data.call.arg_count = old_count + 1;
             expr = right;
         } else if (right->type == AST_IDENTIFIER) {
             /* a |> f → f(a) */

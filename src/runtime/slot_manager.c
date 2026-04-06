@@ -124,13 +124,17 @@ slot_reserve_storage(SlotEntry *entry, size_t size)
         return true;
     }
 
+    /* 과도한 크기 요청 차단 (1GB 제한) */
+    if (size > (1024UL * 1024UL * 1024UL)) {
+        return false;
+    }
+
     if (entry->dataBlockRef != NULL && entry->dataSize == size) {
         return true;
     }
 
     primary = malloc(size);
     if (primary == NULL) {
-        free(primary);
         return false;
     }
 
