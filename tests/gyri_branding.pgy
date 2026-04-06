@@ -1,0 +1,30 @@
+// Pergyra 언어 브랜드 아스키 아트 출력
+// use: pgy tests/gyri_branding.pgy --run
+
+func PrintBanner() -> Void {
+    Log("╔══════════════════════════════════════════════════════╗");
+    Log("║                                                      ║");
+    Log("║   ____  ____  ____  ____  ____  ____  ____  ____     ║");
+    Log("║  |P  ||e  ||r  ||g  ||y  ||r  ||a  ||   ||L  ||a  ||n  ||g  |");
+    Log("║  |___||___||___||___||___||___||___||   ||___||___||___||___|");
+    Log("║  \\__/\\__/\\__/\\__/\\__/\\__/\\__/     \\__/\\__/\\__/\\__/");
+    Log("║                                                      ║");
+    Log("║          Intent-First Programming Language           ║");
+    Log("║                                                      ║");
+    Log("╚══════════════════════════════════════════════════════╝");
+}
+
+func PrintFeatures() -> Void {
+    Log("");
+    Log("[Pergyra] Intent-driven programming language");
+    Log("[Pergyra] subject/class/object/dto type system");
+    Log("[Pergyra] Slot-based resource management");
+    Log("[Pergyra] Zone/World domain boundaries");
+    Log("[Pergyra] Async/await + channels");
+    Log("[Pergyra] Result<T> error handling with ? operator");
+}
+
+func Main() -> Void {
+    PrintBanner();
+    PrintFeatures();
+}

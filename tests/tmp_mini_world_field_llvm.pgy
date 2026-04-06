@@ -1,0 +1,16 @@
+zone RoomZone { shared threat: Int = 0 shared instability: Int = 0 }
+world W {
+    zone forge: RoomZone
+    shared storm: Int = 0
+    shared campForge: Int = 2
+    func Show(self) -> Void {
+        Print(ToString(campForge)); Print("\n");
+        Print(ToString(storm)); Print("\n");
+        Print(ToString(forge.threat)); Print("\n");
+    }
+}
+func Main() -> Void {
+    let w: W = W(RoomZone(1, 0));
+    w.storm = 1;
+    w.Show();
+}

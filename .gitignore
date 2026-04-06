@@ -53,3 +53,7 @@ review/*
 *.dSYM/
 core
 vgcore.*
+"tests/*.exe"  
+"tests/*.o"  
+"tests/*_llvm"  
+"tests/tmp_*"  
