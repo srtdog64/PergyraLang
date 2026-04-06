@@ -1880,7 +1880,8 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         || routine->hir_routine == NULL
         || !routine->has_cleanup_block) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section", intent_decl->data.intent_decl.name);
+            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section (kind=%d, hir_routine=%p, has_cleanup_block=%d)",
+                intent_decl->data.intent_decl.name, routine->kind, (void*)routine->hir_routine, routine->has_cleanup_block);
         return false;
     }
     if (!transpiler_validate_mir_emission_contract(routine,
@@ -1889,10 +1890,15 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
                                                    true,
                                                    reason,
                                                    reason_cap)) {
+        if (reason != NULL && reason_cap > 0 && reason[0] == '\0')
+            snprintf(reason, reason_cap, "intent %s MIR emission contract validation failed", intent_decl->data.intent_decl.name);
         return false;
     }
-    if (!transpiler_has_mapping_for_all_emitted_blocks(routine, intent_decl, false, reason, reason_cap))
+    if (!transpiler_has_mapping_for_all_emitted_blocks(routine, intent_decl, false, reason, reason_cap)) {
+        if (reason != NULL && reason_cap > 0 && reason[0] == '\0')
+            snprintf(reason, reason_cap, "intent %s SSA mapping incomplete", intent_decl->data.intent_decl.name);
         return false;
+    }
     if (mir_routine_out != NULL)
         *mir_routine_out = routine;
     return true;
@@ -4271,8 +4277,13 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     g_type_render_ctx = ctx;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
-    fprintf(stderr, "[MIR INTENT] emit_intent_decl '%s': ctx->mir=%p, emit_cleanup_from_mir=%d\n",
-        node->data.intent_decl.name, (void*)ctx->mir, emit_cleanup_from_mir);
+    fprintf(stderr, "[MIR INTENT] emit_intent_decl '%s': emit_cleanup_from_mir=%d\n",
+        node->data.intent_decl.name, emit_cleanup_from_mir);
+    if (!emit_cleanup_from_mir) {
+        char debug_reason[256] = {0};
+        transpiler_can_emit_intent_cleanup_from_mir_with_reason(ctx, node, &mir_routine, debug_reason, sizeof(debug_reason));
+        fprintf(stderr, "[MIR INTENT] Reason: %s\n", debug_reason);
+    }
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
         if (step != NULL && step->type == AST_INTENT_STEP

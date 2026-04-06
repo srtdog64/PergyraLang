@@ -246,8 +246,20 @@ lower_pipeline_from_source(const char *source,
     } else {
         fprintf(stderr, "MIR lowering OK: %zu routines\n", (*mir_out)->routine_count);
         for (size_t i = 0; i < (*mir_out)->routine_count; i++) {
-            fprintf(stderr, "  [%zu] kind=%d name='%s'\n", i, (*mir_out)->routines[i].kind,
-                (*mir_out)->routines[i].name ? (*mir_out)->routines[i].name : "(null)");
+            fprintf(stderr, "  [%zu] kind=%d name='%s' has_cleanup=%d rir_scope=%p\n", i, (*mir_out)->routines[i].kind,
+                (*mir_out)->routines[i].name ? (*mir_out)->routines[i].name : "(null)",
+                (*mir_out)->routines[i].has_cleanup_block,
+                (void*)(*mir_out)->routines[i].rir_scope);
+        }
+    }
+
+    /* Debug: print RIR scopes */
+    if (*rir_out != NULL) {
+        fprintf(stderr, "RIR scopes: %zu\n", (*rir_out)->scope_count);
+        for (size_t i = 0; i < (*rir_out)->scope_count; i++) {
+            fprintf(stderr, "  [%zu] kind=%d name='%s' ops=%zu\n", i, (*rir_out)->scopes[i].kind,
+                (*rir_out)->scopes[i].name ? (*rir_out)->scopes[i].name : "(null)",
+                (*rir_out)->scopes[i].op_count);
         }
     }
 
@@ -3336,6 +3348,8 @@ test_mir_vertical_slice_emit(void)
             if (strstr(output, "if (__intent_failed)") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing __intent_failed\n");
             if (strstr(output, "pgy_mir_cleanup_op_export") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing cleanup op export\n");
             if (strstr(output, "pgy_intent_exit_export") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing intent exit export\n");
+            if (strstr(output, "/* cleanup-emitted-from-mir */") == NULL)
+                fprintf(stderr, "[MIR INTENT TEST] Missing cleanup-emitted-from-mir marker (intent MIR cleanup not emitted)\n");
             if (pur_bb_count < 4 || pur_goto_count < 3 || strstr(output, "/* cleanup-emitted-from-mir */") == NULL)
                 fprintf(stderr, "[MIR INTENT TEST] Output:\n%s\n", output);
             EXPECT(pur_bb_count >= 4);

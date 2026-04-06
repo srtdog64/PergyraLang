@@ -28,6 +28,21 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.hir_routine = hir_routine;
         routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
 
+        /* Debug: print intent scope info */
+        if (routine.kind == MIR_SCOPE_INTENT) {
+            fprintf(stderr, "[MIR LOWER] Intent '%s': rir_scope=%p\n",
+                routine.name ? routine.name : "(null)", (void*)routine.rir_scope);
+            if (routine.rir_scope != NULL) {
+                fprintf(stderr, "  scope ops: %zu, facts: %zu\n",
+                    routine.rir_scope->op_count, routine.rir_scope->fact_count);
+                for (size_t op = 0; op < routine.rir_scope->op_count; op++) {
+                    fprintf(stderr, "  op[%zu] kind=%d name='%s'\n", op,
+                        routine.rir_scope->ops[op].kind,
+                        routine.rir_scope->ops[op].name ? routine.rir_scope->ops[op].name : "(null)");
+                }
+            }
+        }
+
         if (!mir_build_blocks_from_hir(&routine, hir_routine)
             || !mir_append_cleanup_block(&routine, routine.rir_scope)
             || !mir_populate_instructions(&routine)
@@ -47,6 +62,18 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         mir_destroy(mir);
         return NULL;
     }
+
+    /* Debug: print routine info after DCE */
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        if (mir->routines[i].kind == MIR_SCOPE_INTENT) {
+            fprintf(stdout, "[MIR POST-DCE] Intent '%s': has_cleanup=%d, has_rollback=%d, has_invalidation=%d\n",
+                mir->routines[i].name ? mir->routines[i].name : "(null)",
+                mir->routines[i].has_cleanup_block,
+                mir->routines[i].has_rollback_block,
+                mir->routines[i].has_invalidation_block);
+        }
+    }
+    fflush(stdout);
 
     return mir;
 }
