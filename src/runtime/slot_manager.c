@@ -124,8 +124,8 @@ slot_reserve_storage(SlotEntry *entry, size_t size)
         return true;
     }
 
-    /* 과도한 크기 요청 차단 (1GB 제한) */
-    if (size > (1024UL * 1024UL * 1024UL)) {
+    /* 과도한 크기 요청 차단 (256MB 제한 - slot은 메모리 슬롯이므로 합리적 제한) */
+    if (size > (256UL * 1024UL * 1024UL)) {
         return false;
     }
 

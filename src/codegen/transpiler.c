@@ -899,19 +899,14 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
         return NULL;
     }
 
-    fprintf(stdout, "[MIR FIND] Looking for intent '%s' in %zu routines:\n",
-        intent_decl->data.intent_decl.name, ctx->mir->routine_count);
     for (size_t i = 0; i < ctx->mir->routine_count; i++) {
         const MIRRoutine *routine = &ctx->mir->routines[i];
-        fprintf(stdout, "  [%zu] kind=%d name='%s'\n", i, routine->kind,
-            routine->name ? routine->name : "(null)");
         if (routine->kind != MIR_SCOPE_INTENT
             || routine->name == NULL
             || strcmp(routine->name, intent_decl->data.intent_decl.name) != 0) {
             continue;
         }
         /* Match by name only - pointer comparison may fail across different AST instances */
-        fprintf(stdout, "[MIR FIND] Found intent '%s'\n", routine->name);
         return routine;
     }
 
@@ -1704,9 +1699,6 @@ transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
     const char *routine_name = "<routine>";
     const char *decl_name = NULL;
 
-    fprintf(stdout, "[MIR CONTRACT] routine=%p, decl=%p, require_cleanup=%d, require_cleanup_blocks=%d\n",
-        (void*)routine, (void*)decl, require_cleanup, require_cleanup_blocks);
-
     if (decl != NULL) {
         if (decl->type == AST_FUNC_DECL && decl->data.func_decl.name != NULL)
             decl_name = decl->data.func_decl.name;
@@ -1716,20 +1708,11 @@ transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
     routine_name = decl_name != NULL ? decl_name
         : (routine != NULL && routine->name != NULL ? routine->name : "<routine>");
 
-    fprintf(stdout, "[MIR VALIDATE] '%s': has_cleanup=%d, require_cleanup=%d, require_cleanup_blocks=%d, blocks=%zu\n",
-        routine_name, routine != NULL ? routine->has_cleanup_block : -1, require_cleanup, require_cleanup_blocks,
-        routine != NULL ? routine->block_count : 0);
-
     if (routine == NULL || routine->blocks == NULL) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap, "MIR contract invalid for %s: no routine", routine_name);
         return false;
     }
-
-    fprintf(stdout, "[MIR CONTRACT] '%s': routine->has_cleanup_block=%d, routine->block_count=%zu\n",
-        routine_name, routine->has_cleanup_block, routine->block_count);
-
-    fprintf(stdout, "[MIR CONTRACT] Calling mir_validate_emission_topology for '%s'\n", routine_name);
 
     {
         char *topology_error = NULL;
@@ -4306,16 +4289,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     g_type_render_ctx = ctx;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
-    if (!emit_cleanup_from_mir) {
-        char debug_reason[256] = {0};
-        transpiler_can_emit_intent_cleanup_from_mir_with_reason(ctx, node, &mir_routine, debug_reason, sizeof(debug_reason));
-        fprintf(stdout, "[MIR INTENT] '%s': emit_cleanup=%d, reason='%s', mir_routine=%p\n",
-            node->data.intent_decl.name, emit_cleanup_from_mir, debug_reason, (void*)mir_routine);
-        if (mir_routine != NULL) {
-            fprintf(stdout, "[MIR INTENT] Routine: kind=%d, has_cleanup=%d, hir_routine=%p\n",
-                mir_routine->kind, mir_routine->has_cleanup_block, (void*)mir_routine->hir_routine);
-        }
-    }
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
         if (step != NULL && step->type == AST_INTENT_STEP
