@@ -331,15 +331,8 @@ $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	@tmp_o=$$(mktemp "$${TMPDIR:-/tmp}/pgy_obj.XXXXXX.o") && \
-	tmp_d=$$(mktemp "$${TMPDIR:-/tmp}/pgy_dep.XXXXXX.d") && \
-	trap 'rm -f "$$tmp_o" "$$tmp_d"' EXIT && \
-	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$$tmp_d" -c -o "$$tmp_o" $< && \
-	rm -f $@ $(@:.o=.d) && \
-	cp -f "$$tmp_o" $@ && \
-	cp -f "$$tmp_d" $(@:.o=.d) && \
-	[ -f $(@:.o=.d) ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) || true && \
-	trap - EXIT
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$(@:.o=.d)" -c -o "$@" $< && \
+	[ -f "$(@:.o=.d)" ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' "$(@:.o=.d)" || true
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)

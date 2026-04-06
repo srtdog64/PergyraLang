@@ -248,6 +248,7 @@ char *emit_builtin_read(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_release(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx);
+char *emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
 char *emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
 

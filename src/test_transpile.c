@@ -240,6 +240,15 @@ lower_pipeline_from_source(const char *source,
             fprintf(stderr, "RIR lowering failed in test: %s\n", rir_error);
         if (mir_error != NULL)
             fprintf(stderr, "MIR lowering failed in test: %s\n", mir_error);
+        if (*hir_out == NULL) fprintf(stderr, "HIR is NULL\n");
+        if (*rir_out == NULL) fprintf(stderr, "RIR is NULL\n");
+        if (*mir_out == NULL) fprintf(stderr, "MIR is NULL\n");
+    } else {
+        fprintf(stderr, "MIR lowering OK: %zu routines\n", (*mir_out)->routine_count);
+        for (size_t i = 0; i < (*mir_out)->routine_count; i++) {
+            fprintf(stderr, "  [%zu] kind=%d name='%s'\n", i, (*mir_out)->routines[i].kind,
+                (*mir_out)->routines[i].name ? (*mir_out)->routines[i].name : "(null)");
+        }
     }
 
     free(hir_error);
@@ -573,6 +582,18 @@ test_expression_emit(void)
         };
         result = emit_expression(make_call("Log", args, 1, 1), ctx);
         EXPECT(strcmp(result, "pgy_log(\"first\\nsecond\")") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("LogRaw preserves raw newline and leading spaces");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = {
+            make_string_lit("\n  first\n  second", 1),
+        };
+        result = emit_expression(make_call("LogRaw", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_log(\"\\n  first\\n  second\")") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -3241,8 +3262,12 @@ test_mir_vertical_slice_emit(void)
         if (ok && output != NULL) {
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
             EXPECT(strstr(output, "_pgy_mir_bb_Score_0:") != NULL);
-            EXPECT(count_substring(output, "Touch();") >= 2);
-            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
+            size_t touch_count = count_substring(output, "Touch();");
+            size_t score_bb_count = count_substring(output, "_pgy_mir_bb_Score_");
+            if (touch_count < 2) fprintf(stderr, "[MIR STMT TEST] Expected >=2 Touch(), got %zu\n", touch_count);
+            if (score_bb_count != 6) fprintf(stderr, "[MIR STMT TEST] Expected 6 Score_ occurrences, got %zu\nOutput:\n%s\n", score_bb_count, output);
+            EXPECT(touch_count >= 2);
+            EXPECT(score_bb_count == 6);  /* 3 blocks × 2 (label + goto) */
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "Touch();"));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "Touch();"));
             EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "return 7;"));
@@ -3304,8 +3329,17 @@ test_mir_vertical_slice_emit(void)
         if (ok && output != NULL) {
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
             EXPECT(strstr(output, "/* cleanup-emitted-from-mir */") != NULL);
-            EXPECT(count_substring(output, "_pgy_mir_bb_Purchase_") >= 4);
-            EXPECT(count_substring(output, "goto _pgy_mir_bb_Purchase_") >= 3);
+            size_t pur_bb_count = count_substring(output, "_pgy_mir_bb_Purchase_");
+            size_t pur_goto_count = count_substring(output, "goto _pgy_mir_bb_Purchase_");
+            if (pur_bb_count < 4) fprintf(stderr, "[MIR INTENT TEST] Expected >=4 Purchase_ blocks, got %zu\n", pur_bb_count);
+            if (pur_goto_count < 3) fprintf(stderr, "[MIR INTENT TEST] Expected >=3 Purchase_ gotos, got %zu\n", pur_goto_count);
+            if (strstr(output, "if (__intent_failed)") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing __intent_failed\n");
+            if (strstr(output, "pgy_mir_cleanup_op_export") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing cleanup op export\n");
+            if (strstr(output, "pgy_intent_exit_export") == NULL) fprintf(stderr, "[MIR INTENT TEST] Missing intent exit export\n");
+            if (pur_bb_count < 4 || pur_goto_count < 3 || strstr(output, "/* cleanup-emitted-from-mir */") == NULL)
+                fprintf(stderr, "[MIR INTENT TEST] Output:\n%s\n", output);
+            EXPECT(pur_bb_count >= 4);
+            EXPECT(pur_goto_count >= 3);
             EXPECT(strstr(output, "if (__intent_failed)") != NULL);
             EXPECT(strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"CompensateIntentStep\"") != NULL);
             EXPECT(strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"DetachInvalidation\"") != NULL);
@@ -3367,8 +3401,16 @@ test_mir_vertical_slice_emit(void)
         EXPECT(ok && output != NULL);
         if (ok && output != NULL) {
             EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
-            EXPECT(count_substring(output, "_pgy_mir_bb_Checkout_") >= 2);
-            EXPECT(count_substring(output, "goto _pgy_mir_bb_Checkout_") >= 1);
+            size_t checkout_bb = count_substring(output, "_pgy_mir_bb_Checkout_");
+            size_t checkout_goto = count_substring(output, "goto _pgy_mir_bb_Checkout_");
+            if (checkout_bb < 2) fprintf(stderr, "[MIR SUBINTENT TEST] Expected >=2 Checkout_ blocks, got %zu\n", checkout_bb);
+            if (checkout_goto < 1) fprintf(stderr, "[MIR SUBINTENT TEST] Expected >=1 Checkout_ goto, got %zu\n", checkout_goto);
+            if (strstr(output, "intent:pay") == NULL) fprintf(stderr, "[MIR SUBINTENT TEST] Missing intent:pay\n");
+            if (strstr(output, "if (!(Charge(") == NULL) fprintf(stderr, "[MIR SUBINTENT TEST] Missing Charge call guard\n");
+            if (checkout_bb < 2 || checkout_goto < 1 || strstr(output, "if (!(Charge(") == NULL)
+                fprintf(stderr, "[MIR SUBINTENT TEST] Output:\n%s\n", output);
+            EXPECT(checkout_bb >= 2);
+            EXPECT(checkout_goto >= 1);
             EXPECT(strstr(output, "intent:pay") != NULL);
             EXPECT((strstr(output, "if (!(Charge(checkout, buyer)))") != NULL)
                    || (strstr(output, "if (!(Charge(checkout,buyer)))") != NULL));

@@ -53,6 +53,18 @@ parser_is_lambda_start(Parser *parser)
 /* Forward declaration */
 static ASTNode *parse_interpolated_expression_fragment(const char *expr_src);
 
+static bool
+is_multiline_string_token(const char *value)
+{
+    if (value == NULL)
+        return false;
+
+    size_t len = strlen(value);
+    return len >= 6
+           && strncmp(value, "\"\"\"", 3) == 0
+           && strncmp(value + len - 3, "\"\"\"", 3) == 0;
+}
+
 /* Parse interpolation body: handles both f"{x}" and "${x}" syntax */
 static ASTNode *
 parse_interpolation_body(const char *raw, bool is_fstring)
@@ -476,10 +488,12 @@ ASTNode* parser_parse_primary(Parser* parser) {
     }
 
     // 문자열
-    if (parser_match(parser, TOKEN_STRING)) {
+    if (parser_match(parser, TOKEN_STRING) || parser_match(parser, TOKEN_MULTILINE_STRING)) {
         const char *raw = parser->previous_token.text;
-        /* Check for string interpolation: "...${expr}..." */
-        if (raw != NULL && strstr(raw, "${") != NULL) {
+        /* Check for string interpolation: "...${expr}..."; skip for multiline string
+         * to keep it as raw banner/text payload. */
+        if (raw != NULL && !is_multiline_string_token(raw)
+            && strstr(raw, "${") != NULL) {
             return parse_interpolation_body(raw, false);
         }
         return ast_create_string(raw);

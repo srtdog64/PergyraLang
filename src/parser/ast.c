@@ -16,6 +16,20 @@ static void ast_destroy_where_clause(WhereClause* clause);
 void ast_destroy_structured_comment(StructuredComment* comment);
 
 static char *
+ast_strdup_range(const char *src, size_t len)
+{
+    char *out = malloc(len + 1);
+    if (out == NULL)
+        return pergyra_strdup("");
+
+    if (len > 0 && src != NULL) {
+        memcpy(out, src, len);
+    }
+    out[len] = '\0';
+    return out;
+}
+
+static char *
 ast_unescape_string_literal(const char *value)
 {
     size_t len;
@@ -957,12 +971,31 @@ ASTNode* ast_create_string(const char* value) {
     ASTNode* node = ast_create_node(AST_STRING);
     // 따옴표 제거
     size_t len = strlen(value);
-    if (len >= 2 && value[0] == '"' && value[len-1] == '"') {
-        char *raw = pergyra_strndup(value + 1, len - 2);
+    const char *inner = value;
+    size_t inner_len = len;
+    bool is_multiline = len >= 6 &&
+        strncmp(value, "\"\"\"", 3) == 0 &&
+        strncmp(value + len - 3, "\"\"\"", 3) == 0;
+
+    if (is_multiline) {
+        inner = value + 3;
+        inner_len = len - 6;
+    } else if (len >= 2 && value[0] == '"' && value[len - 1] == '"') {
+        inner = value + 1;
+        inner_len = len - 2;
+    }
+
+    if (is_multiline) {
+        node->data.string.value = ast_strdup_range(inner, inner_len);
+        if (node->data.string.value == NULL) {
+            node->data.string.value = pergyra_strdup("");
+        }
+    } else if (inner_len > 0) {
+        char *raw = pergyra_strndup(inner, inner_len);
         node->data.string.value = ast_unescape_string_literal(raw);
         free(raw);
     } else {
-        node->data.string.value = ast_unescape_string_literal(value);
+        node->data.string.value = ast_unescape_string_literal("");
     }
     return node;
 }

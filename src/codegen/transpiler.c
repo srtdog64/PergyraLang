@@ -1864,7 +1864,16 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         reason[0] = '\0';
     if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine");
+            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %zu routines)", ctx != NULL && ctx->mir != NULL ? ctx->mir->routine_count : 0);
+        if (ctx != NULL && ctx->mir != NULL) {
+            fprintf(stderr, "[MIR INTENT DEBUG] Looking for intent '%s', found %zu routines:\n",
+                intent_decl != NULL && intent_decl->type == AST_INTENT_DECL ? intent_decl->data.intent_decl.name : "null",
+                ctx->mir->routine_count);
+            for (size_t i = 0; i < ctx->mir->routine_count; i++) {
+                fprintf(stderr, "  [%zu] kind=%d name='%s'\n", i, ctx->mir->routines[i].kind,
+                    ctx->mir->routines[i].name ? ctx->mir->routines[i].name : "(null)");
+            }
+        }
         return false;
     }
     if (routine->kind != MIR_SCOPE_INTENT
@@ -4250,6 +4259,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
 
+    fprintf(stdout, "[MIR INTENT] emit_intent_decl ENTER: ctx->mir=%p, intent='%s'\n",
+        (void*)ctx->mir, node->data.intent_decl.name);
+    fflush(stdout);
+
     saved_slot_count = ctx->slot_var_count;
     saved_typed_count = ctx->typed_var_count;
     saved_out = ctx->out;
@@ -4258,6 +4271,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     g_type_render_ctx = ctx;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
+    fprintf(stderr, "[MIR INTENT] emit_intent_decl '%s': ctx->mir=%p, emit_cleanup_from_mir=%d\n",
+        node->data.intent_decl.name, (void*)ctx->mir, emit_cleanup_from_mir);
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
         if (step != NULL && step->type == AST_INTENT_STEP

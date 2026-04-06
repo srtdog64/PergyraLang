@@ -1378,6 +1378,42 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
+    if (strcmp(callee_name, "LogRaw") == 0) {
+        if (node->data.call.arg_count < 1)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        ASTNode *arg_node = node->data.call.arguments[0];
+        LLVMValueRef arg = NULL;
+
+        if (arg_node != NULL && arg_node->type == AST_STRING
+            && arg_node->data.string.value != NULL) {
+            arg = LLVMBuildGlobalStringPtr(ctx->builder, arg_node->data.string.value,
+                                          llvm_tmp_name(ctx));
+        } else {
+            arg = llvm_emit_expression(arg_node, ctx);
+            if (arg == NULL)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
+
+        LLVMTypeRef arg_type = LLVMTypeOf(arg);
+        const char *log_fn_name = "pgy_log_int";
+
+        if (arg_type == ctx->type_i64)        log_fn_name = "pgy_log_long";
+        else if (arg_type == ctx->type_f32)   log_fn_name = "pgy_log_float";
+        else if (arg_type == ctx->type_f64)   log_fn_name = "pgy_log_double";
+        else if (arg_type == ctx->type_i1)    log_fn_name = "pgy_log_bool";
+        else if (arg_type == ctx->type_i8ptr) log_fn_name = "pgy_log_string";
+
+        LLVMFuncEntry *log_fn = llvm_lookup_function(ctx, log_fn_name);
+        if (log_fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef args[] = { arg };
+        LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn,
+                       args, 1, "");
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     /* Built-in: LogBanner */
     if (strcmp(callee_name, "LogBanner") == 0) {
         if (node->data.call.arg_count < 1)

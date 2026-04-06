@@ -1204,6 +1204,25 @@ main(void)
             "Type Alias Declaration",
             "type UserId = Int;",
             1
+        },
+        {
+            "Multiline multiline-string literal",
+            "func Main() -> Void {\n"
+            "    Log(\"\"\"\n"
+            "line1\n"
+            "line2\n"
+            "\"\"\");\n"
+            "}",
+            1
+        },
+        {
+            "Multiline literal should not interpolate ${...}",
+            "func Main() -> Void {\n"
+            "    Log(\"\"\"\n"
+            "${not-a-template}\n"
+            "\"\"\");\n"
+            "}",
+            1
         }
     };
 

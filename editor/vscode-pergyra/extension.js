@@ -4,6 +4,10 @@ const fs = require('fs');
 const cp = require('child_process');
 
 const isWindows = process.platform === 'win32';
+function isScriptLikeCompiler(candidate) {
+    const ext = path.extname(candidate || '').toLowerCase();
+    return isWindows && (ext === '.cmd' || ext === '.bat');
+}
 
 function resolveExisting(candidate) {
     if (!candidate) {
@@ -131,7 +135,7 @@ function runFile(filePath, flags) {
 
     const proc = cp.spawn(compiler, args, {
         cwd,
-        shell: false,
+        shell: isScriptLikeCompiler(compiler),
         windowsHide: true,
     });
 

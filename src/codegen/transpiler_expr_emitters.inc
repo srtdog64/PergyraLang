@@ -2,6 +2,8 @@
  * Built-in call emitters
  * ----------------------------------------------------------------- */
 
+static char *normalize_banner_string_literal(const char *src);
+
 char *
 emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -341,6 +343,46 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Multi-arg Log: emit each argument with pgy_log() */
+    CodeBuf *buf = codebuf_create();
+    codebuf_write(buf, "do { ");
+    for (size_t i = 0; i < call->data.call.arg_count; i++) {
+        char *arg = emit_expression(call->data.call.arguments[i], ctx);
+        codebuf_write(buf, "pgy_log(%s); ", arg);
+        free(arg);
+    }
+    codebuf_write(buf, "} while(0)");
+    char *result = pergyra_strdup(buf->data);
+    codebuf_destroy(buf);
+    return result;
+}
+
+char *
+emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
+{
+    if (call->data.call.arg_count == 0)
+        return pergyra_strdup("printf(\"\\n\")");
+
+    if (call->data.call.arg_count == 1) {
+        ASTNode *arg_node = call->data.call.arguments[0];
+
+        if (arg_node != NULL && arg_node->type == AST_STRING
+            && arg_node->data.string.value != NULL) {
+            char *escaped = escape_c_string_literal(arg_node->data.string.value);
+            if (escaped != NULL) {
+                char *result = strdup_fmt("pgy_log(\"%s\")", escaped);
+                free(escaped);
+                return result;
+            }
+            return pergyra_strdup("/* LogRaw: failed to escape string */");
+        }
+
+        char *arg = emit_expression(arg_node, ctx);
+        char *result = strdup_fmt("pgy_log(%s)", arg);
+        free(arg);
+        return result;
+    }
+
+    /* Multi-arg LogRaw: emit each argument with pgy_log() */
     CodeBuf *buf = codebuf_create();
     codebuf_write(buf, "do { ");
     for (size_t i = 0; i < call->data.call.arg_count; i++) {
@@ -882,6 +924,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_submit_device_read(call, ctx);
     case BUILTIN_LOG:
         return emit_builtin_log(call, ctx);
+    case BUILTIN_LOG_RAW:
+        return emit_builtin_log_raw(call, ctx);
     case BUILTIN_LOG_BANNER:
         return emit_builtin_log_banner(call, ctx);
     case BUILTIN_RC_NEW:

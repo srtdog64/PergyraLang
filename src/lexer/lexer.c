@@ -335,6 +335,36 @@ static Token scan_string(Lexer* lexer) {
     return make_token(lexer, TOKEN_STRING, start, length);
 }
 
+/* Scan multiline/raw string literal: """...""" */
+static Token
+scan_multiline_string(Lexer* lexer, const char* start)
+{
+    while (!is_at_end(lexer)) {
+        char c = peek(lexer);
+
+        if (c == '\\') {
+            advance(lexer);
+            if (!is_at_end(lexer))
+                advance(lexer);
+            continue;
+        }
+
+        if (c == '"' &&
+            peek_next(lexer) == '"' &&
+            peek_ahead(lexer, 2) == '"') {
+            advance(lexer);
+            advance(lexer);
+            advance(lexer);
+            size_t length = lexer->current - start;
+            return make_token(lexer, TOKEN_MULTILINE_STRING, start, length);
+        }
+
+        advance(lexer);
+    }
+
+    return error_token(lexer, "Unterminated multiline string");
+}
+
 /* Scan interpolated string: f"Hello {name}" */
 static Token
 scan_interpolated_string(Lexer* lexer, const char* start)
@@ -428,7 +458,13 @@ Token lexer_next_token(Lexer* lexer) {
             return make_token(lexer, TOKEN_SLASH, start, 1);
         case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
         case '?': return make_token(lexer, TOKEN_QUESTION, start, 1);
-        case '"': return scan_string(lexer);
+        case '"':
+            if (peek(lexer) == '"' && peek_next(lexer) == '"') {
+                advance(lexer);
+                advance(lexer);
+                return scan_multiline_string(lexer, start);
+            }
+            return scan_string(lexer);
         
         // Multi-character tokens
         case '-':
@@ -605,6 +641,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_IDENTIFIER: return "IDENTIFIER";
         case TOKEN_NUMBER: return "NUMBER";
         case TOKEN_STRING: return "STRING";
+        case TOKEN_MULTILINE_STRING: return "MULTILINE_STRING";
         case TOKEN_INTERPOLATED_STRING: return "INTERPOLATED_STRING";
         case TOKEN_DOC_COMMENT: return "DOC_COMMENT";
         case TOKEN_EOF: return "EOF";
