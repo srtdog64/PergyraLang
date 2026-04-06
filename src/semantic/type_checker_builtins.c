@@ -965,6 +965,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "ReleaseDeviceSlot") == 0) return BUILTIN_RELEASE_DEVICE_SLOT;
     if (strcmp(name, "SubmitDeviceRead") == 0) return BUILTIN_SUBMIT_DEVICE_READ;
     if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
+    if (strcmp(name, "LogBanner")       == 0) return BUILTIN_LOG_BANNER;
     if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
     if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
     if (strcmp(name, "RcDrop")          == 0) return BUILTIN_RC_DROP;
@@ -2657,6 +2658,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_LOG:
         for (size_t i = 0; i < call->data.call.arg_count; i++)
             type_check_expression(call->data.call.arguments[i], ctx);
+        return TYPE_VOID;
+    case BUILTIN_LOG_BANNER:
+        if (!check_call_arity(call, 1, "LogBanner", ctx))
+            return TYPE_VOID;
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                          TYPE_STRING, call->data.call.arguments[0], ctx);
         return TYPE_VOID;
     case BUILTIN_RC_NEW:
         return type_check_rc_new(call, ctx);

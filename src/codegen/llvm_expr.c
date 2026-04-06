@@ -1360,6 +1360,43 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
+    /* Built-in: LogBanner */
+    if (strcmp(callee_name, "LogBanner") == 0) {
+        if (node->data.call.arg_count < 1)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        ASTNode *arg = node->data.call.arguments[0];
+        if (arg == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef log_arg = NULL;
+        if (arg->type == AST_STRING) {
+            char *normalized = llvm_normalize_banner_string_literal(
+                arg->data.string.value);
+            if (normalized != NULL) {
+                log_arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
+                                                   llvm_tmp_name(ctx));
+                free(normalized);
+            }
+        } else {
+            log_arg = llvm_emit_expression(arg, ctx);
+            if (log_arg != NULL)
+                log_arg = llvm_coerce_value_to_string(log_arg, ctx);
+        }
+
+        if (log_arg == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMFuncEntry *log_fn = llvm_lookup_function(ctx, "pgy_log_string");
+        if (log_fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+
+        LLVMValueRef args[] = { log_arg };
+        LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn,
+                       args, 1, "");
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     /* Built-in: ClaimSlot<T>() — handled mostly in let_decl, but standalone */
     if (strcmp(callee_name, "ClaimSlot") == 0
         || strcmp(callee_name, "ClaimSecureSlot") == 0) {

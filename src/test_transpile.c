@@ -41,6 +41,44 @@ static int g_fail = 0;
 #define EXPECT_STR_CONTAINS(haystack, needle) \
     EXPECT(strstr((haystack), (needle)) != NULL)
 
+static int
+count_substring(const char *haystack, const char *needle)
+{
+    int count = 0;
+    const char *cursor;
+    size_t needle_len;
+
+    if (haystack == NULL || needle == NULL)
+        return 0;
+    needle_len = strlen(needle);
+    if (needle_len == 0)
+        return 0;
+    for (cursor = strstr(haystack, needle); cursor != NULL; cursor = strstr(cursor + needle_len, needle))
+        count++;
+    return count;
+}
+
+static bool
+mir_block_slice_contains(const char *output, const char *label, const char *needle)
+{
+    const char *start;
+    const char *end;
+    const char *hit;
+    size_t label_len;
+
+    if (output == NULL || label == NULL || needle == NULL)
+        return false;
+    start = strstr(output, label);
+    if (start == NULL)
+        return false;
+    label_len = strlen(label);
+    end = strstr(start + label_len, "_pgy_mir_bb_");
+    if (end == NULL)
+        end = output + strlen(output);
+    hit = strstr(start, needle);
+    return hit != NULL && hit < end;
+}
+
 /* -----------------------------------------------------------------
  * Minimal AST node builders (same helpers as test_semantic.c)
  * ----------------------------------------------------------------- */
@@ -3080,15 +3118,19 @@ test_mir_vertical_slice_emit(void)
         if (ok)
             output = read_file_text(path);
 
-        EXPECT(ok
-               && output != NULL
-               && strstr(output, "/* emitted-from-mir */") != NULL
-               && strstr(output, "goto _pgy_mir_bb_Score_0;") != NULL
-               && strstr(output, "if (flag) {") != NULL
-               && strstr(output, "goto _pgy_mir_bb_Score_1;") != NULL
-               && strstr(output, "goto _pgy_mir_bb_Score_2;") != NULL
-               && strstr(output, "return 7;") != NULL
-               && strstr(output, "return 3;") != NULL);
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
+            EXPECT(count_substring(output, "goto _pgy_mir_bb_Score_") == 2);
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "if ("));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_1;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "goto _pgy_mir_bb_Score_2;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "return 7;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_2:", "return 3;"));
+            EXPECT((strstr(output, "if (flag)") != NULL)
+                   || (strstr(output, "if (_pgy_ssa_flag_") != NULL));
+        }
 
         free(output);
         remove(path);
@@ -3125,12 +3167,16 @@ test_mir_vertical_slice_emit(void)
         if (ok)
             output = read_file_text(path);
 
-        EXPECT(ok
-               && output != NULL
-               && strstr(output, "/* emitted-from-mir */") != NULL
-               && strstr(output, "_pgy_ssa_score_") != NULL
-               && strstr(output, "if (flag)") != NULL
-               && strstr(output, "return _pgy_ssa_score_") != NULL);
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(strstr(output, "_pgy_ssa_score_") != NULL);
+            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "if ("));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "if"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_2:", "return _pgy_ssa_score_"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "_pgy_ssa_score_"));
+        }
 
         free(output);
         remove(path);
@@ -3170,13 +3216,17 @@ test_mir_vertical_slice_emit(void)
         if (ok)
             output = read_file_text(path);
 
-        EXPECT(ok
-               && output != NULL
-               && strstr(output, "/* emitted-from-mir */") != NULL
-               && strstr(output, "_pgy_mir_bb_Score_0:") != NULL
-               && strstr(output, "Touch();") != NULL
-               && strstr(output, "return 7;") != NULL
-               && strstr(output, "return 3;") != NULL);
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(strstr(output, "_pgy_mir_bb_Score_0:") != NULL);
+            EXPECT(count_substring(output, "Touch();") >= 2);
+            EXPECT(count_substring(output, "_pgy_mir_bb_Score_") == 3);
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_0:", "Touch();"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "Touch();"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_1:", "return 7;"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Score_2:", "return 3;"));
+        }
 
         free(output);
         remove(path);
@@ -3229,17 +3279,21 @@ test_mir_vertical_slice_emit(void)
         if (ok)
             output = read_file_text(path);
 
-        EXPECT(ok
-               && output != NULL
-               && strstr(output, "/* cleanup-emitted-from-mir */") != NULL
-               && strstr(output, "goto _pgy_mir_bb_Purchase_") != NULL
-               && strstr(output, "_pgy_mir_bb_Purchase_1:") != NULL
-               && strstr(output, "_pgy_mir_bb_Purchase_2:") != NULL
-               && strstr(output, "_pgy_mir_bb_Purchase_3:") != NULL
-               && strstr(output, "if (__intent_failed)") != NULL
-               && strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"CompensateIntentStep\"") != NULL
-               && strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"DetachInvalidation\"") != NULL
-               && strstr(output, "pgy_intent_exit_export(__intent_handle)") != NULL);
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(strstr(output, "/* cleanup-emitted-from-mir */") != NULL);
+            EXPECT(count_substring(output, "_pgy_mir_bb_Purchase_") >= 4);
+            EXPECT(count_substring(output, "goto _pgy_mir_bb_Purchase_") >= 3);
+            EXPECT(strstr(output, "if (__intent_failed)") != NULL);
+            EXPECT(strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"CompensateIntentStep\"") != NULL);
+            EXPECT(strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"DetachInvalidation\"") != NULL);
+            EXPECT(strstr(output, "pgy_mir_cleanup_op_export(__intent_handle, \"RollbackPolicy\"") != NULL);
+            EXPECT(strstr(output, "pgy_intent_exit_export(__intent_handle)") != NULL);
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Purchase_0:", "if ("));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Purchase_0:", "goto _pgy_mir_bb_Purchase_"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Purchase_0:", "pgy_intent_trace_step"));
+        }
 
         free(output);
         remove(path);
@@ -3289,10 +3343,20 @@ test_mir_vertical_slice_emit(void)
         if (ok)
             output = read_file_text(path);
 
-        EXPECT(ok
-               && output != NULL
-               && strstr(output, "if (!(Charge(checkout, buyer)))") != NULL
-               && strstr(output, "intent:pay") != NULL);
+        EXPECT(ok && output != NULL);
+        if (ok && output != NULL) {
+            EXPECT(strstr(output, "/* emitted-from-mir */") != NULL);
+            EXPECT(count_substring(output, "_pgy_mir_bb_Checkout_") >= 2);
+            EXPECT(count_substring(output, "goto _pgy_mir_bb_Checkout_") >= 1);
+            EXPECT(strstr(output, "intent:pay") != NULL);
+            EXPECT((strstr(output, "if (!(Charge(checkout, buyer)))") != NULL)
+                   || (strstr(output, "if (!(Charge(checkout,buyer)))") != NULL));
+            EXPECT((strstr(output, "if (!(Charge(") != NULL)
+                   && ((strstr(output, ", buyer)") != NULL)
+                       || (strstr(output, ",buyer)") != NULL)));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Checkout_0:", "pgy_intent_trace_step"));
+            EXPECT(mir_block_slice_contains(output, "_pgy_mir_bb_Checkout_0:", "if (!("));
+        }
 
         free(output);
         remove(path);

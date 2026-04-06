@@ -256,7 +256,7 @@ intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
     ty = type_check_expression(expr, ctx);
     if (ty != NULL && !type_equals(ty, TYPE_BOOL)) {
         semantic_error(ctx, expr,
-            "Intent %s expression must be Bool, got '%s'",
+            "Intent %s expects a Bool value, got '%s'. Use a Bool predicate or cast/normalize the expression to Bool before this clause.",
             label != NULL ? label : "condition",
             ty->name != NULL ? ty->name : "<type>");
         return false;
@@ -390,7 +390,8 @@ intent_clause_rejects_control_transfer(ASTNode *expr,
         return true;
 
     semantic_error(ctx, expr,
-        "Intent step '%s' %s clause cannot contain '%s'; move async/fiber control outside the intent into action or adapter code",
+        "Intent step '%s' %s clause cannot contain '%s'. "
+        "Keep control-transfer constructs out of intent clauses and run them in surrounding intent/action code.",
         step_name != NULL ? step_name : "<step>",
         label != NULL ? label : "expression",
         construct);
@@ -616,30 +617,38 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
         if (step->data.intent_step.intent_expr != NULL) {
             Type *intent_type = type_check_expression(step->data.intent_step.intent_expr, ctx);
+            const char *callee_name = "<callee>";
             intent_clause_rejects_control_transfer(step->data.intent_step.intent_expr, ctx,
                 step->data.intent_step.name, "intent");
             if (step->data.intent_step.intent_expr->type != AST_CALL
                 || step->data.intent_step.intent_expr->data.call.callee == NULL
                 || step->data.intent_step.intent_expr->data.call.callee->type != AST_IDENTIFIER) {
                 semantic_error(ctx, step->data.intent_step.intent_expr,
-                    "Intent step '%s' intent clause must call a named intent",
+                    "Intent step '%s' intent clause must call a named intent before lowering to Bool-gated orchestration",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else {
-                const char *callee_name =
+                const char *resolved_name =
                     step->data.intent_step.intent_expr->data.call.callee->data.identifier.name;
-                Symbol *intent_sym = callee_name != NULL ? scope_lookup(ctx->scope, callee_name) : NULL;
+                callee_name = resolved_name != NULL ? resolved_name : callee_name;
+                Symbol *intent_sym = callee_name != NULL
+                    ? scope_lookup(ctx->scope, callee_name)
+                    : NULL;
                 if (intent_sym == NULL || intent_sym->kind != SYMBOL_INTENT) {
                     semantic_error(ctx, step->data.intent_step.intent_expr,
-                        "Intent step '%s' intent clause must target another intent, got '%s'",
+                        "Intent step '%s' intent clause target '%s' must be a declared intent that returns Bool. "
+                        "Declare '%s' as an intent or replace with a Bool-compatible predicate before use.",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        callee_name != NULL ? callee_name : "<callee>",
                         callee_name != NULL ? callee_name : "<callee>");
                 }
             }
             if (intent_type != NULL && !type_equals(intent_type, TYPE_BOOL)) {
                 semantic_error(ctx, step->data.intent_step.intent_expr,
-                    "Intent step '%s' intent clause must return Bool, got '%s'",
+                    "Intent step '%s' intent clause must return Bool for boolean-orchestration, got '%s'. "
+                    "Expected `Bool`; adjust the callee '%s' return type to Bool or wrap with a Bool predicate.",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    intent_type->name != NULL ? intent_type->name : "<type>");
+                    intent_type->name != NULL ? intent_type->name : "<type>",
+                    callee_name != NULL ? callee_name : "<callee>");
             }
         }
 

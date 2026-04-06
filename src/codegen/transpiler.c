@@ -100,6 +100,8 @@ static const char *transpiler_find_local_type_name(const ASTNode *func_decl,
                                                    const char *base_name);
 static const char *transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl,
                                                               ASTNode *expr);
+static bool transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
+                                                  const MIRBasicBlock *block);
 static char *emit_expression_with_ssa_map(ASTNode *node,
                                           TranspilerCtx *ctx,
                                           const TranspilerSSANameMap *ssa_map);
@@ -107,7 +109,13 @@ static bool transpiler_collect_ssa_name_entries(const char **versioned_values,
                                                size_t value_count,
                                                const char **base_names,
                                                const char **versioned_names,
-                                               size_t max_entries);
+                                               size_t max_entries,
+                                               size_t *map_count_out);
+static void transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
+                                                      int indent,
+                                                      const char *routine_name,
+                                                      const MIRRoutine *routine,
+                                                      const MIRBasicBlock *block);
 static void transpiler_free_ssa_name_entries(const char **base_names,
                                             size_t entry_count);
 static bool transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
@@ -116,6 +124,9 @@ static bool transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
                                       size_t map_count);
 static const char *transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
                                               const char *base_name);
+static bool transpiler_ssa_name_map_set(TranspilerSSANameMap *ssa_map,
+                                        const char *base_name,
+                                        const char *versioned_name);
 static bool transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
                                                      const ASTNode *decl,
                                                      bool require_cleanup,
@@ -123,9 +134,15 @@ static bool transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
                                                      char *reason,
                                                      size_t reason_cap);
 static bool transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
+                                                        const ASTNode *func_decl,
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
+static bool transpiler_expr_identifiers_mapped(const ASTNode *expr,
+                                              const TranspilerSSANameMap *ssa_map,
+                                              const char *routine_name,
+                                              char *reason,
+                                              size_t reason_cap);
 static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
                                            int indent,
                                            const MIRBasicBlock *pred_block,
@@ -134,19 +151,30 @@ static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
                                                  const ASTNode *func_decl,
                                                  const MIRRoutine *mir_routine,
                                                  const MIRBasicBlock *block,
-                                                 TranspilerCtx *ctx);
+                                                 TranspilerCtx *ctx,
+                                                 TranspilerSSANameMap *out_ssa_map);
 static bool transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
                                                   const ASTNode *func_decl,
                                                   const MIRRoutine **mir_routine_out);
+static bool transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
+                                                             const ASTNode *func_decl,
+                                                             const MIRRoutine **mir_routine_out,
+                                                             char *reason,
+                                                             size_t reason_cap);
 static bool transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
                                                         const ASTNode *intent_decl,
                                                         const MIRRoutine **mir_routine_out);
+static bool transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx,
+                                                                  const ASTNode *intent_decl,
+                                                                  const MIRRoutine **mir_routine_out,
+                                                                  char *reason,
+                                                                  size_t reason_cap);
 static void transpiler_emit_mir_resource_hook(CodeBuf *out,
                                               int indent,
                                               const MIRInstruction *inst,
                                               const char *handle_expr,
                                               bool cleanup_hook);
-static bool emit_func_decl_from_mir_named(ASTNode *node,
+static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const MIRRoutine *mir_routine,
                                           const char *emitted_name,
                                           CodeBuf *buf,
@@ -842,14 +870,20 @@ transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
         return NULL;
     }
 
+    const char *target = func_decl->data.func_decl.name;
     for (size_t i = 0; i < ctx->mir->routine_count; i++) {
         const MIRRoutine *routine = &ctx->mir->routines[i];
-        if (routine->kind != MIR_SCOPE_FUNCTION
-            || routine->name == NULL
-            || strcmp(routine->name, func_decl->data.func_decl.name) != 0) {
+        if (routine->kind != MIR_SCOPE_FUNCTION)
             continue;
-        }
-        if (routine->hir_routine != NULL && routine->hir_routine->ast == func_decl)
+        if (routine->name == NULL)
+            continue;
+        /* Exact match */
+        if (strcmp(routine->name, target) == 0)
+            return routine;
+        /* Specialized name: e.g. "Identity_Int" matches "Identity" */
+        size_t name_len = strlen(target);
+        if (strncmp(routine->name, target, name_len) == 0
+            && (routine->name[name_len] == '_' || routine->name[name_len] == '\0'))
             return routine;
     }
 
@@ -893,12 +927,9 @@ transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine, size_t block_id
     mir_block = &mir_routine->blocks[block_id];
     hir_block_id = mir_block->source_hir_block_id;
 
-    if (hir_block_id != SIZE_MAX && hir_block_id < mir_routine->hir_routine->cfg.block_count)
-        return &mir_routine->hir_routine->cfg.blocks[hir_block_id];
-    if (block_id >= mir_routine->hir_routine->cfg.block_count) {
+    if (hir_block_id == SIZE_MAX || hir_block_id >= mir_routine->hir_routine->cfg.block_count)
         return NULL;
-    }
-    return &mir_routine->hir_routine->cfg.blocks[block_id];
+    return &mir_routine->hir_routine->cfg.blocks[hir_block_id];
 }
 
 static bool
@@ -918,6 +949,227 @@ transpiler_parse_versioned_name(const char *versioned, char *base, size_t base_s
     memcpy(base, versioned, len);
     base[len] = '\0';
     *version_out = (size_t)strtoull(dot + 1, NULL, 10);
+    return true;
+}
+
+static size_t
+transpiler_ssa_name_bucket_index(const char *key)
+{
+    size_t hash = 5381u;
+    const unsigned char *u = (const unsigned char *)key;
+    while (u != NULL && *u != '\0') {
+        hash = ((hash << 5) + hash) + (size_t)(*u);
+        ++u;
+    }
+    return hash % TRANSPILE_SSA_NAME_BUCKETS;
+}
+
+static void
+transpiler_ssa_map_clear(TranspilerSSANameMap *map)
+{
+    if (map == NULL)
+        return;
+    memset(map, 0, sizeof(*map));
+}
+
+static bool
+transpiler_ssa_name_map_set(TranspilerSSANameMap *map,
+                            const char *base_name,
+                            const char *versioned_name)
+{
+    size_t idx;
+    size_t attempts;
+
+    if (map == NULL || base_name == NULL || versioned_name == NULL)
+        return false;
+    idx = transpiler_ssa_name_bucket_index(base_name);
+    for (attempts = 0; attempts < TRANSPILE_SSA_NAME_BUCKETS; ++attempts) {
+        TranspilerSSANameBucket *bucket = &map->buckets[idx];
+        if (!bucket->in_use) {
+            bucket->in_use = true;
+            bucket->base_name = base_name;
+            bucket->versioned_name = versioned_name;
+            return true;
+        }
+        if (bucket->base_name != NULL && strcmp(bucket->base_name, base_name) == 0) {
+            bucket->versioned_name = versioned_name;
+            return true;
+        }
+        idx = (idx + 1) % TRANSPILE_SSA_NAME_BUCKETS;
+    }
+    return false;
+}
+
+static bool
+transpiler_collect_ssa_name_entries(const char **versioned_values,
+                                   size_t value_count,
+                                   const char **base_names,
+                                   const char **versioned_names,
+                                   size_t max_entries,
+                                   size_t *map_count_out)
+{
+    size_t map_count = 0;
+
+    if (versioned_values == NULL
+        || base_names == NULL
+        || versioned_names == NULL
+        || max_entries == 0) {
+        return true;
+    }
+    for (size_t i = 0; i < value_count; i++) {
+        const char *versioned = versioned_values[i];
+        char base[128];
+        size_t parsed_version = 0;
+        bool replaced = false;
+
+        if (versioned == NULL)
+            continue;
+        if (!transpiler_parse_versioned_name(versioned, base, sizeof(base), &parsed_version))
+            continue;
+        for (size_t j = 0; j < map_count; j++) {
+            if (base_names[j] != NULL && strcmp(base_names[j], base) == 0) {
+                versioned_names[j] = versioned;
+                replaced = true;
+                break;
+            }
+        }
+        if (replaced)
+            continue;
+        if (map_count >= max_entries)
+            return false;
+        base_names[map_count] = pergyra_strdup(base);
+        versioned_names[map_count] = versioned;
+        map_count++;
+    }
+    if (map_count_out != NULL)
+        *map_count_out = map_count;
+    return true;
+}
+
+static void
+transpiler_free_ssa_name_entries(const char **base_names, size_t entry_count)
+{
+    for (size_t i = 0; i < entry_count; i++) {
+        free((void *)base_names[i]);
+    }
+}
+
+static bool
+transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
+                          const char **base_names,
+                          const char **versioned_names,
+                          size_t map_count)
+{
+    if (ssa_map == NULL || base_names == NULL || versioned_names == NULL) {
+        if (ssa_map != NULL)
+            transpiler_ssa_map_clear(ssa_map);
+        return false;
+    }
+    transpiler_ssa_map_clear(ssa_map);
+    for (size_t i = 0; i < map_count; i++) {
+        if (base_names[i] == NULL || versioned_names[i] == NULL)
+            continue;
+        if (!transpiler_ssa_name_map_set(ssa_map, base_names[i], versioned_names[i]))
+            return false;
+    }
+    return true;
+}
+
+static void
+transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
+                                          int indent,
+                                          const char *routine_name,
+                                          const MIRRoutine *routine,
+                                          const MIRBasicBlock *block)
+{
+    const ASTNode *source_stmt = NULL;
+    const HIRBasicBlock *hir_block = NULL;
+    uint32_t line = 0;
+    uint32_t column = 0;
+
+    if (out == NULL || routine == NULL || block == NULL)
+        return;
+
+    if (routine->hir_routine != NULL && routine->hir_routine->has_cfg
+        && block->source_hir_block_id != SIZE_MAX
+        && block->source_hir_block_id < routine->hir_routine->cfg.block_count) {
+        hir_block = &routine->hir_routine->cfg.blocks[block->source_hir_block_id];
+        if (hir_block != NULL) {
+            if (hir_block->statement_count > 0)
+                source_stmt = hir_block->statements[0];
+            else if (hir_block->terminator_condition != NULL)
+                source_stmt = hir_block->terminator_condition;
+            else if (hir_block->terminator_value != NULL)
+                source_stmt = hir_block->terminator_value;
+            if (source_stmt != NULL) {
+                line = source_stmt->line;
+                column = source_stmt->column;
+            }
+        }
+    }
+
+    if (source_stmt != NULL) {
+        write_indent_to(out, indent);
+        codebuf_write(out,
+            "/* mir block=%zu hir=%zu (%s) src=%u:%u ast=%p */\n",
+            block->id,
+            block->source_hir_block_id,
+            routine_name != NULL ? routine_name : "<routine>",
+            line,
+            column,
+            (const void *)source_stmt);
+    } else {
+        write_indent_to(out, indent);
+        codebuf_write(out,
+            "/* mir block=%zu hir=%s (%s) */\n",
+            block->id,
+            block->source_hir_block_id == SIZE_MAX ? "<none>" : "mapped",
+            routine_name != NULL ? routine_name : "<routine>");
+    }
+}
+
+static const char *
+transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
+                            const char *base_name)
+{
+    size_t idx;
+    size_t attempts;
+
+    if (ssa_map == NULL || base_name == NULL)
+        return NULL;
+    idx = transpiler_ssa_name_bucket_index(base_name);
+    for (attempts = 0; attempts < TRANSPILE_SSA_NAME_BUCKETS; ++attempts) {
+        const TranspilerSSANameBucket *bucket = &ssa_map->buckets[idx];
+        if (!bucket->in_use)
+            return NULL;
+        if (bucket->base_name != NULL && strcmp(bucket->base_name, base_name) == 0)
+            return bucket->versioned_name;
+        idx = (idx + 1) % TRANSPILE_SSA_NAME_BUCKETS;
+    }
+    return NULL;
+}
+
+static bool
+transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
+                                       const MIRBasicBlock *block)
+{
+    const char *base_names[TRANSPILE_SSA_MAP_CAPACITY];
+    const char *versioned_names[TRANSPILE_SSA_MAP_CAPACITY];
+    size_t map_count = 0;
+
+    transpiler_ssa_map_clear(ssa_map);
+    if (block == NULL || block->ssa_entry_values == NULL || block->ssa_entry_value_count == 0)
+        return true;
+    if (!transpiler_collect_ssa_name_entries(block->ssa_entry_values, block->ssa_entry_value_count,
+                                            base_names, versioned_names,
+                                            TRANSPILE_SSA_MAP_CAPACITY,
+                                            &map_count)) {
+        transpiler_free_ssa_name_entries(base_names, map_count);
+        return false;
+    }
+    if (!transpiler_rebuild_ssa_map(ssa_map, base_names, versioned_names, map_count))
+        return false;
+    transpiler_free_ssa_name_entries(base_names, map_count);
     return true;
 }
 
@@ -1070,27 +1322,25 @@ transpiler_mir_function_signature_supported(const ASTNode *func_decl)
 
 static char *
 emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
-                             const char **base_names,
-                             const char **versioned_names,
-                             size_t map_count)
+                             const TranspilerSSANameMap *ssa_map)
 {
     if (node == NULL)
         return pergyra_strdup("0");
     if (node->type == AST_IDENTIFIER && node->data.identifier.name != NULL) {
-        for (size_t i = 0; i < map_count; i++) {
-            if (base_names[i] != NULL
-                && strcmp(base_names[i], node->data.identifier.name) == 0
-                && versioned_names[i] != NULL) {
-                return transpiler_make_c_ssa_name(versioned_names[i]);
-            }
+        const char *versioned_name = transpiler_resolve_ssa_name(ssa_map,
+                                                                node->data.identifier.name);
+        if (versioned_name != NULL) {
+            return transpiler_make_c_ssa_name(versioned_name);
         }
         return emit_expression(node, ctx);
     }
     if (node->type == AST_NUMBER || node->type == AST_STRING || node->type == AST_BOOLEAN)
         return emit_expression(node, ctx);
     if (node->type == AST_BINARY) {
-        char *left = emit_expression_with_ssa_map(node->data.binary.left, ctx, base_names, versioned_names, map_count);
-        char *right = emit_expression_with_ssa_map(node->data.binary.right, ctx, base_names, versioned_names, map_count);
+        char *left = emit_expression_with_ssa_map(node->data.binary.left, ctx,
+                                                  ssa_map);
+        char *right = emit_expression_with_ssa_map(node->data.binary.right, ctx,
+                                                  ssa_map);
         const char *lt = infer_expression_type_name(ctx, node->data.binary.left);
         const char *rt = infer_expression_type_name(ctx, node->data.binary.right);
         bool string_concat =
@@ -1127,7 +1377,8 @@ emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
         return expr;
     }
     if (node->type == AST_UNARY) {
-        char *operand = emit_expression_with_ssa_map(node->data.unary.operand, ctx, base_names, versioned_names, map_count);
+        char *operand = emit_expression_with_ssa_map(node->data.unary.operand, ctx,
+                                                    ssa_map);
         char *expr = strdup_fmt("(%s%s)", token_type_to_string(node->data.unary.op.type), operand);
         free(operand);
         return expr;
@@ -1166,26 +1417,22 @@ static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
                                      const MIRBasicBlock *block,
-                                     TranspilerCtx *ctx)
+                                     TranspilerCtx *ctx,
+                                     TranspilerSSANameMap *out_ssa_map)
 {
     const HIRBasicBlock *hir_block = transpiler_find_hir_block_for_mir(mir_routine, block->id);
-    const char *base_names[256];
-    const char *versioned_names[256];
-    size_t map_count = 0;
+    TranspilerSSANameMap ssa_map;
+    TranspilerSSANameMap *ssa_map_out = &ssa_map;
 
     if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
         return false;
 
-    for (size_t i = 0; i < block->ssa_entry_value_count && map_count < 256; i++) {
-        char base[128];
-        size_t version = 0;
-        if (!transpiler_parse_versioned_name(block->ssa_entry_values[i], base, sizeof(base), &version))
-            continue;
-        base_names[map_count] = pergyra_strdup(base);
-        versioned_names[map_count] = block->ssa_entry_values[i];
-        map_count++;
+    if (out_ssa_map != NULL)
+        ssa_map_out = out_ssa_map;
+    if (!transpiler_emit_mir_block_with_ssa_map(ssa_map_out, block)) {
+        return false;
     }
-    for (size_t i = 0; i < block->instruction_count && map_count < 256; i++) {
+    for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         char base[128];
         size_t version = 0;
@@ -1193,19 +1440,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         if (!transpiler_parse_versioned_name(inst->result_name, base, sizeof(base), &version))
             continue;
-        bool replaced = false;
-        for (size_t j = 0; j < map_count; j++) {
-            if (strcmp(base_names[j], base) == 0) {
-                versioned_names[j] = inst->result_name;
-                replaced = true;
-                break;
-            }
-        }
-        if (!replaced) {
-            base_names[map_count] = pergyra_strdup(base);
-            versioned_names[map_count] = inst->result_name;
-            map_count++;
-        }
+        if (!transpiler_ssa_name_map_set(ssa_map_out, base, inst->result_name))
+            return false;
     }
 
     if (hir_block != NULL) {
@@ -1230,16 +1466,14 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 }
                 char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
                 char *rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx,
-                    base_names, versioned_names, map_count);
+                                                        ssa_map_out);
                 write_indent_to(buf, ctx->indent);
                 codebuf_write(buf, "%s = %s;\n", lhs, rhs);
                 free(lhs);
                 free(rhs);
-                for (size_t j = 0; j < map_count; j++) {
-                    if (strcmp(base_names[j], stmt->data.let_decl.name) == 0) {
-                        versioned_names[j] = def_inst->result_name;
-                        break;
-                    }
+                if (!transpiler_ssa_name_map_set(ssa_map_out, stmt->data.let_decl.name,
+                                                def_inst->result_name)) {
+                    return false;
                 }
                 def_index++;
                 continue;
@@ -1261,16 +1495,13 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 }
                 char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
                 char *rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx,
-                    base_names, versioned_names, map_count);
+                                                        ssa_map_out);
                 write_indent_to(buf, ctx->indent);
                 codebuf_write(buf, "%s = %s;\n", lhs, rhs);
                 free(lhs);
                 free(rhs);
-                for (size_t j = 0; j < map_count; j++) {
-                    if (strcmp(base_names[j], target_name) == 0) {
-                        versioned_names[j] = def_inst->result_name;
-                        break;
-                    }
+                if (!transpiler_ssa_name_map_set(ssa_map_out, target_name, def_inst->result_name)) {
+                    return false;
                 }
                 def_index++;
                 continue;
@@ -1279,9 +1510,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
     }
-
-    for (size_t i = 0; i < map_count; i++)
-        free((void *)base_names[i]);
     return true;
 }
 
@@ -1290,53 +1518,8 @@ transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
                                       const ASTNode *func_decl,
                                       const MIRRoutine **mir_routine_out)
 {
-    const MIRRoutine *routine = transpiler_find_mir_function(ctx, func_decl);
-    if (mir_routine_out != NULL)
-        *mir_routine_out = NULL;
-    if (routine == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
-        return false;
-
-    if (routine->kind != MIR_SCOPE_FUNCTION
-        || routine->hir_routine == NULL
-        || routine->hir_routine->is_hosted
-        || routine->hir_routine->is_action_like
-        || routine->has_cleanup_block
-        || !transpiler_mir_function_signature_supported(func_decl)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-        if (!block->is_reachable || block->is_cleanup)
-            continue;
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            MIRInstKind kind = block->instructions[j].kind;
-            if (kind != MIR_INST_BRANCH
-                && kind != MIR_INST_RETURN
-                && kind != MIR_INST_RESOURCE_OP
-                && kind != MIR_INST_PHI
-                && kind != MIR_INST_DEF) {
-                return false;
-            }
-            if ((kind == MIR_INST_DEF || kind == MIR_INST_PHI) && block->instructions[j].result_name != NULL) {
-                const char *lookup_name =
-                    (kind == MIR_INST_PHI)
-                        ? block->instructions[j].name
-                        : (block->instructions[j].arg0 != NULL
-                               ? block->instructions[j].arg0
-                               : block->instructions[j].name);
-                const char *type_name = transpiler_find_local_type_name(
-                    func_decl,
-                    lookup_name);
-                if (!transpiler_mir_type_supported(type_name))
-                    return false;
-            }
-        }
-    }
-
-    if (mir_routine_out != NULL)
-        *mir_routine_out = routine;
-    return true;
+    return transpiler_can_emit_function_from_mir_with_reason(
+        ctx, func_decl, mir_routine_out, NULL, 0);
 }
 
 static bool
@@ -1344,16 +1527,363 @@ transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
                                             const ASTNode *intent_decl,
                                             const MIRRoutine **mir_routine_out)
 {
+    return transpiler_can_emit_intent_cleanup_from_mir_with_reason(
+        ctx, intent_decl, mir_routine_out, NULL, 0);
+}
+
+static bool
+transpiler_expr_identifiers_mapped(const ASTNode *expr,
+                                  const TranspilerSSANameMap *ssa_map,
+                                  const char *routine_name,
+                                  char *reason,
+                                  size_t reason_cap)
+{
+    if (expr == NULL)
+        return true;
+    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        if (transpiler_resolve_ssa_name(ssa_map, expr->data.identifier.name) != NULL)
+            return true;
+        if (reason != NULL && reason_cap > 0) {
+            snprintf(reason, reason_cap,
+                     "MIR contract breach in %s at line %u: unresolved identifier `%s` (expected SSA-mapped local)",
+                     routine_name != NULL ? routine_name : "<routine>",
+                     expr->line,
+                     expr->data.identifier.name);
+        }
+        return false;
+    }
+
+    switch (expr->type) {
+        case AST_BINARY:
+            if (!transpiler_expr_identifiers_mapped(expr->data.binary.left, ssa_map,
+                                                   routine_name, reason, reason_cap))
+                return false;
+            return transpiler_expr_identifiers_mapped(expr->data.binary.right, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_UNARY:
+            return transpiler_expr_identifiers_mapped(expr->data.unary.operand, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CALL:
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type != AST_IDENTIFIER) {
+                if (!transpiler_expr_identifiers_mapped(expr->data.call.callee, ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            } else if (expr->data.call.callee != NULL
+                       && expr->data.call.callee->type == AST_IDENTIFIER
+                       && expr->data.call.callee->data.identifier.name != NULL) {
+                const char *call_target = expr->data.call.callee->data.identifier.name;
+                if (transpiler_resolve_ssa_name(ssa_map, call_target) != NULL
+                    && !transpiler_expr_identifiers_mapped(expr->data.call.callee, ssa_map,
+                                                          routine_name, reason, reason_cap))
+                    return false;
+            }
+            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+                if (!transpiler_expr_identifiers_mapped(expr->data.call.arguments[i], ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            }
+            return true;
+        case AST_MEMBER_ACCESS:
+            return transpiler_expr_identifiers_mapped(expr->data.member.object, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_ARRAY_ACCESS:
+            if (!transpiler_expr_identifiers_mapped(expr->data.array_access.array, ssa_map,
+                                                   routine_name, reason, reason_cap))
+                return false;
+            return transpiler_expr_identifiers_mapped(expr->data.array_access.index, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_ARRAY_LITERAL: {
+            const ASTNode **elements = expr->data.array_literal.elements;
+            for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+                if (!transpiler_expr_identifiers_mapped(elements[i], ssa_map,
+                                                       routine_name, reason, reason_cap))
+                    return false;
+            }
+            return true;
+        }
+        case AST_ASSIGNMENT:
+            return transpiler_expr_identifiers_mapped(expr->data.assignment.target, ssa_map,
+                                                     routine_name, reason, reason_cap)
+                && transpiler_expr_identifiers_mapped(expr->data.assignment.value, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_AWAIT_EXPR:
+            return transpiler_expr_identifiers_mapped(expr->data.await_expr.expression, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CHANNEL_SEND:
+            return transpiler_expr_identifiers_mapped(expr->data.channel_send.channel, ssa_map,
+                                                     routine_name, reason, reason_cap)
+                && transpiler_expr_identifiers_mapped(expr->data.channel_send.value, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        case AST_CHANNEL_RECV:
+            return transpiler_expr_identifiers_mapped(expr->data.channel_recv.channel, ssa_map,
+                                                     routine_name, reason, reason_cap);
+        default:
+            return true;
+    }
+}
+
+static bool
+transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
+                                             const ASTNode *func_decl,
+                                             bool require_non_cleanup,
+                                             char *reason,
+                                             size_t reason_cap)
+{
+    const char *routine_name = routine != NULL && routine->name != NULL ? routine->name : "<routine>";
+    if (routine == NULL || routine->blocks == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        TranspilerSSANameMap ssa_map;
+
+        if (block == NULL || (require_non_cleanup && block->is_cleanup)
+            || !block->is_reachable)
+            continue;
+        if (!transpiler_emit_mir_block_with_ssa_map(&ssa_map, block))
+            return false;
+        /* Add function parameters to SSA map - they're valid C identifiers, not SSA vars */
+        if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
+            for (size_t p = 0; p < func_decl->data.func_decl.param_count; p++) {
+                FuncParam *param = func_decl->data.func_decl.params[p];
+                if (param != NULL && param->name != NULL) {
+                    transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
+                }
+            }
+        }
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if ((inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
+                 || inst->kind == MIR_INST_RESOURCE_OP || inst->kind == MIR_INST_CLEANUP_EDGE)
+                && inst->ast != NULL) {
+                if (!transpiler_expr_identifiers_mapped(inst->ast, &ssa_map, routine_name,
+                                                       reason, reason_cap))
+                    return false;
+            }
+            if (inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI) {
+                char base[128];
+                size_t version = 0;
+                const char *base_name = (inst->kind == MIR_INST_PHI
+                                         ? inst->name : inst->arg0);
+                if (base_name != NULL && base_name[0] != '\0'
+                    && inst->result_name != NULL
+                    && transpiler_parse_versioned_name(inst->result_name, base, sizeof(base), &version)) {
+                    if (!transpiler_ssa_name_map_set(&ssa_map, base_name, inst->result_name))
+                        return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
+                                         const ASTNode *decl,
+                                         bool require_cleanup,
+                                         bool require_cleanup_blocks,
+                                         char *reason,
+                                         size_t reason_cap)
+{
+    const char *routine_name = "<routine>";
+    const char *decl_name = NULL;
+
+    if (decl != NULL) {
+        if (decl->type == AST_FUNC_DECL && decl->data.func_decl.name != NULL)
+            decl_name = decl->data.func_decl.name;
+        if (decl->type == AST_INTENT_DECL && decl->data.intent_decl.name != NULL)
+            decl_name = decl->data.intent_decl.name;
+    }
+    routine_name = decl_name != NULL ? decl_name
+        : (routine != NULL && routine->name != NULL ? routine->name : "<routine>");
+
+    if (routine == NULL || routine->blocks == NULL) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "MIR contract invalid for %s: no routine", routine_name);
+        return false;
+    }
+    {
+        char *topology_error = NULL;
+        if (!mir_validate_emission_topology(routine,
+                                           require_cleanup,
+                                           !require_cleanup_blocks,
+                                           &topology_error)) {
+            if (reason != NULL && reason_cap > 0) {
+                if (topology_error != NULL)
+                    snprintf(reason, reason_cap, "%s", topology_error);
+                else
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: topology validation failed",
+                             routine_name);
+            }
+            free(topology_error);
+            return false;
+        }
+        free(topology_error);
+    }
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+
+        if (block == NULL)
+            return false;
+        if (block->has_succ_true && block->succ_true >= routine->block_count) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad true successor",
+                         routine_name, block->id);
+            return false;
+        }
+        if (block->has_succ_false && block->succ_false >= routine->block_count) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad false successor",
+                         routine_name, block->id);
+            return false;
+        }
+        if (block->has_cleanup_succ && block->cleanup_succ >= routine->block_count) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad cleanup successor",
+                         routine_name, block->id);
+            return false;
+        }
+        if (block->has_rollback_succ && block->rollback_succ >= routine->block_count) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad rollback successor",
+                         routine_name, block->id);
+            return false;
+        }
+        if (block->has_invalidation_succ && block->invalidation_succ >= routine->block_count) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap, "MIR contract invalid for %s: block %zu bad invalidation successor",
+                         routine_name, block->id);
+            return false;
+        }
+
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            MIRInstKind kind = block->instructions[j].kind;
+            if (kind != MIR_INST_BRANCH && kind != MIR_INST_RETURN
+                && kind != MIR_INST_RESOURCE_OP && kind != MIR_INST_CLEANUP_EDGE
+                && kind != MIR_INST_PHI && kind != MIR_INST_DEF) {
+                if (reason != NULL && reason_cap > 0)
+                    snprintf(reason, reason_cap, "MIR contract invalid for %s: unsupported instruction kind %d in block %zu",
+                             routine_name, (int)kind, block->id);
+                return false;
+            }
+            if ((kind == MIR_INST_BRANCH || kind == MIR_INST_RETURN)
+                && require_cleanup_blocks && block->is_cleanup) {
+                if (reason != NULL && reason_cap > 0)
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: cleanup block %zu has terminal instruction",
+                             routine_name, block->id);
+                return false;
+            }
+        }
+    }
+    if (!transpiler_has_mapping_for_all_emitted_blocks(routine, decl,
+                                                       !require_cleanup_blocks,
+                                                       reason,
+                                                       reason_cap)) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
+                                                 const ASTNode *func_decl,
+                                                 const MIRRoutine **mir_routine_out,
+                                                 char *reason,
+                                                 size_t reason_cap)
+{
+    const MIRRoutine *routine = transpiler_find_mir_function(ctx, func_decl);
+    if (mir_routine_out != NULL)
+        *mir_routine_out = NULL;
+    if (reason != NULL && reason_cap > 0)
+        reason[0] = '\0';
+    if (routine == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function cannot lower to MIR: no matching MIR routine");
+        return false;
+    }
+    if (routine->kind != MIR_SCOPE_FUNCTION) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s has wrong MIR kind: %d", func_decl->data.func_decl.name, routine->kind);
+        return false;
+    }
+    if (routine->hir_routine == NULL) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s has no HIR routine in MIR", func_decl->data.func_decl.name);
+        return false;
+    }
+    if (routine->hir_routine->is_hosted) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s is hosted", func_decl->data.func_decl.name);
+        return false;
+    }
+    if (routine->hir_routine->is_action_like) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s is action-like", func_decl->data.func_decl.name);
+        return false;
+    }
+    if (routine->has_cleanup_block) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s has cleanup block", func_decl->data.func_decl.name);
+        return false;
+    }
+    if (!transpiler_mir_function_signature_supported(func_decl)) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "function %s has unsupported MIR signature", func_decl->data.func_decl.name);
+        return false;
+    }
+    if (!transpiler_validate_mir_emission_contract(routine,
+                                                   func_decl,
+                                                   false,
+                                                   false,
+                                                   reason,
+                                                   reason_cap)) {
+        return false;
+    }
+    if (!transpiler_has_mapping_for_all_emitted_blocks(routine, func_decl, true, reason, reason_cap)) {
+        return false;
+    }
+    if (mir_routine_out != NULL)
+        *mir_routine_out = routine;
+    return true;
+}
+
+static bool
+transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx,
+                                                       const ASTNode *intent_decl,
+                                                       const MIRRoutine **mir_routine_out,
+                                                       char *reason,
+                                                       size_t reason_cap)
+{
     const MIRRoutine *routine = transpiler_find_mir_intent(ctx, intent_decl);
     if (mir_routine_out != NULL)
         *mir_routine_out = NULL;
-    if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL)
+    if (reason != NULL && reason_cap > 0)
+        reason[0] = '\0';
+    if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine");
         return false;
+    }
     if (routine->kind != MIR_SCOPE_INTENT
         || routine->hir_routine == NULL
         || !routine->has_cleanup_block) {
+        if (reason != NULL && reason_cap > 0)
+            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section", intent_decl->data.intent_decl.name);
         return false;
     }
+    if (!transpiler_validate_mir_emission_contract(routine,
+                                                   intent_decl,
+                                                   true,
+                                                   true,
+                                                   reason,
+                                                   reason_cap)) {
+        return false;
+    }
+    if (!transpiler_has_mapping_for_all_emitted_blocks(routine, intent_decl, false, reason, reason_cap))
+        return false;
     if (mir_routine_out != NULL)
         *mir_routine_out = routine;
     return true;
@@ -1528,34 +2058,40 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     for (size_t i = 0; i < mir_routine->block_count; i++) {
         const MIRBasicBlock *block = &mir_routine->blocks[i];
+        TranspilerSSANameMap block_ssa_map;
+        bool block_emitted;
         bool terminator_emitted = false;
         if (block->is_cleanup || !block->is_reachable)
             continue;
+        transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+                                                 name,
+                                                 mir_routine,
+                                                 block);
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
-        if (!transpiler_emit_mir_block_statements(ctx->out, node, mir_routine, block, ctx)) {
+        block_emitted = transpiler_emit_mir_block_statements(ctx->out, node, mir_routine,
+                                                           block, ctx, &block_ssa_map);
+        if (!block_emitted) {
+            transpiler_ssa_map_clear(&block_ssa_map);
             write_indent(ctx);
             codebuf_write(ctx->out, "/* MIR block emission fallback unavailable */\n");
+        }
+        /* Ensure function parameters are in SSA map for expression resolution in branches/returns */
+        for (size_t p = 0; p < node->data.func_decl.param_count; p++) {
+            FuncParam *param = node->data.func_decl.params[p];
+            if (param != NULL && param->name != NULL) {
+                if (transpiler_resolve_ssa_name(&block_ssa_map, param->name) == NULL) {
+                    transpiler_ssa_name_map_set(&block_ssa_map, param->name, param->name);
+                }
+            }
         }
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_RESOURCE_OP) {
                 transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "0", false);
             } else if (inst->kind == MIR_INST_BRANCH) {
-                const char *base_names[256];
-                const char *versioned_names[256];
-                size_t map_count = 0;
-                for (size_t k = 0; k < block->ssa_exit_value_count && map_count < 256; k++) {
-                    char base[128];
-                    size_t version = 0;
-                    if (!transpiler_parse_versioned_name(block->ssa_exit_values[k], base, sizeof(base), &version))
-                        continue;
-                    base_names[map_count] = pergyra_strdup(base);
-                    versioned_names[map_count] = block->ssa_exit_values[k];
-                    map_count++;
-                }
                 char *cond = emit_expression_with_ssa_map(inst->ast, ctx,
-                    base_names, versioned_names, map_count);
+                    &block_ssa_map);
                 if (block->has_succ_true)
                     transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
                         &mir_routine->blocks[block->succ_true]);
@@ -1573,30 +2109,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 write_indent(ctx);
                 codebuf_write(ctx->out, "}\n");
                 free(cond);
-                for (size_t k = 0; k < map_count; k++)
-                    free((void *)base_names[k]);
                 terminator_emitted = true;
             } else if (inst->kind == MIR_INST_RETURN) {
                 if (inst->ast != NULL) {
-                    const char *base_names[256];
-                    const char *versioned_names[256];
-                    size_t map_count = 0;
-                    for (size_t k = 0; k < block->ssa_exit_value_count && map_count < 256; k++) {
-                        char base[128];
-                        size_t version = 0;
-                        if (!transpiler_parse_versioned_name(block->ssa_exit_values[k], base, sizeof(base), &version))
-                            continue;
-                        base_names[map_count] = pergyra_strdup(base);
-                        versioned_names[map_count] = block->ssa_exit_values[k];
-                        map_count++;
-                    }
                     char *ret_expr = emit_expression_with_ssa_map(inst->ast, ctx,
-                        base_names, versioned_names, map_count);
+                        &block_ssa_map);
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return %s;\n", ret_expr);
                     free(ret_expr);
-                    for (size_t k = 0; k < map_count; k++)
-                        free((void *)base_names[k]);
                 } else {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "return;\n");
@@ -4067,6 +4587,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
             node->data.intent_decl.name, mir_routine->cleanup_block);
         ctx->indent++;
+        transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+            node->data.intent_decl.name, mir_routine, cleanup_block);
         for (size_t i = 0; i < cleanup_block->instruction_count; i++) {
             const MIRInstruction *inst = &cleanup_block->instructions[i];
             if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
@@ -4097,6 +4619,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
                 node->data.intent_decl.name, mir_routine->rollback_block);
             ctx->indent++;
+            transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+                node->data.intent_decl.name, mir_routine, rollback_block);
             if (rollback_block != NULL) {
                 for (size_t i = 0; i < rollback_block->instruction_count; i++) {
                     const MIRInstruction *inst = &rollback_block->instructions[i];
@@ -4156,6 +4680,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
                 node->data.intent_decl.name, mir_routine->invalidation_block);
             ctx->indent++;
+            transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+                node->data.intent_decl.name, mir_routine, invalidation_block);
             if (invalidation_block != NULL) {
                 for (size_t i = 0; i < invalidation_block->instruction_count; i++) {
                     const MIRInstruction *inst = &invalidation_block->instructions[i];

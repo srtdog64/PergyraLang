@@ -1,36 +1,110 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
+const cp = require('child_process');
 
-/**
- * Find pgy compiler path.
- * Priority: settings > workspace bin/pgy > PATH
- */
-function findCompiler() {
-    const config = vscode.workspace.getConfiguration('pergyra');
-    const configPath = config.get('compilerPath');
-    if (configPath && fs.existsSync(configPath)) {
-        return configPath;
+const isWindows = process.platform === 'win32';
+
+function resolveExisting(candidate) {
+    if (!candidate) {
+        return null;
+    }
+    try {
+        return fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : null;
+    } catch {
+        return null;
+    }
+}
+
+function resolveWorkspaceConfigPath(rawPath) {
+    if (!rawPath) {
+        return null;
     }
 
-    // Try workspace root bin/pgy.exe or bin/pgy
-    const folders = vscode.workspace.workspaceFolders;
-    if (folders) {
+    const candidates = [];
+    if (path.isAbsolute(rawPath)) {
+        candidates.push(rawPath);
+    } else {
+        const folders = vscode.workspace.workspaceFolders || [];
         for (const folder of folders) {
-            const candidates = [
-                path.join(folder.uri.fsPath, 'bin', 'pgy.exe'),
-                path.join(folder.uri.fsPath, 'bin', 'pgy'),
-            ];
-            for (const c of candidates) {
-                if (fs.existsSync(c)) {
-                    return c;
-                }
+            candidates.push(path.join(folder.uri.fsPath, rawPath));
+        }
+    }
+
+    const extensions = isWindows ? ['', '.exe', '.cmd', '.bat'] : [''];
+    for (const candidate of candidates) {
+        for (const ext of extensions) {
+            const resolved = resolveExisting(candidate + ext);
+            if (resolved) {
+                return resolved;
+            }
+        }
+    }
+    return null;
+}
+
+function findInPath(binaryName) {
+    const pathEnv = process.env.PATH || '';
+    const dirs = pathEnv.split(path.delimiter).filter(Boolean);
+    const candidates = isWindows
+        ? [binaryName, `${binaryName}.exe`, `${binaryName}.cmd`, `${binaryName}.bat`]
+        : [binaryName];
+
+    for (const dir of dirs) {
+        for (const name of candidates) {
+            const candidate = path.join(dir, name);
+            const resolved = resolveExisting(candidate);
+            if (resolved) {
+                return resolved;
             }
         }
     }
 
-    // Fallback to PATH
-    return 'pgy';
+    return null;
+}
+
+/**
+ * Find pgy compiler path.
+ * Priority: settings > workspace bin/pgy(.exe) > PATH
+ */
+function findCompiler() {
+    const config = vscode.workspace.getConfiguration('pergyra');
+    const configPath = config.get('compilerPath');
+    const fromConfig = resolveWorkspaceConfigPath(configPath);
+    if (fromConfig) {
+        return fromConfig;
+    }
+
+    const folders = vscode.workspace.workspaceFolders || [];
+    for (const folder of folders) {
+        const localCandidates = [
+            path.join(folder.uri.fsPath, 'bin', 'pgy.exe'),
+            path.join(folder.uri.fsPath, 'bin', 'pgy'),
+        ];
+        for (const candidate of localCandidates) {
+            const resolved = resolveExisting(candidate);
+            if (resolved) {
+                return resolved;
+            }
+        }
+    }
+
+    const fromPath = findInPath('pgy');
+    if (fromPath) {
+        return fromPath;
+    }
+
+    return isWindows ? 'pgy.exe' : 'pgy';
+}
+
+function splitFlags(rawFlags) {
+    if (!rawFlags) {
+        return [];
+    }
+    return rawFlags
+        .split(/\s+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
 }
 
 let outputChannel;
@@ -50,14 +124,15 @@ function runFile(filePath, flags) {
 
     const cwd = path.dirname(filePath);
     const fileName = path.basename(filePath);
+    const args = [filePath, ...splitFlags(flags)];
 
-    channel.appendLine(`[Pergyra] ${compiler} ${fileName} ${flags}`);
+    channel.appendLine(`[Pergyra] ${compiler} ${fileName} ${args.slice(1).join(' ')}`);
     channel.appendLine('---');
 
-    const cp = require('child_process');
-    const proc = cp.spawn(compiler, [filePath, ...flags.split(/\s+/).filter(Boolean)], {
-        cwd: cwd,
-        shell: true,
+    const proc = cp.spawn(compiler, args, {
+        cwd,
+        shell: false,
+        windowsHide: true,
     });
 
     proc.stdout.on('data', (data) => {
@@ -66,6 +141,12 @@ function runFile(filePath, flags) {
 
     proc.stderr.on('data', (data) => {
         channel.append(data.toString());
+    });
+
+    proc.on('error', (error) => {
+        channel.appendLine('---');
+        channel.appendLine(`[Pergyra] failed to run compiler '${compiler}': ${error.message}`);
+        vscode.window.showErrorMessage(`Pergyra run failed: ${error.message}`);
     });
 
     proc.on('close', (code) => {

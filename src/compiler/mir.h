@@ -146,6 +146,10 @@ MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
 bool        mir_validate(const MIRProgram *mir, char **error_message);
+bool        mir_validate_emission_topology(const MIRRoutine *routine,
+                                          bool require_cleanup,
+                                          bool require_cleanup_source_mapping,
+                                          char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);
 
