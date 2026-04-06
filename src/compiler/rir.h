@@ -9,6 +9,7 @@
 
 typedef struct RIRProgram RIRProgram;
 typedef struct HIRProgram HIRProgram;
+typedef struct DIRProgram DIRProgram;
 
 typedef enum
 {
@@ -195,6 +196,7 @@ struct RIRProgram
 RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message);
 bool        rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_message);
 bool        rir_validate(const RIRProgram *rir, char **error_message);
+bool        rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **error_message);
 void        rir_destroy(RIRProgram *rir);
 void        rir_dump(const RIRProgram *rir, FILE *out);
 

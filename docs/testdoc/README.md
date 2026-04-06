@@ -43,3 +43,4 @@ For a regression-grade scenario:
 - `shopping_mall_checkout_refund`
 - `logistics_intent_probe`
 - `resource_scheduler_async_probe`
+- `spray_device_probe`

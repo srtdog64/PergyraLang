@@ -8,6 +8,8 @@
 #ifndef PGY_PATH_UTILS_H
 #define PGY_PATH_UTILS_H
 
+#include <stdbool.h>
+
 /* Return the directory part of path (heap-allocated). "a/b.c" → "a" */
 char *path_dirname_dup(const char *path);
 
@@ -22,5 +24,15 @@ char *path_read_file(const char *path);
 
 /* Default binary output path for a source file. */
 char *path_default_binary(const char *source_path);
+
+/* True if the given path exists as a regular filesystem entry. */
+bool path_file_exists(const char *path);
+
+/*
+ * Resolve a runnable binary path for the host platform.
+ * On Windows toolchains, this accepts callers passing "foo" and returns
+ * "foo.exe" if that is the actual output emitted by the linker.
+ */
+char *path_resolve_runnable_binary(const char *path);
 
 #endif /* PGY_PATH_UTILS_H */

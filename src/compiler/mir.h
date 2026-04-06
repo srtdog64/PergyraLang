@@ -38,6 +38,7 @@ typedef struct
     size_t           id;
     MIRInstKind      kind;
     const char      *name;
+    const char      *slot_anchor;
     const char      *arg0;
     const char      *arg1;
     const char      *result_name;
@@ -92,6 +93,7 @@ typedef struct
 typedef struct
 {
     const char *name;
+    const char *slot_anchor;
     size_t      def_block;
     size_t      def_inst;
     size_t      use_count;

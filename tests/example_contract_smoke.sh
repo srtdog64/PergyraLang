@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="/tmp/pgy-PergyraLang-bin/pgy"
+if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+    DEFAULT_PGY="${DEFAULT_PGY}.exe"
+fi
+if [[ -x "${TMP_PGY}.exe" ]]; then
+    TMP_PGY="${TMP_PGY}.exe"
+fi
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
 elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
@@ -253,8 +259,12 @@ run_stable_examples() {
         "$ROOT_DIR/examples/shopping_mall_checkout_refund" "=== PERGYRA SHOPPING CHECKOUT + REFUND ===" "[JS] mount /cart" "[API] POST /api/intents/CheckoutPurchase" "[API] POST /api/intents/RefundPurchase" "saving examples/shopping_mall_checkout_refund/results.txt"
     run_expect_lines "logistics_intent_probe" "$backend" \
         "$ROOT_DIR/examples/logistics_intent_probe" "=== PERGYRA LOGISTICS INTENT PROBE ===" "merge.true=12" "[Intent] RouteCargo ok=true" "[transfer] courier: LoadingZone.courier -> DeliveryZone.courier" "saving examples/logistics_intent_probe/results.txt"
+    run_expect_lines "composite_intent_orchestration" "$backend" \
+        "$ROOT_DIR/examples/composite_intent_orchestration" "[Intent] ProcessOrder=true" "[CanonicalClerk] reserved=1 charged=1 shipped=1" "[Step] fulfill phase=ok actor= ok=true"
     run_expect_lines "resource_scheduler_async_probe" "$backend" \
         "$ROOT_DIR/examples/resource_scheduler_async_probe" "=== ASYNC RESOURCE SCHEDULER PROBE ===" "[Dispatch] laneA=3 laneA=5 laneB=7 laneB=11" "[Remote] 103 105 207 211" "[Score] 144 147 240 245 total=776" "saving examples/resource_scheduler_async_probe/results.txt"
+    run_expect_lines "spray_device_probe" "$backend" \
+        "$ROOT_DIR/examples/spray_device_probe" "=== SPRAY DEVICE PROBE ===" "[spray] success=3 all=true" "[device] 910 911 912" "[capability] spray-batch=true device-readback=true real-gpu-backend=false"
     run_expect_lines "calendar_working" "$backend" \
         "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
     run_expect_lines "subject_object_tobject" "$backend" \
@@ -281,6 +291,8 @@ run_stable_examples() {
         "$backend" "$ROOT_DIR/examples/logistics_intent_probe/results.txt" "PERGYRA LOGISTICS INTENT PROBE" "RouteCargo ok=true" "delivery=received" "seal=Ivo seal qty=8"
     run_expect_file_lines "resource_scheduler_async_probe" \
         "$backend" "$ROOT_DIR/examples/resource_scheduler_async_probe/results.txt" "ASYNC RESOURCE SCHEDULER PROBE" "budget.remaining=14 reserved=26" "[Remote] 103 105 207 211" "total=776"
+    run_expect_file_lines "spray_device_probe" \
+        "$backend" "$ROOT_DIR/examples/spray_device_probe/results.txt" "SPRAY DEVICE PROBE" "[spray] success=3 all=true" "[device] 910 911 912"
     run_expect_file_lines "adapter_policy_stack" \
         "$backend" "$ROOT_DIR/examples/adapter_policy_stack/results.txt" "ADAPTER POLICY STACK" "/api/checkout" "/api/refund#8831:true"
 }

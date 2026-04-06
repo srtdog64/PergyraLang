@@ -10,6 +10,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
+#include "compiler/dir.h"
 #include "compiler/hir.h"
 #include "compiler/rir.h"
 
@@ -56,6 +57,49 @@ lower_rir_from_source(const char *source, HIRProgram **hir_out, RIRProgram **rir
     parser_destroy(parser);
     lexer_destroy(lexer);
     return *hir_out != NULL && *rir_out != NULL;
+}
+
+static bool
+lower_dir_rir_from_source(const char *source,
+                          DIRProgram **dir_out,
+                          HIRProgram **hir_out,
+                          RIRProgram **rir_out)
+{
+    Lexer *lexer = lexer_create(source);
+    Parser *parser = parser_create(lexer);
+    ASTNode *ast = parser_parse_program(parser);
+    SemanticResult *sem = semantic_analyze(ast);
+    char *dir_error = NULL;
+    char *hir_error = NULL;
+    char *rir_error = NULL;
+    *dir_out = NULL;
+    *hir_out = NULL;
+    *rir_out = NULL;
+
+    if (!parser_has_error(parser) && sem != NULL && sem->success) {
+        *dir_out = dir_lower(sem->annotated_ast, &dir_error);
+        *hir_out = hir_lower(sem->annotated_ast, &hir_error);
+        *rir_out = rir_lower(sem->annotated_ast, &rir_error);
+        if (*hir_out != NULL && *rir_out != NULL)
+            (void)rir_enrich_with_hir_flow(*rir_out, *hir_out, &rir_error);
+    }
+
+    if ((*dir_out == NULL || *hir_out == NULL || *rir_out == NULL)
+        && (dir_error != NULL || hir_error != NULL || rir_error != NULL)) {
+        if (dir_error != NULL)
+            fprintf(stderr, "DIR lowering error: %s\n", dir_error);
+        if (hir_error != NULL)
+            fprintf(stderr, "HIR lowering error: %s\n", hir_error);
+        if (rir_error != NULL)
+            fprintf(stderr, "RIR lowering error: %s\n", rir_error);
+    }
+
+    free(dir_error);
+    free(hir_error);
+    free(rir_error);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return *dir_out != NULL && *hir_out != NULL && *rir_out != NULL;
 }
 
 static bool
@@ -728,7 +772,7 @@ test_rir_lowering(void)
                && zone != NULL
                && summary != NULL
                && receipt != NULL
-               && summary->resource_kind == RIR_RESOURCE_PROJECTION_OBJECT
+               && summary->resource_kind == RIR_RESOURCE_OBJECT_SLOT
                && summary->final_state == RIR_STATE_SYNCED
                && receipt->resource_kind == RIR_RESOURCE_TOBJECT_SLOT
                && receipt->final_state == RIR_STATE_PUBLISHED
@@ -742,6 +786,37 @@ test_rir_lowering(void)
                && scope_has_op_slot_anchor(zone, RIR_OP_PROJECT_PUBLISH, "receipt"));
         rir_destroy(rir);
         hir_destroy(hir);
+    }
+
+    TEST("RIR validates zone/projection/authority slot contracts against DIR");
+    {
+        DIRProgram *dir = NULL;
+        HIRProgram *hir = NULL;
+        const char *src =
+            "subject Buyer { let total: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object ReceiptView { let total: Int; }\n"
+            "tobject ReceiptExport { let total: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot preview: ReceiptView\n"
+            "    tobject slot receipt_out: ReceiptExport\n"
+            "    authority buyer requires Payable\n"
+            "    refresh preview from buyer by buyer\n"
+            "    publish receipt_out from preview by buyer\n"
+            "}\n";
+        RIRProgram *rir = NULL;
+        bool ok = lower_dir_rir_from_source(src, &dir, &hir, &rir);
+        EXPECT(ok
+               && dir_validate(dir, NULL)
+               && rir_validate(rir, NULL)
+               && rir_validate_against_dir(rir, dir, NULL));
+        rir_destroy(rir);
+        hir_destroy(hir);
+        dir_destroy(dir);
     }
 }
 

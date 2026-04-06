@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
+    PGY="${PGY}.exe"
+fi
 
 if [[ ! -x "$PGY" ]]; then
     echo "missing compiler binary: $PGY" >&2

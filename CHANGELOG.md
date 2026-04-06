@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- stdlib/examples: add `spray_device_probe` to prove `use spray;` works today
+  and that current GPU-like capability lives at `DeviceSlot/RemoteFuture`
+  while `spray` remains a CPU-simulated batch surface.
+- ci/windows: normalized executable naming for MinGW/MSYS2 toolchains. Make
+  targets now use `$(EXEEXT)` for compiler/test binaries, compiler runtime
+  execution now resolves `foo` vs `foo.exe` conservatively on Windows, and
+  smoke scripts now prefer `.exe` siblings when the plain path does not exist.
+  This fixes the common CI failure mode where `gcc -o bin/pgy` produces
+  `bin/pgy.exe` but tests still try to execute `bin/pgy`.
 - semantics/rir: tightened `object` vs `tobject` into actual compiler rules
   rather than naming only. Direct `ToObject` vs `ToTObject` outside domain
   contexts now produce distinct internal-vs-boundary diagnostics, `bind`
@@ -656,6 +665,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - compiler/rir: make `slot` the explicit common anchor across the resource layer. `RIR` facts, ops, state summaries, and flow facts now preserve `slot_anchor`, validator enforces it, zone/relation/effect domain slots now materialize as first-class `SubjectSlot/ObjectSlot/TObjectSlot/VesselSlot` resource facts, and projection/authority/world-handoff regressions lock the slot-centered model in place.
 # 2026-04-06
 
+- compiler/mir/tests/docs: made `MIR` slot-aware instead of only `RIR`-aware. `MIRInstruction` and `MIRValueSummary` now preserve `slot_anchor`, resource/cleanup instructions keep the matching `RIR` slot anchor, `def/phi` summaries keep the base local as slot anchor, MIR validation now rejects missing/divergent slot anchors, and `--mir` dumps now show slot ownership directly. Added MIR regressions for slot-anchored resource flow and intent cleanup anchors.
+- tests: strengthened `tests/ir_pipeline_probe.sh` so the end-to-end IR probe now locks `DIR` slot-contract nodes, `RIR` `tobject`/handoff semantics, and `MIR` slot-aware cleanup/resource output instead of only checking coarse graph presence.
 - compiler/codegen: expanded the first MIR->C vertical slice beyond simple function CFGs so `intent` cleanup now emits `cleanup/rollback/invalidation` labels from MIR exceptional block ids while preserving existing step semantics
 - compiler/codegen: `emit_intent_decl(...)` now routes failure/success cleanup gotos through MIR cleanup blocks when a matching `MIR_SCOPE_INTENT` routine is available
 - tests: added MIR-backed transpile regression for intent exceptional CFG emission in [`src/test_transpile.c`](src/test_transpile.c)
@@ -664,3 +675,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - compiler/layout: continue the IR file split by carving [`src/compiler/rir_flow.inc`](src/compiler/rir_flow.inc) and [`src/compiler/rir_builder.inc`](src/compiler/rir_builder.inc) out of `src/compiler/rir.c`, so resource lattice merge/CFG flow enrichment and AST scope collection no longer live in one 1.6k-line implementation file
 - compiler/rir: extend `RIR-flow` so branch/join analysis now carries conservative semantic flags for `authority`, `projection`, and `world-handoff` in addition to resource state lattice facts. `scope semantics=` and block-level `sem-entry/sem-exit` are now part of the dump/contract surface, and resource-free CFG blocks can still preserve projection/handoff meaning.
 - tests: add a RIR regression that locks projection-flow merge across an `if` join and world-handoff conservative semantics on an intent transfer scope
+# 2026-04-06
+
+- compiler/dir: strengthened `DIR` into an explicit slot-contract graph. `party-slot`, `zone-slot`, `projection-slot`, and `authority-slot` are now separate declaration-graph node kinds with owner-qualified names, and `relation/effect/zone` projection declarations now materialize source/type contract edges instead of being implicit in later passes.
+- tests/dir: expanded `src/test_dir.c` with dedicated regressions for party slot contracts, zone/projection slot contracts, authority slot contracts, and relation/effect projection contracts so the declaration graph stage now locks these distinctions directly.
+- compiler/rir: added `rir_validate_against_dir()` and wired it into the driver so `DIR` slot-contract graph and `RIR` slot/resource facts are cross-validated before backend dispatch. Zone/projection/authority slot contracts now fail early if matching `RIR` facts, projection source facts, or capability facts are missing.
+- compiler/rir: `object slot` is now materialized as an `ObjectSlot` resource fact/state in `RIR`, so slot anchoring is consistent across subject/object/tobject/vessel declarations instead of treating plain object slots as projection-only metadata.
+- tests/rir: expanded `src/test_rir.c` with a DIR→RIR contract regression so the declaration graph and resource graph stay in sync.
+- runtime: allow nested parent/child intent reentry on overlapping subjects via
+  parent-handle aware active-intent scheduling, and add composite intent example
+  plus smoke coverage

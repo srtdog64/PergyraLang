@@ -9,6 +9,9 @@ fi
 SOURCE="$1"
 PROFILE="${2:-dev}"
 PGY_BIN="${PGY_BIN:-/tmp/pgy-PergyraLang-bin/pgy}"
+if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
+  PGY_BIN="${PGY_BIN}.exe"
+fi
 
 if [[ ! -x "$PGY_BIN" ]]; then
   echo "bench: PGY_BIN not executable: $PGY_BIN" >&2

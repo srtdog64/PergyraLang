@@ -133,6 +133,23 @@ block_has_inst_named(const MIRBasicBlock *block, const char *name)
 }
 
 static bool
+block_has_inst_named_with_slot(const MIRBasicBlock *block, const char *name, const char *slot_anchor)
+{
+    if (block == NULL)
+        return false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->name != NULL
+            && strcmp(inst->name, name) == 0
+            && inst->slot_anchor != NULL
+            && strcmp(inst->slot_anchor, slot_anchor) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_phi_result_prefix(const MIRBasicBlock *block, const char *prefix)
 {
     size_t prefix_len = strlen(prefix);
@@ -226,6 +243,24 @@ routine_has_result_prefix(const MIRRoutine *routine, const char *prefix)
     return false;
 }
 
+static const MIRValueSummary *
+find_value_summary_with_slot(const MIRRoutine *routine, const char *prefix, const char *slot_anchor)
+{
+    size_t prefix_len = strlen(prefix);
+    if (routine == NULL)
+        return NULL;
+    for (size_t i = 0; i < routine->value_summary_count; i++) {
+        const MIRValueSummary *summary = &routine->value_summaries[i];
+        if (summary->name != NULL
+            && strncmp(summary->name, prefix, prefix_len) == 0
+            && summary->slot_anchor != NULL
+            && strcmp(summary->slot_anchor, slot_anchor) == 0) {
+            return summary;
+        }
+    }
+    return NULL;
+}
+
 static void
 test_mir_lowering(void)
 {
@@ -244,18 +279,22 @@ test_mir_lowering(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         const MIRRoutine *flow = NULL;
+        const MIRValueSummary *value_summary = NULL;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             flow = find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL)
+            value_summary = find_value_summary_with_slot(flow, "s.", "s");
         EXPECT(ok
                && mir_validate(mir, NULL)
                && flow != NULL
                && flow->block_count >= 1
                && flow->instruction_count >= 4
-               && block_has_inst_named(&flow->blocks[flow->entry_block], "Claim")
-               && block_has_inst_named(&flow->blocks[flow->entry_block], "Write")
-               && block_has_inst_named(&flow->blocks[flow->entry_block], "Read")
-               && block_has_inst_named(&flow->blocks[flow->entry_block], "Release"));
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Claim", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Write", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Read", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Release", "s")
+               && value_summary != NULL);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -301,12 +340,12 @@ test_mir_lowering(void)
         if (purchase != NULL && purchase->has_rollback_block) {
             const MIRBasicBlock *rollback = &purchase->blocks[purchase->rollback_block];
             cleanup_has_compensate = block_has_inst_kind(rollback, MIR_INST_CLEANUP_EDGE)
-                                     && block_has_inst_named(rollback, "CompensateIntentStep");
+                                     && block_has_inst_named_with_slot(rollback, "CompensateIntentStep", "pay");
             cleanup_has_policy = block_has_inst_named(rollback, "RollbackPolicy");
         }
         if (purchase != NULL && purchase->has_invalidation_block) {
             const MIRBasicBlock *invalidation = &purchase->blocks[purchase->invalidation_block];
-            cleanup_has_invalidation = block_has_inst_named(invalidation, "DetachInvalidation");
+            cleanup_has_invalidation = block_has_inst_named_with_slot(invalidation, "DetachInvalidation", "payment");
         }
         EXPECT(ok
                && mir_validate(mir, NULL)
@@ -324,8 +363,10 @@ test_mir_lowering(void)
                && purchase->blocks[purchase->cleanup_block].invalidation_succ == purchase->invalidation_block
                && purchase->blocks[purchase->rollback_block].has_cleanup_succ
                && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->invalidation_block
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block], "cleanup-edge", "cleanup")
                && cleanup_has_compensate
                && cleanup_has_policy
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->rollback_block], "AbortIntent", "Purchase")
                && cleanup_has_invalidation);
         mir_destroy(mir);
         rir_destroy(rir);
@@ -412,6 +453,8 @@ test_mir_lowering(void)
                && merge->live_value_count > 0
                && merge->has_use_def_summary
                && score_summary != NULL
+               && score_summary->slot_anchor != NULL
+               && strcmp(score_summary->slot_anchor, "score") == 0
                && score_summary->use_count > 0
                && score_summary->live_out_block_count > 0);
         mir_destroy(mir);

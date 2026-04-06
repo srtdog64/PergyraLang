@@ -266,6 +266,18 @@ mir_validate(const MIRProgram *mir, char **error_message)
             }
             return false;
         }
+        for (size_t j = 0; j < routine->value_summary_count; j++) {
+            const MIRValueSummary *summary = &routine->value_summaries[j];
+            if (summary->slot_anchor == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' value summary '%s' is missing slot anchor",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        summary->name != NULL ? summary->name : "(anonymous)");
+                }
+                return false;
+            }
+        }
         for (size_t j = 0; j < routine->block_count; j++) {
             const MIRBasicBlock *block = &routine->blocks[j];
             if (!mir_validate_block_liveness_sets(routine, block, j, error_message))
@@ -281,6 +293,33 @@ mir_validate(const MIRProgram *mir, char **error_message)
                             j,
                             inst->phi_incoming_count,
                             block->predecessor_count);
+                    }
+                    return false;
+                }
+                if ((inst->kind == MIR_INST_RESOURCE_OP
+                     || (inst->kind == MIR_INST_CLEANUP_EDGE && inst->rir_op != NULL))
+                    && inst->slot_anchor == NULL) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] instruction[%zu] is missing slot anchor",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            k);
+                    }
+                    return false;
+                }
+                if (inst->rir_op != NULL
+                    && inst->slot_anchor != NULL
+                    && inst->rir_op->slot_anchor != NULL
+                    && strcmp(inst->slot_anchor, inst->rir_op->slot_anchor) != 0) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] instruction[%zu] slot anchor '%s' diverges from RIR '%s'",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            k,
+                            inst->slot_anchor,
+                            inst->rir_op->slot_anchor);
                     }
                     return false;
                 }
@@ -348,9 +387,10 @@ mir_dump(const MIRProgram *mir, FILE *out)
             for (size_t j = 0; j < routine->value_summary_count; j++) {
                 const MIRValueSummary *summary = &routine->value_summaries[j];
                 fprintf(out,
-                        "      value[%02zu] %s def=b%zu:i%zu uses=%zu liveIn=%zu liveOut=%zu cleanup=%s\n",
+                        "      value[%02zu] %s slot=%s def=b%zu:i%zu uses=%zu liveIn=%zu liveOut=%zu cleanup=%s\n",
                         j,
                         summary->name != NULL ? summary->name : "(anonymous)",
+                        summary->slot_anchor != NULL ? summary->slot_anchor : "-",
                         summary->def_block,
                         summary->def_inst,
                         summary->use_count,
@@ -434,9 +474,10 @@ mir_dump(const MIRProgram *mir, FILE *out)
             for (size_t k = 0; k < block->instruction_count; k++) {
                 const MIRInstruction *inst = &block->instructions[k];
                 fprintf(out,
-                        "      inst[%02zu] %-12s name=%s result=%s arg0=%s arg1=%s",
+                        "      inst[%02zu] %-12s slot=%s name=%s result=%s arg0=%s arg1=%s",
                         k,
                         mir_inst_kind_name(inst->kind),
+                        inst->slot_anchor != NULL ? inst->slot_anchor : "-",
                         inst->name != NULL ? inst->name : "-",
                         inst->result_name != NULL ? inst->result_name : "-",
                         inst->arg0 != NULL ? inst->arg0 : "-",

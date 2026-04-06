@@ -111,6 +111,58 @@ append_intent_step(DIRIntentStep **items, size_t *count, DIRIntentStep step)
     return true;
 }
 
+static bool
+dir_track_owned_name(DIRProgram *dir, char *name)
+{
+    char **grown;
+
+    if (dir == NULL || name == NULL)
+        return false;
+
+    grown = realloc(dir->owned_names, (dir->owned_name_count + 1) * sizeof(char *));
+    if (grown == NULL)
+        return false;
+    grown[dir->owned_name_count] = name;
+    dir->owned_names = grown;
+    dir->owned_name_count++;
+    return true;
+}
+
+static const char *
+dir_own_string_fmt(DIRProgram *dir, const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int length;
+    char *owned;
+
+    if (dir == NULL || fmt == NULL)
+        return NULL;
+
+    va_start(args, fmt);
+    va_copy(copy, args);
+    length = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if (length < 0) {
+        va_end(args);
+        return NULL;
+    }
+
+    owned = malloc((size_t)length + 1);
+    if (owned == NULL) {
+        va_end(args);
+        return NULL;
+    }
+    vsnprintf(owned, (size_t)length + 1, fmt, args);
+    va_end(args);
+
+    if (!dir_track_owned_name(dir, owned)) {
+        free(owned);
+        return NULL;
+    }
+    return owned;
+}
+
 static ssize_t
 dir_find_node_by_name_kind(const DIRProgram *dir, const char *name, DIRNodeKind kind)
 {
@@ -126,6 +178,25 @@ dir_find_node_by_name_kind(const DIRProgram *dir, const char *name, DIRNodeKind 
     }
 
     return -1;
+}
+
+static ssize_t
+dir_find_slot_node(const DIRProgram *dir, DIRNodeKind kind, const char *owner_name, const char *slot_name)
+{
+    const char *qualified_name;
+    char *scratch = NULL;
+    ssize_t found;
+
+    if (dir == NULL || owner_name == NULL || slot_name == NULL)
+        return -1;
+
+    scratch = dir_strdup_fmt("%s.%s", owner_name, slot_name);
+    if (scratch == NULL)
+        return -1;
+    qualified_name = scratch;
+    found = dir_find_node_by_name_kind(dir, qualified_name, kind);
+    free(scratch);
+    return found;
 }
 
 static ssize_t
@@ -237,6 +308,31 @@ dir_add_node(DIRProgram *dir, DIRNodeKind kind, const char *name, ASTNode *ast)
     return append_node(&dir->nodes, &dir->node_count, node);
 }
 
+static ssize_t
+dir_ensure_qualified_slot_node(DIRProgram *dir,
+                               DIRNodeKind kind,
+                               const char *owner_name,
+                               const char *slot_name,
+                               ASTNode *ast)
+{
+    const char *qualified_name;
+    ssize_t existing;
+
+    if (dir == NULL || owner_name == NULL || slot_name == NULL)
+        return -1;
+
+    existing = dir_find_slot_node(dir, kind, owner_name, slot_name);
+    if (existing >= 0)
+        return existing;
+
+    qualified_name = dir_own_string_fmt(dir, "%s.%s", owner_name, slot_name);
+    if (qualified_name == NULL)
+        return -1;
+    if (!dir_add_node(dir, kind, qualified_name, ast))
+        return -1;
+    return (ssize_t)(dir->node_count - 1);
+}
+
 static bool
 dir_add_named_edge(DIRProgram *dir,
                    DIREdgeKind kind,
@@ -262,6 +358,72 @@ type_name(ASTNode *type_node)
     if (type_node->type == AST_TYPE)
         return type_node->data.type.name;
     return NULL;
+}
+
+static bool
+dir_domain_slot_is_projection(ASTNode *slot)
+{
+    return slot != NULL
+        && slot->type == AST_DOMAIN_SLOT
+        && !slot->data.domain_slot.is_subject
+        && !slot->data.domain_slot.is_vessel;
+}
+
+static bool
+dir_add_projection_contract_edges(DIRProgram *dir,
+                                  size_t owner_id,
+                                  const char *owner_name,
+                                  ASTNode *refresh)
+{
+    ssize_t projection_slot_id;
+    ssize_t source_slot_id;
+    const char *source_name;
+
+    if (dir == NULL || owner_name == NULL || refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+        return false;
+
+    projection_slot_id = dir_find_slot_node(dir,
+                                            DIR_NODE_PROJECTION_SLOT,
+                                            owner_name,
+                                            refresh->data.zone_refresh.object_slot_name);
+    if (projection_slot_id < 0)
+        return true;
+
+    source_name = refresh->data.zone_refresh.source_slot_name;
+    source_slot_id = dir_find_slot_node(dir,
+                                        DIR_NODE_ZONE_SLOT,
+                                        owner_name,
+                                        source_name);
+    if (source_slot_id < 0) {
+        source_slot_id = dir_find_slot_node(dir,
+                                            DIR_NODE_PROJECTION_SLOT,
+                                            owner_name,
+                                            source_name);
+    }
+
+    if (!dir_add_named_edge(dir,
+                            DIR_EDGE_PROJECTION_SLOT_SOURCE,
+                            (size_t)projection_slot_id,
+                            source_slot_id >= 0 ? (size_t)source_slot_id : SIZE_MAX,
+                            refresh->data.zone_refresh.infer_target_kind
+                                ? "bind"
+                                : (refresh->data.zone_refresh.requires_dto
+                                       ? "publish"
+                                       : "refresh"),
+                            source_name))
+        return false;
+
+    if (owner_id != SIZE_MAX) {
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                                owner_id,
+                                (size_t)projection_slot_id,
+                                refresh->data.zone_refresh.object_slot_name,
+                                dir->nodes[(size_t)projection_slot_id].name))
+            return false;
+    }
+
+    return true;
 }
 
 static bool
@@ -405,13 +567,35 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
         ASTNode *slot = node->data.party_decl.role_slots[i];
+        ssize_t slot_id;
         if (slot == NULL)
             continue;
+        slot_id = dir_ensure_qualified_slot_node(dir,
+                                                 DIR_NODE_PARTY_SLOT,
+                                                 node->data.party_decl.name,
+                                                 slot->data.role_slot.slot_name,
+                                                 slot);
+        if (slot_id < 0)
+            return false;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_PARTY_HAS_SLOT,
+                                from_id,
+                                (size_t)slot_id,
+                                slot->data.role_slot.slot_name,
+                                dir->nodes[(size_t)slot_id].name))
+            return false;
         for (size_t j = 0; j < slot->data.role_slot.ability_count; j++) {
             ASTNode *ability = slot->data.role_slot.required_abilities[j];
             const char *ability_name = type_name(ability);
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
             if (!dir_add_named_edge(dir, DIR_EDGE_PARTY_SLOT_ABILITY, from_id,
+                                    to >= 0 ? (size_t)to : SIZE_MAX,
+                                    slot->data.role_slot.slot_name,
+                                    ability_name))
+                return false;
+            if (!dir_add_named_edge(dir,
+                                    DIR_EDGE_PARTY_SLOT_ABILITY,
+                                    (size_t)slot_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
                                     slot->data.role_slot.slot_name,
                                     ability_name))
@@ -468,7 +652,36 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
         ASTNode *slot = node->data.zone_decl.slots[i];
         const char *target = type_name(slot->data.domain_slot.type);
         ssize_t to = dir_find_type_node_by_name(dir, target);
+        ssize_t slot_node_id;
+        bool is_projection = dir_domain_slot_is_projection(slot);
+        DIRNodeKind slot_kind = is_projection ? DIR_NODE_PROJECTION_SLOT : DIR_NODE_ZONE_SLOT;
+
+        slot_node_id = dir_ensure_qualified_slot_node(dir,
+                                                      slot_kind,
+                                                      node->data.zone_decl.name,
+                                                      slot->data.domain_slot.slot_name,
+                                                      slot);
+        if (slot_node_id < 0)
+            return false;
+        if (!dir_add_named_edge(dir,
+                                is_projection
+                                    ? DIR_EDGE_OWNER_HAS_PROJECTION_SLOT
+                                    : DIR_EDGE_ZONE_HAS_SLOT,
+                                from_id,
+                                (size_t)slot_node_id,
+                                slot->data.domain_slot.slot_name,
+                                dir->nodes[(size_t)slot_node_id].name))
+            return false;
         if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_SLOT_TYPE, from_id,
+                                to >= 0 ? (size_t)to : SIZE_MAX,
+                                slot->data.domain_slot.slot_name,
+                                target))
+            return false;
+        if (!dir_add_named_edge(dir,
+                                is_projection
+                                    ? DIR_EDGE_PROJECTION_SLOT_TYPE
+                                    : DIR_EDGE_ZONE_SLOT_TYPE,
+                                (size_t)slot_node_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
                                 slot->data.domain_slot.slot_name,
                                 target))
@@ -487,6 +700,31 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     }
     for (size_t i = 0; i < node->data.zone_decl.authority_count; i++) {
         ASTNode *auth = node->data.zone_decl.authorities[i];
+        ssize_t auth_slot_id = dir_ensure_qualified_slot_node(dir,
+                                                              DIR_NODE_AUTHORITY_SLOT,
+                                                              node->data.zone_decl.name,
+                                                              auth->data.zone_authority.subject_slot_name,
+                                                              auth);
+        ssize_t subject_slot_id = dir_find_slot_node(dir,
+                                                     DIR_NODE_ZONE_SLOT,
+                                                     node->data.zone_decl.name,
+                                                     auth->data.zone_authority.subject_slot_name);
+        if (auth_slot_id < 0)
+            return false;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_ZONE_HAS_AUTHORITY_SLOT,
+                                from_id,
+                                (size_t)auth_slot_id,
+                                auth->data.zone_authority.subject_slot_name,
+                                dir->nodes[(size_t)auth_slot_id].name))
+            return false;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_AUTHORITY_SLOT_SUBJECT,
+                                (size_t)auth_slot_id,
+                                subject_slot_id >= 0 ? (size_t)subject_slot_id : SIZE_MAX,
+                                auth->data.zone_authority.subject_slot_name,
+                                auth->data.zone_authority.subject_slot_name))
+            return false;
         for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
             const char *ability_name = auth->data.zone_authority.required_abilities[j];
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
@@ -495,7 +733,21 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     auth->data.zone_authority.subject_slot_name,
                                     ability_name))
                 return false;
+            if (!dir_add_named_edge(dir,
+                                    DIR_EDGE_ZONE_AUTHORITY_ABILITY,
+                                    (size_t)auth_slot_id,
+                                    to >= 0 ? (size_t)to : SIZE_MAX,
+                                    auth->data.zone_authority.subject_slot_name,
+                                    ability_name))
+                return false;
         }
+    }
+    for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
+        if (!dir_add_projection_contract_edges(dir,
+                                               from_id,
+                                               node->data.zone_decl.name,
+                                               node->data.zone_decl.refreshes[i]))
+            return false;
     }
     for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
         ASTNode *state = node->data.zone_decl.states[i];
@@ -515,6 +767,57 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 layer))
             return false;
     }
+    return true;
+}
+
+static bool
+dir_collect_relation_effect_slot_edges(DIRProgram *dir,
+                                       size_t from_id,
+                                       const char *owner_name,
+                                       ASTNode **slots,
+                                       size_t slot_count,
+                                       ASTNode **refreshes,
+                                       size_t refresh_count)
+{
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        const char *target;
+        ssize_t to;
+        ssize_t slot_node_id;
+        if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
+            continue;
+        if (!dir_domain_slot_is_projection(slot))
+            continue;
+        target = type_name(slot->data.domain_slot.type);
+        to = dir_find_type_node_by_name(dir, target);
+        slot_node_id = dir_ensure_qualified_slot_node(dir,
+                                                      DIR_NODE_PROJECTION_SLOT,
+                                                      owner_name,
+                                                      slot->data.domain_slot.slot_name,
+                                                      slot);
+        if (slot_node_id < 0)
+            return false;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                                from_id,
+                                (size_t)slot_node_id,
+                                slot->data.domain_slot.slot_name,
+                                dir->nodes[(size_t)slot_node_id].name))
+            return false;
+        if (!dir_add_named_edge(dir,
+                                DIR_EDGE_PROJECTION_SLOT_TYPE,
+                                (size_t)slot_node_id,
+                                to >= 0 ? (size_t)to : SIZE_MAX,
+                                slot->data.domain_slot.slot_name,
+                                target))
+            return false;
+    }
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        if (!dir_add_projection_contract_edges(dir, from_id, owner_name, refreshes[i]))
+            return false;
+    }
+
     return true;
 }
 
@@ -683,6 +986,30 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                 if (from >= 0 && !dir_collect_world_edges(dir, (size_t)from, node))
                     return false;
                 break;
+            case AST_RELATION_DECL:
+                from = dir_find_relation_node_by_name(dir, node->data.relation_decl.name);
+                if (from >= 0
+                    && !dir_collect_relation_effect_slot_edges(dir,
+                                                               (size_t)from,
+                                                               node->data.relation_decl.name,
+                                                               node->data.relation_decl.slots,
+                                                               node->data.relation_decl.slot_count,
+                                                               node->data.relation_decl.refreshes,
+                                                               node->data.relation_decl.refresh_count))
+                    return false;
+                break;
+            case AST_EFFECT_DECL:
+                from = dir_find_effect_node_by_name(dir, node->data.effect_decl.name);
+                if (from >= 0
+                    && !dir_collect_relation_effect_slot_edges(dir,
+                                                               (size_t)from,
+                                                               node->data.effect_decl.name,
+                                                               node->data.effect_decl.slots,
+                                                               node->data.effect_decl.slot_count,
+                                                               node->data.effect_decl.refreshes,
+                                                               node->data.effect_decl.refresh_count))
+                    return false;
+                break;
             case AST_ZONE_DECL:
                 from = dir_find_zone_node_by_name(dir, node->data.zone_decl.name);
                 if (from >= 0 && !dir_collect_zone_edges(dir, (size_t)from, node))
@@ -746,9 +1073,14 @@ dir_destroy(DIRProgram *dir)
             free(dir->intents[i].steps);
         }
     }
+    if (dir->owned_names != NULL) {
+        for (size_t i = 0; i < dir->owned_name_count; i++)
+            free(dir->owned_names[i]);
+    }
     free(dir->nodes);
     free(dir->edges);
     free(dir->intents);
+    free(dir->owned_names);
     free(dir);
 }
 
@@ -760,11 +1092,15 @@ dir_node_kind_name(DIRNodeKind kind)
         case DIR_NODE_ABILITY: return "ability";
         case DIR_NODE_ROLE: return "role";
         case DIR_NODE_PARTY: return "party";
+        case DIR_NODE_PARTY_SLOT: return "party-slot";
         case DIR_NODE_SYSTEMIC: return "systemic";
         case DIR_NODE_WORLD: return "world";
         case DIR_NODE_RELATION: return "relation";
         case DIR_NODE_EFFECT: return "effect";
         case DIR_NODE_ZONE: return "zone";
+        case DIR_NODE_ZONE_SLOT: return "zone-slot";
+        case DIR_NODE_PROJECTION_SLOT: return "projection-slot";
+        case DIR_NODE_AUTHORITY_SLOT: return "authority-slot";
         case DIR_NODE_INTENT: return "intent";
         default: return "unknown";
     }
@@ -779,11 +1115,18 @@ dir_edge_kind_name(DIREdgeKind kind)
         case DIR_EDGE_ROLE_IMPL_ABILITY: return "role-impl";
         case DIR_EDGE_ROLE_COMPLETES_ABILITY: return "role-complete";
         case DIR_EDGE_ROLE_MISSING_ABILITY_METHOD: return "role-missing-method";
+        case DIR_EDGE_PARTY_HAS_SLOT: return "party-has-slot";
         case DIR_EDGE_PARTY_SLOT_ABILITY: return "party-slot";
         case DIR_EDGE_SYSTEMIC_PARTY: return "systemic-party";
         case DIR_EDGE_WORLD_SYSTEMIC: return "world-systemic";
         case DIR_EDGE_WORLD_ZONE: return "world-zone";
+        case DIR_EDGE_ZONE_HAS_SLOT: return "zone-has-slot";
         case DIR_EDGE_ZONE_SLOT_TYPE: return "zone-slot";
+        case DIR_EDGE_OWNER_HAS_PROJECTION_SLOT: return "owner-has-projection-slot";
+        case DIR_EDGE_PROJECTION_SLOT_TYPE: return "projection-slot-type";
+        case DIR_EDGE_PROJECTION_SLOT_SOURCE: return "projection-slot-source";
+        case DIR_EDGE_ZONE_HAS_AUTHORITY_SLOT: return "zone-has-authority-slot";
+        case DIR_EDGE_AUTHORITY_SLOT_SUBJECT: return "authority-slot-subject";
         case DIR_EDGE_ZONE_LAYER_TYPE: return "zone-layer";
         case DIR_EDGE_ZONE_AUTHORITY_ABILITY: return "zone-authority";
         case DIR_EDGE_ZONE_STATE_LAYER: return "zone-state";

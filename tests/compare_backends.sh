@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
+    PGY_BIN="${PGY_BIN}.exe"
+fi
 TMP_BASE="${TMPDIR:-/tmp}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_backend_compare.XXXXXX")"
 
@@ -15,6 +18,17 @@ if [[ ! -x "$PGY_BIN" ]]; then
     echo "backend-compare: missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
+
+resolve_native_bin() {
+    local path="$1"
+    if [[ -x "$path" ]]; then
+        printf '%s\n' "$path"
+    elif [[ "$path" != *.exe && -x "${path}.exe" ]]; then
+        printf '%s.exe\n' "$path"
+    else
+        printf '%s\n' "$path"
+    fi
+}
 
 run_case() {
     local case_ref="$1"
@@ -69,6 +83,9 @@ run_case() {
         cat "$llvm_compile_log" >&2
         return 1
     fi
+
+    c_bin="$(resolve_native_bin "$c_bin")"
+    llvm_bin="$(resolve_native_bin "$llvm_bin")"
 
     if (cd "$(dirname "$source_copy")" && "$c_bin" >"$c_out" 2>"$c_err"); then
         c_rc=0

@@ -158,7 +158,7 @@ cleanup:
 }
 
 static bool
-path_file_exists(const char *path)
+import_path_file_exists(const char *path)
 {
     FILE *f = fopen(path, "rb");
     if (f == NULL)
@@ -207,7 +207,7 @@ resolve_stdlib_module_path(const char *source_path, const char *module_name)
 
         free(stdlib_dir);
 
-        if (candidate != NULL && path_file_exists(candidate)) {
+        if (candidate != NULL && import_path_file_exists(candidate)) {
             resolved = candidate;
             break;
         }
@@ -224,7 +224,7 @@ resolve_stdlib_module_path(const char *source_path, const char *module_name)
 
     if (resolved == NULL) {
         char *candidate = path_join_dup("stdlib", module_file);
-        if (candidate != NULL && path_file_exists(candidate))
+        if (candidate != NULL && import_path_file_exists(candidate))
             resolved = candidate;
         else
             free(candidate);

@@ -1,0 +1,64 @@
+use spray;
+
+func AppendLine(report: String, line: String) -> String {
+    if StringLength(report) == 0 {
+        return line;
+    }
+    return report + "\n" + line;
+}
+
+async func Main() -> Void {
+    let report: String = "";
+
+    Log("=== SPRAY DEVICE PROBE ===");
+    report = AppendLine(report, "=== SPRAY DEVICE PROBE ===");
+
+    let config = SprayConfig(128, 3, true);
+    let kernel = KernelNew("prefix_sum", 16, 16);
+    let buffers: List<SprayBuffer> = ListNew();
+    ListPush(buffers, BufferNew(10, 64));
+    ListPush(buffers, BufferNew(11, 96));
+    ListPush(buffers, BufferNew(12, 128));
+
+    let results = SprayAll(buffers, kernel, config);
+    let count = SpraySuccessCount(results);
+    let all_ok = SprayAllSuccess(results);
+    let spray_line = "[spray] success=" + ToString(count)
+        + " all=" + ToString(all_ok);
+    Log(spray_line);
+    report = AppendLine(report, spray_line);
+
+    let gpu0: DeviceSlot<Int> = ClaimDeviceSlot();
+    let gpu1: DeviceSlot<Int> = ClaimDeviceSlot();
+    let gpu2: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(gpu0, 910);
+    DeviceWrite(gpu1, 911);
+    DeviceWrite(gpu2, 912);
+
+    let f0: RemoteFuture<Int> = SubmitDeviceRead(gpu0);
+    let f1: RemoteFuture<Int> = SubmitDeviceRead(gpu1);
+    let f2: RemoteFuture<Int> = SubmitDeviceRead(gpu2);
+
+    let r0: Result<Int> = await f0;
+    let r1: Result<Int> = await f1;
+    let r2: Result<Int> = await f2;
+
+    ReleaseDeviceSlot(gpu0);
+    ReleaseDeviceSlot(gpu1);
+    ReleaseDeviceSlot(gpu2);
+
+    let gpu_line = "[device] "
+        + ToString(Unwrap(r0)) + " "
+        + ToString(Unwrap(r1)) + " "
+        + ToString(Unwrap(r2));
+    Log(gpu_line);
+    report = AppendLine(report, gpu_line);
+
+    let capability_line = "[capability] spray-batch=true device-readback=true real-gpu-backend=false";
+    Log(capability_line);
+    report = AppendLine(report, capability_line);
+
+    Log("saving examples/spray_device_probe/results.txt");
+    report = AppendLine(report, "saving examples/spray_device_probe/results.txt");
+    WriteFile("examples/spray_device_probe/results.txt", report + "\n");
+}

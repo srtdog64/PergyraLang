@@ -1,0 +1,8 @@
+=== SPRAY DEVICE PROBE ===
+[spray] dispatch kernel=prefix_sum buffer=10 size=64 workgroup=128
+[spray] dispatch kernel=prefix_sum buffer=11 size=96 workgroup=128
+[spray] dispatch kernel=prefix_sum buffer=12 size=128 workgroup=128
+[spray] success=3 all=true
+[device] 910 911 912
+[capability] spray-batch=true device-readback=true real-gpu-backend=false
+saving examples/spray_device_probe/results.txt

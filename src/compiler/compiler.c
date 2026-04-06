@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "path_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -218,17 +219,23 @@ compiler_run_binary(const char *binary_path, bool verbose)
     if (!pgy_path_is_safe(binary_path))
         return -1;
 
+    char *resolved_path = path_resolve_runnable_binary(binary_path);
+    if (resolved_path == NULL || !pgy_path_is_safe(resolved_path)) {
+        free(resolved_path);
+        return -1;
+    }
+
     char safe_path[512];
 #ifdef _WIN32
-    snprintf(safe_path, sizeof(safe_path), "%s", binary_path);
+    snprintf(safe_path, sizeof(safe_path), "%s", resolved_path);
     for (char *p = safe_path; *p; p++) {
         if (*p == '/') *p = '\\';
     }
 #else
-    if (binary_path[0] == '/' || strncmp(binary_path, "./", 2) == 0) {
-        snprintf(safe_path, sizeof(safe_path), "%s", binary_path);
+    if (resolved_path[0] == '/' || strncmp(resolved_path, "./", 2) == 0) {
+        snprintf(safe_path, sizeof(safe_path), "%s", resolved_path);
     } else {
-        snprintf(safe_path, sizeof(safe_path), "./%s", binary_path);
+        snprintf(safe_path, sizeof(safe_path), "./%s", resolved_path);
     }
 #endif
 
@@ -237,6 +244,7 @@ compiler_run_binary(const char *binary_path, bool verbose)
     printf("--- output ---\n");
     int rc = pgy_exec_argv(run_argv, verbose);
     printf("--- end ---\n");
+    free(resolved_path);
     return rc;
 }
 

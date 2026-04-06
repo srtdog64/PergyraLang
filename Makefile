@@ -49,6 +49,12 @@ LLVM_MONOLITHIC_DIR := $(dir $(LLVM_MONOLITHIC_SONAME))
 LLVM_MONOLITHIC_NAME := $(notdir $(LLVM_MONOLITHIC_SONAME))
 LLVM_INCLUDEDIR_FALLBACK := $(or $(shell for d in /usr/lib/llvm-*/include /usr/include third_party; do if [ -f "$$d/llvm-c/Core.h" ]; then echo "$$d"; break; fi; done),third_party)
 
+ifneq ($(or $(findstring mingw,$(CC_MACHINE)),$(MSYSTEM)),)
+EXEEXT := .exe
+else
+EXEEXT :=
+endif
+
 # -----------------------------------------------------------------
 # LLVM backend (enabled by default)
 #   make                         — build with LLVM native backend (default)
@@ -212,27 +218,27 @@ FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
 # -----------------------------------------------------------------
 # Executables
 # -----------------------------------------------------------------
-LEXER_TEST          = $(BIN_DIR)/lexer_test
-PARSER_TEST         = $(BIN_DIR)/test_parser
-DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures
-SECURITY_TEST       = $(BIN_DIR)/test_security
-SEMANTIC_TEST       = $(BIN_DIR)/test_semantic
-TRANSPILE_TEST      = $(BIN_DIR)/test_transpile
-MEMORY_TEST         = $(BIN_DIR)/test_memory_layout
-CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency
-DIR_TEST            = $(BIN_DIR)/test_dir
-RIR_TEST            = $(BIN_DIR)/test_rir
-MIR_TEST            = $(BIN_DIR)/test_mir
-HIR_TEST            = $(BIN_DIR)/test_hir
-PGY                 = $(BIN_DIR)/pgy
-PGY_LSP             = $(BIN_DIR)/pgy-lsp
+LEXER_TEST          = $(BIN_DIR)/lexer_test$(EXEEXT)
+PARSER_TEST         = $(BIN_DIR)/test_parser$(EXEEXT)
+DATASTRUCTURES_TEST = $(BIN_DIR)/test_datastructures$(EXEEXT)
+SECURITY_TEST       = $(BIN_DIR)/test_security$(EXEEXT)
+SEMANTIC_TEST       = $(BIN_DIR)/test_semantic$(EXEEXT)
+TRANSPILE_TEST      = $(BIN_DIR)/test_transpile$(EXEEXT)
+MEMORY_TEST         = $(BIN_DIR)/test_memory_layout$(EXEEXT)
+CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency$(EXEEXT)
+DIR_TEST            = $(BIN_DIR)/test_dir$(EXEEXT)
+RIR_TEST            = $(BIN_DIR)/test_rir$(EXEEXT)
+MIR_TEST            = $(BIN_DIR)/test_mir$(EXEEXT)
+HIR_TEST            = $(BIN_DIR)/test_hir$(EXEEXT)
+PGY                 = $(BIN_DIR)/pgy$(EXEEXT)
+PGY_LSP             = $(BIN_DIR)/pgy-lsp$(EXEEXT)
 
 # -----------------------------------------------------------------
 # Default target — build the driver and all tests
 # -----------------------------------------------------------------
 all: $(PGY) $(PGY_LSP) $(LEXER_TEST) $(PARSER_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) $(MEMORY_TEST) $(CONCURRENCY_TEST) $(HIR_TEST)
 
-pgy: $(PGY) $(REPO_BIN_DIR)/pgy
+pgy: $(PGY) $(REPO_BIN_DIR)/pgy$(EXEEXT)
 llvm:
 	$(MAKE) LLVM_ENABLED=1 all
 
@@ -245,7 +251,7 @@ $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) -lpthread -lm
 
-$(REPO_BIN_DIR)/pgy: $(PGY) | $(REPO_BIN_DIR)
+$(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
 
 # Lexer smoke-test (original main.c)
@@ -296,7 +302,7 @@ $(DIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
 # HIR lowering test
-$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
@@ -315,7 +321,7 @@ $(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | 
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ -lpthread
 
-$(REPO_BIN_DIR)/pgy-lsp: $(PGY_LSP) | $(REPO_BIN_DIR)
+$(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
 
 # -----------------------------------------------------------------

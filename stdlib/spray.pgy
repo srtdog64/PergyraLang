@@ -1,0 +1,117 @@
+// ============================================
+// spray — GPU/Device batch dispatch library
+// use spray;
+//
+// Spray = "여러 DeviceSlot에 같은 연산을 한번에 뿌린다"
+//
+// 현재: CPU 시뮬레이션 스켈레톤
+// 미래: Vulkan/CUDA/Metal compute shader dispatch
+// ============================================
+
+// --- 설정 ---
+
+struct SprayConfig
+{
+    let workgroup_size: Int;     // dispatch 워크그룹 크기
+    let buffer_count: Int;       // 동시 버퍼 수
+    let async_mode: Bool;        // 비동기 dispatch 여부
+}
+
+func DefaultSprayConfig() -> SprayConfig
+{
+    return SprayConfig(256, 1, false);
+}
+
+// --- 커널 정의 ---
+
+struct SprayKernel
+{
+    let name: String;
+    let input_size: Int;
+    let output_size: Int;
+}
+
+func KernelNew(name: String, input_size: Int, output_size: Int) -> SprayKernel
+{
+    return SprayKernel(name, input_size, output_size);
+}
+
+// --- 버퍼 핸들 ---
+
+struct SprayBuffer
+{
+    let id: Int;
+    let size: Int;
+    let ready: Bool;
+}
+
+func BufferNew(id: Int, size: Int) -> SprayBuffer
+{
+    return SprayBuffer(id, size, false);
+}
+
+func BufferIsReady(buf: SprayBuffer) -> Bool
+{
+    return buf.ready;
+}
+
+// --- Dispatch 결과 ---
+
+struct SprayResult
+{
+    let buffer_id: Int;
+    let success: Bool;
+    let elapsed_ms: Int;
+}
+
+// --- 핵심 API ---
+
+// 단일 버퍼에 커널 dispatch
+func SprayOne(buf: SprayBuffer, kernel: SprayKernel, config: SprayConfig) -> SprayResult
+{
+    // CPU 시뮬레이션: 커널 이름과 버퍼 정보 로깅
+    Log("[spray] dispatch kernel=" + kernel.name
+        + " buffer=" + ToString(buf.id)
+        + " size=" + ToString(buf.size)
+        + " workgroup=" + ToString(config.workgroup_size));
+    return SprayResult(buf.id, true, 0);
+}
+
+// 여러 버퍼에 같은 커널 한번에 dispatch
+func SprayAll(buffers: List<SprayBuffer>, kernel: SprayKernel, config: SprayConfig) -> List<SprayResult>
+{
+    let results: List<SprayResult> = ListNew();
+    for buf in buffers
+    {
+        let r = SprayOne(buf, kernel, config);
+        ListPush(results, r);
+    }
+    return results;
+}
+
+// 성공 개수 집계
+func SpraySuccessCount(results: List<SprayResult>) -> Int
+{
+    let count: Int = 0;
+    for r in results
+    {
+        if r.success
+        {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+// 전체 성공 여부
+func SprayAllSuccess(results: List<SprayResult>) -> Bool
+{
+    for r in results
+    {
+        if !r.success
+        {
+            return false;
+        }
+    }
+    return true;
+}

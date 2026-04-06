@@ -25,6 +25,7 @@ mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block, const HIRBas
         inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_PHI;
         inst.name = hir_block->phi_nodes[i].name;
+        inst.slot_anchor = hir_block->phi_nodes[i].name;
         inst.arg0 = "phi";
         if (!append_instruction(block, inst))
             return false;
@@ -46,6 +47,7 @@ mir_add_def_instruction(MIRRoutine *routine,
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_DEF;
     inst.name = "ssa-def";
+    inst.slot_anchor = base_name;
     inst.arg0 = base_name;
     inst.result_name = pergyra_strdup(result_name);
     if (inst.result_name == NULL)
@@ -82,6 +84,7 @@ mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIR
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = rir_op_kind_name(op->kind);
+    inst.slot_anchor = op->slot_anchor;
     inst.arg0 = op->subject;
     inst.arg1 = op->arg0;
     inst.rir_op = op;
@@ -104,6 +107,7 @@ mir_add_rollback_invalidation(MIRRoutine *routine, MIRBasicBlock *cleanup, const
         inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_CLEANUP_EDGE;
         inst.name = "RollbackPolicy";
+        inst.slot_anchor = fact->slot_anchor;
         inst.arg0 = fact->arg0;
         if (!append_instruction(cleanup, inst))
             return false;
@@ -120,6 +124,7 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_RESOURCE_OP;
     inst.name = rir_op_kind_name(op->kind);
+    inst.slot_anchor = op->slot_anchor;
     inst.arg0 = op->subject;
     inst.arg1 = op->arg0;
     inst.rir_op = op;
@@ -174,6 +179,7 @@ mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block
         inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_CLEANUP_EDGE;
         inst.name = "DetachInvalidation";
+        inst.slot_anchor = target;
         inst.arg0 = target;
         inst.arg1 = step->data.intent_step.name;
         inst.ast = step;
@@ -262,6 +268,18 @@ mir_collect_expr_identifier_uses(ASTNode *node, const char ***uses, size_t *use_
         default:
             return true;
     }
+}
+
+static const char *
+mir_instruction_slot_anchor(const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return NULL;
+    if (inst->slot_anchor != NULL)
+        return inst->slot_anchor;
+    if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI) && inst->name != NULL)
+        return inst->name;
+    return inst->arg0;
 }
 
 static bool
@@ -828,6 +846,7 @@ mir_append_value_summary(MIRRoutine *routine,
     summary.name = pergyra_strdup(name);
     if (summary.name == NULL)
         return false;
+    summary.slot_anchor = NULL;
     summary.def_block = def_block;
     summary.def_inst = def_inst;
     summary.first_use_block = SIZE_MAX;
@@ -864,6 +883,11 @@ mir_build_value_summaries(MIRRoutine *routine)
             if (inst->result_name != NULL) {
                 if (!mir_append_value_summary(routine, inst->result_name, block_id, inst_id))
                     return false;
+                {
+                    int idx = mir_find_value_summary(routine, inst->result_name);
+                    if (idx >= 0 && routine->value_summaries[idx].slot_anchor == NULL)
+                        routine->value_summaries[idx].slot_anchor = mir_instruction_slot_anchor(inst);
+                }
             }
         }
     }
@@ -1283,6 +1307,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                     .id = routine->instruction_count++,
                                     .kind = MIR_INST_CLEANUP_EDGE,
                                     .name = "cleanup-edge",
+                                    .slot_anchor = "cleanup",
                                     .arg0 = "cleanup",
                                     .arg1 = NULL,
                                     .ast = NULL,
@@ -1382,6 +1407,7 @@ mir_populate_instructions(MIRRoutine *routine)
             inst.id = routine->instruction_count++;
             inst.kind = MIR_INST_CLEANUP_EDGE;
             inst.name = "DetachInvalidation";
+            inst.slot_anchor = fact->slot_anchor != NULL ? fact->slot_anchor : fact->name;
             inst.arg0 = fact->name;
             inst.arg1 = rir_resource_kind_name(fact->resource_kind);
             inst.ast = fact->ast;

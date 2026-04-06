@@ -1,5 +1,7 @@
 <p align="center">
   <img src="assets/branding/PergyraLangLogo_256.png" alt="Gyri — Pergyra Mascot" width="180" />
+  <br/>
+  <sub>Meet <strong>Gyri</strong>, the Nautilus.</sub>
 </p>
 
 <h1 align="center">Pergyra</h1>
@@ -22,9 +24,15 @@
 Pergyra is a compiled language with C and LLVM backends. It distinguishes **who acts**, **where they act**, and **what qualifies them** at the language level.
 
 ```
-.pgy → Lexer → Parser → Semantic → HIR → LLVM Backend → Binary
-                                      \→ C Backend    → GCC → Binary
+.pgy → Lexer → Parser → Semantic Typed AST → HIR → DIR → RIR → MIR
+                                                          ├→ LLVM Backend → Binary
+                                                          └→ C Backend    → GCC → Binary
 ```
+
+- `HIR` normalizes language structure and pass-friendly program shape
+- `DIR` locks domain contracts such as role/ability, zone/world, intent-step relations
+- `RIR` locks slot/resource/projection/authority/lifecycle semantics
+- `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
 
 ## Quick Start
 
@@ -34,6 +42,12 @@ make all
 
 # Run
 ./bin/pgy examples/hello.pgy --run -v
+
+# Inspect IR layers
+./bin/pgy examples/hello.pgy --hir
+./bin/pgy examples/hello.pgy --dir
+./bin/pgy examples/hello.pgy --rir
+./bin/pgy examples/hello.pgy --mir
 
 # LLVM backend (optional)
 make LLVM_ENABLED=1 all
@@ -99,8 +113,8 @@ Pergyra uses 6 keywords to declare types. Each keyword carries distinct semantic
 | `class` | Passive thing (tool) | Value | func only |
 | `struct` | Pure data | Value | None |
 | `vessel` | Internal state (inside subject) | Value | None |
-| `object` | Read-only view | Value | func only |
-| `tobject` | Transfer object | Value | None |
+| `object` | Read-only internal projection | Value | func only |
+| `tobject` | Read-only transfer/export projection | Value | func only |
 
 ```pergyra
 subject Player
@@ -132,7 +146,23 @@ vessel PlayerStats
     let level: Int;
     let xp: Int;
 }
+
+object PlayerView
+{
+    let name: String;
+    let hp: Int;
+}
+
+tobject PlayerReceipt
+{
+    let name: String;
+    let hp: Int;
+}
 ```
+
+Rule of thumb:
+- use `object` for internal projection/read models
+- use `tobject` for publish/transfer/export boundaries
 
 ## Domain Modeling
 
@@ -182,17 +212,19 @@ world GameServer
 ### Relation + Effect
 
 ```pergyra
-relation Alliance
+relation Alliance between subject, subject
 {
     let trust: Int;
 }
 
-effect Poison
+effect Poison for bearer: subject
 {
     let damage_per_tick: Int;
     let remaining: Int;
 }
 ```
+
+`relation` is not a plain struct. It declares shared state between endpoints, and the compiler can validate that zone links satisfy the declared endpoint contract.
 
 ## Intent
 
@@ -237,6 +269,31 @@ Features:
 - `compensate:` — rollback action on failure
 - `pre` / `post` / `guard` / `invariant` / `expect` — conditions
 - `IntentLastTrace()`, `IntentHistoryCount()` — runtime observability
+- `intent:` inside a step — sub-intent orchestration
+
+Example:
+
+```pergyra
+intent Charge(checkout: CheckoutZone, buyer: Buyer)
+{
+    step verify
+    {
+        where: CheckoutZone;
+        using: checkout;
+        who: buyer;
+        expect: true;
+    }
+}
+
+intent Checkout(checkout: CheckoutZone, buyer: Buyer)
+{
+    step pay
+    {
+        intent: Charge(checkout, buyer);
+        expect: true;
+    }
+}
+```
 
 ## Built-in Collections
 

@@ -1,0 +1,5 @@
+=== SPRAY DEVICE PROBE ===
+[spray] success=3 all=true
+[device] 910 911 912
+[capability] spray-batch=true device-readback=true real-gpu-backend=false
+saving examples/spray_device_probe/results.txt

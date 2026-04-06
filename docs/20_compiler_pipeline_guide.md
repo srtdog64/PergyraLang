@@ -177,6 +177,17 @@
 
 - `ability`, `role`, `party`, `systemic`, `world`, `relation`, `effect`, `zone`, `intent`를 node로 수집
 - `role -> for type`, `role -> impl ability`, `party -> ability slot`, `world -> zone`, `zone -> effect/relation slot` 같은 declaration edge를 수집
+- owner-qualified slot contract node를 직접 만든다
+  - `party-slot`
+  - `zone-slot`
+  - `projection-slot`
+  - `authority-slot`
+- slot contract edge도 직접 수집한다
+  - `party -> party-slot -> ability`
+  - `zone -> zone-slot -> nominal type`
+  - `owner(relation/effect/zone) -> projection-slot -> nominal type`
+  - `projection-slot -> source slot`
+  - `zone -> authority-slot -> subject-slot/ability`
 - `intent`는 별도 `participant/step` 메타로 정리
   - `where`
   - `using`
@@ -210,8 +221,9 @@
 주 진입점:
 
 - `RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message)`
+- `bool rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **error_message)`
 
-현재 RIR의 역할은 "explicit resource op와 static fact를 실제 코드 계층으로 여는 시작점"이다. 아직 DIR를 직접 입력으로 삼는 완성형은 아니고, annotated AST에서 직접 수집한다. backend codegen의 직접 입력은 아니지만, driver는 backend dispatch 전에 항상 `rir_lower()`, `rir_enrich_with_hir_flow()`, `rir_validate()`를 수행한다.
+현재 RIR의 역할은 "explicit resource op와 static fact를 실제 코드 계층으로 여는 시작점"이다. 아직 DIR를 직접 입력으로 삼는 완성형은 아니고, annotated AST에서 직접 수집한다. backend codegen의 직접 입력은 아니지만, driver는 backend dispatch 전에 항상 `rir_lower()`, `rir_enrich_with_hir_flow()`, `rir_validate()`, `rir_validate_against_dir()`를 수행한다.
 
 현재 RIR가 하는 일:
 
@@ -248,6 +260,11 @@
   - `AbortIntent`
   - `CompensateIntentStep`
   - `using:` / `transfer:`에서 파생되는 conservative handle op
+- `DIR` slot-contract graph와의 교차 검증
+  - `zone-slot`은 matching `RIR` resource fact/state를 가져야 한다
+  - `projection-slot`은 matching resource fact/state를 가져야 한다
+  - `projection-slot -> source` 선언 edge가 있으면 matching projection fact도 가져야 한다
+  - `authority-slot`은 matching authority fact와 capability fact를 가져야 한다
 
 추가로, 현재 RIR는 scope별 normalized state summary를 만든다.
 
@@ -324,12 +341,16 @@
   - branch/return은 terminator expression에서 identifier use를 수집
   - resource-op / cleanup instruction도 AST 기반 identifier use를 수집
   - block별 `entry:` / `exit:` version dump를 유지
-  - routine-level value summary를 만들어 `def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`를 후속 pass가 직접 읽을 수 있게 유지
+  - routine-level value summary를 만들어 `def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`, `slot_anchor`를 후속 pass가 직접 읽을 수 있게 유지
+- slot anchor 보강
+  - `resource-op` / `cleanup` instruction은 matching `RIR` op의 `slot_anchor`를 직접 유지
+  - `def` / `phi`와 value summary는 base local 이름을 `slot_anchor`로 유지
+  - validator는 slot-aware cleanup/resource instruction과 value summary가 slot anchor를 잃는 것을 허용하지 않음
 - 실제 pass
   - lowering 중 `liveness` 재계산 수행
   - dead `def` / dead `phi` 제거 DCE pass 수행
 
-즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + exceptional CFG 시작점"이다. full optimizer나 backend 전체를 아직 대체하진 않지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, lowering 안에서 실제 liveness/DCE pass가 돌며, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup CFG를 MIR block/terminator에서 직접 emit하는 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다. 추가로 intent exceptional CFG에 있는 cleanup/resource op는 현재 `pgy_mir_cleanup_op_export(...)` no-op runtime hook 호출로 직접 emit되어, 분석용 op가 codegen 경로에도 명시적으로 남는다.
+즉 지금 MIR는 "실행 구조 스켈레톤 + instruction-level SSA/use-def 시작점 + routine-level value summary + slot-aware exceptional CFG 시작점"이다. full optimizer나 backend 전체를 아직 대체하진 않지만, phi/result/use와 cleanup-root/rollback/invalidation block이 이미 들어갔고, lowering 안에서 실제 liveness/DCE pass가 돌며, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup CFG를 MIR block/terminator에서 직접 emit하는 vertical slice가 들어갔기 때문에 더 이상 순수 dump 전용 계층은 아니다. 추가로 intent exceptional CFG에 있는 cleanup/resource op는 현재 `pgy_mir_cleanup_op_export(...)` no-op runtime hook 호출로 직접 emit되어, 분석용 op가 codegen 경로에도 명시적으로 남는다.
 
 ### 3.8 HIR Lowering
 

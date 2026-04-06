@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="/tmp/pgy-PergyraLang-bin/pgy"
+if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+    DEFAULT_PGY="${DEFAULT_PGY}.exe"
+fi
+if [[ -x "${TMP_PGY}.exe" ]]; then
+    TMP_PGY="${TMP_PGY}.exe"
+fi
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
 elif [[ -x "$DEFAULT_PGY" ]]; then
@@ -42,18 +48,29 @@ MIR_OUT="$WORK_DIR/mir.txt"
 grep -Fq "role-complete" "$DIR_OUT"
 grep -Fq "intent-step-zone" "$DIR_OUT"
 grep -Fq "transfer=loading->delivery" "$DIR_OUT"
+grep -Fq "zone-slot LoadingZone.courier" "$DIR_OUT"
+grep -Fq "projection-slot LoadingZone.dispatchPacket" "$DIR_OUT"
+grep -Fq "authority-slot LoadingZone.dispatcher" "$DIR_OUT"
+grep -Fq "owner-has-projection-slot" "$DIR_OUT"
+grep -Fq "authority-slot-subject" "$DIR_OUT"
 
 grep -Fq "kind=WorldHandle" "$RIR_OUT"
 grep -Fq "kind=ZoneHandle" "$RIR_OUT"
 grep -Fq "kind=RelationInstance" "$RIR_OUT"
 grep -Fq "kind=EffectInstance" "$RIR_OUT"
+grep -Fq "name=dispatchPacket slot=dispatchPacket" "$RIR_OUT"
+grep -Fq "kind=ProjectionTObject state=Published" "$RIR_OUT"
 grep -Fq "Move                 subject=loading" "$RIR_OUT"
 grep -Fq "Claim                subject=delivery" "$RIR_OUT"
 grep -Fq "flow-block[" "$RIR_OUT"
 grep -Fq "join=yes" "$RIR_OUT"
+grep -Fq "semantics=authority|world-handoff|invalidation|authority-loss" "$RIR_OUT"
 
 grep -Fq "cleanup-block=yes rollback-block=yes invalidation-block=yes" "$MIR_OUT"
+grep -Fq "value[00] score.1 slot=score" "$MIR_OUT"
 grep -Fq "name=score result=score.4" "$MIR_OUT"
+grep -Fq "slot=loading name=Move" "$MIR_OUT"
+grep -Fq "slot=stage name=CompensateIntentStep" "$MIR_OUT"
 grep -Fq "cleanup-edge" "$MIR_OUT"
 grep -Fq "DetachInvalidation" "$MIR_OUT"
 

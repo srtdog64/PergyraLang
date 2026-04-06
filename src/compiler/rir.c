@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "dir.h"
 #include "hir.h"
 #include "../common/string_compat.h"
 
@@ -370,11 +371,9 @@ add_domain_slot_fact(RIRScope *scope, ASTNode *slot)
     } else if (slot->data.domain_slot.is_dto) {
         kind = RIR_RESOURCE_TOBJECT_SLOT;
         state = RIR_STATE_UNINIT;
-    } else if (slot->data.domain_slot.is_binding) {
+    } else {
         kind = RIR_RESOURCE_OBJECT_SLOT;
         state = RIR_STATE_UNINIT;
-    } else {
-        return true;
     }
 
     return add_named_resource_fact(scope,

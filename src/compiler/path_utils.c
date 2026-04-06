@@ -10,6 +10,16 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "../common/string_compat.h"
+
+#ifdef _WIN32
+#include <io.h>
+#define PGY_ACCESS _access
+#else
+#include <unistd.h>
+#define PGY_ACCESS access
+#endif
+
 char *
 path_dirname_dup(const char *path)
 {
@@ -75,6 +85,26 @@ path_replace_extension(const char *path, const char *new_ext)
     return result;
 }
 
+bool
+path_file_exists(const char *path)
+{
+    return path != NULL && PGY_ACCESS(path, 0) == 0;
+}
+
+#ifdef _WIN32
+static bool
+path_has_extension(const char *path)
+{
+    const char *dot = strrchr(path, '.');
+    const char *last_sep = strrchr(path, '/');
+    const char *last_bsep = strrchr(path, '\\');
+
+    if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
+        last_sep = last_bsep;
+    return dot != NULL && (last_sep == NULL || dot > last_sep);
+}
+#endif
+
 char *
 path_read_file(const char *path)
 {
@@ -111,4 +141,30 @@ path_default_binary(const char *source_path)
 #else
     return path_replace_extension(source_path, "");
 #endif
+}
+
+char *
+path_resolve_runnable_binary(const char *path)
+{
+    if (path == NULL)
+        return NULL;
+
+    if (path_file_exists(path))
+        return pergyra_strdup(path);
+
+#ifdef _WIN32
+    if (!path_has_extension(path)) {
+        size_t len = strlen(path);
+        char *with_ext = malloc(len + 5);
+        if (with_ext == NULL)
+            return NULL;
+        memcpy(with_ext, path, len);
+        memcpy(with_ext + len, ".exe", 5);
+        if (path_file_exists(with_ext))
+            return with_ext;
+        free(with_ext);
+    }
+#endif
+
+    return pergyra_strdup(path);
 }

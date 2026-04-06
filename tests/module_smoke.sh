@@ -3,6 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
+    PGY="${PGY}.exe"
+fi
 
 if [[ ! -x "$PGY" ]]; then
     echo "missing compiler binary: $PGY" >&2
@@ -157,6 +160,81 @@ func Main() -> Void {
 }
 EOF
 run_ok "intent_failure_result" "$WORK_DIR/intent_failure_result/main.pgy" "false" "true"
+
+mkdir -p "$WORK_DIR/nested_intent_orchestration"
+cat > "$WORK_DIR/nested_intent_orchestration/main.pgy" <<'EOF'
+subject Driver {
+    let reserved: Int;
+    let charged: Int;
+
+    action Reserve(self) -> Void {
+        reserved = reserved + 1;
+    }
+
+    action Charge(self) -> Void {
+        charged = charged + 1;
+    }
+}
+
+zone OrderZone {
+    subject slot driver: Driver
+}
+
+zone PaymentZone {
+    subject slot driver: Driver
+}
+
+intent Reserve(order: OrderZone, driver: Driver) {
+    step reserve {
+        where: OrderZone;
+        using: order;
+        who: driver;
+        on: driver.Reserve();
+        post: order.driver.reserved > 0;
+    }
+
+    success: order.driver.reserved > 0;
+    failure: false;
+}
+
+intent Charge(payment: PaymentZone, driver: Driver) {
+    step charge {
+        where: PaymentZone;
+        using: payment;
+        who: driver;
+        on: driver.Charge();
+        post: payment.driver.charged > 0;
+    }
+
+    success: payment.driver.charged > 0;
+    failure: false;
+}
+
+intent Fulfill(order: OrderZone, payment: PaymentZone, driver: Driver) {
+    step reserve {
+        intent: Reserve(order, driver);
+        expect: order.driver.reserved > 0;
+    }
+
+    step charge {
+        intent: Charge(payment, driver);
+        expect: payment.driver.charged > 0;
+    }
+
+    success: payment.driver.charged > 0;
+    failure: false;
+}
+
+func Main() -> Void {
+    let driver = Driver(0, 0);
+    let order = OrderZone(driver);
+    let payment = PaymentZone(driver);
+    Log(Fulfill(order, payment, driver));
+    Log(driver.reserved);
+    Log(driver.charged);
+}
+EOF
+run_ok "nested_intent_orchestration" "$WORK_DIR/nested_intent_orchestration/main.pgy" "true" "1" "1"
 
 mkdir -p "$WORK_DIR/parallel_ref_slot_conflict"
 cat > "$WORK_DIR/parallel_ref_slot_conflict/main.pgy" <<'EOF'

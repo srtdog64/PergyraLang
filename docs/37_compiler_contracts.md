@@ -85,14 +85,35 @@
 - intent participant / step dependency graph
 - authority declaration consistency
 - projection declaration consistency
+- slot-contract graph
+
+DIR의 slot-contract graph는 최소한 아래 네 계약을 분리해야 한다.
+
+- `party slot`
+  - 협력/역할 조합 계약
+  - ability 요구를 통해 role 조합의 최소 조건을 선언한다
+- `zone slot`
+  - state/authority/lifecycle 경계 안의 host slot 계약
+  - subject/vessel/class host를 zone execution boundary에 배치한다
+- `projection slot`
+  - `object/tobject` projection target 계약
+  - source slot과 `refresh/publish/bind` declaration을 통해 읽기 모델 vs 경계 전송 모델을 구분한다
+- `authority slot`
+  - zone 안에서 어떤 subject slot이 어떤 ability를 통해 mutation authority를 가지는지 선언한다
 
 최소 edge 예시:
 
 - `role -> for type`
 - `role -> impl ability`
+- `party -> party slot`
 - `party slot -> required ability`
 - `world -> zone`
-- `zone authority -> ability`
+- `zone -> zone slot`
+- `owner(relation/effect/zone) -> projection slot`
+- `projection slot -> source slot`
+- `zone -> authority slot`
+- `authority slot -> subject slot`
+- `authority slot -> ability`
 - `intent participant -> bound type`
 - `intent step -> zone`
 - `intent step -> who actor alias`
@@ -237,6 +258,9 @@ MIR로 이월하는 것:
 - HIR phi skeleton을 MIR phi node로 materialize
 - HIR local def를 `def` instruction + block-local SSA rename 형태로 materialize
 - branch/return/resource-op/cleanup instruction use를 versioned name으로 기록
+- `resource-op` / `cleanup` instruction은 matching `RIR` op의 `slot_anchor`를 그대로 유지
+- `def` / `phi`와 routine-level value summary도 base local 이름을 `slot_anchor`로 유지
+- validator는 cleanup/resource instruction과 value summary가 slot anchor를 잃는 것을 허용하지 않는다
 - block별 `ssa_entry_versions` / `ssa_exit_versions`를 저장해 phi incoming과 use edge가 predecessor exit map을 직접 참조한다
 - reachable intent block마다 cleanup successor edge를 두고, cleanup convergence root 아래에 rollback block과 invalidation block을 분리한다
 - routine-level value summary를 만들어 def/use/live/cleanup 도달 여부를 후속 pass가 재사용할 수 있게 한다

@@ -46,6 +46,61 @@ lower_dir_from_source(const char *source)
     return dir;
 }
 
+static bool
+dir_has_node(const DIRProgram *dir, DIRNodeKind kind, const char *name)
+{
+    if (dir == NULL || name == NULL)
+        return false;
+
+    for (size_t i = 0; i < dir->node_count; i++) {
+        if (dir->nodes[i].kind == kind
+            && dir->nodes[i].name != NULL
+            && strcmp(dir->nodes[i].name, name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+dir_has_edge(const DIRProgram *dir,
+             DIREdgeKind kind,
+             size_t from_kind_filter,
+             size_t to_kind_filter,
+             const char *label,
+             const char *target_name)
+{
+    if (dir == NULL)
+        return false;
+
+    for (size_t i = 0; i < dir->edge_count; i++) {
+        const DIREdge *edge = &dir->edges[i];
+        if (edge->kind != kind)
+            continue;
+        if (from_kind_filter != SIZE_MAX
+            && dir->nodes[edge->from_node_id].kind != (DIRNodeKind)from_kind_filter)
+            continue;
+        if (to_kind_filter != SIZE_MAX) {
+            if (edge->to_node_id == SIZE_MAX)
+                continue;
+            if (dir->nodes[edge->to_node_id].kind != (DIRNodeKind)to_kind_filter)
+                continue;
+        }
+        if (label != NULL) {
+            if (edge->label == NULL || strcmp(edge->label, label) != 0)
+                continue;
+        }
+        if (target_name != NULL) {
+            if (edge->target_name == NULL || strcmp(edge->target_name, target_name) != 0)
+                continue;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 static void
 test_dir_lowering(void)
 {
@@ -316,6 +371,185 @@ test_dir_lowering(void)
             }
         }
         EXPECT(dir != NULL && dir_validate(dir, NULL) && has_missing);
+        dir_destroy(dir);
+    }
+
+    TEST("DIR materializes party, zone, projection, and authority slot contracts");
+    {
+        const char *src =
+            "subject Buyer { let total: Int; }\n"
+            "object ReceiptView { let total: Int; }\n"
+            "tobject ReceiptExport { let total: Int; }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "party ShopParty {\n"
+            "    role slot seller: Payable\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot preview: ReceiptView\n"
+            "    tobject slot receipt_out: ReceiptExport\n"
+            "    authority buyer requires Payable\n"
+            "    refresh preview from buyer by buyer;\n"
+            "    publish receipt_out from buyer by buyer;\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        EXPECT(dir != NULL
+               && dir_validate(dir, NULL)
+               && dir_has_node(dir, DIR_NODE_PARTY_SLOT, "ShopParty.seller")
+               && dir_has_node(dir, DIR_NODE_ZONE_SLOT, "PaymentZone.buyer")
+               && dir_has_node(dir, DIR_NODE_PROJECTION_SLOT, "PaymentZone.preview")
+               && dir_has_node(dir, DIR_NODE_PROJECTION_SLOT, "PaymentZone.receipt_out")
+               && dir_has_node(dir, DIR_NODE_AUTHORITY_SLOT, "PaymentZone.buyer")
+               && dir_has_edge(dir,
+                               DIR_EDGE_PARTY_HAS_SLOT,
+                               DIR_NODE_PARTY,
+                               DIR_NODE_PARTY_SLOT,
+                               "seller",
+                               "ShopParty.seller")
+               && dir_has_edge(dir,
+                               DIR_EDGE_ZONE_HAS_SLOT,
+                               DIR_NODE_ZONE,
+                               DIR_NODE_ZONE_SLOT,
+                               "buyer",
+                               "PaymentZone.buyer")
+               && dir_has_edge(dir,
+                               DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                               DIR_NODE_ZONE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               "preview",
+                               "PaymentZone.preview")
+               && dir_has_edge(dir,
+                               DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                               DIR_NODE_ZONE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               "receipt_out",
+                               "PaymentZone.receipt_out")
+               && dir_has_edge(dir,
+                               DIR_EDGE_ZONE_HAS_AUTHORITY_SLOT,
+                               DIR_NODE_ZONE,
+                               DIR_NODE_AUTHORITY_SLOT,
+                               "buyer",
+                               "PaymentZone.buyer"));
+        dir_destroy(dir);
+    }
+
+    TEST("DIR projection slot contracts carry type and source edges");
+    {
+        const char *src =
+            "subject Buyer { let total: Int; }\n"
+            "object ReceiptView { let total: Int; }\n"
+            "tobject ReceiptExport { let total: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot preview: ReceiptView\n"
+            "    tobject slot receipt_out: ReceiptExport\n"
+            "    refresh preview from buyer by buyer;\n"
+            "    publish receipt_out from preview by buyer;\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        EXPECT(dir != NULL
+               && dir_validate(dir, NULL)
+               && dir_has_edge(dir,
+                               DIR_EDGE_PROJECTION_SLOT_TYPE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               DIR_NODE_TYPE,
+                               "preview",
+                               "ReceiptView")
+               && dir_has_edge(dir,
+                               DIR_EDGE_PROJECTION_SLOT_TYPE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               DIR_NODE_TYPE,
+                               "receipt_out",
+                               "ReceiptExport")
+               && dir_has_edge(dir,
+                               DIR_EDGE_PROJECTION_SLOT_SOURCE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               DIR_NODE_ZONE_SLOT,
+                               "refresh",
+                               "buyer")
+               && dir_has_edge(dir,
+                               DIR_EDGE_PROJECTION_SLOT_SOURCE,
+                               DIR_NODE_PROJECTION_SLOT,
+                               DIR_NODE_PROJECTION_SLOT,
+                               "publish",
+                               "preview"));
+        dir_destroy(dir);
+    }
+
+    TEST("DIR authority slot contracts bind subject slot and abilities");
+    {
+        const char *src =
+            "subject Buyer { let total: Int; }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "ability Refundable { func Refund() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "    impl ability Refundable { func Refund() -> Void { return; } }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    authority buyer requires Payable, Refundable\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        EXPECT(dir != NULL
+               && dir_validate(dir, NULL)
+               && dir_has_edge(dir,
+                               DIR_EDGE_AUTHORITY_SLOT_SUBJECT,
+                               DIR_NODE_AUTHORITY_SLOT,
+                               DIR_NODE_ZONE_SLOT,
+                               "buyer",
+                               "buyer")
+               && dir_has_edge(dir,
+                               DIR_EDGE_ZONE_AUTHORITY_ABILITY,
+                               DIR_NODE_AUTHORITY_SLOT,
+                               DIR_NODE_ABILITY,
+                               "buyer",
+                               "Payable")
+               && dir_has_edge(dir,
+                               DIR_EDGE_ZONE_AUTHORITY_ABILITY,
+                               DIR_NODE_AUTHORITY_SLOT,
+                               DIR_NODE_ABILITY,
+                               "buyer",
+                               "Refundable"));
+        dir_destroy(dir);
+    }
+
+    TEST("DIR relation and effect declarations keep projection contracts distinct");
+    {
+        const char *src =
+            "subject Buyer { let total: Int; }\n"
+            "object ReceiptView { let total: Int; }\n"
+            "tobject ReceiptExport { let total: Int; }\n"
+            "relation CartLink between subject, subject {\n"
+            "    subject slot owner: Buyer\n"
+            "    object slot summary: ReceiptView\n"
+            "    refresh summary from owner;\n"
+            "}\n"
+            "effect PaymentFx {\n"
+            "    subject slot bearer: Buyer\n"
+            "    tobject slot receipt_out: ReceiptExport\n"
+            "    publish receipt_out from bearer;\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        EXPECT(dir != NULL
+               && dir_validate(dir, NULL)
+               && dir_has_node(dir, DIR_NODE_PROJECTION_SLOT, "CartLink.summary")
+               && dir_has_node(dir, DIR_NODE_PROJECTION_SLOT, "PaymentFx.receipt_out")
+               && dir_has_edge(dir,
+                               DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                               DIR_NODE_RELATION,
+                               DIR_NODE_PROJECTION_SLOT,
+                               "summary",
+                               "CartLink.summary")
+               && dir_has_edge(dir,
+                               DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
+                               DIR_NODE_EFFECT,
+                               DIR_NODE_PROJECTION_SLOT,
+                               "receipt_out",
+                               "PaymentFx.receipt_out"));
         dir_destroy(dir);
     }
 }

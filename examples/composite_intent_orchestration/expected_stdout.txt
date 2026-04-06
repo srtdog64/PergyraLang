@@ -1,0 +1,11 @@
+[Intent] ProcessOrder=true
+[Runtime] name=ProcessOrder steps=1 failed=false
+[CanonicalClerk] reserved=1 charged=1 shipped=1
+[OrderZone] reserved=1
+[PaymentZone] charged=1
+[ShippingZone] shipped=1
+[History] count=1
+[Step] fulfill phase=ok actor= ok=true
+[Trace] [intent] enter ProcessOrder
+[step] begin fulfill @ <zone>
+[step] ok fulfill

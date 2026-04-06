@@ -413,6 +413,7 @@ typedef struct {
 
 typedef struct {
     int32_t handle;
+    int32_t parent_handle;
     char   *name;
     void  **subjects;
     int32_t subject_count;
@@ -429,6 +430,8 @@ typedef struct {
 
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
+static _Thread_local int32_t pgy_intent_current_stack[PGY_INTENT_ACTIVE_MAX];
+static _Thread_local int32_t pgy_intent_current_depth = 0;
 static int32_t pgy_intent_next_handle = 1;
 static int32_t pgy_intent_next_trace_id = 1;
 static char *pgy_intent_last_trace = NULL;
@@ -525,6 +528,53 @@ pgy_intent_find_active_entry_export(int32_t handle)
     return NULL;
 }
 
+static int32_t
+pgy_intent_current_handle_export(void)
+{
+    if (pgy_intent_current_depth <= 0)
+        return 0;
+    return pgy_intent_current_stack[pgy_intent_current_depth - 1];
+}
+
+static bool
+pgy_intent_handle_is_current_ancestor_export(int32_t handle)
+{
+    int32_t cursor = pgy_intent_current_handle_export();
+
+    while (cursor != 0) {
+        PgyIntentActiveEntry *entry;
+
+        if (cursor == handle)
+            return true;
+        entry = pgy_intent_find_active_entry_export(cursor);
+        if (entry == NULL || entry->parent_handle == cursor)
+            break;
+        cursor = entry->parent_handle;
+    }
+    return false;
+}
+
+static void
+pgy_intent_push_current_handle_export(int32_t handle)
+{
+    if (handle == 0 || pgy_intent_current_depth >= PGY_INTENT_ACTIVE_MAX)
+        return;
+    pgy_intent_current_stack[pgy_intent_current_depth++] = handle;
+}
+
+static void
+pgy_intent_pop_current_handle_export(int32_t handle)
+{
+    for (int32_t i = pgy_intent_current_depth - 1; i >= 0; i--) {
+        if (pgy_intent_current_stack[i] != handle)
+            continue;
+        for (int32_t j = i; j + 1 < pgy_intent_current_depth; j++)
+            pgy_intent_current_stack[j] = pgy_intent_current_stack[j + 1];
+        pgy_intent_current_depth--;
+        return;
+    }
+}
+
 static bool
 pgy_intent_subjects_overlap_export(void **lhs, int32_t lhs_count,
                                    void **rhs, int32_t rhs_count)
@@ -548,9 +598,11 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
 {
     int free_index = -1;
     int32_t handle = 0;
+    int32_t parent_handle = 0;
     void **subject_copy = NULL;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
+    parent_handle = pgy_intent_current_handle_export();
 
     for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
         PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
@@ -558,6 +610,8 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
             continue;
         if (!pgy_intent_subjects_overlap_export(entry->subjects, entry->subject_count,
                                                 subjects, subject_count))
+            continue;
+        if (pgy_intent_handle_is_current_ancestor_export(entry->handle))
             continue;
         if (entry->is_concurrent && is_concurrent)
             continue;
@@ -590,6 +644,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
 
     handle = pgy_intent_next_handle++;
     pgy_intent_active_registry[free_index].handle = handle;
+    pgy_intent_active_registry[free_index].parent_handle = parent_handle;
     pgy_intent_active_registry[free_index].name = pgy_runtime_strdup_export(name);
     pgy_intent_active_registry[free_index].subjects = subject_copy;
     pgy_intent_active_registry[free_index].subject_count = subject_count;
@@ -607,6 +662,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
             name != NULL ? name : "<intent>");
         pgy_intent_append_line_export(&pgy_intent_active_registry[free_index].trace, line);
     }
+    pgy_intent_push_current_handle_export(handle);
 
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return handle;
@@ -1036,6 +1092,7 @@ pgy_intent_exit_export(int32_t handle)
     if (handle == 0)
         return;
 
+    pgy_intent_pop_current_handle_export(handle);
     pthread_mutex_lock(&pgy_intent_registry_mutex);
 
     for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
@@ -1099,6 +1156,7 @@ pgy_intent_exit_export(int32_t handle)
             pgy_intent_history_step_clear_export(&entry->steps[j]);
         }
         entry->handle = 0;
+        entry->parent_handle = 0;
         entry->name = NULL;
         entry->subjects = NULL;
         entry->subject_count = 0;

@@ -931,6 +931,11 @@ driver_run_pipeline(const DriverFlags *flags)
                 hir_error != NULL ? hir_error : "invalid RIR");
         goto cleanup;
     }
+    if (!rir_validate_against_dir(rir, dir, &hir_error)) {
+        fprintf(stderr, "pgy: RIR/DIR validation failed: %s\n",
+                hir_error != NULL ? hir_error : "invalid RIR/DIR contract");
+        goto cleanup;
+    }
 
     mir = mir_lower(hir, rir, &hir_error);
     if (mir == NULL) {
