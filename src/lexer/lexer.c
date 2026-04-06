@@ -308,7 +308,7 @@ static Token scan_number(Lexer* lexer) {
 /* Scan string literal */
 static Token scan_string(Lexer* lexer) {
     const char* start = lexer->current - 1;
-    
+
     while (!is_at_end(lexer)) {
         char c = peek(lexer);
 
@@ -324,15 +324,45 @@ static Token scan_string(Lexer* lexer) {
 
         advance(lexer);
     }
-    
+
     if (is_at_end(lexer)) {
         return error_token(lexer, "Unterminated string");
     }
-    
+
     advance(lexer); // closing "
-    
+
     size_t length = lexer->current - start;
     return make_token(lexer, TOKEN_STRING, start, length);
+}
+
+/* Scan interpolated string: f"Hello {name}" */
+static Token
+scan_interpolated_string(Lexer* lexer, const char* start)
+{
+    while (!is_at_end(lexer)) {
+        char c = peek(lexer);
+
+        if (c == '\\') {
+            advance(lexer);
+            if (!is_at_end(lexer))
+                advance(lexer);
+            continue;
+        }
+
+        if (c == '"')
+            break;
+
+        advance(lexer);
+    }
+
+    if (is_at_end(lexer)) {
+        return error_token(lexer, "Unterminated interpolated string");
+    }
+
+    advance(lexer); // closing "
+
+    size_t length = lexer->current - start;
+    return make_token(lexer, TOKEN_INTERPOLATED_STRING, start, length);
 }
 
 /* Get next token */
@@ -345,9 +375,15 @@ Token lexer_next_token(Lexer* lexer) {
     
     const char* start = lexer->current;
     char c = advance(lexer);
-    
+
     // Identifiers and keywords
     if (is_alpha(c)) {
+        // Check for interpolated string: f"..."
+        if (c == 'f' && !is_at_end(lexer) && peek(lexer) == '"') {
+            advance(lexer); // consume the "
+            const char* start = lexer->current - 1; // point to "
+            return scan_interpolated_string(lexer, start);
+        }
         return scan_identifier(lexer);
     }
     
@@ -569,6 +605,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_IDENTIFIER: return "IDENTIFIER";
         case TOKEN_NUMBER: return "NUMBER";
         case TOKEN_STRING: return "STRING";
+        case TOKEN_INTERPOLATED_STRING: return "INTERPOLATED_STRING";
         case TOKEN_DOC_COMMENT: return "DOC_COMMENT";
         case TOKEN_EOF: return "EOF";
         case TOKEN_ERROR: return "ERROR";

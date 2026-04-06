@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "transpiler.h"
 #include "../common/string_compat.h"
@@ -68,6 +69,22 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 }
 
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
+static const ASTNode *transpiler_decl_node_for_routine(const MIRRoutine *routine);
+#define TRANSPILE_SSA_MAP_CAPACITY 256
+#define TRANSPILE_SSA_NAME_BUCKETS 1024
+
+typedef struct
+{
+    bool in_use;
+    const char *base_name;
+    const char *versioned_name;
+} TranspilerSSANameBucket;
+
+typedef struct
+{
+    TranspilerSSANameBucket buckets[TRANSPILE_SSA_NAME_BUCKETS];
+} TranspilerSSANameMap;
+
 static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
                                                       const ASTNode *func_decl);
 static const MIRRoutine *transpiler_find_mir_intent(const TranspilerCtx *ctx,
@@ -85,9 +102,30 @@ static const char *transpiler_infer_local_type_name_from_expr(const ASTNode *fun
                                                               ASTNode *expr);
 static char *emit_expression_with_ssa_map(ASTNode *node,
                                           TranspilerCtx *ctx,
-                                          const char **base_names,
-                                          const char **versioned_names,
-                                          size_t map_count);
+                                          const TranspilerSSANameMap *ssa_map);
+static bool transpiler_collect_ssa_name_entries(const char **versioned_values,
+                                               size_t value_count,
+                                               const char **base_names,
+                                               const char **versioned_names,
+                                               size_t max_entries);
+static void transpiler_free_ssa_name_entries(const char **base_names,
+                                            size_t entry_count);
+static bool transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
+                                      const char **base_names,
+                                      const char **versioned_names,
+                                      size_t map_count);
+static const char *transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
+                                              const char *base_name);
+static bool transpiler_validate_mir_emission_contract(const MIRRoutine *routine,
+                                                     const ASTNode *decl,
+                                                     bool require_cleanup,
+                                                     bool require_cleanup_blocks,
+                                                     char *reason,
+                                                     size_t reason_cap);
+static bool transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
+                                                        bool require_non_cleanup,
+                                                        char *reason,
+                                                        size_t reason_cap);
 static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
                                            int indent,
                                            const MIRBasicBlock *pred_block,
@@ -108,7 +146,7 @@ static void transpiler_emit_mir_resource_hook(CodeBuf *out,
                                               const MIRInstruction *inst,
                                               const char *handle_expr,
                                               bool cleanup_hook);
-static void emit_func_decl_from_mir_named(ASTNode *node,
+static bool emit_func_decl_from_mir_named(ASTNode *node,
                                           const MIRRoutine *mir_routine,
                                           const char *emitted_name,
                                           CodeBuf *buf,
@@ -844,13 +882,22 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
 static const HIRBasicBlock *
 transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine, size_t block_id)
 {
+    const MIRBasicBlock *mir_block;
+    size_t hir_block_id;
+
     if (mir_routine == NULL || mir_routine->hir_routine == NULL
         || !mir_routine->hir_routine->has_cfg
         || block_id >= mir_routine->block_count) {
         return NULL;
     }
-    if (block_id >= mir_routine->hir_routine->cfg.block_count)
+    mir_block = &mir_routine->blocks[block_id];
+    hir_block_id = mir_block->source_hir_block_id;
+
+    if (hir_block_id != SIZE_MAX && hir_block_id < mir_routine->hir_routine->cfg.block_count)
+        return &mir_routine->hir_routine->cfg.blocks[hir_block_id];
+    if (block_id >= mir_routine->hir_routine->cfg.block_count) {
         return NULL;
+    }
     return &mir_routine->hir_routine->cfg.blocks[block_id];
 }
 

@@ -50,6 +50,102 @@ parser_is_lambda_start(Parser *parser)
     }
 }
 
+/* Forward declaration */
+static ASTNode *parse_interpolated_expression_fragment(const char *expr_src);
+
+/* Parse interpolation body: handles both f"{x}" and "${x}" syntax */
+static ASTNode *
+parse_interpolation_body(const char *raw, bool is_fstring)
+{
+    size_t len = strlen(raw);
+    const char *s = raw + 1;              /* skip opening " */
+    const char *end = raw + len - 1;      /* before closing " */
+    ASTNode *result = NULL;
+
+    while (s < end) {
+        const char *interp = NULL;
+        int delim_len = 0;
+
+        if (is_fstring) {
+            /* f"..." uses {expr} */
+            interp = strchr(s, '{');
+            /* Skip escaped { */
+            while (interp != NULL && interp > s && *(interp - 1) == '\\') {
+                interp = strchr(interp + 1, '{');
+            }
+            delim_len = 1;
+        } else {
+            /* legacy "${expr}" */
+            interp = strstr(s, "${");
+            delim_len = 2;
+        }
+
+        if (interp == NULL || interp >= end) {
+            /* Remaining literal part */
+            if (s < end) {
+                size_t part_len = end - s;
+                char *part = malloc(part_len + 3);
+                part[0] = '"';
+                memcpy(part + 1, s, part_len);
+                part[part_len + 1] = '"';
+                part[part_len + 2] = '\0';
+                ASTNode *str_node = ast_create_string(part);
+                free(part);
+                if (result == NULL) result = str_node;
+                else {
+                    Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+                    result = ast_create_binary(result, plus_tok, str_node);
+                }
+            }
+            break;
+        }
+
+        /* Literal part before interpolation */
+        if (interp > s) {
+            size_t part_len = interp - s;
+            char *part = malloc(part_len + 3);
+            part[0] = '"';
+            memcpy(part + 1, s, part_len);
+            part[part_len + 1] = '"';
+            part[part_len + 2] = '\0';
+            ASTNode *str_node = ast_create_string(part);
+            free(part);
+            if (result == NULL) result = str_node;
+            else {
+                Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+                result = ast_create_binary(result, plus_tok, str_node);
+            }
+        }
+
+        /* Extract expression between { and } or ${ and } */
+        const char *expr_start = interp + delim_len;
+        const char *expr_end = strchr(expr_start, '}');
+        if (expr_end == NULL || expr_end >= end) break;
+
+        size_t expr_len = expr_end - expr_start;
+        char *expr_str = malloc(expr_len + 1);
+        memcpy(expr_str, expr_start, expr_len);
+        expr_str[expr_len] = '\0';
+
+        ASTNode *inner_expr =
+            parse_interpolated_expression_fragment(expr_str);
+        ASTNode *to_string = ast_create_call(
+            ast_create_identifier("ToString"));
+        ast_add_argument(to_string, inner_expr);
+        free(expr_str);
+
+        if (result == NULL) result = to_string;
+        else {
+            Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
+            result = ast_create_binary(result, plus_tok, to_string);
+        }
+
+        s = expr_end + 1;
+    }
+
+    return result != NULL ? result : ast_create_string(raw);
+}
+
 static ASTNode *
 parse_interpolated_expression_fragment(const char *expr_src)
 {
@@ -384,82 +480,15 @@ ASTNode* parser_parse_primary(Parser* parser) {
         const char *raw = parser->previous_token.text;
         /* Check for string interpolation: "...${expr}..." */
         if (raw != NULL && strstr(raw, "${") != NULL) {
-            /* Parse interpolated string:
-             * "hello ${x} world" → StringConcat(StringConcat("hello ", ToString(x)), " world")
-             * We scan the string content (skip leading/trailing quotes) */
-            size_t len = strlen(raw);
-            const char *s = raw + 1;              /* skip opening " */
-            const char *end = raw + len - 1;      /* before closing " */
-            ASTNode *result = NULL;
-
-            while (s < end) {
-                const char *interp = strstr(s, "${");
-                if (interp == NULL || interp >= end) {
-                    /* Remaining literal part */
-                    if (s < end) {
-                        size_t part_len = end - s;
-                        char *part = malloc(part_len + 3);
-                        part[0] = '"';
-                        memcpy(part + 1, s, part_len);
-                        part[part_len + 1] = '"';
-                        part[part_len + 2] = '\0';
-                        ASTNode *str_node = ast_create_string(part);
-                        free(part);
-                        if (result == NULL) result = str_node;
-                        else {
-                            Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
-                            result = ast_create_binary(result, plus_tok, str_node);
-                        }
-                    }
-                    break;
-                }
-
-                /* Literal part before ${ */
-                if (interp > s) {
-                    size_t part_len = interp - s;
-                    char *part = malloc(part_len + 3);
-                    part[0] = '"';
-                    memcpy(part + 1, s, part_len);
-                    part[part_len + 1] = '"';
-                    part[part_len + 2] = '\0';
-                    ASTNode *str_node = ast_create_string(part);
-                    free(part);
-                    if (result == NULL) result = str_node;
-                    else {
-                        Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
-                        result = ast_create_binary(result, plus_tok, str_node);
-                    }
-                }
-
-                /* Extract expression between ${ and } */
-                const char *expr_start = interp + 2;
-                const char *expr_end = strchr(expr_start, '}');
-                if (expr_end == NULL || expr_end >= end) break;
-
-                size_t expr_len = expr_end - expr_start;
-                char *expr_str = malloc(expr_len + 1);
-                memcpy(expr_str, expr_start, expr_len);
-                expr_str[expr_len] = '\0';
-
-                ASTNode *inner_expr =
-                    parse_interpolated_expression_fragment(expr_str);
-                ASTNode *to_string = ast_create_call(
-                    ast_create_identifier("ToString"));
-                ast_add_argument(to_string, inner_expr);
-                free(expr_str);
-
-                if (result == NULL) result = to_string;
-                else {
-                    Token plus_tok = { .type = TOKEN_PLUS, .text = "+", .length = 1 };
-                    result = ast_create_binary(result, plus_tok, to_string);
-                }
-
-                s = expr_end + 1;
-            }
-
-            return result != NULL ? result : ast_create_string(raw);
+            return parse_interpolation_body(raw, false);
         }
         return ast_create_string(raw);
+    }
+
+    // 보간 문자열: f"Hello {name}"
+    if (parser_match(parser, TOKEN_INTERPOLATED_STRING)) {
+        const char *raw = parser->previous_token.text;
+        return parse_interpolation_body(raw, true);
     }
 
     // 식별자 또는 슬롯 연산

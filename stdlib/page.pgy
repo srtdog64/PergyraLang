@@ -5,12 +5,12 @@ class PageRoute
     
     func Description(self) -> String
     {
-        return title + " (" + path + ")";
+        return f"{title} ({path})";
     }
     
     func Format(self) -> String
     {
-        return "[Route] " + title + " -> " + path;
+        return f"[Route] {title} -> {path}";
     }
 }
 
@@ -21,12 +21,12 @@ class PageAction
     
     func Dispatch(self, payload: String) -> String
     {
-        return "[Action] " + name + " -> " + endpoint + " payload=" + payload;
+        return f"[Action] {name} -> {endpoint} payload={payload}";
     }
     
     func Format(self) -> String
     {
-        return "[Action] " + name + " -> " + endpoint;
+        return f"[Action] {name} -> {endpoint}";
     }
 }
 
@@ -37,26 +37,26 @@ class PageMessage
     
     func IsError(self) -> Bool
     {
-        return self.level == "error" || self.level == "critical";
+        return level == "error" || level == "critical";
     }
     
     func IsSuccess(self) -> Bool
     {
-        return self.level == "success" || self.level == "info";
+        return level == "success" || level == "info";
     }
     
     func Format(self) -> String
     {
-        return "[" + level + "] " + body;
+        return f"[{level}] {body}";
     }
 }
 
 func MountPage(route: PageRoute) -> String {
-    return "[Page] mounted: " + route.Description();
+    return f"[Page] mounted: {route.Description()}";
 }
 
 func NavigatePage(route: PageRoute) -> String {
-    return "[Page] navigate: " + route.Description();
+    return f"[Page] navigate: {route.Description()}";
 }
 
 func BindAction(action: PageAction) -> String {
@@ -68,5 +68,5 @@ func RenderMessage(message: PageMessage) -> String {
 }
 
 func RenderSection(title: String, body: String) -> String {
-    return "== " + title + " ==\n" + body;
+    return f"== {title} ==\n{body}";
 }

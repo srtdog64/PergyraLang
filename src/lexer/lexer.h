@@ -163,7 +163,8 @@ typedef enum
     /* Literals */
     TOKEN_NUMBER,       /* Combined int/float */
     TOKEN_STRING,
-    
+    TOKEN_INTERPOLATED_STRING,  /* f"Hello {name}" */
+
     /* Identifiers */
     TOKEN_IDENTIFIER,
     

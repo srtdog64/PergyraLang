@@ -210,6 +210,15 @@ mir_validate(const MIRProgram *mir, char **error_message)
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
+        const HIRRoutine *hir_routine = routine->hir_routine;
+        bool *hir_block_seen = NULL;
+        const size_t cfg_block_count = (hir_routine != NULL && hir_routine->has_cfg)
+                                        ? hir_routine->cfg.block_count
+                                        : 0;
+        const MIRBasicBlock *cleanup_block = NULL;
+        const MIRBasicBlock *rollback_block = NULL;
+        const MIRBasicBlock *invalidation_block = NULL;
+
         if (routine->block_count == 0 || routine->entry_block >= routine->block_count) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -250,6 +259,15 @@ mir_validate(const MIRProgram *mir, char **error_message)
             }
             return false;
         }
+        if (cfg_block_count > 0) {
+            hir_block_seen = calloc(cfg_block_count, sizeof(bool));
+            if (hir_block_seen == NULL) {
+                if (error_message != NULL) {
+                    *error_message = pergyra_strdup("out of memory");
+                }
+                return false;
+            }
+        }
         if (routine->has_rollback_block && !routine->has_cleanup_block) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -265,6 +283,75 @@ mir_validate(const MIRProgram *mir, char **error_message)
                     routine->name != NULL ? routine->name : "(anonymous)");
             }
             return false;
+        }
+        if (routine->has_cleanup_block && routine->cleanup_block >= routine->block_count) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block index %zu is out of range",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->cleanup_block);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_rollback_block && routine->rollback_block >= routine->block_count) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' rollback block index %zu is out of range",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->rollback_block);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_invalidation_block && routine->invalidation_block >= routine->block_count) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' invalidation block index %zu is out of range",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->invalidation_block);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+        if (routine->has_cleanup_block) {
+            cleanup_block = &routine->blocks[routine->cleanup_block];
+            if (cleanup_block->is_cleanup == false) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' cleanup block %zu is not marked cleanup",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        routine->cleanup_block);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (routine->has_rollback_block) {
+            rollback_block = &routine->blocks[routine->rollback_block];
+            if (rollback_block->is_cleanup == false) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' rollback block %zu is not marked cleanup",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        routine->rollback_block);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (routine->has_invalidation_block) {
+            invalidation_block = &routine->blocks[routine->invalidation_block];
+            if (invalidation_block->is_cleanup == false) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' invalidation block %zu is not marked cleanup",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        routine->invalidation_block);
+                }
+                free(hir_block_seen);
+                return false;
+            }
         }
         for (size_t j = 0; j < routine->value_summary_count; j++) {
             const MIRValueSummary *summary = &routine->value_summaries[j];
@@ -282,6 +369,250 @@ mir_validate(const MIRProgram *mir, char **error_message)
             const MIRBasicBlock *block = &routine->blocks[j];
             if (!mir_validate_block_liveness_sets(routine, block, j, error_message))
                 return false;
+            if (cfg_block_count > 0 && !block->is_cleanup) {
+                if (block->source_hir_block_id == SIZE_MAX
+                    || block->source_hir_block_id >= cfg_block_count) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] uses invalid source_hir_block_id",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+                if (block->source_hir_block_id < cfg_block_count) {
+                    if (hir_block_seen[block->source_hir_block_id]) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' source_hir_block_id collision on block[%zu] -> hir[%zu]",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j,
+                                block->source_hir_block_id);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                    hir_block_seen[block->source_hir_block_id] = true;
+                }
+            }
+            if (block->is_reachable && !block->is_cleanup) {
+                if (routine->has_cleanup_block && !block->has_cleanup_succ) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] missing cleanup edge from reachable non-cleanup block",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+                if (routine->has_cleanup_block) {
+                    if (block->cleanup_succ >= routine->block_count
+                        || block->cleanup_succ != routine->cleanup_block) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] cleanup edge does not target cleanup block",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                } else if (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] has exceptional successor without cleanup root",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
+            if (!block->is_cleanup && block->has_rollback_succ && !routine->has_rollback_block) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has rollback successor but no rollback block",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (!block->is_cleanup && block->has_invalidation_succ && !routine->has_invalidation_block) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has invalidation successor but no invalidation block",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (!block->is_cleanup && block->is_reachable) {
+                bool seen_pred = false;
+                for (size_t pi = 0; pi < block->predecessor_count; pi++) {
+                    if (block->predecessors[pi] == j) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] contains self predecessor",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                    seen_pred = true;
+                    if (block->predecessors[pi] >= routine->block_count) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] has invalid predecessor %zu",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j,
+                                block->predecessors[pi]);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                }
+                if (block->predecessor_count > 0 && !seen_pred) {
+                    (void)0;
+                }
+            }
+            for (size_t pi = 0; pi < block->predecessor_count; pi++) {
+                for (size_t pj = pi + 1; pj < block->predecessor_count; pj++) {
+                    if (block->predecessors[pi] == block->predecessors[pj]) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] has duplicate predecessor %zu",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j,
+                                block->predecessors[pi]);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                }
+            }
+            if (block->has_succ_true && block->succ_true >= routine->block_count) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has invalid succ_true %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j,
+                        block->succ_true);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (block->has_succ_false && block->succ_false >= routine->block_count) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has invalid succ_false %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j,
+                        block->succ_false);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (block->has_rollback_succ && block->rollback_succ >= routine->block_count) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has invalid rollback successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j,
+                        block->rollback_succ);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (block->has_invalidation_succ && block->invalidation_succ >= routine->block_count) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] has invalid invalidation successor %zu",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j,
+                        block->invalidation_succ);
+                }
+                free(hir_block_seen);
+                return false;
+            }
+
+            if (routine->has_cleanup_block) {
+                if (block->has_rollback_succ) {
+                    if (routine->rollback_block == SIZE_MAX
+                        || block->rollback_succ != routine->rollback_block
+                        || !routine->has_rollback_block) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] rollback successor must target routine rollback block",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                }
+                if (block->has_invalidation_succ) {
+                    if (routine->invalidation_block == SIZE_MAX
+                        || block->invalidation_succ != routine->invalidation_block
+                        || !routine->has_invalidation_block) {
+                        if (error_message != NULL) {
+                            *error_message = mir_strdup_fmt(
+                                "MIR routine '%s' block[%zu] invalidation successor must target routine invalidation block",
+                                routine->name != NULL ? routine->name : "(anonymous)",
+                                j);
+                        }
+                        free(hir_block_seen);
+                        return false;
+                    }
+                }
+            }
+
+            if (block->has_succ_true) {
+                const MIRBasicBlock *succ_block = &routine->blocks[block->succ_true];
+                if (!mir_block_has_predecessor(succ_block, j)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] missing true-predecessor link to block[%zu]",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            block->succ_true);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
+            if (block->has_succ_false) {
+                const MIRBasicBlock *succ_block = &routine->blocks[block->succ_false];
+                if (!mir_block_has_predecessor(succ_block, j)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] missing false-predecessor link to block[%zu]",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            block->succ_false);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
+            if (block->has_cleanup_succ) {
+                const MIRBasicBlock *succ_block = &routine->blocks[block->cleanup_succ];
+                if (!mir_block_has_predecessor(succ_block, j)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] missing cleanup-predecessor link to block[%zu]",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            j,
+                            block->cleanup_succ);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
             for (size_t k = 0; k < block->instruction_count; k++) {
                 const MIRInstruction *inst = &block->instructions[k];
                 if (inst->kind == MIR_INST_PHI
@@ -328,6 +659,58 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 return false;
         }
         if (routine->has_cleanup_block) {
+            if (!cleanup_block->is_cleanup) {
+                free(hir_block_seen);
+                return false;
+            }
+            if (routine->has_rollback_block
+                && (!cleanup_block->has_rollback_succ
+                    || cleanup_block->rollback_succ != routine->rollback_block)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' cleanup block does not branch to rollback block",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (routine->has_invalidation_block
+                && (!cleanup_block->has_invalidation_succ
+                    || cleanup_block->invalidation_succ != routine->invalidation_block)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' cleanup block does not branch to invalidation block",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (routine->has_rollback_block && routine->has_invalidation_block) {
+            if (!rollback_block->has_cleanup_succ
+                || rollback_block->cleanup_succ != routine->invalidation_block
+                || !rollback_block->has_invalidation_succ
+                || rollback_block->invalidation_succ != routine->invalidation_block) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' rollback block does not converge to invalidation block",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                free(hir_block_seen);
+                return false;
+            }
+            if (routine->has_invalidation_block
+                && !invalidation_block->is_cleanup) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' invalidation block is not marked cleanup",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                }
+                free(hir_block_seen);
+                return false;
+            }
+        }
+        if (routine->has_cleanup_block) {
             const MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
             if (routine->has_rollback_block
                 && (!cleanup->has_rollback_succ || cleanup->rollback_succ != routine->rollback_block)) {
@@ -348,6 +731,7 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 return false;
             }
         }
+        free(hir_block_seen);
     }
 
     return true;
@@ -409,15 +793,45 @@ mir_dump(const MIRProgram *mir, FILE *out)
         }
         for (size_t j = 0; j < routine->block_count; j++) {
             const MIRBasicBlock *block = &routine->blocks[j];
-            fprintf(out,
-                    "    block[%02zu] reachable=%s cleanup=%s preds=%zu succT=%s succF=%s cleanupSucc=%s instructions=%zu defs=%zu uses=%zu liveIn=%zu liveOut=%zu\n",
-                    j,
-                    block->is_reachable ? "yes" : "no",
-                    block->is_cleanup ? "yes" : "no",
-                    block->predecessor_count,
-                    block->has_succ_true ? "yes" : "no",
-                    block->has_succ_false ? "yes" : "no",
-                    block->has_cleanup_succ ? "yes" : "no",
+        const char *label_name = NULL;
+        const ASTNode *source_stmt = NULL;
+        const HIRBasicBlock *source_hir_block = NULL;
+        char source_ast_loc[64] = "<none>";
+        char label[128];
+        bool has_source_stmt = false;
+        if (routine->name != NULL)
+            snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", routine->name, j);
+        else
+            snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", "(anonymous)", j);
+        if (routine->hir_routine != NULL && routine->hir_routine->has_cfg
+            && block->source_hir_block_id != SIZE_MAX
+            && block->source_hir_block_id < routine->hir_routine->cfg.block_count) {
+            source_hir_block = &routine->hir_routine->cfg.blocks[block->source_hir_block_id];
+            if (source_hir_block->statement_count > 0)
+                source_stmt = source_hir_block->statements[0];
+            else if (source_hir_block->terminator_condition != NULL)
+                source_stmt = source_hir_block->terminator_condition;
+            else if (source_hir_block->terminator_value != NULL)
+                source_stmt = source_hir_block->terminator_value;
+            if (source_stmt != NULL)
+                snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
+                    source_stmt->line, source_stmt->column);
+            has_source_stmt = true;
+        }
+        label_name = label;
+        fprintf(out,
+                "    block[%02zu] label=%s reachable=%s cleanup=%s "
+                "source-hir=%s source-ast=%s preds=%zu succT=%s succF=%s cleanupSucc=%s instructions=%zu defs=%zu uses=%zu liveIn=%zu liveOut=%zu\n",
+                j,
+                label_name,
+                block->is_reachable ? "yes" : "no",
+                block->is_cleanup ? "yes" : "no",
+                block->is_cleanup ? "<cleanup>" : (has_source_stmt ? "mapped" : "<none>"),
+                source_ast_loc,
+                block->predecessor_count,
+                block->has_succ_true ? "yes" : "no",
+                block->has_succ_false ? "yes" : "no",
+                block->has_cleanup_succ ? "yes" : "no",
                     block->instruction_count,
                     block->def_name_count,
                     block->use_name_count,

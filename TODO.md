@@ -97,14 +97,16 @@
   - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
 - [ ] **디스트럭처링** — `let (slot, token) = ClaimSecureSlot<Int>()` 등 패턴 기반 바인딩 확장
 - [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
-- [ ] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering. 현재 `"값은 " + ToString(x)` 장황함 해소
+- [x] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering
+  - 완료: lexer에서 `f"..."` → `TOKEN_INTERPOLATED_STRING`
+  - 완료: parser에서 `{expr}` 파싱, `ToString(expr)` + `+` concatenation으로 분해
+  - 완료: 기존 `"${expr}"` 레거시 문법도 호환 유지
 
 ### 에러 처리
 - [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환
   - 완료: 시맨틱 검증, C early-return lowering, LLVM `Result<T>` 레이아웃/unwrap/early-return lowering, `pipe_and_try.pgy` C/LLVM 실행 검증
 
 ### 편의 문법
-- [x] **문자열 보간** — `"값은 ${x}"` → `StringConcat(...)` 계열로 lowering
 - [x] **파이프 연산자** — `data |> Transform |> Validate |> Persist` 단방향 데이터 흐름
 - [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
 - [x] **`let` 타입 추론** — initializer 기반 기본 추론은 현재 구현됨
