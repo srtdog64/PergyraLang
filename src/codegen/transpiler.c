@@ -2158,6 +2158,36 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
+    /* Emit cleanup blocks if present (for intent compensation) */
+    if (mir_routine->has_cleanup_block) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "/* cleanup-emitted-from-mir */\n");
+        for (size_t i = 0; i < mir_routine->block_count; i++) {
+            const MIRBasicBlock *block = &mir_routine->blocks[i];
+            if (!block->is_cleanup || !block->is_reachable)
+                continue;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n", name, block->id);
+            for (size_t j = 0; j < block->instruction_count; j++) {
+                const MIRInstruction *inst = &block->instructions[j];
+                if (inst->kind == MIR_INST_CLEANUP_EDGE) {
+                    transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst,
+                        "__intent_handle", true);
+                } else if (inst->kind == MIR_INST_RETURN) {
+                    if (inst->ast != NULL) {
+                        char *ret_expr = emit_expression(inst->ast, ctx);
+                        write_indent(ctx);
+                        codebuf_write(ctx->out, "return %s;\n", ret_expr);
+                        free(ret_expr);
+                    } else {
+                        write_indent(ctx);
+                        codebuf_write(ctx->out, "return;\n");
+                    }
+                }
+            }
+        }
+    }
+
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
     ctx->slot_var_count = saved_slot_count;
