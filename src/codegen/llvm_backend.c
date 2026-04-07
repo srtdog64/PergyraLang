@@ -3942,9 +3942,12 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
             bool is_pointer_self_host = is_subject
                 || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+            bool is_immutable = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
+                             || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
             LLVMClassTypeEntry *entry = llvm_register_class(ctx,
                 cls_name, struct_ty, is_subject, is_pointer_self_host);
             if (entry != NULL) {
+                entry->is_immutable = is_immutable;
                 for (size_t j = 0; j < fc; j++) {
                     ClassField *f = stmt->data.class_decl.fields[j];
                     llvm_class_add_field(entry, f->name,
@@ -4582,9 +4585,12 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
                 LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
                 LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
                 bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+                bool is_immutable = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
+                                 || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
                 LLVMClassTypeEntry *entry = llvm_register_class(ctx, cls_name,
                     struct_ty, is_subject, is_subject);
                 if (entry != NULL) {
+                    entry->is_immutable = is_immutable;
                     for (size_t j = 0; j < fc; j++) {
                         ClassField *f = stmt->data.class_decl.fields[j];
                         llvm_class_add_field(entry, f->name, field_types[j], (int)j);

@@ -198,6 +198,7 @@ typedef struct
     LLVMTypeRef        struct_type;
     bool               is_subject;
     bool               is_pointer_self_host;
+    bool               is_immutable;       /* true for object/tobject (read-only after construction) */
     LLVMClassFieldInfo fields[MAX_CLASS_FIELDS];
     int                field_count;
 } LLVMClassTypeEntry;

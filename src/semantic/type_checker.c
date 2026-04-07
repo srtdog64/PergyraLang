@@ -986,6 +986,36 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         return target_type;
     }
 
+    /* Reject field assignment on object/tobject — they are read-only
+     * after construction.  Zone-internal projection sync (refresh/publish)
+     * uses a separate code path and is not affected by this check. */
+    if (expr->data.assignment.target != NULL
+        && expr->data.assignment.target->type == AST_MEMBER_ACCESS) {
+        ASTNode *obj_node = expr->data.assignment.target->data.member.object;
+        if (obj_node != NULL && obj_node->type == AST_IDENTIFIER) {
+            const char *var_name = obj_node->data.identifier.name;
+            Symbol *sym = scope_lookup(ctx->scope, var_name);
+            if (sym != NULL && sym->type != NULL
+                && sym->type->kind == TYPE_KIND_CLASS
+                && sym->type->name != NULL) {
+                ASTNode *decl = find_type_decl_by_name(ctx->program_root,
+                                                        sym->type->name);
+                if (decl != NULL && decl->type == AST_CLASS_DECL) {
+                    NominalDeclKind nk = decl->data.class_decl.nominal_kind;
+                    if (nk == NOMINAL_DECL_OBJECT) {
+                        semantic_error(ctx, expr,
+                            "object '%s' fields are read-only after construction",
+                            var_name);
+                    } else if (nk == NOMINAL_DECL_DTO) {
+                        semantic_error(ctx, expr,
+                            "tobject '%s' fields are immutable",
+                            var_name);
+                    }
+                }
+            }
+        }
+    }
+
     require_assignable(value_type, target_type, expr, ctx);
     return target_type;
 }
@@ -2093,6 +2123,14 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         if (field_sym != NULL)
             scope_declare(ctx->scope, field_sym);
     }
+    /* struct declarations cannot have methods — use class or object */
+    if (node->data.class_decl.nominal_kind == NOMINAL_DECL_STRUCT
+        && node->data.class_decl.method_count > 0) {
+        semantic_error(ctx, node,
+            "struct '%s' cannot have methods; use 'class' or 'object' instead",
+            name != NULL ? name : "<struct>");
+    }
+
     for (size_t i = 0; i < node->data.class_decl.method_count; i++)
         type_check_func_decl(node->data.class_decl.methods[i], ctx);
 

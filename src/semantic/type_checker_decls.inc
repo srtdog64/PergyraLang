@@ -2201,13 +2201,24 @@ relation_slot_matches_between_kind(ASTNode *slot,
         if (slot->data.domain_slot.is_subject)
             return false;
         if (slot->data.domain_slot.is_dto)
-            return true;
+            return false;  /* tobject slot uses "tobject" kind, not "object" */
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
             && decl->data.class_decl.is_struct
-            && (decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
-                || decl->data.class_decl.nominal_kind == NOMINAL_DECL_DTO);
+            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
+    }
+
+    if (strcmp(kind, "tobject") == 0) {
+        if (slot->data.domain_slot.is_subject)
+            return false;
+        if (!slot->data.domain_slot.is_dto)
+            return false;
+        decl = find_named_class_decl_local(ctx->program_root,
+            slot_type != NULL ? slot_type->name : NULL);
+        return decl != NULL
+            && decl->data.class_decl.is_struct
+            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
     }
 
     if (strcmp(kind, "class") == 0) {
