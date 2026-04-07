@@ -1,0 +1,7 @@
+// Subject: 주문 배치 — 분석/정제의 대상
+subject OrderBatch
+{
+    let source_name: String;
+    let orders: List<Order>;
+    let batch_size: Int;
+}

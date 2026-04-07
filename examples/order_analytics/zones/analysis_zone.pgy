@@ -1,0 +1,41 @@
+// Zone: 분석 실행 경계
+
+ability Analyst
+{
+    func CanAnalyze(self) -> Bool;
+}
+
+zone AnalysisZone
+{
+    subject slot batch: OrderBatch;
+
+    action ComputeStats(self) -> OrderStats
+        requires Analyst
+    {
+        let total := ListSize(batch.orders);
+        let valid := 0;
+        let refunds := 0;
+        let revenue := 0;
+
+        for order in batch.orders
+        {
+            if order.IsValid()
+            {
+                valid = valid + 1;
+                revenue = revenue + order.amount;
+            }
+            if order.is_refunded
+            {
+                refunds = refunds + 1;
+            }
+        }
+
+        let avg := 0;
+        if valid > 0
+        {
+            avg = revenue / valid;
+        }
+
+        return OrderStats(total, valid, refunds, revenue, avg);
+    }
+}

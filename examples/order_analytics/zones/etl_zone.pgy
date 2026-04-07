@@ -1,0 +1,38 @@
+// Zone: ETL 실행 경계
+
+ability DataEngineer
+{
+    func CanLoad(self) -> Bool;
+}
+
+zone EtlZone
+{
+    subject slot batch: OrderBatch;
+
+    action CleanAndLoad(self, target_table: String) -> EtlSummary
+        requires DataEngineer
+    {
+        let clean: List<CleanOrderPacket> = ListNew();
+        let skipped := 0;
+
+        for order in batch.orders
+        {
+            if order.IsValid()
+            {
+                ListPush(clean, CleanOrderPacket(
+                    order.id,
+                    order.customer_name,
+                    order.amount,
+                    order.category
+                ));
+            }
+            else
+            {
+                skipped = skipped + 1;
+            }
+        }
+
+        Log("[ETL] loaded ${ListSize(clean)} / skipped ${skipped} → ${target_table}");
+        return EtlSummary(ListSize(clean), skipped, target_table);
+    }
+}

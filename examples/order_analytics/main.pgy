@@ -1,0 +1,73 @@
+// ============================================================
+// Order Analytics — EDA + ETL 통합 예제
+//
+// EDA: 주문 데이터를 탐색하여 통계를 산출
+// ETL: 유효한 주문만 정제하여 목표 테이블에 적재
+//
+// 패턴 참조: docs/43_design_patterns.md (EDA, ETL)
+// ============================================================
+
+import "commons/types.pgy";
+import "subjects/order_batch.pgy";
+import "zones/analysis_zone.pgy";
+import "zones/etl_zone.pgy";
+import "intents/explore_orders.pgy";
+import "intents/load_clean_orders.pgy";
+
+role Analyst for OrderBatch
+{
+    impl ability Analyst
+    {
+        func CanAnalyze(self) -> Bool { return true; }
+    }
+}
+
+role DataEngineer for OrderBatch
+{
+    impl ability DataEngineer
+    {
+        func CanLoad(self) -> Bool { return true; }
+    }
+}
+
+func Main() -> Void
+{
+    // --- 데이터 준비 ---
+    let orders: List<Order> = ListNew();
+    ListPush(orders, Order(1, "Alice", 15000, "electronics", false));
+    ListPush(orders, Order(2, "Bob", 3200, "books", false));
+    ListPush(orders, Order(3, "Carol", 0, "electronics", true));   // 환불 — 무효
+    ListPush(orders, Order(4, "Dave", 8900, "clothing", false));
+    ListPush(orders, Order(5, "Eve", 45000, "electronics", false));
+    ListPush(orders, Order(6, "Frank", 1200, "books", true));       // 환불 — 무효
+
+    let batch = OrderBatch("2026-Q1-orders", orders, ListSize(orders));
+    Log("=== Order Analytics ===");
+    Log("batch: ${batch.source_name}, size: ${batch.batch_size}");
+
+    // --- Phase 1: EDA (탐색) ---
+    Log("");
+    Log("--- EDA: Explore Orders ---");
+    let analysisZone = AnalysisZone(batch);
+    let edaOk = ExploreOrders(analysisZone, batch);
+    Log("eda intent ok=${edaOk}");
+
+    let stats = analysisZone.ComputeStats();
+    Log("total: ${stats.total_count}");
+    Log("valid: ${stats.valid_count}");
+    Log("refunds: ${stats.refund_count}");
+    Log("revenue: ${stats.total_revenue}");
+    Log("avg: ${stats.avg_amount}");
+
+    // --- Phase 2: ETL (정제 + 적재) ---
+    Log("");
+    Log("--- ETL: Load Clean Orders ---");
+    let etlZone = EtlZone(batch);
+    let etlOk = LoadCleanOrders(etlZone, batch);
+    Log("etl intent ok=${etlOk}");
+
+    let summary = etlZone.CleanAndLoad("clean_orders");
+    Log("loaded: ${summary.loaded_count}");
+    Log("skipped: ${summary.skipped_count}");
+    Log("target: ${summary.target_table}");
+}

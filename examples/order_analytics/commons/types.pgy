@@ -1,0 +1,48 @@
+// 수동 데이터: 주문, 통계, 전송 패킷
+
+class Order
+{
+    let id: Int;
+    let customer_name: String;
+    let amount: Int;
+    let category: String;
+    let is_refunded: Bool;
+
+    func IsValid(self) -> Bool
+    {
+        return self.amount > 0 && !self.is_refunded;
+    }
+}
+
+// EDA 결과 — 내부 읽기 모델
+object OrderStats
+{
+    let total_count: Int;
+    let valid_count: Int;
+    let refund_count: Int;
+    let total_revenue: Int;
+    let avg_amount: Int;
+}
+
+object CategoryBreakdown
+{
+    let category: String;
+    let count: Int;
+    let revenue: Int;
+}
+
+// ETL 결과 — 외부 전달 모델
+tobject CleanOrderPacket
+{
+    let order_id: Int;
+    let customer: String;
+    let amount: Int;
+    let category: String;
+}
+
+tobject EtlSummary
+{
+    let loaded_count: Int;
+    let skipped_count: Int;
+    let target_table: String;
+}

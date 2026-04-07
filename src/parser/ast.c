@@ -553,6 +553,10 @@ ASTNode* ast_create_relation_declaration(const char* name) {
     node->data.relation_decl.methods = NULL;
     node->data.relation_decl.method_count = 0;
     node->data.relation_decl.doc_comment = NULL;
+    node->data.relation_decl.between_left = NULL;
+    node->data.relation_decl.between_right = NULL;
+    node->data.relation_decl.between_left_many = false;
+    node->data.relation_decl.between_right_many = false;
     return node;
 }
 

@@ -1,0 +1,19 @@
+// Intent: EDA — 주문 데이터 탐색
+// "이 배치의 주문 현황을 파악하고 싶다"
+
+intent ExploreOrders(zone: AnalysisZone, batch: OrderBatch)
+{
+    exclusive;
+    who: batch;
+
+    step profile
+    {
+        where: AnalysisZone;
+        using: zone;
+        on: zone.ComputeStats();
+        post: true;
+    }
+
+    success: true;
+    failure: false;
+}

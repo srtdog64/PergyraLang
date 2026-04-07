@@ -1,0 +1,19 @@
+// Intent: ETL — 정제된 주문 적재
+// "유효한 주문만 골라서 clean_orders 테이블에 넣고 싶다"
+
+intent LoadCleanOrders(zone: EtlZone, batch: OrderBatch)
+{
+    exclusive;
+    who: batch;
+
+    step extract_and_load
+    {
+        where: EtlZone;
+        using: zone;
+        on: zone.CleanAndLoad("clean_orders");
+        post: true;
+    }
+
+    success: true;
+    failure: false;
+}
