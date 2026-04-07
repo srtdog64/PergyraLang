@@ -1336,28 +1336,47 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
         ASTNode *arg_node = node->data.call.arguments[0];
+        bool multiline_log = false;
+        LLVMTypeRef arg_type = NULL;
+        const char *log_fn_name = "pgy_log_int";
         LLVMValueRef arg = NULL;
 
         if (arg_node != NULL && arg_node->type == AST_STRING
             && arg_node->data.string.value != NULL) {
-            arg = LLVMBuildGlobalStringPtr(ctx->builder, arg_node->data.string.value,
-                                          llvm_tmp_name(ctx));
+            const char *raw = arg_node->data.string.value;
+            multiline_log = (strchr(raw, '\n') != NULL) || (strchr(raw, '\r') != NULL);
+            if (multiline_log) {
+                char *normalized = llvm_normalize_banner_string_literal(raw);
+                if (normalized != NULL) {
+                    arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
+                                                  llvm_tmp_name(ctx));
+                    free(normalized);
+                } else {
+                    arg = LLVMBuildGlobalStringPtr(ctx->builder, raw,
+                                                  llvm_tmp_name(ctx));
+                }
+            } else {
+                arg = LLVMBuildGlobalStringPtr(ctx->builder, raw,
+                                              llvm_tmp_name(ctx));
+            }
+            arg_type = ctx->type_i8ptr;
         } else {
             arg = llvm_emit_expression(arg_node, ctx);
+            if (arg != NULL)
+                arg_type = LLVMTypeOf(arg);
         }
 
         if (arg == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
         /* Select the right log function based on arg type */
-        LLVMTypeRef arg_type = LLVMTypeOf(arg);
-        const char *log_fn_name = "pgy_log_int";
-
-        if (arg_type == ctx->type_i64)        log_fn_name = "pgy_log_long";
-        else if (arg_type == ctx->type_f32)   log_fn_name = "pgy_log_float";
-        else if (arg_type == ctx->type_f64)   log_fn_name = "pgy_log_double";
-        else if (arg_type == ctx->type_i1)    log_fn_name = "pgy_log_bool";
-        else if (arg_type == ctx->type_i8ptr) log_fn_name = "pgy_log_string";
+        if (multiline_log) {
+            log_fn_name = "pgy_log_banner";
+        } else if (arg_type == ctx->type_i64)       log_fn_name = "pgy_log_long";
+        else if (arg_type == ctx->type_f32)         log_fn_name = "pgy_log_float";
+        else if (arg_type == ctx->type_f64)         log_fn_name = "pgy_log_double";
+        else if (arg_type == ctx->type_i1)          log_fn_name = "pgy_log_bool";
+        else if (arg_type == ctx->type_i8ptr)       log_fn_name = "pgy_log_string";
 
         LLVMFuncEntry *log_fn = llvm_lookup_function(ctx, log_fn_name);
         if (log_fn == NULL)

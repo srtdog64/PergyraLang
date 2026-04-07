@@ -573,6 +573,48 @@ llvm_lookup_function(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+static LLVMFuncEntry *
+llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
+                              LLVMTypeRef fallback_type,
+                              LLVMTypeRef fallback_ret_type)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    LLVMFuncEntry *entry = llvm_lookup_function(ctx, name);
+    if (entry != NULL)
+        return entry;
+
+    if (ctx->module == NULL)
+        return NULL;
+
+    LLVMValueRef fn = LLVMGetNamedFunction(ctx->module, name);
+    LLVMTypeRef fn_type = NULL;
+    LLVMTypeRef ret_type = fallback_ret_type;
+
+    if (fn != NULL) {
+        LLVMTypeRef value_type = LLVMTypeOf(fn);
+        if (LLVMGetTypeKind(value_type) == LLVMPointerTypeKind)
+            fn_type = LLVMGetElementType(value_type);
+        else
+            fn_type = value_type;
+        if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
+            ret_type = LLVMGetReturnType(fn_type);
+    } else if (fallback_type != NULL && ctx->module != NULL) {
+        fn = LLVMAddFunction(ctx->module, name, fallback_type);
+        fn_type = fallback_type;
+        if (ret_type == NULL)
+            ret_type = LLVMGetReturnType(fallback_type);
+    }
+
+    if (fn == NULL || fn_type == NULL
+        || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind || ret_type == NULL)
+        return NULL;
+
+    llvm_register_function(ctx, name, fn, fn_type, ret_type);
+    return llvm_lookup_function(ctx, name);
+}
+
 /* Keep entry-point symbols alive across aggressive optimization passes.
  * The default LLVM pass pipeline may remove an otherwise unreferenced main(),
  * so we explicitly register it in llvm.compiler.used.
@@ -587,9 +629,6 @@ llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name)
     if (entry == NULL || entry->fn == NULL)
         return;
 
-    if (LLVMGetNamedGlobal(ctx->module, "llvm.compiler.used") != NULL)
-        return;
-
     LLVMTypeRef i8_type = LLVMInt8TypeInContext(ctx->context);
     LLVMTypeRef i8_ptr = LLVMPointerType(i8_type, 0);
     LLVMValueRef casted = LLVMConstBitCast(entry->fn, i8_ptr);
@@ -598,12 +637,17 @@ llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name)
     LLVMTypeRef used_ty = LLVMArrayType(i8_ptr, 1);
     LLVMValueRef used_init = LLVMConstArray(i8_ptr, used_elems, 1);
 
-    LLVMValueRef compiler_used = LLVMAddGlobal(ctx->module, used_ty,
-                                               "llvm.compiler.used");
-    LLVMSetInitializer(compiler_used, used_init);
-    LLVMSetGlobalConstant(compiler_used, true);
-    LLVMSetSection(compiler_used, "llvm.metadata");
-    LLVMSetLinkage(compiler_used, LLVMAppendingLinkage);
+    const char *used_names[] = { "llvm.used", "llvm.compiler.used" };
+    for (size_t i = 0; i < 2; i++) {
+        const char *used_name = used_names[i];
+        if (LLVMGetNamedGlobal(ctx->module, used_name) != NULL)
+            continue;
+        LLVMValueRef used_global = LLVMAddGlobal(ctx->module, used_ty, used_name);
+        LLVMSetInitializer(used_global, used_init);
+        LLVMSetGlobalConstant(used_global, true);
+        LLVMSetSection(used_global, "llvm.metadata");
+        LLVMSetLinkage(used_global, LLVMAppendingLinkage);
+    }
 }
 
 /* Forward declaration for type mapping (used by slot helpers) */
@@ -3690,7 +3734,7 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
     if (hir == NULL || ctx == NULL)
         return;
 
-    LLVMFuncEntry *main_user = llvm_lookup_function(ctx, "Main");
+    LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
     bool has_top_level = (hir->executable_count > 0)
         || hir->has_main_function
         || (main_user != NULL);
@@ -3698,7 +3742,13 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
         return;
 
     LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
-    LLVMValueRef main_fn = LLVMAddFunction(ctx->module, "main", main_type);
+    LLVMFuncEntry *main_entry = llvm_lookup_or_create_function(ctx, "main", main_type,
+                                                               ctx->type_i32);
+    LLVMValueRef main_fn = main_entry != NULL ? main_entry->fn : NULL;
+    if (main_fn == NULL) {
+        return;
+    }
+    LLVMSetLinkage(main_fn, LLVMExternalLinkage);
     ctx->current_function = main_fn;
     ctx->current_ret_type = ctx->type_i32;
 
@@ -4412,14 +4462,11 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 {
     llvm_apply_target_machine(ctx, machine, triple);
 
-    /* Run the new pass manager pipeline:
-     * default<O3> gives the LLVM backend a fairer comparison with the
-     * C backend's aggressive native toolchain path. */
-    LLVMPassBuilderOptionsRef opts = LLVMCreatePassBuilderOptions();
-    LLVMRunPasses(ctx->module,
-                  release_opt ? "default<O3>" : "default<O1>",
-                  machine, opts);
-    LLVMDisposePassBuilderOptions(opts);
+    /*
+     * TODO(CI-LLVM): keep this conservative for now while entry-point
+     * retention diagnostics are being validated.
+     */
+    (void)release_opt;
 }
 
 /* =================================================================
@@ -4715,6 +4762,19 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir, co
     }
     LLVMDisposeMessage(verify_error);
 
+    {
+        const char *dump_path = getenv("PGY_LLVM_DUMP_OBJ_IR");
+        if (dump_path != NULL) {
+            char *pre_opt = LLVMPrintModuleToString(ctx->module);
+            FILE *fp = fopen(dump_path, "w");
+            if (fp != NULL) {
+                fputs(pre_opt, fp);
+                fclose(fp);
+            }
+            LLVMDisposeMessage(pre_opt);
+        }
+    }
+
     char *triple = NULL;
     char *cpu = NULL;
     char *features = NULL;
@@ -4915,13 +4975,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types,
                                              (unsigned)param_count, 0);
-    LLVMFuncEntry *entry = llvm_lookup_function(ctx, routine->name);
-    LLVMValueRef fn = entry != NULL ? entry->fn
-                                    : LLVMAddFunction(ctx->module,
-                                                     routine->name,
-                                                     func_type);
-    if (entry == NULL)
-        llvm_register_function(ctx, routine->name, fn, func_type, ret_type);
+    LLVMFuncEntry *entry = llvm_lookup_or_create_function(ctx, routine->name,
+                                                          func_type,
+                                                          ret_type);
+    LLVMValueRef fn = entry != NULL ? entry->fn : NULL;
+    if (fn == NULL)
+        return NULL;
     free(param_types);
 
     /* Collect SSA variables and create allocas */

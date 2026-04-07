@@ -127,10 +127,14 @@ function splitFlags(rawFlags) {
     if (!rawFlags) {
         return [];
     }
-    return rawFlags
-        .split(/\s+/)
+    const tokens = rawFlags.match(/\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|\\S+/g);
+    if (!tokens) {
+        return [];
+    }
+    return tokens
         .map((value) => value.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((value) => unquotePath(value));
 }
 
 let outputChannel;
@@ -142,12 +146,32 @@ function getOutputChannel() {
     return outputChannel;
 }
 
+function bindProcessHandlers(proc, channel) {
+    const onOutput = (data, target) => {
+        target.append(data.toString());
+    };
+
+    proc.stdout.on('data', (data) => {
+        onOutput(data, channel);
+    });
+
+    proc.stderr.on('data', (data) => {
+        onOutput(data, channel);
+    });
+
+    proc.on('close', (code) => {
+        channel.appendLine('---');
+        channel.appendLine(`[Pergyra] exit code: ${code}`);
+    });
+}
+
 function runFile(filePath, flags) {
     const compiler = findCompiler();
     const channel = getOutputChannel();
     channel.clear();
     channel.show(true);
     const compilerLabel = path.basename(compiler);
+    const spawnShell = isWindows || shouldUseShellForCompiler(compiler);
 
     const cwd = path.dirname(filePath);
     const fileName = path.basename(filePath);
@@ -156,30 +180,38 @@ function runFile(filePath, flags) {
     channel.appendLine(`[Pergyra] ${compilerLabel} ${fileName} ${args.slice(1).join(' ')}`);
     channel.appendLine('---');
 
-    const proc = cp.spawn(compiler, args, {
+    let attemptedFallback = false;
+    let proc = cp.spawn(compiler, args, {
         cwd,
-        shell: shouldUseShellForCompiler(compiler),
+        shell: spawnShell,
         windowsHide: true,
     });
+    bindProcessHandlers(proc, channel);
 
-    proc.stdout.on('data', (data) => {
-        channel.append(data.toString());
-    });
-
-    proc.stderr.on('data', (data) => {
-        channel.append(data.toString());
-    });
-
-    proc.on('error', (error) => {
+    const handleError = (error) => {
+        if (!attemptedFallback
+            && isWindows
+            && (error.code === 'ENOENT')
+            && !compiler.toLowerCase().endsWith('.exe')) {
+            const exeCandidate = `${compiler}.exe`;
+            if (resolveExisting(exeCandidate)) {
+                attemptedFallback = true;
+                proc = cp.spawn(exeCandidate, args, {
+                    cwd,
+                    shell: true,
+                    windowsHide: true,
+                });
+                bindProcessHandlers(proc, channel);
+                proc.on('error', handleError);
+                return;
+            }
+        }
         channel.appendLine('---');
         channel.appendLine(`[Pergyra] failed to run compiler '${compiler}': ${error.message}`);
         vscode.window.showErrorMessage(`Pergyra run failed: ${error.message}`);
-    });
+    };
 
-    proc.on('close', (code) => {
-        channel.appendLine('---');
-        channel.appendLine(`[Pergyra] exit code: ${code}`);
-    });
+    proc.on('error', handleError);
 }
 
 function activate(context) {

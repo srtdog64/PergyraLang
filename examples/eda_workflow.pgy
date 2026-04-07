@@ -1,0 +1,54 @@
+// ============================================================
+// eda_workflow.pgy
+//
+// EDA (Exploratory Data Analysis) Pattern
+// ============================================================
+
+class Profiler {
+    func CountNulls(values: Array<Float>) -> Int { return 0; }
+}
+
+subject RawDataset {
+    let name: String;
+}
+
+zone AnalysisSession {
+    subject slot data: RawDataset
+}
+
+object SchemaView {
+    let columns: Int;
+}
+
+object MissingStats {
+    let totalRows: Int;
+}
+
+tobject EdaReport {
+    let summary: String;
+}
+
+intent ExploreData(zone: AnalysisSession, data: RawDataset) {
+    exclusive;
+
+    step InspectSchema {
+        where: AnalysisSession;
+        using: zone;
+        who: data;
+        expect: true;
+    }
+
+    step AnalyzeMissing {
+        where: AnalysisSession;
+        using: zone;
+        who: data;
+        expect: true;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    Log("EDA Workflow Pattern");
+}
