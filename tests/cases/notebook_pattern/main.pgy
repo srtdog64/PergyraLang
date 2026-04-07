@@ -1,0 +1,83 @@
+// ============================================================
+// tests/cases/notebook_pattern/main.pgy
+//
+// 주피터 노트북 스타일 계산 패턴 테스트:
+//   intent → subject → object (중간 뷰) → tobject (최종 결과)
+// ============================================================
+
+// --- 도구층: 계산기 ---
+class Calculator {
+    func Add(a: Float, b: Float) -> Float {
+        return a + b;
+    }
+    
+    func Average(values: Array<Float>) -> Float {
+        return 0.0; // Simplified
+    }
+}
+
+// --- 원본 데이터 주체 ---
+subject DataSet {
+    let values: Array<Float>;
+    let name: String;
+}
+
+// --- 중간 계산 결과 (object) ---
+object FilteredView {
+    let values: Array<Float>;
+    let count: Int;
+}
+
+object Statistics {
+    let mean: Float;
+    let sum: Float;
+}
+
+// --- 최종 보고용 DTO ---
+tobject AnalysisResult {
+    let dataset_name: String;
+    let result_mean: Float;
+    let result_sum: Float;
+}
+
+// ============================================================
+// Intent: 데이터 분석 워크플로우 (노트북 셀에 해당)
+// ============================================================
+intent RunAnalysis(data: DataSet, calc: Calculator) {
+    exclusive;
+    
+    step Filter {
+        where: DataSet;
+        using: data;
+        on: FilteredView(data.values, data.values.count);
+        post: FilteredView.count > 0;
+    }
+    
+    step ComputeStats {
+        where: DataSet;
+        using: data;
+        on: Statistics(
+            calc.Average(FilteredView.values),
+            calc.Add(FilteredView.values[0], FilteredView.values[1])
+        );
+    }
+    
+    step ProduceResult {
+        where: DataSet;
+        using: data;
+        on: AnalysisResult(
+            data.name,
+            Statistics.mean,
+            Statistics.sum
+        );
+    }
+    
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let data = DataSet([1.0, 2.0, 3.0], "TestDataset");
+    let calc = Calculator();
+    Log(f"Dataset: {data.name}, Values: {data.values.count}");
+}
