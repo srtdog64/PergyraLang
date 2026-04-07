@@ -1006,3 +1006,337 @@ func Main() -> Void {
 }
 EOF
 run_case "zone_effect_pool_runtime" "$TMPDIR/zone_effect_pool_runtime.pgy" "true"
+
+# ---------------------------------------------------------------------------
+# Arithmetic, comparison, logical operators
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/operators.pgy" <<'EOF'
+func Main() -> Void {
+    let a: Int = 10;
+    let b: Int = 3;
+    Log(a + b);
+    Log(a - b);
+    Log(a * b);
+    Log(a / b);
+    Log(a % b);
+    Log(a > b);
+    Log(a < b);
+    Log(a == b);
+    Log(a != b);
+    Log(a >= 10);
+    Log(b <= 3);
+    let t: Bool = true;
+    let f: Bool = false;
+    Log(t && f);
+    Log(t || f);
+    Log(!f);
+    Log(-5);
+}
+EOF
+run_case "operators" "$TMPDIR/operators.pgy" "13" "7" "30" "3" "1" "true" "false" "false" "true" "true" "true" "false" "true" "true" "-5"
+
+# ---------------------------------------------------------------------------
+# While loop
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/while_loop.pgy" <<'EOF'
+func Main() -> Void {
+    let i: Int = 0;
+    let sum: Int = 0;
+    while i < 5 {
+        sum = sum + i;
+        i = i + 1;
+    }
+    Log(sum);
+}
+EOF
+run_case "while_loop" "$TMPDIR/while_loop.pgy" "10"
+
+# ---------------------------------------------------------------------------
+# If / else if / else
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/if_else_chain.pgy" <<'EOF'
+func Classify(x: Int) -> String {
+    if x < 0 {
+        return "negative";
+    } else if x == 0 {
+        return "zero";
+    } else {
+        return "positive";
+    }
+}
+
+func Main() -> Void {
+    Log(Classify(-3));
+    Log(Classify(0));
+    Log(Classify(7));
+}
+EOF
+run_case "if_else_chain" "$TMPDIR/if_else_chain.pgy" "negative" "zero" "positive"
+
+# ---------------------------------------------------------------------------
+# Match statement
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/match_stmt.pgy" <<'EOF'
+func Describe(x: Int) -> String {
+    match x {
+        case 1: return "one";
+        case 2: return "two";
+        case 3: return "three";
+        default: return "other";
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(1));
+    Log(Describe(2));
+    Log(Describe(3));
+    Log(Describe(99));
+}
+EOF
+run_case "match_stmt" "$TMPDIR/match_stmt.pgy" "one" "two" "three" "other"
+
+# ---------------------------------------------------------------------------
+# Recursive function
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/recursion.pgy" <<'EOF'
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Factorial(n - 1);
+}
+
+func Main() -> Void {
+    Log(Factorial(5));
+    Log(Factorial(1));
+    Log(Factorial(0));
+}
+EOF
+run_case "recursion" "$TMPDIR/recursion.pgy" "120" "1" "1"
+
+# ---------------------------------------------------------------------------
+# Nested function calls
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/nested_calls.pgy" <<'EOF'
+func Add(a: Int, b: Int) -> Int { return a + b; }
+func Mul(a: Int, b: Int) -> Int { return a * b; }
+
+func Main() -> Void {
+    Log(Add(Mul(2, 3), Mul(4, 5)));
+}
+EOF
+run_case "nested_calls" "$TMPDIR/nested_calls.pgy" "26"
+
+# ---------------------------------------------------------------------------
+# String concatenation
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/string_concat.pgy" <<'EOF'
+func Main() -> Void {
+    let a: String = "hello";
+    let b: String = " world";
+    let c: String = Concat(a, b);
+    Log(c);
+    Log(StringLength(c));
+}
+EOF
+run_case "string_concat" "$TMPDIR/string_concat.pgy" "hello world" "11"
+
+# ---------------------------------------------------------------------------
+# List generic collection
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/list_ops.pgy" <<'EOF'
+func Main() -> Void {
+    let items: List<Int> = List();
+    ListPush(items, 10);
+    ListPush(items, 20);
+    ListPush(items, 30);
+    Log(ListSize(items));
+    Log(ListGet(items, 0));
+    Log(ListGet(items, 2));
+    ListSet(items, 1, 99);
+    Log(ListGet(items, 1));
+    ListRemove(items, 0);
+    Log(ListSize(items));
+    Log(ListGet(items, 0));
+}
+EOF
+run_case "list_ops" "$TMPDIR/list_ops.pgy" "3" "10" "30" "99" "2" "99"
+
+# ---------------------------------------------------------------------------
+# Queue generic collection
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/queue_ops.pgy" <<'EOF'
+func Main() -> Void {
+    let q: Queue<Int> = Queue();
+    Log(QueueEmpty(q));
+    QueuePush(q, 1);
+    QueuePush(q, 2);
+    QueuePush(q, 3);
+    Log(QueueSize(q));
+    Log(QueueEmpty(q));
+    let first: Int = QueuePop(q);
+    Log(first);
+    Log(QueueSize(q));
+}
+EOF
+run_case "queue_ops" "$TMPDIR/queue_ops.pgy" "true" "3" "false" "1" "2"
+
+# ---------------------------------------------------------------------------
+# Map generic collection
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/map_ops.pgy" <<'EOF'
+func Main() -> Void {
+    let m: Map<String, Int> = Map();
+    MapSet(m, "a", 1);
+    MapSet(m, "b", 2);
+    Log(MapSize(m));
+    Log(MapHas(m, "a"));
+    Log(MapHas(m, "c"));
+    Log(MapGet(m, "b"));
+    MapRemove(m, "a");
+    Log(MapSize(m));
+    Log(MapHas(m, "a"));
+}
+EOF
+run_case "map_ops" "$TMPDIR/map_ops.pgy" "2" "true" "false" "2" "1" "false"
+
+# ---------------------------------------------------------------------------
+# Lambda expression
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/lambda_expr.pgy" <<'EOF'
+func Apply(f: (Int) -> Int, x: Int) -> Int {
+    return f(x);
+}
+
+func Main() -> Void {
+    let double = (x: Int) -> Int { return x * 2; };
+    Log(Apply(double, 5));
+    Log(Apply((x: Int) -> Int { return x + 10; }, 3));
+}
+EOF
+run_case "lambda_expr" "$TMPDIR/lambda_expr.pgy" "10" "13"
+
+# ---------------------------------------------------------------------------
+# Multiple return types (Int, Bool, String, Float)
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/multi_types.pgy" <<'EOF'
+func GetInt() -> Int { return 42; }
+func GetBool() -> Bool { return true; }
+func GetString() -> String { return "ok"; }
+
+func Main() -> Void {
+    Log(GetInt());
+    Log(GetBool());
+    Log(GetString());
+}
+EOF
+run_case "multi_types" "$TMPDIR/multi_types.pgy" "42" "true" "ok"
+
+# ---------------------------------------------------------------------------
+# Event system (subscribe, invoke)
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/event_system.pgy" <<'EOF'
+event OnDamage(amount: Int);
+
+func HandleDamage(amount: Int) -> Void {
+    Log(amount);
+}
+
+func Main() -> Void {
+    OnDamage += HandleDamage;
+    Emit(OnDamage, 25);
+    OnDamage -= HandleDamage;
+    Emit(OnDamage, 99);
+}
+EOF
+run_case "event_system" "$TMPDIR/event_system.pgy" "25"
+
+# ---------------------------------------------------------------------------
+# Party with role and bind
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/party_role_bind.pgy" <<'EOF'
+ability Speakable {
+    func Greet() -> String;
+}
+
+role Greeter for String {
+    impl ability Speakable {
+        func Greet() -> String {
+            return "hello";
+        }
+    }
+}
+
+party Speaker {
+    slot speaker: Speakable = Greeter;
+}
+
+func Main() -> Void {
+    let s: Speaker = Speaker();
+    Log(s.speaker.Greet());
+}
+EOF
+run_case "party_role_bind" "$TMPDIR/party_role_bind.pgy" "hello"
+
+# ---------------------------------------------------------------------------
+# For loop with range and nested loops
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/nested_loops.pgy" <<'EOF'
+func Main() -> Void {
+    let total: Int = 0;
+    for i in 0..3 {
+        for j in 0..3 {
+            total = total + 1;
+        }
+    }
+    Log(total);
+}
+EOF
+run_case "nested_loops" "$TMPDIR/nested_loops.pgy" "9"
+
+# ---------------------------------------------------------------------------
+# Slot basic ops (claim, write, read, release)
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/slot_basic.pgy" <<'EOF'
+func Main() -> Void {
+    let s: Slot<Int> = Claim();
+    Write(s, 42);
+    let v: Int = Read(s);
+    Log(v);
+    Write(s, 99);
+    Log(Read(s));
+    Release(s);
+}
+EOF
+run_case "slot_basic" "$TMPDIR/slot_basic.pgy" "42" "99"
+
+# ---------------------------------------------------------------------------
+# Channel send/recv inline
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/channel_basic.pgy" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<String> = Channel(2);
+    ch <- "ping";
+    ch <- "pong";
+    let a: String = <-ch;
+    let b: String = <-ch;
+    Log(a);
+    Log(b);
+}
+EOF
+run_case "channel_basic" "$TMPDIR/channel_basic.pgy" "ping" "pong"
+
+# ---------------------------------------------------------------------------
+# Extern function
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/extern_fn.pgy" <<'EOF'
+extern {
+    func puts(s: String) -> Int;
+}
+
+func Main() -> Void {
+    Log(1);
+}
+EOF
+run_case "extern_fn" "$TMPDIR/extern_fn.pgy" "1"
+
+echo ""
+echo "[llvm-smoke] all tests passed"

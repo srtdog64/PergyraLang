@@ -4963,10 +4963,27 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
     }
 
     if (!emitted_terminator) {
-        if (ctx->current_ret_type == ctx->type_void) {
-            LLVMBuildRetVoid(ctx->builder);
+        /* If the MIR block has successor edges but no explicit branch
+         * instruction (e.g. a fallthrough block that only contains DEF/STMT
+         * instructions), emit the branch from the CFG edge info. */
+        if (mir_block->has_succ_true && mir_block->has_succ_false) {
+            /* Conditional branch without explicit BRANCH inst — should not
+             * normally happen, but handle defensively. */
+            LLVMBuildCondBr(ctx->builder,
+                            LLVMConstInt(LLVMInt1TypeInContext(
+                                LLVMGetModuleContext(ctx->module)), 1, false),
+                            llvm_blocks[mir_block->succ_true],
+                            llvm_blocks[mir_block->succ_false]);
+        } else if (mir_block->has_succ_true) {
+            /* Unconditional fallthrough to successor */
+            LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
         } else {
-            LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
+            /* Truly terminal block — emit return */
+            if (ctx->current_ret_type == ctx->type_void) {
+                LLVMBuildRetVoid(ctx->builder);
+            } else {
+                LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
+            }
         }
     }
 }
@@ -5050,6 +5067,24 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
 
+    /* Push a scope so that llvm_emit_statement / llvm_scope_declare can
+     * register variables created by let-declarations within MIR blocks. */
+    llvm_scope_push(ctx);
+
+    /* Register function parameters in scope so expressions can reference them.
+     * Position builder at entry block first, since we need to create allocas
+     * for parameter storage. */
+    LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = func_decl->data.func_decl.params[i];
+        if (p == NULL) continue;
+        LLVMTypeRef pt = (p->type != NULL)
+            ? llvm_mir_type_from_ast(ctx, p->type) : ctx->type_i32;
+        LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
+        LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
+        llvm_scope_declare(ctx, p->name, alloca, pt);
+    }
+
     /* Skip entry block (already positioned for allocas), emit from successors */
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx, llvm_blocks, vars, var_count, func_decl);
@@ -5059,6 +5094,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         const MIRBasicBlock *mir_block = &routine->blocks[i];
         if (mir_block->is_reachable && !mir_block->is_cleanup) {
             llvm_emit_mir_block_with_exprs(mir_block, routine, ctx, llvm_blocks, vars, var_count, func_decl);
+        } else if (!mir_block->is_cleanup) {
+            /* Unreachable block — still needs a terminator for LLVM validity.
+             * Emit an `unreachable` instruction. */
+            LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[i]);
+            LLVMBuildUnreachable(ctx->builder);
         }
     }
 
@@ -5072,6 +5112,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         }
     }
 
+    llvm_scope_pop(ctx);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     free(vars);

@@ -1013,6 +1013,10 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
         return false;
     if (inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
         return false;
+    /* DEFs with an attached AST carry side effects (variable declaration /
+     * assignment) that are invisible to MIR analysis.  Keep them alive. */
+    if (inst->ast != NULL)
+        return false;
 
     idx = mir_find_value_summary(routine, inst->result_name);
     if (idx < 0)
@@ -1426,20 +1430,32 @@ mir_stmt_is_def_source(const ASTNode *stmt)
     return false;
 }
 
+/* Check if a statement is control flow that the HIR has already lowered into
+ * separate CFG blocks (and therefore should NOT be emitted as a STMT
+ * instruction, because the CFG blocks handle it).
+ *
+ * Only skip statements whose control flow was actually expanded by the HIR
+ * builder.  The HIR builder expands while loops and if statements into
+ * separate CFG blocks, but for loops and some other constructs remain as
+ * single statements inside a block.  We detect this by checking whether the
+ * MIR block has successor edges — if it does, the HIR already created the
+ * CFG, so we skip the original statement; if it doesn't, we keep it.
+ *
+ * AST_RETURN is always skipped because MIR already has MIR_INST_RETURN. */
 static bool
-mir_stmt_is_control_flow(const ASTNode *stmt)
+mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
 {
     if (stmt == NULL)
         return true;
-    switch (stmt->type) {
-        case AST_IF_STMT:
-        case AST_WHILE_LOOP:
-        case AST_FOR_LOOP:
-        case AST_RETURN:
-            return true;
-        default:
-            return false;
-    }
+    if (stmt->type == AST_RETURN)
+        return true;
+    /* If/while that were CFG-split: the containing MIR block will have
+     * successor edges from the HIR terminator.  When the block has
+     * successors, skip the original statement node (the CFG handles it). */
+    if ((stmt->type == AST_IF_STMT || stmt->type == AST_WHILE_LOOP)
+        && (mir_block->has_succ_true || mir_block->has_succ_false))
+        return true;
+    return false;
 }
 
 static bool
@@ -1477,7 +1493,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         size_t stmt_count = 0;
         for (size_t s = 0; s < hir_block->statement_count; s++) {
             ASTNode *stmt = hir_block->statements[s];
-            if (!mir_stmt_is_control_flow(stmt))
+            if (!mir_stmt_is_control_flow(stmt, block))
                 stmt_count++;
         }
         if (stmt_count == 0)
@@ -1513,7 +1529,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
 
         for (size_t s = 0; s < hir_block->statement_count; s++) {
             ASTNode *stmt = hir_block->statements[s];
-            if (mir_stmt_is_control_flow(stmt))
+            if (mir_stmt_is_control_flow(stmt, block))
                 continue;
             if (mir_stmt_is_def_source(stmt)) {
                 /* Find the next DEF from old instructions */
