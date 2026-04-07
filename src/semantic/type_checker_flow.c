@@ -73,14 +73,15 @@ snapshot_resource_states_from_scope(Scope *scope)
                 (snap.count + 1) * sizeof(int32_t));
             if (new_symbols == NULL || new_states == NULL
                 || new_sem == NULL || new_pools == NULL) {
+                /* realloc may have already freed original buffers on success,
+                 * so only free the NEW pointers that succeeded.
+                 * The original snap.* buffers are either freed (if realloc
+                 * succeeded) or still valid (if realloc failed). */
                 free(new_symbols);
                 free(new_states);
                 free(new_sem);
                 free(new_pools);
-                free(snap.symbols);
-                free(snap.states);
-                free(snap.sem_states);
-                free(snap.pool_ids);
+                /* Clear snapshot to indicate failure state */
                 snap.symbols = NULL;
                 snap.states = NULL;
                 snap.sem_states = NULL;
