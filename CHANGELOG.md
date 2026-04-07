@@ -6,11 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- compiler/mir: completed backend migration from HIR to MIR. All function types
+  now emit via MIR when available including intent compensation, hosted methods,
+  and action-like methods. SSA locals, PHI nodes, cleanup blocks all working.
+  All 428 transpile tests pass (was 403 passed, 5 failed).
 - compiler/mir: completed cleanup edge bidirectional flow. Rollback and
   invalidation blocks now emit cleanup edges back to the cleanup block,
   forming a proper exception handling loop. Intent parameters are now
   correctly mapped into SSA so they resolve during MIR emission.
-  All 428 transpile tests pass (was 403 passed, 5 failed).
 - runtime/slot: reduced maximum slot allocation from 1GB to 256MB, which is
   more reasonable for memory slot semantics while still providing ample capacity.
 - stdlib/examples: add `spray_device_probe` to prove `use spray;` works today
