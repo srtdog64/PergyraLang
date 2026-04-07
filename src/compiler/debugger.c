@@ -153,19 +153,19 @@ debug_walk_statements(DebugCtx *ctx, ASTNode *node)
     /* Walk children based on node type */
     switch (node->type) {
     case AST_PROGRAM:
-        for (size_t i = 0; i < node->data.program.declaration_count; i++)
-            debug_walk_statements(ctx, node->data.program.declarations[i]);
+        for (size_t i = 0; i < node->data.program.count; i++)
+            debug_walk_statements(ctx, node->data.program.statements[i]);
         break;
     case AST_BLOCK:
         for (size_t i = 0; i < node->data.block.count; i++)
             debug_walk_statements(ctx, node->data.block.statements[i]);
         break;
-    case AST_IF:
+    case AST_IF_STMT:
         debug_walk_statements(ctx, node->data.if_stmt.then_branch);
         debug_walk_statements(ctx, node->data.if_stmt.else_branch);
         break;
-    case AST_WHILE:
-        debug_walk_statements(ctx, node->data.while_stmt.body);
+    case AST_WHILE_LOOP:
+        debug_walk_statements(ctx, node->data.while_loop.body);
         break;
     case AST_FUNC_DECL:
         if (node->data.func_decl.name &&

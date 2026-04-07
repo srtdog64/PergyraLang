@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 static char *
 read_file(const char *path)
@@ -30,42 +31,6 @@ read_file(const char *path)
     buf[len] = '\0';
     fclose(f);
     return buf;
-}
-
-static bool
-is_keyword(const char *text)
-{
-    static const char *keywords[] = {
-        "subject", "class", "struct", "vessel", "object", "tobject",
-        "zone", "world", "ability", "role", "relation", "effect",
-        "party", "roster", "intent", "step",
-        "func", "action", "let", "if", "else", "while", "for", "in",
-        "return", "match", "case", "default", "break", "continue",
-        "import", "use", "async", "await", "spawn", "parallel",
-        "select", "channel", "with", "enum",
-        NULL
-    };
-    for (int i = 0; keywords[i]; i++) {
-        if (strcmp(text, keywords[i]) == 0) return true;
-    }
-    return false;
-}
-
-static bool
-is_block_opener(const char *text)
-{
-    static const char *openers[] = {
-        "subject", "class", "struct", "vessel", "object", "tobject",
-        "zone", "world", "ability", "role", "relation", "effect",
-        "party", "roster", "intent", "step",
-        "func", "action", "if", "else", "while", "for",
-        "match", "case", "parallel", "enum",
-        NULL
-    };
-    for (int i = 0; openers[i]; i++) {
-        if (strcmp(text, openers[i]) == 0) return true;
-    }
-    return false;
 }
 
 typedef struct {
@@ -115,23 +80,18 @@ driver_run_fmt_command(int argc, char *argv[])
         return 1;
     }
 
-    /* Format to memory buffer first */
+    /* Format to temp file or stdout */
     FILE *out;
-    char *buf = NULL;
-    size_t buf_size = 0;
+    char tmppath[512];
+    tmppath[0] = '\0';
 
     if (write_inplace) {
-        out = open_memstream(&buf, &buf_size);
+        snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
+        out = fopen(tmppath, "w");
         if (!out) {
-            /* Fallback for Windows where open_memstream may not exist */
-            char tmppath[512];
-            snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
-            out = fopen(tmppath, "w");
-            if (!out) {
-                fprintf(stderr, "pgy fmt: cannot create temp file\n");
-                free(source);
-                return 1;
-            }
+            fprintf(stderr, "pgy fmt: cannot create temp file\n");
+            free(source);
+            return 1;
         }
     } else {
         out = stdout;
@@ -144,7 +104,7 @@ driver_run_fmt_command(int argc, char *argv[])
 
     Token prev = { .type = TOKEN_EOF };
     Token tok;
-    int prev_line = 1;
+    uint32_t prev_line = 1;
 
     do {
         tok = lexer_next_token(lexer);
@@ -183,13 +143,6 @@ driver_run_fmt_command(int argc, char *argv[])
             fprintf(out, ";");
             fmt_newline(&ctx);
             break;
-
-        case TOKEN_COMMENT: {
-            if (ctx.at_line_start) fmt_indent(&ctx);
-            fprintf(out, "%s", tok.text ? tok.text : "");
-            fmt_newline(&ctx);
-            break;
-        }
 
         case TOKEN_STRING:
             if (ctx.at_line_start) fmt_indent(&ctx);
@@ -244,20 +197,8 @@ driver_run_fmt_command(int argc, char *argv[])
     lexer_destroy(lexer);
     free(source);
 
-    if (write_inplace && buf != NULL) {
+    if (write_inplace) {
         fclose(out);
-        FILE *wf = fopen(path, "w");
-        if (wf) {
-            fwrite(buf, 1, buf_size, wf);
-            fclose(wf);
-            printf("pgy fmt: formatted '%s'\n", path);
-        }
-        free(buf);
-    } else if (write_inplace && out != stdout) {
-        /* tmpfile fallback path */
-        fclose(out);
-        char tmppath[512];
-        snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
         remove(path);
         rename(tmppath, path);
         printf("pgy fmt: formatted '%s'\n", path);

@@ -4876,6 +4876,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                                LLVMGenCtx *ctx, LLVMBasicBlockRef *llvm_blocks,
                                LLVMMirVar *vars, size_t var_count, ASTNode *func_decl)
 {
+    (void)routine;
+    (void)func_decl;
     LLVMBasicBlockRef llvm_block = llvm_blocks[mir_block->id];
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
     bool emitted_terminator = false;
@@ -4993,7 +4995,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     for (size_t i = 0; i < routine->block_count; i++) {
         char bb_name[64];
         snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
-        llvm_blocks[i] = LLVMAppendBasicBlock(fn, bb_name);
+        llvm_blocks[i] = LLVMAppendBasicBlockInContext(ctx->context, fn, bb_name);
     }
 
     /* Entry block: create allocas for all SSA definitions */

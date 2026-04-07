@@ -155,7 +155,10 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/path_utils.c \
                    $(COMPILER_DIR)/llvm_runner.c \
                    $(COMPILER_DIR)/c_runner.c \
-                   $(COMPILER_DIR)/repl.c
+                   $(COMPILER_DIR)/repl.c \
+                   $(COMPILER_DIR)/fmt.c \
+                   $(COMPILER_DIR)/pkg.c \
+                   $(COMPILER_DIR)/debugger.c
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
@@ -340,8 +343,8 @@ $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$(@:.o=.d)" -c -o "$@" $< && \
-	[ -f "$(@:.o=.d)" ] && sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' "$(@:.o=.d)" || true
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$(@:.o=.d)" -c -o "$@" $<
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' "$(@:.o=.d)" 2>/dev/null || true
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)

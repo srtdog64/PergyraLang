@@ -436,35 +436,8 @@ resolve_projection_source_field_type_rec(ASTNode *program,
     return match_count > 1 ? 2 : 0;
 }
 
-static size_t
-subject_host_field_count(ASTNode *decl)
-{
-    if (decl == NULL)
-        return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
-    return 0;
-}
-
-static ClassField *
-subject_host_field_at(ASTNode *decl, size_t index)
-{
-    if (decl == NULL)
-        return NULL;
-    if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
-        return NULL;
-    }
-    return NULL;
-}
+/* subject_host_field_count / subject_host_field_at:
+ * defined in type_checker_helpers.inc — removed duplicate here */
 
 static Type *
 type_check_channel_send_builtin(ASTNode *expr, const char *name,

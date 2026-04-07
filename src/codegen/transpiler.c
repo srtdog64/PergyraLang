@@ -69,7 +69,6 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 }
 
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
-static const ASTNode *transpiler_decl_node_for_routine(const MIRRoutine *routine);
 #define TRANSPILE_SSA_MAP_CAPACITY 256
 #define TRANSPILE_SSA_NAME_BUCKETS 1024
 

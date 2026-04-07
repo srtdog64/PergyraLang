@@ -3,14 +3,14 @@
 
 func Main() -> Void
 {
-    let art = ReadFile("assets/branding/gyri.ascii");
+    let art: String = ReadFile("assets/branding/gyri.ascii");
     Log(art);
     Log("");
-    Log("  ╔═══════════════════════════════════════╗");
-    Log("  ║  Pergyra Programming Language         ║");
-    Log("  ║  Meet Gyri, the Nautilus.             ║");
-    Log("  ║                                       ║");
-    Log("  ║  Intent-first domain modeling language ║");
-    Log("  ║  subject | zone | intent | slot       ║");
-    Log("  ╚═══════════════════════════════════════╝");
+    Log("  +=========================================+");
+    Log("  |  Pergyra Programming Language          |");
+    Log("  |  Meet Gyri, the Nautilus.              |");
+    Log("  |                                        |");
+    Log("  |  Intent-first domain modeling language  |");
+    Log("  |  subject | zone | intent | slot        |");
+    Log("  +=========================================+");
 }
