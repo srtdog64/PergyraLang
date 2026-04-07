@@ -164,7 +164,7 @@ AST
 -> Backend dispatch
 ```
 
-다만 backend emission의 중심 자료구조는 아직 `HIR`다. 현재 backend runner는 `CompilerIRBundle`을 받아 structural validation을 강제하고, C backend에는 simple top-level function CFG subset과 intent cleanup CFG subset을 `bundle->mir`에서 직접 emit하는 첫 vertical slice가 들어가 있지만, 실제 C/LLVM codegen의 대부분은 아직 `bundle->hir`를 기준으로 수행한다.
+양쪽 백엔드 모두 `CompilerIRBundle`에서 HIR과 MIR을 함께 수신한다. 함수 본문 코드 생성은 MIR CFG/SSA 기반이며 (`transpile_with_mir`, `llvm_codegen_with_mir`), 도메인 선언(zone/world/relation/effect)과 intent step 로직은 HIR 기반 fallback으로 emit된다. 즉 현재 구조는 **MIR 주도 + HIR 보조** 하이브리드다.
 
 장기 목표 구조는:
 

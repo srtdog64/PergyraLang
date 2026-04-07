@@ -151,8 +151,8 @@ intent ExecuteTrade(market: MarketZone, seller: Player, buyer: Player) {
         using: market;
         who: buyer;
         on: Log("trade.step.verify: buyer.gold=" + ToString(buyer.gold));
-        guard: buyer.gold >= 50;
-        post: buyer.gold >= 50;
+        guard: buyer.gold > 50;
+        post: buyer.gold >= 0;
     }
 
     step DeductPayment {

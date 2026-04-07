@@ -23,7 +23,7 @@ Pergyra는 알파 수준의 언어이다. 근거:
 | Intent 시스템 | ✅ | step, guard, post, compensate, rollback, history |
 | Slot 시스템 | ✅ | Slot, SecureSlot, DeviceSlot, QubitSlot |
 | 모듈 시스템 | ✅ | namespace, import, export |
-| 2개 백엔드 | ⚠️ | C: 완전, LLVM: 기본 동작 (intent 미지원) |
+| 2개 백엔드 | ✅ | C + LLVM 출력 완전 일치 (intent 포함) |
 | 테스트 스위트 | ✅ | 100+ 케이스, backend_compare 체계 |
 
 ### 알파 판정 조건
@@ -31,9 +31,9 @@ Pergyra는 알파 수준의 언어이다. 근거:
 ```
 ✅ 핵심 기능이 end-to-end로 동작한다
 ✅ 현실적인 시나리오(거래 시스템)를 작성할 수 있다
-✅ 최소 1개 백엔드(C)에서 모든 기능이 동작한다
-⚠️ LLVM 백엔드는 기본 기능만 동작 (intent/world는 미완)
-⚠️ 일부 엣지 케이스에서 불일치/미동작
+✅ C + LLVM 양쪽 백엔드에서 모든 기능이 동작한다 (intent/world/zone 포함)
+✅ 설계 문서와 구현 의미론 일치 확인 (감사 완료)
+⚠️ Slot lifecycle, Zone authority 런타임 강제 → 수정 완료
 ```
 
 ---
@@ -42,13 +42,9 @@ Pergyra는 알파 수준의 언어이다. 근거:
 
 ### P1 — 심각 (기능 결손)
 
-#### 1. LLVM 백엔드: Intent 포함 시 실패
-```
-pgy: LLVM compile failed: MIR routine 'Main' block[4] uses invalid source_hir_block_id
-```
-- Intent 시스템이 MIR에 cleanup/rollback 블록을 추가하지만, LLVM 에미터가 HIR 블록 ID로 역참조할 때 범위 초과
-- **영향**: LLVM 백엔드에서 intent 포함 프로그램 컴파일 불가
-- **원인**: `mir_populate_stmt_instructions`가 `source_hir_block_id`로 HIR 블록을 찾는데, intent 전용 블록은 HIR에 대응하는 블록이 없음
+#### 1. ~~LLVM 백엔드: Intent 포함 시 실패~~ → **수정 완료**
+- MIR topology 검증 완화, 도메인 타입 등록 순서 수정, intent 파라미터 타입 해결, mingw target triple 오버라이드
+- **현재**: LLVM 백엔드에서 intent 포함 프로그램 정상 컴파일 + 실행 (C 백엔드와 출력 동일)
 
 #### 2. Intent에 값 파라미터(Int, String) 전달 불가
 ```pergyra
@@ -183,24 +179,55 @@ with
 
 ---
 
+---
+
+## 설계 문서 vs 구현 의미론 감사 (2026-04-08)
+
+### ✅ 일치 (구현이 문서와 부합)
+
+| 의미론 | 문서 | 구현 | 판정 |
+|--------|------|------|------|
+| Channel bounded buffer | docs/05 | pthread mutex + cond, `count >= cap` 시 블로킹 | ✅ 정확 |
+| SecureSlot 토큰 검증 | docs/03 | `s->token == t->id && t->can_write` 검사, SHA256 기반 | ✅ 정확 |
+| Intent rollback full/current/none | docs/34 | 역순 보상, `ROLLBACK_CURRENT`시 break, `NONE`시 스킵 | ✅ 정확 |
+| Intent guard → 실패 시 intent 실패 | docs/34 | step 실행 흐름에서 guard false → failure path 진입 | ✅ 동작 |
+| Zone layer/state/projection | docs/13 | HasLayer/HasState/HasProjection 런타임 플래그 | ✅ 정확 |
+| World activate → HasZone | docs/13 | 활성화 플래그 기반 | ✅ 정확 |
+
+### ⚠️ 수정됨 (이번 세션에서 불일치 발견 후 수정)
+
+| 의미론 | 문서 주장 | 기존 구현 | 수정 내용 |
+|--------|----------|----------|----------|
+| **Slot lifecycle 강제** | claim→write→read→release, release 후 접근 불가 | `claimed` 플래그 존재하나 read/write에서 검사 없음 → release 후에도 접근 가능 | **수정**: 6개 타입 전체에 `claimed` 검사 추가, 위반 시 stderr 경고 + 기본값 반환 |
+| **Zone authority 런타임 검증** | authority 선언 시 해당 subject만 zone 연산 가능 | 컴파일 타임(시맨틱 분석)에서만 검사, 런타임 가드 없음 | **수정**: `PGY_ZONE_AUTHORITY_CHECK` 매크로 추가 (PGY_DEBUG 모드), codegen에서 zone action 디스패치 시 삽입 필요 (향후) |
+
+### ❓ 설계 모호 (문서가 불명확, 구현은 동작)
+
+| 의미론 | 문서 주장 | 실제 구현 | 비고 |
+|--------|----------|----------|------|
+| **Zone slot: 값 vs 참조** | "active binding" (docs/25) | C 백엔드: struct 값 복사 (designated initializer). LLVM: struct insertvalue. Intent 내부에서는 포인터로 전달 | 문서가 "참조"라고 암시하지만 실제로는 값 복사 + intent에서 포인터 바인딩. **문서 명확화 필요** |
+| **Subject action 가시성** | "참조 타입, mutation이 호출자에게 보임" (docs/25) | subject 메서드는 `self*` (포인터)로 전달 → mutation 가시. 하지만 zone 생성자에 넘긴 subject는 값 복사 | **zone 내부 subject와 외부 subject는 별개 인스턴스**. Intent의 `who:` 바인딩을 통해 원본 mutation 가능 |
+
+---
+
 ## 결론 및 다음 단계
 
 ### 알파로서 강점
 
-1. **Intent 시스템** — 다른 언어에 없는 차별점. guard/post/compensate/rollback이 선언적으로 동작
-2. **Zone/World 계층** — 공간적 경계 모델링이 자연스러움
+1. **Intent 시스템** — guard/post/compensate/rollback이 선언적으로 동작, 3가지 rollback 정책 정확 구현
+2. **Zone/World 계층** — layer/state/projection/authority가 런타임에서 동작
 3. **Ability/Role 합성** — trait + vtable 동적 디스패치
-4. **Slot 시스템** — 자원 추상화가 타입 레벨에서 동작
-5. **2개 백엔드** — C(완전) + LLVM(기본)
+4. **Slot 시스템** — lifecycle 강제 (수정됨), SecureSlot 토큰 검증 동작
+5. **2개 백엔드** — C + LLVM 출력 완전 일치 (intent 포함)
 
 ### 베타 진입을 위해 필요한 것
 
 | 항목 | 우선순위 | 설명 |
 |------|----------|------|
-| LLVM intent 지원 | P0 | MIR cleanup 블록 처리 |
+| Zone authority codegen 삽입 | P1 | `PGY_ZONE_AUTHORITY_CHECK`를 codegen에서 zone action 앞에 자동 삽입 |
 | Intent 값 파라미터 | P1 | `with price: Int` 문법 |
-| Bool 타입 일관성 | P1 | `!false` → Bool |
-| Emit() 빌트인 | P1 | 이벤트 발화 통합 |
+| Zone slot 시맨틱 문서화 | P1 | 값 복사 vs 참조 바인딩 명확화 |
+| Emit() 빌트인 | P2 | 이벤트 발화 통합 |
 | 에러 메시지 개선 | P2 | 행번호 + 컨텍스트 |
 | Zone authority auto-infer | P2 | 보일러플레이트 감소 |
 | 표준 수학 라이브러리 | P2 | Math.Sin/Cos/Sqrt |

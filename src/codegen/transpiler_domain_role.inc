@@ -1272,6 +1272,19 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, ")\n{\n");
         ctx->indent++;
+        /* Emit zone authority runtime check if authority is declared */
+        if (node->data.zone_decl.authority_count > 0
+            && node->data.zone_decl.authorities != NULL
+            && node->data.zone_decl.authorities[0] != NULL) {
+            const char *auth_slot = node->data.zone_decl.authorities[0]
+                                        ->data.zone_authority.subject_slot_name;
+            if (auth_slot != NULL) {
+                write_indent(ctx);
+                codebuf_write(ctx->out,
+                    "PGY_ZONE_AUTHORITY_CHECK(self, &self->%s, \"%s\", \"%s\");\n",
+                    auth_slot, name, auth_slot);
+            }
+        }
         {
             int saved_slot_count = ctx->slot_var_count;
             int saved_typed_count = ctx->typed_var_count;

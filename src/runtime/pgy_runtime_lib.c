@@ -1271,15 +1271,22 @@ PgySlot_Int pgy_claim_Int(void)
 
 void pgy_write_Int(PgySlot_Int *s, int32_t v)
 {
-    if (s != NULL)
-        s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) {
+        fprintf(stderr, "[pgy] slot write after release (Int)\n");
+        return;
+    }
+    s->value = v;
 }
 
 int32_t pgy_read_Int(PgySlot_Int *s)
 {
-    if (s != NULL)
-        return s->value;
-    return 0;
+    if (s == NULL) return 0;
+    if (!s->claimed) {
+        fprintf(stderr, "[pgy] slot read after release (Int)\n");
+        return 0;
+    }
+    return s->value;
 }
 
 void pgy_release_Int(PgySlot_Int *s)
@@ -1304,13 +1311,16 @@ PgySlot_Long pgy_claim_Long(void)
 
 void pgy_write_Long(PgySlot_Long *s, int64_t v)
 {
-    if (s != NULL) s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Long)\n"); return; }
+    s->value = v;
 }
 
 int64_t pgy_read_Long(PgySlot_Long *s)
 {
-    if (s != NULL) return s->value;
-    return 0;
+    if (s == NULL) return 0;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Long)\n"); return 0; }
+    return s->value;
 }
 
 void pgy_release_Long(PgySlot_Long *s)
@@ -1332,13 +1342,16 @@ PgySlot_Float pgy_claim_Float(void)
 
 void pgy_write_Float(PgySlot_Float *s, float v)
 {
-    if (s != NULL) s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Float)\n"); return; }
+    s->value = v;
 }
 
 float pgy_read_Float(PgySlot_Float *s)
 {
-    if (s != NULL) return s->value;
-    return 0.0f;
+    if (s == NULL) return 0.0f;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Float)\n"); return 0.0f; }
+    return s->value;
 }
 
 void pgy_release_Float(PgySlot_Float *s)
@@ -1360,13 +1373,16 @@ PgySlot_Double pgy_claim_Double(void)
 
 void pgy_write_Double(PgySlot_Double *s, double v)
 {
-    if (s != NULL) s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Double)\n"); return; }
+    s->value = v;
 }
 
 double pgy_read_Double(PgySlot_Double *s)
 {
-    if (s != NULL) return s->value;
-    return 0.0;
+    if (s == NULL) return 0.0;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Double)\n"); return 0.0; }
+    return s->value;
 }
 
 void pgy_release_Double(PgySlot_Double *s)
@@ -1388,13 +1404,16 @@ PgySlot_Bool pgy_claim_Bool(void)
 
 void pgy_write_Bool(PgySlot_Bool *s, bool v)
 {
-    if (s != NULL) s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (Bool)\n"); return; }
+    s->value = v;
 }
 
 bool pgy_read_Bool(PgySlot_Bool *s)
 {
-    if (s != NULL) return s->value;
-    return false;
+    if (s == NULL) return false;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (Bool)\n"); return false; }
+    return s->value;
 }
 
 void pgy_release_Bool(PgySlot_Bool *s)
@@ -1416,15 +1435,16 @@ PgySlot_String pgy_claim_String(void)
 
 void pgy_write_String(PgySlot_String *s, char *v)
 {
-    if (s != NULL)
-        s->value = v;
+    if (s == NULL) return;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot write after release (String)\n"); return; }
+    s->value = v;
 }
 
 char *pgy_read_String(PgySlot_String *s)
 {
-    if (s != NULL)
-        return s->value;
-    return NULL;
+    if (s == NULL) return NULL;
+    if (!s->claimed) { fprintf(stderr, "[pgy] slot read after release (String)\n"); return NULL; }
+    return s->value;
 }
 
 void pgy_release_String(PgySlot_String *s)

@@ -2809,6 +2809,25 @@ typedef pthread_rwlock_t PgyZoneLock;
 } while (0)
 
 /* =================================================================
+ * Zone Authority — runtime validation stub
+ *
+ * Authority is primarily enforced at compile time (semantic analysis).
+ * This macro provides a runtime debug check for defense-in-depth.
+ * In release builds (PGY_DEBUG not defined), it compiles to nothing.
+ * ================================================================= */
+#ifdef PGY_DEBUG
+#define PGY_ZONE_AUTHORITY_CHECK(zone_ptr, actor_ptr, zone_name, actor_name) do { \
+    if ((void *)(actor_ptr) == NULL) {                                            \
+        fprintf(stderr, "[pgy][authority] %s: null actor '%s'\n",                \
+                (zone_name), (actor_name));                                       \
+    }                                                                             \
+} while (0)
+#else
+#define PGY_ZONE_AUTHORITY_CHECK(zone_ptr, actor_ptr, zone_name, actor_name) \
+    ((void)0)
+#endif
+
+/* =================================================================
  * Effect Pool — multiple instances of the same effect type
  *
  * Usage in generated zone struct:

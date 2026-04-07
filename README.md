@@ -105,16 +105,18 @@ while i < 10
 
 ## Declaration Keywords
 
-Pergyra uses 6 keywords to declare types. Each keyword carries distinct semantics.
+Pergyra uses 6 keywords to declare types. Each keyword carries **intended** distinct semantics.
 
-| Keyword | Role | Memory | Behavior |
-|---------|------|--------|----------|
-| `subject` | Active entity (protagonist) | Reference | action + func |
-| `class` | Passive thing (tool) | Value | func only |
-| `struct` | Pure data | Value | None |
-| `vessel` | Internal state (inside subject) | Value | None |
-| `object` | Read-only internal projection | Value | func only |
-| `tobject` | Read-only transfer/export projection | Value | func only |
+| Keyword | Role | Memory | Behavior | Implementation |
+|---------|------|--------|----------|----------------|
+| `subject` | Active entity (protagonist) | Reference (ptr self) | action + func | ✅ Full |
+| `class` | Passive thing (tool) | Value | func only | ✅ Full |
+| `struct` | Pure data | Value | None | ✅ Full |
+| `vessel` | Internal state (inside subject) | Value | None | ⚠️ Parser only |
+| `object` | Read-only internal projection | Value | func only | ⚠️ Parses as struct variant |
+| `tobject` | Read-only transfer/export projection | Value | func only | ⚠️ Parses as struct variant |
+
+> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리 완료. `object`/`tobject`/`struct`는 파서에서 `nominal_kind` 플래그로 구분되지만, 시맨틱 분석과 코드 생성에서는 동일하게 처리됨. 도메인 설계(zone refresh/publish)에서 의미론적 구분이 이루어짐.
 
 ```pergyra
 subject Player
@@ -183,22 +185,30 @@ role Combatable for Player
 }
 ```
 
-### Zone + Action
+### Zone + Subject Action
 
 ```pergyra
-zone BattleZone
+subject Player
 {
-    subject slot attacker: Player;
-    subject slot defender: Player;
+    let hp: Int;
 
     action Attack(self, target: Player)
-        requires Combatable
         within BattleZone
+        authorized by self
     {
         target.hp = target.hp - 10;
     }
 }
+
+zone BattleZone
+{
+    subject slot attacker: Player;
+    subject slot defender: Player;
+    authority attacker;
+}
 ```
+
+> `action`은 `subject` 내부에 선언합니다. zone은 subject slot과 authority만 정의합니다.
 
 ### World
 
@@ -300,21 +310,20 @@ intent Checkout(checkout: CheckoutZone, buyer: Buyer)
 Available without import:
 
 ```pergyra
-let map := MapNew();         // HashMap<Int>
+let map: Map<String, Int> = Map();
 MapSet(map, "key", 42);
-let val := MapGet(map, "key");
+let val: Int = MapGet(map, "key");
 
-let list := ListNew();       // List<Int>
+let list: List<Int> = List();
 ListPush(list, 10);
-let item := ListGet(list, 0);
+let item: Int = ListGet(list, 0);
 
-let set := SetNew();         // Set<String>
-SetAdd(set, "hello");
-
-let queue := QueueNew();     // Queue<Int>
+let queue: Queue<Int> = Queue();
 QueuePush(queue, 1);
-let front := QueuePop(queue);
+let front: Int = QueuePop(queue);
 ```
+
+> `Set<T>`은 아직 미구현. `Array<T>`는 리터럴 `[1, 2, 3]`과 `ArrayPush`/`ArrayPop`/`ArrayLength` 함수로 사용.
 
 ## Standard Library (`use`)
 
@@ -340,7 +349,7 @@ CooldownTrigger(cd);
 | Target | Style | Example |
 |--------|-------|---------|
 | Keywords | lowercase | `let`, `func`, `subject` |
-| Types / Built-in functions | PascalCase | `Player`, `PrintInt`, `MapNew` |
+| Types / Built-in functions | PascalCase | `Player`, `ToString`, `MapSet` |
 | Local variables | camelCase | `playerHp`, `eventCount` |
 | Constants | UPPER_SNAKE | `MAX_HP`, `TILE_SIZE` |
 | File names | snake_case | `battle_zone.pgy` |

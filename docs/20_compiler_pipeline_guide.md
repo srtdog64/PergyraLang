@@ -1,6 +1,6 @@
 # Pergyra 컴파일러 파이프라인 가이드
 
-마지막 업데이트: 2026-04-06
+마지막 업데이트: 2026-04-08
 
 이 문서는 "현재 저장소가 실제로 어떻게 동작하는가"를 설명한다. 이상적인 미래 설계가 아니라, 다음 기여자가 바로 코드를 따라 들어갈 수 있게 만드는 contributor guide다.
 
@@ -34,7 +34,9 @@
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
 - driver는 backend 진입 전에 항상 `HIR`, `DIR`, `RIR`, `MIR`를 모두 만든다.
 - backend runner는 현재 `CompilerIRBundle`을 받는다.
-- 실제 codegen은 여전히 대체로 `bundle->hir`를 기준으로 수행된다. 다만 C backend에는 simple top-level function CFG subset에 대해 `bundle->mir` 본문을 직접 emit하는 첫 vertical slice와, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG를 `bundle->mir` exceptional block으로 직접 emit하는 보강 경로가 들어가 있다.
+- **양쪽 백엔드 모두 MIR을 수신한다.** C 백엔드는 `transpile_with_mir(bundle->hir, bundle->mir, ...)`, LLVM 백엔드는 `llvm_codegen_with_mir(bundle->hir, bundle->mir, ...)`를 호출한다.
+- C 백엔드: MIR CFG/SSA 기반 함수 본문 emit + intent cleanup/rollback/invalidation block 직접 emit. 도메인 선언(zone/world/relation/effect)과 intent step은 HIR 기반.
+- LLVM 백엔드: MIR 기반 함수 본문 emit (`llvm_emit_func_from_mir`) + HIR fallback으로 도메인 선언과 intent 함수를 emit. Domain struct 타입 등록은 MIR emit 전에 수행.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 - compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base.inc`](../src/compiler/mir_base.inc) / [`mir_public.inc`](../src/compiler/mir_public.inc)로 떼어내고, `rir.c`도 [`rir_flow.inc`](../src/compiler/rir_flow.inc) / [`rir_builder.inc`](../src/compiler/rir_builder.inc) / [`rir_public.inc`](../src/compiler/rir_public.inc)로 분리해 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
 
