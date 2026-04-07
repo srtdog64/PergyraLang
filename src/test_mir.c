@@ -362,7 +362,7 @@ test_mir_lowering(void)
                && purchase->blocks[purchase->cleanup_block].has_invalidation_succ
                && purchase->blocks[purchase->cleanup_block].invalidation_succ == purchase->invalidation_block
                && purchase->blocks[purchase->rollback_block].has_cleanup_succ
-               && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->invalidation_block
+               && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->cleanup_block
                && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block], "cleanup-edge", "cleanup")
                && cleanup_has_compensate
                && cleanup_has_policy
