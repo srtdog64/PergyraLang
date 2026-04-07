@@ -9,6 +9,9 @@
 
 #include "compiler/driver_app.h"
 #include "compiler/repl.h"
+#include "compiler/fmt.h"
+#include "compiler/pkg.h"
+#include "compiler/debugger.h"
 
 static DriverFlags
 parse_args(int argc, char *argv[])
@@ -104,6 +107,12 @@ int
 main(int argc, char *argv[])
 {
     if (argc >= 2) {
+        if (strcmp(argv[1], "fmt") == 0)
+            return driver_run_fmt_command(argc - 1, argv + 1);
+        if (strcmp(argv[1], "init") == 0)
+            return driver_run_pkg_init(argc - 2, argv + 2);
+        if (strcmp(argv[1], "debug") == 0)
+            return driver_run_debug_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "scaffold") == 0)
             return driver_run_scaffold_command(argc - 1, argv + 1);
         if (strcmp(argv[1], "new") == 0) {
