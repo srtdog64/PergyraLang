@@ -4896,13 +4896,23 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 /* For now, emit as no-op */
                 break;
             case MIR_INST_DEF:
-                /* SSA definition - already have alloca, store value from AST */
+                /* SSA definition - extract initializer from let/assignment,
+                 * emit as full statement so the HIR fallback path handles
+                 * variable declaration, type inference, and initializer. */
                 if (inst->ast != NULL && inst->result_name != NULL) {
-                    LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
-                    if (alloca != NULL) {
-                        LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
-                        if (val != NULL)
-                            LLVMBuildStore(ctx->builder, val, alloca);
+                    if (inst->ast->type == AST_LET_DECL
+                        || inst->ast->type == AST_ASSIGNMENT) {
+                        /* Emit the full let/assignment statement which
+                         * handles variable creation and initialization. */
+                        llvm_emit_statement(inst->ast, ctx);
+                    } else {
+                        /* Legacy path: ast is a raw expression */
+                        LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
+                        if (alloca != NULL) {
+                            LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
+                            if (val != NULL)
+                                LLVMBuildStore(ctx->builder, val, alloca);
+                        }
                     }
                 }
                 break;

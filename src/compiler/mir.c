@@ -1471,11 +1471,13 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         MIRInstruction *old_insts = block->instructions;
         size_t old_count = block->instruction_count;
 
-        /* Count how many new STMT instructions we will add */
+        /* Count max possible new STMT instructions (worst case: all
+         * non-control-flow statements including let/assignment that
+         * might not have matching DEFs). */
         size_t stmt_count = 0;
         for (size_t s = 0; s < hir_block->statement_count; s++) {
             ASTNode *stmt = hir_block->statements[s];
-            if (!mir_stmt_is_def_source(stmt) && !mir_stmt_is_control_flow(stmt))
+            if (!mir_stmt_is_control_flow(stmt))
                 stmt_count++;
         }
         if (stmt_count == 0)
@@ -1515,12 +1517,30 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             if (mir_stmt_is_def_source(stmt)) {
                 /* Find the next DEF from old instructions */
+                size_t saved_cursor = def_cursor;
                 while (def_cursor < old_count
                        && old_insts[def_cursor].kind != MIR_INST_DEF)
                     def_cursor++;
                 if (def_cursor < old_count) {
-                    new_insts[new_count++] = old_insts[def_cursor];
+                    MIRInstruction def_inst = old_insts[def_cursor];
+                    /* Attach the full statement AST so LLVM emitter can
+                     * extract both the type annotation and the initializer. */
+                    if (def_inst.ast == NULL)
+                        def_inst.ast = stmt;
+                    new_insts[new_count++] = def_inst;
                     def_cursor++;
+                } else {
+                    /* No matching DEF (SSA had no local_defs for this var).
+                     * Emit the let/assignment as a regular STMT so it still
+                     * generates code. */
+                    def_cursor = saved_cursor;
+                    MIRInstruction inst;
+                    memset(&inst, 0, sizeof(inst));
+                    inst.id = routine->instruction_count++;
+                    inst.kind = MIR_INST_STMT;
+                    inst.name = "stmt";
+                    inst.ast = stmt;
+                    new_insts[new_count++] = inst;
                 }
             } else {
                 /* Create new STMT instruction */
