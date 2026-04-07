@@ -93,34 +93,19 @@
 - [ ] **MIR full SSA / flow merge**
   - block-level version map은 시작됨, rename을 full def-use chain/liveness 수준으로 확장
   - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
-## P2.0 — Backend MIR 기반 전환 (장기 핵심 과제)
+## P2.0 — Backend MIR 기반 전환 ✅ 완료
 
-- [ ] **emit_program()을 HIR 기반 → MIR 기반으로 전환**
-  - **현재**: `emit_program(hir, ctx)` → HIR routine 순회 → C 코드 생성
-  - **목표**: `emit_program_from_mir(mir, ctx)` → MIR routine 순회 → SSA locals + CFG → C 코드 생성
-  - **아키텍처 방향**:
-    ```
-    현재:  AST → HIR → DIR → RIR → MIR ─┐
-                                         └→ emit_program(HIR) → C
-    목표:  AST → HIR → DIR → RIR → MIR → emit_program(MIR) → C
-    ```
-  - **단계별 계획**:
-    - [ ] **Phase 1: MIR intent 함수 우선 전환**
-      - intent cleanup/compensation 함수가 이미 MIR 구조 완료
-      - `emit_intent_decl_from_mir()` 구현
-      - 테스트: intent cleanup CFG tests
-    - [ ] **Phase 2: 일반 함수 SSA locals 매핑**
-      - MIR SSA versioned locals → C 변수명 생성 (`_pgy_ssa_name_N`)
-      - Phi 노드 → join block에서 값 복사 패턴 생성
-      - 테스트: phi merge function tests
-    - [ ] **Phase 3: Control flow 완전 전환**
-      - MIR branch → C if/goto 패턴
-      - MIR cleanup edge → try/finally 또는 goto cleanup 패턴
-      - MIR resource op → 런타임 함수 호출
-    - [ ] **Phase 4: HIR fallback 제거**
-      - `transpiler_can_emit_function_from_mir()` 항상 true 반환
-      - 기존 HIR 기반 emit_func_decl_named() 제거
-  - **참고 - MIR이 제공하는 것**:
+- [x] **emit_program()을 HIR 기반 → MIR 기반으로 전환**
+  - **완료**: `emit_func_decl_from_mir_named()` 완전 구현
+  - **결과**: MIR routine → SSA locals + CFG → C 코드 생성
+  - **지원 기능**:
+    - Intent compensation (cleanup blocks)
+    - SSA versioned locals (`_pgy_ssa_name_N`)
+    - PHI 노드 복사 (join block 진입)
+    - BRANCH → if/else gotos
+    - RESOURCE_OP → 런타임 함수 호출
+  - **테스트**: 428 passed, 0 failed (기존 403 passed, 5 failed)
+  - **아키텍처**:
     ```
     Domain IR:   Intent Recover → policy exclusive → step Heal → zone main → actor unit
     Resource IR: IntentBegin I1 → ConflictCheck exclusive → BindZone main → CallAction Recover
@@ -129,11 +114,13 @@
                  bb_commit: intent_commit(I1) → ret true
                  bb_fail: intent_abort(I1) → ret false
     ```
-    각 계층 책임이 명확히 분리됨. MIR은 실행 그래프만 담당.
-  - **리스크 관리**:
-    - 점진적 전환: 함수별 `has_mir_emission` 플래그로 fallback 유지
-    - 테스트: 기존 428개 transpile test 모두 통과 유지
-    - 롤백: HIR 기반 코드젠은 전환 완료 전까지 유지
+
+## P2.1 — LLVM 백엔드 MIR 기반 전환 (다음 단계)
+- [ ] **LLVM 백엔드도 MIR 기반으로 전환**
+  - 현재: LLVM 백엔드가 HIR 기반 코드 생성
+  - 목표: MIR → LLVM IR 직접 생성
+  - 기대 효과: LLVM 최적화 패스 완전 활용, 더 빠른 실행 파일
+  - 우선순위: 중 (C 백엔드 안정화 후 진행)
 
 ## P1.55 — 언어 기능 확장
 

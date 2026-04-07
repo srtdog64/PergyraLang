@@ -291,6 +291,7 @@ typedef struct
 typedef struct LLVMGenCtx
 {
     const HIRProgram *hir;
+    const MIRProgram *mir;  /* MIR-based emission support */
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
