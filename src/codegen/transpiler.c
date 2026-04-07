@@ -1825,15 +1825,9 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             snprintf(reason, reason_cap, "function %s has no HIR routine in MIR", func_decl->data.func_decl.name);
         return false;
     }
-    if (routine->hir_routine->is_hosted) {
-        if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "function %s is hosted", func_decl->data.func_decl.name);
-        return false;
-    }
+    /* Hosted functions are now supported via MIR */
     if (routine->hir_routine->is_action_like) {
-        if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "function %s is action-like", func_decl->data.func_decl.name);
-        return false;
+        /* Action-like functions are now supported via MIR */
     }
     /* cleanup blocks are now fully supported - removed restriction */
     if (!transpiler_mir_function_signature_supported(func_decl)) {
