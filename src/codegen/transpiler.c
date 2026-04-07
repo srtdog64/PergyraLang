@@ -1835,11 +1835,7 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             snprintf(reason, reason_cap, "function %s is action-like", func_decl->data.func_decl.name);
         return false;
     }
-    if (routine->has_cleanup_block) {
-        if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "function %s has cleanup block", func_decl->data.func_decl.name);
-        return false;
-    }
+    /* cleanup blocks are now fully supported - removed restriction */
     if (!transpiler_mir_function_signature_supported(func_decl)) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap, "function %s has unsupported MIR signature", func_decl->data.func_decl.name);
