@@ -85,7 +85,7 @@
         },
         "pergyra.runFlags": {
           "type": "string",
-          "default": "--run",
+          "default": "--backend=c --run",
           "description": "Flags to pass when running a .pgy file."
         }
       }

@@ -374,10 +374,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
     const char *link_argv_release[] = {
         "gcc", "-std=c11", opt_flag, "-march=native", "-mtune=native",
-#ifndef _WIN32
+#ifdef _WIN32
+        "-mconsole",
+#else
         "-fopenmp",
-#endif
-#ifndef _WIN32
         "-no-pie",
 #endif
         "-DPGY_LLVM_ENABLED",
@@ -390,10 +390,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     };
     const char *link_argv_dev[] = {
         "gcc", "-std=c11", opt_flag,
-#ifndef _WIN32
+#ifdef _WIN32
+        "-mconsole",
+#else
         "-fopenmp",
-#endif
-#ifndef _WIN32
         "-no-pie",
 #endif
         "-DPGY_LLVM_ENABLED",
