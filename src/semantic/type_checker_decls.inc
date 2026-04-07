@@ -635,10 +635,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     : NULL;
                 if (intent_sym == NULL || intent_sym->kind != SYMBOL_INTENT) {
                     semantic_error(ctx, step->data.intent_step.intent_expr,
-                        "Intent step '%s' intent clause target '%s' must be a declared intent that returns Bool. "
-                        "Declare '%s' as an intent or replace with a Bool-compatible predicate before use.",
+                        "Intent step '%s' intent clause target '%s' is not a declared intent (resolved kind: %s). "
+                        "Boolean-gated orchestration requires a declared intent that returns Bool. "
+                        "Declare '%s' as an intent or replace this clause with a Bool-compatible predicate.",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         callee_name != NULL ? callee_name : "<callee>",
+                        intent_sym != NULL
+                            ? semantic_symbol_kind_label(intent_sym->kind)
+                            : "unresolved",
                         callee_name != NULL ? callee_name : "<callee>");
                 }
             }
@@ -648,6 +652,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Expected `Bool`; adjust the callee '%s' return type to Bool or wrap with a Bool predicate.",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     intent_type->name != NULL ? intent_type->name : "<type>",
+                    callee_name != NULL ? callee_name : "<callee>");
+            } else if (intent_type == NULL) {
+                semantic_error(ctx, step->data.intent_step.intent_expr,
+                    "Intent step '%s' intent clause type could not be resolved as Bool. "
+                    "Boolean-gated orchestration requires the called clause to evaluate to Bool; "
+                    "make '%s' return Bool or wrap it in a Bool predicate.",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     callee_name != NULL ? callee_name : "<callee>");
             }
         }

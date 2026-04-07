@@ -32,6 +32,12 @@
 #include "../codegen/llvm_backend.h"
 #endif
 
+#ifdef _WIN32
+#define PGY_CFLAGS_THREAD_LIB "-lwinpthread"
+#else
+#define PGY_CFLAGS_THREAD_LIB "-lpthread"
+#endif
+
 /* -----------------------------------------------------------------
  * Safe process execution (no shell — immune to command injection)
  *
@@ -187,17 +193,29 @@ compiler_build_native(const CompilerIRBundle *bundle,
     }
 
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+#ifdef _WIN32
     const char *gcc_argv[] = {
         "gcc", "-std=c11", "-Wall", opt_flag,
-        "-fopenmp",
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
         output_c_path,
         "-o", output_binary_path,
-        "-lpthread",
+        PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
     };
+#else
+    const char *gcc_argv[] = {
+        "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
+        "-I", PGY_SRC_DIR,
+        "-I", PGY_RUNTIME_DIR,
+        output_c_path,
+        "-o", output_binary_path,
+        PGY_CFLAGS_THREAD_LIB,
+        "-lm",
+        NULL
+    };
+#endif
 
     rc = pgy_exec_argv(gcc_argv, verbose);
     if (rc != 0) {
@@ -330,9 +348,11 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
-    LLVMGenResult *gen = llvm_codegen_to_object(bundle->hir, "pergyra_module",
-                                                 output_obj_path,
-                                                 opt_profile == PGY_OPT_RELEASE);
+    LLVMGenResult *gen = llvm_codegen_to_object_with_mir(bundle->hir,
+                                                         bundle->mir,
+                                                         "pergyra_module",
+                                                         output_obj_path,
+                                                         opt_profile == PGY_OPT_RELEASE);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -353,7 +373,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
 
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
     const char *link_argv_release[] = {
-        "gcc", "-std=c11", opt_flag, "-march=native", "-mtune=native", "-fopenmp",
+        "gcc", "-std=c11", opt_flag, "-march=native", "-mtune=native",
+#ifndef _WIN32
+        "-fopenmp",
+#endif
 #ifndef _WIN32
         "-no-pie",
 #endif
@@ -361,12 +384,15 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         "-I", PGY_SRC_DIR,
         "-o", output_binary_path, output_obj_path,
         PGY_RUNTIME_LIB_C,
-        "-lpthread",
+        PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
     };
     const char *link_argv_dev[] = {
-        "gcc", "-std=c11", opt_flag, "-fopenmp",
+        "gcc", "-std=c11", opt_flag,
+#ifndef _WIN32
+        "-fopenmp",
+#endif
 #ifndef _WIN32
         "-no-pie",
 #endif
@@ -374,7 +400,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         "-I", PGY_SRC_DIR,
         "-o", output_binary_path, output_obj_path,
         PGY_RUNTIME_LIB_C,
-        "-lpthread",
+        PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
     };

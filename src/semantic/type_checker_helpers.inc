@@ -282,6 +282,83 @@ name_looks_qualified(const char *name)
     return name != NULL && strchr(name, '.') != NULL;
 }
 
+static const char *
+semantic_symbol_kind_label(SymbolKind kind)
+{
+    switch (kind) {
+    case SYMBOL_VARIABLE: return "variable";
+    case SYMBOL_FUNCTION: return "function";
+    case SYMBOL_CLASS: return "class";
+    case SYMBOL_ACTOR: return "actor";
+    case SYMBOL_TYPE_PARAM: return "type parameter";
+    case SYMBOL_SLOT: return "slot";
+    case SYMBOL_TOKEN: return "token";
+    case SYMBOL_ABILITY: return "ability";
+    case SYMBOL_ROLE: return "role";
+    case SYMBOL_PARTY: return "party";
+    case SYMBOL_SYSTEMIC: return "systemic";
+    case SYMBOL_WORLD: return "world";
+    case SYMBOL_INTENT: return "intent";
+    case SYMBOL_RELATION: return "relation";
+    case SYMBOL_EFFECT: return "effect";
+    case SYMBOL_ZONE: return "zone";
+    default: return "symbol";
+    }
+}
+
+static const char *
+type_name_or_unknown(const Type *type)
+{
+    if (type == NULL)
+        return "<unknown>";
+    if (type->name != NULL && type->name[0] != '\0')
+        return type->name;
+
+    switch (type->kind) {
+    case TYPE_KIND_PRIMITIVE:
+    case TYPE_KIND_GENERIC:
+    case TYPE_KIND_CONSTRUCTED:
+    case TYPE_KIND_TUPLE:
+    case TYPE_KIND_SLOT:
+    case TYPE_KIND_CLASS:
+    case TYPE_KIND_ENUM:
+    case TYPE_KIND_TRAIT:
+    case TYPE_KIND_ALIAS:
+    case TYPE_KIND_FUNCTION:
+        return "<unknown>";
+    default:
+        return "<unknown>";
+    }
+}
+
+static void
+semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
+{
+    size_t pos = 0;
+    if (out == NULL || out_cap == 0)
+        return;
+
+    out[0] = '\0';
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+
+    pos = snprintf(out, out_cap, "fn(");
+    for (size_t i = 0; i < type->data.function.param_count; i++) {
+        const char *param_name =
+            type_name_or_unknown(type->data.function.param_types[i]);
+        if (i > 0)
+            pos += snprintf(out + pos, out_cap > pos ? out_cap - pos : 0, ", ");
+        pos += snprintf(out + pos, out_cap > pos ? out_cap - pos : 0, "%s",
+                        param_name);
+        if (pos >= out_cap)
+            break;
+    }
+    if (pos < out_cap)
+        snprintf(out + pos, out_cap > pos ? out_cap - pos : 0,
+                 ")->%s",
+                 type_name_or_unknown(type->data.function.return_type));
+}
+
 static ASTNode *
 constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *name);
 static ASTNode *
@@ -1535,10 +1612,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     if (sym == NULL) {
         if (name_looks_qualified(display_name)) {
             semantic_error(ctx, expr,
-                "Undefined function '%s' (check namespace spelling or export visibility)",
+                "Undefined function '%s' (expected a callable symbol). "
+                "Check namespace spelling/export visibility or define/import a callable declaration before use.",
                 display_name);
         } else {
-            semantic_error(ctx, expr, "Undefined function '%s'", display_name);
+            semantic_error(ctx, expr,
+                "Undefined function '%s' (expected a callable symbol in current scope). "
+                "Declare '%s' first, or use a qualified name for a namespaced declaration.",
+                display_name, display_name);
         }
         return TYPE_UNKNOWN;
     }
@@ -1651,7 +1732,19 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     if (sym->type->kind != TYPE_KIND_FUNCTION) {
-        semantic_error(ctx, expr, "'%s' is not a function", display_name);
+        char sig_buf[256];
+        semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
+        if (sig_buf[0] == '\0')
+            snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
+        semantic_error(ctx, expr,
+            "'%s' resolves to a %s '%s' of type '%s', but function calls require a callable declaration. "
+            "Expected a function signature matching %s. Use a function name, a callable variable, "
+            "or adjust this symbol declaration before calling.",
+            display_name,
+            semantic_symbol_kind_label(sym->kind),
+            display_name,
+            type_name_or_unknown(sym->type),
+            sig_buf);
         return TYPE_UNKNOWN;
     }
     sym->is_used = true;
@@ -1660,9 +1753,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     size_t expected = sym->type->data.function.param_count;
     size_t provided = expr->data.call.arg_count;
     if (provided != expected) {
+        char sig_buf[256];
+        semantic_format_function_signature(sym->type, sig_buf, sizeof(sig_buf));
+        if (sig_buf[0] == '\0')
+            snprintf(sig_buf, sizeof(sig_buf), "fn(<signature unavailable>)");
         semantic_error(ctx, expr,
-            "'%s' expects %zu argument(s), got %zu",
-            display_name, expected, provided);
+            "'%s' expects %zu argument(s), got %zu. Declared signature: %s. "
+            "Adjust caller arguments to satisfy the declaration.",
+            display_name, expected, provided, sig_buf);
         return sym->type->data.function.return_type;
     }
 
@@ -1745,6 +1843,55 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
 
         require_assignable(arg_type, param_type, expr->data.call.arguments[i], ctx);
+    }
+
+    /* Validate generic function where-clause constraints */
+    if (ctx->program_root != NULL) {
+        ASTNode *prog = ctx->program_root;
+        for (size_t si = 0; si < prog->data.program.count; si++) {
+            ASTNode *stmt = prog->data.program.statements[si];
+            if (stmt != NULL && stmt->type == AST_FUNC_DECL
+                && stmt->data.func_decl.name != NULL
+                && strcmp(stmt->data.func_decl.name, display_name) == 0
+                && stmt->data.func_decl.generic_params != NULL
+                && stmt->data.func_decl.generic_params->count > 0
+                && stmt->data.func_decl.where_clause != NULL) {
+                /* Generic function with where clause — validate constraints */
+                WhereClause *wc = stmt->data.func_decl.where_clause;
+                for (size_t ci = 0; ci < wc->count; ci++) {
+                    TypeConstraint *tc = wc->constraints[ci];
+                    if (tc == NULL || tc->type_param == NULL)
+                        continue;
+                    /* Find the concrete type argument at call site */
+                    const char *param_name = tc->type_param;
+                    Type *concrete_type = NULL;
+                    for (size_t ai = 0; ai < provided && concrete_type == NULL; ai++) {
+                        FuncParam *fp = (ai < stmt->data.func_decl.param_count)
+                            ? stmt->data.func_decl.params[ai] : NULL;
+                        if (fp != NULL && fp->type != NULL
+                            && fp->type->type == AST_TYPE
+                            && fp->type->data.type.name != NULL
+                            && strcmp(fp->type->data.type.name, param_name) == 0) {
+                            concrete_type = sym->type->data.function.param_types[ai];
+                        }
+                    }
+                    if (concrete_type == NULL)
+                        continue;
+                    /* Check each bound */
+                    for (size_t bi = 0; bi < tc->bound_count; bi++) {
+                        Type *bound = resolve_type_node(tc->bounds[bi], ctx);
+                        if (bound != NULL && !type_satisfies_constraint(concrete_type, bound)) {
+                            semantic_error(ctx, expr,
+                                "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'",
+                                concrete_type->name != NULL ? concrete_type->name : "<type>",
+                                bound->name != NULL ? bound->name : "<constraint>",
+                                param_name);
+                        }
+                    }
+                }
+                break;
+            }
+        }
     }
 
     return sym->type->data.function.return_type;

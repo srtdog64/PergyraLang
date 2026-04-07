@@ -293,6 +293,76 @@ read_file_text(const char *path)
     return data;
 }
 
+static const ASTNode *
+find_hir_function_by_name(const HIRProgram *hir, const char *name)
+{
+    if (hir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < hir->function_count; i++) {
+        const ASTNode *f = hir->functions[i];
+        if (f != NULL && f->type == AST_FUNC_DECL
+            && f->data.func_decl.name != NULL
+            && strcmp(f->data.func_decl.name, name) == 0) {
+            return f;
+        }
+    }
+    return NULL;
+}
+
+static const ASTNode *
+find_hir_intent_by_name(const HIRProgram *hir, const char *name)
+{
+    if (hir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < hir->intent_count; i++) {
+        const ASTNode *intent = hir->intents[i];
+        if (intent != NULL && intent->type == AST_INTENT_DECL
+            && intent->data.intent_decl.name != NULL
+            && strcmp(intent->data.intent_decl.name, name) == 0) {
+            return intent;
+        }
+    }
+    return NULL;
+}
+
+static bool
+check_function_mir_emitability(const HIRProgram *hir, const MIRProgram *mir,
+                              const char *function_name)
+{
+    const ASTNode *func_decl = find_hir_function_by_name(hir, function_name);
+    char reason[512];
+    if (func_decl == NULL) {
+        fprintf(stderr, "  ✗ no HIR function '%s'\n", function_name);
+        return false;
+    }
+    if (!transpiler_can_emit_function_from_mir_with_reason_for_test(func_decl,
+            mir, reason, sizeof(reason))) {
+        fprintf(stderr, "  ✗ MIR emitability rejected for function '%s': %s\n",
+                function_name, reason);
+        return false;
+    }
+    return true;
+}
+
+static bool
+check_intent_mir_emitability(const HIRProgram *hir, const MIRProgram *mir,
+                             const char *intent_name)
+{
+    const ASTNode *intent_decl = find_hir_intent_by_name(hir, intent_name);
+    char reason[512];
+    if (intent_decl == NULL) {
+        fprintf(stderr, "  ✗ no HIR intent '%s'\n", intent_name);
+        return false;
+    }
+    if (!transpiler_can_emit_intent_cleanup_from_mir_with_reason_for_test(intent_decl,
+            mir, reason, sizeof(reason))) {
+        fprintf(stderr, "  ✗ MIR emitability rejected for intent '%s': %s\n",
+                intent_name, reason);
+        return false;
+    }
+    return true;
+}
+
 static ASTNode *
 make_generic_type(const char *name, const char *arg_name)
 {
@@ -570,13 +640,25 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Log(\"\\n + indentation\") → normalized multiline single string");
+    TEST("Log(\"\\n + indentation\") preserves raw multiline string");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = {
             make_string_lit("\n  first\n  second", 1),
         };
         result = emit_expression(make_call("Log", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_log(\"\\n  first\\n  second\")") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("LogBanner(\"\\n + indentation\") normalizes multiline banner text");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = {
+            make_string_lit("\n  first\n  second", 1),
+        };
+        result = emit_expression(make_call("LogBanner", args, 1, 1), ctx);
         EXPECT(strcmp(result, "pgy_log(\"first\\nsecond\")") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
@@ -3143,6 +3225,8 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
+            if (!check_function_mir_emitability(hir, mir, "Score"))
+                ok = false;
             TranspileResult *res = transpile_with_mir(hir, mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
@@ -3196,6 +3280,8 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
+            if (!check_function_mir_emitability(hir, mir, "Score"))
+                ok = false;
             TranspileResult *res = transpile_with_mir(hir, mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
@@ -3241,6 +3327,8 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
+            if (!check_function_mir_emitability(hir, mir, "Score"))
+                ok = false;
             TranspileResult *res = transpile_with_mir(hir, mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
@@ -3300,6 +3388,8 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
+            if (!check_intent_mir_emitability(hir, mir, "Purchase"))
+                ok = false;
             TranspileResult *res = transpile_with_mir(hir, mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);
@@ -3355,6 +3445,8 @@ test_mir_vertical_slice_emit(void)
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
+            if (!check_intent_mir_emitability(hir, mir, "Checkout"))
+                ok = false;
             TranspileResult *res = transpile_with_mir(hir, mir, path);
             ok = (res != NULL && res->success);
             transpile_result_destroy(res);

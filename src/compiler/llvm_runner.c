@@ -38,8 +38,9 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
     char *bin_path = flags->output_path != NULL
         ? pergyra_strdup(flags->output_path)
         : path_default_binary(flags->source_path);
+    const char *obj_ext = ".o";
     char *obj_path = bin_path != NULL
-        ? path_replace_extension(bin_path, ".o") : NULL;
+        ? path_replace_extension(bin_path, obj_ext) : NULL;
     CompilerResult *result;
 
     if (bin_path == NULL || obj_path == NULL) {

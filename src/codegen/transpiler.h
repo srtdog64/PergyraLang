@@ -197,6 +197,20 @@ TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const char *output_path);
 void             transpile_result_destroy(TranspileResult *res);
 
+/* Test-only helpers: MIR emission eligibility with reason.
+ * These are intentionally conservative and exposed for diagnostics in
+ * transpiler tests. */
+bool transpiler_can_emit_function_from_mir_with_reason_for_test(
+    const ASTNode *func_decl,
+    const MIRProgram *mir,
+    char *reason,
+    size_t reason_cap);
+bool transpiler_can_emit_intent_cleanup_from_mir_with_reason_for_test(
+    const ASTNode *intent_decl,
+    const MIRProgram *mir,
+    char *reason,
+    size_t reason_cap);
+
 /* -----------------------------------------------------------------
  * Per-node emitters (public for testing)
  * ----------------------------------------------------------------- */

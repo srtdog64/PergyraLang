@@ -4,6 +4,23 @@ const fs = require('fs');
 const cp = require('child_process');
 
 const isWindows = process.platform === 'win32';
+
+function unquotePath(value) {
+    if (!value) {
+        return value;
+    }
+    const text = String(value).trim();
+    if ((text.startsWith('"') && text.endsWith('"'))
+        || (text.startsWith("'") && text.endsWith("'"))) {
+        return text.slice(1, -1);
+    }
+    return text;
+}
+
+function shouldUseShellForCompiler(candidate) {
+    return isWindows && (isScriptLikeCompiler(candidate) || candidate.includes(' '));
+}
+
 function isScriptLikeCompiler(candidate) {
     const ext = path.extname(candidate || '').toLowerCase();
     return isWindows && (ext === '.cmd' || ext === '.bat');
@@ -24,14 +41,15 @@ function resolveWorkspaceConfigPath(rawPath) {
     if (!rawPath) {
         return null;
     }
+    const normalizedPath = unquotePath(rawPath);
 
     const candidates = [];
-    if (path.isAbsolute(rawPath)) {
-        candidates.push(rawPath);
+    if (path.isAbsolute(normalizedPath)) {
+        candidates.push(normalizedPath);
     } else {
         const folders = vscode.workspace.workspaceFolders || [];
         for (const folder of folders) {
-            candidates.push(path.join(folder.uri.fsPath, rawPath));
+            candidates.push(path.join(folder.uri.fsPath, normalizedPath));
         }
     }
 
@@ -135,7 +153,7 @@ function runFile(filePath, flags) {
 
     const proc = cp.spawn(compiler, args, {
         cwd,
-        shell: isScriptLikeCompiler(compiler),
+        shell: shouldUseShellForCompiler(compiler),
         windowsHide: true,
     });
 

@@ -1862,6 +1862,26 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (has_generics)
         scope_exit(&ctx->scope);
 
+    /* Validate where-clause constraint types are resolvable */
+    if (node->data.func_decl.where_clause != NULL) {
+        WhereClause *wc = node->data.func_decl.where_clause;
+        for (size_t i = 0; i < wc->count; i++) {
+            TypeConstraint *tc = wc->constraints[i];
+            if (tc == NULL)
+                continue;
+            for (size_t b = 0; b < tc->bound_count; b++) {
+                if (tc->bounds[b] != NULL) {
+                    Type *bound_type = resolve_type_node(tc->bounds[b], ctx);
+                    if (bound_type == NULL) {
+                        semantic_error(ctx, node,
+                            "Unknown constraint type '%s' in where clause",
+                            tc->bounds[b]->data.type.name);
+                    }
+                }
+            }
+        }
+    }
+
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
 
