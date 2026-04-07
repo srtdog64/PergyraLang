@@ -258,7 +258,7 @@ compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen(bundle->hir, module_name);
+    LLVMGenResult *gen = llvm_codegen_with_mir(bundle->hir, bundle->mir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -290,7 +290,7 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen(bundle->hir, module_name);
+    LLVMGenResult *gen = llvm_codegen_with_mir(bundle->hir, bundle->mir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 

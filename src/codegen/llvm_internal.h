@@ -13,6 +13,7 @@
 
 #include "llvm_backend.h"
 #include "../common/string_compat.h"
+#include "../compiler/mir.h"
 
 #include <stdio.h>
 #include <stdlib.h>

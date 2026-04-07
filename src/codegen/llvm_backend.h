@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "../compiler/hir.h"
+#include "../compiler/mir.h"
 
 /* -----------------------------------------------------------------
  * Result type for LLVM code generation
@@ -37,6 +38,26 @@ typedef struct
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
+
+/*
+ * Generate LLVM IR from MIR (preferred) with HIR fallback.
+ * If mir is non-NULL, emits functions using MIR CFG and SSA.
+ * Caller must free with llvm_gen_result_destroy().
+ */
+LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
+                                      const MIRProgram *mir,
+                                      const char *module_name);
+
+/*
+ * Generate LLVM IR from MIR and emit a native object file (.o).
+ * If mir is NULL, this keeps the legacy behavior and falls back to HIR emission.
+ * Caller must free with llvm_gen_result_destroy().
+ */
+LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,
+                                               const MIRProgram *mir,
+                                               const char *module_name,
+                                               const char *output_path,
+                                               bool release_opt);
 
 /*
  * Generate LLVM IR from lowered HIR, optimize, and emit a native object file (.o).

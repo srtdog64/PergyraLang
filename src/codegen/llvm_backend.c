@@ -4389,14 +4389,188 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
  * Public API
  * ================================================================= */
 
+/* =================================================================
+ * MIR-based program emission
+ * ================================================================= */
+
+static bool
+llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
+{
+    if (error_message != NULL)
+        *error_message = NULL;
+
+    if (mir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("MIR program is NULL");
+        return false;
+    }
+
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        char *topology_error = NULL;
+
+        if (routine->name == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("MIR routine is missing name");
+            return false;
+        }
+
+        if (!mir_validate_emission_topology(routine, false, true, &topology_error)) {
+            if (error_message != NULL) {
+                if (topology_error != NULL) {
+                    size_t msg_len = strlen(topology_error) + 128;
+                    *error_message = calloc(1, msg_len);
+                    if (*error_message != NULL) {
+                        snprintf(*error_message, msg_len,
+                                 "MIR routine '%s' emission topology invalid: %s",
+                                 routine->name != NULL ? routine->name : "(anonymous)",
+                                 topology_error);
+                    }
+                } else {
+                    *error_message = pergyra_strdup(
+                        "MIR emission topology validation failed");
+                }
+            }
+            free(topology_error);
+            return false;
+        }
+        free(topology_error);
+    }
+    return true;
+}
+
+static bool
+llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
+                          bool allow_hir_fallback)
+{
+    if (mir == NULL || ctx == NULL)
+        return false;
+
+    /* Declare runtime functions first */
+    llvm_declare_runtime(ctx);
+
+    /* Pass 1: Forward declarations from HIR (for type info) */
+    if (ctx->hir != NULL) {
+        for (size_t i = 0; i < ctx->hir->item_count; i++) {
+            ASTNode *stmt = ctx->hir->items[i].ast;
+            if (stmt != NULL && stmt->type == AST_FUNC_DECL)
+                llvm_forward_declare_func(stmt, ctx);
+        }
+        for (size_t i = 0; i < ctx->hir->intent_count; i++)
+            llvm_forward_declare_intent(ctx->hir->intents[i], ctx);
+    }
+
+    /* Pass 2: Emit function bodies from MIR */
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        if (routine->kind == MIR_SCOPE_FUNCTION || routine->kind == MIR_SCOPE_INTENT) {
+            llvm_emit_func_from_mir(routine, ctx);
+        }
+    }
+
+    /* Pass 3: Emit remaining HIR-based declarations (classes, structs, etc.) */
+    if (ctx->hir != NULL) {
+        /* Emit domain/class/struct type declarations */
+        llvm_emit_domain_passes(ctx->hir, ctx);
+
+        /* Emit any functions that didn't have MIR (fallback) */
+        for (size_t i = 0; i < ctx->hir->item_count; i++) {
+            ASTNode *stmt = ctx->hir->items[i].ast;
+            if (stmt != NULL && stmt->type == AST_FUNC_DECL) {
+                /* Check if this function has MIR emission */
+                bool has_mir = false;
+                for (size_t j = 0; j < mir->routine_count; j++) {
+                    const MIRRoutine *routine = &mir->routines[j];
+                    if (routine->hir_routine != NULL &&
+                        routine->hir_routine->ast == stmt) {
+                        has_mir = true;
+                        break;
+                    }
+                }
+                if (!has_mir) {
+                    if (!allow_hir_fallback) {
+                        llvm_set_error_at(ctx, stmt,
+                                          "LLVM codegen expects MIR for function %s but no routine was generated",
+                                          stmt->data.func_decl.name != NULL
+                                          ? stmt->data.func_decl.name
+                                          : "(anonymous)");
+                        return false;
+                    }
+                    llvm_emit_func_decl(stmt, ctx);
+                }
+            } else if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                /* Check if this intent has MIR emission */
+                bool has_mir = false;
+                for (size_t j = 0; j < mir->routine_count; j++) {
+                    const MIRRoutine *routine = &mir->routines[j];
+                    if (routine->hir_routine != NULL &&
+                        routine->hir_routine->ast == stmt) {
+                        has_mir = true;
+                        break;
+                    }
+                }
+                if (!has_mir) {
+                    if (!allow_hir_fallback) {
+                        llvm_set_error_at(ctx, stmt,
+                                          "LLVM codegen expects MIR for intent %s but no routine was generated",
+                                          stmt->data.intent_decl.name != NULL
+                                          ? stmt->data.intent_decl.name
+                                          : "(anonymous)");
+                        return false;
+                    }
+                    llvm_emit_intent_decl(stmt, ctx);
+                }
+            }
+        }
+    }
+    return !ctx->has_error;
+}
+
+/* =================================================================
+ * Main entry points
+ * ================================================================= */
+
 LLVMGenResult *
 llvm_codegen(const HIRProgram *hir, const char *module_name)
+{
+    return llvm_codegen_with_mir(hir, NULL, module_name);
+}
+
+LLVMGenResult *
+llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *module_name)
 {
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(hir, ctx);
+    ctx->hir = hir;
+    ctx->mir = mir;
+
+    /* Emit using MIR if available, otherwise fallback to HIR */
+    if (mir != NULL) {
+        char *mir_error = NULL;
+        if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
+            LLVMGenResult *res = llvm_result_error(
+                mir_error != NULL ? mir_error : "Invalid MIR program");
+            free(mir_error);
+            llvm_ctx_destroy(ctx);
+            return res;
+        }
+        if (!llvm_emit_program_from_mir(mir, ctx, false)) {
+            char msg[1024];
+            if (ctx->error_line > 0) {
+                snprintf(msg, sizeof(msg), "line %u:%u: %s",
+                         ctx->error_line, ctx->error_column, ctx->error_msg);
+            } else {
+                snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
+            }
+            LLVMGenResult *res = llvm_result_error(msg);
+            llvm_ctx_destroy(ctx);
+            return res;
+        }
+    } else {
+        llvm_emit_program(hir, ctx);
+    }
 
     if (ctx->has_error) {
         char msg[1024];
@@ -4439,11 +4613,43 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
                        const char *output_path,
                        bool release_opt)
 {
+    return llvm_codegen_to_object_with_mir(hir, NULL, module_name, output_path,
+                                           release_opt);
+}
+
+LLVMGenResult *
+llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *module_name,
+                               const char *output_path,
+                               bool release_opt)
+{
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    llvm_emit_program(hir, ctx);
+    if (mir != NULL) {
+        char *mir_error = NULL;
+        if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
+            LLVMGenResult *res = llvm_result_error(
+                mir_error != NULL ? mir_error : "Invalid MIR program");
+            free(mir_error);
+            llvm_ctx_destroy(ctx);
+            return res;
+        }
+        if (!llvm_emit_program_from_mir(mir, ctx, false)) {
+            char msg[1024];
+            if (ctx->error_line > 0) {
+                snprintf(msg, sizeof(msg), "line %u:%u: %s",
+                         ctx->error_line, ctx->error_column, ctx->error_msg);
+            } else {
+                snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
+            }
+            LLVMGenResult *res = llvm_result_error(msg);
+            llvm_ctx_destroy(ctx);
+            return res;
+        }
+    } else {
+        llvm_emit_program(hir, ctx);
+    }
 
     if (ctx->has_error) {
         char msg[1024];

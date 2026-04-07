@@ -1614,9 +1614,9 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Intent guard expression must be Bool"));
+            "Intent guard expects a Bool value"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Intent invariant expression must be Bool"));
+            "Intent invariant expects a Bool value"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1831,7 +1831,7 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "intent clause must target another intent"));
+            "must be a declared intent"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

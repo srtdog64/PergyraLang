@@ -1324,6 +1324,9 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
     if (routine->has_rollback_block) {
         MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
         MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
+        size_t rollback_cleanup_target = routine->has_invalidation_block
+            ? routine->invalidation_block
+            : routine->cleanup_block;
         cleanup->rollback_succ = routine->rollback_block;
         cleanup->has_rollback_succ = true;
         if (!append_index_unique(&rollback->predecessors,
@@ -1332,7 +1335,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
             return false;
         }
         /* Rollback block also needs cleanup edge back to cleanup block */
-        rollback->cleanup_succ = routine->cleanup_block;
+        rollback->cleanup_succ = rollback_cleanup_target;
         rollback->has_cleanup_succ = true;
         routine->cleanup_edge_count++;
         if (!append_instruction(rollback,
@@ -1347,8 +1350,8 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                 })) {
             return false;
         }
-        if (!append_index_unique(&cleanup->predecessors,
-                                 &cleanup->predecessor_count,
+        if (!append_index_unique(&routine->blocks[rollback_cleanup_target].predecessors,
+                                 &routine->blocks[rollback_cleanup_target].predecessor_count,
                                  routine->rollback_block)) {
             return false;
         }
