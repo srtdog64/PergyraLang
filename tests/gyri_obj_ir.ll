@@ -29,8 +29,6 @@ source_filename = "pergyra_module"
 @t5 = private unnamed_addr constant [46 x i8] c"  |  Intent-first domain modeling language  |\00", align 1
 @t6 = private unnamed_addr constant [45 x i8] c"  |  subject | zone | intent | slot        |\00", align 1
 @t7 = private unnamed_addr constant [46 x i8] c"  +=========================================+\00", align 1
-@llvm.used = appending constant [1 x ptr] [ptr @main], section "llvm.metadata"
-@llvm.compiler.used = appending constant [1 x ptr] [ptr @main], section "llvm.metadata"
 
 declare void @pgy_log_int(i32)
 
@@ -480,12 +478,4 @@ bb_0:
   call void @pgy_log_string(ptr @t6)
   call void @pgy_log_string(ptr @t7)
   ret void
-}
-
-define i32 @main() {
-entry:
-  call void @pgy_pool_init_export(i64 4)
-  call void @Main()
-  call void @pgy_pool_shutdown_export()
-  ret i32 0
 }

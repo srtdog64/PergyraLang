@@ -2106,7 +2106,8 @@ static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
 static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
 {
     if (m->count == 0) return;
-    uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
+    uint32_t cap = (uint32_t)m->capacity;
+    uint32_t h = pgy_hash_string(key) % cap;
     size_t probes = 0;
     while (m->occupied[h] && probes < m->capacity) {
         if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
@@ -2115,9 +2116,27 @@ static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
             m->values[h] = 0;
             m->occupied[h] = 0;
             m->count--;
+            /* Backward-shift: rehash subsequent entries to fill the gap */
+            uint32_t gap = h;
+            uint32_t j = (gap + 1) % cap;
+            while (m->occupied[j]) {
+                uint32_t ideal = pgy_hash_string(m->keys[j]) % cap;
+                uint32_t dist_to_j   = (j - ideal + cap) % cap;
+                uint32_t dist_to_gap = (gap - ideal + cap) % cap;
+                if (dist_to_gap < dist_to_j) {
+                    m->keys[gap]     = m->keys[j];
+                    m->values[gap]   = m->values[j];
+                    m->occupied[gap] = 1;
+                    m->keys[j]      = NULL;
+                    m->values[j]    = 0;
+                    m->occupied[j]  = 0;
+                    gap = j;
+                }
+                j = (j + 1) % cap;
+            }
             return;
         }
-        h = (h + 1) % (uint32_t)m->capacity;
+        h = (h + 1) % cap;
         probes++;
     }
 }
@@ -2203,6 +2222,45 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
         h = (h + 1) % (uint32_t)m->capacity; p++;
     }
     return false;
+}
+
+static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
+{
+    if (m->count == 0) return;
+    uint32_t cap = (uint32_t)m->capacity;
+    uint32_t h = pgy_hash_string(key) % cap;
+    size_t probes = 0;
+    while (m->occupied[h] && probes < m->capacity) {
+        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
+            free(m->keys[h]);
+            m->keys[h] = NULL;
+            free(m->values[h]);
+            m->values[h] = NULL;
+            m->occupied[h] = 0;
+            m->count--;
+            /* Backward-shift: rehash subsequent entries to fill the gap */
+            uint32_t gap = h;
+            uint32_t j = (gap + 1) % cap;
+            while (m->occupied[j]) {
+                uint32_t ideal = pgy_hash_string(m->keys[j]) % cap;
+                uint32_t dist_to_j   = (j - ideal + cap) % cap;
+                uint32_t dist_to_gap = (gap - ideal + cap) % cap;
+                if (dist_to_gap < dist_to_j) {
+                    m->keys[gap]     = m->keys[j];
+                    m->values[gap]   = m->values[j];
+                    m->occupied[gap] = 1;
+                    m->keys[j]      = NULL;
+                    m->values[j]    = NULL;
+                    m->occupied[j]  = 0;
+                    gap = j;
+                }
+                j = (j + 1) % cap;
+            }
+            return;
+        }
+        h = (h + 1) % cap;
+        probes++;
+    }
 }
 
 /* =================================================================

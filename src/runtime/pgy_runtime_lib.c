@@ -634,7 +634,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
             continue;
         if (entry->is_concurrent && is_concurrent)
             continue;
-        if (priority > entry->priority)
+        if (priority < entry->priority)
             continue;
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
@@ -839,10 +839,18 @@ pgy_mir_resource_op_export(int32_t handle,
                            const char *slot_anchor,
                            const char *arg_name)
 {
+#ifdef PGY_MIR_TRACE
+    fprintf(stderr, "[MIR resource-op] handle=%d op=%s slot=%s arg=%s\n",
+            handle,
+            op_name      != NULL ? op_name      : "-",
+            slot_anchor  != NULL ? slot_anchor  : "-",
+            arg_name     != NULL ? arg_name     : "-");
+#else
     (void)handle;
     (void)op_name;
     (void)slot_anchor;
     (void)arg_name;
+#endif
 }
 
 void
@@ -851,10 +859,18 @@ pgy_mir_cleanup_op_export(int32_t handle,
                           const char *slot_anchor,
                           const char *arg_name)
 {
+#ifdef PGY_MIR_TRACE
+    fprintf(stderr, "[MIR cleanup-op] handle=%d op=%s slot=%s arg=%s\n",
+            handle,
+            op_name      != NULL ? op_name      : "-",
+            slot_anchor  != NULL ? slot_anchor  : "-",
+            arg_name     != NULL ? arg_name     : "-");
+#else
     (void)handle;
     (void)op_name;
     (void)slot_anchor;
     (void)arg_name;
+#endif
 }
 
 char *
@@ -1727,20 +1743,27 @@ void pgy_write_file(const char *path, const char *data)
 
 char *pgy_input(const char *prompt)
 {
-    static char input_buf[4096];
+    char tmp[4096];
 
     if (prompt != NULL && prompt[0] != '\0')
         printf("%s", prompt);
     fflush(stdout);
 
-    input_buf[0] = '\0';
-    if (fgets(input_buf, sizeof(input_buf), stdin) == NULL)
-        return input_buf;
+    tmp[0] = '\0';
+    if (fgets(tmp, sizeof(tmp), stdin) == NULL) {
+        char *empty = (char *)malloc(1);
+        if (empty != NULL) empty[0] = '\0';
+        return empty;
+    }
 
-    size_t len = strlen(input_buf);
-    if (len > 0 && input_buf[len - 1] == '\n')
-        input_buf[len - 1] = '\0';
-    return input_buf;
+    size_t len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '\n')
+        tmp[len - 1] = '\0';
+
+    char *result = (char *)malloc(strlen(tmp) + 1);
+    if (result != NULL)
+        strcpy(result, tmp);
+    return result;
 }
 
 bool StringContains(const char *haystack, const char *needle)

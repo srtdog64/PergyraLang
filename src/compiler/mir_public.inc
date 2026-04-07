@@ -33,6 +33,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !mir_populate_instructions(&routine)
             || !mir_apply_ssa_rename(&routine)
             || !mir_populate_use_edges(&routine)
+            || !mir_populate_stmt_instructions(&routine)
             || !mir_materialize_cleanup_edges(&routine)
             || !mir_recompute_analysis(&routine)
             || !append_routine(mir, routine)) {
@@ -677,6 +678,7 @@ mir_inst_kind_name(MIRInstKind kind)
         case MIR_INST_BRANCH: return "branch";
         case MIR_INST_RETURN: return "return";
         case MIR_INST_CLEANUP_EDGE: return "cleanup";
+        case MIR_INST_STMT: return "stmt";
         default: return "unknown";
     }
 }

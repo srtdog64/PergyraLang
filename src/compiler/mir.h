@@ -24,7 +24,8 @@ typedef enum
     MIR_INST_PHI,
     MIR_INST_BRANCH,
     MIR_INST_RETURN,
-    MIR_INST_CLEANUP_EDGE
+    MIR_INST_CLEANUP_EDGE,
+    MIR_INST_STMT
 } MIRInstKind;
 
 typedef struct

@@ -4713,6 +4713,9 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir, co
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
+    ctx->hir = hir;
+    ctx->mir = mir;
+
     if (mir != NULL) {
         char *mir_error = NULL;
         if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
@@ -4938,6 +4941,11 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 break;
             case MIR_INST_CLEANUP_EDGE:
                 /* Cleanup edges → runtime call */
+                break;
+            case MIR_INST_STMT:
+                if (inst->ast != NULL) {
+                    llvm_emit_statement(inst->ast, ctx);
+                }
                 break;
             default:
                 break;

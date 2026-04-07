@@ -1402,6 +1402,171 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
     return true;
 }
 
+/* ---------------------------------------------------------------------------
+ * mir_populate_stmt_instructions
+ *
+ * After SSA rename has placed DEF instructions, this pass walks each HIR
+ * block's statement list and rebuilds the MIR block instruction array so that
+ * general statements (function calls, expression statements, assignments to
+ * non-identifier targets, etc.) are represented as MIR_INST_STMT instructions
+ * interleaved with the existing DEF/PHI/BRANCH/RETURN instructions in the
+ * correct source order.
+ * -------------------------------------------------------------------------*/
+static bool
+mir_stmt_is_def_source(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return false;
+    if (stmt->type == AST_LET_DECL)
+        return true;
+    if (stmt->type == AST_ASSIGNMENT
+        && stmt->data.assignment.target != NULL
+        && stmt->data.assignment.target->type == AST_IDENTIFIER)
+        return true;
+    return false;
+}
+
+static bool
+mir_stmt_is_control_flow(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return true;
+    switch (stmt->type) {
+        case AST_IF_STMT:
+        case AST_WHILE_LOOP:
+        case AST_FOR_LOOP:
+        case AST_RETURN:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool
+mir_populate_stmt_instructions(MIRRoutine *routine)
+{
+    const HIRRoutine *hir_routine;
+    if (routine == NULL)
+        return true;
+    hir_routine = routine->hir_routine;
+    if (hir_routine == NULL || !hir_routine->has_cfg)
+        return true;
+
+    for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
+        MIRBasicBlock *block = &routine->blocks[block_id];
+        const HIRBasicBlock *hir_block;
+
+        if (block->is_cleanup)
+            continue;
+        if (block->source_hir_block_id == SIZE_MAX)
+            continue;
+        if (block->source_hir_block_id >= hir_routine->cfg.block_count)
+            continue;
+
+        hir_block = &hir_routine->cfg.blocks[block->source_hir_block_id];
+        if (hir_block->statement_count == 0)
+            continue;
+
+        /* Separate existing instructions into categories */
+        MIRInstruction *old_insts = block->instructions;
+        size_t old_count = block->instruction_count;
+
+        /* Count how many new STMT instructions we will add */
+        size_t stmt_count = 0;
+        for (size_t s = 0; s < hir_block->statement_count; s++) {
+            ASTNode *stmt = hir_block->statements[s];
+            if (!mir_stmt_is_def_source(stmt) && !mir_stmt_is_control_flow(stmt))
+                stmt_count++;
+        }
+        if (stmt_count == 0)
+            continue;
+
+        /* Allocate new instruction array */
+        size_t new_cap = old_count + stmt_count;
+        MIRInstruction *new_insts = calloc(new_cap, sizeof(MIRInstruction));
+        if (new_insts == NULL)
+            return false;
+        size_t new_count = 0;
+
+        /* Phase 1: copy PHI instructions */
+        size_t old_cursor = 0;
+        while (old_cursor < old_count && old_insts[old_cursor].kind == MIR_INST_PHI) {
+            new_insts[new_count++] = old_insts[old_cursor++];
+        }
+
+        /* Phase 2: interleave DEFs and STMTs based on HIR statement order */
+        size_t def_cursor = old_cursor;
+        /* Find the first DEF in remaining old instructions */
+        while (def_cursor < old_count
+               && old_insts[def_cursor].kind != MIR_INST_DEF)
+            def_cursor++;
+
+        /* Copy any RESOURCE_OP between PHIs and DEFs */
+        for (size_t r = old_cursor; r < def_cursor; r++) {
+            if (old_insts[r].kind == MIR_INST_RESOURCE_OP
+                || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
+                new_insts[new_count++] = old_insts[r];
+            }
+        }
+
+        for (size_t s = 0; s < hir_block->statement_count; s++) {
+            ASTNode *stmt = hir_block->statements[s];
+            if (mir_stmt_is_control_flow(stmt))
+                continue;
+            if (mir_stmt_is_def_source(stmt)) {
+                /* Find the next DEF from old instructions */
+                while (def_cursor < old_count
+                       && old_insts[def_cursor].kind != MIR_INST_DEF)
+                    def_cursor++;
+                if (def_cursor < old_count) {
+                    new_insts[new_count++] = old_insts[def_cursor];
+                    def_cursor++;
+                }
+            } else {
+                /* Create new STMT instruction */
+                MIRInstruction inst;
+                memset(&inst, 0, sizeof(inst));
+                inst.id = routine->instruction_count++;
+                inst.kind = MIR_INST_STMT;
+                inst.name = "stmt";
+                inst.ast = stmt;
+                new_insts[new_count++] = inst;
+            }
+        }
+
+        /* Copy remaining RESOURCE_OP / CLEANUP_EDGE after DEFs */
+        for (size_t r = old_cursor; r < old_count; r++) {
+            if (old_insts[r].kind == MIR_INST_RESOURCE_OP
+                || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
+                /* Avoid duplicating ones already copied above */
+                bool already_copied = (r < def_cursor);
+                /* We copied resource ops before def_cursor in Phase 2 preamble,
+                 * but only those between old_cursor and the first def_cursor.
+                 * Resource ops after that point were not copied. */
+                if (r >= old_cursor && r < def_cursor)
+                    continue; /* already copied */
+                (void)already_copied;
+                new_insts[new_count++] = old_insts[r];
+            }
+        }
+
+        /* Phase 3: copy terminators */
+        for (size_t t = 0; t < old_count; t++) {
+            if (old_insts[t].kind == MIR_INST_BRANCH
+                || old_insts[t].kind == MIR_INST_RETURN) {
+                new_insts[new_count++] = old_insts[t];
+            }
+        }
+
+        /* Replace block's instruction array */
+        free(old_insts);
+        block->instructions = new_insts;
+        block->instruction_count = new_count;
+    }
+
+    return true;
+}
+
 static bool
 mir_populate_instructions(MIRRoutine *routine)
 {
