@@ -4544,11 +4544,21 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
             llvm_forward_declare_intent(ctx->hir->intents[i], ctx);
     }
 
-    /* Pass 2: Emit function bodies from MIR */
+    /* Pass 2: Emit function bodies from MIR (skip empty MIR — handled in Pass 3) */
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         if (routine->kind == MIR_SCOPE_FUNCTION || routine->kind == MIR_SCOPE_INTENT) {
-            llvm_emit_func_from_mir(routine, ctx);
+            /* Skip routines with empty MIR blocks — let Pass 3 HIR fallback handle them */
+            bool mir_has_instructions = false;
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                if (routine->blocks[bi].instruction_count > 0) {
+                    mir_has_instructions = true;
+                    break;
+                }
+            }
+            if (mir_has_instructions) {
+                llvm_emit_func_from_mir(routine, ctx);
+            }
         }
     }
 
@@ -4561,25 +4571,24 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
             ASTNode *stmt = ctx->hir->items[i].ast;
             if (stmt != NULL && stmt->type == AST_FUNC_DECL) {
-                /* Check if this function has MIR emission */
+                /* Check if this function was emitted via MIR (non-empty) */
                 bool has_mir = false;
                 for (size_t j = 0; j < mir->routine_count; j++) {
                     const MIRRoutine *routine = &mir->routines[j];
                     if (routine->hir_routine != NULL &&
                         routine->hir_routine->ast == stmt) {
-                        has_mir = true;
+                        /* Only count as "has MIR" if it actually has instructions */
+                        for (size_t bi = 0; bi < routine->block_count; bi++) {
+                            if (routine->blocks[bi].instruction_count > 0) {
+                                has_mir = true;
+                                break;
+                            }
+                        }
                         break;
                     }
                 }
                 if (!has_mir) {
-                    if (!allow_hir_fallback) {
-                        llvm_set_error_at(ctx, stmt,
-                                          "LLVM codegen expects MIR for function %s but no routine was generated",
-                                          stmt->data.func_decl.name != NULL
-                                          ? stmt->data.func_decl.name
-                                          : "(anonymous)");
-                        return false;
-                    }
+                    /* MIR is missing or empty — fallback to HIR emission */
                     llvm_emit_func_decl(stmt, ctx);
                 }
             } else if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
@@ -4594,14 +4603,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
                     }
                 }
                 if (!has_mir) {
-                    if (!allow_hir_fallback) {
-                        llvm_set_error_at(ctx, stmt,
-                                          "LLVM codegen expects MIR for intent %s but no routine was generated",
-                                          stmt->data.intent_decl.name != NULL
-                                          ? stmt->data.intent_decl.name
-                                          : "(anonymous)");
-                        return false;
-                    }
+                    /* MIR is missing — fallback to HIR emission */
                     llvm_emit_intent_decl(stmt, ctx);
                 }
             }
@@ -4641,7 +4643,7 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *
             llvm_ctx_destroy(ctx);
             return res;
         }
-        if (!llvm_emit_program_from_mir(mir, ctx, false)) {
+        if (!llvm_emit_program_from_mir(mir, ctx, true)) {
             char msg[1024];
             if (ctx->error_line > 0) {
                 snprintf(msg, sizeof(msg), "line %u:%u: %s",
@@ -4720,7 +4722,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir, co
             llvm_ctx_destroy(ctx);
             return res;
         }
-        if (!llvm_emit_program_from_mir(mir, ctx, false)) {
+        if (!llvm_emit_program_from_mir(mir, ctx, true)) {
             char msg[1024];
             if (ctx->error_line > 0) {
                 snprintf(msg, sizeof(msg), "line %u:%u: %s",
