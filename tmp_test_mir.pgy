@@ -1,6 +1,0 @@
-func Score(flag: Bool) -> Int {
-    if flag {
-        return 7;
-    }
-    return 3;
-}

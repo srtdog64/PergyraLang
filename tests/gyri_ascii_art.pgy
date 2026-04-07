@@ -1,32 +1,16 @@
-// Pergyra 언어 브랜드 아스키 아트
-// use: pgy tests/gyri_ascii_art.pgy --run
+// Gyri ASCII Art — Pergyra 마스코트
+// usage: pgy tests/gyri_ascii_art.pgy --run
 
-func PrintLogo() -> Void {
-    Log("   ____  ____  ____  ____  ____  ____  ____  ____ ");
-    Log("  |P  ||e  ||r  ||g  ||y  ||r  ||a  ||   ||L  ||a  ||n  ||g  |");
-    Log("  |___||___||___||___||___||___||___||   ||___||___||___||___|");
-    Log("  \\__/\\__/\\__/\\__/\\__/\\__/\\__/     \\__/\\__/\\__/\\__/");
-}
-
-func PrintArt() -> Void {
+func Main() -> Void
+{
+    let art = ReadFile("assets/branding/gyri.ascii");
+    Log(art);
     Log("");
-    Log("  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@@@@@@@@@@@  GI  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@@@@@@@  @@@@@@@@@@  @@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@@@@@  @@@@@@@@@@@@@@  @@@@@@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@@@  @@@@@@@@@@@@@@@@@@  @@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@  @@@@@@@@@@@@@@@@@@@@@@  @@@@@@@@@@@@@@@@");
-    Log("  @@@@@@  @@@@@@@@@@@@@@@@@@@@@@@@@@  @@@@@@@@@@@@");
-    Log("  @@@@  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  @@@@@@@@");
-    Log("  @@  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  @@@@");
-    Log("  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-    Log("  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-}
-
-func Main() -> Void {
-    PrintLogo();
-    PrintArt();
-    Log("");
-    Log("  Intent-First Programming Language");
-    Log("  subject/class/object/dto | Slot<T> | Zone/World");
+    Log("  ╔═══════════════════════════════════════╗");
+    Log("  ║  Pergyra Programming Language         ║");
+    Log("  ║  Meet Gyri, the Nautilus.             ║");
+    Log("  ║                                       ║");
+    Log("  ║  Intent-first domain modeling language ║");
+    Log("  ║  subject | zone | intent | slot       ║");
+    Log("  ╚═══════════════════════════════════════╝");
 }

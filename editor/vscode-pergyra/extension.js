@@ -173,7 +173,8 @@ function runFile(filePath, flags) {
     const compilerLabel = path.basename(compiler);
     const spawnShell = isWindows || shouldUseShellForCompiler(compiler);
 
-    const cwd = path.dirname(filePath);
+    const folders = vscode.workspace.workspaceFolders;
+    const cwd = (folders && folders.length > 0) ? folders[0].uri.fsPath : path.dirname(filePath);
     const fileName = path.basename(filePath);
     const args = [filePath, ...splitFlags(flags)];
 
