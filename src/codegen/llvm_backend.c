@@ -573,6 +573,39 @@ llvm_lookup_function(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+/* Keep entry-point symbols alive across aggressive optimization passes.
+ * The default LLVM pass pipeline may remove an otherwise unreferenced main(),
+ * so we explicitly register it in llvm.compiler.used.
+ */
+static void
+llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return;
+
+    LLVMFuncEntry *entry = llvm_lookup_function(ctx, name);
+    if (entry == NULL || entry->fn == NULL)
+        return;
+
+    if (LLVMGetNamedGlobal(ctx->module, "llvm.compiler.used") != NULL)
+        return;
+
+    LLVMTypeRef i8_type = LLVMInt8TypeInContext(ctx->context);
+    LLVMTypeRef i8_ptr = LLVMPointerType(i8_type, 0);
+    LLVMValueRef casted = LLVMConstBitCast(entry->fn, i8_ptr);
+
+    LLVMValueRef used_elems[] = { casted };
+    LLVMTypeRef used_ty = LLVMArrayType(i8_ptr, 1);
+    LLVMValueRef used_init = LLVMConstArray(i8_ptr, used_elems, 1);
+
+    LLVMValueRef compiler_used = LLVMAddGlobal(ctx->module, used_ty,
+                                               "llvm.compiler.used");
+    LLVMSetInitializer(compiler_used, used_init);
+    LLVMSetGlobalConstant(compiler_used, true);
+    LLVMSetSection(compiler_used, "llvm.metadata");
+    LLVMSetLinkage(compiler_used, LLVMAppendingLinkage);
+}
+
 /* Forward declaration for type mapping (used by slot helpers) */
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 static bool llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_node);
@@ -2911,6 +2944,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         { "pgy_log_double", ctx->type_f64 },
         { "pgy_log_bool",   ctx->type_i1  },
         { "pgy_log_string", ctx->type_i8ptr },
+        { "pgy_log_banner", ctx->type_i8ptr },
     };
 
     if (ctx->type_task_handle == NULL) {
@@ -3651,6 +3685,85 @@ llvm_register_event(LLVMGenCtx *ctx, const char *name,
  * ================================================================= */
 
 static void
+llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
+{
+    if (hir == NULL || ctx == NULL)
+        return;
+
+    LLVMFuncEntry *main_user = llvm_lookup_function(ctx, "Main");
+    bool has_top_level = (hir->executable_count > 0)
+        || hir->has_main_function
+        || (main_user != NULL);
+    if (!has_top_level)
+        return;
+
+    LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
+    LLVMValueRef main_fn = LLVMAddFunction(ctx->module, "main", main_type);
+    ctx->current_function = main_fn;
+    ctx->current_ret_type = ctx->type_i32;
+
+    LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
+        ctx->context, main_fn, "entry");
+    LLVMPositionBuilderAtEnd(ctx->builder, entry);
+
+    /* Initialize thread pool: pgy_pool_init_export(4) */
+    {
+        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx,
+                                     "pgy_pool_init_export");
+        if (init_fn != NULL) {
+            LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 4, 0) };
+            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                           init_fn->fn, args, 1, "");
+        }
+    }
+
+    llvm_scope_push(ctx);
+
+    /* Initialize event globals (created in Pass 0e) */
+    for (int i = 0; i < ctx->event_type_count; i++) {
+        LLVMEventTypeEntry *evt = &ctx->event_types[i];
+        char fname[256];
+        snprintf(fname, sizeof(fname), "%s_INIT", evt->event_name);
+        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, fname);
+        LLVMValueRef gv = LLVMGetNamedGlobal(ctx->module, evt->event_name);
+        if (init_fn != NULL && gv != NULL) {
+            LLVMValueRef args[] = { gv };
+            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                           init_fn->fn, args, 1, "");
+        }
+    }
+
+    if (main_user != NULL)
+        LLVMBuildCall2(ctx->builder, main_user->fn_type,
+                       main_user->fn, NULL, 0, "");
+
+    if (hir->executable_count > 0) {
+        for (size_t i = 0; i < hir->executable_count; i++) {
+            ASTNode *stmt = hir->executables[i];
+            if (stmt != NULL) {
+                llvm_emit_statement(stmt, ctx);
+                if (LLVMGetBasicBlockTerminator(
+                        LLVMGetInsertBlock(ctx->builder)) != NULL)
+                    break;
+            }
+        }
+    }
+
+    llvm_scope_pop(ctx);
+
+    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        LLVMFuncEntry *shutdown_fn = llvm_lookup_function(ctx,
+                                         "pgy_pool_shutdown_export");
+        if (shutdown_fn != NULL)
+            LLVMBuildCall2(ctx->builder, shutdown_fn->fn_type,
+                           shutdown_fn->fn, NULL, 0, "");
+        LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
+    }
+
+    llvm_mark_function_as_used(ctx, "main");
+}
+
+static void
 llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
     if (hir == NULL) {
@@ -4190,83 +4303,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 3: Collect non-function/non-class top-level into main() */
-    bool has_top_level = hir->executable_count > 0;
-
-    /* Create main() */
-    LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
-    LLVMValueRef main_fn = LLVMAddFunction(ctx->module, "main", main_type);
-    ctx->current_function = main_fn;
-    ctx->current_ret_type = ctx->type_i32;
-
-    LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
-        ctx->context, main_fn, "entry");
-    LLVMPositionBuilderAtEnd(ctx->builder, entry);
-
-    /* Initialize thread pool: pgy_pool_init_export(4) */
-    {
-        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx,
-                                     "pgy_pool_init_export");
-        if (init_fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMConstInt(ctx->type_i64, 4, 0)
-            };
-            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
-                           init_fn->fn, args, 1, "");
-        }
-    }
-
-    llvm_scope_push(ctx);
-
-    /* Initialize event globals (created in Pass 0e) */
-    for (int i = 0; i < ctx->event_type_count; i++) {
-        LLVMEventTypeEntry *evt = &ctx->event_types[i];
-        char fname[256];
-        snprintf(fname, sizeof(fname), "%s_INIT", evt->event_name);
-        LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, fname);
-
-        LLVMValueRef gv = LLVMGetNamedGlobal(ctx->module, evt->event_name);
-        if (init_fn != NULL && gv != NULL) {
-            LLVMValueRef args[] = { gv };
-            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
-                           init_fn->fn, args, 1, "");
-        }
-    }
-
-    /* If a Main() function exists, call it */
-    {
-        LLVMFuncEntry *main_user = llvm_lookup_function(ctx, "Main");
-        if (main_user != NULL) {
-            LLVMBuildCall2(ctx->builder, main_user->fn_type,
-                           main_user->fn, NULL, 0, "");
-        }
-    }
-
-    if (has_top_level) {
-        for (size_t i = 0; i < hir->executable_count; i++) {
-            ASTNode *stmt = hir->executables[i];
-            if (stmt != NULL) {
-                llvm_emit_statement(stmt, ctx);
-                if (LLVMGetBasicBlockTerminator(
-                        LLVMGetInsertBlock(ctx->builder)) != NULL)
-                    break;
-            }
-        }
-    }
-
-    llvm_scope_pop(ctx);
-
-    /* Shutdown thread pool before returning */
-    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
-    {
-        LLVMFuncEntry *shutdown_fn = llvm_lookup_function(ctx,
-                                         "pgy_pool_shutdown_export");
-        if (shutdown_fn != NULL)
-            LLVMBuildCall2(ctx->builder, shutdown_fn->fn_type,
-                           shutdown_fn->fn, NULL, 0, "");
-
-        /* Return 0 from main */
-        LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
-    }
+    llvm_emit_mir_main_wrapper(hir, ctx);
 
     g_llvm_type_render_ctx = NULL;
 }
@@ -4523,6 +4560,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
             }
         }
     }
+    llvm_emit_mir_main_wrapper(ctx->hir, ctx);
     return !ctx->has_error;
 }
 
@@ -4780,6 +4818,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 {
     LLVMBasicBlockRef llvm_block = llvm_blocks[mir_block->id];
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
+    bool emitted_terminator = false;
 
     /* Emit instructions */
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
@@ -4811,29 +4850,41 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                         LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
                         LLVMBasicBlockRef false_bb = llvm_blocks[mir_block->succ_false];
                         LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
+                        emitted_terminator = true;
                     }
                 } else if (mir_block->has_succ_true) {
                     /* Unconditional branch */
                     LLVMBasicBlockRef target = llvm_blocks[mir_block->succ_true];
                     LLVMBuildBr(ctx->builder, target);
+                    emitted_terminator = true;
                 }
                 break;
             case MIR_INST_RETURN:
                 if (inst->ast != NULL) {
                     LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
-                    if (val != NULL)
+                    if (val != NULL) {
                         LLVMBuildRet(ctx->builder, val);
-                    else
+                        emitted_terminator = true;
+                    } else
                         LLVMBuildRetVoid(ctx->builder);
                 } else {
                     LLVMBuildRetVoid(ctx->builder);
                 }
+                emitted_terminator = true;
                 break;
             case MIR_INST_CLEANUP_EDGE:
                 /* Cleanup edges → runtime call */
                 break;
             default:
                 break;
+        }
+    }
+
+    if (!emitted_terminator) {
+        if (ctx->current_ret_type == ctx->type_void) {
+            LLVMBuildRetVoid(ctx->builder);
+        } else {
+            LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
         }
     }
 }
@@ -4862,8 +4913,15 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (func_decl->data.func_decl.return_type != NULL)
         ret_type = llvm_mir_type_from_ast(ctx, func_decl->data.func_decl.return_type);
 
-    LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
-    LLVMValueRef fn = LLVMAddFunction(ctx->module, routine->name, func_type);
+    LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types,
+                                             (unsigned)param_count, 0);
+    LLVMFuncEntry *entry = llvm_lookup_function(ctx, routine->name);
+    LLVMValueRef fn = entry != NULL ? entry->fn
+                                    : LLVMAddFunction(ctx->module,
+                                                     routine->name,
+                                                     func_type);
+    if (entry == NULL)
+        llvm_register_function(ctx, routine->name, fn, func_type, ret_type);
     free(param_types);
 
     /* Collect SSA variables and create allocas */
@@ -4938,6 +4996,39 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     free(vars);
     free(llvm_blocks);
     return fn;
+}
+
+#else /* !PGY_LLVM_ENABLED - stub implementations */
+
+#include "llvm_backend.h"
+#include <stdlib.h>
+
+LLVMGenResult *llvm_codegen(const void *hir, const char *module_name) {
+    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    if (res) res->error_message = strdup("LLVM backend not enabled");
+    return res;
+}
+
+LLVMGenResult *llvm_codegen_with_mir(const void *hir, const void *mir, const char *module_name) {
+    return llvm_codegen(hir, module_name);
+}
+
+LLVMGenResult *llvm_codegen_to_object_with_mir(const void *hir, const void *mir, const char *module_name, const char *output_path, bool release_opt) {
+    LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    if (res) res->error_message = strdup("LLVM backend not enabled");
+    return res;
+}
+
+LLVMGenResult *llvm_codegen_to_object(const void *hir, const char *module_name, const char *output_path, bool release_opt) {
+    return llvm_codegen_to_object_with_mir(hir, NULL, module_name, output_path, release_opt);
+}
+
+void llvm_gen_result_destroy(LLVMGenResult *res) {
+    if (res) {
+        free(res->error_message);
+        free(res->ir_text);
+        free(res);
+    }
 }
 
 #endif /* PGY_LLVM_ENABLED */

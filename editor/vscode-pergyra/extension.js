@@ -53,7 +53,7 @@ function resolveWorkspaceConfigPath(rawPath) {
         }
     }
 
-    const extensions = isWindows ? ['', '.exe', '.cmd', '.bat'] : [''];
+    const extensions = isWindows ? ['', '.exe', '.bat', '.cmd', '.com'] : [''];
     for (const candidate of candidates) {
         for (const ext of extensions) {
             const resolved = resolveExisting(candidate + ext);
@@ -68,9 +68,11 @@ function resolveWorkspaceConfigPath(rawPath) {
 function findInPath(binaryName) {
     const pathEnv = process.env.PATH || '';
     const dirs = pathEnv.split(path.delimiter).filter(Boolean);
-    const candidates = isWindows
-        ? [binaryName, `${binaryName}.exe`, `${binaryName}.cmd`, `${binaryName}.bat`]
-        : [binaryName];
+    const extCandidates = isWindows
+        ? ['', '.exe', '.bat', '.cmd', '.com']
+        : [''];
+
+    const candidates = extCandidates.map(ext => `${binaryName}${ext}`);
 
     for (const dir of dirs) {
         for (const name of candidates) {
@@ -99,10 +101,12 @@ function findCompiler() {
 
     const folders = vscode.workspace.workspaceFolders || [];
     for (const folder of folders) {
-        const localCandidates = [
-            path.join(folder.uri.fsPath, 'bin', 'pgy.exe'),
-            path.join(folder.uri.fsPath, 'bin', 'pgy'),
-        ];
+        const exts = isWindows ? ['', '.exe', '.bat', '.cmd', '.com'] : [''];
+        const localCandidates = [];
+        const basePath = path.join(folder.uri.fsPath, 'bin', 'pgy');
+        for (const ext of exts) {
+            localCandidates.push(`${basePath}${ext}`);
+        }
         for (const candidate of localCandidates) {
             const resolved = resolveExisting(candidate);
             if (resolved) {
@@ -143,12 +147,13 @@ function runFile(filePath, flags) {
     const channel = getOutputChannel();
     channel.clear();
     channel.show(true);
+    const compilerLabel = path.basename(compiler);
 
     const cwd = path.dirname(filePath);
     const fileName = path.basename(filePath);
     const args = [filePath, ...splitFlags(flags)];
 
-    channel.appendLine(`[Pergyra] ${compiler} ${fileName} ${args.slice(1).join(' ')}`);
+    channel.appendLine(`[Pergyra] ${compilerLabel} ${fileName} ${args.slice(1).join(' ')}`);
     channel.appendLine('---');
 
     const proc = cp.spawn(compiler, args, {

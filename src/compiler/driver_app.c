@@ -1007,6 +1007,9 @@ driver_print_usage(void)
         "  pgy <source.pgy> --emit-c     stop after generating C\n"
         "  pgy <source.pgy> --emit-c -o <out.c>\n"
         "  pgy <source.pgy> --emit-llvm -o <out.ll>\n"
+#ifdef PGY_LLVM_ENABLED
+        "  (LLVM + --run): if -o ends with .o/.obj, executable target becomes .exe on Windows\n"
+#endif
         "  pgy <source.pgy> --run        compile + run\n"
         "  pgy <source.pgy> --opt=dev|release   (default: release)\n"
         "  pgy scaffold <kind> <target> create starter files\n"

@@ -323,9 +323,24 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
         ASTNode *arg_node = call->data.call.arguments[0];
         if (arg_node != NULL && arg_node->type == AST_STRING
             && arg_node->data.string.value != NULL) {
+            const char *raw = arg_node->data.string.value;
+            bool multiline = (strchr(raw, '\n') != NULL)
+                           || (strchr(raw, '\r') != NULL);
             char *escaped = escape_c_string_literal(arg_node->data.string.value);
             if (escaped != NULL) {
-                char *result = strdup_fmt("pgy_log(\"%s\")", escaped);
+                char *result;
+                if (multiline) {
+                    char *normalized = normalize_banner_string_literal(raw);
+                    if (normalized == NULL)
+                        normalized = pergyra_strdup(raw);
+                    free(escaped);
+                    escaped = escape_c_string_literal(normalized);
+                    free(normalized);
+                    if (escaped == NULL) {
+                        return pergyra_strdup("/* Log: failed to normalize string */");
+                    }
+                }
+                result = strdup_fmt("pgy_log%s(\"%s\")", multiline ? "_banner" : "", escaped);
                 free(escaped);
                 return result;
             }
@@ -525,7 +540,7 @@ emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx)
         free(normalized);
         return emit_builtin_log(call, ctx);
     }
-    char *result = strdup_fmt("pgy_log(\"%s\")", escaped);
+    char *result = strdup_fmt("pgy_log_banner(\"%s\")", escaped);
     free(normalized);
     free(escaped);
     return result;
@@ -922,6 +937,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_LOG_RAW:
         return emit_builtin_log_raw(call, ctx);
     case BUILTIN_LOG_BANNER:
+    case BUILTIN_LOG_BLOCK:
         return emit_builtin_log_banner(call, ctx);
     case BUILTIN_RC_NEW:
     case BUILTIN_RC_CLONE:

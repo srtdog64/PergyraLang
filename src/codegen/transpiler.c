@@ -1912,22 +1912,32 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             return false;
         }
         if (block->has_cleanup_succ || block->has_rollback_succ || block->has_invalidation_succ) {
-            if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu has branch plus exceptional successor",
-                         routine_name, block->id);
-            return false;
+            if (!require_cleanup) {
+                if (reason != NULL && reason_cap > 0)
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: block %zu has branch plus exceptional successor",
+                             routine_name, block->id);
+                return false;
+            }
         }
         return true;
     }
 
     if (has_return) {
-        if (block->has_succ_true || block->has_succ_false
-            || block->has_cleanup_succ || block->has_rollback_succ
-            || block->has_invalidation_succ) {
+        if (block->has_succ_true || block->has_succ_false) {
             if (reason != NULL && reason_cap > 0)
                 snprintf(reason, reason_cap,
                          "MIR contract invalid for %s: block %zu return has explicit successors",
+                         routine_name, block->id);
+            return false;
+        }
+        if (!require_cleanup
+            && (block->has_cleanup_succ || block->has_rollback_succ
+                || block->has_invalidation_succ)) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap,
+                         "MIR contract invalid for %s: block %zu return has exceptional successor"
+                         " without cleanup-capable routine",
                          routine_name, block->id);
             return false;
         }
@@ -1999,10 +2009,11 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             snprintf(reason, reason_cap, "function %s has unsupported MIR signature", func_decl->data.func_decl.name);
         return false;
     }
+    const bool requires_cleanup = routine->has_cleanup_block;
     if (!transpiler_validate_mir_emission_contract(routine,
                                                    func_decl,
-                                                   false,
-                                                   false,
+                                                   requires_cleanup,
+                                                   requires_cleanup,
                                                    reason,
                                                    reason_cap)) {
         return false;

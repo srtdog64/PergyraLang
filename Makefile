@@ -46,6 +46,8 @@ NASM    := $(shell command -v nasm 2>/dev/null)
 CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>/dev/null),gcc)
 CI_LINUX_BUILD_DIR := $(TMPDIR)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR)/pgy-ci-linux-bin
+CI_WINDOWS_BUILD_DIR := $(TMPDIR)/pgy-ci-windows-build
+CI_WINDOWS_BIN_DIR   := $(TMPDIR)/pgy-ci-windows-bin
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
@@ -535,12 +537,10 @@ check-windows-toolchain:
 
 ci-windows:
 	$(MAKE) check-windows-toolchain
-	$(MAKE) clean
-	$(MAKE) LLVM_ENABLED=0 test-all
-	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 stdlib-test-smoke
-	PGY_EXAMPLE_BACKENDS=c $(MAKE) LLVM_ENABLED=0 example-test-smoke
-	$(MAKE) clean
-	$(MAKE) LLVM_ENABLED=0 test-all
+	$(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
+	$(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all
+	PGY_STDLIB_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke
+	PGY_EXAMPLE_BACKENDS=c $(MAKE) LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke
 
 # -----------------------------------------------------------------
 # pgy driver convenience targets

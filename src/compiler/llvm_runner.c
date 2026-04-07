@@ -15,6 +15,41 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+static bool
+llvm_path_has_suffix(const char *path, const char *suffix)
+{
+    size_t path_len;
+    size_t suffix_len;
+
+    if (path == NULL || suffix == NULL)
+        return false;
+    path_len = strlen(path);
+    suffix_len = strlen(suffix);
+    if (path_len < suffix_len)
+        return false;
+    return strcmp(path + (path_len - suffix_len), suffix) == 0;
+}
+
+static bool
+llvm_path_has_object_suffix(const char *path)
+{
+    return llvm_path_has_suffix(path, ".o") || llvm_path_has_suffix(path, ".obj");
+}
+
+static char *
+llvm_resolve_runnable_binary_path(const char *binary_path, bool do_run)
+{
+    if (binary_path == NULL)
+        return NULL;
+    if (!do_run || !llvm_path_has_object_suffix(binary_path))
+        return pergyra_strdup(binary_path);
+#ifdef _WIN32
+    return path_replace_extension(binary_path, ".exe");
+#else
+    return pergyra_strdup(binary_path);
+#endif
+}
+
 int
 llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
 {
@@ -38,19 +73,29 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
     char *bin_path = flags->output_path != NULL
         ? pergyra_strdup(flags->output_path)
         : path_default_binary(flags->source_path);
-    const char *obj_ext = ".o";
+    bool output_looks_object = llvm_path_has_object_suffix(bin_path);
+    char *runnable_bin_path = llvm_resolve_runnable_binary_path(bin_path, flags->do_run);
     char *obj_path = bin_path != NULL
-        ? path_replace_extension(bin_path, obj_ext) : NULL;
+        ? (llvm_path_has_object_suffix(bin_path)
+           ? pergyra_strdup(bin_path)
+           : path_replace_extension(bin_path, ".o"))
+        : NULL;
     CompilerResult *result;
 
-    if (bin_path == NULL || obj_path == NULL) {
+    if (bin_path == NULL || obj_path == NULL || runnable_bin_path == NULL) {
         fprintf(stderr, "pgy: out of memory\n");
         free(bin_path);
         free(obj_path);
+        free(runnable_bin_path);
         return 1;
     }
+    if (flags->do_run && output_looks_object) {
+        fprintf(stderr, "pgy: warning: output path '%s' looks like object; "
+                        "run target is '%s'\n",
+                bin_path, runnable_bin_path);
+    }
 
-    result = compiler_build_native_llvm(bundle, obj_path, bin_path, flags->verbose,
+    result = compiler_build_native_llvm(bundle, obj_path, runnable_bin_path, flags->verbose,
                                         flags->opt_profile);
     if (result == NULL || !result->success) {
         fprintf(stderr, "pgy: LLVM compile failed: %s\n",
@@ -58,13 +103,14 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
         compiler_result_destroy(result);
         free(obj_path);
         free(bin_path);
+        free(runnable_bin_path);
         return 1;
     }
 
-    printf("pgy: compiled (LLVM) → %s\n", bin_path);
+    printf("pgy: compiled (LLVM) → %s\n", runnable_bin_path);
     int exit_code = 0;
     if (flags->do_run) {
-        exit_code = compiler_run_binary(bin_path, flags->verbose);
+        exit_code = compiler_run_binary(runnable_bin_path, flags->verbose);
         if (exit_code != 0)
             fprintf(stderr, "pgy: program exited with code %d\n", exit_code);
     }
@@ -72,6 +118,7 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
     compiler_result_destroy(result);
     free(obj_path);
     free(bin_path);
+    free(runnable_bin_path);
     return exit_code;
 }
 

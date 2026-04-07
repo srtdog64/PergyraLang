@@ -1339,18 +1339,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef arg = NULL;
 
         if (arg_node != NULL && arg_node->type == AST_STRING
-            && arg_node->data.string.value != NULL
-            && (strchr(arg_node->data.string.value, '\n') != NULL
-                || strchr(arg_node->data.string.value, '\r') != NULL)) {
-            char *normalized = llvm_normalize_banner_string_literal(
-                arg_node->data.string.value);
-            if (normalized != NULL) {
-                arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
-                                              llvm_tmp_name(ctx));
-                free(normalized);
-            } else {
-                arg = NULL;
-            }
+            && arg_node->data.string.value != NULL) {
+            arg = LLVMBuildGlobalStringPtr(ctx->builder, arg_node->data.string.value,
+                                          llvm_tmp_name(ctx));
         } else {
             arg = llvm_emit_expression(arg_node, ctx);
         }
@@ -1415,7 +1406,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     /* Built-in: LogBanner */
-    if (strcmp(callee_name, "LogBanner") == 0) {
+    if (strcmp(callee_name, "LogBanner") == 0
+        || strcmp(callee_name, "LogBlock") == 0) {
         if (node->data.call.arg_count < 1)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -1441,7 +1433,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (log_arg == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
-        LLVMFuncEntry *log_fn = llvm_lookup_function(ctx, "pgy_log_string");
+        LLVMFuncEntry *log_fn = llvm_lookup_function(ctx, "pgy_log_banner");
         if (log_fn == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 

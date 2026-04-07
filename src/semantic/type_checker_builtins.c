@@ -966,6 +966,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "SubmitDeviceRead") == 0) return BUILTIN_SUBMIT_DEVICE_READ;
     if (strcmp(name, "Log")             == 0) return BUILTIN_LOG;
     if (strcmp(name, "LogBanner")       == 0) return BUILTIN_LOG_BANNER;
+    if (strcmp(name, "LogBlock")        == 0) return BUILTIN_LOG_BLOCK;
     if (strcmp(name, "LogRaw")          == 0) return BUILTIN_LOG_RAW;
     if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
     if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
@@ -2231,14 +2232,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         /* State validation: only COLLAPSED qubits can be converted.
-         * NONE is allowed for backward compat (unknown boundary state). */
+         * Unmeasured/unknown states (NONE) must be rejected. */
         {
             QubitSemanticState qs = get_qubit_semantic_state(
                 expr->data.call.arguments[0], ctx);
-            if (qs != QUBIT_STATE_COLLAPSED && qs != QUBIT_STATE_NONE)
+            if (qs != QUBIT_STATE_COLLAPSED)
                 semantic_error(ctx, expr,
                     "IntoClassical() requires a COLLAPSED qubit (after Measure) "
-                    "or unknown boundary state, got %s", qubit_state_name(qs));
+                    "got %s", qubit_state_name(qs));
         }
         set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
                                  QUBIT_STATE_CLASSICAL);
@@ -2668,6 +2669,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return TYPE_VOID;
     case BUILTIN_LOG_BANNER:
         if (!check_call_arity(call, 1, "LogBanner", ctx))
+            return TYPE_VOID;
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+                          TYPE_STRING, call->data.call.arguments[0], ctx);
+        return TYPE_VOID;
+    case BUILTIN_LOG_BLOCK:
+        if (!check_call_arity(call, 1, "LogBlock", ctx))
             return TYPE_VOID;
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
                           TYPE_STRING, call->data.call.arguments[0], ctx);

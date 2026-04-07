@@ -1,31 +1,13 @@
-// ============================================================
-// notebook_style_analysis.pgy
-//
-// 주피터 노트북 스타일 분석 구조:
-//   intent    = 분석 질문 (이번 셀의 목적)
-//   subject   = 원본 입력 데이터 (기준 상태)
-//   object    = 중간 계산 뷰 (필터/정규화/집계 결과)
-//   class     = 계산 도구 (실제 로직)
-//   tobject   = 최종 외부 보고 결과
-// ============================================================
-
-// --- 도구층: 계산기 ---
+// notebook_style_analysis.pgy - 노트북 스타일 분석 패턴
 class Calculator {
-    let id: Int;
+    func Add(a: Float, b: Float) -> Float { return a + b; }
 }
 
-// --- 원본 데이터: subject (입력 컨텍스트) ---
 subject DataSet {
     let values: Array<Float>;
     let name: String;
 }
 
-// --- Zone: 분석 컨텍스트 ---
-zone AnalysisZone {
-    subject slot data: DataSet
-}
-
-// --- 중간 계산 결과: object (단계별 관찰 뷰) ---
 object FilteredView {
     let values: Array<Float>;
     let count: Int;
@@ -36,40 +18,36 @@ object Statistics {
     let sum: Float;
 }
 
-// --- 최종 보고용: tobject (외부 전달 결과) ---
 tobject AnalysisResult {
-    let dataset_name: String;
-    let result_mean: Float;
-    let result_sum: Float;
+    let datasetName: String;
+    let resultMean: Float;
 }
 
-// ============================================================
-// Intent: 데이터 분석 워크플로우 (노트북 셀에 해당)
-// ============================================================
+zone AnalysisZone {
+    subject slot data: DataSet
+    object slot currentView: FilteredView
+}
+
 intent RunAnalysis(zone: AnalysisZone, data: DataSet, calc: Calculator) {
     exclusive;
-    
     step Filter {
         where: AnalysisZone;
         using: zone;
         who: data;
         expect: true;
     }
-    
-    step ComputeStats {
+    step Compute {
         where: AnalysisZone;
         using: zone;
         who: data;
         expect: true;
     }
-    
-    step ProduceResult {
+    step Report {
         where: AnalysisZone;
         using: zone;
         who: data;
         expect: true;
     }
-    
     success: true;
     failure: false;
 }

@@ -640,14 +640,26 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Log(\"\\n + indentation\") preserves raw multiline string");
+    TEST("Log(\"\\n + indentation\") normalizes multiline as banner");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = {
             make_string_lit("\n  first\n  second", 1),
         };
         result = emit_expression(make_call("Log", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "pgy_log(\"\\n  first\\n  second\")") == 0);
+        EXPECT(strcmp(result, "pgy_log_banner(\"first\\nsecond\")") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("LogBlock(\"\\n + indentation\") normalizes multiline block text");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = {
+            make_string_lit("\n  first\n  second\n", 1),
+        };
+        result = emit_expression(make_call("LogBlock", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "pgy_log_banner(\"first\\nsecond\")") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -659,7 +671,7 @@ test_expression_emit(void)
             make_string_lit("\n  first\n  second", 1),
         };
         result = emit_expression(make_call("LogBanner", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "pgy_log(\"first\\nsecond\")") == 0);
+        EXPECT(strcmp(result, "pgy_log_banner(\"first\\nsecond\")") == 0);
         free(result);
         transpiler_ctx_destroy(ctx);
     }

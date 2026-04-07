@@ -371,6 +371,10 @@ main(void)
                         hover_text = "**import** — Import module";
                     else if (strcmp(word, "Log") == 0)
                         hover_text = "**Log(value)** — Print value with newline";
+                    else if (strcmp(word, "LogBlock") == 0)
+                        hover_text = "**LogBlock(text)** — Print multiline block text with banner-style normalization";
+                    else if (strcmp(word, "LogBanner") == 0)
+                        hover_text = "**LogBanner(text)** — Print banner text with indentation-normalized output";
                     else if (strcmp(word, "Ok") == 0)
                         hover_text = "**Ok(value)** — Create success Result";
                     else if (strcmp(word, "Err") == 0)

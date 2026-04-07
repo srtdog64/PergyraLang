@@ -73,6 +73,15 @@ LLVMGenResult *llvm_codegen_to_object(const HIRProgram *hir,
  */
 void llvm_gen_result_destroy(LLVMGenResult *res);
 
+#else /* !PGY_LLVM_ENABLED - stub declarations */
+
+typedef struct { bool success; char *error_message; char *ir_text; } LLVMGenResult;
+LLVMGenResult *llvm_codegen(const void *hir, const char *module_name);
+LLVMGenResult *llvm_codegen_with_mir(const void *hir, const void *mir, const char *module_name);
+LLVMGenResult *llvm_codegen_to_object_with_mir(const void *hir, const void *mir, const char *module_name, const char *output_path, bool release_opt);
+LLVMGenResult *llvm_codegen_to_object(const void *hir, const char *module_name, const char *output_path, bool release_opt);
+void llvm_gen_result_destroy(LLVMGenResult *res);
+
 #endif /* PGY_LLVM_ENABLED */
 
 #endif /* PERGYRA_LLVM_BACKEND_H */

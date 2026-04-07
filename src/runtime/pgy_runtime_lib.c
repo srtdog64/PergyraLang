@@ -37,7 +37,26 @@ void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
 void pgy_log_float(float v)    { printf("%f\n", v); }
 void pgy_log_double(double v)  { printf("%lf\n", v); }
 void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
-void pgy_log_string(char *v)   { printf("%s\n", v ? v : "(null)"); }
+void
+pgy_log_string(const char *v)
+{
+    size_t len;
+
+    if (v == NULL)
+        v = "(null)";
+
+    fputs(v, stdout);
+    len = strlen(v);
+    if (len == 0 || v[len - 1] != '\n')
+        fputc('\n', stdout);
+    fflush(stdout);
+}
+
+void
+pgy_log_banner(const char *v)
+{
+    pgy_log_string(v);
+}
 
 static char *pgy_runtime_strdup_export(const char *src);
 

@@ -1812,7 +1812,23 @@ static inline void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
 static inline void pgy_log_float(float v)    { printf("%f\n", v); }
 static inline void pgy_log_double(double v)  { printf("%lf\n", v); }
 static inline void pgy_log_bool(bool v)      { printf("%s\n", v ? "true" : "false"); }
-static inline void pgy_log_string(char* v)   { printf("%s\n", v ? v : "(null)"); }
+static inline void
+pgy_log_string(const char *v)
+{
+    const char *msg = (v == NULL ? "(null)" : v);
+    fputs(msg, stdout);
+    size_t msg_len = strlen(msg);
+    if (msg_len == 0 || msg[msg_len - 1] != '\n')
+        fputc('\n', stdout);
+    fflush(stdout);
+}
+
+/* Banner/raw log helper: keep multiline payload intact and avoid truncation. */
+static inline void
+pgy_log_banner(const char *v)
+{
+    pgy_log_string(v);
+}
 
 #define pgy_log(x) _Generic((x), \
     int32_t:  pgy_log_int,    \
@@ -1820,7 +1836,8 @@ static inline void pgy_log_string(char* v)   { printf("%s\n", v ? v : "(null)");
     float:    pgy_log_float,  \
     double:   pgy_log_double, \
     bool:     pgy_log_bool,   \
-    char*:    pgy_log_string  \
+    char*:    pgy_log_string, \
+    const char*: pgy_log_string \
 )(x)
 
 /* =================================================================
