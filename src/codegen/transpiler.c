@@ -749,7 +749,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
             codebuf_write(ctx->out, " };\n");
         } else {
-            codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
+            /* Try zone/world/relation/effect constructor with slot fields */
+            ASTNode *zone_decl = find_zone_decl(ctx, ann_type_name);
+            if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL
+                && init->data.call.arg_count > 0) {
+                codebuf_write(ctx->out, "%s %s = { ", ann_type_name, name);
+                size_t sc = zone_decl->data.zone_decl.slot_count;
+                for (size_t i = 0; i < init->data.call.arg_count && i < sc; i++) {
+                    ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+                    char *arg_expr = emit_expression(init->data.call.arguments[i], ctx);
+                    if (i > 0) codebuf_write(ctx->out, ", ");
+                    codebuf_write(ctx->out, ".%s = %s",
+                        slot != NULL ? slot->data.domain_slot.slot_name : "field",
+                        arg_expr != NULL ? arg_expr : "0");
+                    free(arg_expr);
+                }
+                codebuf_write(ctx->out, " };\n");
+            } else {
+                codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
+            }
         }
         register_typed_var(ctx, name, ann_type_name);
         free(ann_type_name);

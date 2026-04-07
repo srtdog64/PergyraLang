@@ -3162,6 +3162,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             }
         }
         return "Int";
+    case AST_UNARY:
+        if (expr->data.unary.op.type == TOKEN_NOT)
+            return "Bool";
+        return infer_expression_type_name(ctx, expr->data.unary.operand);
     default:
         return "Int";
     }

@@ -2474,6 +2474,15 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     fn_type = LLVMFunctionType(ctx->type_i1, param_types,
         (unsigned)node->data.intent_decl.involve_count, 0);
     fn = LLVMAddFunction(ctx->module, name, fn_type);
+    /* Disable stack probing (avoids __chkstk linking issues with mingw) */
+    {
+        unsigned attr_kind = LLVMGetEnumAttributeKindForName(
+            "no-stack-arg-probe", 18);
+        if (attr_kind != 0) {
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateEnumAttribute(ctx->context, attr_kind, 0));
+        }
+    }
     llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
     free(param_types);
 }
@@ -4398,6 +4407,12 @@ llvm_create_host_machine(char **triple_out, char **cpu_out, char **features_out)
     llvm_init_all_targets();
 
     triple = LLVMGetDefaultTargetTriple();
+#ifdef __MINGW32__
+    /* Override MSVC triple to mingw so LLVM generates ___chkstk_ms
+     * instead of __chkstk (which mingw's ld cannot resolve). */
+    LLVMDisposeMessage(triple);
+    triple = LLVMCreateMessage("x86_64-w64-windows-gnu");
+#endif
     cpu = LLVMGetHostCPUName();
     features = LLVMGetHostCPUFeatures();
 
@@ -4499,7 +4514,7 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
             return false;
         }
 
-        if (!mir_validate_emission_topology(routine, false, true, &topology_error)) {
+        if (!mir_validate_emission_topology(routine, false, false, &topology_error)) {
             if (error_message != NULL) {
                 if (topology_error != NULL) {
                     size_t msg_len = strlen(topology_error) + 128;
@@ -4533,22 +4548,106 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
     /* Declare runtime functions first */
     llvm_declare_runtime(ctx);
 
-    /* Pass 1: Forward declarations from HIR (for type info) */
+    /* Pass 1: Forward declarations from HIR (functions only — intents
+     * are deferred to after type registration so subject/zone types are
+     * available for parameter type resolution). */
     if (ctx->hir != NULL) {
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
             ASTNode *stmt = ctx->hir->items[i].ast;
             if (stmt != NULL && stmt->type == AST_FUNC_DECL)
                 llvm_forward_declare_func(stmt, ctx);
         }
+    }
+
+    /* Pass 2: Emit type declarations BEFORE function bodies, so that
+     * constructors and struct types are available when MIR-emitted
+     * functions reference them. */
+    if (ctx->hir != NULL) {
+        /* 2a: Register class/subject/actor struct types from HIR.
+         * This mirrors "Pass 0" in llvm_emit_program(). */
+        for (size_t i = 0; i < ctx->hir->item_count; i++) {
+            ASTNode *stmt = ctx->hir->items[i].ast;
+            if (stmt == NULL) continue;
+            if (stmt->type == AST_CLASS_DECL) {
+                const char *cls_name = stmt->data.class_decl.name;
+                if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
+                    continue;
+                size_t fc = stmt->data.class_decl.field_count;
+                LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+                for (size_t j = 0; j < fc; j++) {
+                    ClassField *f = stmt->data.class_decl.fields[j];
+                    field_types[j] = (f->type != NULL)
+                        ? ast_type_to_llvm(ctx, f->type) : ctx->type_i32;
+                }
+                LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
+                LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
+                bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+                LLVMClassTypeEntry *entry = llvm_register_class(ctx, cls_name,
+                    struct_ty, is_subject, is_subject);
+                if (entry != NULL) {
+                    for (size_t j = 0; j < fc; j++) {
+                        ClassField *f = stmt->data.class_decl.fields[j];
+                        llvm_class_add_field(entry, f->name, field_types[j], (int)j);
+                    }
+                }
+                /* Forward-declare methods as ClassName_MethodName(self*, ...) */
+                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                    ASTNode *method = stmt->data.class_decl.methods[j];
+                    if (method == NULL || method->type != AST_FUNC_DECL)
+                        continue;
+                    const char *mname = method->data.func_decl.name;
+                    size_t mpc = method->data.func_decl.param_count;
+                    LLVMTypeRef mret = ctx->type_void;
+                    if (method->data.func_decl.return_type != NULL)
+                        mret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+                    size_t user_pc = 0;
+                    for (size_t k = 0; k < mpc; k++) {
+                        FuncParam *p = method->data.func_decl.params[k];
+                        if (p->type == NULL && strcmp(p->name, "self") == 0) continue;
+                        user_pc++;
+                    }
+                    LLVMTypeRef *mpt = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+                    mpt[0] = is_subject ? LLVMPointerType(struct_ty, 0) : struct_ty;
+                    size_t pidx = 1;
+                    for (size_t k = 0; k < mpc; k++) {
+                        FuncParam *p = method->data.func_decl.params[k];
+                        if (p->type == NULL && strcmp(p->name, "self") == 0) continue;
+                        mpt[pidx++] = (p->type != NULL)
+                            ? ast_type_to_llvm(ctx, p->type) : ctx->type_i32;
+                    }
+                    LLVMTypeRef mft = LLVMFunctionType(mret, mpt,
+                        (unsigned)(user_pc + 1), 0);
+                    char full_name[256];
+                    snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, mname);
+                    LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, mft);
+                    llvm_register_function(ctx, LLVMGetValueName(fn), fn, mft, mret);
+                    free(mpt);
+                }
+                free(field_types);
+            } else if (stmt->type == AST_ENUM_DECL) {
+                const char *enum_name = stmt->data.enum_decl.name;
+                if (enum_name == NULL) continue;
+                /* Register simple enum variants */
+                for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++)
+                    llvm_register_enum_variant(ctx, enum_name,
+                        stmt->data.enum_decl.variants[j], (int)j);
+            }
+        }
+        /* 2b: Register domain struct types (zone, world, relation, etc.) */
+        llvm_emit_domain_passes(ctx->hir, ctx);
+
+        /* 2c: Forward-declare intents NOW (after types are registered, so
+         * subject/zone parameter types resolve to struct types, not i32). */
         for (size_t i = 0; i < ctx->hir->intent_count; i++)
             llvm_forward_declare_intent(ctx->hir->intents[i], ctx);
     }
 
-    /* Pass 2: Emit function bodies from MIR (skip empty MIR — handled in Pass 3) */
+    /* Pass 3: Emit function bodies from MIR (skip empty MIR — handled in Pass 4).
+     * Intent routines are skipped here — they use HIR fallback in Pass 4
+     * because llvm_emit_func_from_mir only handles AST_FUNC_DECL. */
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
-        if (routine->kind == MIR_SCOPE_FUNCTION || routine->kind == MIR_SCOPE_INTENT) {
-            /* Skip routines with empty MIR blocks — let Pass 3 HIR fallback handle them */
+        if (routine->kind == MIR_SCOPE_FUNCTION) {
             bool mir_has_instructions = false;
             for (size_t bi = 0; bi < routine->block_count; bi++) {
                 if (routine->blocks[bi].instruction_count > 0) {
@@ -4562,10 +4661,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
         }
     }
 
-    /* Pass 3: Emit remaining HIR-based declarations (classes, structs, etc.) */
+    /* Pass 4: Emit remaining HIR-based declarations */
     if (ctx->hir != NULL) {
-        /* Emit domain/class/struct type declarations */
-        llvm_emit_domain_passes(ctx->hir, ctx);
 
         /* Emit any functions that didn't have MIR (fallback) */
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
@@ -4592,19 +4689,27 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
                     llvm_emit_func_decl(stmt, ctx);
                 }
             } else if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
-                /* Check if this intent has MIR emission */
-                bool has_mir = false;
-                for (size_t j = 0; j < mir->routine_count; j++) {
-                    const MIRRoutine *routine = &mir->routines[j];
-                    if (routine->hir_routine != NULL &&
-                        routine->hir_routine->ast == stmt) {
-                        has_mir = true;
-                        break;
-                    }
-                }
-                if (!has_mir) {
-                    /* MIR is missing — fallback to HIR emission */
-                    llvm_emit_intent_decl(stmt, ctx);
+                /* Intent routines always use HIR emission — the MIR path
+                 * (llvm_emit_func_from_mir) only handles AST_FUNC_DECL. */
+                llvm_emit_intent_decl(stmt, ctx);
+            } else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
+                /* Emit class method bodies via HIR fallback.
+                 * Methods are registered as ClassName_MethodName, so we
+                 * temporarily rename the AST method name to match. */
+                const char *cls_name = stmt->data.class_decl.name;
+                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                    ASTNode *method = stmt->data.class_decl.methods[j];
+                    if (method == NULL || method->type != AST_FUNC_DECL)
+                        continue;
+                    const char *orig_name = method->data.func_decl.name;
+                    char prefixed[256];
+                    snprintf(prefixed, sizeof(prefixed), "%s_%s",
+                             cls_name, orig_name);
+                    method->data.func_decl.name = prefixed;
+                    ctx->current_class_name = cls_name;
+                    llvm_emit_func_decl(method, ctx);
+                    ctx->current_class_name = NULL;
+                    method->data.func_decl.name = orig_name;
                 }
             }
         }
@@ -4937,6 +5042,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 }
                 break;
             case MIR_INST_RETURN:
+                llvm_emit_defers_from(ctx, 0);
                 if (inst->ast != NULL) {
                     LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
                     if (val != NULL) {
@@ -4978,7 +5084,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             /* Unconditional fallthrough to successor */
             LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
         } else {
-            /* Truly terminal block — emit return */
+            /* Truly terminal block — emit return (with defers) */
+            llvm_emit_defers_from(ctx, 0);
             if (ctx->current_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {
@@ -5070,6 +5177,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     /* Push a scope so that llvm_emit_statement / llvm_scope_declare can
      * register variables created by let-declarations within MIR blocks. */
     llvm_scope_push(ctx);
+    llvm_defer_scope_push(ctx);
 
     /* Register function parameters in scope so expressions can reference them.
      * Position builder at entry block first, since we need to create allocas
@@ -5112,6 +5220,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         }
     }
 
+    llvm_defer_scope_pop(ctx);
     llvm_scope_pop(ctx);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;

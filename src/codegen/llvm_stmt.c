@@ -788,7 +788,7 @@ llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
     return false;
 }
 
-static void
+void
 llvm_defer_scope_push(LLVMGenCtx *ctx)
 {
     if (ctx->defer_scope_depth >= MAX_SCOPE_DEPTH)
@@ -796,7 +796,7 @@ llvm_defer_scope_push(LLVMGenCtx *ctx)
     ctx->defer_body_counts[ctx->defer_scope_depth++] = 0;
 }
 
-static void
+void
 llvm_defer_scope_pop(LLVMGenCtx *ctx)
 {
     if (ctx->defer_scope_depth <= 0)
@@ -818,7 +818,7 @@ llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx)
     ctx->defer_body_counts[scope]++;
 }
 
-static void
+void
 llvm_emit_defers_from(LLVMGenCtx *ctx, int start_depth)
 {
     if (start_depth < 0)

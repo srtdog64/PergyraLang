@@ -1,0 +1,315 @@
+// ============================================================================
+// Pergyra Alpha — Full Keyword Integration Test
+// 모든 핵심 키워드를 사용하는 종합 예제
+// 시나리오: 온라인 게임 서버의 거래 시스템
+// ============================================================================
+
+// --- enum -------------------------------------------------------------------
+enum TradeStatus { Pending, Accepted, Rejected, Cancelled }
+
+// --- struct (tobject) -------------------------------------------------------
+tobject TradeReceipt {
+    gold: Int;
+    name: String;
+}
+
+// --- object (read-only view) ------------------------------------------------
+object PlayerView {
+    gold: Int;
+}
+
+// --- subject (active entity) ------------------------------------------------
+subject Player {
+    let name: String;
+    let gold: Int;
+    let itemCount: Int;
+
+    action Earn(self, amount: Int) -> Void
+        within MarketZone
+        authorized by self
+    {
+        gold = gold + amount;
+    }
+
+    action Spend(self, amount: Int) -> Void
+        within MarketZone
+        authorized by self
+    {
+        gold = gold - amount;
+    }
+
+    action UndoSpend(self, amount: Int) -> Void {
+        gold = gold + amount;
+    }
+
+    action AddItem(self) -> Void {
+        itemCount = itemCount + 1;
+    }
+
+    action RemoveItem(self) -> Void {
+        if itemCount > 0 {
+            itemCount = itemCount - 1;
+        }
+    }
+
+    func CanAfford(self, price: Int) -> Bool {
+        return gold >= price;
+    }
+}
+
+// --- class (passive tool) ---------------------------------------------------
+class PriceCalculator {
+    let baseRate: Int;
+
+    func Calculate(self, quantity: Int) -> Int {
+        return baseRate * quantity;
+    }
+}
+
+// --- ability (interface) ----------------------------------------------------
+ability Tradable {
+    require gold: Int;
+    func CanTrade() -> Bool;
+}
+
+// --- role (implementation) --------------------------------------------------
+role PlayerTrader for Player {
+    impl ability Tradable {
+        func CanTrade() -> Bool {
+            return true;
+        }
+    }
+}
+
+// --- effect -----------------------------------------------------------------
+effect Taxed for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer
+}
+
+// --- relation ---------------------------------------------------------------
+relation TradeLink for source: Player, target: Player {
+    object slot snapshot: PlayerView
+    refresh snapshot from source
+}
+
+// --- event ------------------------------------------------------------------
+event OnTradeComplete(price: Int);
+
+func HandleTradeLog(price: Int) -> Void {
+    Log("trade.event.price=" + ToString(price));
+}
+
+// --- zone -------------------------------------------------------------------
+zone MarketZone {
+    subject slot seller: Player
+    subject slot buyer: Player
+    object slot sellerView: PlayerView
+    effect slot tax: Taxed
+    relation slot trade: TradeLink
+    state taxed: effect tax on seller
+    state linked: relation trade between seller, buyer
+    apply tax to seller by seller
+    link trade between seller, buyer by seller
+    refresh sellerView from seller by seller
+    maintain taxed by seller
+    maintain linked by seller
+    authority seller
+
+    func ShowState(self) -> Void {
+        Log("market.seller.gold=" + ToString(self.seller.gold));
+        Log("market.buyer.gold=" + ToString(self.buyer.gold));
+        Log("market.hasLayer.tax=" + ToString(HasLayer(tax)));
+        Log("market.hasLayer.trade=" + ToString(HasLayer(trade)));
+        Log("market.hasState.taxed=" + ToString(HasState(taxed)));
+        Log("market.hasState.linked=" + ToString(HasState(linked)));
+        Log("market.projection.seller=" + ToString(HasProjection(sellerView)));
+    }
+}
+
+// --- world ------------------------------------------------------------------
+world GameWorld {
+    zone market: MarketZone
+    state marketActive: zone market
+    state marketTaxed: zone market state taxed
+    activate market
+
+    func ShowWorldState(self) -> Void {
+        Log("world.hasZone.marketActive=" + ToString(HasZone(marketActive)));
+        Log("world.hasZone.marketTaxed=" + ToString(HasZone(marketTaxed)));
+    }
+}
+
+// --- intent (핵심: 거래 실행) -----------------------------------------------
+intent ExecuteTrade(market: MarketZone, seller: Player, buyer: Player) {
+    exclusive;
+    priority: 5;
+    rollback: full;
+
+    step VerifyFunds {
+        where: MarketZone;
+        using: market;
+        who: buyer;
+        on: Log("trade.step.verify: buyer.gold=" + ToString(buyer.gold));
+        guard: buyer.gold >= 50;
+        post: buyer.gold >= 50;
+    }
+
+    step DeductPayment {
+        where: MarketZone;
+        using: market;
+        who: buyer;
+        on: buyer.Spend(50);
+        compensate: buyer.UndoSpend(50);
+        post: true;
+    }
+
+    step TransferItem {
+        where: MarketZone;
+        using: market;
+        who: seller;
+        on: seller.RemoveItem();
+        on: buyer.AddItem();
+        post: true;
+    }
+
+    step CreditSeller {
+        where: MarketZone;
+        using: market;
+        who: seller;
+        on: seller.Earn(50);
+        post: seller.gold > 0;
+    }
+
+    success: true;
+    failure: false;
+}
+
+// --- generic function -------------------------------------------------------
+func Max(a: Int, b: Int) -> Int {
+    if a > b { return a; }
+    return b;
+}
+
+// --- namespace --------------------------------------------------------------
+namespace TradeUtils {
+    export func FormatGold(amount: Int) -> String {
+        return ToString(amount) + "G";
+    }
+}
+
+// --- Main -------------------------------------------------------------------
+func Main() -> Void {
+    // === 1. Basic types & control flow ===
+    let price: Int = 50;
+    let taxRate: Int = 10;
+    let total: Int = price + taxRate;
+    Log("total=" + ToString(total));
+
+    // for loop
+    let sum: Int = 0;
+    for i in 0..5 {
+        if i == 2 { continue; }
+        if i == 4 { break; }
+        sum = sum + i;
+    }
+    Log("loop.sum=" + ToString(sum));
+
+    // while loop
+    let count: Int = 0;
+    while count < 3 {
+        count = count + 1;
+    }
+    Log("while.count=" + ToString(count));
+
+    // match
+    let status: TradeStatus = Pending;
+    match status {
+        case Pending: Log("status=pending");
+        case Accepted: Log("status=accepted");
+        default: Log("status=other");
+    }
+
+    // class
+    let calc: PriceCalculator = PriceCalculator(10);
+    Log("calc=" + ToString(calc.Calculate(5)));
+
+    // namespace
+    Log("formatted=" + TradeUtils.FormatGold(100));
+
+    // === 2. Subject + Action ===
+    let seller: Player = Player("Alice", 200, 3);
+    let buyer: Player = Player("Bob", 100, 0);
+    Log("seller=" + seller.name + " gold=" + ToString(seller.gold));
+    Log("buyer=" + buyer.name + " gold=" + ToString(buyer.gold));
+    Log("buyer.canAfford=" + ToString(buyer.CanAfford(50)));
+
+    // === 3. Zone ===
+    let market: MarketZone = MarketZone(
+        Player("Alice", 200, 3),
+        Player("Bob", 100, 0)
+    );
+    market.ShowState();
+
+    // === 4. World ===
+    let gameWorld: GameWorld = GameWorld(market);
+    gameWorld.ShowWorldState();
+
+    // === 5. Event ===
+    OnTradeComplete += HandleTradeLog;
+
+    // === 6. Intent (거래 실행) — 정상 ===
+    Log("=== Trade 1: normal (50G) ===");
+    let tradeOk: Bool = ExecuteTrade(market, seller, buyer);
+    Log("trade.ok=" + ToString(tradeOk));
+    Log("trade.seller.gold=" + ToString(seller.gold));
+    Log("trade.buyer.gold=" + ToString(buyer.gold));
+
+    // === 7. Intent failure (잔고 부족) ===
+    Log("=== Trade 2: insufficient (999G) ===");
+    let tradeFail: Bool = ExecuteTrade(market, seller, buyer);
+    Log("trade.fail=" + ToString(tradeFail));
+    Log("trade.lastFailed=" + ToString(IntentLastFailed()));
+
+    // === 8. Intent history ===
+    Log("intent.history.count=" + ToString(IntentHistoryCount()));
+    Log("intent.last.name=" + IntentLastName());
+
+    // === 9. Event fire ===
+    OnTradeComplete += HandleTradeLog;
+    // fire via direct call
+    HandleTradeLog(50);
+
+    // === 10. Defer ===
+    defer { Log("defer.cleanup"); };
+
+    // === 11. Slot ops ===
+    let s: Slot<Int> = 0;
+    Write(s, 777);
+    let val: Int = Read(s);
+    Log("slot.val=" + ToString(val));
+    Release(s);
+
+    // === 12. Channel + select ===
+    let ch: Channel<Int> = Channel(2);
+    ch <- 42;
+    select {
+        case v = <-ch:
+            Log("channel.recv=" + ToString(v));
+        default:
+            Log("channel.empty");
+    }
+
+    // === 13. Array ===
+    let items: Array<Int> = [10, 20, 30];
+    Log("array.len=" + ToString(ArrayLength(items)));
+    Log("array[1]=" + ToString(items[1]));
+
+    // === 14. Boolean / String ===
+    let alive: Bool = true;
+    let dead: Bool = false;
+    Log("alive=" + ToString(alive));
+    Log("not.dead=" + ToString(!dead));
+
+    Log("=== Alpha Test Complete ===");
+}

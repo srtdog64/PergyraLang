@@ -464,6 +464,9 @@ void          llvm_scope_pop(LLVMGenCtx *ctx);
 void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                                   LLVMValueRef alloca, LLVMTypeRef type);
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+void          llvm_defer_scope_push(LLVMGenCtx *ctx);
+void          llvm_defer_scope_pop(LLVMGenCtx *ctx);
+void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
 
 void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
                             const char *inner_type);

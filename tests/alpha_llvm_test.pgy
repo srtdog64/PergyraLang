@@ -1,0 +1,152 @@
+// ============================================================================
+// Pergyra Alpha — LLVM Backend Test
+// Intent 제외, LLVM 백엔드에서 동작하는 모든 기능 검증
+// ============================================================================
+
+enum TradeStatus { Pending, Accepted, Rejected }
+
+subject Player {
+    let name: String;
+    let gold: Int;
+    let itemCount: Int;
+
+    func GetGold(self) -> Int { return gold; }
+    func GetName(self) -> String { return name; }
+
+    func AddGold(self, amount: Int) -> Void {
+        gold = gold + amount;
+    }
+}
+
+class PriceCalculator {
+    let baseRate: Int;
+
+    func Calculate(self, quantity: Int) -> Int {
+        return baseRate * quantity;
+    }
+}
+
+func Max(a: Int, b: Int) -> Int {
+    if a > b { return a; }
+    return b;
+}
+
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Factorial(n - 1);
+}
+
+func Classify(x: Int) -> String {
+    if x < 0 { return "negative"; }
+    else if x == 0 { return "zero"; }
+    else { return "positive"; }
+}
+
+func Describe(x: Int) -> String {
+    match x {
+        case 1: return "one";
+        case 2: return "two";
+        default: return "other";
+    }
+}
+
+namespace TradeUtils {
+    export func FormatGold(amount: Int) -> String {
+        return ToString(amount) + "G";
+    }
+}
+
+func Main() -> Void {
+    // === 1. Arithmetic ===
+    Log(10 + 3);
+    Log(10 - 3);
+    Log(10 * 3);
+    Log(10 / 3);
+
+    // === 2. For loop + break/continue ===
+    let sum: Int = 0;
+    for i in 0..5 {
+        if i == 2 { continue; }
+        if i == 4 { break; }
+        sum = sum + i;
+    }
+    Log(sum);
+
+    // === 3. While loop ===
+    let count: Int = 0;
+    while count < 3 {
+        count = count + 1;
+    }
+    Log(count);
+
+    // === 4. If/else chain ===
+    Log(Classify(-1));
+    Log(Classify(0));
+    Log(Classify(5));
+
+    // === 5. Match ===
+    Log(Describe(1));
+    Log(Describe(2));
+    Log(Describe(99));
+
+    // === 6. Recursion ===
+    Log(Factorial(5));
+
+    // === 7. Enum ===
+    let status: TradeStatus = Pending;
+    match status {
+        case Pending: Log("pending");
+        default: Log("other");
+    }
+
+    // === 8. Subject ===
+    let seller: Player = Player("Alice", 200, 3);
+    Log(seller.name);
+    Log(seller.gold);
+    Log(seller.GetGold());
+    Log(seller.GetName());
+
+    // === 9. Class ===
+    let calc: PriceCalculator = PriceCalculator(10);
+    Log(calc.Calculate(5));
+
+    // === 10. Namespace ===
+    Log(TradeUtils.FormatGold(100));
+
+    // === 11. Max ===
+    Log(Max(3, 7));
+
+    // === 12. String concat ===
+    let msg: String = Concat("hello", " world");
+    Log(msg);
+
+    // === 13. Slot ===
+    let s: Slot<Int> = 0;
+    Write(s, 777);
+    Log(Read(s));
+    Release(s);
+
+    // === 14. Channel + select ===
+    let ch: Channel<Int> = Channel(2);
+    ch <- 42;
+    select {
+        case v = <-ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+
+    // === 15. Array ===
+    let items: Array<Int> = [10, 20, 30];
+    Log(ArrayLength(items));
+    Log(items[1]);
+
+    // === 16. Defer ===
+    defer { Log("defer.done"); };
+
+    // === 17. Boolean ===
+    Log(true);
+    Log(false);
+
+    Log("=== LLVM Alpha Complete ===");
+}

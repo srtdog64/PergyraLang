@@ -211,6 +211,17 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef pt = (p->type != NULL)
             ? ast_type_to_llvm(ctx, p->type)
             : ctx->type_i32;
+        /* For 'self' parameter in class methods, use the class struct pointer
+         * type instead of the default i32. */
+        if (p->type == NULL && strcmp(p->name, "self") == 0
+            && ctx->current_class_name != NULL) {
+            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, ctx->current_class_name);
+            if (cls != NULL) {
+                pt = cls->is_pointer_self_host
+                    ? LLVMPointerType(cls->struct_type, 0)
+                    : cls->struct_type;
+            }
+        }
         if (p->type != NULL
             && p->type->type == AST_TYPE
             && p->type->data.type.name != NULL
