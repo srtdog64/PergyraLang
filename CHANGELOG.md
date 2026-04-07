@@ -6,6 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+- Added compiler-known stdlib module resolution for `use <module>;`.
+  The compiler now recognizes builtin stdlib modules (`datetime`, `http`,
+  `storage`, `page`, `spray`) and resolves them without requiring explicit
+  file paths, enabling `use datetime;` and similar imports to work
+  transparently.
 - compiler/mir: completed backend migration from HIR to MIR. All function types
   now emit via MIR when available including intent compensation, hosted methods,
   and action-like methods. SSA locals, PHI nodes, cleanup blocks all working.
