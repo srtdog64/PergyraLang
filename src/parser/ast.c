@@ -194,6 +194,7 @@ ASTNode* ast_create_struct(const char* name) {
 ASTNode* ast_create_object(const char* name) {
     ASTNode* node = ast_create_struct(name);
     if (node) {
+        /* object is a local/internal projection contract, not a struct alias */
         node->data.class_decl.nominal_kind = NOMINAL_DECL_OBJECT;
     }
     return node;
@@ -202,6 +203,7 @@ ASTNode* ast_create_object(const char* name) {
 ASTNode* ast_create_dto(const char* name) {
     ASTNode* node = ast_create_struct(name);
     if (node) {
+        /* tobject is a boundary transfer contract, not a struct alias */
         node->data.class_decl.nominal_kind = NOMINAL_DECL_DTO;
     }
     return node;

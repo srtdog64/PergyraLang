@@ -1,12 +1,13 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-06
+마지막 업데이트: 2026-04-08
 
 ## 요약
 
 - 컴파일러의 실제 driver 경로는 이제 `Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend dispatch`로 고정되며, `driver_run_pipeline()`은 backend 진입 전에 `DIR/RIR/MIR` lowering과 structural validation을 항상 수행한다.
-- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen 연산의 중심 자료구조는 여전히 `HIR`이지만, C backend에는 이제 simple top-level function CFG subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 `MIR` 본문/exceptional block에서 직접 emit하는 첫 vertical slice가 들어가 있다.
+- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. 다만 LLVM backend에는 아직 domain/intent/main-wrapper 쪽 HIR fallback이 남아 있다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
+- 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
@@ -15,6 +16,7 @@
 - DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency뿐 아니라 `party-slot / zone-slot / projection-slot / authority-slot`를 owner-qualified node로 materialize하는 slot-contract graph까지 직접 가진다
 - MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`, `slot_anchor`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. resource/cleanup instruction은 matching `RIR` op의 `slot_anchor`를 그대로 보존하고, `def/phi`와 value summary는 base local 이름을 slot anchor로 유지한다. validator도 이제 slot anchor 누락이나 `RIR`와의 slot mismatch를 실패로 본다. 추가로 lowering 경로에서 실제 `liveness` 재계산과 dead `def/phi` 제거 DCE pass가 돌고, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음. intent exceptional CFG에서 MIR cleanup/resource op는 이제 no-op runtime hook 호출로 직접 emit된다.
 - LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
+- `driver_run_pipeline_timed(...)`와 `test-abi-perf`가 들어가 phase별 compile timing(`module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total`)을 직접 계측한다. backend는 다시 `codegen / native_compile / link`로 쪼개진다. CI에서는 hard upper bound를, 로컬 benchmark에서는 comparative metrics를 분리한다.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
 - 최종 존재론은 `struct`와 `subject`를 분리하며, 현재 surface는 `subject`와 `class`를 별도 nominal declaration flavor로 기록하고 semantic/codegen도 점진적으로 분기함.
@@ -103,7 +105,10 @@
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
 - `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
 - `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
-- `tobject`는 `object`보다 더 좁은 경계 전달/투영 형식으로 유지됨
+- `tobject`는 `object`보다 더 좁은 boundary transfer/publish 형식으로 유지됨
+- `object`와 `tobject`는 struct-style declaration syntax를 공유하지만 같은 계약은 아니다. `object`는 local/internal projection contract이고, `tobject`는 boundary projection contract다.
+- backend lowering은 이제 `object borrow-first / tobject materialize-first` 첫 단계를 가진다. non-escaping `ToObject(...)` local binding은 C/LLVM 양쪽에서 borrowed projection alias로 낮추고, whole-value가 필요할 때만 object literal을 재구성한다. `ToTObject(...)`는 materialized transfer value를 유지한다.
+- relation/effect/zone projection slot runtime은 `__projection_ready_*`뿐 아니라 `__projection_dirty_*`도 유지한다. sync helper는 dirty target만 다시 rebuild하고, source slot assignment는 matching projection target을 invalidate한다.
 - `subject`는 이제 일반 `func`와 공적 `action`을 모두 가질 수 있음
 - `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
@@ -117,7 +122,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `semantic 512 passed`, `transpile 408 passed`, `llvm-test-smoke` 통과
+- 현재 회귀 수치: `make test-transpile` 통과, `make llvm-test-smoke` 통과, `make test-abi` 통과, `make test-abi-perf` 통과
 - `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -136,6 +141,7 @@
 ### 백엔드
 - C 백엔드: reference/fallback, 스모크와 트랜스파일 테스트로 유지
 - LLVM 백엔드: 기본 실행 경로, backend-compare 및 llvm-smoke로 회귀 체크
+- 두 backend 모두 `object borrow / tobject materialize` 첫 단계를 공유한다. 다만 LLVM은 여전히 HIR fallback debt가 남아 있고, transpiler의 ABI metadata 실사용도 더 강화해야 한다.
 
 ### 런타임
 - slot/secure slot/device slot/qubit slot 런타임

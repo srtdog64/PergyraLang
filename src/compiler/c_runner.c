@@ -21,8 +21,13 @@
 #include "path_utils.h"
 
 int
-c_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
+c_runner_execute(const DriverFlags *flags,
+                 const CompilerIRBundle *bundle,
+                 CompilerBackendTimings *backend_timings)
 {
+    if (backend_timings != NULL)
+        memset(backend_timings, 0, sizeof(*backend_timings));
+
     if (flags->emit_c_only) {
         char *output_c = flags->output_path != NULL
             ? pergyra_strdup(flags->output_path)
@@ -106,10 +111,14 @@ CompilerResult *result;
     if (result == NULL || !result->success) {
         fprintf(stderr, "pgy: compile failed: %s\n",
                 result != NULL ? result->error_message : "out of memory");
+        if (backend_timings != NULL && result != NULL)
+            *backend_timings = result->backend_timings;
         compiler_result_destroy(result);
         free(bin_path);
         return 1;
     }
+    if (backend_timings != NULL)
+        *backend_timings = result->backend_timings;
 
     printf("pgy: compiled → %s\n", bin_path);
     int exit_code = 0;

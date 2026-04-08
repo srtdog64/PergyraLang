@@ -1004,11 +1004,11 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                     NominalDeclKind nk = decl->data.class_decl.nominal_kind;
                     if (nk == NOMINAL_DECL_OBJECT) {
                         semantic_error(ctx, expr,
-                            "object '%s' fields are read-only after construction",
+                            "object '%s' fields are read-only after construction; object is an internal projection contract and must be refreshed from its source instead of mutated directly",
                             var_name);
                     } else if (nk == NOMINAL_DECL_DTO) {
                         semantic_error(ctx, expr,
-                            "tobject '%s' fields are immutable",
+                            "tobject '%s' fields are immutable; tobject is a boundary transfer contract and must be republished from its source instead of mutated directly",
                             var_name);
                     }
                 }
@@ -2127,7 +2127,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.class_decl.nominal_kind == NOMINAL_DECL_STRUCT
         && node->data.class_decl.method_count > 0) {
         semantic_error(ctx, node,
-            "struct '%s' cannot have methods; use 'class' or 'object' instead",
+            "struct '%s' cannot have methods; use 'class', 'subject', or 'object' instead",
             name != NULL ? name : "<struct>");
     }
 

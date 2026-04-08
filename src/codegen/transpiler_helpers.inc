@@ -275,6 +275,26 @@ register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_na
     e->source_secure = source_secure;
 }
 
+static void
+register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
+                               const char *type_name,
+                               const char *source_name)
+{
+    if (ctx->typed_var_count >= MAX_SLOT_VARS
+        || name == NULL || type_name == NULL || source_name == NULL)
+        return;
+
+    TypedVarEntry *e = &ctx->typed_vars[ctx->typed_var_count++];
+    memset(e, 0, sizeof(*e));
+    strncpy(e->name, name, sizeof(e->name) - 1);
+    e->name[sizeof(e->name) - 1] = '\0';
+    strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
+    e->type_name[sizeof(e->type_name) - 1] = '\0';
+    strncpy(e->source_slot, source_name, sizeof(e->source_slot) - 1);
+    e->source_slot[sizeof(e->source_slot) - 1] = '\0';
+    e->is_projection_borrow = true;
+}
+
 static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
@@ -1111,6 +1131,112 @@ current_effect_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
         decl->data.effect_decl.slot_count,
         decl->data.effect_decl.refreshes,
         decl->data.effect_decl.refresh_count, slot_name);
+}
+
+static ASTNode **
+current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
+{
+    ASTNode *decl;
+
+    if (refresh_count_out != NULL)
+        *refresh_count_out = 0;
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->current_relation_name != NULL) {
+        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        if (decl != NULL && decl->type == AST_RELATION_DECL) {
+            if (refresh_count_out != NULL)
+                *refresh_count_out = decl->data.relation_decl.refresh_count;
+            return decl->data.relation_decl.refreshes;
+        }
+    }
+
+    if (ctx->current_effect_name != NULL) {
+        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+            if (refresh_count_out != NULL)
+                *refresh_count_out = decl->data.effect_decl.refresh_count;
+            return decl->data.effect_decl.refreshes;
+        }
+    }
+
+    if (ctx->current_zone_name != NULL) {
+        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        if (decl != NULL && decl->type == AST_ZONE_DECL) {
+            if (refresh_count_out != NULL)
+                *refresh_count_out = decl->data.zone_decl.refresh_count;
+            return decl->data.zone_decl.refreshes;
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+assignment_target_root_slot_name(ASTNode *target)
+{
+    if (target == NULL)
+        return NULL;
+    if (target->type == AST_IDENTIFIER)
+        return target->data.identifier.name;
+    if (target->type == AST_MEMBER_ACCESS) {
+        if (target->data.member.object != NULL
+            && target->data.member.object->type == AST_IDENTIFIER
+            && target->data.member.object->data.identifier.name != NULL
+            && strcmp(target->data.member.object->data.identifier.name, "self") == 0) {
+            return target->data.member.name;
+        }
+        return assignment_target_root_slot_name(target->data.member.object);
+    }
+    return NULL;
+}
+
+static char *
+emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
+                                            const char *source_slot_name)
+{
+    ASTNode **refreshes;
+    size_t refresh_count = 0;
+    CodeBuf *buf;
+
+    if (ctx == NULL || source_slot_name == NULL)
+        return NULL;
+
+    refreshes = current_overlay_refresh_list(ctx, &refresh_count);
+    if (refreshes == NULL || refresh_count == 0)
+        return NULL;
+
+    buf = codebuf_create();
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        const char *target_name;
+        const char *refresh_source_name;
+
+        if (refresh == NULL)
+            continue;
+        target_name = refresh->data.zone_refresh.object_slot_name;
+        refresh_source_name = refresh->data.zone_refresh.source_slot_name;
+        if (target_name == NULL || refresh_source_name == NULL
+            || strcmp(refresh_source_name, source_slot_name) != 0) {
+            continue;
+        }
+        codebuf_write(buf,
+            "self->__projection_dirty_%s = true; "
+            "self->__projection_ready_%s = false; ",
+            target_name, target_name);
+    }
+
+    if (buf->len == 0) {
+        codebuf_destroy(buf);
+        return NULL;
+    }
+
+    {
+        char *result = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
+        return result;
+    }
 }
 
 static bool

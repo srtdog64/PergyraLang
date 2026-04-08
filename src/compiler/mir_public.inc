@@ -1,6 +1,7 @@
 MIRProgram *
 mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
 {
+    const char *debug_mir_lower;
     MIRProgram *mir;
     if (error_message != NULL)
         *error_message = NULL;
@@ -9,6 +10,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             *error_message = pergyra_strdup("MIR lowering requires HIR");
         return NULL;
     }
+
+    debug_mir_lower = getenv("PGY_DEBUG_MIR_LOWER");
 
     /* Initialize ABI type lookup table */
     mir_abi_table_init();
@@ -46,8 +49,10 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             return NULL;
         }
 
-        /* Debug: print routine info after construction */
-        if (routine.kind == MIR_SCOPE_INTENT) {
+        /* Optional MIR intent debug trace. Hidden by default because this
+         * path runs during normal compilation and should not pollute stdout. */
+        if (debug_mir_lower != NULL && debug_mir_lower[0] != '\0'
+            && routine.kind == MIR_SCOPE_INTENT) {
             fprintf(stdout, "[MIR LOWER] Intent '%s' after build: has_cleanup=%d, blocks=%zu\n",
                 routine.name ? routine.name : "(null)",
                 routine.has_cleanup_block,

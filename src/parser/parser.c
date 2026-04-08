@@ -793,7 +793,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
                        : parse_class_declaration(parser));
     }
 
-    // object 선언 (contextual struct alias)
+    // object declaration: declaration-context keyword for local/internal projection
     if (parser_starts_contextual_declaration(parser, "object")) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_object_declaration(parser));
@@ -809,7 +809,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_intent_declaration(parser));
     }
 
-    // tobject / struct 선언
+    // tobject / struct declarations share a token family today, but not a language contract
     if (parser_check(parser, TOKEN_STRUCT)) {
         bool is_dto = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "tobject") == 0;

@@ -106,12 +106,18 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct TrustedLink");
         EXPECT_STR_CONTAINS(ctx->out->data, "} TrustedLink;");
         EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(TrustedLink *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_snapshot;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_packet;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (!(self->__projection_dirty_snapshot || self->__projection_dirty_packet)) return;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->snapshot = (PlayerView){ .hp = self->source.hp };");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->packet = (PlayerDto){ .hp = self->target.hp, .name = self->target.name };");
         EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_sync(self);");
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Poisoned");
         EXPECT_STR_CONTAINS(ctx->out->data, "} Poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(Poisoned *self)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_view;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_packet;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "if (!(self->__projection_dirty_view || self->__projection_dirty_packet)) return;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->view = (PlayerView){ .hp = self->bearer.hp };");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->packet = (PlayerDto){ .hp = self->bearer.hp, .name = self->bearer.name };");
         EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(self);");
@@ -198,6 +204,8 @@ test_systemic_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct BattleZone");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_playerView;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_snapshot;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_playerView;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_snapshot;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __layer_active_poison;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone_sync(BattleZone *self)");

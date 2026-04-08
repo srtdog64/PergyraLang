@@ -1400,6 +1400,29 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         init_expr != NULL ? init_expr : "0");
                     free(init_expr);
                 }
+                for (size_t i = 0; i < slot_count; i++) {
+                    ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
+                        ? overlay_decl->data.relation_decl.slots[i]
+                        : overlay_decl->data.effect_decl.slots[i];
+                    const char *slot_name = slot != NULL
+                        ? slot->data.domain_slot.slot_name
+                        : NULL;
+                    bool projection_slot = slot != NULL
+                        && (slot->data.domain_slot.is_dto
+                            || domain_slot_is_projection_target_local(
+                                slot,
+                                overlay_decl->type == AST_RELATION_DECL
+                                    ? overlay_decl->data.relation_decl.refreshes
+                                    : overlay_decl->data.effect_decl.refreshes,
+                                overlay_decl->type == AST_RELATION_DECL
+                                    ? overlay_decl->data.relation_decl.refresh_count
+                                    : overlay_decl->data.effect_decl.refresh_count));
+                    if (!projection_slot || slot_name == NULL)
+                        continue;
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".__projection_dirty_%s = true", slot_name);
+                }
                 {
                     char *result = fields->len > 0
                         ? strdup_fmt("(%s){ %s }", fn, fields->data)
@@ -1452,6 +1475,23 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         field_name != NULL ? field_name : "field",
                         init_expr != NULL ? init_expr : "0");
                     free(init_expr);
+                }
+                for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+                    ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+                    const char *slot_name = slot != NULL
+                        ? slot->data.domain_slot.slot_name
+                        : NULL;
+                    bool projection_slot = slot != NULL
+                        && (slot->data.domain_slot.is_dto
+                            || domain_slot_is_projection_target_local(
+                                slot,
+                                zone_decl->data.zone_decl.refreshes,
+                                zone_decl->data.zone_decl.refresh_count));
+                    if (!projection_slot || slot_name == NULL)
+                        continue;
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".__projection_dirty_%s = true", slot_name);
                 }
                 {
                     char *result = fields->len > 0
@@ -3040,6 +3080,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = node->data.identifier.name;
+        TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         /* Inside parallel wrapper: captured outer variables are accessed
          * through the context struct pointer.  (*_pctx->x) yields the
          * value, and &(*_pctx->x) collapses to _pctx->x (a pointer). */
@@ -3107,6 +3148,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             if (enum_variant != NULL)
                 return pergyra_strdup(enum_variant);
         }
+        if (projection_entry != NULL && projection_entry->is_projection_borrow) {
+            const char *source_type = lookup_typed_var(ctx, projection_entry->source_slot);
+            ASTNode *target_decl = find_class_decl(ctx, projection_entry->type_name);
+            ASTNode *source_decl = source_type != NULL
+                ? find_class_decl(ctx, source_type)
+                : NULL;
+            if (target_decl != NULL && source_decl != NULL) {
+                return emit_projection_literal(ctx, target_decl, source_decl,
+                    projection_entry->type_name, projection_entry->source_slot);
+            }
+        }
         return pergyra_strdup(id_name);
     }
 
@@ -3120,6 +3172,35 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_call(node, ctx);
 
     case AST_MEMBER_ACCESS: {
+        if (node->data.member.object != NULL
+            && node->data.member.object->type == AST_IDENTIFIER
+            && node->data.member.name != NULL) {
+            TypedVarEntry *entry = lookup_typed_entry(ctx,
+                node->data.member.object->data.identifier.name);
+            if (entry != NULL && entry->is_projection_borrow) {
+                const char *source_type = lookup_typed_var(ctx, entry->source_slot);
+                ASTNode *source_decl = source_type != NULL
+                    ? find_class_decl(ctx, source_type)
+                    : NULL;
+                char *source_path = NULL;
+                int source_status = 0;
+                if (source_decl != NULL) {
+                    source_status = resolve_projection_source_path_rec(
+                        ctx, source_decl, node->data.member.name, 0, &source_path);
+                }
+                if (source_status == 1 && source_path != NULL) {
+                    TypedVarEntry *source_entry = lookup_typed_entry(ctx, entry->source_slot);
+                    char *result = strdup_fmt(
+                        (source_entry != NULL && source_entry->is_subject_ref)
+                            ? "%s->%s"
+                            : "%s.%s",
+                        entry->source_slot, source_path);
+                    free(source_path);
+                    return result;
+                }
+                free(source_path);
+            }
+        }
         char *obj = emit_expression(node->data.member.object, ctx);
         /* Enum variant access: Color.Red → Color_Red */
         if (node->data.member.object->type == AST_IDENTIFIER
@@ -3214,7 +3295,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         char *target = emit_expression(node->data.assignment.target, ctx);
         char *value  = emit_expression(node->data.assignment.value,  ctx);
-        char *result = strdup_fmt("%s = %s", target, value);
+        const char *root_slot_name = assignment_target_root_slot_name(
+            node->data.assignment.target);
+        char *invalidation = emit_current_overlay_projection_invalidation(
+            ctx, root_slot_name);
+        char *result;
+        if (invalidation != NULL)
+            result = strdup_fmt("({ %s%s = %s; })", invalidation, target, value);
+        else
+            result = strdup_fmt("%s = %s", target, value);
+        free(invalidation);
         free(target);
         free(value);
         return result;

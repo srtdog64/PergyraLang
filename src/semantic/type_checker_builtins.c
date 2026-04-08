@@ -2575,11 +2575,11 @@ type_check_projection_call(ASTNode *call,
     if (!in_projection_context) {
         if (expected_kind == NOMINAL_DECL_DTO) {
             semantic_warning(ctx, call,
-                "%s is being used as a direct boundary projection outside relation/effect/zone/world context; prefer tobject slots plus publish/transport flow",
+                "%s is being used as a direct boundary projection outside relation/effect/zone/world context; tobject is a transfer contract, so prefer tobject slots plus publish/transport flow",
                 builtin_name);
         } else {
             semantic_warning(ctx, call,
-                "%s is being used as a direct internal projection outside relation/effect/zone/world context; prefer object slots plus refresh flow",
+                "%s is being used as a direct internal projection outside relation/effect/zone/world context; object is a local projection contract, so prefer object slots plus refresh flow",
                 builtin_name);
         }
     }

@@ -1062,6 +1062,28 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         && init != NULL
         && init->type == AST_CALL
         && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && strcmp(init->data.call.callee->data.identifier.name, "ToObject") == 0
+        && init->data.call.arg_count >= 2
+        && init->data.call.arguments[1] != NULL
+        && init->data.call.arguments[1]->type == AST_IDENTIFIER) {
+        LLVMClassTypeEntry *target_cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+        if (target_cls != NULL
+            && target_cls->is_immutable
+            && !target_cls->is_boundary_transfer_contract) {
+            const char *source_name = init->data.call.arguments[1]->data.identifier.name;
+            llvm_register_var_class(ctx, name, type_ann->data.type.name);
+            llvm_register_projection_borrow(ctx, name, type_ann->data.type.name, source_name);
+            return;
+        }
+    }
+
+    if (type_ann != NULL
+        && type_ann->type == AST_TYPE
+        && type_ann->data.type.name != NULL
+        && init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *ann_name = type_ann->data.type.name;
         const char *callee = init->data.call.callee->data.identifier.name;

@@ -887,6 +887,49 @@ llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *
     return NULL;
 }
 
+static LLVMValueRef
+llvm_emit_projection_from_binding(LLVMGenCtx *ctx,
+                                  const char *target_class_name,
+                                  const char *source_name)
+{
+    const char *source_class_name;
+    LLVMClassTypeEntry *target_cls;
+    LLVMClassTypeEntry *source_cls;
+    ASTNode *source_decl;
+    LLVMVarEntry *source_var;
+    LLVMValueRef source_base;
+    LLVMValueRef projected;
+
+    if (ctx == NULL || target_class_name == NULL || source_name == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    target_cls = llvm_lookup_class(ctx, target_class_name);
+    source_var = llvm_scope_lookup(ctx, source_name);
+    source_class_name = llvm_lookup_var_class(ctx, source_name);
+    source_cls = source_class_name != NULL
+        ? llvm_lookup_class(ctx, source_class_name) : NULL;
+    source_decl = source_class_name != NULL
+        ? llvm_find_projection_nominal_decl(ctx, source_class_name) : NULL;
+    if (target_cls == NULL || source_var == NULL || source_cls == NULL || source_decl == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+
+    source_base = source_var->alloca;
+    if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
+        source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
+            source_var->alloca, llvm_tmp_name(ctx));
+    }
+
+    projected = LLVMGetUndef(target_cls->struct_type);
+    for (int i = 0; i < target_cls->field_count; i++) {
+        LLVMClassFieldInfo *field = &target_cls->fields[i];
+        LLVMValueRef field_val = llvm_load_projection_path_value(ctx, source_decl,
+            source_cls, source_base, field->field_name);
+        projected = LLVMBuildInsertValue(ctx->builder, projected, field_val,
+            (unsigned)field->index, llvm_tmp_name(ctx));
+    }
+    return projected;
+}
+
 static ASTNode *
 llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
 {
@@ -1377,12 +1420,9 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
     switch (node->type) {
     case AST_IDENTIFIER: {
         const char *name = node->data.identifier.name;
-        LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-        if (var != NULL) {
-            const char *class_name = llvm_lookup_var_class(ctx, name);
-            if (class_name != NULL)
-                return class_name;
-        }
+        const char *class_name = llvm_lookup_var_class(ctx, name);
+        if (class_name != NULL)
+            return class_name;
         if (strcmp(name, "self") != 0) {
             const char *host_name = llvm_current_host_class_name(ctx);
             LLVMClassTypeEntry *host_cls = host_name != NULL
@@ -1816,6 +1856,7 @@ static LLVMValueRef
 llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *name = node->data.identifier.name;
+    LLVMProjectionBorrowEntry *projection_borrow;
 
     /* Slot sugar: auto-Read — call pgy_read_T(&slot) instead of loading struct */
     if (!ctx->suppress_slot_auto_read) {
@@ -1849,6 +1890,13 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     /* Look up in scope */
+    projection_borrow = llvm_lookup_projection_borrow(ctx, name);
+    if (projection_borrow != NULL) {
+        return llvm_emit_projection_from_binding(ctx,
+            projection_borrow->class_name,
+            projection_borrow->source_name);
+    }
+
     LLVMVarEntry *entry = llvm_scope_lookup(ctx, name);
     if (entry != NULL)
         return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,

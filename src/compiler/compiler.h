@@ -15,11 +15,19 @@ typedef enum
 
 typedef struct
 {
+    double codegen;
+    double native_compile;
+    double link;
+} CompilerBackendTimings;
+
+typedef struct
+{
     bool  success;
     int   exit_code;
     char *error_message;
     char *c_output_path;
     char *binary_path;
+    CompilerBackendTimings backend_timings;
 } CompilerResult;
 
 typedef struct

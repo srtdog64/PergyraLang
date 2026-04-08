@@ -671,6 +671,30 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
+    if (resolved_ann != NULL
+        && resolved_ann->type == AST_TYPE
+        && resolved_ann->data.type.name != NULL
+        && init != NULL
+        && init->type == AST_CALL
+        && init->data.call.callee != NULL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && strcmp(init->data.call.callee->data.identifier.name, "ToObject") == 0
+        && init->data.call.arg_count >= 2
+        && init->data.call.arguments[1] != NULL
+        && init->data.call.arguments[1]->type == AST_IDENTIFIER) {
+        ASTNode *target_decl = find_class_decl(ctx, resolved_ann->data.type.name);
+        if (target_decl != NULL
+            && target_decl->type == AST_CLASS_DECL
+            && target_decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT) {
+            const char *source_name = init->data.call.arguments[1]->data.identifier.name;
+            register_projection_borrow_var(ctx, name,
+                ann_type_name != NULL ? ann_type_name : resolved_ann->data.type.name,
+                source_name);
+            free(ann_type_name);
+            return;
+        }
+    }
+
     /* Array literal: let arr = [1, 2, 3] → PgyArray_Int arr = ({ ... }); */
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         const char *array_type_name = ann_type_name != NULL
@@ -768,22 +792,21 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
             codebuf_write(ctx->out, " };\n");
         } else {
-            /* Try zone/world/relation/effect constructor with slot fields */
+            /* Domain/runtime constructors carry internal state bits.
+             * Reuse expression lowering so zone/world/relation/effect
+             * literals preserve dirty/ready/runtime metadata. */
             ASTNode *zone_decl = find_zone_decl(ctx, ann_type_name);
-            if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL
-                && init->data.call.arg_count > 0) {
-                codebuf_write(ctx->out, "%s %s = { ", ann_type_name, name);
-                size_t sc = zone_decl->data.zone_decl.slot_count;
-                for (size_t i = 0; i < init->data.call.arg_count && i < sc; i++) {
-                    ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-                    char *arg_expr = emit_expression(init->data.call.arguments[i], ctx);
-                    if (i > 0) codebuf_write(ctx->out, ", ");
-                    codebuf_write(ctx->out, ".%s = %s",
-                        slot != NULL ? slot->data.domain_slot.slot_name : "field",
-                        arg_expr != NULL ? arg_expr : "0");
-                    free(arg_expr);
-                }
-                codebuf_write(ctx->out, " };\n");
+            ASTNode *world_decl = find_world_decl(ctx, ann_type_name);
+            ASTNode *relation_decl = find_relation_decl(ctx, ann_type_name);
+            ASTNode *effect_decl = find_effect_decl(ctx, ann_type_name);
+            if ((zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
+                || (world_decl != NULL && world_decl->type == AST_WORLD_DECL)
+                || (relation_decl != NULL && relation_decl->type == AST_RELATION_DECL)
+                || (effect_decl != NULL && effect_decl->type == AST_EFFECT_DECL)) {
+                char *init_expr = emit_expression(init, ctx);
+                codebuf_write(ctx->out, "%s %s = %s;\n",
+                    ann_type_name, name, init_expr != NULL ? init_expr : "0");
+                free(init_expr);
             } else {
                 codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
             }

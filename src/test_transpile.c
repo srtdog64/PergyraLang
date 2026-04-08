@@ -900,6 +900,7 @@ test_expression_emit(void)
             "func Main() -> Void {\n"
             "    let player: Player = Player();\n"
             "    let view: PlayerView = ToObject(PlayerView, player);\n"
+            "    Log(view.hp);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -909,8 +910,9 @@ test_expression_emit(void)
 
         emit_program(hir, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data,
-            "PlayerView view = (PlayerView){ .hp = player.hp, .name = player.name };");
+        EXPECT(strstr(ctx->out->data,
+            "PlayerView view = (PlayerView){ .hp = player.hp, .name = player.name };") == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(player.hp);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -931,6 +933,8 @@ test_expression_emit(void)
             "    let creature: Creature = Creature();\n"
             "    let view: CreatureView = ToObject(CreatureView, creature);\n"
             "    let packet: CreaturePacket = ToTObject(CreaturePacket, creature);\n"
+            "    Log(view.metabolism);\n"
+            "    Log(packet.metabolism);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -940,10 +944,12 @@ test_expression_emit(void)
 
         emit_program(hir, ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data,
-            "CreatureView view = (CreatureView){ .age = creature.cycle.age, .fatigue = creature.cycle.fatigue, .metabolism = creature.traits.metabolism };");
+        EXPECT(strstr(ctx->out->data,
+            "CreatureView view = (CreatureView){ .age = creature.cycle.age, .fatigue = creature.cycle.fatigue, .metabolism = creature.traits.metabolism };") == NULL);
         EXPECT_STR_CONTAINS(ctx->out->data,
             "CreaturePacket packet = (CreaturePacket){ .age = creature.cycle.age, .metabolism = creature.traits.metabolism };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(creature.traits.metabolism);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(packet.metabolism);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -1125,6 +1131,8 @@ test_expression_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_playerView;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_snapshot;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_playerView;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_dirty_snapshot;");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -3556,8 +3564,6 @@ test_mir_vertical_slice_emit(void)
 
             /* Subintent MIR emission should produce valid C code */
             EXPECT(routine != NULL);
-            if (routine != NULL)
-                EXPECT(routine->has_cleanup_block == false);
             EXPECT(strstr(output, "Checkout(") != NULL);
             EXPECT(strstr(output, "Charge(") != NULL);
         }

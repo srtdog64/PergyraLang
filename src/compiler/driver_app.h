@@ -17,6 +17,26 @@ typedef enum
 
 typedef struct
 {
+    double module_load;
+    double semantic;
+    double hir_lower;
+    double dir_lower;
+    double dir_validate;
+    double rir_lower;
+    double rir_enrich;
+    double rir_validate;
+    double rir_dir_validate;
+    double mir_lower;
+    double mir_validate;
+    double backend;
+    double backend_codegen;
+    double backend_native_compile;
+    double backend_link;
+    double total;
+} DriverPhaseTimings;
+
+typedef struct
+{
     const char *source_path;
     const char *output_path;
     bool        emit_c_only;
@@ -36,6 +56,8 @@ typedef struct
 } DriverFlags;
 
 int  driver_run_pipeline(const DriverFlags *flags);
+int  driver_run_pipeline_timed(const DriverFlags *flags,
+                               DriverPhaseTimings *timings);
 int  driver_run_scaffold_command(int argc, char *argv[]);
 void driver_print_usage(void);
 

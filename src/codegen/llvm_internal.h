@@ -198,7 +198,8 @@ typedef struct
     LLVMTypeRef        struct_type;
     bool               is_subject;
     bool               is_pointer_self_host;
-    bool               is_immutable;       /* true for object/tobject (read-only after construction) */
+    bool               is_immutable;       /* storage-level immutability for object/tobject */
+    bool               is_boundary_transfer_contract; /* true only for tobject */
     LLVMClassFieldInfo fields[MAX_CLASS_FIELDS];
     int                field_count;
 } LLVMClassTypeEntry;
@@ -208,6 +209,13 @@ typedef struct
     const char *var_name;
     const char *class_name;
 } LLVMVarClassEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *class_name;
+    const char *source_name;
+} LLVMProjectionBorrowEntry;
 
 typedef struct
 {
@@ -387,6 +395,10 @@ typedef struct LLVMGenCtx
     int                   var_class_count;
     int                   var_class_capacity;
 
+    LLVMProjectionBorrowEntry *projection_borrows;
+    int                        projection_borrow_count;
+    int                        projection_borrow_capacity;
+
     LLVMArrayVarEntry    *array_vars;
     int                   array_var_count;
     int                   array_var_capacity;
@@ -542,6 +554,12 @@ int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
 void                llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
                                              const char *class_name);
 const char         *llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name);
+void                llvm_register_projection_borrow(LLVMGenCtx *ctx,
+                                                    const char *var_name,
+                                                    const char *class_name,
+                                                    const char *source_name);
+LLVMProjectionBorrowEntry *llvm_lookup_projection_borrow(LLVMGenCtx *ctx,
+                                                         const char *var_name);
 void                llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
                                              LLVMTypeRef elem_type, int64_t length);
 LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);

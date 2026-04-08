@@ -509,6 +509,8 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
                 node->data.relation_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
+            codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
+                slot->data.domain_slot.slot_name);
         }
     }
 
@@ -525,16 +527,25 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
-        ASTNode *slot = node->data.relation_decl.slots[i];
-        if (slot->data.domain_slot.is_dto
-            || domain_slot_is_projection_target_local(slot,
-                node->data.relation_decl.refreshes,
-                node->data.relation_decl.refresh_count)) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+    if (node->data.relation_decl.refresh_count > 0) {
+        bool emitted_condition = false;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (!(");
+        for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
+            ASTNode *slot = node->data.relation_decl.slots[i];
+            if (!(slot->data.domain_slot.is_dto
+                || domain_slot_is_projection_target_local(slot,
+                    node->data.relation_decl.refreshes,
+                    node->data.relation_decl.refresh_count))) {
+                continue;
+            }
+            if (emitted_condition)
+                codebuf_write(ctx->out, " || ");
+            codebuf_write(ctx->out, "self->__projection_dirty_%s",
                 slot->data.domain_slot.slot_name);
+            emitted_condition = true;
         }
+        codebuf_write(ctx->out, ")) return;\n");
     }
     for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.relation_decl.refreshes[i];
@@ -570,11 +581,24 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             free(source_expr);
         }
         write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
             refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
         free(literal);
     }
     ctx->indent--;
@@ -677,6 +701,8 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
                 node->data.effect_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
+            codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
+                slot->data.domain_slot.slot_name);
         }
     }
 
@@ -693,16 +719,25 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
-    for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
-        ASTNode *slot = node->data.effect_decl.slots[i];
-        if (slot->data.domain_slot.is_dto
-            || domain_slot_is_projection_target_local(slot,
-                node->data.effect_decl.refreshes,
-                node->data.effect_decl.refresh_count)) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+    if (node->data.effect_decl.refresh_count > 0) {
+        bool emitted_condition = false;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (!(");
+        for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
+            ASTNode *slot = node->data.effect_decl.slots[i];
+            if (!(slot->data.domain_slot.is_dto
+                || domain_slot_is_projection_target_local(slot,
+                    node->data.effect_decl.refreshes,
+                    node->data.effect_decl.refresh_count))) {
+                continue;
+            }
+            if (emitted_condition)
+                codebuf_write(ctx->out, " || ");
+            codebuf_write(ctx->out, "self->__projection_dirty_%s",
                 slot->data.domain_slot.slot_name);
+            emitted_condition = true;
         }
+        codebuf_write(ctx->out, ")) return;\n");
     }
     for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.effect_decl.refreshes[i];
@@ -738,11 +773,24 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             free(source_expr);
         }
         write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
             refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
         free(literal);
     }
     ctx->indent--;
@@ -845,6 +893,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
                 node->data.zone_decl.refresh_count)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
+            codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
+                slot->data.domain_slot.slot_name);
         }
     }
 
@@ -933,17 +983,6 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "self->__state_%s = false;\n",
             state->data.zone_state.state_name);
     }
-    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.slots[i];
-        if (slot->data.domain_slot.is_dto
-            || domain_slot_is_projection_target_local(slot,
-                node->data.zone_decl.refreshes,
-                node->data.zone_decl.refresh_count)) {
-            write_indent(ctx);
-            codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
-                slot->data.domain_slot.slot_name);
-        }
-    }
     for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.layer_slots[i];
         if (slot->data.zone_layer_slot.is_pool) {
@@ -990,11 +1029,24 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             free(source_expr);
         }
         write_indent(ctx);
+        codebuf_write(ctx->out, "if (self->__projection_dirty_%s) {\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
         codebuf_write(ctx->out, "self->%s = %s;\n",
             refresh->data.zone_refresh.object_slot_name, literal);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
             refresh->data.zone_refresh.object_slot_name);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "self->__projection_dirty_%s = false;\n",
+            refresh->data.zone_refresh.object_slot_name);
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
         free(literal);
     }
 

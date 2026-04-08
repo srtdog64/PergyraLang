@@ -13,6 +13,9 @@
 #include <sys/types.h>
 #ifdef _WIN32
 #include <direct.h>
+#include <windows.h>
+#else
+#include <sys/time.h>
 #endif
 
 #include "../common/string_compat.h"
@@ -28,6 +31,23 @@
 #include "c_runner.h"
 
 /* Path utilities are now in path_utils.h/c */
+
+static double
+driver_now_seconds(void)
+{
+#ifdef _WIN32
+    LARGE_INTEGER freq;
+    LARGE_INTEGER counter;
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)freq.QuadPart;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0);
+#endif
+}
 
 static int
 run_token_dump(const char *source, const char *path)
@@ -844,6 +864,12 @@ driver_run_scaffold_command(int argc, char *argv[])
 int
 driver_run_pipeline(const DriverFlags *flags)
 {
+    return driver_run_pipeline_timed(flags, NULL);
+}
+
+int
+driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
+{
     ASTNode *ast = NULL;
     SemanticResult *sem = NULL;
     DIRProgram *dir = NULL;
@@ -854,7 +880,11 @@ driver_run_pipeline(const DriverFlags *flags)
     int exit_code = 1;
     char *load_error = NULL;
     char *hir_error = NULL;
+    double phase_start = 0.0;
+    double total_start = driver_now_seconds();
     memset(&bundle, 0, sizeof(bundle));
+    if (timings != NULL)
+        memset(timings, 0, sizeof(*timings));
 
     if (flags->dump_tokens) {
         char *source = path_read_file(flags->source_path);
@@ -868,7 +898,10 @@ driver_run_pipeline(const DriverFlags *flags)
     if (flags->verbose)
         printf("pgy: loading modules\n");
 
+    phase_start = driver_now_seconds();
     ast = module_loader_load_program(flags->source_path, &load_error);
+    if (timings != NULL)
+        timings->module_load = driver_now_seconds() - phase_start;
     if (ast == NULL) {
         fprintf(stderr, "pgy: %s\n",
                 load_error != NULL ? load_error : "module loading failed");
@@ -884,7 +917,10 @@ driver_run_pipeline(const DriverFlags *flags)
     if (flags->verbose)
         printf("pgy: semantic analysis\n");
 
+    phase_start = driver_now_seconds();
     sem = semantic_analyze(ast);
+    if (timings != NULL)
+        timings->semantic = driver_now_seconds() - phase_start;
     if (sem == NULL) {
         fprintf(stderr, "pgy: out of memory during semantic analysis\n");
         goto cleanup;
@@ -896,58 +932,95 @@ driver_run_pipeline(const DriverFlags *flags)
         goto cleanup;
     }
 
+    phase_start = driver_now_seconds();
     hir = hir_lower(sem->annotated_ast, &hir_error);
+    if (timings != NULL)
+        timings->hir_lower = driver_now_seconds() - phase_start;
     if (hir == NULL) {
         fprintf(stderr, "pgy: HIR lowering failed: %s\n",
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
 
+    phase_start = driver_now_seconds();
     dir = dir_lower(sem->annotated_ast, &hir_error);
+    if (timings != NULL)
+        timings->dir_lower = driver_now_seconds() - phase_start;
     if (dir == NULL) {
         fprintf(stderr, "pgy: DIR lowering failed: %s\n",
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    phase_start = driver_now_seconds();
     if (!dir_validate(dir, &hir_error)) {
+        if (timings != NULL)
+            timings->dir_validate = driver_now_seconds() - phase_start;
         fprintf(stderr, "pgy: DIR validation failed: %s\n",
                 hir_error != NULL ? hir_error : "invalid DIR");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->dir_validate = driver_now_seconds() - phase_start;
 
+    phase_start = driver_now_seconds();
     rir = rir_lower(sem->annotated_ast, &hir_error);
+    if (timings != NULL)
+        timings->rir_lower = driver_now_seconds() - phase_start;
     if (rir == NULL) {
         fprintf(stderr, "pgy: RIR lowering failed: %s\n",
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    phase_start = driver_now_seconds();
     if (!rir_enrich_with_hir_flow(rir, hir, &hir_error)) {
+        if (timings != NULL)
+            timings->rir_enrich = driver_now_seconds() - phase_start;
         fprintf(stderr, "pgy: RIR flow enrichment failed: %s\n",
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->rir_enrich = driver_now_seconds() - phase_start;
+    phase_start = driver_now_seconds();
     if (!rir_validate(rir, &hir_error)) {
+        if (timings != NULL)
+            timings->rir_validate = driver_now_seconds() - phase_start;
         fprintf(stderr, "pgy: RIR validation failed: %s\n",
                 hir_error != NULL ? hir_error : "invalid RIR");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->rir_validate = driver_now_seconds() - phase_start;
+    phase_start = driver_now_seconds();
     if (!rir_validate_against_dir(rir, dir, &hir_error)) {
+        if (timings != NULL)
+            timings->rir_dir_validate = driver_now_seconds() - phase_start;
         fprintf(stderr, "pgy: RIR/DIR validation failed: %s\n",
                 hir_error != NULL ? hir_error : "invalid RIR/DIR contract");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->rir_dir_validate = driver_now_seconds() - phase_start;
 
+    phase_start = driver_now_seconds();
     mir = mir_lower(hir, rir, &hir_error);
+    if (timings != NULL)
+        timings->mir_lower = driver_now_seconds() - phase_start;
     if (mir == NULL) {
         fprintf(stderr, "pgy: MIR lowering failed: %s\n",
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    phase_start = driver_now_seconds();
     if (!mir_validate(mir, &hir_error)) {
+        if (timings != NULL)
+            timings->mir_validate = driver_now_seconds() - phase_start;
         fprintf(stderr, "pgy: MIR validation failed: %s\n",
                 hir_error != NULL ? hir_error : "invalid MIR");
         goto cleanup;
     }
+    if (timings != NULL)
+        timings->mir_validate = driver_now_seconds() - phase_start;
 
     bundle.hir = hir;
     bundle.dir = dir;
@@ -979,13 +1052,32 @@ driver_run_pipeline(const DriverFlags *flags)
     }
 
     /* Dispatch to backend runner */
+    phase_start = driver_now_seconds();
     if (flags->backend == BACKEND_LLVM && !flags->emit_c_only) {
-        exit_code = llvm_runner_execute(flags, &bundle);
+        CompilerBackendTimings backend_timings = {0};
+        exit_code = llvm_runner_execute(flags, &bundle,
+                                        timings != NULL ? &backend_timings : NULL);
+        if (timings != NULL) {
+            timings->backend_codegen = backend_timings.codegen;
+            timings->backend_native_compile = backend_timings.native_compile;
+            timings->backend_link = backend_timings.link;
+        }
     } else {
-        exit_code = c_runner_execute(flags, &bundle);
+        CompilerBackendTimings backend_timings = {0};
+        exit_code = c_runner_execute(flags, &bundle,
+                                     timings != NULL ? &backend_timings : NULL);
+        if (timings != NULL) {
+            timings->backend_codegen = backend_timings.codegen;
+            timings->backend_native_compile = backend_timings.native_compile;
+            timings->backend_link = backend_timings.link;
+        }
     }
+    if (timings != NULL)
+        timings->backend = driver_now_seconds() - phase_start;
 
 cleanup:
+    if (timings != NULL)
+        timings->total = driver_now_seconds() - total_start;
     free(load_error);
     free(hir_error);
     dir_destroy(dir);

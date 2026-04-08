@@ -200,6 +200,18 @@ typedef struct LLVMGenCtx
  * Type classification
  * ================================================================= */
 
+static bool
+llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)
+{
+    return kind == NOMINAL_DECL_OBJECT || kind == NOMINAL_DECL_DTO;
+}
+
+static bool
+llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind)
+{
+    return kind == NOMINAL_DECL_DTO;
+}
+
 PgyTypeKind
 pgy_classify_type(const char *type_name)
 {
@@ -473,6 +485,7 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->future_vars);
     free(ctx->class_types);
     free(ctx->var_classes);
+    free(ctx->projection_borrows);
     free(ctx->array_vars);
     free(ctx->list_vars);
     free(ctx->queue_vars);
@@ -976,6 +989,8 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
     entry->struct_type = struct_type;
     entry->is_subject  = is_subject;
     entry->is_pointer_self_host = is_pointer_self_host;
+    entry->is_immutable = false;
+    entry->is_boundary_transfer_contract = false;
     entry->field_count = 0;
     return entry;
 }
@@ -1031,6 +1046,37 @@ llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name)
     for (int i = ctx->var_class_count - 1; i >= 0; i--) {
         if (strcmp(ctx->var_classes[i].var_name, var_name) == 0)
             return ctx->var_classes[i].class_name;
+    }
+    return NULL;
+}
+
+void
+llvm_register_projection_borrow(LLVMGenCtx *ctx,
+                                const char *var_name,
+                                const char *class_name,
+                                const char *source_name)
+{
+    if (ctx == NULL || var_name == NULL || class_name == NULL || source_name == NULL)
+        return;
+
+    PGY_DYNARR_ENSURE(ctx->projection_borrows, ctx->projection_borrow_count,
+                      ctx->projection_borrow_capacity, LLVMProjectionBorrowEntry);
+
+    ctx->projection_borrows[ctx->projection_borrow_count].var_name = var_name;
+    ctx->projection_borrows[ctx->projection_borrow_count].class_name = class_name;
+    ctx->projection_borrows[ctx->projection_borrow_count].source_name = source_name;
+    ctx->projection_borrow_count++;
+}
+
+LLVMProjectionBorrowEntry *
+llvm_lookup_projection_borrow(LLVMGenCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+
+    for (int i = ctx->projection_borrow_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->projection_borrows[i].var_name, var_name) == 0)
+            return &ctx->projection_borrows[i];
     }
     return NULL;
 }
@@ -3939,15 +3985,19 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             LLVMStructSetBody(struct_ty, field_types,
                                (unsigned)fc, 0);
 
-            bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+            NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
+            bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
             bool is_pointer_self_host = is_subject
-                || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
-            bool is_immutable = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
-                             || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
+                || nominal_kind == NOMINAL_DECL_VESSEL;
+            bool is_immutable =
+                llvm_nominal_uses_immutable_projection_storage(nominal_kind);
+            bool is_boundary_transfer =
+                llvm_nominal_is_boundary_transfer_contract(nominal_kind);
             LLVMClassTypeEntry *entry = llvm_register_class(ctx,
                 cls_name, struct_ty, is_subject, is_pointer_self_host);
             if (entry != NULL) {
                 entry->is_immutable = is_immutable;
+                entry->is_boundary_transfer_contract = is_boundary_transfer;
                 for (size_t j = 0; j < fc; j++) {
                     ClassField *f = stmt->data.class_decl.fields[j];
                     llvm_class_add_field(entry, f->name,
@@ -4584,13 +4634,17 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
                 }
                 LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
                 LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
-                bool is_subject = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
-                bool is_immutable = stmt->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT
-                                 || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
+                NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
+                bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
+                bool is_immutable =
+                    llvm_nominal_uses_immutable_projection_storage(nominal_kind);
+                bool is_boundary_transfer =
+                    llvm_nominal_is_boundary_transfer_contract(nominal_kind);
                 LLVMClassTypeEntry *entry = llvm_register_class(ctx, cls_name,
                     struct_ty, is_subject, is_subject);
                 if (entry != NULL) {
                     entry->is_immutable = is_immutable;
+                    entry->is_boundary_transfer_contract = is_boundary_transfer;
                     for (size_t j = 0; j < fc; j++) {
                         ClassField *f = stmt->data.class_decl.fields[j];
                         llvm_class_add_field(entry, f->name, field_types[j], (int)j);
@@ -4667,7 +4721,16 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx,
         }
     }
 
-    /* Pass 4: Emit remaining HIR-based declarations */
+    /* Pass 4: Emit remaining HIR-based declarations.
+     *
+     * Migration debt:
+     * - ordinary function fallback when MIR is missing or empty
+     * - intent lowering still emitted from HIR
+     * - class methods still emitted through temporary AST name rewriting
+     * - main wrapper still depends on HIR executable metadata
+     *
+     * The MIR-only backend migration plan tracks removal order for each item.
+     */
     if (ctx->hir != NULL) {
 
         /* Emit any functions that didn't have MIR (fallback) */

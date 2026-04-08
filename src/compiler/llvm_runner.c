@@ -51,8 +51,13 @@ llvm_resolve_runnable_binary_path(const char *binary_path, bool do_run)
 }
 
 int
-llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
+llvm_runner_execute(const DriverFlags *flags,
+                    const CompilerIRBundle *bundle,
+                    CompilerBackendTimings *backend_timings)
 {
+    if (backend_timings != NULL)
+        memset(backend_timings, 0, sizeof(*backend_timings));
+
     if (flags->emit_llvm_ir) {
         CompilerResult *result = flags->output_path != NULL
             ? compiler_emit_llvm_ir_to_file(bundle, "pergyra_module", flags->output_path)
@@ -100,12 +105,16 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
     if (result == NULL || !result->success) {
         fprintf(stderr, "pgy: LLVM compile failed: %s\n",
                 result != NULL ? result->error_message : "out of memory");
+        if (backend_timings != NULL && result != NULL)
+            *backend_timings = result->backend_timings;
         compiler_result_destroy(result);
         free(obj_path);
         free(bin_path);
         free(runnable_bin_path);
         return 1;
     }
+    if (backend_timings != NULL)
+        *backend_timings = result->backend_timings;
 
     printf("pgy: compiled (LLVM) → %s\n", runnable_bin_path);
     int exit_code = 0;
@@ -125,10 +134,13 @@ llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
 #else /* !PGY_LLVM_ENABLED */
 
 int
-llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle)
+llvm_runner_execute(const DriverFlags *flags,
+                    const CompilerIRBundle *bundle,
+                    CompilerBackendTimings *backend_timings)
 {
     (void)flags;
     (void)bundle;
+    (void)backend_timings;
     fprintf(stderr, "pgy: LLVM backend not available in this build\n");
     return 1;
 }

@@ -3563,6 +3563,31 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
 
     if (obj_node->type == AST_IDENTIFIER) {
         const char *var_name = obj_node->data.identifier.name;
+        LLVMProjectionBorrowEntry *projection_borrow =
+            llvm_lookup_projection_borrow(ctx, var_name);
+        if (projection_borrow != NULL) {
+            LLVMClassTypeEntry *source_cls;
+            ASTNode *source_decl;
+            LLVMVarEntry *source_var;
+            const char *source_class_name = llvm_lookup_var_class(ctx,
+                projection_borrow->source_name);
+            if (source_class_name == NULL)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            source_cls = llvm_lookup_class(ctx, source_class_name);
+            source_decl = llvm_find_projection_nominal_decl(ctx, source_class_name);
+            source_var = llvm_scope_lookup(ctx, projection_borrow->source_name);
+            if (source_cls == NULL || source_decl == NULL || source_var == NULL)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            {
+                LLVMValueRef source_base = source_var->alloca;
+                if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
+                    source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
+                        source_var->alloca, llvm_tmp_name(ctx));
+                }
+                return llvm_load_projection_path_value(ctx, source_decl, source_cls,
+                    source_base, field_name);
+            }
+        }
         LLVMValueRef base_ptr = llvm_identifier_base_ptr(ctx, var_name, cls);
         if (base_ptr != NULL) {
             LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,

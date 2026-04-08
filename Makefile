@@ -184,6 +184,7 @@ TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
 TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
 TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
 TEST_ABI_SRC            = $(SRC_DIR)/test_abi_spec.c
+TEST_ABI_PIPELINE_SRC   = $(SRC_DIR)/test_abi_pipeline.c
 TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
 TEST_DIR_SRC            = $(SRC_DIR)/test_dir.c
 TEST_RIR_SRC            = $(SRC_DIR)/test_rir.c
@@ -216,6 +217,7 @@ TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
 TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
 TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
 TEST_ABI_OBJ           = $(BUILD_DIR)/test_abi_spec.o
+TEST_ABI_PIPELINE_OBJ  = $(BUILD_DIR)/test_abi_pipeline.o
 TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
 TEST_DIR_OBJ           = $(BUILD_DIR)/test_dir.o
 TEST_RIR_OBJ           = $(BUILD_DIR)/test_rir.o
@@ -240,6 +242,7 @@ SEMANTIC_TEST       = $(BIN_DIR)/test_semantic$(EXEEXT)
 TRANSPILE_TEST      = $(BIN_DIR)/test_transpile$(EXEEXT)
 MEMORY_TEST         = $(BIN_DIR)/test_memory_layout$(EXEEXT)
 ABI_TEST            = $(BIN_DIR)/test_abi_spec$(EXEEXT)
+ABI_PIPELINE_TEST   = $(BIN_DIR)/test_abi_pipeline$(EXEEXT)
 CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency$(EXEEXT)
 DIR_TEST            = $(BIN_DIR)/test_dir$(EXEEXT)
 RIR_TEST            = $(BIN_DIR)/test_rir$(EXEEXT)
@@ -310,6 +313,11 @@ $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
 $(ABI_TEST): $(TEST_ABI_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
+
+# ABI pipeline integration test (frontend + backend + produced binary)
+$(ABI_PIPELINE_TEST): $(FRONTEND_OBJECTS) $(TEST_ABI_PIPELINE_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
 
 # Concurrency runtime test
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
@@ -415,9 +423,15 @@ test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	"$(MEMORY_TEST)"
 
-test-abi: $(ABI_TEST)
+test-abi: $(ABI_TEST) $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Spec Validation ==="
 	"$(ABI_TEST)"
+	@echo "=== ABI Pipeline Integration ==="
+	"$(ABI_PIPELINE_TEST)"
+
+test-abi-perf: $(ABI_PIPELINE_TEST)
+	@echo "=== ABI Pipeline Benchmark ==="
+	PGY_ABI_PERF_MODE=1 "$(ABI_PIPELINE_TEST)"
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
@@ -445,6 +459,7 @@ test-all:
 	$(MAKE) test-semantic
 	$(MAKE) test-transpile
 	$(MAKE) test-memory
+	$(MAKE) test-abi
 	$(MAKE) test-concurrency
 	$(MAKE) test-dir
 	$(MAKE) test-rir

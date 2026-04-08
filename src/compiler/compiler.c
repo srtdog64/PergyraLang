@@ -4,10 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <process.h>   /* _spawnvp */
 #else
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -70,6 +73,23 @@ pgy_exec_argv(const char *const argv[], bool verbose)
     if (WIFEXITED(status))
         return WEXITSTATUS(status);
     return -1;
+#endif
+}
+
+static double
+compiler_now_seconds(void)
+{
+#ifdef _WIN32
+    LARGE_INTEGER freq;
+    LARGE_INTEGER counter;
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)freq.QuadPart;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0);
 #endif
 }
 
@@ -178,38 +198,61 @@ compiler_build_native(const CompilerIRBundle *bundle,
                       PgyOptProfile opt_profile)
 {
     char *error_message = NULL;
+    char *output_obj_path = NULL;
+    double phase_start = compiler_now_seconds();
     int rc = invoke_c_backend(bundle, output_c_path, &error_message);
     if (rc != 0) {
         CompilerResult *result = compiler_error(error_message != NULL
             ? error_message
             : "C backend failed");
+        if (result != NULL)
+            result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         free(error_message);
         return result;
     }
 
+    output_obj_path = path_replace_extension(output_binary_path, ".o");
+    if (output_obj_path == NULL)
+        return compiler_error("Out of memory");
+
     if (!pgy_path_is_safe(output_c_path) ||
-        !pgy_path_is_safe(output_binary_path)) {
+        !pgy_path_is_safe(output_binary_path) ||
+        !pgy_path_is_safe(output_obj_path)) {
+        free(output_obj_path);
         return compiler_error("Unsafe characters in file path");
     }
 
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+    CompilerResult *result = NULL;
 #ifdef _WIN32
-    const char *gcc_argv[] = {
+    const char *compile_argv[] = {
         "gcc", "-std=c11", "-Wall", opt_flag,
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
-        output_c_path,
+        "-c", output_c_path,
+        "-o", output_obj_path,
+        NULL
+    };
+    const char *link_argv[] = {
+        "gcc", "-std=c11", "-Wall", opt_flag,
+        output_obj_path,
         "-o", output_binary_path,
         PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
     };
 #else
-    const char *gcc_argv[] = {
+    const char *compile_argv[] = {
         "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
-        output_c_path,
+        "-c", output_c_path,
+        "-o", output_obj_path,
+        NULL
+    };
+    const char *link_argv[] = {
+        "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
+        output_obj_path,
         "-o", output_binary_path,
         PGY_CFLAGS_THREAD_LIB,
         "-lm",
@@ -217,18 +260,44 @@ compiler_build_native(const CompilerIRBundle *bundle,
     };
 #endif
 
-    rc = pgy_exec_argv(gcc_argv, verbose);
+    result = compiler_success(output_c_path, output_binary_path);
+    if (result == NULL) {
+        free(output_obj_path);
+        return NULL;
+    }
+    result->backend_timings.codegen = compiler_now_seconds() - phase_start;
+
+    phase_start = compiler_now_seconds();
+    rc = pgy_exec_argv(compile_argv, verbose);
     if (rc != 0) {
-        CompilerResult *result = compiler_error("Native compilation failed");
-        if (result != NULL) {
-            result->exit_code = rc;
-            result->c_output_path = pergyra_strdup(output_c_path);
-            result->binary_path = pergyra_strdup(output_binary_path);
-        }
+        result->success = false;
+        result->exit_code = rc;
+        free(result->error_message);
+        result->error_message = pergyra_strdup("Native compilation failed");
+        result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
+        remove(output_obj_path);
+        free(output_obj_path);
         return result;
     }
+    result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
-    return compiler_success(output_c_path, output_binary_path);
+    phase_start = compiler_now_seconds();
+    rc = pgy_exec_argv(link_argv, verbose);
+    if (rc != 0) {
+        result->success = false;
+        result->exit_code = rc;
+        free(result->error_message);
+        result->error_message = pergyra_strdup("Native link failed");
+        result->backend_timings.link = compiler_now_seconds() - phase_start;
+        remove(output_obj_path);
+        free(output_obj_path);
+        return result;
+    }
+    result->backend_timings.link = compiler_now_seconds() - phase_start;
+
+    remove(output_obj_path);
+    free(output_obj_path);
+    return result;
 }
 
 int
@@ -259,9 +328,15 @@ compiler_run_binary(const char *binary_path, bool verbose)
 
     const char *run_argv[] = { safe_path, NULL };
 
-    printf("--- output ---\n");
+    if (verbose) {
+        printf("--- output ---\n");
+        fflush(stdout);
+    }
     int rc = pgy_exec_argv(run_argv, verbose);
-    printf("--- end ---\n");
+    if (verbose) {
+        printf("--- end ---\n");
+        fflush(stdout);
+    }
     free(resolved_path);
     return rc;
 }
@@ -341,6 +416,10 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
                            bool verbose,
                            PgyOptProfile opt_profile)
 {
+    char *runtime_obj_path = NULL;
+    double phase_start;
+    CompilerResult *result = NULL;
+
     if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
         || bundle->rir == NULL || bundle->mir == NULL) {
         return compiler_error("IR bundle is incomplete");
@@ -348,6 +427,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
+    phase_start = compiler_now_seconds();
     LLVMGenResult *gen = llvm_codegen_to_object_with_mir(bundle->hir,
                                                          bundle->mir,
                                                          "pergyra_module",
@@ -357,11 +437,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Out of memory");
 
     if (!gen->success) {
-        CompilerResult *result = compiler_error(gen->error_message != NULL
+        CompilerResult *error_result = compiler_error(gen->error_message != NULL
             ? gen->error_message
             : "LLVM codegen failed");
+        if (error_result != NULL)
+            error_result->backend_timings.codegen = compiler_now_seconds() - phase_start;
         llvm_gen_result_destroy(gen);
-        return result;
+        return error_result;
     }
     llvm_gen_result_destroy(gen);
 
@@ -371,7 +453,40 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return compiler_error("Unsafe characters in file path");
     }
 
+    runtime_obj_path = path_replace_extension(output_binary_path, ".runtime.o");
+    if (runtime_obj_path == NULL)
+        return compiler_error("Out of memory");
+    if (!pgy_path_is_safe(runtime_obj_path)) {
+        free(runtime_obj_path);
+        return compiler_error("Unsafe characters in file path");
+    }
+
     const char *opt_flag = (opt_profile == PGY_OPT_RELEASE) ? "-O3" : "-O0";
+    result = compiler_success(output_obj_path, output_binary_path);
+    if (result == NULL) {
+        free(runtime_obj_path);
+        return NULL;
+    }
+    result->backend_timings.codegen = compiler_now_seconds() - phase_start;
+#ifdef _WIN32
+    const char *compile_runtime_argv[] = {
+        "gcc", "-std=c11", "-Wall", opt_flag,
+        "-DPGY_LLVM_ENABLED",
+        "-I", PGY_SRC_DIR,
+        "-c", PGY_RUNTIME_LIB_C,
+        "-o", runtime_obj_path,
+        NULL
+    };
+#else
+    const char *compile_runtime_argv[] = {
+        "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
+        "-DPGY_LLVM_ENABLED",
+        "-I", PGY_SRC_DIR,
+        "-c", PGY_RUNTIME_LIB_C,
+        "-o", runtime_obj_path,
+        NULL
+    };
+#endif
     const char *link_argv_release[] = {
         "gcc", "-std=c11", opt_flag, "-march=native", "-mtune=native",
 #ifdef _WIN32
@@ -382,8 +497,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
 #endif
         "-DPGY_LLVM_ENABLED",
         "-I", PGY_SRC_DIR,
-        "-o", output_binary_path, output_obj_path,
-        PGY_RUNTIME_LIB_C,
+        "-o", output_binary_path, output_obj_path, runtime_obj_path,
         PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
@@ -398,8 +512,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
 #endif
         "-DPGY_LLVM_ENABLED",
         "-I", PGY_SRC_DIR,
-        "-o", output_binary_path, output_obj_path,
-        PGY_RUNTIME_LIB_C,
+        "-o", output_binary_path, output_obj_path, runtime_obj_path,
         PGY_CFLAGS_THREAD_LIB,
         "-lm",
         NULL
@@ -407,17 +520,37 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     const char *const *link_argv =
         (opt_profile == PGY_OPT_RELEASE) ? link_argv_release : link_argv_dev;
 
-    int rc = pgy_exec_argv(link_argv, verbose);
+    phase_start = compiler_now_seconds();
+    int rc = pgy_exec_argv(compile_runtime_argv, verbose);
     if (rc != 0) {
-        CompilerResult *result = compiler_error("LLVM link failed");
-        if (result != NULL) {
-            result->exit_code = rc;
-            result->binary_path = pergyra_strdup(output_binary_path);
-        }
+        result->success = false;
+        result->exit_code = rc;
+        free(result->error_message);
+        result->error_message = pergyra_strdup("LLVM runtime compilation failed");
+        result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
+        remove(runtime_obj_path);
+        free(runtime_obj_path);
         return result;
     }
+    result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
-    return compiler_success(output_obj_path, output_binary_path);
+    phase_start = compiler_now_seconds();
+    rc = pgy_exec_argv(link_argv, verbose);
+    if (rc != 0) {
+        result->success = false;
+        result->exit_code = rc;
+        free(result->error_message);
+        result->error_message = pergyra_strdup("LLVM link failed");
+        result->backend_timings.link = compiler_now_seconds() - phase_start;
+        remove(runtime_obj_path);
+        free(runtime_obj_path);
+        return result;
+    }
+    result->backend_timings.link = compiler_now_seconds() - phase_start;
+
+    remove(runtime_obj_path);
+    free(runtime_obj_path);
+    return result;
 }
 
 #endif /* PGY_LLVM_ENABLED */

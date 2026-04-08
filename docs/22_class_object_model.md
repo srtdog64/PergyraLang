@@ -50,11 +50,12 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - `object`는 상태를 가질 수 있고 effect를 받을 수 있으며 relation의 대상이 될 수 있고 시간에 따라 반응할 수 있다
 - 현재 compiler surface는 `effect Name for object target: T` / `relation Name for object a: A, object b: B`를 받아 object를 직접 layer contract 대상으로 삼을 수 있다
 - 현재 compiler surface는 domain-local projection sync(`refresh` / `publish` / `bind`)에서 object를 projection source로도 허용한다. 다만 `tobject`는 sink이며 source로는 허용하지 않는다
-- `tobject`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위해 축약된 projection이다
-- 현재 compiler surface는 `object` / `tobject`를 `struct` 호환 declaration alias로 받는다
-- 현재 compiler surface는 `object`를 passive state/value host로, `tobject`를 더 좁은 projection/value 형식으로 취급하며 helper `func`는 허용한다
+- `tobject`는 그 object 표현 중 외부 API / IPC / persistence 경계를 넘기기 위한 별도 boundary projection contract다
+- 현재 compiler surface는 `object` / `tobject`에 struct-style declaration syntax를 재사용하지만, 둘은 같은 nominal/value 계약이 아니다
+- 현재 compiler surface는 `object`를 local/internal passive projection contract로, `tobject`를 더 좁은 boundary transfer/publish contract로 취급하며 helper `func`는 허용한다
 - 현재 compiler surface는 `ToObject(TargetObject, subjectBinding)`으로 subject를 local passive object view로 투영할 수 있고 C/LLVM 모두에서 lower된다
 - 현재 compiler surface는 `ToTObject(TargetDto, subjectBinding)` 최소 projection built-in을 지원하고 C/LLVM 모두에서 lower된다
+- lowering은 이제 `object borrow-first / tobject materialize-first`로 갈라진다. `ToObject(...)` local binding이 non-escaping이면 backend는 source subject field를 직접 읽는 borrowed projection alias로 다루고, whole-value가 실제로 필요할 때만 object literal을 만든다. `ToTObject(...)`는 boundary contract라 여전히 materialized transfer value를 만든다.
 - 다만 `ToObject` / `ToTObject`를 relation/effect/zone/world 바깥 일반 함수에서 직접 쓰면 semantic warning을 내고, 권장 경로는 domain-local slot + projection sync 흐름이다
 - relation/effect는 현재 subject projection 문맥을 담는 overlay nominal host로도 동작하며, positional constructor와 runtime instance method call이 C/LLVM에 연결돼 있다
 - 즉 subject는 본질적으로 능동적이지만, 특정 문맥에서 object화되면 intent 생성 능력을 잃고 피동 상태 대상으로 소비된다

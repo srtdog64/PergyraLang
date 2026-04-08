@@ -11,6 +11,8 @@
 
 /* Run the LLVM backend pipeline: IR bundle → LLVM IR → object → binary.
  * Returns 0 on success. */
-int llvm_runner_execute(const DriverFlags *flags, const CompilerIRBundle *bundle);
+int llvm_runner_execute(const DriverFlags *flags,
+                        const CompilerIRBundle *bundle,
+                        CompilerBackendTimings *backend_timings);
 
 #endif /* PGY_LLVM_RUNNER_H */
