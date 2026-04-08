@@ -129,6 +129,8 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    /* ABI type layout — lookup from type table */
+    inst.type_layout = mir_abi_lookup(op->arg0 != NULL ? op->arg0 : op->subject);
     return append_instruction(block, inst);
 }
 

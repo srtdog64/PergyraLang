@@ -3788,4 +3788,200 @@ strdup_fmt(const char *fmt, ...)
     return s;
 }
 
+/* =================================================================
+ * ABI-Based MIR Resource Op Emitter
+ *
+ * This is the new "dumb emission" path for slot/resource operations.
+ * Instead of the transpiler inventing type names and function calls,
+ * it reads the MIRTypeLayout from the instruction and mechanically
+ * emits the corresponding C code.
+ *
+ * Rules: see docs/40_lowering_rules.md (Rules 1-5)
+ * ================================================================= */
+
+/* Extract suffix from runtime function name:
+ *   "pgy_claim_Int" → "Int"
+ *   "pgy_write_Long" → "Long"
+ *   "pgy_option_some_String" → "String"
+ */
+static const char *
+transpiler_extract_type_suffix_from_fn(const char *fn_name)
+{
+    if (fn_name == NULL)
+        return NULL;
+
+    /* Find last underscore */
+    const char *last_underscore = NULL;
+    for (const char *p = fn_name; *p; p++) {
+        if (*p == '_')
+            last_underscore = p;
+    }
+    if (last_underscore == NULL)
+        return NULL;
+
+    return last_underscore + 1;
+}
+
+/* Emit a single MIR RESOURCE_OP instruction as C code.
+ *
+ * This is the core "dumb emitter": it reads type_layout and runtime_fn
+ * from the MIR instruction and emits C code mechanically.
+ *
+ * Rule 1: CLAIM
+ *   MIR:  RESOURCE_OP { runtime_fn: "pgy_claim_Int", slot_anchor: "s", arg0: "Slot<Int>" }
+ *   C:    PgySlot_Int s = pgy_claim_Int();
+ *
+ * Rule 4: READ
+ *   MIR:  DEF { arg0: "pgy_read_Int", arg1: "&s" }
+ *   C:    int32_t val = pgy_read_Int(&s);
+ *
+ * Rule 5a: WRITE
+ *   MIR:  RESOURCE_OP { runtime_fn: "pgy_write_Int", arg0: "42", arg1: "&s" }
+ *   C:    pgy_write_Int(&s, 42);
+ *
+ * Rule 5b: RELEASE
+ *   MIR:  RESOURCE_OP { runtime_fn: "pgy_release_Int", slot_anchor: "s" }
+ *   C:    pgy_release_Int(&s);
+ */
+static bool
+transpiler_emit_mir_resource_op(CodeBuf *out,
+                                int indent,
+                                const MIRInstruction *inst,
+                                const MIRTypeLayout *layout,
+                                const char *ssa_result_name)
+{
+    if (out == NULL || inst == NULL)
+        return false;
+
+    const char *fn = NULL;
+    const char *suffix = NULL;
+
+    /* Priority 1: use runtime_fn from type_layout */
+    if (layout != NULL && layout->runtime_fn != NULL) {
+        fn = layout->runtime_fn;
+        suffix = transpiler_extract_type_suffix_from_fn(fn);
+    }
+    /* Priority 2: fallback — extract from arg0 or name */
+    else if (inst->arg0 != NULL) {
+        /* Try to infer from the op name */
+        const char *op_name = inst->name;  /* e.g. "CLAIM", "READ", "WRITE", "RELEASE" */
+        if (op_name != NULL) {
+            /* Try slot anchor type inference */
+            /* This is a fallback — ideally layout is always set */
+        }
+    }
+
+    if (fn == NULL) {
+        /* Unknown operation — emit comment and skip */
+        write_indent_to(out, indent);
+        codebuf_write(out, "/* MIR RESOURCE_OP: unknown (name=%s, slot=%s) */\n",
+                      inst->name != NULL ? inst->name : "?",
+                      inst->slot_anchor != NULL ? inst->slot_anchor : "?");
+        return true;  /* not an error, just skip */
+    }
+
+    const char *op_name = inst->name;  /* "CLAIM", "READ", "WRITE", "RELEASE", etc. */
+
+    if (op_name != NULL && strcmp(op_name, "CLAIM") == 0) {
+        /* Rule 1: Slot Claim
+         * C: PgySlot_<T> <anchor> = pgy_claim_<T>();
+         */
+        char c_type_buf[64];
+        if (suffix != NULL) {
+            snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_%s", suffix);
+        } else {
+            snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_Value");
+        }
+
+        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s %s = %s();\n", c_type_buf, anchor, fn);
+    }
+    else if (op_name != NULL && strcmp(op_name, "READ") == 0) {
+        /* Rule 4: Slot Read
+         * C: <inner_type> <name> = pgy_read_<T>(&<anchor>);
+         */
+        const char *inner_c = (layout != NULL && layout->inner_c_type) ? layout->inner_c_type : "int32_t";
+        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
+        const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
+
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s %s = %s(&%s);\n", inner_c, result, fn, anchor);
+    }
+    else if (op_name != NULL && strcmp(op_name, "WRITE") == 0) {
+        /* Rule 5a: Slot Write
+         * C: pgy_write_<T>(&<anchor>, <value>);
+         */
+        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
+        const char *value = inst->arg0 != NULL ? inst->arg0 : "0";
+
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, value);
+    }
+    else if (op_name != NULL && strcmp(op_name, "RELEASE") == 0) {
+        /* Rule 5b: Slot Release
+         * C: pgy_release_<T>(&<anchor>);
+         */
+        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
+
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s(&%s);\n", fn, anchor);
+    }
+    else if (op_name != NULL && strcmp(op_name, "MOVE") == 0) {
+        /* Rule 6: Ownership Move
+         * C: <dst> = <src>; <src>.occupied = false;
+         */
+        const char *src = inst->arg0 != NULL ? inst->arg0 : "src";
+        const char *dst = inst->arg1 != NULL ? inst->arg1 : "dst";
+
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s = %s;\n", dst, src);
+    }
+    else {
+        /* Generic fallback — emit function call as-is */
+        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "";
+        write_indent_to(out, indent);
+        if (inst->arg0 != NULL && inst->arg1 != NULL) {
+            codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, inst->arg1);
+        } else if (inst->arg0 != NULL) {
+            codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, inst->arg0);
+        } else {
+            codebuf_write(out, "%s(&%s);\n", fn, anchor);
+        }
+    }
+
+    return true;
+}
+
+/* Emit a MIR DEF instruction (variable definition with runtime call)
+ *
+ * Rule 4 (alternate): DEF with runtime_fn
+ *   MIR:  DEF { arg0: "pgy_read_Int", arg1: "&s", result_name: "%val_s_1" }
+ *   C:    int32_t val_s_1 = pgy_read_Int(&s);
+ */
+static bool
+transpiler_emit_mir_def(CodeBuf *out,
+                        int indent,
+                        const MIRInstruction *inst,
+                        const MIRTypeLayout *layout)
+{
+    if (out == NULL || inst == NULL)
+        return false;
+
+    /* If this DEF has a type_layout with runtime_fn, emit as function call */
+    if (layout != NULL && layout->runtime_fn != NULL) {
+        const char *inner_c = layout->inner_c_type != NULL ? layout->inner_c_type : "int32_t";
+        const char *result = inst->result_name != NULL ? inst->result_name : "tmp";
+        const char *arg = inst->arg1 != NULL ? inst->arg1 : "";
+
+        write_indent_to(out, indent);
+        codebuf_write(out, "%s %s = %s(%s);\n", inner_c, result, layout->runtime_fn, arg);
+        return true;
+    }
+
+    /* Otherwise, it's a plain SSA def — handled by existing logic */
+    return false;  /* signal caller to use default handling */
+}
+
 #include "transpiler_expr_emitters.inc"
+

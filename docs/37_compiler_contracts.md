@@ -301,6 +301,493 @@ MIR로 이월하는 것:
 | `compensate` / `rollback` | HIR | DIR | RIR | MIR |
 | `using` / `transfer` | HIR | DIR | RIR | MIR |
 
+## 1.6.1 전체 키워드 인벤토리
+
+위 표는 "backend/IR 책임이 큰 키워드" 중심이다.
+하지만 migration과 구현 점검을 위해서는 실제 lexer/contextual keyword 전체 목록도 고정해야 한다.
+
+이 절은 현재 언어가 문법적으로 인식하는 키워드를 빠짐없이 적어 둔 인벤토리다.
+
+### 예약 키워드
+
+선언 / 타입 / 도메인:
+
+- `let`
+- `func`
+- `class`
+- `subject`
+- `struct`
+- `tobject`
+- `enum`
+- `type`
+- `trait`
+- `ability`
+- `role`
+- `party`
+- `actor`
+- `channel`
+
+모듈 / 가시성 / 선언 수식:
+
+- `import`
+- `use`
+- `export`
+- `namespace`
+- `extern`
+- `public`
+- `private`
+- `where`
+- `as`
+- `impl`
+- `include`
+- `require`
+- `override`
+- `super`
+- `extends`
+
+제어 흐름 / 실행:
+
+- `if`
+- `else`
+- `for`
+- `in`
+- `while`
+- `return`
+- `break`
+- `continue`
+- `match`
+- `case`
+- `default`
+- `with`
+- `parallel`
+- `async`
+- `await`
+- `spawn`
+- `select`
+- `defer`
+- `unsafe`
+
+리소스 / ownership / dispatch:
+
+- `bind`
+- `secure`
+- `slot`
+- `shared`
+- `dyn`
+- `own`
+- `ref`
+
+리터럴:
+
+- `true`
+- `false`
+
+### 컨텍스트 키워드
+
+도메인 / host:
+
+- `object`
+- `vessel`
+- `relation`
+- `effect`
+- `zone`
+- `systemic`
+- `world`
+- `event`
+- `action`
+
+intent / orchestration:
+
+- `intent`
+- `involves`
+- `step`
+- `who`
+- `using`
+- `where`          ← intent의 `where: ZoneName;` 절. lexer는 TOKEN_WHERE로 토크나이징하며, 문맥 식별자가 아님
+- `requires`
+- `authorized`
+- `by`
+- `within`
+- `causes`
+- `expect`
+- `success`
+- `failure`
+- `rollback`
+- `cleanup`
+- `compensate`
+- `exclusive`
+- `concurrent`
+- `priority`
+- `on`
+- `pre`
+- `guard`
+- `post`
+- `invariant`
+- `transfer`
+
+zone / world / projection / authority surface:
+
+- `refresh`
+- `publish`
+- `authority`
+- `apply`
+- `detach`
+- `link`
+- `unlink`
+- `maintain`
+- `state`
+- `layer`
+- `projection`
+- `between`
+- `from`
+- `to`
+- `capacity`
+- `pool`
+- `activate`
+- `deactivate`
+
+### 규칙
+
+- 이 인벤토리에 있는 키워드는 문서/semantic/parser/backend 계약의 관리 대상이다.
+- 새 키워드를 추가할 때는 이 절과 `1.6 키워드별 확정 계층`을 함께 갱신해야 한다.
+- 모든 키워드가 같은 무게를 가지는 것은 아니다.
+- syntax-only 키워드도 인벤토리에는 남겨야 하며, IR 책임표에는 필요할 때만 올린다.
+- `lexer` 예약 키워드와 `parser` contextual keyword가 어긋나면 버그로 본다.
+
+## 1.6.2 키워드 Taxonomy
+
+키워드 인벤토리만으로는 충분하지 않다.
+실제 구현과 리팩터링에서는 "이 단어가 어느 층에서 키워드인가"를 구분해야 한다.
+
+Pergyra는 키워드를 아래 네 층으로 분류한다.
+
+### A. Reserved Token Keyword
+
+정의:
+
+- lexer 단계에서 식별자가 아니라 전용 토큰으로 고정되는 키워드
+- parser는 이 토큰을 직접 소비한다
+- 이름이 같아도 일반 identifier로 사용할 수 없다
+
+예시:
+
+- `let`
+- `func`
+- `class`
+- `subject`
+- `struct`
+- `tobject`
+- `where`
+- `ability`
+- `role`
+- `party`
+- `async`
+- `await`
+- `spawn`
+
+판정 규칙:
+
+- `lexer.c` keyword table에 직접 들어가 있으면 이 분류다
+- 문맥에 따라 의미가 달라질 수는 있어도, 토큰은 예약되어 있다
+
+주의:
+
+- `where`는 이 분류다
+- intent step의 `where:` clause에서 쓰이더라도 contextual identifier keyword가 아니라 reserved token의 문법 재사용이다
+
+### B. Declaration-Context Keyword
+
+정의:
+
+- lexer는 일반 `TOKEN_IDENTIFIER`로 두지만
+- parser가 declaration 시작 문맥에서 특정 식별자 문자열을 특별 취급하는 키워드
+
+예시:
+
+- `object`
+- `vessel`
+- `intent`
+- `world`
+- `systemic`
+- `roster`
+- `relation`
+- `effect`
+- `zone`
+- `event`
+
+판정 규칙:
+
+- parser가 `parser_match_contextual_keyword(...)` 또는 유사 helper로 소비하면 이 분류다
+- 선언 시작 위치가 아니면 일반 identifier로 남을 수 있다
+
+주의:
+
+- 현재 구현에서 `object`는 reserved token이 아니라 declaration-context keyword다
+- 반면 `tobject`는 declaration-context keyword가 아니라 reserved token이다
+
+### C. Clause Keyword
+
+정의:
+
+- 특정 declaration/body 안에서 clause head 또는 clause connector로 쓰이는 키워드
+- parser가 dedicated clause parser나 body parser에서 문법적으로 해석한다
+- token 단계 예약일 수도 있고 아닐 수도 있다
+
+예시:
+
+- `where`
+- `who`
+- `using`
+- `requires`
+- `authorized`
+- `by`
+- `success`
+- `failure`
+- `rollback`
+- `cleanup`
+- `compensate`
+- `transfer`
+- `on`
+- `pre`
+- `guard`
+- `post`
+- `invariant`
+- `refresh`
+- `publish`
+- `bind`
+- `apply`
+- `detach`
+- `link`
+- `unlink`
+- `maintain`
+- `authority`
+- `state`
+- `layer`
+- `projection`
+
+판정 규칙:
+
+- body 내부에서 `keyword:` 또는 `keyword ...` clause head로 쓰이면 이 분류다
+- declaration-context keyword와 중복될 수 있고, reserved token과도 중복될 수 있다
+
+중요:
+
+- 하나의 단어가 여러 taxonomy에 동시에 속할 수 있다
+- 예: `where`
+  - token 층에서는 reserved token
+  - 문법 층에서는 clause keyword
+
+### D. Semantic-Contract Keyword
+
+정의:
+
+- parser 인식만으로 끝나지 않고
+- `HIR / DIR / RIR / MIR` 중 하나 이상에서 고정 계약을 가지는 키워드
+
+예시:
+
+- `object`
+- `tobject`
+- `slot`
+- `refresh`
+- `publish`
+- `bind`
+- `authority`
+- `authorized by`
+- `intent`
+- `step`
+- `rollback`
+- `compensate`
+- `using`
+- `transfer`
+- `zone`
+- `world`
+
+판정 규칙:
+
+- declaration shape를 넘어서 IR 책임표에 올라가면 이 분류다
+- backend, validator, runtime observability, cleanup path 중 하나라도 직접 영향을 주면 semantic-contract keyword다
+
+### 핵심 원칙
+
+- 모든 reserved token이 semantic-contract keyword는 아니다
+- 모든 declaration-context keyword가 runtime 의미를 가지는 것은 아니다
+- clause keyword는 syntax 층 분류이고, 별도로 semantic-contract 여부를 판정해야 한다
+- 문서/코드에서 "contextual keyword"라는 표현을 쓸 때는
+  - token-reserved인지
+  - declaration-context인지
+  - clause-level인지
+  를 구분해서 써야 한다
+
+### 현재 주의 대상
+
+- `subject` / `class`
+  - 의미론은 다르지만 현재 lexer token은 `TOKEN_CLASS`로 묶여 있다
+- `tobject` / `struct`
+  - 의미론은 다르지만 현재 lexer token은 `TOKEN_STRUCT`로 묶여 있다
+- `object`
+  - 의미론은 무겁지만 token은 reserved가 아니라 declaration-context keyword다
+- `where`
+  - reserved token이면서 clause keyword다
+- `intent`
+  - declaration-context keyword이면서 semantic-contract keyword다
+
+한 줄 요약:
+
+> 키워드는 "토큰", "선언 시작", "절 문법", "의미론 계약"의 네 층으로 분리해서 봐야 한다.
+
+## 1.6.3 핵심 키워드 분류표
+
+아래 표는 실제 migration과 compiler work에서 먼저 붙잡아야 하는 핵심 키워드만 추린 것이다.
+
+| 키워드 | Token 분류 | Parser 분류 | 계약 무게 | 최종 고정 계층 | 메모 |
+| --- | --- | --- | --- | --- | --- |
+| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host / actor-bearing type |
+| `class` | reserved (`TOKEN_CLASS`) | declaration | 중간 | `HIR` 중심 | 현재 subject와 token 공유 |
+| `struct` | reserved (`TOKEN_STRUCT`) | declaration | 낮음 | `HIR` 중심 | pure value type |
+| `object` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
+| `tobject` | reserved (`TOKEN_STRUCT`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | transfer/boundary projection contract |
+| `vessel` | identifier | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | subject 내부 상태 수용체 |
+| `ability` | reserved | declaration | 중간 | `HIR -> DIR` | capability contract surface |
+| `role` | reserved | declaration | 큼 | `HIR -> DIR -> RIR` | ability 구현과 binding |
+| `party` | reserved | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | collaboration slot contract |
+| `relation` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | shared relation/lifecycle |
+| `effect` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | attached state/lifecycle |
+| `zone` | identifier | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
+| `world` | identifier | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
+| `intent` | identifier | declaration-context + clause host | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration contract root |
+| `step` | identifier | clause keyword | 매우 큼 | `DIR -> RIR -> MIR` | intent execution unit |
+| `where` | reserved (`TOKEN_WHERE`) | clause keyword | 큼 | `HIR -> DIR -> MIR` | reserved token reused in generics and intent clauses |
+| `using` | identifier | clause keyword | 큼 | `HIR -> DIR -> RIR -> MIR` | live zone-instance binding |
+| `transfer` | identifier | clause keyword | 큼 | `HIR -> DIR -> RIR -> MIR` | cross-boundary handoff |
+| `rollback` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | cleanup policy root |
+| `compensate` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | reverse-order recovery path |
+| `authority` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | zone mutation authority declaration |
+| `authorized by` | identifier pair | clause keyword | 큼 | `DIR -> RIR -> MIR` | actor authorization binding |
+| `refresh` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | object projection sync |
+| `publish` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | tobject boundary sync |
+| `bind` | reserved | clause/declaration keyword | 큼 | `HIR -> DIR -> RIR -> MIR` | target slot kind-sensitive projection contract |
+| `slot` | reserved | declaration/type keyword | 매우 큼 | `HIR -> RIR -> MIR` | common resource anchor |
+
+읽는 법:
+
+- `Token 분류`는 lexer가 전용 토큰으로 고정했는지 여부다
+- `Parser 분류`는 declaration-context인지 clause keyword인지 보여준다
+- `계약 무게`는 migration 우선순위를 의미한다
+- `최종 고정 계층`은 backend가 의존해야 하는 마지막 IR 경계를 뜻한다
+
+## 1.6.4 전체 키워드 매트릭스
+
+이 절은 "현재 언어가 인식하는 키워드 전체"를 표로 고정한다.
+목적은 단순 문법 목록이 아니라, 각 키워드가 어느 층의 책임을 가지는지 한눈에 보이게 하는 것이다.
+
+### A. Reserved Token Keywords
+
+| 키워드 | Lexer 토큰 | Parser 역할 | 계약 무게 | 최종 고정 계층 | 비고 |
+| --- | --- | --- | --- | --- | --- |
+| `let` | `TOKEN_LET` | declaration / statement | 중간 | `HIR` | local binding |
+| `func` | `TOKEN_FUNC` | declaration | 큼 | `HIR -> MIR` | routine root |
+| `class` | `TOKEN_CLASS` | declaration | 중간 | `HIR` | passive nominal host |
+| `subject` | `TOKEN_CLASS` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host, `class`와 token 공유 |
+| `struct` | `TOKEN_STRUCT` | declaration | 낮음 | `HIR` | pure value type |
+| `tobject` | `TOKEN_STRUCT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | boundary projection, `struct`와 token 공유 |
+| `extern` | `TOKEN_EXTERN` | declaration | 낮음 | `HIR` | foreign block surface |
+| `with` | `TOKEN_WITH` | statement / clause | 중간 | `HIR -> RIR -> MIR` | scoped resource binding |
+| `as` | `TOKEN_AS` | type / alias / clause | 낮음 | `HIR` | naming/typing helper |
+| `parallel` | `TOKEN_PARALLEL` | statement | 중간 | `HIR -> MIR` | parallel execution surface |
+| `for` | `TOKEN_FOR` | statement | 중간 | `HIR -> MIR` | loop surface |
+| `in` | `TOKEN_IN` | statement / type syntax | 낮음 | `HIR` | iterator/member syntax helper |
+| `if` | `TOKEN_IF` | statement | 중간 | `HIR -> MIR` | branch surface |
+| `else` | `TOKEN_ELSE` | statement | 낮음 | `HIR -> MIR` | branch continuation |
+| `while` | `TOKEN_WHILE` | statement | 중간 | `HIR -> MIR` | loop surface |
+| `return` | `TOKEN_RETURN` | statement | 중간 | `HIR -> MIR` | routine exit |
+| `break` | `TOKEN_BREAK` | statement | 중간 | `HIR -> MIR` | loop exit |
+| `continue` | `TOKEN_CONTINUE` | statement | 중간 | `HIR -> MIR` | loop back-edge |
+| `enum` | `TOKEN_ENUM` | declaration | 중간 | `HIR` | tagged/value sum type |
+| `export` | `TOKEN_EXPORT` | declaration modifier | 낮음 | `HIR` | module surface |
+| `namespace` | `TOKEN_NAMESPACE` | declaration | 낮음 | `HIR` | module grouping |
+| `true` | `TOKEN_TRUE` | literal | 낮음 | `HIR` | boolean literal |
+| `false` | `TOKEN_FALSE` | literal | 낮음 | `HIR` | boolean literal |
+| `public` | `TOKEN_PUBLIC` | declaration modifier | 낮음 | `HIR` | visibility |
+| `private` | `TOKEN_PRIVATE` | declaration modifier | 낮음 | `HIR` | visibility |
+| `where` | `TOKEN_WHERE` | clause / generic constraint | 큼 | `HIR -> DIR -> MIR` | reserved token reused by generic and intent/action clauses |
+| `type` | `TOKEN_TYPE` | declaration | 중간 | `HIR` | alias/type declaration |
+| `trait` | `TOKEN_TRAIT` | declaration surface | 낮음 | `HIR` | currently shallow contract |
+| `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
+| `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | async control surface |
+| `await` | `TOKEN_AWAIT` | expression | 중간 | `HIR -> RIR -> MIR` | future synchronization |
+| `actor` | `TOKEN_ACTOR` | declaration modifier | 중간 | `HIR -> DIR` | actor profile surface |
+| `channel` | `TOKEN_CHANNEL` | type/declaration surface | 중간 | `HIR -> RIR -> MIR` | channel resource surface |
+| `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | channel control surface |
+| `case` | `TOKEN_CASE` | statement | 낮음 | `HIR -> MIR` | match/select arm |
+| `default` | `TOKEN_DEFAULT` | statement | 낮음 | `HIR -> MIR` | fallback arm |
+| `spawn` | `TOKEN_SPAWN` | expression | 중간 | `HIR -> MIR` | task launch surface |
+| `match` | `TOKEN_MATCH` | statement / expression | 중간 | `HIR -> MIR` | pattern dispatch |
+| `import` | `TOKEN_IMPORT` | declaration | 낮음 | `HIR` | module import |
+| `use` | `TOKEN_USE` | declaration surface | 낮음 | `HIR` | module binding helper |
+| `unsafe` | `TOKEN_UNSAFE` | statement modifier | 낮음 | `HIR` | unsafe region marker |
+| `defer` | `TOKEN_DEFER` | statement | 중간 | `HIR -> MIR` | deferred cleanup surface |
+| `bind` | `TOKEN_BIND` | clause / declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | projection contract by target kind |
+| `ability` | `TOKEN_ABILITY` | declaration | 중간 | `HIR -> DIR` | capability contract |
+| `role` | `TOKEN_ROLE` | declaration | 큼 | `HIR -> DIR -> RIR` | ability implementation/binding |
+| `include` | `TOKEN_INCLUDE` | declaration clause | 낮음 | `HIR -> DIR` | role composition helper |
+| `require` | `TOKEN_REQUIRE` | declaration clause | 낮음 | `HIR -> DIR` | declaration constraint helper |
+| `override` | `TOKEN_OVERRIDE` | declaration modifier | 낮음 | `HIR` | method override surface |
+| `super` | `TOKEN_SUPER` | expression | 낮음 | `HIR` | inheritance helper |
+| `secure` | `TOKEN_SECURE` | type/resource modifier | 중간 | `HIR -> RIR -> MIR` | secure resource surface |
+| `party` | `TOKEN_PARTY` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | collaboration contract |
+| `slot` | `TOKEN_SLOT` | declaration / type keyword | 매우 큼 | `HIR -> RIR -> MIR` | common resource anchor |
+| `shared` | `TOKEN_SHARED` | declaration/body keyword | 중간 | `HIR -> DIR -> RIR` | host-local contextual state |
+| `extends` | `TOKEN_EXTENDS` | declaration clause | 낮음 | `HIR` | inheritance/type relation |
+| `dyn` | `TOKEN_DYN` | type modifier | 중간 | `HIR -> DIR -> RIR` | dynamic dispatch surface |
+| `own` | `TOKEN_OWN` | parameter/type modifier | 중간 | `HIR -> RIR` | ownership mode |
+| `ref` | `TOKEN_REF` | parameter/type modifier | 중간 | `HIR -> RIR` | reference mode |
+
+### B. Declaration-Context Keywords
+
+| 키워드 | Lexer 토큰 | Parser 역할 | 계약 무게 | 최종 고정 계층 | 비고 |
+| --- | --- | --- | --- | --- | --- |
+| `object` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
+| `vessel` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | subject internal state vessel |
+| `intent` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration declaration root |
+| `world` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
+| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 낮음 | `HIR -> DIR` | systemic alias surface |
+| `systemic` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | deprecated but active host keyword |
+| `relation` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | relation contract root |
+| `effect` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | effect contract root |
+| `zone` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
+| `event` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> MIR` | event declaration surface |
+
+### C. High-Value Clause Keywords
+
+이 표는 전체 clause 키워드 중 compiler contract에 직접 영향이 큰 것만 다시 뽑은 것이다.
+
+| 키워드 | Token 형태 | 주 사용 문맥 | 계약 무게 | 최종 고정 계층 | 비고 |
+| --- | --- | --- | --- | --- | --- |
+| `where` | reserved token | generic constraint / action / intent step | 큼 | `HIR -> DIR -> MIR` | zone or type constraint |
+| `who` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | actor binding |
+| `using` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | live zone instance sync |
+| `requires` | identifier keyword | action / intent / authority | 큼 | `DIR -> RIR` | ability requirement |
+| `authorized by` | identifier pair | action / intent / zone ops | 큼 | `DIR -> RIR -> MIR` | authority actor binding |
+| `transfer` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | cross-boundary handoff |
+| `success` | identifier keyword | intent | 중간 | `DIR -> MIR` | success exit contract |
+| `failure` | identifier keyword | intent | 중간 | `DIR -> MIR` | failure exit contract |
+| `rollback` | identifier keyword | intent | 큼 | `DIR -> RIR -> MIR` | compensation policy |
+| `cleanup` | identifier keyword | intent/runtime docs | 중간 | `RIR -> MIR` | exceptional cleanup path |
+| `compensate` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | reverse recovery op set |
+| `refresh` | identifier keyword | relation/effect/zone | 큼 | `DIR -> RIR -> MIR` | object projection sync |
+| `publish` | identifier keyword | relation/effect/zone | 큼 | `DIR -> RIR -> MIR` | tobject boundary sync |
+| `authority` | identifier keyword | zone | 큼 | `DIR -> RIR -> MIR` | mutation authority declaration |
+| `state` | identifier keyword | zone / world | 큼 | `DIR -> RIR -> MIR` | derived state contract |
+| `layer` | identifier keyword | world state suffix / zone docs | 중간 | `DIR -> RIR -> MIR` | relation/effect layer contract |
+
+### 사용 규칙
+
+- 새 키워드를 추가할 때는 이 절을 함께 갱신한다
+- 기존 키워드의 `Lexer 토큰`과 `Parser 역할`이 바뀌면 breaking parser contract로 본다
+- `계약 무게`가 `큼` 이상인 키워드는 backend migration과 IR validation에서 별도 추적 대상이다
+- `subject`, `object`, `tobject`, `zone`, `world`, `intent`, `slot`은 핵심 축이므로 임시 alias 취급을 금지한다
+
 규칙:
 
 - `ability / role`의 계약 완전성은 `DIR`에서 잠긴다.
@@ -580,9 +1067,32 @@ projection sync는 부수 효과가 아니라 언어 계약이다.
 ## 4.1 projection 종류
 
 - `object`
-  - 읽기 전용 스냅샷
+  - local/internal projection contract
+  - source subject/object의 현재 상태를 zone/world 실행 경계 안에서 읽기 위한 projection surface다
+  - 기본 연산은 `refresh`다
+  - `object`는 local view/snapshot 모델이지 boundary publish artifact가 아니다
+  - `object`는 `Published` 상태로 승격되지 않는다
+  - world가 embedded zone의 projection slot을 관찰할 수는 있지만, 그것은 local projection 관찰이지 boundary transfer가 아니다
 - `tobject`
-  - 경계 밖 전달용 projection
+  - transfer/boundary projection contract
+  - zone/world/authority/transport/export boundary를 넘기 위해 명시적으로 만든 전달 모델이다
+  - 기본 연산은 `publish`다
+  - receipt/export/packet/history/public API 같은 "바깥으로 넘기는 값"은 `tobject`로 표현해야 한다
+  - `tobject`는 `object`의 별칭이 아니며, projection sync contract에서 별도의 상태 축을 가진다
+  - `tobject`는 예외 객체나 우회 수단이 아니라, 의도적인 boundary projection을 위한 정적 타입 계약이다
+
+정리:
+
+- `object` = 내부 읽기/관찰/view
+- `tobject` = 외부 전달/export/handoff
+- 둘은 같은 데이터의 다른 표현이 아니라, 서로 다른 projection contract다
+
+선택 규칙:
+
+- 같은 실행 경계 안에서 source를 읽고 반영한다면 `object`
+- zone/world 경계를 넘기는 publish/handoff/export 의미가 있으면 `tobject`
+- world가 zone 내부 projection을 조회하는 것만으로는 `tobject`가 되지 않는다
+- 외부 전달 계약이 붙는 순간 `object`가 아니라 `tobject`를 써야 한다
 
 ## 4.2 projection 연산
 

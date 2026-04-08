@@ -80,6 +80,8 @@ typedef struct
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
     ASTNode         *ast;
+    /* ABI type layout — backends read this instead of inventing layouts */
+    const MIRTypeLayout *type_layout;
 } MIRInstruction;
 
 typedef struct
@@ -187,5 +189,9 @@ void        mir_dump(const MIRProgram *mir, FILE *out);
 
 const char *mir_scope_kind_name(MIRScopeKind kind);
 const char *mir_inst_kind_name(MIRInstKind kind);
+
+/* ABI Type Layout Lookup — backends use this instead of inventing layouts */
+const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);
+void                 mir_abi_table_init(void);
 
 #endif

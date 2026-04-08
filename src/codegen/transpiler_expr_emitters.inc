@@ -1851,7 +1851,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(arr);
             return result;
         }
-        /* ArraySort — in-place qsort on array */
+        /* ArraySort — hybrid sort using AlphaDev kernels for small arrays */
         if (strcmp(fn, "ArraySort") == 0 && call->data.call.arg_count == 1) {
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             const char *arr_type = infer_expression_type_name(ctx,
@@ -1860,9 +1860,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
                 inner = slot_inner_type_name(arr_type);
             char *result = strdup_fmt(
-                "({ qsort((%s).data, (%s).length, sizeof(*(%s).data), "
-                "pgy_cmp_%s); %s; })",
-                arr, arr, arr, inner, arr);
+                "({ pgy_array_sort_%s((%s).data, (%s).length); %s; })",
+                inner, arr, arr, arr);
             free(arr);
             return result;
         }

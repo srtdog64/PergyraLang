@@ -10,6 +10,9 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         return NULL;
     }
 
+    /* Initialize ABI type lookup table */
+    mir_abi_table_init();
+
     mir = calloc(1, sizeof(MIRProgram));
     if (mir == NULL) {
         if (error_message != NULL)
@@ -1540,4 +1543,198 @@ mir_dump(const MIRProgram *mir, FILE *out)
             }
         }
     }
+}
+
+/* =================================================================
+ * ABI Type Layout Lookup
+ *
+ * Maps Pergyra surface type names (e.g. "Slot<Int>") to explicit
+ * MIRTypeLayout structs sourced from pgy_abi_spec.h.
+ *
+ * Backends MUST use these lookups instead of inventing their own
+ * struct layouts.
+ * ================================================================= */
+
+/* Static ABI type table — populated at MIR lower time */
+static MIRTypeLayout g_abi_type_table[64];
+static size_t g_abi_type_count = 0;
+
+static MIRTypeLayout *
+abi_type_lookup_by_name(const char *pergyra_type_name)
+{
+    if (pergyra_type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < g_abi_type_count; i++) {
+        if (g_abi_type_table[i].abi_type_name != NULL
+            && strcmp(g_abi_type_table[i].abi_type_name, pergyra_type_name) == 0) {
+            return &g_abi_type_table[i];
+        }
+    }
+    return NULL;
+}
+
+static MIRTypeLayout *
+abi_type_lookup_by_runtime_fn(const char *runtime_fn)
+{
+    if (runtime_fn == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < g_abi_type_count; i++) {
+        if (g_abi_type_table[i].runtime_fn != NULL
+            && strcmp(g_abi_type_table[i].runtime_fn, runtime_fn) == 0) {
+            return &g_abi_type_table[i];
+        }
+    }
+    return NULL;
+}
+
+static void
+abi_type_table_init(void)
+{
+    g_abi_type_count = 0;
+
+    /* Helper macro to add a type layout */
+#define ADD_TYPE(name, abi, size, align, fn, inner) \
+    do { \
+        MIRTypeLayout *t = &g_abi_type_table[g_abi_type_count++]; \
+        memset(t, 0, sizeof(*t)); \
+        t->abi_type_name = (name); \
+        t->size_bytes = (size); \
+        t->align_bytes = (align); \
+        t->runtime_fn = (fn); \
+        t->inner_c_type = (inner); \
+    } while (0)
+
+    /* Slot<T> — Debug mode */
+    ADD_TYPE("Slot<Int>",    "pgy_abi_slot_int_dbg",     8,  4, "pgy_claim_Int",     "int32_t");
+    ADD_TYPE("Slot<Long>",   "pgy_abi_slot_long_dbg",   16,  8, "pgy_claim_Long",    "int64_t");
+    ADD_TYPE("Slot<Float>",  "pgy_abi_slot_float_dbg",   8,  4, "pgy_claim_Float",   "float");
+    ADD_TYPE("Slot<Double>", "pgy_abi_slot_double_dbg", 16,  8, "pgy_claim_Double",  "double");
+    ADD_TYPE("Slot<Bool>",   "pgy_abi_slot_bool_dbg",    2,  1, "pgy_claim_Bool",    "bool");
+    ADD_TYPE("Slot<String>", "pgy_abi_slot_string_dbg", 16,  8, "pgy_claim_String",  "char*");
+
+    /* Slot<T> — Release mode (sizes differ, but fn names are same) */
+    ADD_TYPE("Slot<Int>_rel",    "pgy_abi_slot_int_rel",    4, 4, "pgy_claim_Int",    "int32_t");
+    ADD_TYPE("Slot<Long>_rel",   "pgy_abi_slot_long_rel",   8, 8, "pgy_claim_Long",   "int64_t");
+    ADD_TYPE("Slot<Float>_rel",  "pgy_abi_slot_float_rel",  4, 4, "pgy_claim_Float",  "float");
+    ADD_TYPE("Slot<Double>_rel", "pgy_abi_slot_double_rel", 8, 8, "pgy_claim_Double", "double");
+    ADD_TYPE("Slot<Bool>_rel",   "pgy_abi_slot_bool_rel",   1, 1, "pgy_claim_Bool",   "bool");
+    ADD_TYPE("Slot<String>_rel", "pgy_abi_slot_string_rel", 8, 8, "pgy_claim_String", "char*");
+
+    /* SecureSlot<T> */
+    ADD_TYPE("SecureSlot<Int>",    "pgy_abi_secure_slot_int_dbg", 16, 8, "pgy_claim_secure_Int",    "int32_t");
+    ADD_TYPE("SecureSlot<String>", "pgy_abi_secure_slot_string_dbg", 24, 8, "pgy_claim_secure_String", "char*");
+
+    /* DeviceSlot<T> */
+    ADD_TYPE("DeviceSlot<Int>",    "pgy_abi_device_slot_int",    8,  4, "pgy_claim_device_Int",    "int32_t");
+    ADD_TYPE("DeviceSlot<String>", "pgy_abi_device_slot_string", 16, 8, "pgy_claim_device_String", "char*");
+
+    /* Option<T> */
+    ADD_TYPE("Option<Int>",    "pgy_abi_option_int",     8,  4, "pgy_option_some_Int",    "int32_t");
+    ADD_TYPE("Option<Long>",   "pgy_abi_option_long",   16,  8, "pgy_option_some_Long",   "int64_t");
+    ADD_TYPE("Option<Bool>",   "pgy_abi_option_bool",    8,  4, "pgy_option_some_Bool",   "bool");
+    ADD_TYPE("Option<String>", "pgy_abi_option_string", 16,  8, "pgy_option_some_String", "char*");
+
+    /* Result<T, E> */
+    ADD_TYPE("Result<Int>",    "pgy_abi_result_int",    16, 8, "pgy_result_ok_Int",    "int32_t");
+    ADD_TYPE("Result<Bool>",   "pgy_abi_result_bool",   16, 8, "pgy_result_ok_Bool",   "bool");
+    ADD_TYPE("Result<String>", "pgy_abi_result_string", 16, 8, "pgy_result_ok_String", "char*");
+
+    /* Channel — opaque handles */
+    ADD_TYPE("ZoneChannel<Int>",    "pgy_abi_zone_channel_handle",    4, 4, "pgy_zone_channel_create_Int",    "int32_t");
+    ADD_TYPE("WorldChannel<Int>",   "pgy_abi_world_channel_handle",   4, 4, "pgy_world_channel_create_Int",   "int32_t");
+    ADD_TYPE("ZoneChannel<String>", "pgy_abi_zone_channel_handle",    4, 4, "pgy_zone_channel_create_String", "char*");
+
+    /* Box<T> */
+    ADD_TYPE("Box<Int>",    "pgy_abi_box_int",    8, 8, "pgy_box_new_Int",    "int32_t");
+    ADD_TYPE("Box<String>", "pgy_abi_box_string", 8, 8, "pgy_box_new_String", "char*");
+
+    /* Array<T> */
+    ADD_TYPE("Array<Int>",    "pgy_abi_array_int", 24, 8, "pgy_array_new_Int",    "int32_t");
+    ADD_TYPE("Array<String>", "pgy_abi_array_string", 24, 8, "pgy_array_new_String", "char*");
+
+    /* Auxiliary */
+    ADD_TYPE("Future",           "pgy_abi_future",          8, 4, "pgy_spawn",            "int32_t");
+    ADD_TYPE("RemoteFuture",     "pgy_abi_remote_future",  24, 8, "pgy_spawn",            "int32_t");
+    ADD_TYPE("Qubit",            "pgy_abi_qubit",          12, 4, "ClaimQubit",           "int32_t");
+    ADD_TYPE("TaskHandle",       "pgy_abi_task_handle",     8, 4, NULL,                   "int32_t");
+
+#undef ADD_TYPE
+}
+
+/* Extract inner type from "Slot<Int>" → "Int" */
+static const char *
+mir_extract_inner_type_suffix(const char *pergyra_type_name)
+{
+    if (pergyra_type_name == NULL)
+        return NULL;
+    const char *lt = strchr(pergyra_type_name, '<');
+    const char *gt = strrchr(pergyra_type_name, '>');
+    if (lt == NULL || gt == NULL || gt <= lt)
+        return NULL;
+    /* Return substring between < and > */
+    static char buf[64];
+    size_t len = (size_t)(gt - lt - 1);
+    if (len >= sizeof(buf))
+        len = sizeof(buf) - 1;
+    memcpy(buf, lt + 1, len);
+    buf[len] = '\0';
+    return buf;
+}
+
+/* Lookup ABI type by Pergyra type name, with debug/release mode awareness */
+const MIRTypeLayout *
+mir_abi_lookup(const char *pergyra_type_name)
+{
+    /* First try exact match (debug mode default) */
+    MIRTypeLayout *t = abi_type_lookup_by_name(pergyra_type_name);
+    if (t != NULL)
+        return t;
+
+    /* Try release mode variant */
+    char rel_name[128];
+    snprintf(rel_name, sizeof(rel_name), "%s_rel", pergyra_type_name);
+    t = abi_type_lookup_by_name(rel_name);
+    if (t != NULL)
+        return t;
+
+    /* Try to find by runtime function name pattern */
+    /* e.g. "Slot<Int>" → look for any type with "pgy_claim_Int" */
+    const char *suffix = mir_extract_inner_type_suffix(pergyra_type_name);
+    if (suffix != NULL) {
+        /* Try to find constructor prefix */
+        char fn_prefix[64];
+        const char *ctor = "pgy_claim_";
+
+        /* Check if it's a Slot type */
+        if (strncmp(pergyra_type_name, "Slot<", 5) == 0) {
+            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_claim_%s", suffix);
+            t = abi_type_lookup_by_runtime_fn(fn_prefix);
+            if (t != NULL)
+                return t;
+        }
+        /* Option */
+        if (strncmp(pergyra_type_name, "Option<", 7) == 0) {
+            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_option_some_%s", suffix);
+            t = abi_type_lookup_by_runtime_fn(fn_prefix);
+            if (t != NULL)
+                return t;
+        }
+        /* Result */
+        if (strncmp(pergyra_type_name, "Result<", 7) == 0) {
+            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_result_ok_%s", suffix);
+            t = abi_type_lookup_by_runtime_fn(fn_prefix);
+            if (t != NULL)
+                return t;
+        }
+    }
+
+    return NULL;  /* unknown type — backend should handle gracefully */
+}
+
+void
+mir_abi_table_init(void)
+{
+    abi_type_table_init();
 }

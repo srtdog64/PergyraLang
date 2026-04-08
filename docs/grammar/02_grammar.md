@@ -276,10 +276,10 @@ enum Shape {
 
 지원되는 선언:
 - `struct`
-- `object` (`struct` alias)
+- `object` (internal projection/value declaration)
 - `subject` (`class` alias)
 - `class`
-- `tobject` (`struct` alias for transfer object)
+- `tobject` (transfer-object declaration)
 - `enum`
 - `relation`
 - `effect`
@@ -287,6 +287,10 @@ enum Shape {
 - `extern "C"` block
 
 추가 메모:
+- `object`와 `tobject`는 struct-style body syntax를 공유하지만 같은 의미가 아니다.
+- `object`는 local/internal projection contract다. zone/world 실행 경계 안에서 source 상태를 읽기 위해 `refresh`되는 view 모델이다.
+- `tobject`는 transfer/boundary projection contract다. `publish`를 통해 zone/world/export 경계를 넘기는 전달 모델이다.
+- 따라서 `tobject`는 `object`의 단순 축약형이 아니며, projection state와 boundary contract에서 별도 취급한다.
 - `relation`, `effect`는 현재 optional `for name: Type[, ...]` header와 `subject slot`, `object slot`, `tobject slot`, `refresh`, `publish`, `bind`, `shared`, `func`의 최소 조합을 지원한다.
 - `shared`는 visibility 키워드가 아니라 host-local contextual state marker다. 즉 `party` / `relation` / `effect` / `zone` / `world`가 문맥 전체에서 공동으로 읽고 갱신하는 상태를 뜻한다.
 - `HasProjection(<slotName>)`는 relation/effect/zone declaration / method 안에서만 유효하며, 선언된 object/tobject projection slot을 Bool로 조회한다.

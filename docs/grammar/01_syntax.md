@@ -322,7 +322,10 @@ enum Color { Red, Green, Blue }
 
 주의:
 - `subject`와 `class`는 현재 서로 다른 nominal declaration flavor로 파싱되고 semantic도 둘을 구분한다.
-- `object`, `tobject`, `struct`는 현재 같은 value/projection declaration으로 파싱된다.
+- `object`, `tobject`, `struct`는 현재 struct-style body syntax를 공유하지만, 언어 계약상 같은 개념은 아니다.
+- `object`는 local/internal projection view를 뜻한다. 같은 execution boundary 안에서 `refresh`로 동기화되는 읽기 모델이다.
+- `tobject`는 transfer object를 뜻한다. `publish`를 통해 zone/world/boundary 바깥으로 넘기는 전달 모델이다.
+- 따라서 `tobject`는 `object`의 단순 별칭이 아니고, projection sync와 boundary contract에서 별도 의미를 가진다.
 - `relation`, `effect`, `zone`은 현재 `subject slot` / `object slot` / `tobject slot` / `refresh` / `publish` / `bind` / `shared` / `func`까지의 최소 body surface를 가진다.
 - `shared`는 `public`의 대체물이 아니다. `shared`는 `party` / `relation` / `effect` / `zone` / `world` 같은 host 내부에서 여러 rule, func, lifecycle이 공동으로 읽고 갱신하는 **host-local contextual state**를 뜻한다.
 - 즉 `shared`는 "그 host가 들고 있는 문맥 전역 상태"에 가깝고, 프로그램 전체 global이나 개별 subject private field와는 다르다.

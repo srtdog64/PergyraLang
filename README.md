@@ -113,10 +113,10 @@ Pergyra uses 6 keywords to declare types. Each keyword carries **intended** dist
 | `class` | Passive thing (tool) | Value | func only | ✅ Full |
 | `struct` | Pure data | Value | None | ✅ Full |
 | `vessel` | Internal state (inside subject) | Value | None | ⚠️ Parser only |
-| `object` | Read-only internal projection | Value | func only | ⚠️ Parses as struct variant |
-| `tobject` | Read-only transfer/export projection | Value | func only | ⚠️ Parses as struct variant |
+| `object` | Internal projection/view contract | Value | func only | ⚠️ Shares struct-style syntax today |
+| `tobject` | Transfer/export boundary contract | Value | func only | ⚠️ Shares struct-style syntax today |
 
-> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리 완료. `object`/`tobject`/`struct`는 파서에서 `nominal_kind` 플래그로 구분되지만, 시맨틱 분석과 코드 생성에서는 동일하게 처리됨. 도메인 설계(zone refresh/publish)에서 의미론적 구분이 이루어짐.
+> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리 완료. `object`/`tobject`/`struct`는 아직 struct-style syntax와 일부 lowering 경로를 공유하지만, 언어 계약상 같은 타입 분류가 아니다. `object`는 local/internal projection, `tobject`는 publish/transfer/export boundary projection으로 구분된다.
 
 ```pergyra
 subject Player
@@ -165,6 +165,7 @@ tobject PlayerReceipt
 Rule of thumb:
 - use `object` for internal projection/read models
 - use `tobject` for publish/transfer/export boundaries
+- observing an embedded zone projection from `world` still counts as `object`-style projection observation, not automatic boundary publication
 
 ## Domain Modeling
 
