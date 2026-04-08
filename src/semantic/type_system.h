@@ -182,6 +182,7 @@ extern Type* TYPE_SLICE;
 extern Type* TYPE_LIST;
 extern Type* TYPE_QUEUE;
 extern Type* TYPE_HASHMAP;
+extern Type* TYPE_SET;
 extern Type* TYPE_BOX;
 extern Type* TYPE_RC;
 extern Type* TYPE_WEAK;

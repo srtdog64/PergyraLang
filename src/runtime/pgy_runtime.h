@@ -2466,6 +2466,88 @@ static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
 static inline int32_t pgy_set_size_string(PgySet_String *s) { return (int32_t)s->count; }
 
 /* =================================================================
+ * Set<T> — Generic hash set macro (value-based, no string conversion)
+ *
+ * Uses FNV-1a hash on raw bytes for non-string types.
+ * For String type, use PgySet_String above (strcmp-based).
+ * ================================================================= */
+
+#define PGY_SET_DEFINE(SuffixName, CType) \
+typedef struct \
+{ \
+    CType   *data; \
+    uint8_t *occupied; \
+    size_t   count; \
+    size_t   capacity; \
+} PgySet_##SuffixName; \
+\
+static inline uint32_t pgy_set_hash_##SuffixName(CType val) \
+{ \
+    const uint8_t *p = (const uint8_t *)&val; \
+    uint32_t h = 2166136261u; \
+    for (size_t i = 0; i < sizeof(CType); i++) { h ^= p[i]; h *= 16777619u; } \
+    return h; \
+} \
+\
+static inline PgySet_##SuffixName pgy_set_new_##SuffixName(void) \
+{ \
+    PgySet_##SuffixName s; \
+    s.capacity = 16; s.count = 0; \
+    s.data = (CType *)calloc(s.capacity, sizeof(CType)); \
+    s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t)); \
+    return s; \
+} \
+\
+static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
+{ \
+    if (s->count == 0) return false; \
+    uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
+    size_t p = 0; \
+    while (s->occupied[h] && p < s->capacity) { \
+        if (memcmp(&s->data[h], &val, sizeof(CType)) == 0) return true; \
+        h = (h + 1) % (uint32_t)s->capacity; p++; \
+    } \
+    return false; \
+} \
+\
+static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
+{ \
+    if (pgy_set_has_##SuffixName(s, val)) return; \
+    if ((double)s->count / (double)s->capacity > 0.75) { \
+        size_t oc = s->capacity; CType *od = s->data; uint8_t *oo = s->occupied; \
+        s->capacity *= 2; \
+        s->data = (CType *)calloc(s->capacity, sizeof(CType)); \
+        s->occupied = (uint8_t *)calloc(s->capacity, sizeof(uint8_t)); \
+        s->count = 0; \
+        for (size_t i = 0; i < oc; i++) { if (oo[i]) pgy_set_add_##SuffixName(s, od[i]); } \
+        free(od); free(oo); \
+    } \
+    uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
+    while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity; \
+    s->data[h] = val; s->occupied[h] = 1; s->count++; \
+} \
+\
+static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val) \
+{ \
+    if (s->count == 0) return; \
+    uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
+    size_t p = 0; \
+    while (s->occupied[h] && p < s->capacity) { \
+        if (memcmp(&s->data[h], &val, sizeof(CType)) == 0) { \
+            memset(&s->data[h], 0, sizeof(CType)); \
+            s->occupied[h] = 0; s->count--; return; \
+        } \
+        h = (h + 1) % (uint32_t)s->capacity; p++; \
+    } \
+} \
+\
+static inline int32_t pgy_set_size_##SuffixName(PgySet_##SuffixName *s) \
+{ return (int32_t)s->count; }
+
+/* Pre-instantiate Set<Int> (lowercase suffix to match collection_runtime_suffix) */
+PGY_SET_DEFINE(int, int32_t)
+
+/* =================================================================
  * Queue<Int> — ring buffer FIFO
  * ================================================================= */
 

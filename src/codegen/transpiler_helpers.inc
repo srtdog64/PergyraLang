@@ -2429,6 +2429,18 @@ pergyra_type_to_c(const char *name)
         snprintf(buf, sizeof(buf), "PgyQueue_%s", suffix);
         return buf;
     }
+    if (strncmp(name, "Set<", 4) == 0) {
+        const char *inner = slot_inner_type_name(name);
+        if (inner != NULL && strcmp(inner, "String") == 0) {
+            snprintf(buf, sizeof(buf), "PgySet_String");
+        } else if (inner != NULL && strcmp(inner, "Int") == 0) {
+            snprintf(buf, sizeof(buf), "PgySet_int");
+        } else {
+            sanitize_c_suffix(inner, suffix, sizeof(suffix));
+            snprintf(buf, sizeof(buf), "PgySet_%s", suffix);
+        }
+        return buf;
+    }
     if (strncmp(name, "RemoteFuture<", 13) == 0)
         return "PgyTaskHandle";
     if (strncmp(name, "Future<", 7) == 0)
@@ -2628,6 +2640,9 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
     if (strcmp(kind, "Map") == 0
         && (strcmp(inner_type, "Int") == 0 || strcmp(inner_type, "String") == 0))
         return;
+    if (strcmp(kind, "Set") == 0
+        && (strcmp(inner_type, "Int") == 0 || strcmp(inner_type, "String") == 0))
+        return;  /* Int and String Set are pre-instantiated */
 
     sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
     for (int i = 0; i < ctx->collection_spec_count; i++) {
@@ -2666,6 +2681,11 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
         codebuf_write(ctx->decls,
             "\n/* PGY_COLLECTION_MAP_%s */\n"
             "PGY_HASHMAP_DEFINE(%s, %s)\n",
+            suffix, suffix, ctype);
+    } else if (strcmp(kind, "Set") == 0) {
+        codebuf_write(ctx->decls,
+            "\n/* PGY_COLLECTION_SET_%s */\n"
+            "PGY_SET_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     }
 }

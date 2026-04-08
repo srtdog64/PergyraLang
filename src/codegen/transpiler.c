@@ -708,6 +708,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
     }
 
+    /* Collection constructors: let s: Set<Int> = SetNew()
+     * Emit the correct type-specific initializer from the annotation. */
+    if (init != NULL && init->type == AST_CALL
+        && init->data.call.callee->type == AST_IDENTIFIER
+        && ann_type_name != NULL
+        && strcmp(init->data.call.callee->data.identifier.name, "SetNew") == 0
+        && strncmp(ann_type_name, "Set<", 4) == 0) {
+        const char *inner = slot_inner_type_name(ann_type_name);
+        const char *c_type = pergyra_type_to_c(ann_type_name);
+        const char *suffix = collection_runtime_suffix(inner);
+        ensure_collection_specialization(ctx, "Set", inner);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s %s = pgy_set_new_%s();\n",
+                      c_type, name, suffix);
+        register_typed_var(ctx, name, ann_type_name);
+        free(ann_type_name);
+        return;
+    }
+
     /* Struct/class constructor: let p: Point = Point(...)
      * Lower positional constructor args into field-order initialization.
      * Missing fields stay zero-initialized.

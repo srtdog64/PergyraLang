@@ -1863,6 +1863,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (strcmp(name, "ClaimQubit") == 0) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
+        /* Qubit starts in SUPERPOSITION state (uncollapsed). */
         return TYPE_QUBIT;
     }
     if (strcmp(name, "ClaimDeviceSlot") == 0) {

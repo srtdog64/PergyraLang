@@ -2256,32 +2256,58 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 collection_runtime_suffix(inner), l, i);
             free(l); free(i); return r;
         }
-        /* Set builtins */
-        if (strcmp(fn, "SetNew") == 0)
-            return pergyra_strdup("pgy_set_new_string()");
+        /* Set builtins — generic (type inferred from Set<T> annotation) */
+        #define SET_INFER_INNER(arg0) do { \
+            const char *_st = infer_expression_type_name(ctx, arg0); \
+            if (_st != NULL && strncmp(_st, "Set<", 4) == 0) \
+                set_inner = slot_inner_type_name(_st); \
+        } while (0)
+
+        if (strcmp(fn, "SetNew") == 0) {
+            /* SetNew() → pgy_set_new_SUFFIX() — inner type comes from
+             * the let-binding annotation (e.g., let s: Set<Int> = SetNew()) */
+            return pergyra_strdup("pgy_set_new_string()"); /* default; overridden by let emission below */
+        }
         if (strcmp(fn, "SetAdd") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
             char *s = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_set_add_string(&%s, %s)", s, k);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_add_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
             free(s); free(k); return r;
         }
         if (strcmp(fn, "SetHas") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
             char *s = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_set_has_string(&%s, %s)", s, k);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_has_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
             free(s); free(k); return r;
         }
         if (strcmp(fn, "SetRemove") == 0 && call->data.call.arg_count == 2) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
             char *s = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
-            char *r = strdup_fmt("pgy_set_remove_string(&%s, %s)", s, k);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_remove_%s(&%s, %s)",
+                collection_runtime_suffix(set_inner), s, k);
             free(s); free(k); return r;
         }
         if (strcmp(fn, "SetSize") == 0 && call->data.call.arg_count == 1) {
+            const char *set_inner = "String";
+            SET_INFER_INNER(call->data.call.arguments[0]);
             char *s = emit_expression(call->data.call.arguments[0], ctx);
-            char *r = strdup_fmt("pgy_set_size_string(&%s)", s);
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            char *r = strdup_fmt("pgy_set_size_%s(&%s)",
+                collection_runtime_suffix(set_inner), s);
             free(s); return r;
         }
+        #undef SET_INFER_INNER
         /* Queue builtins */
         if (strcmp(fn, "QueueNew") == 0)
             return pergyra_strdup("pgy_queue_new_int()");

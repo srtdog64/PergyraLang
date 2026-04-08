@@ -199,6 +199,7 @@ bool        rir_validate(const RIRProgram *rir, char **error_message);
 bool        rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **error_message);
 void        rir_destroy(RIRProgram *rir);
 void        rir_dump(const RIRProgram *rir, FILE *out);
+void        rir_dump_json(const RIRProgram *rir, FILE *out);
 
 const char *rir_scope_kind_name(RIRScopeKind kind);
 const char *rir_fact_kind_name(RIRFactKind kind);

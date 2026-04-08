@@ -183,6 +183,7 @@ TEST_SECURITY_SRC       = $(SRC_DIR)/test_security.c
 TEST_SEMANTIC_SRC       = $(SRC_DIR)/test_semantic.c
 TEST_TRANSPILE_SRC      = $(SRC_DIR)/test_transpile.c
 TEST_MEMORY_SRC         = $(SRC_DIR)/test_memory_layout.c
+TEST_ABI_SRC            = $(SRC_DIR)/test_abi_spec.c
 TEST_CONCURRENCY_SRC    = $(SRC_DIR)/test_concurrency.c
 TEST_DIR_SRC            = $(SRC_DIR)/test_dir.c
 TEST_RIR_SRC            = $(SRC_DIR)/test_rir.c
@@ -214,6 +215,7 @@ TEST_SECURITY_OBJ      = $(BUILD_DIR)/test_security.o
 TEST_SEMANTIC_OBJ      = $(BUILD_DIR)/test_semantic.o
 TEST_TRANSPILE_OBJ     = $(BUILD_DIR)/test_transpile.o
 TEST_MEMORY_OBJ        = $(BUILD_DIR)/test_memory_layout.o
+TEST_ABI_OBJ           = $(BUILD_DIR)/test_abi_spec.o
 TEST_CONCURRENCY_OBJ   = $(BUILD_DIR)/test_concurrency.o
 TEST_DIR_OBJ           = $(BUILD_DIR)/test_dir.o
 TEST_RIR_OBJ           = $(BUILD_DIR)/test_rir.o
@@ -237,6 +239,7 @@ SECURITY_TEST       = $(BIN_DIR)/test_security$(EXEEXT)
 SEMANTIC_TEST       = $(BIN_DIR)/test_semantic$(EXEEXT)
 TRANSPILE_TEST      = $(BIN_DIR)/test_transpile$(EXEEXT)
 MEMORY_TEST         = $(BIN_DIR)/test_memory_layout$(EXEEXT)
+ABI_TEST            = $(BIN_DIR)/test_abi_spec$(EXEEXT)
 CONCURRENCY_TEST    = $(BIN_DIR)/test_concurrency$(EXEEXT)
 DIR_TEST            = $(BIN_DIR)/test_dir$(EXEEXT)
 RIR_TEST            = $(BIN_DIR)/test_rir$(EXEEXT)
@@ -300,6 +303,11 @@ $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $^
+
+# ABI spec validation test (runtime-only, includes pgy_runtime.h for cross-check)
+$(ABI_TEST): $(TEST_ABI_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
@@ -406,6 +414,10 @@ test-transpile: $(TRANSPILE_TEST)
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	"$(MEMORY_TEST)"
+
+test-abi: $(ABI_TEST)
+	@echo "=== ABI Spec Validation ==="
+	"$(ABI_TEST)"
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
@@ -590,7 +602,7 @@ memcheck: debug
 lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects debug release analyze format memcheck \
-        test test-parser test-security test-semantic test-transpile test-memory test-concurrency test-dir test-rir test-mir test-hir test-all \
+        test test-parser test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-rir test-mir test-hir test-all \
         llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke stdlib-test-smoke module-test-smoke example-test-smoke ci-linux ci-windows check-linux-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 

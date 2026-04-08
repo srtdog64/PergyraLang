@@ -239,6 +239,7 @@ resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
     if (strcmp(name, "List")   == 0) return TYPE_LIST;
     if (strcmp(name, "Queue")  == 0) return TYPE_QUEUE;
     if (strcmp(name, "HashMap")== 0) return TYPE_HASHMAP;
+    if (strcmp(name, "Set")    == 0) return TYPE_SET;
     if (strcmp(name, "Box")    == 0) return TYPE_BOX;
     if (strcmp(name, "Rc")     == 0) return TYPE_RC;
     if (strcmp(name, "Weak")   == 0) return TYPE_WEAK;

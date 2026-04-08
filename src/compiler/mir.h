@@ -10,6 +10,37 @@
 
 typedef struct MIRProgram MIRProgram;
 
+/* =================================================================
+ * ABI Type Layout — explicit memory layout for MIR instructions
+ *
+ * This is the bridge between the Pergyra type system and the
+ * C/LLVM backends. Instead of backends inventing their own struct
+ * layouts, they read the layout from here.
+ *
+ * Source: src/runtime/pgy_abi_spec.h
+ * ================================================================= */
+
+#define MIR_MAX_TYPE_FIELDS 8
+
+typedef struct
+{
+    const char *field_name;
+    uint32_t    offset;      /* byte offset from struct start */
+    uint32_t    field_size;
+    uint32_t    field_align;
+} MIRFieldLayout;
+
+typedef struct
+{
+    const char      *abi_type_name;    /* e.g. "pgy_abi_slot_int_dbg" */
+    uint32_t         size_bytes;
+    uint32_t         align_bytes;
+    uint16_t         field_count;
+    MIRFieldLayout   fields[MIR_MAX_TYPE_FIELDS];
+    const char      *runtime_fn;       /* e.g. "pgy_claim_Int" */
+    const char      *inner_c_type;     /* e.g. "int32_t" for Slot<Int> */
+} MIRTypeLayout;
+
 typedef enum
 {
     MIR_SCOPE_FUNCTION,
