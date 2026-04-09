@@ -1364,9 +1364,10 @@ ASTNode* parse_party_declaration(Parser* parser) {
  *     func GetHealth() -> Int { return self.health; }
  * }
  */
-ASTNode* parse_ability_declaration(Parser* parser) {
+ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected ability name");
     ASTNode* ability = ast_create_ability_declaration(name.text);
+    ability->data.ability_decl.is_innate = is_innate;
     ability->data.ability_decl.doc_comment = parser_take_pending_doc_comment(parser);
     ability->line = name.line;
     ability->column = name.column;

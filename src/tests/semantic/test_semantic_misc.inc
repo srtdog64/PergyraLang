@@ -1417,6 +1417,350 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("generic function where clause accepts matching exact bound");
+    {
+        const char *source =
+            "func OnlyInt<T>(value: T) -> T where T: Int {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let x: Int = OnlyInt(3);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function where clause rejects non-matching exact bound");
+    {
+        const char *source =
+            "func OnlyInt<T>(value: T) -> T where T: Int {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let y = OnlyInt(\"nope\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy constraint 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class where clause rejects unknown bound type");
+    {
+        const char *source =
+            "class Box<T> where T: MissingConstraint {\n"
+            "    let value: T;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown constraint type 'MissingConstraint' in where clause"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("role where clause rejects unknown bound type");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "role Support<T> for T where T: MissingAbility {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown constraint type 'MissingAbility' in where clause"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function where clause accepts ability-style role constraint");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "subject Player { let hp: Int; }\n"
+            "role PlayerComparable for Player {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "func Keep<T>(value: T) -> T where T: Comparable {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let p: Player = Player(3);\n"
+            "    let q: Player = Keep(p);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function where clause rejects missing ability-style role constraint");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "subject Merchant { let trust: Int; }\n"
+            "func Keep<T>(value: T) -> T where T: Comparable {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let m: Merchant = Merchant(1);\n"
+            "    let n: Merchant = Keep(m);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy constraint 'Comparable'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class instantiation enforces exact where constraint");
+    {
+        const char *source =
+            "class Box<T> where T: Int {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let ok: Box<Int> = Box(3);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class instantiation rejects non matching where constraint");
+    {
+        const char *source =
+            "class Box<T> where T: Int {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let bad: Box<String> = Box(\"oops\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy constraint 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class instantiation accepts ability style where constraint");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "subject Player { let hp: Int; }\n"
+            "role PlayerComparable for Player {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "class Crate<T> where T: Comparable {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let c: Crate<Player> = Crate(Player(1));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class instantiation rejects missing ability style where constraint");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "subject Merchant { let trust: Int; }\n"
+            "class Crate<T> where T: Comparable {\n"
+            "    let value: T;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let c: Crate<Merchant> = Crate(Merchant(1));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy constraint 'Comparable'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("innate ability implementation is allowed inside declaring module");
+    {
+        const char *source =
+            "innate ability Combatable {\n"
+            "    func Attack() -> Int;\n"
+            "}\n"
+            "subject Fighter { let hp: Int; }\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 10; }\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let fighter: Fighter = Fighter(1);\n"
+            "    Log(fighter.hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("innate ability rejects implementation outside declaring module");
+    {
+        const char *ability_path = "test_innate_ability_module_a.pgy";
+        const char *main_path = "test_innate_ability_module_b.pgy";
+        const char *ability_source =
+            "innate ability Combatable {\n"
+            "    func Attack() -> Int;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_innate_ability_module_a.pgy\";\n"
+            "subject Hacker { let hp: Int; }\n"
+            "role Rogue for Hacker {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 7; }\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let h: Hacker = Hacker(1);\n"
+            "    Log(h.hp);\n"
+            "}\n";
+        FILE *ability_file = fopen(ability_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(ability_file != NULL && main_file != NULL);
+        if (ability_file != NULL) {
+            fputs(ability_source, ability_file);
+            fclose(ability_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(result,
+            "innate ability 'Combatable' cannot be implemented outside its declaring module"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(ability_path);
+    }
+
     TEST("intent declaration binds subjects and validates step contracts");
     {
         const char *source =
@@ -1807,6 +2151,54 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("Now and Sleep builtins type-check");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let t0: Int = Now();\n"
+            "    Sleep(1);\n"
+            "    let t1: Int = Now();\n"
+            "    Log(ToString(t1 - t0));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ReadLine builtin type-checks");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let line: String = ReadLine();\n"
+            "    Print(line);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent step intent clause must target another intent");
     {
         const char *source =
@@ -1831,7 +2223,7 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "must be a declared intent"));
+            "is not a declared intent"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

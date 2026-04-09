@@ -193,6 +193,110 @@ mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block
 }
 
 static bool
+mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
+{
+    ASTNode *intent;
+
+    if (routine == NULL || block == NULL || routine->hir_routine == NULL)
+        return false;
+    if (routine->hir_routine->ast == NULL || routine->hir_routine->ast->type != AST_INTENT_DECL)
+        return true;
+
+    intent = routine->hir_routine->ast;
+    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
+        ASTNode *step = intent->data.intent_decl.steps[i];
+        MIRInstruction inst;
+
+        if (step == NULL || step->type != AST_INTENT_STEP)
+            continue;
+
+        memset(&inst, 0, sizeof(inst));
+        inst.id = routine->instruction_count++;
+        inst.kind = MIR_INST_STMT;
+        inst.name = step->data.intent_step.name != NULL
+            ? step->data.intent_step.name
+            : "intent.step";
+        inst.ast = step;
+        if (!append_instruction(block, inst))
+            return false;
+
+        if (step->data.intent_step.pre_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "pre";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.pre_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.invariant_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "invariant-pre";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.invariant_expr;
+            if (!append_instruction(block, inst))
+                return false;
+
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "invariant-post";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.invariant_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.guard_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "guard";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.guard_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.expect_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "expect";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.expect_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.post_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCheck";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "post";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.post_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
 mir_collect_ssa_names(const HIRRoutine *hir_routine, const char ***names_out, size_t *count_out)
 {
     const char **names = NULL;
@@ -1665,6 +1769,13 @@ mir_populate_instructions(MIRRoutine *routine)
             routine->cleanup_instruction_count++;
         }
         if (!mir_append_intent_invalidation_markers(routine, invalidation))
+            return false;
+    }
+
+    if (routine->kind == MIR_SCOPE_INTENT
+        && routine->hir_routine != NULL
+        && !routine->hir_routine->has_cfg) {
+        if (!mir_append_intent_step_instructions(routine, entry))
             return false;
     }
 

@@ -73,4 +73,16 @@ private ability  -> 안 보임           (같은 모듈만)
 ## 결정 이력
 
 - 2026-04-04: `innate` 키워드 채택, `sealed` 비채택
-- 구현 상태: 미구현 (Tier 2 TODO)
+- 2026-04-09: lexer/parser/semantic 1차 구현 완료
+
+## 구현 상태
+
+- lexer: `innate` 예약 키워드 구현
+- parser: `innate ability Foo { ... }` 파싱 구현
+- semantic:
+  - 같은 모듈 내 `impl innate ability` 허용
+  - 다른 모듈에서의 `impl innate ability` 거부
+  - 기준은 declaration node의 `origin_path` 비교
+- 남은 일:
+  - richer diagnostic
+  - visibility/formatter/LSP 표면 정렬

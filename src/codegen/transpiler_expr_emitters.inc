@@ -760,7 +760,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
  * ----------------------------------------------------------------- */
 
 static const char *
-binary_op_to_c(TokenType op)
+binary_op_to_c(PgyTokenType op)
 {
     switch (op) {
     case TOKEN_PLUS:          return "+";
@@ -1174,121 +1174,159 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(msg);
         return result;
     }
+    case BUILTIN_READ_LINE:
+        return pergyra_strdup("pgy_input(\"\")");
+    case BUILTIN_NOW:
+        return pergyra_strdup("pgy_now_ms()");
+    case BUILTIN_SLEEP: {
+        if (call->data.call.arg_count < 1)
+            return pergyra_strdup("/* Sleep: need ms */");
+        char *ms = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_sleep_ms(%s)", ms);
+        free(ms);
+        return result;
+    }
     case BUILTIN_INTENT_LAST_TRACE:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_trace_export()");
     case BUILTIN_INTENT_LAST_FAILURE:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_failure_export()");
     case BUILTIN_INTENT_LAST_NAME:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_name_export()");
     case BUILTIN_INTENT_LAST_HANDLE:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_handle_export()");
     case BUILTIN_INTENT_LAST_TRACE_ID:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_trace_id_export()");
     case BUILTIN_INTENT_LAST_STEP_COUNT:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_step_count_export()");
     case BUILTIN_INTENT_LAST_FAILED:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_last_failed_export()");
     case BUILTIN_INTENT_HISTORY_COUNT:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_history_count_export()");
     case BUILTIN_INTENT_HISTORY_STEP_NAME: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_name_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_ZONE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_zone_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_PHASE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_phase_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_ACTOR: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_actor_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_SLOT: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_slot_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_from_zone_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_from_slot_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_TO_ZONE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_to_zone_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_TO_SLOT: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_to_slot_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_OK: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_ok_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_HISTORY_STEP_FAILURE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_history_step_failure_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_COUNT:
+        ctx->uses_intent_observability = true;
         return pergyra_strdup("pgy_intent_active_count_export()");
     case BUILTIN_INTENT_ACTIVE_NAME: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_name_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_HANDLE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_handle_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_TRACE_ID: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_trace_id_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_PRIORITY: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_priority_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_CONCURRENT: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_concurrent_export(%s)", index);
         free(index);
         return result;
     }
     case BUILTIN_INTENT_ACTIVE_TRACE: {
+        ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_trace_export(%s)", index);
         free(index);
@@ -1344,6 +1382,103 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 result = strdup_fmt("(%s){0}", fn);
             codebuf_destroy(fields);
             return result;
+        }
+        {
+            ASTNode *party_decl = find_party_decl(ctx, fn);
+            if (party_decl != NULL && party_decl->type == AST_PARTY_DECL) {
+                size_t argc = call->data.call.arg_count;
+                size_t shared_count = party_decl->data.party_decl.shared_count;
+                CodeBuf *fields = codebuf_create();
+                for (size_t i = 0; i < argc && i < shared_count; i++) {
+                    ASTNode *shared = party_decl->data.party_decl.shared_fields[i];
+                    const char *field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    if (i > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        arg != NULL ? arg : "0");
+                    free(arg);
+                }
+                for (size_t i = 0; i < shared_count; i++) {
+                    ASTNode *shared;
+                    const char *field_name;
+                    char *init_expr;
+                    if (i < argc)
+                        continue;
+                    shared = party_decl->data.party_decl.shared_fields[i];
+                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                        continue;
+                    field_name = shared->data.party_shared.name;
+                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        init_expr != NULL ? init_expr : "0");
+                    free(init_expr);
+                }
+                {
+                    char *result = fields->len > 0
+                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
+                        : strdup_fmt("(%s){0}", fn);
+                    codebuf_destroy(fields);
+                    return result;
+                }
+            }
+        }
+        {
+            ASTNode *systemic_decl = find_systemic_decl(ctx, fn);
+            if (systemic_decl != NULL && systemic_decl->type == AST_SYSTEMIC_DECL) {
+                size_t argc = call->data.call.arg_count;
+                size_t exposed = systemic_decl->data.systemic_decl.party_count
+                    + systemic_decl->data.systemic_decl.shared_count;
+                CodeBuf *fields = codebuf_create();
+                for (size_t i = 0; i < argc && i < exposed; i++) {
+                    const char *field_name = NULL;
+                    char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    if (i < systemic_decl->data.systemic_decl.party_count) {
+                        ASTNode *slot = systemic_decl->data.systemic_decl.party_slots[i];
+                        field_name = slot != NULL ? slot->data.systemic_slot.slot_name : "field";
+                    } else {
+                        ASTNode *shared = systemic_decl->data.systemic_decl.shared_fields[
+                            i - systemic_decl->data.systemic_decl.party_count];
+                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    }
+                    if (i > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        arg != NULL ? arg : "0");
+                    free(arg);
+                }
+                for (size_t i = 0; i < systemic_decl->data.systemic_decl.shared_count; i++) {
+                    size_t absolute_index = systemic_decl->data.systemic_decl.party_count + i;
+                    ASTNode *shared;
+                    const char *field_name;
+                    char *init_expr;
+                    if (absolute_index < argc)
+                        continue;
+                    shared = systemic_decl->data.systemic_decl.shared_fields[i];
+                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                        continue;
+                    field_name = shared->data.party_shared.name;
+                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    if (fields->len > 0)
+                        codebuf_write(fields, ", ");
+                    codebuf_write(fields, ".%s = %s",
+                        field_name != NULL ? field_name : "field",
+                        init_expr != NULL ? init_expr : "0");
+                    free(init_expr);
+                }
+                {
+                    char *result = fields->len > 0
+                        ? strdup_fmt("(%s){ %s }", fn, fields->data)
+                        : strdup_fmt("(%s){0}", fn);
+                    codebuf_destroy(fields);
+                    return result;
+                }
+            }
         }
         {
             ASTNode *relation_decl = find_relation_decl(ctx, fn);

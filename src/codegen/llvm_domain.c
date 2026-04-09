@@ -12,7 +12,7 @@
 #include "llvm_internal.h"
 
 static const char *
-llvm_operator_suffix(TokenType op)
+llvm_operator_suffix(PgyTokenType op)
 {
     switch (op) {
     case TOKEN_PLUS: return "add";
@@ -31,10 +31,10 @@ llvm_operator_suffix(TokenType op)
 }
 
 static bool
-llvm_operator_method_name_matches(TokenType op, const char *name)
+llvm_operator_method_name_matches(PgyTokenType op, const char *name)
 {
     static const struct {
-        TokenType op;
+        PgyTokenType op;
         const char *names[10];
     } aliases[] = {
         { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
@@ -1307,6 +1307,28 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 ftypes[idx] = ctx->type_i1;
                 idx++;
             }
+        } else if (stmt->type == AST_SYSTEMIC_DECL) {
+            fc = stmt->data.systemic_decl.party_count
+                + stmt->data.systemic_decl.shared_count;
+            ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            size_t idx = 0;
+            for (size_t j = 0; j < stmt->data.systemic_decl.party_count; j++, idx++) {
+                ASTNode *slot = stmt->data.systemic_decl.party_slots[j];
+                LLVMClassTypeEntry *field_cls = NULL;
+                if (slot != NULL && slot->type == AST_SYSTEMIC_SLOT
+                    && slot->data.systemic_slot.party_type != NULL) {
+                    field_cls = llvm_lookup_class(ctx,
+                        slot->data.systemic_slot.party_type);
+                }
+                ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+            }
+            for (size_t j = 0; j < stmt->data.systemic_decl.shared_count; j++, idx++) {
+                ASTNode *sf = stmt->data.systemic_decl.shared_fields[j];
+                ASTNode *sf_type = sf->data.party_shared.type;
+                ftypes[idx] = (sf_type != NULL)
+                    ? ast_type_to_llvm(ctx, sf_type)
+                    : ctx->type_i32;
+            }
         } else if (stmt->type == AST_WORLD_DECL) {
             fc = stmt->data.world_decl.systemic_count
                 + stmt->data.world_decl.zone_count
@@ -1440,6 +1462,18 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     llvm_class_add_field(entry, pergyra_strdup(field_name),
                         ftypes[field_index], field_index);
                     field_index++;
+                }
+            } else if (stmt->type == AST_SYSTEMIC_DECL) {
+                int field_index = 0;
+                for (size_t j = 0; j < stmt->data.systemic_decl.party_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.systemic_decl.party_slots[j];
+                    llvm_class_add_field(entry, slot->data.systemic_slot.slot_name,
+                        ftypes[field_index], field_index);
+                }
+                for (size_t j = 0; j < stmt->data.systemic_decl.shared_count; j++, field_index++) {
+                    ASTNode *sf = stmt->data.systemic_decl.shared_fields[j];
+                    llvm_class_add_field(entry, sf->data.party_shared.name,
+                        ftypes[field_index], field_index);
                 }
             } else if (stmt->type == AST_WORLD_DECL) {
                 int field_index = 0;
@@ -1744,7 +1778,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
 
         {
-            TokenType ops[] = {
+            PgyTokenType ops[] = {
                 TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
                 TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
                 TOKEN_GREATER, TOKEN_GREATER_EQUAL
@@ -2178,7 +2212,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             }
 
             {
-                TokenType ops[] = {
+                PgyTokenType ops[] = {
                     TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
                     TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
                     TOKEN_GREATER, TOKEN_GREATER_EQUAL

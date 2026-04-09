@@ -20,6 +20,7 @@ Parser* parser_create(Lexer* lexer) {
     parser->next_decl_exported = false;
     parser->last_func_decl_async = false;
     parser->pending_doc_comment = NULL;
+    parser->source_path = NULL;
 
     // 첫 번째 토큰 읽기
     parser->current_token = lexer_next_token(lexer);
@@ -62,12 +63,12 @@ Token parser_peek_next(Parser* parser) {
 }
 
 // 토큰 타입 확인
-bool parser_check(Parser* parser, TokenType type) {
+bool parser_check(Parser* parser, PgyTokenType type) {
     return parser->current_token.type == type;
 }
 
 // 토큰 매칭 및 진행
-bool parser_match(Parser* parser, TokenType type) {
+bool parser_match(Parser* parser, PgyTokenType type) {
     if (!parser_check(parser, type)) return false;
     parser_advance(parser);
     return true;
@@ -111,7 +112,7 @@ parser_starts_contextual_declaration(Parser *parser, const char *keyword)
 }
 
 // 토큰 소비 (필수)
-Token parser_consume(Parser* parser, TokenType type, const char* message) {
+Token parser_consume(Parser* parser, PgyTokenType type, const char* message) {
     if (parser_check(parser, type)) {
         return parser_advance(parser);
     }
@@ -161,8 +162,9 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_STRUCT:
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
-            case TOKEN_TYPE:
+            case PGY_TOKEN_TYPE:
             case TOKEN_LET:
+            case TOKEN_INNATE:
             case TOKEN_ABILITY:
             case TOKEN_ROLE:
             case TOKEN_PARTY:
@@ -554,7 +556,7 @@ parser_parse_export_declaration(Parser *parser)
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after namespace body");
     } else if (parser_match(parser, TOKEN_EXTERN))
         node = parse_extern_block(parser);
-    else if (parser_match(parser, TOKEN_TYPE))
+    else if (parser_match(parser, PGY_TOKEN_TYPE))
         node = parse_type_alias_declaration(parser);
     else if (parser_check(parser, TOKEN_CLASS)) {
         bool is_subject = parser->current_token.text != NULL
@@ -646,8 +648,13 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_zone_declaration(parser);
     else if (parser_match(parser, TOKEN_PARTY))
         node = parse_party_declaration(parser);
+    else if (parser_match(parser, TOKEN_INNATE)) {
+        parser_consume(parser, TOKEN_ABILITY,
+            "Expected 'ability' after 'innate'");
+        node = parse_ability_declaration(parser, true);
+    }
     else if (parser_match(parser, TOKEN_ABILITY))
-        node = parse_ability_declaration(parser);
+        node = parse_ability_declaration(parser, false);
     else if (parser_match(parser, TOKEN_ROLE))
         node = parse_role_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "event"))
@@ -672,6 +679,8 @@ parser_finalize_statement(Parser *parser, ASTNode *node)
             parser_error(parser, "'export' can only apply to declarations");
         }
     }
+    if (node != NULL && node->origin_path == NULL && parser->source_path != NULL)
+        node->origin_path = pergyra_strdup(parser->source_path);
     if (!parser_attach_pending_doc_comment(parser, node))
         parser_discard_pending_doc_comment(parser);
     parser->next_decl_exported = false;
@@ -779,7 +788,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_extern_block(parser));
     }
 
-    if (parser_match(parser, TOKEN_TYPE)) {
+    if (parser_match(parser, PGY_TOKEN_TYPE)) {
         return parser_finalize_statement(parser, parse_type_alias_declaration(parser));
     }
 
@@ -1022,9 +1031,17 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_party_declaration(parser));
     }
 
+    if (parser_match(parser, TOKEN_INNATE)) {
+        parser_consume(parser, TOKEN_ABILITY,
+            "Expected 'ability' after 'innate'");
+        return parser_finalize_statement(parser,
+            parse_ability_declaration(parser, true));
+    }
+
     // ability 선언
     if (parser_match(parser, TOKEN_ABILITY)) {
-        return parser_finalize_statement(parser, parse_ability_declaration(parser));
+        return parser_finalize_statement(parser,
+            parse_ability_declaration(parser, false));
     }
 
     // role 선언

@@ -711,7 +711,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `public` | `TOKEN_PUBLIC` | declaration modifier | 낮음 | `HIR` | visibility |
 | `private` | `TOKEN_PRIVATE` | declaration modifier | 낮음 | `HIR` | visibility |
 | `where` | `TOKEN_WHERE` | clause / generic constraint | 큼 | `HIR -> DIR -> MIR` | reserved token reused by generic and intent/action clauses |
-| `type` | `TOKEN_TYPE` | declaration | 중간 | `HIR` | alias/type declaration |
+| `type` | `PGY_TOKEN_TYPE` | declaration | 중간 | `HIR` | alias/type declaration |
 | `trait` | `TOKEN_TRAIT` | declaration surface | 낮음 | `HIR` | currently shallow contract |
 | `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
 | `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | async control surface |

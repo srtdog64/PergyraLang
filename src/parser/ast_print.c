@@ -71,7 +71,7 @@ static void print_indent(int level) {
     }
 }
 
-static const char* ast_operator_to_string(TokenType type) {
+static const char* ast_operator_to_string(PgyTokenType type) {
     switch (type) {
         case TOKEN_PLUS: return "+";
         case TOKEN_MINUS: return "-";

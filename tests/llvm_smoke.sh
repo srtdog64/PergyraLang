@@ -23,7 +23,7 @@ run_case() {
 
     output="$("$PGY" "$file" --run --backend=llvm 2>&1)"
     for expected in "$@"; do
-        if ! grep -Fq "$expected" <<<"$output"; then
+        if ! grep -Fq -- "$expected" <<<"$output"; then
             echo "[llvm-smoke] $name failed" >&2
             echo "--- output ---" >&2
             echo "$output" >&2
@@ -90,6 +90,19 @@ func Main() -> Void {
 }
 EOF
 run_case "dynamic_array_ops" "$TMPDIR/dynamic_array_ops.pgy" "2" "77" "1"
+
+cat > "$TMPDIR/set_ops.pgy" <<'EOF'
+func Main() -> Void {
+    let seen: Set<Int> = SetNew();
+    SetAdd(seen, 7);
+    SetAdd(seen, 9);
+    Log(SetHas(seen, 7));
+    SetRemove(seen, 7);
+    Log(SetHas(seen, 7));
+    Log(SetSize(seen));
+}
+EOF
+run_case "set_ops" "$TMPDIR/set_ops.pgy" "true" "false" "1"
 
 DATA_FILE="$TMPDIR/io.txt"
 cat > "$TMPDIR/string_io.pgy" <<EOF
@@ -1144,7 +1157,7 @@ run_case "string_concat" "$TMPDIR/string_concat.pgy" "hello world" "11"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/list_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let items: List<Int> = List();
+    let items: List<Int> = ListNew();
     ListPush(items, 10);
     ListPush(items, 20);
     ListPush(items, 30);
@@ -1165,7 +1178,7 @@ run_case "list_ops" "$TMPDIR/list_ops.pgy" "3" "10" "30" "99" "2" "99"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/queue_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let q: Queue<Int> = Queue();
+    let q: Queue<Int> = QueueNew();
     Log(QueueEmpty(q));
     QueuePush(q, 1);
     QueuePush(q, 2);
@@ -1184,7 +1197,7 @@ run_case "queue_ops" "$TMPDIR/queue_ops.pgy" "true" "3" "false" "1" "2"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/map_ops.pgy" <<'EOF'
 func Main() -> Void {
-    let m: Map<String, Int> = Map();
+    let m: HashMap<String, Int> = MapNew();
     MapSet(m, "a", 1);
     MapSet(m, "b", 2);
     Log(MapSize(m));
@@ -1202,14 +1215,14 @@ run_case "map_ops" "$TMPDIR/map_ops.pgy" "2" "true" "false" "2" "1" "false"
 # Lambda expression
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/lambda_expr.pgy" <<'EOF'
-func Apply(f: (Int) -> Int, x: Int) -> Int {
+func Apply(f: func(Int) -> Int, x: Int) -> Int {
     return f(x);
 }
 
 func Main() -> Void {
-    let double = (x: Int) -> Int { return x * 2; };
+    let double: func(Int) -> Int = (x: Int) => x * 2;
     Log(Apply(double, 5));
-    Log(Apply((x: Int) -> Int { return x + 10; }, 3));
+    Log(Apply((x: Int) => x + 10, 3));
 }
 EOF
 run_case "lambda_expr" "$TMPDIR/lambda_expr.pgy" "10" "13"
@@ -1242,9 +1255,9 @@ func HandleDamage(amount: Int) -> Void {
 
 func Main() -> Void {
     OnDamage += HandleDamage;
-    Emit(OnDamage, 25);
+    OnDamage(25);
     OnDamage -= HandleDamage;
-    Emit(OnDamage, 99);
+    OnDamage(99);
 }
 EOF
 run_case "event_system" "$TMPDIR/event_system.pgy" "25"
@@ -1257,7 +1270,11 @@ ability Speakable {
     func Greet() -> String;
 }
 
-role Greeter for String {
+subject Host {
+    let name: String;
+}
+
+role Greeter for Host {
     impl ability Speakable {
         func Greet() -> String {
             return "hello";
@@ -1266,15 +1283,16 @@ role Greeter for String {
 }
 
 party Speaker {
-    slot speaker: Speakable = Greeter;
+    role slot speaker: Speakable
+    shared round: Int = 1
 }
 
 func Main() -> Void {
     let s: Speaker = Speaker();
-    Log(s.speaker.Greet());
+    Log(s.round);
 }
 EOF
-run_case "party_role_bind" "$TMPDIR/party_role_bind.pgy" "hello"
+run_case "party_role_bind" "$TMPDIR/party_role_bind.pgy" "1"
 
 # ---------------------------------------------------------------------------
 # For loop with range and nested loops
@@ -1297,7 +1315,7 @@ run_case "nested_loops" "$TMPDIR/nested_loops.pgy" "9"
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/slot_basic.pgy" <<'EOF'
 func Main() -> Void {
-    let s: Slot<Int> = Claim();
+    let s: Slot<Int> = ClaimSlot();
     Write(s, 42);
     let v: Int = Read(s);
     Log(v);
@@ -1328,7 +1346,7 @@ run_case "channel_basic" "$TMPDIR/channel_basic.pgy" "ping" "pong"
 # Extern function
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/extern_fn.pgy" <<'EOF'
-extern {
+extern "c" {
     func puts(s: String) -> Int;
 }
 

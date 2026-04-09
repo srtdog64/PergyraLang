@@ -151,6 +151,38 @@ llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
     return NULL;
 }
 
+static LLVMTypeRef
+llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
+{
+    if (ctx == NULL || expr == NULL || expr->type != AST_LAMBDA_EXPR)
+        return NULL;
+
+    int pc = (int)expr->data.lambda_expr.param_count;
+    LLVMTypeRef *params = NULL;
+    LLVMTypeRef ret_type = ctx->type_i32;
+
+    if (expr->data.lambda_expr.return_type != NULL) {
+        ret_type = ast_type_to_llvm(ctx, expr->data.lambda_expr.return_type);
+    }
+
+    if (pc > 0) {
+        params = calloc((size_t)pc, sizeof(LLVMTypeRef));
+        if (params == NULL)
+            return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
+        for (int i = 0; i < pc; i++) {
+            ASTNode *p = expr->data.lambda_expr.params[i];
+            if (p != NULL && p->type == AST_LET_DECL && p->data.let_decl.type != NULL)
+                params[i] = ast_type_to_llvm(ctx, p->data.let_decl.type);
+            else
+                params[i] = ctx->type_i32;
+        }
+    }
+
+    LLVMTypeRef fn_type = LLVMFunctionType(ret_type, params, (unsigned)pc, 0);
+    free(params);
+    return LLVMPointerType(fn_type, 0);
+}
+
 static const char *
 llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
 {
@@ -397,7 +429,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         return ctx->type_i32;
     case AST_BINARY: {
-        TokenType op = expr->data.binary.op.type;
+        PgyTokenType op = expr->data.binary.op.type;
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
             || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL
@@ -1112,6 +1144,23 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             return;
         }
 
+        if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
+            LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
+            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
+            if (new_fn != NULL) {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    llvm_sizeof_type_i64(ctx, elem_ty)
+                };
+                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+            }
+            llvm_scope_declare(ctx, name, alloca_val, set_ty);
+            llvm_register_set_var(ctx, name, inner);
+            return;
+        }
+
         if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
             LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
@@ -1453,6 +1502,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     } else if (init != NULL) {
         var_type = llvm_stmt_infer_expr_type(ctx, init);
     }
+    if (init != NULL && init->type == AST_LAMBDA_EXPR) {
+        LLVMTypeRef lambda_type = llvm_stmt_lambda_signature_type(ctx, init);
+        if (lambda_type != NULL)
+            var_type = lambda_type;
+    }
 
     /* Create alloca at function entry */
     LLVMValueRef alloca = llvm_create_entry_alloca(ctx, var_type, name);
@@ -1494,6 +1548,23 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE) {
         llvm_register_callable_var(ctx, name, type_ann);
+    } else if (init != NULL && init->type == AST_LAMBDA_EXPR) {
+        ASTNode *handler_type = ast_create_event_handler_type();
+        handler_type->data.event_handler_type.param_count =
+            init->data.lambda_expr.param_count;
+        if (init->data.lambda_expr.param_count > 0) {
+            handler_type->data.event_handler_type.param_types = calloc(
+                init->data.lambda_expr.param_count, sizeof(ASTNode *));
+            for (size_t i = 0; i < init->data.lambda_expr.param_count; i++) {
+                ASTNode *p = init->data.lambda_expr.params[i];
+                handler_type->data.event_handler_type.param_types[i] =
+                    (p != NULL && p->type == AST_LET_DECL)
+                    ? p->data.let_decl.type : NULL;
+            }
+        }
+        handler_type->data.event_handler_type.return_type =
+            init->data.lambda_expr.return_type;
+        llvm_register_callable_var(ctx, name, handler_type);
     } else if (init != NULL && init->type == AST_IDENTIFIER
                && init->data.identifier.name != NULL) {
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,

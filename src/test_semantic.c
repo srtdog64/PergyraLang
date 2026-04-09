@@ -15,6 +15,7 @@
 #include "common/string_compat.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "compiler/import_resolver.h"
 #include "semantic/type_system.h"
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"

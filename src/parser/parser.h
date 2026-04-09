@@ -54,6 +54,7 @@ typedef struct
     bool    last_func_decl_async;
     int     scope_depth;
     StructuredComment *pending_doc_comment;
+    const char *source_path;
 } Parser;
 
 /*
@@ -103,10 +104,10 @@ ASTNode *parser_parse_spawn_expression(Parser *parser);
 /*
  * Token management functions
  */
-bool  parser_match(Parser *parser, TokenType type);
-bool  parser_check(Parser *parser, TokenType type);
+bool  parser_match(Parser *parser, PgyTokenType type);
+bool  parser_check(Parser *parser, PgyTokenType type);
 Token parser_advance(Parser *parser);
-Token parser_consume(Parser *parser, TokenType type, const char *message);
+Token parser_consume(Parser *parser, PgyTokenType type, const char *message);
 
 /*
  * Error handling functions
@@ -120,7 +121,7 @@ void        parser_synchronize(Parser *parser);
  * Utility functions
  */
 bool parser_is_at_end(const Parser *parser);
-bool parser_is_statement_start(TokenType type);
-bool parser_is_expression_start(TokenType type);
+bool parser_is_statement_start(PgyTokenType type);
+bool parser_is_expression_start(PgyTokenType type);
 
 #endif /* PERGYRA_PARSER_H */

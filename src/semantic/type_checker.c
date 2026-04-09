@@ -98,6 +98,217 @@ merge_entangle_pools(SemanticContext *ctx,
     }
 }
 
+static void
+validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *owner)
+{
+    if (wc == NULL || ctx == NULL)
+        return;
+
+    for (size_t i = 0; i < wc->count; i++) {
+        TypeConstraint *tc = wc->constraints[i];
+        if (tc == NULL)
+            continue;
+        for (size_t b = 0; b < tc->bound_count; b++) {
+            if (tc->bounds[b] != NULL) {
+                size_t saved_diag = ctx->diagnostic_count;
+                bool saved_err = ctx->has_error;
+                Type *bound_type = resolve_type_node(tc->bounds[b], ctx);
+                if (ctx->diagnostic_count > saved_diag
+                    || bound_type == NULL
+                    || bound_type == TYPE_UNKNOWN) {
+                    ctx->diagnostic_count = saved_diag;
+                    ctx->has_error = saved_err;
+                    semantic_error(ctx, owner != NULL ? owner : tc->bounds[b],
+                        "Unknown constraint type '%s' in where clause",
+                        tc->bounds[b]->data.type.name);
+                }
+            }
+        }
+    }
+}
+
+static bool
+subject_type_has_ability(ASTNode *program, const char *type_name,
+                         const char *ability_name);
+
+static int
+find_generic_param_index(GenericParams *gp, const char *param_name)
+{
+    if (gp == NULL || param_name == NULL)
+        return -1;
+
+    for (size_t i = 0; i < gp->count; i++) {
+        if (gp->params[i] != NULL
+            && gp->params[i]->name != NULL
+            && strcmp(gp->params[i]->name, param_name) == 0) {
+            return (int)i;
+        }
+    }
+
+    return -1;
+}
+
+static bool
+concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
+                              SemanticContext *ctx)
+{
+    Type *bound_type;
+    const char *bound_name;
+    Symbol *bound_sym;
+
+    if (concrete_type == NULL || bound_node == NULL || ctx == NULL)
+        return false;
+
+    bound_type = resolve_type_node(bound_node, ctx);
+    if (bound_type == NULL || bound_type == TYPE_UNKNOWN)
+        return false;
+
+    if (type_satisfies_constraint(concrete_type, bound_type))
+        return true;
+
+    if (ctx->program_root == NULL
+        || bound_node->type != AST_TYPE
+        || bound_node->data.type.name == NULL
+        || concrete_type->name == NULL) {
+        return false;
+    }
+
+    bound_name = bound_node->data.type.name;
+    bound_sym = scope_lookup(ctx->scope, bound_name);
+    if (bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY) {
+        return subject_type_has_ability(ctx->program_root,
+                                        concrete_type->name,
+                                        bound_name);
+    }
+
+    return false;
+}
+
+static void
+validate_class_where_clause_instantiation(ASTNode *class_decl,
+                                          Type *constructed_type,
+                                          ASTNode *site,
+                                          SemanticContext *ctx)
+{
+    WhereClause *wc;
+    GenericParams *gp;
+
+    if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
+        || constructed_type == NULL
+        || constructed_type->kind != TYPE_KIND_CONSTRUCTED
+        || site == NULL || ctx == NULL) {
+        return;
+    }
+
+    gp = class_decl->data.class_decl.generic_params;
+    wc = class_decl->data.class_decl.where_clause;
+    if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
+        return;
+
+    for (size_t ci = 0; ci < wc->count; ci++) {
+        TypeConstraint *tc = wc->constraints[ci];
+        int param_index;
+        Type *concrete_type;
+
+        if (tc == NULL || tc->type_param == NULL)
+            continue;
+
+        param_index = find_generic_param_index(gp, tc->type_param);
+        if (param_index < 0
+            || (size_t)param_index >= constructed_type->data.constructed.arg_count) {
+            continue;
+        }
+
+        concrete_type = constructed_type->data.constructed.args[param_index];
+        if (concrete_type == NULL)
+            continue;
+
+        for (size_t bi = 0; bi < tc->bound_count; bi++) {
+            ASTNode *bound_node = tc->bounds[bi];
+            const char *bound_name =
+                (bound_node != NULL
+                 && bound_node->type == AST_TYPE
+                 && bound_node->data.type.name != NULL)
+                    ? bound_node->data.type.name
+                    : "<constraint>";
+
+            if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
+                semantic_error(ctx, site,
+                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'",
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    bound_name,
+                    tc->type_param,
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>");
+            }
+        }
+    }
+}
+
+static void
+validate_class_where_clause_specialization_ast(ASTNode *class_decl,
+                                               ASTNode *specialized_type,
+                                               ASTNode *site,
+                                               SemanticContext *ctx)
+{
+    GenericParams *decl_params;
+    GenericParams *spec_args;
+    WhereClause *wc;
+
+    if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
+        || specialized_type == NULL || specialized_type->type != AST_TYPE
+        || specialized_type->data.type.generic_args == NULL
+        || site == NULL || ctx == NULL) {
+        return;
+    }
+
+    decl_params = class_decl->data.class_decl.generic_params;
+    spec_args = specialized_type->data.type.generic_args;
+    wc = class_decl->data.class_decl.where_clause;
+    if (decl_params == NULL || decl_params->count == 0
+        || wc == NULL || wc->count == 0) {
+        return;
+    }
+
+    for (size_t ci = 0; ci < wc->count; ci++) {
+        TypeConstraint *tc = wc->constraints[ci];
+        int param_index;
+        Type *concrete_type;
+
+        if (tc == NULL || tc->type_param == NULL)
+            continue;
+
+        param_index = find_generic_param_index(decl_params, tc->type_param);
+        if (param_index < 0 || (size_t)param_index >= spec_args->count)
+            continue;
+
+        concrete_type = resolve_generic_type_arg(spec_args->params[param_index],
+                                                 ctx, specialized_type);
+        if (concrete_type == NULL)
+            continue;
+
+        for (size_t bi = 0; bi < tc->bound_count; bi++) {
+            ASTNode *bound_node = tc->bounds[bi];
+            const char *bound_name =
+                (bound_node != NULL
+                 && bound_node->type == AST_TYPE
+                 && bound_node->data.type.name != NULL)
+                    ? bound_node->data.type.name
+                    : "<constraint>";
+
+            if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
+                semantic_error(ctx, site,
+                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'",
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    bound_name,
+                    tc->type_param,
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>");
+            }
+        }
+    }
+}
+
 void
 propagate_collapse_to_pool(SemanticContext *ctx, int32_t pool_id)
 {
@@ -305,9 +516,19 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
             size_t argc = ga->count;
             Type **args = calloc(argc, sizeof(Type *));
             if (args != NULL) {
+                ASTNode *class_decl = NULL;
                 for (size_t i = 0; i < argc; i++)
                     args[i] = resolve_generic_type_arg(ga->params[i], ctx, node);
                 Type *result = type_create_constructed(sym->type, args, argc);
+                if (ctx != NULL && ctx->program_root != NULL) {
+                    class_decl = find_type_decl_by_name(ctx->program_root, name);
+                    if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+                        validate_class_where_clause_instantiation(class_decl,
+                                                                  result,
+                                                                  node,
+                                                                  ctx);
+                    }
+                }
                 free(args);
                 return result;
             }
@@ -535,7 +756,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 
     /* If either operand is unknown, skip checks and propagate */
     if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN) {
-        TokenType op = expr->data.binary.op.type;
+        PgyTokenType op = expr->data.binary.op.type;
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
             || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL)
@@ -544,7 +765,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
     }
 
     /* Comparison operators → Bool */
-    TokenType op = expr->data.binary.op.type;
+    PgyTokenType op = expr->data.binary.op.type;
     if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
         || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
         || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL) {
@@ -572,7 +793,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *operand = type_check_expression(expr->data.unary.operand, ctx);
 
-    TokenType op = expr->data.unary.op.type;
+    PgyTokenType op = expr->data.unary.op.type;
     if (op == TOKEN_NOT) {
         if (!type_equals(operand, TYPE_BOOL)) {
             semantic_error(ctx, expr,
@@ -1104,6 +1325,19 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     if (ann != NULL) {
         /* Explicit type annotation */
         decl_type = resolve_type_node(ann, ctx);
+        if (ctx->program_root != NULL
+            && ann->type == AST_TYPE
+            && ann->data.type.name != NULL
+            && ann->data.type.generic_args != NULL) {
+            ASTNode *class_decl = find_type_decl_by_name(ctx->program_root,
+                                                         ann->data.type.name);
+            if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+                validate_class_where_clause_specialization_ast(class_decl,
+                                                               ann,
+                                                               ann,
+                                                               ctx);
+            }
+        }
         if (init != NULL) {
             if (init->type == AST_CALL
                 && init->data.call.callee->type == AST_IDENTIFIER
@@ -1892,25 +2126,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (has_generics)
         scope_exit(&ctx->scope);
 
-    /* Validate where-clause constraint types are resolvable */
-    if (node->data.func_decl.where_clause != NULL) {
-        WhereClause *wc = node->data.func_decl.where_clause;
-        for (size_t i = 0; i < wc->count; i++) {
-            TypeConstraint *tc = wc->constraints[i];
-            if (tc == NULL)
-                continue;
-            for (size_t b = 0; b < tc->bound_count; b++) {
-                if (tc->bounds[b] != NULL) {
-                    Type *bound_type = resolve_type_node(tc->bounds[b], ctx);
-                    if (bound_type == NULL) {
-                        semantic_error(ctx, node,
-                            "Unknown constraint type '%s' in where clause",
-                            tc->bounds[b]->data.type.name);
-                    }
-                }
-            }
-        }
-    }
+    validate_where_clause_bounds(node->data.func_decl.where_clause, ctx, node);
 
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
@@ -2070,6 +2286,8 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
      * they're visible in the body. */
     if (has_generics)
         scope_exit(&ctx->scope);
+
+    validate_where_clause_bounds(node->data.class_decl.where_clause, ctx, node);
 
     /* Check methods — type-check each in a temporary class scope,
      * then register the mangled name (ClassName_MethodName) in the

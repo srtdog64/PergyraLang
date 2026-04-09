@@ -172,6 +172,7 @@ typedef struct
     const char *current_effect_name;
     const char *current_zone_name;
     const char *current_world_name;
+    bool uses_intent_observability;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);
@@ -190,6 +191,7 @@ typedef struct
 {
     bool  success;
     char *error_message;  /* NULL on success */
+    bool  uses_intent_observability;
 } TranspileResult;
 
 TranspileResult *transpile(const HIRProgram *hir, const char *output_path);

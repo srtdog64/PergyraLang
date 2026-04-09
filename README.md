@@ -14,8 +14,13 @@
   <a href="docs/README_ko.md">한국어</a> ·
   <a href="docs/grammar/01_syntax.md">Syntax Reference</a> ·
   <a href="docs/grammar/02_grammar.md">Grammar</a> ·
-  <a href="docs/grammar/03_naming.md">Naming Convention</a>
+  <a href="docs/grammar/03_naming.md">Naming Convention</a> ·
+  <a href="docs/INDEX.md">All Documentation</a>
 </p>
+
+> **Current Status**: Executable experimental alpha. Core compiler pipeline works (C + LLVM backends, 892+ tests passing).
+> Standard library, tooling (LSP/debugger), and ecosystem are under development.
+> **Quantum operations (Qubit/Measure/Entangle) are planned for v2**, not supported in v1.
 
 ---
 

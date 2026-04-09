@@ -141,6 +141,7 @@ parse_program_file(const char *path, char **error_message)
         set_error(error_message, "out of memory while loading '%s'", path);
         goto cleanup;
     }
+    parser->source_path = path;
 
     ast = parser_parse_program(parser);
     if (parser_has_error(parser)) {

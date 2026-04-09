@@ -826,6 +826,10 @@ find_domain_decl_by_name(ASTNode *program, ASTNodeType decl_type,
 static ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name);
 
+static bool
+subject_type_has_ability(ASTNode *program, const char *type_name,
+                         const char *ability_name);
+
 static ClassField *
 subject_host_field_at(ASTNode *decl, size_t index)
 {
@@ -1765,11 +1769,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         return sym->type->data.function.return_type;
     }
 
+    Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+
     for (size_t i = 0; i < provided; i++) {
         Type *param_type = sym->type->data.function.param_types[i];
         Type *arg_type = type_is_movable_resource_handle(param_type)
             ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
             : type_check_expression(expr->data.call.arguments[i], ctx);
+        if (call_arg_types != NULL)
+            call_arg_types[i] = arg_type;
 
         if (type_is_movable_resource_handle(arg_type)
             || type_is_movable_resource_handle(param_type)) {
@@ -1873,7 +1881,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             && fp->type->type == AST_TYPE
                             && fp->type->data.type.name != NULL
                             && strcmp(fp->type->data.type.name, param_name) == 0) {
-                            concrete_type = sym->type->data.function.param_types[ai];
+                            concrete_type = (call_arg_types != NULL)
+                                ? call_arg_types[ai]
+                                : NULL;
                         }
                     }
                     if (concrete_type == NULL)
@@ -1881,11 +1891,35 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     /* Check each bound */
                     for (size_t bi = 0; bi < tc->bound_count; bi++) {
                         Type *bound = resolve_type_node(tc->bounds[bi], ctx);
-                        if (bound != NULL && !type_satisfies_constraint(concrete_type, bound)) {
+                        const char *bound_name =
+                            (tc->bounds[bi] != NULL
+                             && tc->bounds[bi]->type == AST_TYPE
+                             && tc->bounds[bi]->data.type.name != NULL)
+                                ? tc->bounds[bi]->data.type.name
+                                : NULL;
+                        bool satisfies = false;
+                        if (bound != NULL) {
+                            satisfies = type_satisfies_constraint(concrete_type, bound);
+                            if (!satisfies
+                                && ctx->program_root != NULL
+                                && bound_name != NULL) {
+                                Symbol *bound_sym = scope_lookup(ctx->scope, bound_name);
+                                if (bound_sym != NULL
+                                    && bound_sym->kind == SYMBOL_ABILITY
+                                    && concrete_type != NULL
+                                    && concrete_type->name != NULL) {
+                                    satisfies = subject_type_has_ability(
+                                        ctx->program_root,
+                                        concrete_type->name,
+                                        bound_name);
+                                }
+                            }
+                        }
+                        if (bound != NULL && !satisfies) {
                             semantic_error(ctx, expr,
                                 "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'",
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
-                                bound->name != NULL ? bound->name : "<constraint>",
+                                bound_name != NULL ? bound_name : "<constraint>",
                                 param_name);
                         }
                     }
@@ -1895,6 +1929,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
+    free(call_arg_types);
     return sym->type->data.function.return_type;
 }
 

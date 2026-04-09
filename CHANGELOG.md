@@ -6,6 +6,55 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### ABI Unification Infrastructure (2026-04-08)
+- **runtime/abi**: Add `pgy_abi_spec.h` — explicit memory layout specification for
+  all core types (Slot, SecureSlot, DeviceSlot, Option, Result, Channel, Box,
+  Array, Qubit, TaskHandle, Timer, Arena, Allocator, Future). 40+ static_assert
+  validations ensure compiler-computed layouts match actual C struct sizes.
+- **runtime/abi**: Add `test_abi_spec.c` — 28 test validations (28 PASS, 0 FAIL
+  on Windows/MinGW-w64 x86_64). Runtime cross-check confirms `PgySlot_Int`,
+  `PgyOption_Int`, `PgyResult_Int` sizes match ABI spec.
+- **compiler/mir**: Add `MIRTypeLayout` and `MIRFieldLayout` structs to MIR.
+  Each `MIRInstruction` now carries an explicit `type_layout` pointer from
+  `pgy_abi_spec.h`. Backend no longer invents its own struct layouts.
+- **compiler/mir**: Add `mir_abi_table_init()` and `mir_abi_lookup()` — 28 type
+  entries mapped from Pergyra surface names (`Slot<Int>`) to ABI layouts
+  (`pgy_abi_slot_int_dbg`, size=8, align=4, runtime_fn=`pgy_claim_Int`).
+- **compiler/rir**: Add `rir_dump_json()` — exports RIR program as structured
+  JSON for AI/MCP consumption and external validation.
+- **compiler/mir**: Add `transpiler_emit_mir_resource_op()` and
+  `transpiler_emit_mir_def()` — "dumb emitter" Visitor functions that read
+  `MIRTypeLayout` and mechanically emit C code. Implements Lowering Rules 1-6
+  (CLAIM, READ, WRITE, RELEASE, MOVE, DEF).
+- **compiler/mir**: Channel<T> changed from full struct to opaque handle
+  (`uint32_t`). `ZoneChannelHandle` and `WorldChannelHandle` eliminate
+  platform-dependent `pthread_mutex_t`/`condvar_t` size variance.
+- **docs**: Add `docs/38_c_macro_deception_and_abi.md` — analysis of C macro
+  ABI deception and backend autonomy problem.
+- **docs**: Add `docs/39_test_driven_abi_and_explicit_lowering.md` — execution
+  strategy for Test-Driven ABI and Explicit Lowering.
+- **docs**: Add `docs/40_lowering_rules.md` — 17 RIR→MIR mapping rules with
+  ABI lookup table.
+- **docs**: Add `review/channel_ownership_tier.md` — Zone/World dual ownership
+  model for channels.
+- **docs**: Add `review/object_vs_tobject_semantics.md` — semantic distinction
+  between object (internal view) and tobject (transfer DTO).
+
+### Windows CI Fix (2026-04-08)
+- **lexer**: Rename `TOKEN_TYPE` → `PGY_TOKEN_TYPE` and `TokenType` →
+  `PgyTokenType` across ~20 source files (43 references). Resolves collision
+  with Windows `winnt.h` (`TOKEN_TYPE`/`TokenType` API conflict).
+- **codegen**: Suppress unused function warnings for new MIR emitter functions
+  with `__attribute__((unused))`.
+
+### v2 Planning: Quantum Operations (2026-04-08)
+- **docs/vision**: Document that quantum operations (Qubit/Measure/Entangle)
+  are **NOT supported in v1**. Current `PgyQubit` struct is a simulation
+  stub only. Full quantum resource model planned for **Pergyra v2**.
+- **docs/status**: Add explicit v2 quantum section to language status.
+
+### Prior Changes
+
 - Added compiler-known stdlib module resolution for `use <module>;`.
   The compiler now recognizes builtin stdlib modules (`datetime`, `http`,
   `storage`, `page`, `spray`) and resolves them without requiring explicit

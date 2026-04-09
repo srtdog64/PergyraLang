@@ -9,15 +9,6 @@
 #include <string.h>
 #include "type_checker_internal.h"
 
-typedef struct
-{
-    Symbol              **symbols;
-    bool                 *states;      /* is_consumed flags */
-    QubitSemanticState   *sem_states;  /* richer resource state; currently qubit-only */
-    int32_t              *pool_ids;    /* entangle pool IDs */
-    size_t                count;
-} ResourceConsumeSnapshot;
-
 typedef enum
 {
     FLOW_NONE        = 0,
@@ -26,6 +17,8 @@ typedef enum
     FLOW_CONTINUE    = 1 << 2,
     FLOW_RETURN      = 1 << 3
 } FlowFlags;
+
+#include "type_checker_flow_resources.inc"
 
 typedef struct
 {
@@ -51,119 +44,6 @@ static FlowFlags type_check_match_stmt_flow(ASTNode *node,
 static FlowFlags type_check_with_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
-
-static ResourceConsumeSnapshot
-snapshot_resource_states_from_scope(Scope *scope)
-{
-    ResourceConsumeSnapshot snap = {0};
-
-    while (scope != NULL) {
-        for (size_t i = 0; i < scope->symbol_count; i++) {
-            Symbol *sym = scope->symbols[i];
-            if (sym == NULL || !type_is_qubit(sym->type))
-                continue;
-
-            Symbol **new_symbols = realloc(snap.symbols,
-                (snap.count + 1) * sizeof(Symbol *));
-            bool *new_states = realloc(snap.states,
-                (snap.count + 1) * sizeof(bool));
-            QubitSemanticState *new_sem = realloc(snap.sem_states,
-                (snap.count + 1) * sizeof(QubitSemanticState));
-            int32_t *new_pools = realloc(snap.pool_ids,
-                (snap.count + 1) * sizeof(int32_t));
-            if (new_symbols == NULL || new_states == NULL
-                || new_sem == NULL || new_pools == NULL) {
-                /* realloc may have already freed original buffers on success,
-                 * so only free the NEW pointers that succeeded.
-                 * The original snap.* buffers are either freed (if realloc
-                 * succeeded) or still valid (if realloc failed). */
-                free(new_symbols);
-                free(new_states);
-                free(new_sem);
-                free(new_pools);
-                /* Clear snapshot to indicate failure state */
-                snap.symbols = NULL;
-                snap.states = NULL;
-                snap.sem_states = NULL;
-                snap.pool_ids = NULL;
-                snap.count = 0;
-                return snap;
-            }
-
-            snap.symbols = new_symbols;
-            snap.states = new_states;
-            snap.sem_states = new_sem;
-            snap.pool_ids = new_pools;
-            snap.symbols[snap.count] = sym;
-            snap.states[snap.count] = sym->is_consumed;
-            snap.sem_states[snap.count] = sym->qubit_info.semantic_state;
-            snap.pool_ids[snap.count] = sym->qubit_info.entangle_pool_id;
-            snap.count++;
-        }
-        scope = scope->parent;
-    }
-
-    return snap;
-}
-
-static void
-restore_resource_states(const ResourceConsumeSnapshot *snap)
-{
-    if (snap == NULL)
-        return;
-    for (size_t i = 0; i < snap->count; i++) {
-        if (snap->symbols[i] != NULL) {
-            snap->symbols[i]->is_consumed = snap->states[i];
-            snap->symbols[i]->qubit_info.semantic_state = snap->sem_states[i];
-            snap->symbols[i]->qubit_info.entangle_pool_id = snap->pool_ids[i];
-        }
-    }
-}
-
-static ResourceConsumeSnapshot
-snapshot_resource_states(SemanticContext *ctx)
-{
-    return snapshot_resource_states_from_scope(ctx != NULL ? ctx->scope : NULL);
-}
-
-static void
-merge_resource_states_or(ResourceConsumeSnapshot *dst,
-                         const ResourceConsumeSnapshot *src)
-{
-    if (dst == NULL || src == NULL)
-        return;
-    size_t count = dst->count < src->count ? dst->count : src->count;
-    for (size_t i = 0; i < count; i++) {
-        dst->states[i] = dst->states[i] || src->states[i];
-        /* Merge semantic state: take the most advanced (conservative).
-         * This correctly blocks gate operations on potentially-collapsed
-         * qubits, which is the primary safety property.  A known
-         * limitation: IntoClassical may pass at the join point even if
-         * one branch did not Measure — a full lattice join would solve
-         * this but is deferred for now. */
-        if (src->sem_states[i] > dst->sem_states[i])
-            dst->sem_states[i] = src->sem_states[i];
-        /* Merge pool IDs: keep the one that exists, or dst if both exist */
-        if (dst->pool_ids[i] < 0)
-            dst->pool_ids[i] = src->pool_ids[i];
-    }
-}
-
-static void
-destroy_resource_snapshot(ResourceConsumeSnapshot *snap)
-{
-    if (snap == NULL)
-        return;
-    free(snap->symbols);
-    free(snap->states);
-    free(snap->sem_states);
-    free(snap->pool_ids);
-    snap->symbols = NULL;
-    snap->states = NULL;
-    snap->sem_states = NULL;
-    snap->pool_ids = NULL;
-    snap->count = 0;
-}
 
 static bool
 match_pattern_is_named_variant(ASTNode *pat, const char **name_out,

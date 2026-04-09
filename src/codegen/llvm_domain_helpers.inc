@@ -17,7 +17,7 @@ llvm_find_role_decl(const HIRProgram *hir, const char *role_name)
 
 static ASTNode *
 llvm_find_role_operator_method(const HIRProgram *hir, ASTNode *role,
-                               TokenType op, int depth)
+                               PgyTokenType op, int depth)
 {
     if (hir == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
         return NULL;

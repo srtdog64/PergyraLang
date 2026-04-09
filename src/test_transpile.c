@@ -2773,6 +2773,35 @@ test_stdlib_and_enum_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("Set built-ins map to runtime helpers");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let seen: Set<Int> = SetNew();\n"
+            "    SetAdd(seen, 7);\n"
+            "    Log(SetHas(seen, 7));\n"
+            "    Log(SetSize(seen));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgySet_int seen = pgy_set_new_int();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_set_add_int(&seen, 7);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_set_has_int(&seen, 7)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_set_size_int(&seen)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("string equality lowers through runtime helper");
     {
         const char *source =
@@ -2986,6 +3015,59 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "PgyQueue_Weapon satchel = pgy_queue_new_Weapon();");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_queue_push_Weapon(&satchel, bow)");
         EXPECT_STR_CONTAINS(ctx->decls->data, "PGY_QUEUE_DEFINE(Weapon, Weapon)");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Now and Sleep builtins emit runtime calls");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let t0: Int = Now();\n"
+            "    Sleep(5);\n"
+            "    let t1: Int = Now();\n"
+            "    Log(ToString(t1 - t0));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t t0 = pgy_now_ms();");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_sleep_ms(5);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t t1 = pgy_now_ms();");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ReadLine builtin emits runtime input call");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let line: String = ReadLine();\n"
+            "    Print(line);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "char* line = pgy_input(\"\");");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_print(line);");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

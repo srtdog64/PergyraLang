@@ -13,7 +13,7 @@
 /* Keyword table for efficient lookup */
 typedef struct {
     const char* keyword;
-    TokenType   type;
+    PgyTokenType   type;
 } KeywordEntry;
 
 static const KeywordEntry keywords[] = {
@@ -42,8 +42,9 @@ static const KeywordEntry keywords[] = {
     {"false",    TOKEN_FALSE},
     {"public",   TOKEN_PUBLIC},
     {"private",  TOKEN_PRIVATE},
+    {"innate",   TOKEN_INNATE},
     {"where",    TOKEN_WHERE},
-    {"type",     TOKEN_TYPE},
+    {"type",     PGY_TOKEN_TYPE},
     {"trait",    TOKEN_TRAIT},
     {"impl",     TOKEN_IMPL},
     {"async",    TOKEN_ASYNC},
@@ -74,6 +75,7 @@ static const KeywordEntry keywords[] = {
     {"shared",   TOKEN_SHARED},
     {"extends",  TOKEN_EXTENDS},
     {"dyn",      TOKEN_DYN},
+    /* NOTE: `context` is NOT a reserved keyword — it is an ordinary identifier */
     
     {"own",      TOKEN_OWN},
     {"ref",      TOKEN_REF},
@@ -142,7 +144,7 @@ static char peek_ahead(const Lexer* lexer, size_t offset) {
     return lexer->current[offset];
 }
 
-static Token make_token(Lexer* lexer, TokenType type, const char* start, size_t length);
+static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length);
 
 /* Skip whitespace and comments */
 static void skip_whitespace(Lexer* lexer) {
@@ -222,7 +224,7 @@ static bool is_alnum(char c) {
 }
 
 /* Create a token */
-static Token make_token(Lexer* lexer, TokenType type, const char* start, size_t length) {
+static Token make_token(Lexer* lexer, PgyTokenType type, const char* start, size_t length) {
     Token token;
     token.type = type;
     token.text = pergyra_strndup(start, length);
@@ -548,7 +550,7 @@ const char* lexer_get_error(const Lexer* lexer) {
 }
 
 /* Convert token type to string */
-const char* token_type_to_string(TokenType type) {
+const char* token_type_to_string(PgyTokenType type) {
     switch (type) {
         case TOKEN_LET: return "LET";
         case TOKEN_FUNC: return "FUNC";
@@ -574,6 +576,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_FALSE: return "FALSE";
         case TOKEN_PUBLIC: return "PUBLIC";
         case TOKEN_PRIVATE: return "PRIVATE";
+        case TOKEN_INNATE: return "INNATE";
         case TOKEN_WHERE: return "WHERE";
         case TOKEN_ASYNC: return "ASYNC";
         case TOKEN_AWAIT: return "AWAIT";
@@ -592,11 +595,7 @@ const char* token_type_to_string(TokenType type) {
         case TOKEN_ABILITY: return "ABILITY";
         case TOKEN_ROLE: return "ROLE";
         case TOKEN_PARTY: return "PARTY";
-        case TOKEN_RELATION: return "RELATION";
-        case TOKEN_EFFECT: return "EFFECT";
-        case TOKEN_ZONE: return "ZONE";
         case TOKEN_SHARED: return "SHARED";
-        case TOKEN_CONTEXT: return "CONTEXT";
         case TOKEN_EXTENDS: return "EXTENDS";
         case TOKEN_SYSTEMIC: return "SYSTEMIC";
         case TOKEN_WORLD: return "WORLD";

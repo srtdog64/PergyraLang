@@ -43,6 +43,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    validate_where_clause_bounds(node->data.role_decl.where_clause, ctx, node);
+
     /* Check includes reference existing roles */
     for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
         ASTNode *inc = node->data.role_decl.includes[i];
@@ -62,11 +64,23 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         if (impl->type == AST_IMPL_ABILITY) {
             /* Check that the ability exists */
             if (impl->data.impl_ability.ability_name != NULL) {
+                ASTNode *ability_decl = find_ability_decl_by_name(
+                    ctx->program_root, impl->data.impl_ability.ability_name);
                 Symbol *ab = scope_lookup(ctx->scope,
                     impl->data.impl_ability.ability_name);
                 if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
                     semantic_warning(ctx, impl,
                         "Ability '%s' not found in current scope",
+                        impl->data.impl_ability.ability_name);
+                } else if (ability_decl != NULL
+                           && ability_decl->type == AST_ABILITY_DECL
+                           && ability_decl->data.ability_decl.is_innate
+                           && ability_decl->origin_path != NULL
+                           && node->origin_path != NULL
+                           && strcmp(ability_decl->origin_path,
+                                     node->origin_path) != 0) {
+                    semantic_error(ctx, impl,
+                        "innate ability '%s' cannot be implemented outside its declaring module",
                         impl->data.impl_ability.ability_name);
                 }
             }

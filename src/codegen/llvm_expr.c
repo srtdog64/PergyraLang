@@ -1010,6 +1010,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
             }
             {
+                ASTNode *party_decl = llvm_find_named_domain_decl(ctx, AST_PARTY_DECL,
+                    callee_name);
+                ASTNode *systemic_decl = llvm_find_named_domain_decl(ctx, AST_SYSTEMIC_DECL,
+                    callee_name);
                 ASTNode *relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
                     callee_name);
                 ASTNode *effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
@@ -1020,7 +1024,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     callee_name);
                 ASTNode **shared_fields = NULL;
                 size_t shared_count = 0;
-                if (relation_decl != NULL) {
+                if (party_decl != NULL) {
+                    shared_fields = party_decl->data.party_decl.shared_fields;
+                    shared_count = party_decl->data.party_decl.shared_count;
+                } else if (systemic_decl != NULL) {
+                    shared_fields = systemic_decl->data.systemic_decl.shared_fields;
+                    shared_count = systemic_decl->data.systemic_decl.shared_count;
+                } else if (relation_decl != NULL) {
                     shared_fields = relation_decl->data.relation_decl.shared_fields;
                     shared_count = relation_decl->data.relation_decl.shared_count;
                 } else if (effect_decl != NULL) {
@@ -1931,6 +1941,144 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildLoad2(ctx->builder, list_ty, tmp, llvm_tmp_name(ctx));
     }
 
+    if (strcmp(callee_name, "SetNew") == 0 && node->data.call.arg_count == 0) {
+        LLVMTypeRef set_ty = ctx->type_i32;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
+        if (ctx->current_ret_type != NULL
+            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
+            set_ty = ctx->current_ret_type;
+        }
+        tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
+        if (fn != NULL) {
+            LLVMTypeRef elem_ty = LLVMInt32TypeInContext(ctx->context);
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        }
+        return LLVMBuildLoad2(ctx->builder, set_ty, tmp, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "SetAdd") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *set_arg = node->data.call.arguments[0];
+        LLVMVarEntry *set_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        if (set_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_set_add_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "SetHas") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *set_arg = node->data.call.arguments[0];
+        LLVMVarEntry *set_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        if (set_var == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_set_has_raw_export");
+        if (fn == NULL)
+            return LLVMConstInt(ctx->type_i1, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3,
+                                  llvm_tmp_name(ctx));
+        }
+    }
+
+    if (strcmp(callee_name, "SetRemove") == 0 && node->data.call.arg_count == 2) {
+        ASTNode *set_arg = node->data.call.arguments[0];
+        LLVMVarEntry *set_var;
+        const char *inner_name;
+        LLVMTypeRef elem_ty;
+        LLVMValueRef value;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        if (set_var == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name != NULL ? inner_name : "Int");
+        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        if (value == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, value, tmp);
+        fn = llvm_lookup_function(ctx, "pgy_set_remove_raw_export");
+        if (fn != NULL) {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                llvm_sizeof_type_i64(ctx, elem_ty)
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "SetSize") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *set_arg = node->data.call.arguments[0];
+        LLVMVarEntry *set_var;
+        LLVMFuncEntry *fn;
+        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
+        fn = llvm_lookup_function(ctx, "pgy_set_size_raw_export");
+        if (set_var == NULL || fn == NULL)
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
+                                  llvm_tmp_name(ctx));
+        }
+    }
+
     if (strcmp(callee_name, "ListPush") == 0 && node->data.call.arg_count == 2) {
         ASTNode *list_arg = node->data.call.arguments[0];
         LLVMVarEntry *list_var;
@@ -2475,6 +2623,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastTrace") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_trace_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2482,6 +2631,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastFailure") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_failure_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2489,6 +2639,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastName") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_name_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2496,6 +2647,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastHandle") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_handle_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2503,6 +2655,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastTraceId") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_trace_id_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2510,6 +2663,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastStepCount") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_step_count_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2517,6 +2671,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentLastFailed") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_last_failed_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2524,6 +2679,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryCount") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_count_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2531,6 +2687,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepName") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_name_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2538,6 +2695,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepZone") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_zone_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2545,6 +2703,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepPhase") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_phase_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2552,6 +2711,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepActor") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_actor_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2559,6 +2719,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepSlot") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_slot_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2566,6 +2727,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepFromZone") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_from_zone_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2573,6 +2735,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepFromSlot") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_from_slot_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2580,6 +2743,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepToZone") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_to_zone_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2587,6 +2751,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepToSlot") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_to_slot_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2594,6 +2759,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepOk") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_ok_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2601,6 +2767,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentHistoryStepFailure") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_failure_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2608,6 +2775,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveCount") == 0
         && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_count_export");
         if (fn != NULL)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
@@ -2615,6 +2783,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveName") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_name_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2622,6 +2791,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveHandle") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_handle_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2629,6 +2799,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveTraceId") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_trace_id_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2636,6 +2807,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActivePriority") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_priority_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2643,6 +2815,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveConcurrent") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_concurrent_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2650,6 +2823,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (strcmp(callee_name, "IntentActiveTrace") == 0
         && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_trace_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
@@ -2712,6 +2886,31 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef args[] = { fmt, val };
                 LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
             }
+        }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
+    if (strcmp(callee_name, "ReadLine") == 0 && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_input");
+        if (fn != NULL) {
+            LLVMValueRef empty = LLVMBuildGlobalStringPtr(ctx->builder, "", ".readline_empty");
+            LLVMValueRef args[] = { empty };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        }
+    }
+
+    if (strcmp(callee_name, "Now") == 0 && node->data.call.arg_count == 0) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_now_ms");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, "");
+    }
+
+    if (strcmp(callee_name, "Sleep") == 0 && node->data.call.arg_count == 1) {
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_sleep_ms");
+        if (fn != NULL) {
+            LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[0], ctx);
+            LLVMValueRef args[] = { arg };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
@@ -3243,13 +3442,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (node->data.call.callee->type == AST_IDENTIFIER)
             callee_var = llvm_scope_lookup(ctx, callee_name);
         if (callee_var != NULL) {
+            ASTNode *callable_type = llvm_lookup_callable_var(ctx, callee_name);
+            LLVMTypeRef callable_ptr_ty = NULL;
             if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
                 fn_type = LLVMGetElementType(callee_var->type);
             if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
-                ASTNode *callable_type = llvm_lookup_callable_var(ctx, callee_name);
                 if (callable_type != NULL)
                     fn_type = llvm_function_signature_from_event_type(ctx, callable_type);
             }
+            if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
+                callable_ptr_ty = LLVMPointerType(fn_type, 0);
             if ((fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
                 && ctx->current_function != NULL) {
                 const char *current_name = LLVMGetValueName(ctx->current_function);
@@ -3291,8 +3493,22 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
             }
-            fn_ptr = LLVMBuildLoad2(ctx->builder, callee_var->type,
-                callee_var->alloca, llvm_tmp_name(ctx));
+            if (fn_type != NULL
+                && LLVMGetTypeKind(fn_type) == LLVMPointerTypeKind) {
+                callable_ptr_ty = fn_type;
+                fn_type = LLVMGetElementType(fn_type);
+            }
+            if (callable_ptr_ty == NULL
+                && fn_type != NULL
+                && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind) {
+                callable_ptr_ty = LLVMPointerType(fn_type, 0);
+            }
+            fn_ptr = llvm_emit_expression(node->data.call.callee, ctx);
+            if (fn_ptr != NULL && callable_ptr_ty != NULL
+                && LLVMTypeOf(fn_ptr) != callable_ptr_ty) {
+                fn_ptr = LLVMBuildBitCast(ctx->builder, fn_ptr, callable_ptr_ty,
+                    llvm_tmp_name(ctx));
+            }
             if (fn_type == NULL && LLVMGetTypeKind(LLVMTypeOf(fn_ptr)) == LLVMFunctionTypeKind)
                 fn_type = LLVMTypeOf(fn_ptr);
             if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind) {
@@ -3325,8 +3541,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             if (arg_node->type == AST_IDENTIFIER) {
                 LLVMVarEntry *v = llvm_scope_lookup(ctx,
                     arg_node->data.identifier.name);
+                ASTNode *callable_type = llvm_lookup_callable_var(ctx,
+                    arg_node->data.identifier.name);
                 if (v != NULL) {
-                    if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
+                    if (callable_type != NULL) {
+                        LLVMTypeRef callable_sig =
+                            llvm_function_signature_from_event_type(ctx, callable_type);
+                        LLVMTypeRef callable_ptr_ty = callable_sig != NULL
+                            ? LLVMPointerType(callable_sig, 0)
+                            : v->type;
+                        args[i] = LLVMBuildLoad2(ctx->builder, callable_ptr_ty,
+                            v->alloca, llvm_tmp_name(ctx));
+                    } else if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
                         args[i] = LLVMBuildLoad2(ctx->builder, v->type,
                             v->alloca, llvm_tmp_name(ctx));
                     } else {

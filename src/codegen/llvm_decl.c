@@ -191,6 +191,19 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     /* Save context */
     LLVMValueRef saved_fn       = ctx->current_function;
     LLVMTypeRef  saved_ret_type = ctx->current_ret_type;
+    int saved_slot_var_count = ctx->slot_var_count;
+    int saved_view_var_count = ctx->view_var_count;
+    int saved_device_slot_var_count = ctx->device_slot_var_count;
+    int saved_future_var_count = ctx->future_var_count;
+    int saved_channel_var_count = ctx->channel_var_count;
+    int saved_var_class_count = ctx->var_class_count;
+    int saved_projection_borrow_count = ctx->projection_borrow_count;
+    int saved_array_var_count = ctx->array_var_count;
+    int saved_list_var_count = ctx->list_var_count;
+    int saved_set_var_count = ctx->set_var_count;
+    int saved_queue_var_count = ctx->queue_var_count;
+    int saved_map_var_count = ctx->map_var_count;
+    int saved_callable_var_count = ctx->callable_var_count;
 
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
@@ -264,6 +277,20 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_pop(ctx);
+
+    ctx->slot_var_count = saved_slot_var_count;
+    ctx->view_var_count = saved_view_var_count;
+    ctx->device_slot_var_count = saved_device_slot_var_count;
+    ctx->future_var_count = saved_future_var_count;
+    ctx->channel_var_count = saved_channel_var_count;
+    ctx->var_class_count = saved_var_class_count;
+    ctx->projection_borrow_count = saved_projection_borrow_count;
+    ctx->array_var_count = saved_array_var_count;
+    ctx->list_var_count = saved_list_var_count;
+    ctx->set_var_count = saved_set_var_count;
+    ctx->queue_var_count = saved_queue_var_count;
+    ctx->map_var_count = saved_map_var_count;
+    ctx->callable_var_count = saved_callable_var_count;
 
     /* Restore context */
     ctx->current_function = saved_fn;

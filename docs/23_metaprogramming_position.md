@@ -24,7 +24,7 @@ C++ 템플릿 메타프로그래밍은 "런타임 비용 0으로 컴파일 타�
 | 조건부 타입 분기 | ability/role dispatch (런타임 vtable) | 구현 완료 |
 | 정책 주입 (Policy pattern) | ability + role 조합 | 구현 완료 |
 | CRTP (정적 다형성) | role이 subject에 바인딩 | 구현 완료 |
-| Type traits | 제네릭 constraint (`where T: Comparable`) | 파서 완료, 시맨틱 TODO |
+| Type traits | 제네릭 constraint (`where T: Comparable`) | 부분 구현 (unknown bound 검증, function call exact-bound enforcement, class specialization enforcement, subject/role 기반 ability-style satisfaction 구현) |
 | 컴파일 타임 계산 | 향후 `const` 표현식으로 충분 | 미구현 |
 
 이 조합으로 실용 범위의 95%가 커버된다.
@@ -75,3 +75,12 @@ TMP 대신 **더 깨끗한 대안**이 있다:
 
 - 2026-04-04: TMP 비채택 결정, 문서화
 - 향후 코드 생성 필요 시 플러그인/소스 생성기 모델 검토
+
+## 현재 구현 메모
+
+- `where T: Int` 같은 exact-bound 제약은 함수 호출과 generic class specialization에서 실제로 강제된다.
+- `where T: Comparable` 같은 ability-style 제약은 현재 `subject` + `role` + `impl ability` 경로에서 만족 판정이 들어간다.
+- 아직 남은 것:
+  - 더 넓은 타입군 일반화
+  - richer diagnostics
+  - monomorphization/LLVM 경로 문서 정렬

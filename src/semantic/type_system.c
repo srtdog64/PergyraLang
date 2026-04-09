@@ -528,7 +528,7 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     case AST_BINARY: {
         Type *left = type_infer_expression(expr->data.binary.left, env);
         Type *right = type_infer_expression(expr->data.binary.right, env);
-        TokenType op = expr->data.binary.op.type;
+        PgyTokenType op = expr->data.binary.op.type;
 
         switch (op) {
         case TOKEN_AND:

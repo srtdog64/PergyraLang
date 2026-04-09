@@ -272,6 +272,7 @@ struct ASTNode
     /* Line and column information */
     uint32_t line;
     uint32_t column;
+    char    *origin_path;
     
     /* Node-specific data */
     union {
@@ -575,6 +576,7 @@ struct ASTNode
             size_t require_count;
             ASTNode** methods;
             size_t method_count;
+            bool is_innate;
             StructuredComment* doc_comment;
         } ability_decl;
         
@@ -1096,7 +1098,7 @@ void ast_add_argument(ASTNode* call, ASTNode* arg);
 void ast_destroy(ASTNode* node);
 void ast_destroy_structured_comment(StructuredComment* comment);
 void ast_print(ASTNode* node, int indent);
-const char* token_type_to_string(TokenType type);
+const char* token_type_to_string(PgyTokenType type);
 
 /* Role/Ability system AST creation functions */
 ASTNode* ast_create_ability_declaration(const char* name);

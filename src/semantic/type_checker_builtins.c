@@ -990,6 +990,9 @@ builtin_resolve(const char *name)
     if (strcmp(name, "WriteFile")       == 0) return BUILTIN_WRITE_FILE;
     if (strcmp(name, "Input")           == 0) return BUILTIN_INPUT;
     if (strcmp(name, "Print")           == 0) return BUILTIN_PRINT;
+    if (strcmp(name, "ReadLine")        == 0) return BUILTIN_READ_LINE;
+    if (strcmp(name, "Now")             == 0) return BUILTIN_NOW;
+    if (strcmp(name, "Sleep")           == 0) return BUILTIN_SLEEP;
     if (strcmp(name, "IntentLastTrace") == 0) return BUILTIN_INTENT_LAST_TRACE;
     if (strcmp(name, "IntentLastFailure") == 0) return BUILTIN_INTENT_LAST_FAILURE;
     if (strcmp(name, "IntentLastName")  == 0) return BUILTIN_INTENT_LAST_NAME;
@@ -1857,6 +1860,26 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
             TYPE_STRING, expr->data.call.arguments[0], ctx);
+        return TYPE_VOID;
+    }
+    if (strcmp(name, "ReadLine") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return TYPE_STRING;
+    }
+    if (strcmp(name, "Now") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return TYPE_INT;
+    }
+    if (strcmp(name, "Sleep") == 0) {
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+            TYPE_INT, expr->data.call.arguments[0], ctx);
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
         return TYPE_VOID;
     }
 
@@ -2766,6 +2789,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return TYPE_STRING;
     case BUILTIN_PRINT:
         return type_check_stdlib_call(call, "Print", ctx);
+    case BUILTIN_READ_LINE:
+        return type_check_stdlib_call(call, "ReadLine", ctx);
+    case BUILTIN_NOW:
+        return type_check_stdlib_call(call, "Now", ctx);
+    case BUILTIN_SLEEP:
+        return type_check_stdlib_call(call, "Sleep", ctx);
     case BUILTIN_INTENT_LAST_TRACE:
         check_call_arity(call, 0, "IntentLastTrace", ctx);
         return TYPE_STRING;

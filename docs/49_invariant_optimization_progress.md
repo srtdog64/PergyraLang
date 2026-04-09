@@ -1,6 +1,6 @@
 # Invariant Optimization Progress
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-09
 
 이 문서는 최근 진행한 ABI 정렬, backend 성능 계측, AlphaDev식 invariant 최적화 작업이 어디까지 왔는지 추적한다.
 
@@ -14,6 +14,8 @@
 
 - `test_abi_spec`와 `test_abi_pipeline`를 통해 ABI spec과 실제 compiler->binary 경로를 함께 검증한다.
 - `test-abi-perf`가 추가되어 medium workload benchmark와 phase timing을 함께 본다.
+- `test-abi-perf`는 이제 release runtime object prebuild를 실제로 사용한다.
+- `PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0/OBS1`가 bench target에 연결돼 LLVM runtime 재컴파일 고정비를 피한다.
 - `driver_run_pipeline_timed(...)`가 다음 phase를 기록한다.
   - `module_load`
   - `semantic`
@@ -51,6 +53,12 @@
 - normal compile path에서는 `[MIR LOWER] ...` 출력이 기본 비활성화다.
 - 필요할 때만 `PGY_DEBUG_MIR_LOWER=1`로 켠다.
 
+### 1.5 nominal constructor parity
+
+- `party`와 `systemic` nominal constructor는 이제 C/LLVM 양쪽에서 같은 field order와 shared initializer contract를 가진다.
+- 즉 `party slot ...` 또는 `shared x: T = ...`가 섞여 있어도 constructor materialization이 backend마다 다르게 깨지지 않는다.
+- 이 수정으로 `party/shared initializer`, `systemic shared + nested party shared` 샘플이 다시 양 backend에서 같은 값을 낸다.
+
 ## 2. 지금 실제로 측정된 상태
 
 작은 ABI 샘플 기준으로 frontend IR 단계는 거의 비용이 없다.
@@ -65,15 +73,17 @@
 
 ### 2.2 LLVM backend
 
-- 총 compile: 대략 `1.159s ~ 1.226s`
-- `backend_codegen`: 대략 `3.3ms ~ 5.7ms`
-- `backend_native_compile`: 대략 `987ms ~ 1023ms`
-- `backend_link`: 대략 `166ms ~ 199ms`
+- 이전 small ABI 기준 총 compile: 대략 `1.159s ~ 1.226s`
+- 현재 prebuilt runtime bench 기준 총 compile: 대략 `0.160s ~ 0.168s`
+- `backend_codegen`: 대략 `3ms ~ 7ms`
+- `backend_native_compile`: 대략 `3ms ~ 4ms`
+- `backend_link`: 대략 `150ms ~ 176ms`
 
 ### 2.3 의미
 
 - C backend는 transpile 자체보다 native compile/link 비용이 지배적이다.
 - LLVM backend도 LLVM IR/object emission보다 runtime library compile 비용이 더 크다.
+- prebuilt runtime object를 bench target에 연결한 뒤, LLVM compile 총합은 크게 줄었고 남은 주 병목은 거의 전부 link다.
 - 따라서 현재 “느리다”는 체감은 IR 단계 자체보다 toolchain fixed cost 영향이 크다.
 
 ## 3. AlphaDev식 invariant 최적화 관점에서 이미 찾은 핵심 후보
@@ -83,6 +93,18 @@
 1. `intent` observability no-trace fast path
 - 현재는 trace/history builtin을 실제로 안 써도 registry/trace/history bookkeeping이 항상 돈다.
 - 프로그램이 `IntentLast*` / `IntentHistory*`를 안 쓰는 경우 이 경로를 꺼야 한다.
+- 다만 `rollback: full` 같은 compensation 경로 때문에 step bookkeeping 자체를 완전히 제거할 수는 없다.
+- 여기서는 bookkeeping을 둘로 나눠야 한다.
+  - 필수 bookkeeping:
+    - "어느 step까지 성공했는가?"
+    - rollback 시 역순 compensation 대상을 결정하기 위한 최소 상태다.
+    - 구현은 `last completed step index` 같은 단순 integer watermark 하나로 충분하다.
+  - 비필수 bookkeeping:
+    - 각 step의 상세 상태 전이
+    - 각 step의 소요 시간
+    - trace/history 문자열
+    - 디버그용 세부 reason / profiling payload
+- 즉 release fast path의 목표는 bookkeeping을 전부 없애는 것이 아니라, compensation correctness에 필요한 최소 상태만 남기고 나머지 observability 비용을 compile flag / profile mode 뒤로 보내는 것이다.
 
 2. ABI `type_layout` 실사용 강화
 - MIR에는 ABI table과 `type_layout`가 이미 있다.
@@ -97,12 +119,55 @@
 ### 3.2 다음 우선순위
 
 4. runtime library object cache
-- 현재 LLVM small workload 비용의 대부분은 runtime library compile이다.
-- “runtime lib는 매번 다시 컴파일할 필요가 없다”는 불변식을 이용해 prebuilt object/cache로 줄일 수 있다.
+- bench target에는 이미 연결됐다.
+- 다음 남은 일은 CI/local default path까지 어디까지 확장할지 결정하는 것이다.
 
 5. projection redundancy elimination 확대
 - C backend relation/effect/zone에는 dirty 모델이 들어갔다.
 - 이를 LLVM/domain/world까지 더 넓혀야 한다.
+
+## 3.3 보류한 후보
+
+### persistent vector / slice view for intent snapshots
+
+아이디어:
+
+- 완전 복사 대신 구조 공유
+- 기존 배열은 불변으로 취급
+- 새 step/snapshot은 view만 가짐
+- 변경 시 path-copy 또는 spill
+
+이 후보를 버린 것은 아니다. 다만 현재 순서에서는 의도적으로 뒤로 미뤘다.
+
+이유:
+
+- 현재 intent hot path의 큰 비용은 `subject pointer array` 복사보다
+  - trace 문자열 누적
+  - history step 문자열 복사
+  - exit 시 last-history 복제
+  쪽이 더 크다
+- 현재 subject registry는 exclusivity/conflict 판정에 실제로 쓰인다
+- subject count는 대체로 작아서, 작은 N에서는 persistent 구조의 indirection/allocator 비용이 더 비쌀 수 있다
+- 지금 단계에서 persistent vector를 먼저 넣으면 runtime ownership/lifetime/ABI surface가 커진다
+
+즉 현재 판단은:
+
+- `persistent vector`는 어려워서 미룬 것이 아니다
+- `비용 대비 효과`가 지금은 낮아서 미룬 것이다
+
+현재 권장 순서:
+
+1. `intent no-trace fast path`
+2. subject list `small inline buffer`
+3. runtime library compile cache
+4. 그 다음에 snapshot-heavy workload가 확인되면 `persistent vector / slice view`
+
+다시 꺼낼 조건:
+
+- intent participant 수가 큰 workload가 실제로 반복된다
+- conflict registry snapshot/branching이 많다
+- trace/history fast path 이후에도 subject-list copy가 상위 병목으로 남는다
+- lifetime/ownership 규칙을 ABI 표면을 깨지 않고 닫을 수 있다
 
 ## 4. 아직 남아 있는 큰 부채
 
@@ -110,12 +175,12 @@
 
 - LLVM backend에는 아직 HIR fallback이 남아 있다.
 - 대표 항목:
-  - ordinary function fallback
-  - intent emission fallback
+  - async function fallback
+  - intent step 내부 AST 직접 해석
   - class method fallback
   - main wrapper / top-level executable fallback
 
-즉 현재 상태는 `MIR 주도 + HIR 보조` 하이브리드다.
+즉 현재 상태는 `MIR 주도 + 마지막 AST 직접 해석 잔여` 하이브리드다.
 
 ### 4.2 ABI-first transpiler 미완료
 
@@ -124,7 +189,7 @@
 ### 4.3 backend 간 projection 최적화 비대칭
 
 - C는 dirty invalidation/incremental rebuild가 앞서 있다.
-- LLVM은 object borrow/materialize 분리는 들어갔지만 domain projection dirty 모델은 아직 덜 정렬됐다.
+- LLVM은 object borrow/materialize 분리는 들어갔고 `party/systemic` constructor parity도 맞췄지만, domain projection dirty 모델은 아직 덜 정렬됐다.
 
 ## 5. 지금 기준 체크리스트
 
@@ -144,14 +209,15 @@
 - MIR-only backend migration
 - ABI-first transpiler
 - LLVM projection optimization parity
+- intent step semantic lowering (MIR carrier는 들어갔고 expression-level lowering이 남음)
 
 ### next
 
-1. `intent` no-trace fast path
-2. LLVM runtime library compile cache
-3. transpiler의 `type_layout` / ABI table 실사용 강화
-4. LLVM true PHI lowering
-5. LLVM HIR fallback 제거
+1. intent step 내부 의미의 MIR instruction화
+2. transpiler의 `type_layout` / ABI table 실사용 강화
+3. LLVM true PHI lowering
+4. main wrapper / top-level executable MIR metadata화
+5. class/domain 잔여 HIR fallback 제거
 
 ## 6. 현재 판단
 

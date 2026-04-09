@@ -309,6 +309,7 @@ ASTNode* ast_create_ability_declaration(const char* name) {
     node->data.ability_decl.require_count = 0;
     node->data.ability_decl.methods = NULL;
     node->data.ability_decl.method_count = 0;
+    node->data.ability_decl.is_innate = false;
     node->data.ability_decl.doc_comment = NULL;
     return node;
 }
@@ -1066,6 +1067,9 @@ ast_clone(ASTNode* node)
     if (clone != NULL) {
         clone->line = node->line;
         clone->column = node->column;
+        clone->origin_path = node->origin_path != NULL
+            ? pergyra_strdup(node->origin_path)
+            : NULL;
     }
 
     return clone;
@@ -2012,5 +2016,6 @@ void ast_destroy(ASTNode* node) {
             break;
     }
 
+    free(node->origin_path);
     free(node);
 }

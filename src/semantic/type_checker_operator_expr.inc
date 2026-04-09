@@ -1,5 +1,5 @@
 static const char *
-operator_overload_suffix(TokenType op)
+operator_overload_suffix(PgyTokenType op)
 {
     switch (op) {
     case TOKEN_PLUS:          return "add";
@@ -18,10 +18,10 @@ operator_overload_suffix(TokenType op)
 }
 
 static bool
-operator_method_name_matches(TokenType op, const char *name)
+operator_method_name_matches(PgyTokenType op, const char *name)
 {
     static const struct {
-        TokenType op;
+        PgyTokenType op;
         const char *names[10];
     } aliases[] = {
         { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
@@ -85,7 +85,7 @@ find_role_decl_in_program(ASTNode *program, const char *role_name)
 }
 
 static ASTNode *
-find_role_operator_method(ASTNode *role, ASTNode *program, TokenType op,
+find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
                           int depth)
 {
     if (role == NULL || role->type != AST_ROLE_DECL || depth > 16)

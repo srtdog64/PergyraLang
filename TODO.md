@@ -1,5 +1,14 @@
 # Pergyra TODO (배포 준비)
 
+마지막 업데이트: 2026-04-08
+
+## 완료 (최근)
+
+- [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
+- [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
+- [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
+- [x] **Documentation Index** — `docs/INDEX.md` 생성, 전체 문서 체계화
+
 ## 완료 (P0 — 즉시 수정)
 
 - [x] **`system()` 명령 주입 제거** — `_spawnvp`/`execvp`로 교체, 경로 검증 추가 (`pgy_path_is_safe`)

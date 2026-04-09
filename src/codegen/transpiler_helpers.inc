@@ -377,6 +377,9 @@ find_party_decl(TranspilerCtx *ctx, const char *party_name)
 }
 
 static ASTNode *
+find_systemic_decl(TranspilerCtx *ctx, const char *systemic_name);
+
+static ASTNode *
 find_class_decl(TranspilerCtx *ctx, const char *class_name)
 {
     if (ctx == NULL || ctx->hir == NULL || class_name == NULL)
@@ -476,15 +479,9 @@ transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
     if (find_class_decl(ctx, name) != NULL
         || find_zone_decl(ctx, name) != NULL
         || find_party_decl(ctx, name) != NULL
+        || find_systemic_decl(ctx, name) != NULL
         || find_actor_decl(ctx, name) != NULL)
         return true;
-
-    for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
-        ASTNode *stmt = ctx->hir->systemics[i];
-        if (stmt != NULL && stmt->data.systemic_decl.name != NULL
-            && strcmp(stmt->data.systemic_decl.name, name) == 0)
-            return true;
-    }
     for (size_t i = 0; i < ctx->hir->world_count; i++) {
         (void)i;
     }
@@ -1167,6 +1164,24 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
             if (refresh_count_out != NULL)
                 *refresh_count_out = decl->data.zone_decl.refresh_count;
             return decl->data.zone_decl.refreshes;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+find_systemic_decl(TranspilerCtx *ctx, const char *systemic_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || systemic_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
+        ASTNode *stmt = ctx->hir->systemics[i];
+        if (stmt != NULL && stmt->type == AST_SYSTEMIC_DECL
+            && stmt->data.systemic_decl.name != NULL
+            && strcmp(stmt->data.systemic_decl.name, systemic_name) == 0) {
+            return stmt;
         }
     }
 
@@ -2204,7 +2219,7 @@ lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
 }
 
 static const char *
-operator_overload_suffix(TokenType op)
+operator_overload_suffix(PgyTokenType op)
 {
     switch (op) {
     case TOKEN_PLUS:          return "add";
@@ -2224,10 +2239,10 @@ operator_overload_suffix(TokenType op)
 
 static ASTNode *
 find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
-                               TokenType op, int depth);
+                               PgyTokenType op, int depth);
 
 static ASTNode *
-find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, TokenType op)
+find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenType op)
 {
     const char *suffix = operator_overload_suffix(op);
     char fn_name[256];
@@ -2259,10 +2274,10 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, TokenType
 }
 
 static bool
-operator_method_name_matches(TokenType op, const char *name)
+operator_method_name_matches(PgyTokenType op, const char *name)
 {
     static const struct {
-        TokenType op;
+        PgyTokenType op;
         const char *names[10];
     } aliases[] = {
         { TOKEN_PLUS, { "Add", "add", "OperatorAdd", "operator_add", NULL } },
@@ -2308,7 +2323,7 @@ operator_method_name_matches(TokenType op, const char *name)
 
 static ASTNode *
 find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
-                               TokenType op, int depth)
+                               PgyTokenType op, int depth)
 {
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
         return NULL;
@@ -2994,7 +3009,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Int";
     }
     case AST_BINARY: {
-        TokenType op = expr->data.binary.op.type;
+        PgyTokenType op = expr->data.binary.op.type;
         const char *left_type = infer_expression_type_name(ctx, expr->data.binary.left);
         const char *right_type = infer_expression_type_name(ctx, expr->data.binary.right);
         if (op == TOKEN_PLUS) {
@@ -3969,6 +3984,7 @@ transpiler_extract_type_suffix_from_fn(const char *fn_name)
  *   MIR:  RESOURCE_OP { runtime_fn: "pgy_release_Int", slot_anchor: "s" }
  *   C:    pgy_release_Int(&s);
  */
+__attribute__((unused))
 static bool
 transpiler_emit_mir_resource_op(CodeBuf *out,
                                 int indent,
@@ -4085,6 +4101,7 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
  *   MIR:  DEF { arg0: "pgy_read_Int", arg1: "&s", result_name: "%val_s_1" }
  *   C:    int32_t val_s_1 = pgy_read_Int(&s);
  */
+__attribute__((unused))
 static bool
 transpiler_emit_mir_def(CodeBuf *out,
                         int indent,

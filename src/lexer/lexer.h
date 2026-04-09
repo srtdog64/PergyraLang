@@ -60,8 +60,9 @@ typedef enum
     TOKEN_FALSE,
     TOKEN_PUBLIC,
     TOKEN_PRIVATE,
+    TOKEN_INNATE,
     TOKEN_WHERE,
-    TOKEN_TYPE,
+    PGY_TOKEN_TYPE,
     TOKEN_TRAIT,
     TOKEN_IMPL,
     
@@ -84,18 +85,14 @@ typedef enum
     TOKEN_OVERRIDE,
     TOKEN_SUPER,
     TOKEN_SECURE,
-    
+
     /* Party keywords */
     TOKEN_PARTY,
-    TOKEN_RELATION,
-    TOKEN_EFFECT,
-    TOKEN_ZONE,
     TOKEN_SLOT,
     TOKEN_SHARED,
-    TOKEN_CONTEXT,
     TOKEN_EXTENDS,
     TOKEN_DYN,
-    
+
     /* Systemic and World keywords */
     TOKEN_SYSTEMIC,
     TOKEN_WORLD,
@@ -176,18 +173,26 @@ typedef enum
     
     /* Structured Comments */
     TOKEN_DOC_COMMENT,      /* /// */
+    /* Domain / contextual keywords — lexed as IDENTIFIER, recognized by parser */
+    /* These have NO dedicated token; parser handles them contextually */
+    /* TOKEN_OBJECT, TOKEN_VESSEL, TOKEN_INTENT, TOKEN_EVENT, TOKEN_ACTION,
+       TOKEN_REQUIRES, TOKEN_WITHIN, TOKEN_CAUSES, TOKEN_AUTHORIZED, TOKEN_BY,
+       TOKEN_INVOLVES, TOKEN_STEP, TOKEN_WHO, TOKEN_EXPECT, TOKEN_SUCCESS,
+       TOKEN_FAILURE — all lexed as TOKEN_IDENTIFIER */
+
+    /* Doc comment tags — produced by scan_doc_comment() */
     TOKEN_DOC_TAG_WHAT,     /* [What]: */
     TOKEN_DOC_TAG_WHY,      /* [Why]: */
     TOKEN_DOC_TAG_ALT,      /* [Alt]: */
     TOKEN_DOC_TAG_NEXT      /* [Next]: */
-} TokenType;
+} PgyTokenType;
 
 /*
  * Token structure containing lexical information
  */
 typedef struct
 {
-    TokenType   type;
+    PgyTokenType   type;
     char       *text;
     size_t      length;
     uint32_t    line;
@@ -225,7 +230,7 @@ const char *lexer_get_error(const Lexer *lexer);
 /*
  * Token utility functions
  */
-const char *token_type_to_string(TokenType type);
+const char *token_type_to_string(PgyTokenType type);
 void        token_print(const Token *token);
 
 #endif /* PERGYRA_LEXER_H */

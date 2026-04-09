@@ -29,10 +29,12 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         memset(&routine, 0, sizeof(routine));
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
-        routine.owner_name = NULL;
         routine.name = hir_routine->name;
         routine.hir_routine = hir_routine;
         routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+        routine.owner_name = routine.rir_scope != NULL
+            ? routine.rir_scope->owner_name
+            : NULL;
 
         if (!mir_build_blocks_from_hir(&routine, hir_routine)
             || !mir_append_cleanup_block(&routine, routine.rir_scope)

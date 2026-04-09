@@ -69,7 +69,7 @@ ASTNode *parse_type_alias_declaration(Parser *parser);
 ASTNode *parse_extern_block(Parser *parser);
 
 /* --- Domain types (parser_domain.c) --- */
-ASTNode *parse_ability_declaration(Parser *parser);
+ASTNode *parse_ability_declaration(Parser *parser, bool is_innate);
 ASTNode *parse_role_declaration(Parser *parser);
 ASTNode *parse_party_declaration(Parser *parser);
 ASTNode *parse_systemic_declaration(Parser *parser);

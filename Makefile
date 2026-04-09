@@ -49,6 +49,7 @@ CI_LINUX_BIN_DIR   := $(TMPDIR)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR)/pgy-ci-windows-build
 CI_WINDOWS_BIN_DIR   := $(TMPDIR)/pgy-ci-windows-bin
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
+LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
 PROJECT_ROOT := $(CURDIR)
 CFLAGS  += -DPGY_PROJECT_ROOT=\"$(PROJECT_ROOT)\"
 CFLAGS  += -DPGY_SRC_DIR=\"$(PROJECT_ROOT)/src\"
@@ -163,6 +164,16 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
+                         $(CODEGEN_DIR)/llvm_type.c \
+                         $(CODEGEN_DIR)/llvm_api.c \
+                         $(CODEGEN_DIR)/llvm_pipeline.c \
+                         $(CODEGEN_DIR)/llvm_intent.c \
+                         $(CODEGEN_DIR)/llvm_registry.c \
+                         $(CODEGEN_DIR)/llvm_error.c \
+                         $(CODEGEN_DIR)/llvm_register.c \
+                         $(CODEGEN_DIR)/llvm_runtime.c \
+                         $(CODEGEN_DIR)/llvm_event.c \
+                         $(CODEGEN_DIR)/llvm_mir_emit.c \
                          $(CODEGEN_DIR)/llvm_expr.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_decl.c \
@@ -250,6 +261,18 @@ MIR_TEST            = $(BIN_DIR)/test_mir$(EXEEXT)
 HIR_TEST            = $(BIN_DIR)/test_hir$(EXEEXT)
 PGY                 = $(BIN_DIR)/pgy$(EXEEXT)
 PGY_LSP             = $(BIN_DIR)/pgy-lsp$(EXEEXT)
+ifeq ($(EXEEXT),.exe)
+RUNTIME_OBJ_EXT := .obj
+else
+RUNTIME_OBJ_EXT := .o
+endif
+ABI_PERF_RUNTIME_RELEASE_OBS0 = $(TMPDIR)/pgy_runtime_cache_release_obs0$(RUNTIME_OBJ_EXT)
+ABI_PERF_RUNTIME_RELEASE_OBS1 = $(TMPDIR)/pgy_runtime_cache_release_obs1$(RUNTIME_OBJ_EXT)
+ifneq ($(LLD),)
+ABI_PERF_LINKER_ENV = PGY_USE_LLD=1
+else
+ABI_PERF_LINKER_ENV =
+endif
 
 # -----------------------------------------------------------------
 # Default target — build the driver and all tests
@@ -429,8 +452,20 @@ test-abi: $(ABI_TEST) $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Integration ==="
 	"$(ABI_PIPELINE_TEST)"
 
-test-abi-perf: $(ABI_PIPELINE_TEST)
+$(ABI_PERF_RUNTIME_RELEASE_OBS0): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -O3 -DPGY_LLVM_ENABLED -DPGY_INTENT_OBSERVABILITY_ENABLED=0 -c -o $@ $<
+
+$(ABI_PERF_RUNTIME_RELEASE_OBS1): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -O3 -DPGY_LLVM_ENABLED -DPGY_INTENT_OBSERVABILITY_ENABLED=1 -c -o $@ $<
+
+abi-perf-runtime: $(ABI_PERF_RUNTIME_RELEASE_OBS0) $(ABI_PERF_RUNTIME_RELEASE_OBS1)
+
+test-abi-perf: $(ABI_PIPELINE_TEST) abi-perf-runtime
 	@echo "=== ABI Pipeline Benchmark ==="
+	$(if $(ABI_PERF_LINKER_ENV),$(ABI_PERF_LINKER_ENV) )PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0="$(ABI_PERF_RUNTIME_RELEASE_OBS0)" \
+	PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS1="$(ABI_PERF_RUNTIME_RELEASE_OBS1)" \
 	PGY_ABI_PERF_MODE=1 "$(ABI_PIPELINE_TEST)"
 
 test-concurrency: $(CONCURRENCY_TEST)

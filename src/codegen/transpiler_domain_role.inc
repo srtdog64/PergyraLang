@@ -97,7 +97,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 {
     const char *role_name;
     const char *for_type;
-    TokenType ops[] = {
+    PgyTokenType ops[] = {
         TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT,
         TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
         TOKEN_GREATER, TOKEN_GREATER_EQUAL
@@ -115,7 +115,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
     for_type = role->data.role_decl.for_type->data.type.name;
 
     for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
-        TokenType op = ops[i];
+        PgyTokenType op = ops[i];
         const char *suffix = operator_overload_suffix(op);
         ASTNode *method = find_role_operator_method_decl(ctx, role, op, 0);
         char fn_name[256];

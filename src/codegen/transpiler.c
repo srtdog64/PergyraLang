@@ -29,6 +29,8 @@ void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
 static void emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx);
+static bool ast_uses_thread_pool(ASTNode *node);
+static bool hir_requires_thread_pool(const HIRProgram *hir);
 static bool
 select_case_parts(ASTNode *case_node, ASTNode **channel_out,
                   const char **bind_name_out, ASTNode **body_out)
@@ -65,6 +67,126 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
         return true;
     }
 
+    return false;
+}
+
+static bool
+ast_uses_thread_pool(ASTNode *node)
+{
+    if (node == NULL)
+        return false;
+
+    switch (node->type) {
+    case AST_PARALLEL_BLOCK:
+    case AST_ASYNC_BLOCK:
+    case AST_SPAWN_EXPR:
+        return true;
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            if (ast_uses_thread_pool(node->data.block.statements[i]))
+                return true;
+        }
+        return false;
+    case AST_LET_DECL:
+        return ast_uses_thread_pool(node->data.let_decl.type)
+            || ast_uses_thread_pool(node->data.let_decl.initializer);
+    case AST_RETURN:
+        return ast_uses_thread_pool(node->data.return_stmt.value);
+    case AST_CALL:
+        if (ast_uses_thread_pool(node->data.call.callee))
+            return true;
+        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+            if (ast_uses_thread_pool(node->data.call.arguments[i]))
+                return true;
+        }
+        return false;
+    case AST_BINARY:
+        return ast_uses_thread_pool(node->data.binary.left)
+            || ast_uses_thread_pool(node->data.binary.right);
+    case AST_UNARY:
+        return ast_uses_thread_pool(node->data.unary.operand);
+    case AST_ASSIGNMENT:
+        return ast_uses_thread_pool(node->data.assignment.target)
+            || ast_uses_thread_pool(node->data.assignment.value);
+    case AST_MEMBER_ACCESS:
+        return ast_uses_thread_pool(node->data.member.object);
+    case AST_ARRAY_ACCESS:
+        return ast_uses_thread_pool(node->data.array_access.array)
+            || ast_uses_thread_pool(node->data.array_access.index);
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < node->data.array_literal.count; i++) {
+            if (ast_uses_thread_pool(node->data.array_literal.elements[i]))
+                return true;
+        }
+        return false;
+    case AST_IF_STMT:
+        return ast_uses_thread_pool(node->data.if_stmt.condition)
+            || ast_uses_thread_pool(node->data.if_stmt.then_branch)
+            || ast_uses_thread_pool(node->data.if_stmt.else_branch);
+    case AST_FOR_LOOP:
+        return ast_uses_thread_pool(node->data.for_loop.range_start)
+            || ast_uses_thread_pool(node->data.for_loop.range_end)
+            || ast_uses_thread_pool(node->data.for_loop.iterable)
+            || ast_uses_thread_pool(node->data.for_loop.body);
+    case AST_WHILE_LOOP:
+        return ast_uses_thread_pool(node->data.while_loop.condition)
+            || ast_uses_thread_pool(node->data.while_loop.body);
+    case AST_MATCH_STMT:
+        if (ast_uses_thread_pool(node->data.match_stmt.subject)
+            || ast_uses_thread_pool(node->data.match_stmt.default_body))
+            return true;
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+            if (ast_uses_thread_pool(node->data.match_stmt.cases[i]))
+                return true;
+        }
+        return false;
+    case AST_MATCH_CASE:
+        return ast_uses_thread_pool(node->data.match_case.pattern)
+            || ast_uses_thread_pool(node->data.match_case.guard)
+            || ast_uses_thread_pool(node->data.match_case.body);
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+            if (ast_uses_thread_pool(node->data.select_stmt.cases[i]))
+                return true;
+        }
+        return ast_uses_thread_pool(node->data.select_stmt.default_case);
+    case AST_TASK_GROUP:
+        for (size_t i = 0; i < node->data.task_group.task_count; i++) {
+            if (ast_uses_thread_pool(node->data.task_group.tasks[i]))
+                return true;
+        }
+        return false;
+    case AST_EVENT_SUBSCRIBE:
+    case AST_EVENT_UNSUBSCRIBE:
+        return ast_uses_thread_pool(node->data.event_op.event)
+            || ast_uses_thread_pool(node->data.event_op.handler);
+    case AST_EVENT_INVOKE:
+        if (ast_uses_thread_pool(node->data.event_invoke.event))
+            return true;
+        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
+            if (ast_uses_thread_pool(node->data.event_invoke.arguments[i]))
+                return true;
+        }
+        return false;
+    default:
+        return false;
+    }
+}
+
+static bool
+hir_requires_thread_pool(const HIRProgram *hir)
+{
+    if (hir == NULL)
+        return false;
+
+    for (size_t i = 0; i < hir->routine_count; i++) {
+        if (ast_uses_thread_pool(hir->routines[i].body))
+            return true;
+    }
+    for (size_t i = 0; i < hir->executable_count; i++) {
+        if (ast_uses_thread_pool(hir->executables[i]))
+            return true;
+    }
     return false;
 }
 
@@ -799,8 +921,12 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *world_decl = find_world_decl(ctx, ann_type_name);
             ASTNode *relation_decl = find_relation_decl(ctx, ann_type_name);
             ASTNode *effect_decl = find_effect_decl(ctx, ann_type_name);
+            ASTNode *party_decl = find_party_decl(ctx, ann_type_name);
+            ASTNode *systemic_decl = find_systemic_decl(ctx, ann_type_name);
             if ((zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
                 || (world_decl != NULL && world_decl->type == AST_WORLD_DECL)
+                || (party_decl != NULL && party_decl->type == AST_PARTY_DECL)
+                || (systemic_decl != NULL && systemic_decl->type == AST_SYSTEMIC_DECL)
                 || (relation_decl != NULL && relation_decl->type == AST_RELATION_DECL)
                 || (effect_decl != NULL && effect_decl->type == AST_EFFECT_DECL)) {
                 char *init_expr = emit_expression(init, ctx);
@@ -5233,12 +5359,15 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Check if a Main() function exists */
     /* Generate int main(void) { ... } */
     if (hir->executable_count > 0 || hir->has_main_function) {
+        bool needs_thread_pool = hir_requires_thread_pool(hir);
         codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
         ctx->indent++;
 
         /* Initialize runtime */
-        write_indent(ctx);
-        codebuf_write(ctx->out, "pgy_pool_init(0);\n\n");
+        if (needs_thread_pool) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_pool_init(0);\n\n");
+        }
 
         /* Emit top-level statements inside main() */
         for (size_t i = 0; i < hir->executable_count; i++)
@@ -5251,8 +5380,10 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         }
 
         /* Shutdown runtime */
-        write_indent(ctx);
-        codebuf_write(ctx->out, "pgy_pool_shutdown();\n");
+        if (needs_thread_pool) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_pool_shutdown();\n");
+        }
 
         write_indent(ctx);
         codebuf_write(ctx->out, "return 0;\n");
@@ -5299,6 +5430,7 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
     }
 
     result->success = true;
+    result->uses_intent_observability = ctx->uses_intent_observability;
     transpiler_ctx_destroy(ctx);
     return result;
 }

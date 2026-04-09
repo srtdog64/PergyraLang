@@ -134,6 +134,7 @@ const char *pgy_kind_to_suffix(PgyTypeKind kind);
 LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner);
+LLVMTypeRef llvm_set_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_queue_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_hashmap_struct_type(LLVMGenCtx *ctx, const char *value);
 LLVMValueRef llvm_sizeof_type_i64(LLVMGenCtx *ctx, LLVMTypeRef type);
@@ -234,6 +235,12 @@ typedef struct
 {
     const char *var_name;
     const char *inner_type;
+} LLVMSetVarEntry;
+
+typedef struct
+{
+    const char *var_name;
+    const char *inner_type;
 } LLVMQueueVarEntry;
 
 typedef struct
@@ -313,6 +320,7 @@ typedef struct LLVMGenCtx
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
     const char     *current_class_name;
+    bool            uses_intent_observability;
 
     /* --- Dynamic arrays: pointer + count + capacity --- */
 
@@ -407,6 +415,10 @@ typedef struct LLVMGenCtx
     int                   list_var_count;
     int                   list_var_capacity;
 
+    LLVMSetVarEntry      *set_vars;
+    int                   set_var_count;
+    int                   set_var_capacity;
+
     LLVMQueueVarEntry    *queue_vars;
     int                   queue_var_count;
     int                   queue_var_capacity;
@@ -484,6 +496,9 @@ void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
 void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
                             const char *inner_type);
 const char *llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name);
+void llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
+                           const char *inner_type);
+const char *llvm_lookup_set_inner(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
                              const char *inner_type);
 const char *llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name);
@@ -503,6 +518,10 @@ void           llvm_register_function(LLVMGenCtx *ctx, const char *name,
                                        LLVMValueRef fn, LLVMTypeRef fn_type,
                                        LLVMTypeRef ret_type);
 LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
+LLVMFuncEntry *llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
+                                              LLVMTypeRef fn_type,
+                                              LLVMTypeRef ret_type);
+void           llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name);
 
 /* =================================================================
  * Slot tracking (llvm_backend.c)
@@ -615,6 +634,25 @@ LLVMGenResult *llvm_result_error(const char *message);
 LLVMGenResult *llvm_result_success(char *ir_text);
 
 /* =================================================================
+ * Pipeline helpers (llvm_backend.c / llvm_api.c)
+ * ================================================================= */
+bool llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message);
+void llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx);
+bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
+void llvm_declare_runtime(LLVMGenCtx *ctx);
+void llvm_set_type_render_ctx(LLVMGenCtx *ctx);
+bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
+bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
+bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
+void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
+bool llvm_func_requires_hir_fallback(ASTNode *func_decl);
+void llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx);
+void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
+void llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx);
+void llvm_register_hir_extern_prototypes(const HIRProgram *hir, LLVMGenCtx *ctx);
+
+/* =================================================================
  * Emitters — expressions (llvm_expr.c)
  * ================================================================= */
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
@@ -630,6 +668,8 @@ void llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx);
  * ================================================================= */
 void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
+bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
 
 /* =================================================================
  * Emitters — domain (llvm_domain.c)

@@ -16,6 +16,7 @@
 - driver는 `driver_run_pipeline_timed(...)`를 통해 `module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total` timing을 직접 제공한다.
 - `object` lowering은 이제 C/LLVM 양쪽에서 borrow-first다. non-escaping `ToObject(...)` local binding은 source subject를 직접 읽는 projection alias로 다뤄진다.
 - `tobject` lowering은 여전히 materialize-first다. `ToTObject(...)`는 boundary transfer value를 실제로 만든다.
+- nominal constructor의 shared initializer 적용도 C/LLVM 양쪽에서 다시 맞춰졌다. `party`와 `systemic`는 constructor argument 뒤의 shared field default를 동일하게 materialize한다.
 - relation/effect/zone projection sync는 C backend에서 `__projection_ready_*` + `__projection_dirty_*` 기반 incremental rebuild를 사용한다.
 - normal compile path에서 `[MIR LOWER] ...` debug 출력은 기본 비활성화되어 있다. 필요할 때만 `PGY_DEBUG_MIR_LOWER=1`로 켠다.
 
@@ -25,7 +26,7 @@
 
 - LLVM backend는 여전히 HIR fallback을 가진다.
 - 현재 남아 있는 대표 debt:
-  - ordinary function fallback
+  - async ordinary function fallback
   - intent emission fallback
   - class method fallback
   - main wrapper / top-level executable fallback
@@ -40,6 +41,17 @@
 
 - C backend는 relation/effect/zone projection dirty invalidation과 incremental rebuild를 직접 가진다.
 - LLVM 쪽은 object borrow/materialize 분리는 들어갔지만, 같은 수준의 domain projection dirty runtime 최적화는 아직 C만큼 정렬되지 않았다.
+
+### 2.4 linker/toolchain 고정비는 여전히 크다
+
+- ABI perf 기준 병목은 아직 `codegen`보다 `link`다.
+- 대신 지금은 두 개의 우회 경로가 생겼다.
+  - `PGY_PREBUILT_RUNTIME_OBJ`
+  - `PGY_PREBUILT_RUNTIME_OBJ_<DEV|RELEASE>_<OBS0|OBS1>`
+    : LLVM runtime object를 외부에서 미리 빌드해 재사용
+  - `PGY_USE_LLD=1`
+    : non-Windows link에서 `-fuse-ld=lld` opt-in
+- 이건 완전 해결이 아니라, 고정비를 줄일 수 있는 cache/prebuilt 선택지를 추가한 상태다.
 
 ## 3. 이번에 갱신한 문서
 

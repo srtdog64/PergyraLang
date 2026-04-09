@@ -61,18 +61,18 @@ import "creatures.pgy";
 
 | 이름 | 타입 | 핵심 API | 상태 |
 |------|------|----------|------|
-| **HashMap** | `HashMap<K, V>` | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapKeys`, `MapSize` | TODO |
-| **List** | `List<T>` | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListSize`, `ListRemove` | TODO |
-| **ReadLine** | `func` | `ReadLine() -> String` | TODO |
-| **Print** | `func` | `Print(s)` (줄바꿈 없음, Log는 줄바꿈 있음) | TODO |
+| **HashMap** | `HashMap<K, V>` | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize` | 부분 구현 (`MapKeys` 미구현) |
+| **List** | `List<T>` | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListSize`, `ListRemove` | 구현 |
+| **ReadLine** | `func` | `ReadLine() -> String` | 구현 |
+| **Print** | `func` | `Print(s)` (줄바꿈 없음, Log는 줄바꿈 있음) | 구현 |
 
 ### Tier 2 — 유틸리티 (빌트인)
 
 | 이름 | 타입 | 핵심 API | 상태 |
 |------|------|----------|------|
-| **Set** | `Set<T>` | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | TODO |
-| **Queue** | `Queue<T>` | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | TODO |
-| **Clock** | `func` | `Now() -> Int` (ms), `Sleep(ms)` | TODO |
+| **Set** | `Set<T>` | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | 구현 (C/LLVM 표면 연결) |
+| **Queue** | `Queue<T>` | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | 구현 |
+| **Clock** | `func` | `Now() -> Int` (ms), `Sleep(ms)` | 구현 |
 | **Format** | `func` | `Format(template, args...)` | 미래 |
 
 ### Tier 4 — 표준 라이브러리 (`use` 키워드)
@@ -182,6 +182,7 @@ src/runtime/pgy_runtime.h      — 매크로, 인라인 함수, 타입 정의
 src/runtime/pgy_runtime_lib.c  — LLVM 링킹용 extern 심볼
 src/semantic/type_checker_builtins.c — 시맨틱 타입 체크
 src/codegen/transpiler.c       — C 코드젠 emit
+src/codegen/llvm_expr.c        — LLVM built-in lowering
 ```
 
 ## HashMap 설계
@@ -205,8 +206,11 @@ MapSet(inventory, "sword", 1);
 MapSet(inventory, "potion", 3);
 let count = MapGet(inventory, "potion");   // 3
 let has: Bool = MapHas(inventory, "shield");  // false
-let keys = MapKeys(inventory);      // Array<String>
 ```
+
+현재 구현 메모:
+- `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
+- `MapKeys`는 아직 문서 표면만 있고 semantic/codegen/runtime 연결이 없다.
 
 ## List 설계
 

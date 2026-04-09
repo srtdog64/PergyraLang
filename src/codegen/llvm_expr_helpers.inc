@@ -516,6 +516,30 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *
     if (ctx == NULL || ctx->hir == NULL || name == NULL)
         return NULL;
 
+    if (decl_type == AST_PARTY_DECL) {
+        for (size_t i = 0; i < ctx->hir->party_count; i++) {
+            ASTNode *stmt = ctx->hir->parties[i];
+            if (stmt != NULL && stmt->type == AST_PARTY_DECL
+                && stmt->data.party_decl.name != NULL
+                && strcmp(stmt->data.party_decl.name, name) == 0) {
+                return stmt;
+            }
+        }
+        return NULL;
+    }
+
+    if (decl_type == AST_SYSTEMIC_DECL) {
+        for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
+            ASTNode *stmt = ctx->hir->systemics[i];
+            if (stmt != NULL && stmt->type == AST_SYSTEMIC_DECL
+                && stmt->data.systemic_decl.name != NULL
+                && strcmp(stmt->data.systemic_decl.name, name) == 0) {
+                return stmt;
+            }
+        }
+        return NULL;
+    }
+
     for (size_t i = 0; i < ctx->hir->item_count; i++) {
         ASTNode *stmt = ctx->hir->items[i].ast;
         if (stmt == NULL || stmt->type != decl_type)
@@ -1393,7 +1417,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 }
 
 static const char *
-llvm_operator_overload_suffix(TokenType op)
+llvm_operator_overload_suffix(PgyTokenType op)
 {
     switch (op) {
     case TOKEN_PLUS: return "add";
@@ -1800,6 +1824,63 @@ llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
         occupied_ptr);
 }
 
+static const char *
+llvm_fallback_slot_inner_from_current_decl(LLVMGenCtx *ctx,
+                                           const char *source_name,
+                                           bool *secure_out)
+{
+    const char *current_name;
+    ASTNode *current_decl;
+
+    if (secure_out != NULL)
+        *secure_out = false;
+    if (ctx == NULL || source_name == NULL || ctx->current_function == NULL)
+        return NULL;
+
+    current_name = LLVMGetValueName(ctx->current_function);
+    current_decl = current_name != NULL
+        ? llvm_find_function_decl(ctx, current_name) : NULL;
+    if (current_decl == NULL || current_decl->type != AST_FUNC_DECL)
+        return NULL;
+
+    for (size_t i = 0; i < current_decl->data.func_decl.param_count; i++) {
+        FuncParam *p = current_decl->data.func_decl.params[i];
+        const char *type_name;
+        GenericParams *generic_args;
+        const char *inner_name;
+
+        if (p == NULL || p->name == NULL || strcmp(p->name, source_name) != 0
+            || p->type == NULL || p->type->type != AST_TYPE
+            || p->type->data.type.name == NULL) {
+            continue;
+        }
+
+        type_name = p->type->data.type.name;
+        if (strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0)
+            continue;
+
+        generic_args = p->type->data.type.generic_args;
+        if (generic_args == NULL || generic_args->count == 0
+            || generic_args->params == NULL || generic_args->params[0] == NULL) {
+            continue;
+        }
+
+        inner_name = generic_args->params[0]->name;
+        if (inner_name == NULL && generic_args->params[0]->constraint != NULL
+            && generic_args->params[0]->constraint->type == AST_TYPE) {
+            inner_name = generic_args->params[0]->constraint->data.type.name;
+        }
+        if (inner_name == NULL)
+            continue;
+
+        if (secure_out != NULL)
+            *secure_out = (strcmp(type_name, "SecureSlot") == 0);
+        return inner_name;
+    }
+
+    return NULL;
+}
+
 static LLVMVarEntry *
 llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
                          const char **inner_out,
@@ -1839,6 +1920,13 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
             inner = llvm_lookup_slot_inner(ctx, source_name);
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         }
+    }
+
+    if (inner == NULL && source_name != NULL) {
+        const char *fallback_inner =
+            llvm_fallback_slot_inner_from_current_decl(ctx, source_name, &is_secure);
+        if (fallback_inner != NULL)
+            inner = fallback_inner;
     }
 
     if (inner == NULL)
