@@ -35,7 +35,7 @@ typedef enum {
     NOMINAL_DECL_VESSEL,
     NOMINAL_DECL_STRUCT,
     NOMINAL_DECL_OBJECT,
-    NOMINAL_DECL_DTO
+    NOMINAL_DECL_TOBJECT
 } NominalDeclKind;
 
 typedef enum {
@@ -862,7 +862,7 @@ struct ASTNode
             ASTNode* type;
             bool is_subject;
             bool is_vessel;
-            bool is_dto;
+            bool is_tobject;
             bool is_binding;
             ASTNode* initializer;
         } domain_slot;
@@ -1038,7 +1038,7 @@ ASTNode* ast_create_subject(const char* name);
 ASTNode* ast_create_vessel(const char* name);
 ASTNode* ast_create_struct(const char* name);
 ASTNode* ast_create_object(const char* name);
-ASTNode* ast_create_dto(const char* name);
+ASTNode* ast_create_tobject(const char* name);
 ASTNode* ast_create_extern_block(const char* abi);
 ASTNode* ast_create_let_declaration(const char* name);
 ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type);

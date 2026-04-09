@@ -200,11 +200,11 @@ ASTNode* ast_create_object(const char* name) {
     return node;
 }
 
-ASTNode* ast_create_dto(const char* name) {
+ASTNode* ast_create_tobject(const char* name) {
     ASTNode* node = ast_create_struct(name);
     if (node) {
         /* tobject is a boundary transfer contract, not a struct alias */
-        node->data.class_decl.nominal_kind = NOMINAL_DECL_DTO;
+        node->data.class_decl.nominal_kind = NOMINAL_DECL_TOBJECT;
     }
     return node;
 }
@@ -619,7 +619,7 @@ ASTNode* ast_create_domain_slot(const char* slot_name, bool is_subject) {
     node->data.domain_slot.type = NULL;
     node->data.domain_slot.is_subject = is_subject;
     node->data.domain_slot.is_vessel = false;
-    node->data.domain_slot.is_dto = false;
+    node->data.domain_slot.is_tobject = false;
     node->data.domain_slot.is_binding = is_subject;
     node->data.domain_slot.initializer = NULL;
     return node;

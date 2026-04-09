@@ -69,13 +69,13 @@
 | 계층 | 현재 구현 | 비대칭 지점 | 위험 | 고정 방향 |
 | --- | --- | --- | --- | --- |
 | Lexer | `tobject`는 `TOKEN_STRUCT`, `object`는 예약 토큰이 아니라 식별자 기반 선언 진입 | `object`와 `tobject`가 같은 수준의 표면 개념인데 토큰 계층이 다르다 | 키워드 설명과 렉서 동작이 어긋나 보인다 | 문서에서는 `object`를 declaration-context keyword, `tobject`를 reserved token으로 고정하고 parser/semantic에서 의미 분리 강화 |
-| Parser | `object`는 `parse_object_declaration`, `tobject`는 `parse_dto_declaration`, `struct`는 `parse_struct_declaration` | `tobject / struct`는 같은 token family를 타고, `object`만 별도 contextual declaration 경로를 탄다 | "struct alias"처럼 오해되기 쉽다 | parser 진입은 달라도 AST nominal kind는 명시적으로 분리된다는 점을 계약으로 고정 |
-| AST | `NOMINAL_DECL_OBJECT`, `NOMINAL_DECL_DTO`, `NOMINAL_DECL_STRUCT`로 분리 | 표면 문법 공유에 비해 이 차이가 문서/진단에서 충분히 드러나지 않는다 | 사용자와 backend가 같은 것으로 오해할 수 있다 | AST nominal kind를 단일 semantic truth로 삼는다 |
+| Parser | `object`는 `parse_object_declaration`, `tobject`는 `parse_tobject_declaration`, `struct`는 `parse_struct_declaration` | `tobject / struct`는 같은 token family를 타고, `object`만 별도 contextual declaration 경로를 탄다 | "struct alias"처럼 오해되기 쉽다 | parser 진입은 달라도 AST nominal kind는 명시적으로 분리된다는 점을 계약으로 고정 |
+| AST | `NOMINAL_DECL_OBJECT`, `NOMINAL_DECL_TOBJECT`, `NOMINAL_DECL_STRUCT`로 분리 | 표면 문법 공유에 비해 이 차이가 문서/진단에서 충분히 드러나지 않는다 | 사용자와 backend가 같은 것으로 오해할 수 있다 | AST nominal kind를 단일 semantic truth로 삼는다 |
 | Semantic | `ToObject`/`ToTObject` builtin과 field mutability 규칙은 이미 분리됨 | 일부 진단은 아직 `class/object` 축 위주이며 `struct/tobject` 대비가 약하다 | projection/transfer contract가 흐려진다 | 모든 진단에서 `object=local projection`, `tobject=boundary transfer`, `struct=plain nominal data`를 명시 |
 | DIR | `refresh`와 `publish` 경로가 분리돼 있음 | 키워드 family 관점의 설명과 이름이 아직 약하다 | projection lowering 이유가 추적되지 않는다 | DIR에서 projection kind를 로그/덤프에 드러낸다 |
 | RIR | projection/resource 흐름이 있으나 `object/tobject` 이름으로는 잘 보이지 않음 | semantic 계약이 중간 IR에서 흐릿해진다 | backend가 왜 transfer인지 모르고 문자열 lowering에 기대기 쉽다 | projection/boundary contract를 RIR metadata로 유지 |
 | MIR | `type_layout`와 resource/export 훅은 있으나 nominal contract가 backend에서 실사용되지 않는다 | MIR 메타데이터가 있으나 transpiler/LLVM이 충분히 소비하지 않는다 | ABI 전환이 반쪽으로 남는다 | backend는 nominal/type layout을 MIR metadata에서만 읽는다 |
-| Backend | LLVM/C 모두 immutability와 일부 layout 판단에서 `OBJECT/DTO`를 함께 취급 | 의미 계약은 다르지만 codegen 분기에서 자주 묶인다 | `object`와 `tobject`가 같은 lowering class처럼 굳을 수 있다 | 공통 storage/layout은 공유해도 contract 분기는 유지하고, boundary path는 `tobject` 전용으로 고정 |
+| Backend | LLVM/C 모두 immutability와 일부 layout 판단에서 `OBJECT/TObject`를 함께 취급 | 의미 계약은 다르지만 codegen 분기에서 자주 묶인다 | `object`와 `tobject`가 같은 lowering class처럼 굳을 수 있다 | 공통 storage/layout은 공유해도 contract 분기는 유지하고, boundary path는 `tobject` 전용으로 고정 |
 
 ### 5.2 코드 근거
 
@@ -85,7 +85,7 @@
 | AST nominal split | `src/parser/ast.c` | `subject/class`, `object`, `tobject`, `struct`, `vessel`는 모두 별도 nominal kind로 내려간다 |
 | Semantic projection builtin | `src/semantic/type_checker_builtins.c` | `ToObject`와 `ToTObject`는 이미 별도 nominal contract를 기대한다 |
 | Semantic mutability | `src/semantic/type_checker.c` | `object`와 `tobject`는 둘 다 immutable 취급이지만 이유가 다르다 |
-| LLVM nominal lowering | `src/codegen/llvm_backend.c` | backend는 `OBJECT/DTO`를 자주 같은 storage bucket으로 본다 |
+| LLVM nominal lowering | `src/codegen/llvm_backend.c` | backend는 `OBJECT/TObject`를 자주 같은 storage bucket으로 본다 |
 
 ### 5.3 시작 작업
 

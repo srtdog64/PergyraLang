@@ -751,8 +751,8 @@ nominal_flavor_from_decl(const ASTNode *decl)
         return TYPE_NOMINAL_STRUCT;
     case NOMINAL_DECL_OBJECT:
         return TYPE_NOMINAL_OBJECT;
-    case NOMINAL_DECL_DTO:
-        return TYPE_NOMINAL_DTO;
+    case NOMINAL_DECL_TOBJECT:
+        return TYPE_NOMINAL_TOBJECT;
     case NOMINAL_DECL_CLASS:
     default:
         return TYPE_NOMINAL_CLASS;

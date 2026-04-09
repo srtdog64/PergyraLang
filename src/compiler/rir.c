@@ -368,7 +368,7 @@ add_domain_slot_fact(RIRScope *scope, ASTNode *slot)
     } else if (slot->data.domain_slot.is_vessel) {
         kind = RIR_RESOURCE_VESSEL_SLOT;
         state = RIR_STATE_OWNED;
-    } else if (slot->data.domain_slot.is_dto) {
+    } else if (slot->data.domain_slot.is_tobject) {
         kind = RIR_RESOURCE_TOBJECT_SLOT;
         state = RIR_STATE_UNINIT;
     } else {

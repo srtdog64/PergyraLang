@@ -355,8 +355,8 @@ async func MonitorCity(city: SimCity) {
         let stats = GetWorldStatistics(city)
         Log($"Average Frame Time: {stats.avgFrameTimeNs / 1000000}ms")
         
-        for roster in stats.systemicStats {
-            Log($"  {roster.systemicName}: {roster.avgExecutionTimeNs / 1000000}ms")
+        for roster in stats.rosterStats {
+            Log($"  {roster.rosterName}: {roster.avgExecutionTimeNs / 1000000}ms")
         }
     }
 }

@@ -415,7 +415,7 @@ run_tobject_keyword_test(void)
 
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO) {
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT) {
         printf("[FAIL] Expected 'tobject' to parse as struct-compatible declaration\n");
         failed = 1;
         goto cleanup;
@@ -480,7 +480,7 @@ run_tobject_keyword_alias_test(void)
 
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO) {
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT) {
         printf("[FAIL] Expected 'tobject' to parse as transfer-object declaration\n");
         failed = 1;
         goto cleanup;

@@ -1300,7 +1300,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
                 ASTNode *slot = stmt->data.zone_decl.slots[j];
                 if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                    || (!slot->data.domain_slot.is_dto
+                    || (!slot->data.domain_slot.is_tobject
                         && !llvm_domain_slot_is_projection_target(slot,
                             stmt->data.zone_decl.refreshes,
                             stmt->data.zone_decl.refresh_count))) {
@@ -1396,7 +1396,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 for (size_t j = 0; j < slot_count; j++) {
                     ASTNode *slot = slots[j];
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || (!slot->data.domain_slot.is_dto
+                        || (!slot->data.domain_slot.is_tobject
                             && !llvm_domain_slot_is_projection_target(slot,
                                 refreshes, refresh_count))) {
                         continue;
@@ -1454,7 +1454,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                     ASTNode *slot = stmt->data.zone_decl.slots[j];
                     char field_name[256];
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || (!slot->data.domain_slot.is_dto
+                        || (!slot->data.domain_slot.is_tobject
                             && !llvm_domain_slot_is_projection_target(slot,
                                 stmt->data.zone_decl.refreshes,
                                 stmt->data.zone_decl.refresh_count))
@@ -1560,7 +1560,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                         ASTNode *slot = slots[j];
                         char field_name[256];
                         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                            || (!slot->data.domain_slot.is_dto
+                            || (!slot->data.domain_slot.is_tobject
                                 && !llvm_domain_slot_is_projection_target(slot,
                                     refreshes, refresh_count))
                             || slot->data.domain_slot.slot_name == NULL) {

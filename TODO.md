@@ -235,7 +235,7 @@
   - World 코드젠 (C 백엔드 우선)
 
 ### Projection / Domain Query
-- [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/dto projection slot의 sync-ready 여부를 질의
+- [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 여부를 질의
   - 완료: semantic + C/LLVM lowering
   - World 내부의 Slot은 로컬 (zero-cost), World 간은 Channel (명시적 비용)
 
@@ -300,13 +300,13 @@
   - 완료: `zone`의 `detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 최소 release surface를 parser/semantic에 연결
   - 완료: `zone`의 `apply/detach`, `link/unlink`를 `effect/relation` declaration contract와 기본 타입/arity 수준으로 연결
   - 완료: `zone` subject shape에 대한 권장 lint 추가
-  - 완료: `dto` keyword를 `struct` 호환 projection alias로 추가
+  - 완료: `tobject` keyword를 `struct` 호환 projection alias로 추가
   - 완료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface를 semantic/C backend에 연결
-  - 완료: `ToDto(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
-  - 완료: `relation/effect/zone`에 `dto slot` surface를 연결
+  - 완료: `ToTObject(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
+  - 완료: `relation/effect/zone`에 `tobject slot` surface를 연결
   - 완료: `relation/effect/zone`의 domain slot에 optional initializer를 연결해 `object slot view: View = ToObject(View, subject)` 같은 projection wiring을 직접 표현 가능하게 함
   - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
-  - 완료: `zone`의 `publish dtoSlot from subjectSlot` surface로 dto projection 갱신 흐름을 parser/semantic에 연결
+  - 완료: `zone`의 `publish dtoSlot from subjectSlot` surface로 tobject projection 갱신 흐름을 parser/semantic에 연결
   - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
   - 완료: `maintain` duplicate/conflict warning (`maintain` + `detach/unlink`) 추가
   - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
@@ -335,11 +335,11 @@
   - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
   - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
   - 완료: `object`는 intent를 시작하지 않는 passive state target이라고 문서화
-  - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
-  - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
-  - 완료: `subject slot`과 `ToObject` / `ToDto` source가 `subject` host만 받도록 semantic 분기
+  - 완료: `tobject`는 object의 외부 경계용 축약 투영이라고 문서화
+  - 완료: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor를 parser AST에 분리 기록
+  - 완료: `subject slot`과 `ToObject` / `ToTObject` source가 `subject` host만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
-  - 완료: `object`를 passive state/value 형식으로, `dto`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
+  - 완료: `object`를 passive state/value 형식으로, `tobject`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
   - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
   - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
   - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
@@ -349,7 +349,7 @@
   - 완료: `subject` 단일 host surface로 통일
   - 완료: standalone host-profile surface 삭제
   - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
-  - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 dto source는 금지
+  - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 tobject source는 금지
   - 남음: relation/projection 중심 surface 고정
 
 ### slot 권한 / 자원군 확장
@@ -383,9 +383,9 @@
 - [ ] **stable stdlib surface 재고정**
 - [ ] **툴링 단계 진입** — formatter, LSP 진단 품질
 - [~] **ontology-first scaffold 정렬**
-  - 완료: `pgy scaffold` help를 `subject/class/object/dto` 우선 분기로 정렬
+  - 완료: `pgy scaffold` help를 `subject/class/object/tobject` 우선 분기로 정렬
   - 완료: `class` scaffold kind 추가
-  - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/dto`로 투영하는 starter shape를 생성
+  - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/tobject`로 투영하는 starter shape를 생성
   - 완료: `project` scaffold가 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)을 실제로 생성
   - 남음: `pgy new`가 `subject-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
   - 남음: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
@@ -406,7 +406,7 @@
   - 원칙: `entity/object pool`은 언어 코어 기능이 아니라 `use pool;` 같은 게임/앱 라이브러리 계층으로 둔다
   - 원칙: `encounter/turn/state machine`, `strategy/AI`, `content tables`도 동일하게 코어 문법이 아니라 프레임워크 surface로 쌓는다
   - 원칙: 이 계층은 “도메인 라이브러리”보다 “generic pattern library + domain injection”으로 정의한다
-  - 이유: 코어 언어는 `subject / vessel / object / dto / relation / effect / zone / world / Slot<T>` 의미론을 유지하고, 대규모 게임 설계는 그 위의 library/DSL 계층으로 올리는 편이 확장성과 설명력이 더 좋다
+  - 이유: 코어 언어는 `subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` 의미론을 유지하고, 대규모 게임 설계는 그 위의 library/DSL 계층으로 올리는 편이 확장성과 설명력이 더 좋다
   - 목표: “게임을 만들 수 있는 코어 언어”와 “게임을 실제로 만드는 프레임워크”를 분리
 - [ ] **게임 stdlib/use surface 초안**
   - 후보: `use pool;`, `use fsm;`, `use encounter;`, `use strategy;`, `use tables;`
@@ -477,7 +477,7 @@
   - 목적: native / web / mobile이 같은 UI 의미론과 projection 흐름을 공유하게 함
   - 원칙: 기술 기반은 Qt 방향(native shell / render loop), 선언 철학은 WPF식 projection/binding, 최종 정체성은 Pergyra scene/projection UI
   - 범위: `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
-  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `dto` / projection surface를 UI 소비 표면으로 사용
+  - 원칙: `subject`를 직접 화면에 그리지 않고 `object` / `tobject` / projection surface를 UI 소비 표면으로 사용
   - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
   - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
   - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음

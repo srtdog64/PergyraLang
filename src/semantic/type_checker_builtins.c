@@ -227,7 +227,7 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
                     return slot;
                 }
             }
-            if (slot->data.domain_slot.is_dto)
+            if (slot->data.domain_slot.is_tobject)
                 return slot;
         }
         return NULL;
@@ -932,7 +932,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "BoxIsValid")      == 0) return BUILTIN_BOX_IS_VALID;
     if (strcmp(name, "BoxArray")        == 0) return BUILTIN_BOX_ARRAY;
     if (strcmp(name, "ToObject")        == 0) return BUILTIN_TO_OBJECT;
-    if (strcmp(name, "ToTObject")       == 0) return BUILTIN_TO_DTO;
+    if (strcmp(name, "ToTObject")       == 0) return BUILTIN_TO_TOBJECT;
     if (strcmp(name, "HasProjection")   == 0) return BUILTIN_HAS_PROJECTION;
     if (strcmp(name, "HasLayer")        == 0) return BUILTIN_HAS_LAYER;
     if (strcmp(name, "HasState")        == 0) return BUILTIN_HAS_STATE;
@@ -2567,7 +2567,7 @@ type_check_projection_call(ASTNode *call,
     }
 
     if (!in_projection_context) {
-        if (expected_kind == NOMINAL_DECL_DTO) {
+        if (expected_kind == NOMINAL_DECL_TOBJECT) {
             semantic_warning(ctx, call,
                 "%s is being used as a direct boundary projection outside relation/effect/zone/world context; tobject is a transfer contract, so prefer tobject slots plus publish/transport flow",
                 builtin_name);
@@ -2585,7 +2585,7 @@ static Type *
 type_check_to_tobject(ASTNode *call, SemanticContext *ctx)
 {
     return type_check_projection_call(call, ctx, "ToTObject",
-        NOMINAL_DECL_DTO, "tobject");
+        NOMINAL_DECL_TOBJECT, "tobject");
 }
 
 static Type *
@@ -2682,7 +2682,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_box_array_builtin(call, ctx);
     case BUILTIN_TO_OBJECT:
         return type_check_to_object(call, ctx);
-        case BUILTIN_TO_DTO:
+        case BUILTIN_TO_TOBJECT:
             return type_check_to_tobject(call, ctx);
     case BUILTIN_HAS_PROJECTION:
         return type_check_has_projection(call, ctx);

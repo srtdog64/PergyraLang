@@ -122,7 +122,7 @@ typedef struct {
 WorldContext* CreateWorld(const char* worldName);
 
 /* Add roster to world */
-bool WorldAddSystemic(
+bool WorldAddRoster(
     WorldContext* world,
     const char* slotName,
     RosterContext* roster
@@ -130,12 +130,12 @@ bool WorldAddSystemic(
 
 /* World execution result */
 typedef struct {
-    const char* systemicSlot;
+    const char* rosterSlot;
     RosterExecutionResult result;
-} WorldSystemicResult;
+} WorldRosterResult;
 
 typedef struct {
-    WorldSystemicResult* systemicResults;
+    WorldRosterResult* rosterResults;
     size_t resultCount;
     bool allSucceeded;
     uint64_t frameTimeNs;
@@ -157,7 +157,7 @@ typedef struct {
     /* Callbacks */
     void (*onFrameStart)(WorldContext* world, uint64_t frameNum);
     void (*onFrameEnd)(WorldContext* world, WorldFrameResult* result);
-    void (*onSystemicError)(const char* roster, const char* error);
+    void (*onRosterError)(const char* roster, const char* error);
 } WorldLoopConfig;
 
 /* Run world loop */
@@ -173,7 +173,7 @@ void StopWorld(WorldContext* world);
 /* ============= Cross-Level Communication ============= */
 
 /* Find party in roster */
-PartyContext* SystemicFindParty(
+PartyContext* RosterFindParty(
     RosterContext* roster,
     const char* partySlot
 );
@@ -181,13 +181,13 @@ PartyContext* SystemicFindParty(
 /* Find roster in world */
 RosterContext* WorldFindRoster(
     WorldContext* world,
-    const char* systemicSlot
+    const char* rosterSlot
 );
 
 /* Cross-roster party access */
 PartyContext* WorldFindParty(
     WorldContext* world,
-    const char* systemicSlot,
+    const char* rosterSlot,
     const char* partySlot
 );
 
@@ -201,7 +201,7 @@ typedef struct {
     
     /* Per-roster plans */
     struct {
-        const char* systemicName;
+        const char* rosterName;
         size_t partyCount;
         
         /* Per-party fiber maps */
@@ -218,7 +218,7 @@ typedef struct {
     size_t totalFibers;
     
     /* Execution hints */
-    bool canParallelizeSystemics;
+    bool canParallelizeRosters;
     bool canParallelizeParties;
     size_t estimatedCpuFibers;
     size_t estimatedGpuFibers;
@@ -251,7 +251,7 @@ typedef struct {
     
     /* Per-roster stats */
     struct {
-        const char* systemicName;
+        const char* rosterName;
         uint64_t totalExecutions;
         uint64_t avgExecutionTimeNs;
         uint32_t errorCount;
@@ -266,7 +266,7 @@ typedef struct {
             size_t roleCount;
         }* partyStats;
         size_t partyCount;
-    }* systemicStats;
+    }* rosterStats;
     size_t rosterCount;
 } WorldStatistics;
 
@@ -276,7 +276,7 @@ WorldStatistics* GetWorldStatistics(WorldContext* world);
 /* Dump world state */
 void DumpWorldState(
     WorldContext* world,
-    bool includeSystemics,
+    bool includeRosters,
     bool includeParties,
     bool includeRoles
 );

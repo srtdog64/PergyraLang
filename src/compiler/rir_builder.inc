@@ -394,7 +394,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             refresh->data.zone_refresh.requires_dto
             || (refresh->data.zone_refresh.infer_target_kind
                 && target_slot != NULL
-                && target_slot->data.domain_slot.is_dto);
+                && target_slot->data.domain_slot.is_tobject);
 
         if (!add_projection_fact(&scope,
                                  refresh->data.zone_refresh.object_slot_name,

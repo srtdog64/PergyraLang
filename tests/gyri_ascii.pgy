@@ -20,5 +20,5 @@ func Main() -> Void {
     Log("  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
     Log("");
     Log("  Intent-First Programming Language");
-    Log("  subject/class/object/dto | Slot<T> | Zone/World | Async/await");
+    Log("  subject/class/object/tobject | Slot<T> | Zone/World | Async/await");
 }

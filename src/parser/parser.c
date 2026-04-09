@@ -564,10 +564,10 @@ parser_parse_export_declaration(Parser *parser)
     else if (parser_match_contextual_keyword(parser, "intent"))
         node = parse_intent_declaration(parser);
     else if (parser_check(parser, TOKEN_STRUCT)) {
-        bool is_dto = parser->current_token.text != NULL
+        bool is_tobject = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "tobject") == 0;
         parser_advance(parser);
-        node = is_dto ? parse_dto_declaration(parser)
+        node = is_tobject ? parse_tobject_declaration(parser)
                       : parse_struct_declaration(parser);
     }
     else if (parser_match(parser, TOKEN_LET))
@@ -808,11 +808,11 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     // tobject / struct declarations share a token family today, but not a language contract
     if (parser_check(parser, TOKEN_STRUCT)) {
-        bool is_dto = parser->current_token.text != NULL
+        bool is_tobject = parser->current_token.text != NULL
             && strcmp(parser->current_token.text, "tobject") == 0;
         parser_advance(parser);
         return parser_finalize_statement(parser,
-            is_dto ? parse_dto_declaration(parser)
+            is_tobject ? parse_tobject_declaration(parser)
                    : parse_struct_declaration(parser));
     }
 

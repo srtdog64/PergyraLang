@@ -539,7 +539,7 @@ rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **er
                 expected_kind = RIR_RESOURCE_SUBJECT_SLOT;
             else if (node->ast->data.domain_slot.is_vessel)
                 expected_kind = RIR_RESOURCE_VESSEL_SLOT;
-            else if (node->ast->data.domain_slot.is_dto)
+            else if (node->ast->data.domain_slot.is_tobject)
                 expected_kind = RIR_RESOURCE_TOBJECT_SLOT;
             else
                 expected_kind = RIR_RESOURCE_OBJECT_SLOT;

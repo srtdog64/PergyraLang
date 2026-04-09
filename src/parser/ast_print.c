@@ -55,7 +55,7 @@ nominal_decl_kind_name(NominalDeclKind kind)
         return "Struct";
     case NOMINAL_DECL_OBJECT:
         return "Object";
-    case NOMINAL_DECL_DTO:
+    case NOMINAL_DECL_TOBJECT:
         return "TObject";
     case NOMINAL_DECL_CLASS:
     default:
@@ -1371,7 +1371,7 @@ void ast_print(ASTNode* node, int indent) {
             printf("%sSlot: %s",
                    node->data.domain_slot.is_subject ? "Subject"
                    : (node->data.domain_slot.is_vessel ? "Vessel"
-                      : (node->data.domain_slot.is_dto ? "TObject" : "Object")),
+                      : (node->data.domain_slot.is_tobject ? "TObject" : "Object")),
                    node->data.domain_slot.slot_name);
             if (node->data.domain_slot.type != NULL) {
                 printf(": ");

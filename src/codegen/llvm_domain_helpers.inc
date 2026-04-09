@@ -190,7 +190,7 @@ llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && (slot->data.domain_slot.is_dto
+            && (slot->data.domain_slot.is_tobject
                 || llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))) {
             projection_count++;
         }
@@ -830,7 +830,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         LLVMValueRef self_ptr;
         LLVMValueRef flag_ptr;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || (!slot->data.domain_slot.is_dto
+            || (!slot->data.domain_slot.is_tobject
                 && !llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))
             || slot->data.domain_slot.slot_name == NULL)
             continue;

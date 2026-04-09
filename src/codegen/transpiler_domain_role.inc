@@ -503,7 +503,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_dto
+        if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
                 node->data.relation_decl.refreshes,
                 node->data.relation_decl.refresh_count)) {
@@ -533,7 +533,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "if (!(");
         for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
             ASTNode *slot = node->data.relation_decl.slots[i];
-            if (!(slot->data.domain_slot.is_dto
+            if (!(slot->data.domain_slot.is_tobject
                 || domain_slot_is_projection_target_local(slot,
                     node->data.relation_decl.refreshes,
                     node->data.relation_decl.refresh_count))) {
@@ -695,7 +695,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_dto
+        if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
                 node->data.effect_decl.refreshes,
                 node->data.effect_decl.refresh_count)) {
@@ -725,7 +725,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "if (!(");
         for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
             ASTNode *slot = node->data.effect_decl.slots[i];
-            if (!(slot->data.domain_slot.is_dto
+            if (!(slot->data.domain_slot.is_tobject
                 || domain_slot_is_projection_target_local(slot,
                     node->data.effect_decl.refreshes,
                     node->data.effect_decl.refresh_count))) {
@@ -887,7 +887,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         if (slot->data.domain_slot.type != NULL)
             ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_dto
+        if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
                 node->data.zone_decl.refreshes,
                 node->data.zone_decl.refresh_count)) {

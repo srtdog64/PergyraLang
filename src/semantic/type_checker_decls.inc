@@ -2007,9 +2007,9 @@ type_check_projection_contract(ASTNode **slots,
     requires_dto =
         site != NULL && site->type == AST_ZONE_REFRESH
         && (site->data.zone_refresh.infer_target_kind
-            ? object_slot->data.domain_slot.is_dto
+            ? object_slot->data.domain_slot.is_tobject
             : site->data.zone_refresh.requires_dto);
-    if (requires_dto && !object_slot->data.domain_slot.is_dto) {
+    if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
         semantic_error(ctx, site,
             "%s %s target slot '%s' must be a tobject slot",
             owner_label, action_name,
@@ -2034,7 +2034,7 @@ type_check_projection_contract(ASTNode **slots,
     }
     if (site != NULL && site->type == AST_ZONE_REFRESH) {
         NominalDeclKind expected_kind =
-            requires_dto ? NOMINAL_DECL_DTO : NOMINAL_DECL_OBJECT;
+            requires_dto ? NOMINAL_DECL_TOBJECT : NOMINAL_DECL_OBJECT;
         const char *expected_label =
             requires_dto ? "tobject" : "object";
 
@@ -2049,7 +2049,7 @@ type_check_projection_contract(ASTNode **slots,
         }
     }
 
-    if (source_slot->data.domain_slot.is_dto) {
+    if (source_slot->data.domain_slot.is_tobject) {
         semantic_error(ctx, site,
             "%s %s source slot '%s' cannot be a tobject slot",
             owner_label, action_name,
@@ -2210,7 +2210,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
     if (strcmp(kind, "object") == 0) {
         if (slot->data.domain_slot.is_subject)
             return false;
-        if (slot->data.domain_slot.is_dto)
+        if (slot->data.domain_slot.is_tobject)
             return false;  /* tobject slot uses "tobject" kind, not "object" */
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
@@ -2222,24 +2222,24 @@ relation_slot_matches_between_kind(ASTNode *slot,
     if (strcmp(kind, "tobject") == 0) {
         if (slot->data.domain_slot.is_subject)
             return false;
-        if (!slot->data.domain_slot.is_dto)
+        if (!slot->data.domain_slot.is_tobject)
             return false;
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
             && decl->data.class_decl.is_struct
-            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_DTO;
+            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_TOBJECT;
     }
 
     if (strcmp(kind, "class") == 0) {
-        if (slot->data.domain_slot.is_subject || slot->data.domain_slot.is_dto)
+        if (slot->data.domain_slot.is_subject || slot->data.domain_slot.is_tobject)
             return false;
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         if (decl == NULL)
             return true;
         return decl->data.class_decl.nominal_kind != NOMINAL_DECL_OBJECT
-            && decl->data.class_decl.nominal_kind != NOMINAL_DECL_DTO;
+            && decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT;
     }
 
     return slot_type != NULL

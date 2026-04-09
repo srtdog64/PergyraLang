@@ -17,7 +17,7 @@ func PrintBanner() -> Void {
 func PrintFeatures() -> Void {
     Log("");
     Log("[Pergyra] Intent-driven programming language");
-    Log("[Pergyra] subject/class/object/dto type system");
+    Log("[Pergyra] subject/class/object/tobject type system");
     Log("[Pergyra] Slot-based resource management");
     Log("[Pergyra] Zone/World domain boundaries");
     Log("[Pergyra] Async/await + channels");

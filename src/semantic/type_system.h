@@ -33,7 +33,7 @@ typedef enum
     TYPE_NOMINAL_VESSEL,
     TYPE_NOMINAL_STRUCT,
     TYPE_NOMINAL_OBJECT,
-    TYPE_NOMINAL_DTO
+    TYPE_NOMINAL_TOBJECT
 } TypeNominalFlavor;
 
 /* Inferred function/resource effects.

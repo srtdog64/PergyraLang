@@ -869,7 +869,7 @@ domain_has_projection_slot(ASTNode **slots, size_t slot_count,
             || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
             continue;
         }
-        if (slot->data.domain_slot.is_dto)
+        if (slot->data.domain_slot.is_tobject)
             return true;
         if (slot->data.domain_slot.is_subject)
             return false;

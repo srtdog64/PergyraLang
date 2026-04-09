@@ -1227,7 +1227,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                         semantic_error(ctx, expr,
                             "object '%s' fields are read-only after construction; object is an internal projection contract and must be refreshed from its source instead of mutated directly",
                             var_name);
-                    } else if (nk == NOMINAL_DECL_DTO) {
+                    } else if (nk == NOMINAL_DECL_TOBJECT) {
                         semantic_error(ctx, expr,
                             "tobject '%s' fields are immutable; tobject is a boundary transfer contract and must be republished from its source instead of mutated directly",
                             var_name);

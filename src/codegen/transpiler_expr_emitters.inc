@@ -955,7 +955,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return emit_builtin_box(call, bk, ctx);
     case BUILTIN_TO_OBJECT:
         return emit_builtin_to_dto(call, ctx);
-    case BUILTIN_TO_DTO:
+    case BUILTIN_TO_TOBJECT:
         return emit_builtin_to_dto(call, ctx);
     case BUILTIN_HAS_PROJECTION:
         if (call->data.call.arg_count == 1 && call->data.call.arguments[0] != NULL) {
@@ -1521,7 +1521,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         ? slot->data.domain_slot.slot_name
                         : NULL;
                     bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_dto
+                        && (slot->data.domain_slot.is_tobject
                             || domain_slot_is_projection_target_local(
                                 slot,
                                 overlay_decl->type == AST_RELATION_DECL
@@ -1595,7 +1595,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         ? slot->data.domain_slot.slot_name
                         : NULL;
                     bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_dto
+                        && (slot->data.domain_slot.is_tobject
                             || domain_slot_is_projection_target_local(
                                 slot,
                                 zone_decl->data.zone_decl.refreshes,

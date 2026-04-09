@@ -12,13 +12,13 @@
 bool
 llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)
 {
-    return kind == NOMINAL_DECL_OBJECT || kind == NOMINAL_DECL_DTO;
+    return kind == NOMINAL_DECL_OBJECT || kind == NOMINAL_DECL_TOBJECT;
 }
 
 bool
 llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind)
 {
-    return kind == NOMINAL_DECL_DTO;
+    return kind == NOMINAL_DECL_TOBJECT;
 }
 
 PgyTypeKind

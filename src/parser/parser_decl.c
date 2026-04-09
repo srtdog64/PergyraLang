@@ -513,8 +513,8 @@ ASTNode* parse_object_declaration(Parser* parser) {
     return parse_type_declaration(parser, NOMINAL_DECL_OBJECT);
 }
 
-ASTNode* parse_dto_declaration(Parser* parser) {
-    return parse_type_declaration(parser, NOMINAL_DECL_DTO);
+ASTNode* parse_tobject_declaration(Parser* parser) {
+    return parse_type_declaration(parser, NOMINAL_DECL_TOBJECT);
 }
 
 // 클래스/구조체 선언 공통 파싱
@@ -522,7 +522,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     bool is_struct = (decl_kind == NOMINAL_DECL_STRUCT
         || decl_kind == NOMINAL_DECL_VESSEL
         || decl_kind == NOMINAL_DECL_OBJECT
-        || decl_kind == NOMINAL_DECL_DTO);
+        || decl_kind == NOMINAL_DECL_TOBJECT);
     const char *kind_name = "class";
     ASTNode *class_decl = NULL;
 
@@ -534,7 +534,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
         kind_name = "struct";
     else if (decl_kind == NOMINAL_DECL_OBJECT)
         kind_name = "object";
-    else if (decl_kind == NOMINAL_DECL_DTO)
+    else if (decl_kind == NOMINAL_DECL_TOBJECT)
         kind_name = "tobject";
 
     // 클래스 이름
@@ -554,8 +554,8 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     case NOMINAL_DECL_OBJECT:
         class_decl = ast_create_object(name.text);
         break;
-    case NOMINAL_DECL_DTO:
-        class_decl = ast_create_dto(name.text);
+    case NOMINAL_DECL_TOBJECT:
+        class_decl = ast_create_tobject(name.text);
         break;
     case NOMINAL_DECL_CLASS:
     default:

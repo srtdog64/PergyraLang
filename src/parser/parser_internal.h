@@ -62,7 +62,7 @@ ASTNode *parse_subject_declaration(Parser *parser);
 ASTNode *parse_vessel_declaration(Parser *parser);
 ASTNode *parse_struct_declaration(Parser *parser);
 ASTNode *parse_object_declaration(Parser *parser);
-ASTNode *parse_dto_declaration(Parser *parser);
+ASTNode *parse_tobject_declaration(Parser *parser);
 ASTNode *parse_action_declaration(Parser *parser);
 ASTNode *parse_type_declaration(Parser *parser, NominalDeclKind decl_kind);
 ASTNode *parse_type_alias_declaration(Parser *parser);

@@ -376,15 +376,15 @@ parser_match_identifier_keyword_on_line(Parser *parser, const char *keyword,
 
 static bool
 parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
-                              bool *is_dto)
+                              bool *is_tobject)
 {
     if (parser_match(parser, TOKEN_CLASS)) {
         if (is_subject != NULL)
             *is_subject = true;
         if (is_vessel != NULL)
             *is_vessel = false;
-        if (is_dto != NULL)
-            *is_dto = false;
+        if (is_tobject != NULL)
+            *is_tobject = false;
         return true;
     }
 
@@ -393,8 +393,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_subject = false;
         if (is_vessel != NULL)
             *is_vessel = true;
-        if (is_dto != NULL)
-            *is_dto = false;
+        if (is_tobject != NULL)
+            *is_tobject = false;
         return true;
     }
 
@@ -407,8 +407,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_subject = false;
         if (is_vessel != NULL)
             *is_vessel = false;
-        if (is_dto != NULL)
-            *is_dto = true;
+        if (is_tobject != NULL)
+            *is_tobject = true;
         return true;
     }
 
@@ -421,8 +421,8 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
             *is_subject = false;
         if (is_vessel != NULL)
             *is_vessel = false;
-        if (is_dto != NULL)
-            *is_dto = false;
+        if (is_tobject != NULL)
+            *is_tobject = false;
         return true;
     }
 
@@ -434,8 +434,8 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
 {
     bool is_subject = false;
     bool is_vessel = false;
-    bool is_dto = false;
-    if (!parser_match_domain_slot_kind(parser, &is_subject, &is_vessel, &is_dto))
+    bool is_tobject = false;
+    if (!parser_match_domain_slot_kind(parser, &is_subject, &is_vessel, &is_tobject))
         return NULL;
 
     parser_consume(parser, TOKEN_SLOT,
@@ -443,7 +443,7 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
             ? "Expected 'slot' after 'subject' in domain body"
             : (is_vessel
                 ? "Expected 'slot' after 'vessel' in domain body"
-            : (is_dto
+            : (is_tobject
                 ? "Expected 'slot' after 'tobject' in domain body"
                 : "Expected 'slot' after 'object' in domain body")));
     Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
@@ -454,7 +454,7 @@ parse_domain_slot_entry(Parser *parser, const char *owner_name)
 
     ASTNode *slot = ast_create_domain_slot(slot_name.text, is_subject);
     slot->data.domain_slot.is_vessel = is_vessel;
-    slot->data.domain_slot.is_dto = is_dto;
+    slot->data.domain_slot.is_tobject = is_tobject;
     slot->data.domain_slot.type = slot_type;
     if (parser_match(parser, TOKEN_ASSIGN))
         slot->data.domain_slot.initializer = parser_parse_expression(parser);
@@ -798,7 +798,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             || parser_match_identifier_keyword(parser, "tobjects")) {
             bool is_subject = parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "subjects") == 0;
-            bool is_dto = parser->previous_token.text != NULL
+            bool is_tobject = parser->previous_token.text != NULL
                 && strcmp(parser->previous_token.text, "tobjects") == 0;
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group slot keyword");
             /* Collect names */
@@ -815,7 +815,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             /* Expand into individual slots */
             for (size_t gi = 0; gi < name_count; gi++) {
                 ASTNode *slot = ast_create_domain_slot(names[gi], is_subject);
-                slot->data.domain_slot.is_dto = is_dto;
+                slot->data.domain_slot.is_tobject = is_tobject;
                 slot->data.domain_slot.type = (gi == 0) ? slot_type : ast_clone(slot_type);
                 slot->line = zone->line;
                 slot->column = zone->column;

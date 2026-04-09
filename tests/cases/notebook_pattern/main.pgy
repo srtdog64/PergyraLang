@@ -33,7 +33,7 @@ object Statistics {
     let sum: Float;
 }
 
-// --- 최종 보고용 DTO ---
+// --- 최종 보고용 TObject ---
 tobject AnalysisResult {
     let dataset_name: String;
     let result_mean: Float;
