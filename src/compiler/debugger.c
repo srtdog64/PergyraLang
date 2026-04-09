@@ -183,14 +183,15 @@ static char *
 read_file_for_debug(const char *path)
 {
     FILE *f = fopen(path, "rb");
+    size_t read_len;
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
     long len = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *buf = malloc((size_t)len + 1);
     if (!buf) { fclose(f); return NULL; }
-    fread(buf, 1, (size_t)len, f);
-    buf[len] = '\0';
+    read_len = fread(buf, 1, (size_t)len, f);
+    buf[read_len] = '\0';
     fclose(f);
     return buf;
 }

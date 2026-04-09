@@ -543,7 +543,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone authority requires declared subject slots and explicit by actors");
+    TEST("zone authority requires declared subject slots and explicit by subject alias");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -623,7 +623,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone warns when authority exists but mutable rules omit by actor");
+    TEST("zone warns when authority exists but mutable rules omit by subject alias");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -1050,7 +1050,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("relation/effect/zone accept actor types in subject slot");
+    TEST("relation/effect/zone accept subject types in subject slot");
     {
         const char *source =
             "subject Bot {\n"
@@ -1095,9 +1095,9 @@ test_async_system(void)
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *actor = ast_create_subject("Counter");
-        actor->line = 1; actor->column = 1;
-        type_check_class_decl(actor, ctx);
+        ASTNode *subject_decl = ast_create_subject("Counter");
+        subject_decl->line = 1; subject_decl->column = 1;
+        type_check_class_decl(subject_decl, ctx);
         EXPECT(!ctx->has_error);
 
         /* Verify symbol was registered */
@@ -1105,7 +1105,7 @@ test_async_system(void)
         EXPECT(sym != NULL && sym->kind == SYMBOL_CLASS);
 
         semantic_context_destroy(ctx);
-        ast_destroy(actor);
+        ast_destroy(subject_decl);
     }
 
     TEST("duplicate subject declaration triggers error");
@@ -2193,7 +2193,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("actor copy into new binding is rejected as subject profile");
+    TEST("subject copy into new binding is rejected");
     {
         const char *source =
             "subject Counter {\n"
@@ -2219,7 +2219,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject declaration emits no actor deprecation warning");
+    TEST("subject declaration emits no deprecation warning");
     {
         const char *source =
             "subject Counter {\n"
@@ -2240,7 +2240,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject actor profile syntax is rejected by subject copy rules");
+    TEST("subject syntax is rejected by subject copy rules");
     {
         const char *source =
             "subject Counter {\n"
@@ -3019,7 +3019,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToTObject accepts actor source as subject profile");
+    TEST("ToTObject accepts subject source");
     {
         const char *source =
             "tobject BotDto { hp: Int; }\n"

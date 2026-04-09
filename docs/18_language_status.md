@@ -78,7 +78,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
-- `actor`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
+- `subject`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
 - `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
@@ -104,7 +104,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `entity`는 코어 존재론 바깥의 프레임워크 어휘로 밀어두고, `object`는 intent를 시작하지 않는 passive state target으로 정리됨
 - `object`는 이제 문서 수준이 아니라 실제 semantic/codegen에서도 effect target, relation endpoint, projection source로 쓸 수 있음
 - 문서에 쓰던 `.Some/.None/.Ok/.Err` shorthand가 현재 파서에도 반영됨
-- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작한다. `IntentHistoryCount()` / `IntentHistoryStep*()`는 마지막 completed intent의 step-level typed history를 읽는다. `using: zoneAlias;`는 live zone-instance sync와 actor-to-zone-slot materialization을, `transfer: source -> target;`는 cross-zone handoff materialization과 transfer trace를 제공한다.
+- 현재 `intent`는 `Intent(args...)` 호출이 generated runtime function으로 lowering되고, same-subject conflict registry를 통해 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행한다. step-level `guard` / `invariant`도 실행되고, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작한다. `IntentHistoryCount()` / `IntentHistoryStep*()`는 마지막 completed intent의 step-level typed history를 읽는다. `using: zoneAlias;`는 live zone-instance sync와 participant-to-zone-slot materialization을, `transfer: source -> target;`는 cross-zone handoff materialization과 transfer trace를 제공한다.
 
 ## 현재 한계
 
@@ -115,8 +115,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
-- `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `actor`)에 허용되고 bare `class`는 제외된다
-- `actor`는 subject-profile semantic에 편입됐고 `subject Name { ... }` subject-first surface도 추가됐다
+- `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `subject`)에 허용되고 bare `class`는 제외된다
+- `subject`는 subject-profile semantic에 편입됐고 `subject Name { ... }` subject-first surface도 추가됐다
 - standalone `subject Name { ... }`는 아직 허용되지만, semantic warning과 함께 transitional syntax로 취급된다
 - plain/secure `Slot<subject>`와 `Slot<subject>`는 local object-cell anchor로 동작한다
 - `own/ref Slot<subject-host>`와 `own/ref SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다

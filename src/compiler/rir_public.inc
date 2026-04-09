@@ -417,16 +417,16 @@ rir_scope_find_fact_by_name_kind(const RIRScope *scope, RIRFactKind kind, const 
 }
 
 static bool
-rir_scope_has_capability_fact(const RIRScope *scope, const char *actor, const char *ability)
+rir_scope_has_capability_fact(const RIRScope *scope, const char *participant, const char *ability)
 {
-    if (scope == NULL || actor == NULL || ability == NULL)
+    if (scope == NULL || participant == NULL || ability == NULL)
         return false;
 
     for (size_t i = 0; i < scope->fact_count; i++) {
         const RIRFact *fact = &scope->facts[i];
         if (fact->kind == RIR_FACT_CAPABILITY
             && fact->name != NULL
-            && strcmp(fact->name, actor) == 0
+            && strcmp(fact->name, participant) == 0
             && fact->arg0 != NULL
             && strcmp(fact->arg0, ability) == 0) {
             return true;

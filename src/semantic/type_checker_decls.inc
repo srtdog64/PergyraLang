@@ -492,15 +492,15 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         Type *subject_type;
-        Symbol *actor_sym;
+        Symbol *participant_sym;
 
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
 
         subject_type = resolve_type_node(involves->data.intent_involves.subject_type, ctx);
-        actor_sym = symbol_create_variable(involves->data.intent_involves.alias,
+        participant_sym = symbol_create_variable(involves->data.intent_involves.alias,
             subject_type, involves->line, involves->column);
-        scope_declare(ctx->scope, actor_sym);
+        scope_declare(ctx->scope, participant_sym);
     }
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
@@ -621,7 +621,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (step->data.intent_step.who_count == 0 && !has_subintent) {
-            semantic_error(ctx, step, "Intent step '%s' requires at least one who actor",
+            semantic_error(ctx, step, "Intent step '%s' requires at least one who participant",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
         }
 
@@ -712,34 +712,34 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
             const char *alias = step->data.intent_step.who_names[j];
             ASTNode *involves = find_intent_involves_local(node, alias);
-            const char *actor_type_name = NULL;
+            const char *participant_type_name = NULL;
             if (involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' refers to unknown actor '%s'",
+                    "Intent step '%s' refers to unknown participant '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    alias != NULL ? alias : "<actor>");
+                    alias != NULL ? alias : "<participant>");
                 continue;
             }
 
-            actor_type_name = intent_involves_type_name(involves);
+            participant_type_name = intent_involves_type_name(involves);
             if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' who actor '%s' must bind to a subject or actor type",
+                    "Intent step '%s' who participant '%s' must bind to a subject type",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    alias != NULL ? alias : "<actor>");
+                    alias != NULL ? alias : "<participant>");
                 continue;
             }
-            if (zone_decl != NULL && actor_type_name != NULL
+            if (zone_decl != NULL && participant_type_name != NULL
                 && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                    zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                    zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' binds actor '%s' of type '%s', but zone '%s' has no matching subject slot",
+                    "Intent step '%s' binds participant '%s' of type '%s', but zone '%s' has no matching subject slot",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    alias != NULL ? alias : "<actor>",
-                    actor_type_name,
+                    alias != NULL ? alias : "<participant>",
+                    participant_type_name,
                     zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
             }
-            if (step->data.intent_step.transfer_from_alias != NULL && actor_type_name != NULL) {
+            if (step->data.intent_step.transfer_from_alias != NULL && participant_type_name != NULL) {
                 ASTNode *from_involves = find_intent_involves_local(node,
                     step->data.intent_step.transfer_from_alias);
                 Type *from_type = from_involves != NULL
@@ -748,14 +748,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     from_type != NULL ? from_type->name : NULL);
                 if (from_zone_decl != NULL
                     && !domain_has_subject_slot_type(from_zone_decl->data.zone_decl.slots,
-                        from_zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                        from_zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' transfer source zone '%s' has no matching subject slot for actor '%s' of type '%s'",
+                        "Intent step '%s' transfer source zone '%s' has no matching subject slot for participant '%s' of type '%s'",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         from_zone_decl->data.zone_decl.name != NULL
                             ? from_zone_decl->data.zone_decl.name : "<zone>",
-                        alias != NULL ? alias : "<actor>",
-                        actor_type_name);
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name);
                 }
             }
 
@@ -782,17 +782,17 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             for (size_t k = 0; k < step->data.intent_step.who_count; k++) {
                 const char *alias = step->data.intent_step.who_names[k];
                 ASTNode *involves = find_intent_involves_local(node, alias);
-                const char *actor_type_name = intent_involves_type_name(involves);
+                const char *participant_type_name = intent_involves_type_name(involves);
                 if (!intent_involves_is_subject_host(ctx->program_root, involves))
                     continue;
-                if (actor_type_name != NULL
-                    && !subject_type_has_ability(ctx->program_root, actor_type_name, ability)) {
+                if (participant_type_name != NULL
+                    && !subject_type_has_ability(ctx->program_root, participant_type_name, ability)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' requires ability '%s', but actor '%s' of type '%s' does not implement it",
+                        "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         ability != NULL ? ability : "<ability>",
-                        alias != NULL ? alias : "<actor>",
-                        actor_type_name);
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name);
                 }
             }
         }
@@ -817,38 +817,38 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
             const char *alias = step->data.intent_step.authorized_by[j];
             ASTNode *involves = find_intent_involves_local(node, alias);
-            const char *actor_type_name = intent_involves_type_name(involves);
+            const char *participant_type_name = intent_involves_type_name(involves);
             if (involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' authorizes unknown actor '%s'",
+                    "Intent step '%s' authorizes unknown participant '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    alias != NULL ? alias : "<actor>");
+                    alias != NULL ? alias : "<participant>");
                 continue;
             }
 
-            if (zone_decl != NULL && actor_type_name != NULL) {
+            if (zone_decl != NULL && participant_type_name != NULL) {
                 if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized actor '%s' must bind to a subject or actor type",
+                        "Intent step '%s' authorized participant '%s' must bind to a subject type",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        alias != NULL ? alias : "<actor>");
+                        alias != NULL ? alias : "<participant>");
                     continue;
                 }
                 if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                        zone_decl->data.zone_decl.slot_count, ctx, actor_type_name)) {
+                        zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized actor '%s' has type '%s', but zone '%s' has no matching subject slot",
+                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' has no matching subject slot",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        alias != NULL ? alias : "<actor>",
-                        actor_type_name,
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name,
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
                 } else if (zone_decl->data.zone_decl.authority_count > 0
-                    && !zone_has_authority_for_subject_type(zone_decl, ctx, actor_type_name)) {
+                    && !zone_has_authority_for_subject_type(zone_decl, ctx, participant_type_name)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized actor '%s' has type '%s', but zone '%s' declares no matching authority",
+                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' declares no matching authority",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        alias != NULL ? alias : "<actor>",
-                        actor_type_name,
+                        alias != NULL ? alias : "<participant>",
+                        participant_type_name,
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
                 }
             }
@@ -1916,38 +1916,38 @@ resolve_zone_relation_state(ASTNode *zone,
 }
 
 static bool
-type_check_zone_actor_authority(ASTNode *zone,
+type_check_zone_participant_authority(ASTNode *zone,
                                 ASTNode *site,
-                                const char *actor_slot_name,
+                                const char *participant_slot_name,
                                 SemanticContext *ctx,
                                 const char *action_name)
 {
-    ASTNode *actor_slot;
+    ASTNode *participant_slot;
     ASTNode *authority;
 
-    if (zone == NULL || ctx == NULL || actor_slot_name == NULL)
+    if (zone == NULL || ctx == NULL || participant_slot_name == NULL)
         return false;
 
-    actor_slot = find_zone_domain_slot(zone, actor_slot_name);
-    if (actor_slot == NULL) {
+    participant_slot = find_zone_domain_slot(zone, participant_slot_name);
+    if (participant_slot == NULL) {
         semantic_error(ctx, site,
             "Zone %s references unknown authority subject slot '%s'",
-            action_name, actor_slot_name);
+            action_name, participant_slot_name);
         return true;
     }
 
-    if (!actor_slot->data.domain_slot.is_subject) {
+    if (!participant_slot->data.domain_slot.is_subject) {
         semantic_error(ctx, site,
             "Zone %s authority '%s' must be a subject slot",
-            action_name, actor_slot_name);
+            action_name, participant_slot_name);
         return true;
     }
 
-    authority = find_zone_authority(zone, actor_slot_name);
+    authority = find_zone_authority(zone, participant_slot_name);
     if (zone->data.zone_decl.authority_count > 0 && authority == NULL) {
         semantic_error(ctx, site,
-            "Zone %s actor '%s' is not declared in zone authority set",
-            action_name, actor_slot_name);
+            "Zone %s participant '%s' is not declared in zone authority set",
+            action_name, participant_slot_name);
         return true;
     }
 
@@ -2751,7 +2751,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *effect_slot_name = apply->data.zone_apply.effect_slot_name;
         const char *target_slot_name = apply->data.zone_apply.target_slot_name;
         const char *state_name = apply->data.zone_apply.state_name;
-        const char *actor_slot_name = apply->data.zone_apply.actor_slot_name;
+        const char *participant_slot_name = apply->data.zone_apply.participant_slot_name;
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_effect_state(node, apply, state_name, ctx, "apply",
@@ -2771,11 +2771,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, apply,
                 "Zone apply should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, apply, actor_slot_name, ctx, "apply");
+        type_check_zone_participant_authority(node, apply, participant_slot_name, ctx, "apply");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
@@ -2784,7 +2784,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *left_slot_name = link->data.zone_link.left_slot_name;
         const char *right_slot_name = link->data.zone_link.right_slot_name;
         const char *state_name = link->data.zone_link.state_name;
-        const char *actor_slot_name = link->data.zone_link.actor_slot_name;
+        const char *participant_slot_name = link->data.zone_link.participant_slot_name;
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_relation_state(node, link, state_name, ctx, "link",
@@ -2809,11 +2809,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, link,
                 "Zone link should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, link, actor_slot_name, ctx, "link");
+        type_check_zone_participant_authority(node, link, participant_slot_name, ctx, "link");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
@@ -2821,7 +2821,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *effect_slot_name = detach->data.zone_detach.effect_slot_name;
         const char *target_slot_name = detach->data.zone_detach.target_slot_name;
         const char *state_name = detach->data.zone_detach.state_name;
-        const char *actor_slot_name = detach->data.zone_detach.actor_slot_name;
+        const char *participant_slot_name = detach->data.zone_detach.participant_slot_name;
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_effect_state(node, detach, state_name, ctx, "detach",
@@ -2841,11 +2841,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, detach,
                 "Zone detach should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, detach, actor_slot_name, ctx, "detach");
+        type_check_zone_participant_authority(node, detach, participant_slot_name, ctx, "detach");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
@@ -2854,7 +2854,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *left_slot_name = unlink->data.zone_unlink.left_slot_name;
         const char *right_slot_name = unlink->data.zone_unlink.right_slot_name;
         const char *state_name = unlink->data.zone_unlink.state_name;
-        const char *actor_slot_name = unlink->data.zone_unlink.actor_slot_name;
+        const char *participant_slot_name = unlink->data.zone_unlink.participant_slot_name;
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_relation_state(node, unlink, state_name, ctx, "unlink",
@@ -2879,18 +2879,18 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, unlink,
                 "Zone unlink should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, unlink, actor_slot_name, ctx, "unlink");
+        type_check_zone_participant_authority(node, unlink, participant_slot_name, ctx, "unlink");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.zone_decl.refreshes[i];
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
-        const char *actor_slot_name = refresh->data.zone_refresh.actor_slot_name;
+        const char *participant_slot_name = refresh->data.zone_refresh.participant_slot_name;
         const char *action_name =
             refresh->data.zone_refresh.infer_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
@@ -2908,19 +2908,19 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_projection_contract(node, refresh,
             object_slot_name, source_slot_name, ctx, action_name);
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, refresh,
                 "Zone %s should specify 'by <subjectSlot>' when authority is declared",
                 action_name);
         }
-        type_check_zone_actor_authority(node, refresh, actor_slot_name, ctx, action_name);
+        type_check_zone_participant_authority(node, refresh, participant_slot_name, ctx, action_name);
     }
 
     for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
         ASTNode *maintain = node->data.zone_decl.maintained_effects[i];
         const char *effect_slot_name = maintain->data.zone_maintain_effect.effect_slot_name;
         const char *target_slot_name = maintain->data.zone_maintain_effect.target_slot_name;
-        const char *actor_slot_name = maintain->data.zone_maintain_effect.actor_slot_name;
+        const char *participant_slot_name = maintain->data.zone_maintain_effect.participant_slot_name;
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error(ctx, maintain,
                 "Zone maintain references unknown effect slot '%s'",
@@ -2933,11 +2933,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, maintain,
                 "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
+        type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_effect_count; j++) {
             ASTNode *other = node->data.zone_decl.maintained_effects[j];
@@ -2977,7 +2977,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *relation_slot_name = maintain->data.zone_maintain_relation.relation_slot_name;
         const char *left_slot_name = maintain->data.zone_maintain_relation.left_slot_name;
         const char *right_slot_name = maintain->data.zone_maintain_relation.right_slot_name;
-        const char *actor_slot_name = maintain->data.zone_maintain_relation.actor_slot_name;
+        const char *participant_slot_name = maintain->data.zone_maintain_relation.participant_slot_name;
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error(ctx, maintain,
                 "Zone maintain references unknown relation slot '%s'",
@@ -2995,11 +2995,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, maintain,
                 "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
+        type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
         for (size_t j = i + 1; j < node->data.zone_decl.maintained_relation_count; j++) {
             ASTNode *other = node->data.zone_decl.maintained_relations[j];
@@ -3044,7 +3044,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *maintain = node->data.zone_decl.maintained_states[i];
         ASTNode *state;
         const char *state_name = maintain->data.zone_maintain_state.state_name;
-        const char *actor_slot_name = maintain->data.zone_maintain_state.actor_slot_name;
+        const char *participant_slot_name = maintain->data.zone_maintain_state.participant_slot_name;
         state = find_zone_state(node, state_name);
         if (state == NULL) {
             semantic_error(ctx, maintain,
@@ -3125,11 +3125,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 }
             }
         }
-        if (node->data.zone_decl.authority_count > 0 && actor_slot_name == NULL) {
+        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
             semantic_warning(ctx, maintain,
                 "Zone maintain should specify 'by <subjectSlot>' when authority is declared");
         }
-        type_check_zone_actor_authority(node, maintain, actor_slot_name, ctx, "maintain");
+        type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
     }
 
     for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {

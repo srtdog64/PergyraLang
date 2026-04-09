@@ -92,18 +92,19 @@ void* FutureGet(Future* future);
 bool FutureIsReady(Future* future);
 void FutureDestroy(Future* future);
 
-/* Actor pattern support */
-typedef struct Actor {
+/* Mailbox endpoint support */
+typedef struct AsyncMailboxEndpoint {
     AsyncScope* scope;
     Channel* mailbox;
-    void (*messageHandler)(struct Actor* self, void* message);
+    void (*messageHandler)(struct AsyncMailboxEndpoint* self, void* message);
     void* state;
-} Actor;
+} AsyncMailboxEndpoint;
 
-Actor* ActorCreate(void (*handler)(Actor* self, void* message), void* initialState);
-void ActorSend(Actor* actor, void* message);
-void ActorStop(Actor* actor);
-void ActorDestroy(Actor* actor);
+AsyncMailboxEndpoint* AsyncMailboxEndpointCreate(
+    void (*handler)(AsyncMailboxEndpoint* self, void* message), void* initialState);
+void AsyncMailboxEndpointSend(AsyncMailboxEndpoint* endpoint, void* message);
+void AsyncMailboxEndpointStop(AsyncMailboxEndpoint* endpoint);
+void AsyncMailboxEndpointDestroy(AsyncMailboxEndpoint* endpoint);
 
 /* Structured logging for async operations */
 typedef enum {

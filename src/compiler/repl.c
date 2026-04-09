@@ -45,7 +45,7 @@ repl_line_is_decl(const char *line)
 {
     static const char *prefixes[] = {
         "func ", "struct ", "class ", "ability ", "role ",
-        "party ", "roster ", "world ", "actor ", "enum ",
+        "party ", "roster ", "world ", "enum ",
         "namespace ", "import ", "event ", NULL
     };
 

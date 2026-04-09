@@ -57,7 +57,7 @@ func Main() -> Void {
     Log("history.name0=" + IntentHistoryStepName(0));
     Log("history.zone0=" + IntentHistoryStepZone(0));
     Log("history.phase0=" + IntentHistoryStepPhase(0));
-    Log("history.actor0=" + IntentHistoryStepActor(0));
+    Log("history.participant0=" + IntentHistoryStepParticipant(0));
     Log("history.slot0=" + IntentHistoryStepSlot(0));
     Log("history.from.zone0=" + IntentHistoryStepFromZone(0));
     Log("history.from.slot0=" + IntentHistoryStepFromSlot(0));

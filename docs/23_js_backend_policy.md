@@ -64,11 +64,11 @@ Pergyra 코어에 `extends` / `super` / prototype-chain 중심 사고를 들이�
 - field-only surface를 우선
 - serialization-friendly shape 유지
 
-### actor
+### participant
 
 - 독립 ontological kind가 아니라 `subject` execution profile
 - JS lowering에서는 subject + mailbox/scheduler wrapper
-- event loop / microtask / runtime queue를 사용하더라도 본질은 subject profile이다
+- event loop / microtask / runtime queue를 사용하더라도 본질은 execution model이다
 
 ## ability / role lowering
 
@@ -137,7 +137,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
    - DOM / canvas / WebGL 중 구체 lowering 선택
 
 5. orchestration/lifecycle
-   - actor runtime
+   - participant runtime
    - channel/future shim
    - zone/world sync semantics
 

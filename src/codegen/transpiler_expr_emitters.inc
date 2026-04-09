@@ -1231,10 +1231,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
-    case BUILTIN_INTENT_HISTORY_STEP_ACTOR: {
+    case BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT: {
         ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
-        char *result = strdup_fmt("pgy_intent_history_step_actor_export(%s)", index);
+        char *result = strdup_fmt("pgy_intent_history_step_participant_export(%s)", index);
         free(index);
         return result;
     }

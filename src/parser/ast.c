@@ -642,7 +642,7 @@ ASTNode* ast_create_zone_apply(const char* effect_slot_name, const char* target_
     node->data.zone_apply.target_slot_name =
         target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
     node->data.zone_apply.state_name = NULL;
-    node->data.zone_apply.actor_slot_name = NULL;
+    node->data.zone_apply.participant_slot_name = NULL;
     return node;
 }
 
@@ -655,7 +655,7 @@ ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_s
     node->data.zone_link.right_slot_name =
         right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
     node->data.zone_link.state_name = NULL;
-    node->data.zone_link.actor_slot_name = NULL;
+    node->data.zone_link.participant_slot_name = NULL;
     return node;
 }
 
@@ -666,7 +666,7 @@ ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target
     node->data.zone_detach.target_slot_name =
         target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
     node->data.zone_detach.state_name = NULL;
-    node->data.zone_detach.actor_slot_name = NULL;
+    node->data.zone_detach.participant_slot_name = NULL;
     return node;
 }
 
@@ -679,7 +679,7 @@ ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left
     node->data.zone_unlink.right_slot_name =
         right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
     node->data.zone_unlink.state_name = NULL;
-    node->data.zone_unlink.actor_slot_name = NULL;
+    node->data.zone_unlink.participant_slot_name = NULL;
     return node;
 }
 
@@ -689,7 +689,7 @@ ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* sourc
         object_slot_name ? pergyra_strdup(object_slot_name) : NULL;
     node->data.zone_refresh.source_slot_name =
         source_slot_name ? pergyra_strdup(source_slot_name) : NULL;
-    node->data.zone_refresh.actor_slot_name = NULL;
+    node->data.zone_refresh.participant_slot_name = NULL;
     node->data.zone_refresh.requires_dto = false;
     node->data.zone_refresh.infer_target_kind = false;
     return node;
@@ -701,7 +701,7 @@ ASTNode* ast_create_zone_maintain_effect(const char* effect_slot_name, const cha
         effect_slot_name ? pergyra_strdup(effect_slot_name) : NULL;
     node->data.zone_maintain_effect.target_slot_name =
         target_slot_name ? pergyra_strdup(target_slot_name) : NULL;
-    node->data.zone_maintain_effect.actor_slot_name = NULL;
+    node->data.zone_maintain_effect.participant_slot_name = NULL;
     return node;
 }
 
@@ -713,7 +713,7 @@ ASTNode* ast_create_zone_maintain_relation(const char* relation_slot_name, const
         left_slot_name ? pergyra_strdup(left_slot_name) : NULL;
     node->data.zone_maintain_relation.right_slot_name =
         right_slot_name ? pergyra_strdup(right_slot_name) : NULL;
-    node->data.zone_maintain_relation.actor_slot_name = NULL;
+    node->data.zone_maintain_relation.participant_slot_name = NULL;
     return node;
 }
 
@@ -721,7 +721,7 @@ ASTNode* ast_create_zone_maintain_state(const char* state_name) {
     ASTNode* node = ast_create_node(AST_ZONE_MAINTAIN_STATE);
     node->data.zone_maintain_state.state_name =
         state_name ? pergyra_strdup(state_name) : NULL;
-    node->data.zone_maintain_state.actor_slot_name = NULL;
+    node->data.zone_maintain_state.participant_slot_name = NULL;
     return node;
 }
 
@@ -1760,7 +1760,7 @@ void ast_destroy(ASTNode* node) {
             free(node->data.zone_apply.effect_slot_name);
             free(node->data.zone_apply.target_slot_name);
             free(node->data.zone_apply.state_name);
-            free(node->data.zone_apply.actor_slot_name);
+            free(node->data.zone_apply.participant_slot_name);
             break;
 
         case AST_ZONE_LINK:
@@ -1768,14 +1768,14 @@ void ast_destroy(ASTNode* node) {
             free(node->data.zone_link.left_slot_name);
             free(node->data.zone_link.right_slot_name);
             free(node->data.zone_link.state_name);
-            free(node->data.zone_link.actor_slot_name);
+            free(node->data.zone_link.participant_slot_name);
             break;
 
         case AST_ZONE_DETACH:
             free(node->data.zone_detach.effect_slot_name);
             free(node->data.zone_detach.target_slot_name);
             free(node->data.zone_detach.state_name);
-            free(node->data.zone_detach.actor_slot_name);
+            free(node->data.zone_detach.participant_slot_name);
             break;
 
         case AST_ZONE_UNLINK:
@@ -1783,31 +1783,31 @@ void ast_destroy(ASTNode* node) {
             free(node->data.zone_unlink.left_slot_name);
             free(node->data.zone_unlink.right_slot_name);
             free(node->data.zone_unlink.state_name);
-            free(node->data.zone_unlink.actor_slot_name);
+            free(node->data.zone_unlink.participant_slot_name);
             break;
 
         case AST_ZONE_REFRESH:
             free(node->data.zone_refresh.object_slot_name);
             free(node->data.zone_refresh.source_slot_name);
-            free(node->data.zone_refresh.actor_slot_name);
+            free(node->data.zone_refresh.participant_slot_name);
             break;
 
         case AST_ZONE_MAINTAIN_EFFECT:
             free(node->data.zone_maintain_effect.effect_slot_name);
             free(node->data.zone_maintain_effect.target_slot_name);
-            free(node->data.zone_maintain_effect.actor_slot_name);
+            free(node->data.zone_maintain_effect.participant_slot_name);
             break;
 
         case AST_ZONE_MAINTAIN_RELATION:
             free(node->data.zone_maintain_relation.relation_slot_name);
             free(node->data.zone_maintain_relation.left_slot_name);
             free(node->data.zone_maintain_relation.right_slot_name);
-            free(node->data.zone_maintain_relation.actor_slot_name);
+            free(node->data.zone_maintain_relation.participant_slot_name);
             break;
 
         case AST_ZONE_MAINTAIN_STATE:
             free(node->data.zone_maintain_state.state_name);
-            free(node->data.zone_maintain_state.actor_slot_name);
+            free(node->data.zone_maintain_state.participant_slot_name);
             break;
 
         case AST_ZONE_AUTHORITY:

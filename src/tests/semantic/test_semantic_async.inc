@@ -8,9 +8,9 @@ test_async_system(void)
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *actor = ast_create_subject("Counter");
-        actor->line = 1; actor->column = 1;
-        type_check_class_decl(actor, ctx);
+        ASTNode *subject_decl = ast_create_subject("Counter");
+        subject_decl->line = 1; subject_decl->column = 1;
+        type_check_class_decl(subject_decl, ctx);
         EXPECT(!ctx->has_error);
 
         /* Verify symbol was registered */
@@ -18,7 +18,7 @@ test_async_system(void)
         EXPECT(sym != NULL && sym->kind == SYMBOL_CLASS);
 
         semantic_context_destroy(ctx);
-        ast_destroy(actor);
+        ast_destroy(subject_decl);
     }
 
     TEST("duplicate subject declaration triggers error");

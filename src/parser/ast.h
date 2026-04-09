@@ -881,7 +881,7 @@ struct ASTNode
             char* effect_slot_name;
             char* target_slot_name;
             char* state_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_apply;
 
         /* Zone relation link */
@@ -890,7 +890,7 @@ struct ASTNode
             char* left_slot_name;
             char* right_slot_name;
             char* state_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_link;
 
         /* Zone effect detachment */
@@ -898,7 +898,7 @@ struct ASTNode
             char* effect_slot_name;
             char* target_slot_name;
             char* state_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_detach;
 
         /* Zone relation unlink */
@@ -907,14 +907,14 @@ struct ASTNode
             char* left_slot_name;
             char* right_slot_name;
             char* state_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_unlink;
 
         /* Zone object refresh */
         struct {
             char* object_slot_name;
             char* source_slot_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
             bool requires_dto;
             bool infer_target_kind;
         } zone_refresh;
@@ -923,7 +923,7 @@ struct ASTNode
         struct {
             char* effect_slot_name;
             char* target_slot_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_maintain_effect;
 
         /* Zone relation maintenance rule */
@@ -931,13 +931,13 @@ struct ASTNode
             char* relation_slot_name;
             char* left_slot_name;
             char* right_slot_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_maintain_relation;
 
         /* Zone lifecycle state maintenance rule */
         struct {
             char* state_name;
-            char* actor_slot_name;
+            char* participant_slot_name;
         } zone_maintain_state;
 
         /* Zone authority declaration */

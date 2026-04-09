@@ -153,7 +153,7 @@ world    = 전체 시스템의 경계
 - role
 - include
 - context
-- actor profile
+- execution model
 
 ### 상위 도메인 계층
 
@@ -190,7 +190,7 @@ world    = 전체 시스템의 경계
 | `Subject` | 상태와 identity를 가진 주체 |
 | `Object` | intent를 시작하지 않는 피동 상태 대상 |
 | `tobject` | object의 외부 경계용 축약 투영 |
-| `Actor` | subject의 실행 프로파일 |
+| `Participant` | subject의 실행 프로파일 |
 | `Party` | 협력하는 자원 묶음 |
 | `World` | 격리된 시스템 경계 |
 

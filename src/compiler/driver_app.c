@@ -651,9 +651,9 @@ scaffold_project_dir(const char *target)
     if (scaffold_mkdir_p(dir) != 0)
         goto cleanup;
 
-    subject_path = path_join_dup(dir, "subjects/actor.pgy");
+    subject_path = path_join_dup(dir, "subjects/unit.pgy");
     zone_path = path_join_dup(dir, "zones/main.pgy");
-    intent_path = path_join_dup(dir, "intents/recover_actor.pgy");
+    intent_path = path_join_dup(dir, "intents/recover_unit.pgy");
     world_path = path_join_dup(dir, "world.pgy");
     main_path = path_join_dup(dir, "main.pgy");
     name = scaffold_base_name_dup(dir);
@@ -688,7 +688,7 @@ scaffold_project_dir(const char *target)
         "    }\n"
         "}\n"
         "\n"
-        "subject Actor\n"
+        "subject Unit\n"
         "{\n"
         "    let name: String;\n"
         "    let tool: Tool;\n"
@@ -705,19 +705,19 @@ scaffold_project_dir(const char *target)
         "    }\n"
         "}\n"
         "\n"
-        "object ActorView\n"
+        "object UnitView\n"
         "{\n"
         "    name: String;\n"
         "    tool: Tool;\n"
         "}\n");
 
     snprintf(zone_content, sizeof(zone_content),
-        "import \"../subjects/actor.pgy\";\n"
+        "import \"../subjects/unit.pgy\";\n"
         "\n"
         "zone MainZone\n"
         "{\n"
-        "    subject slot unit: Actor\n"
-        "    object slot view: ActorView\n"
+        "    subject slot unit: Unit\n"
+        "    object slot view: UnitView\n"
         "    authority unit\n"
         "    refresh view from unit by unit\n"
         "    shared tick: Int = 0\n"
@@ -731,7 +731,7 @@ scaffold_project_dir(const char *target)
     snprintf(intent_content, sizeof(intent_content),
         "import \"../zones/main.pgy\";\n"
         "\n"
-        "intent RecoverActor(main: MainZone, unit: Actor)\n"
+        "intent RecoverUnit(main: MainZone, unit: Unit)\n"
         "{\n"
         "    exclusive;\n"
         "    priority: 10;\n"
@@ -751,7 +751,7 @@ scaffold_project_dir(const char *target)
         "}\n");
 
     snprintf(world_content, sizeof(world_content),
-        "import \"intents/recover_actor.pgy\";\n"
+        "import \"intents/recover_unit.pgy\";\n"
         "\n"
         "world %sWorld\n"
         "{\n"
@@ -761,7 +761,7 @@ scaffold_project_dir(const char *target)
         "\n"
         "    func Step(self) -> Void\n"
         "    {\n"
-        "        Log(\"[Intent] RecoverActor=\" + ToString(RecoverActor(main, main.unit)));\n"
+        "        Log(\"[Intent] RecoverUnit=\" + ToString(RecoverUnit(main, main.unit)));\n"
         "        Log(main.Snapshot());\n"
         "        tick = tick + 1;\n"
         "    }\n"
@@ -769,7 +769,7 @@ scaffold_project_dir(const char *target)
         "\n"
         "func Open%sWorld() -> %sWorld\n"
         "{\n"
-        "    let zone = MainZone(Actor(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
+        "    let zone = MainZone(Unit(\"hero\", Tool(\"Bandage\", 1), Health(10)));\n"
         "    return %sWorld(zone);\n"
         "}\n",
         name,

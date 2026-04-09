@@ -427,13 +427,13 @@ add_named_resource_fact(RIRScope *scope,
 }
 
 static bool
-add_authority_fact(RIRScope *scope, const char *actor, const char *ability, ASTNode *ast)
+add_authority_fact(RIRScope *scope, const char *participant, const char *ability, ASTNode *ast)
 {
     RIRFact fact;
     memset(&fact, 0, sizeof(fact));
     fact.kind = ability != NULL ? RIR_FACT_CAPABILITY : RIR_FACT_AUTHORITY;
-    fact.name = actor;
-    fact.slot_anchor = actor;
+    fact.name = participant;
+    fact.slot_anchor = participant;
     fact.arg0 = ability;
     fact.resource_kind = ability != NULL
         ? RIR_RESOURCE_CAPABILITY_TOKEN

@@ -19,7 +19,7 @@ async func FetchWeatherData(city: String) -> Result<WeatherData, Error>
     return .Ok(data)
 }
 
-// Actor for managing weather cache
+// Subject for managing weather cache
 subject WeatherCache {
     private _cache: Map<String, WeatherData>
     private _lastUpdate: Map<String, Timestamp>
@@ -49,7 +49,7 @@ async func WeatherMonitor(cities: Array<String>)
     let requestChannel = Channel<String>(bufferSize: 10)
     let resultChannel = Channel<WeatherResult>(bufferSize: 10)
     
-    // Create cache actor
+    // Create cache subject
     let cache = WeatherCache()
     
     // Spawn producer task

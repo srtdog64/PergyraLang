@@ -2709,10 +2709,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
-    if (strcmp(callee_name, "IntentHistoryStepActor") == 0
+    if (strcmp(callee_name, "IntentHistoryStepParticipant") == 0
         && node->data.call.arg_count == 1) {
         ctx->uses_intent_observability = true;
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_actor_export");
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_history_step_participant_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }

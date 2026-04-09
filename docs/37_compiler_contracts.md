@@ -116,7 +116,7 @@ DIR의 slot-contract graph는 최소한 아래 네 계약을 분리해야 한다
 - `authority slot -> ability`
 - `intent participant -> bound type`
 - `intent step -> zone`
-- `intent step -> who actor alias`
+- `intent step -> who participant alias`
 - `intent step -> required ability`
 - `intent step -> authorized-by alias`
 - `intent step -> causes effect`
@@ -185,7 +185,7 @@ RIR는 단순 수명 맵이 아니다. 최소한 다음을 explicit op로 가진
 - projection fact는 projection target slot을 anchor로 가진다
 - authority / capability fact는 승인 주체 subject slot을 anchor로 가진다
 - relation / effect / zone / world handle fact도 해당 layer/zone slot 이름을 anchor로 가진다
-- intent `using:` / `transfer:` / `authorize:` op는 source/target/actor slot anchor를 잃지 않아야 한다
+- intent `using:` / `transfer:` / `authorize:` op는 source/target/participant slot anchor를 잃지 않아야 한다
 
 즉 RIR는 "slot을 포함하는 일부 기능"이 아니라, 가능한 모든 자원 의미를 slot anchor 위에 정규화하는 계층이어야 한다.
 
@@ -324,7 +324,7 @@ MIR로 이월하는 것:
 - `ability`
 - `role`
 - `party`
-- `actor`
+- `subject`
 - `channel`
 
 모듈 / 가시성 / 선언 수식:
@@ -642,7 +642,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 | 키워드 | Token 분류 | Parser 분류 | 계약 무게 | 최종 고정 계층 | 메모 |
 | --- | --- | --- | --- | --- | --- |
-| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host / actor-bearing type |
+| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host / participant type |
 | `class` | reserved (`TOKEN_CLASS`) | declaration | 중간 | `HIR` 중심 | 현재 subject와 token 공유 |
 | `struct` | reserved (`TOKEN_STRUCT`) | declaration | 낮음 | `HIR` 중심 | pure value type |
 | `object` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
@@ -663,7 +663,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `rollback` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | cleanup policy root |
 | `compensate` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | reverse-order recovery path |
 | `authority` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | zone mutation authority declaration |
-| `authorized by` | identifier pair | clause keyword | 큼 | `DIR -> RIR -> MIR` | actor authorization binding |
+| `authorized by` | identifier pair | clause keyword | 큼 | `DIR -> RIR -> MIR` | subject-alias authorization binding |
 | `refresh` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | object projection sync |
 | `publish` | identifier | clause keyword | 큼 | `DIR -> RIR -> MIR` | tobject boundary sync |
 | `bind` | reserved | clause/declaration keyword | 큼 | `HIR -> DIR -> RIR -> MIR` | target slot kind-sensitive projection contract |
@@ -716,7 +716,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
 | `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | async control surface |
 | `await` | `TOKEN_AWAIT` | expression | 중간 | `HIR -> RIR -> MIR` | future synchronization |
-| `actor` | `TOKEN_ACTOR` | declaration modifier | 중간 | `HIR -> DIR` | actor profile surface |
+| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host type |
 | `channel` | `TOKEN_CHANNEL` | type/declaration surface | 중간 | `HIR -> RIR -> MIR` | channel resource surface |
 | `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | channel control surface |
 | `case` | `TOKEN_CASE` | statement | 낮음 | `HIR -> MIR` | match/select arm |
@@ -765,10 +765,10 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | 키워드 | Token 형태 | 주 사용 문맥 | 계약 무게 | 최종 고정 계층 | 비고 |
 | --- | --- | --- | --- | --- | --- |
 | `where` | reserved token | generic constraint / action / intent step | 큼 | `HIR -> DIR -> MIR` | zone or type constraint |
-| `who` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | actor binding |
+| `who` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | participant binding |
 | `using` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | live zone instance sync |
 | `requires` | identifier keyword | action / intent / authority | 큼 | `DIR -> RIR` | ability requirement |
-| `authorized by` | identifier pair | action / intent / zone ops | 큼 | `DIR -> RIR -> MIR` | authority actor binding |
+| `authorized by` | identifier pair | action / intent / zone ops | 큼 | `DIR -> RIR -> MIR` | authority participant binding |
 | `transfer` | identifier keyword | intent step | 큼 | `DIR -> RIR -> MIR` | cross-boundary handoff |
 | `success` | identifier keyword | intent | 중간 | `DIR -> MIR` | success exit contract |
 | `failure` | identifier keyword | intent | 중간 | `DIR -> MIR` | failure exit contract |
@@ -1151,7 +1151,7 @@ authority는 "누가 승인하는가"다.
 예:
 
 - `authority subjectSlot`
-- `authorized by actor`
+- `authorized by subject alias`
 - zone-local approval boundary
 
 ## 5.3 고정 원칙

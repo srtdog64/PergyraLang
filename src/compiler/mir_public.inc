@@ -1694,6 +1694,11 @@ mir_extract_inner_type_suffix(const char *pergyra_type_name)
 const MIRTypeLayout *
 mir_abi_lookup(const char *pergyra_type_name)
 {
+    int written;
+
+    if (pergyra_type_name == NULL)
+        return NULL;
+
     /* First try exact match (debug mode default) */
     MIRTypeLayout *t = abi_type_lookup_by_name(pergyra_type_name);
     if (t != NULL)
@@ -1701,39 +1706,45 @@ mir_abi_lookup(const char *pergyra_type_name)
 
     /* Try release mode variant */
     char rel_name[128];
-    snprintf(rel_name, sizeof(rel_name), "%s_rel", pergyra_type_name);
-    t = abi_type_lookup_by_name(rel_name);
-    if (t != NULL)
-        return t;
+    written = snprintf(rel_name, sizeof(rel_name), "%s_rel", pergyra_type_name);
+    if (written >= 0 && (size_t)written < sizeof(rel_name)) {
+        t = abi_type_lookup_by_name(rel_name);
+        if (t != NULL)
+            return t;
+    }
 
     /* Try to find by runtime function name pattern */
     /* e.g. "Slot<Int>" → look for any type with "pgy_claim_Int" */
     const char *suffix = mir_extract_inner_type_suffix(pergyra_type_name);
     if (suffix != NULL) {
-        /* Try to find constructor prefix */
-        char fn_prefix[64];
-        const char *ctor = "pgy_claim_";
+        char fn_prefix[128];
 
         /* Check if it's a Slot type */
         if (strncmp(pergyra_type_name, "Slot<", 5) == 0) {
-            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_claim_%s", suffix);
-            t = abi_type_lookup_by_runtime_fn(fn_prefix);
-            if (t != NULL)
-                return t;
+            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_claim_%s", suffix);
+            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
+                t = abi_type_lookup_by_runtime_fn(fn_prefix);
+                if (t != NULL)
+                    return t;
+            }
         }
         /* Option */
         if (strncmp(pergyra_type_name, "Option<", 7) == 0) {
-            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_option_some_%s", suffix);
-            t = abi_type_lookup_by_runtime_fn(fn_prefix);
-            if (t != NULL)
-                return t;
+            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_option_some_%s", suffix);
+            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
+                t = abi_type_lookup_by_runtime_fn(fn_prefix);
+                if (t != NULL)
+                    return t;
+            }
         }
         /* Result */
         if (strncmp(pergyra_type_name, "Result<", 7) == 0) {
-            snprintf(fn_prefix, sizeof(fn_prefix), "pgy_result_ok_%s", suffix);
-            t = abi_type_lookup_by_runtime_fn(fn_prefix);
-            if (t != NULL)
-                return t;
+            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_result_ok_%s", suffix);
+            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
+                t = abi_type_lookup_by_runtime_fn(fn_prefix);
+                if (t != NULL)
+                    return t;
+            }
         }
     }
 

@@ -100,7 +100,7 @@
 | `AST_EFFECT_DECL` | 이펙트 선언 | OK |
 | `AST_EVENT_DECL` | 이벤트 선언 (subscribe/invoke 함수) | OK |
 | `AST_INTENT_DECL` | 인텐트 선언 | OK (런타임 추적) |
-| `AST_ACTOR_DECL` | 액터 선언 | OK (도메인 패스) |
+| removed | legacy declaration removed | subject-only |
 
 ---
 
@@ -203,7 +203,7 @@
 `public` `private` `with` `as`
 
 ### 비동기/동시성
-`async` `await` `actor` `channel` `select` `spawn` `parallel`
+`async` `await` `subject` `channel` `select` `spawn` `parallel`
 
 ### 소유권
 `own` `ref`

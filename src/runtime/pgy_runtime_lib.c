@@ -618,7 +618,7 @@ typedef struct {
     char *name;
     char *zone;
     char *phase;
-    char *actor;
+    char *participant;
     char *slot;
     char *from_zone;
     char *from_slot;
@@ -697,7 +697,7 @@ pgy_intent_history_step_clear_export(PgyIntentHistoryStep *step)
     free(step->name);
     free(step->zone);
     free(step->phase);
-    free(step->actor);
+    free(step->participant);
     free(step->slot);
     free(step->from_zone);
     free(step->from_slot);
@@ -707,7 +707,7 @@ pgy_intent_history_step_clear_export(PgyIntentHistoryStep *step)
     step->name = NULL;
     step->zone = NULL;
     step->phase = NULL;
-    step->actor = NULL;
+    step->participant = NULL;
     step->slot = NULL;
     step->from_zone = NULL;
     step->from_slot = NULL;
@@ -917,7 +917,7 @@ pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
             entry->steps[index].name = pgy_runtime_strdup_export(step_name != NULL ? step_name : "");
             entry->steps[index].zone = pgy_runtime_strdup_export(zone_name != NULL ? zone_name : "");
             entry->steps[index].phase = pgy_runtime_strdup_export("begin");
-            entry->steps[index].actor = pgy_runtime_strdup_export("");
+            entry->steps[index].participant = pgy_runtime_strdup_export("");
             entry->steps[index].slot = pgy_runtime_strdup_export("");
             entry->steps[index].from_zone = pgy_runtime_strdup_export("");
             entry->steps[index].from_slot = pgy_runtime_strdup_export("");
@@ -931,7 +931,7 @@ pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
 }
 
 void
-pgy_intent_trace_bind_export(int32_t handle, char *actor_name, char *slot_name)
+pgy_intent_trace_bind_export(int32_t handle, char *participant_name, char *slot_name)
 {
     if (!PGY_INTENT_OBSERVABILITY_ENABLED)
         return;
@@ -940,12 +940,12 @@ pgy_intent_trace_bind_export(int32_t handle, char *actor_name, char *slot_name)
     if (entry != NULL) {
         char line[256];
         snprintf(line, sizeof(line), "[bind] %s -> %s\n",
-            actor_name != NULL ? actor_name : "<actor>",
+            participant_name != NULL ? participant_name : "<participant>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line_export(&entry->trace, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
-            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].participant, participant_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].slot, slot_name);
         }
     }
@@ -953,7 +953,7 @@ pgy_intent_trace_bind_export(int32_t handle, char *actor_name, char *slot_name)
 }
 
 void
-pgy_intent_trace_materialize_export(int32_t handle, char *actor_name,
+pgy_intent_trace_materialize_export(int32_t handle, char *participant_name,
                                     char *slot_name, char *zone_name)
 {
     if (!PGY_INTENT_OBSERVABILITY_ENABLED)
@@ -963,14 +963,14 @@ pgy_intent_trace_materialize_export(int32_t handle, char *actor_name,
     if (entry != NULL) {
         char line[320];
         snprintf(line, sizeof(line), "[materialize] %s => %s.%s\n",
-            actor_name != NULL ? actor_name : "<actor>",
+            participant_name != NULL ? participant_name : "<participant>",
             zone_name != NULL ? zone_name : "<zone>",
             slot_name != NULL ? slot_name : "<unbound>");
         pgy_intent_append_line_export(&entry->trace, line);
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "materialize");
-            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].participant, participant_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].slot, slot_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].to_zone, zone_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].to_slot, slot_name);
@@ -980,7 +980,7 @@ pgy_intent_trace_materialize_export(int32_t handle, char *actor_name,
 }
 
 void
-pgy_intent_trace_transfer_export(int32_t handle, char *actor_name,
+pgy_intent_trace_transfer_export(int32_t handle, char *participant_name,
                                  char *from_zone_name, char *from_slot_name,
                                  char *to_zone_name, char *to_slot_name)
 {
@@ -991,7 +991,7 @@ pgy_intent_trace_transfer_export(int32_t handle, char *actor_name,
     if (entry != NULL) {
         char line[384];
         snprintf(line, sizeof(line), "[transfer] %s: %s.%s -> %s.%s\n",
-            actor_name != NULL ? actor_name : "<actor>",
+            participant_name != NULL ? participant_name : "<participant>",
             from_zone_name != NULL ? from_zone_name : "<zone>",
             from_slot_name != NULL ? from_slot_name : "<unbound>",
             to_zone_name != NULL ? to_zone_name : "<zone>",
@@ -1000,7 +1000,7 @@ pgy_intent_trace_transfer_export(int32_t handle, char *actor_name,
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX) {
             int32_t index = entry->step_count - 1;
             pgy_intent_history_step_set_string_export(&entry->steps[index].phase, "transfer");
-            pgy_intent_history_step_set_string_export(&entry->steps[index].actor, actor_name);
+            pgy_intent_history_step_set_string_export(&entry->steps[index].participant, participant_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].from_zone, from_zone_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].from_slot, from_slot_name);
             pgy_intent_history_step_set_string_export(&entry->steps[index].to_zone, to_zone_name);
@@ -1192,11 +1192,11 @@ pgy_intent_history_step_phase_export(int32_t index)
 }
 
 char *
-pgy_intent_history_step_actor_export(int32_t index)
+pgy_intent_history_step_participant_export(int32_t index)
 {
     if (index < 0 || index >= pgy_intent_last_history_count)
         return "";
-    return pgy_intent_last_steps[index].actor != NULL ? pgy_intent_last_steps[index].actor : "";
+    return pgy_intent_last_steps[index].participant != NULL ? pgy_intent_last_steps[index].participant : "";
 }
 
 char *
@@ -1395,8 +1395,8 @@ pgy_intent_exit_export(int32_t handle)
                     entry->steps[j].zone != NULL ? entry->steps[j].zone : "");
                 pgy_intent_last_steps[j].phase = pgy_runtime_strdup_export(
                     entry->steps[j].phase != NULL ? entry->steps[j].phase : "");
-                pgy_intent_last_steps[j].actor = pgy_runtime_strdup_export(
-                    entry->steps[j].actor != NULL ? entry->steps[j].actor : "");
+                pgy_intent_last_steps[j].participant = pgy_runtime_strdup_export(
+                    entry->steps[j].participant != NULL ? entry->steps[j].participant : "");
                 pgy_intent_last_steps[j].slot = pgy_runtime_strdup_export(
                     entry->steps[j].slot != NULL ? entry->steps[j].slot : "");
                 pgy_intent_last_steps[j].from_zone = pgy_runtime_strdup_export(

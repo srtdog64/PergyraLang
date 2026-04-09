@@ -262,7 +262,7 @@ This scenario is likely to expose:
   `IntentLastStepCount()` / `IntentLastFailed()` now expose minimal execution
   history, and `IntentHistoryCount()` / `IntentHistoryStep*()` expose the last
   completed intent's step-level typed history. `using: journey;` now provides
-  live concrete zone-instance binding and actor-to-zone-slot materialization
+  live concrete zone-instance binding and participant-to-zone-slot materialization
   for scenario intents. The remaining gaps are richer trace ids, richer
   rollback policy, and true cross-world transfer semantics.
 - Runtime hashmap helpers used raw `strdup(...)`, which leaked portability

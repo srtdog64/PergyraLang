@@ -85,7 +85,7 @@ Pergyra는 이 부분이 비교적 잘 버틴다.
 이 점은 일반 OOP보다 강하다.
 
 - class 먼저 만들면 나머지 필요 요소가 잘 안 드러난다
-- intent 먼저 만들면 필요한 actor/zone/ability/effect가 자동으로 보인다
+- intent 먼저 만들면 필요한 participant/zone/ability/effect가 자동으로 보인다
 
 ### 3. domain contract를 정적으로 검증하는 방향이 실전 가치가 있다
 
@@ -170,7 +170,7 @@ secure-view 쪽이다.
 - `exclusive/concurrent/priority`
 - reverse-order `compensate`
 - live zone binding
-- actor-to-zone-slot materialization
+- participant-to-zone-slot materialization
 
 하지만 아직 남은 것이 있다.
 

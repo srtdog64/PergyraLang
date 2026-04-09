@@ -31,4 +31,4 @@
 - the transcript is JS/backend flavored, but the real execution boundary remains the zone/intent layer
 - transcript persistence now goes through `use storage;` rather than direct `WriteFile(...)`
 - while building this example, the misleading intent warning for explicit `on:` steps was fixed in the compiler
-- `using:` now rebinds `who` actors to live zone subject slots during the step body, so zone methods can mutate nested actor state directly without the old "canonical actor first, zone mirrors later" workaround
+- `using:` now rebinds `who` actors to live zone subject slots during the step body, so zone methods can mutate nested participant state directly without the old "canonical participant first, zone mirrors later" workaround

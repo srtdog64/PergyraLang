@@ -420,7 +420,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("actor copy into new binding is rejected as subject profile");
+    TEST("subject copy into new binding is rejected");
     {
         const char *source =
             "subject Counter {\n"
@@ -446,7 +446,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject declaration emits no actor deprecation warning");
+    TEST("subject declaration emits no deprecation warning");
     {
         const char *source =
             "subject Counter {\n"
@@ -467,7 +467,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("subject actor profile syntax is rejected by subject copy rules");
+    TEST("subject syntax is rejected by subject copy rules");
     {
         const char *source =
             "subject Counter {\n"

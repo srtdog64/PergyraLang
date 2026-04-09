@@ -322,7 +322,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             if (!add_op(&scope, RIR_OP_ATTACH_EFFECT,
                         apply->data.zone_apply.effect_slot_name,
                         apply->data.zone_apply.target_slot_name,
-                        apply->data.zone_apply.actor_slot_name,
+                        apply->data.zone_apply.participant_slot_name,
                         apply))
                 goto oom;
         }
@@ -340,7 +340,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             if (!add_op(&scope, RIR_OP_DETACH_EFFECT,
                         detach->data.zone_detach.effect_slot_name,
                         detach->data.zone_detach.target_slot_name,
-                        detach->data.zone_detach.actor_slot_name,
+                        detach->data.zone_detach.participant_slot_name,
                         detach))
                 goto oom;
         }
@@ -409,7 +409,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
                     tobject ? RIR_OP_PROJECT_PUBLISH : RIR_OP_PROJECT_REFRESH,
                     refresh->data.zone_refresh.object_slot_name,
                     refresh->data.zone_refresh.source_slot_name,
-                    refresh->data.zone_refresh.actor_slot_name,
+                    refresh->data.zone_refresh.participant_slot_name,
                     refresh))
             goto oom;
     }

@@ -13,7 +13,7 @@
 | 구분 | 현재 상태 | 예시 |
 |---|---|---|
 | Stable | parser/semantic/examples/backend smoke로 계속 검증되는 핵심 문법 | `let`, `func`, `if/else`, `for`, `while`, `match`, 배열, 문자열, `slot/view/move`, `spawn/await`, `Channel`, `import/export/namespace`, `enum` |
-| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `actor`, `event + lambda`, `ability/role`, `party/roster/world`, structured comment `@effects`, `defer`, `unsafe` |
+| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `subject`, `event + lambda`, `ability/role`, `party/roster/world`, structured comment `@effects`, `defer`, `unsafe` |
 | Not Current Surface | AST 흔적이나 설계 문서만 있고 공식 문법으로 보면 안 되는 것 | `type alias`, 고급 DSL 확장 초안, 미문서 실험 노드 |
 
 규칙:
@@ -34,7 +34,7 @@
 
 | 분류 | 키워드 |
 |------|--------|
-| 선언 | `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party` |
+| 선언 | `let`, `func`, `class`, `struct`, `subject`, `enum`, `subject`, `ability`, `role`, `party` |
 | 제어 | `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue` |
 | 비동기 | `async`, `await`, `spawn`, `select`, `channel` |
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
@@ -181,10 +181,10 @@ Purchase(hero, merchant);
 - `on:`은 여러 번 선언할 수 있고 현재 lowering은 선언 순서대로 실행한다
 - `compensate:`는 여러 번 선언할 수 있고, failure 시 reverse-order로 실행된다
 - `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastTraceId()` / `IntentLastStepCount()` / `IntentLastFailed()` builtin으로 마지막 intent 실행 기록 요약을 읽을 수 있다
-- `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepPhase(i)` / `IntentHistoryStepActor(i)` / `IntentHistoryStepSlot(i)` / `IntentHistoryStepFromZone(i)` / `IntentHistoryStepFromSlot(i)` / `IntentHistoryStepToZone(i)` / `IntentHistoryStepToSlot(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
+- `IntentHistoryCount()` / `IntentHistoryStepName(i)` / `IntentHistoryStepZone(i)` / `IntentHistoryStepPhase(i)` / `IntentHistoryStepParticipant(i)` / `IntentHistoryStepSlot(i)` / `IntentHistoryStepFromZone(i)` / `IntentHistoryStepFromSlot(i)` / `IntentHistoryStepToZone(i)` / `IntentHistoryStepToSlot(i)` / `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)` builtin으로 마지막 completed intent의 step-level typed history를 읽을 수 있다
 - `IntentActiveCount()` / `IntentActiveName(i)` / `IntentActiveHandle(i)` / `IntentActiveTraceId(i)` / `IntentActivePriority(i)` / `IntentActiveConcurrent(i)` / `IntentActiveTrace(i)` builtin으로 현재 active intent registry를 읽을 수 있다
-- `transfer: source -> target;`는 intent step에서 cross-zone handoff를 선언한다. 현재 구현은 source/target 양쪽 zone을 live sync하고, `who` actor를 matching subject slot에 materialize하며, trace에 `[transfer] ...`를 남긴다.
-- `using:` step은 현재 `who` actor alias를 live zone subject slot pointer로 재바인딩한 뒤 step body를 실행하고, sync 후 canonical actor로 복구한다. 그래서 zone method가 nested actor state를 직접 바꿔도 intent clause와 최종 actor state가 일관된다.
+- `transfer: source -> target;`는 intent step에서 cross-zone handoff를 선언한다. 현재 구현은 source/target 양쪽 zone을 live sync하고, `who` participant를 matching subject slot에 materialize하며, trace에 `[transfer] ...`를 남긴다.
+- `using:` step은 현재 `who` participant alias를 live zone subject slot pointer로 재바인딩한 뒤 step body를 실행하고, sync 후 canonical participant로 복구한다. 그래서 zone method가 nested participant state를 직접 바꿔도 intent clause와 최종 participant state가 일관된다.
 
 현재 한계:
 - `exclusive` / `concurrent` / `priority`는 현재 runtime conflict registry까지 내려간다
@@ -314,7 +314,7 @@ enum Color { Red, Green, Blue }
 - `subject`
 - `class`
 - `enum`
-- `actor`
+- `subject`
 - `subject Name { ... }`
 - `relation`
 - `effect`

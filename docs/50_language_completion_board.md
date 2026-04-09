@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-09 (intent forward-declare MIR seed, hidden method HIR/MIR routine 생성, subject/actor method MIR direct path, domain sync registry metadata 반영, world zone lookup registry화, lld 기본화 반영)
+마지막 업데이트: 2026-04-09 (intent forward-declare MIR seed, hidden method HIR/MIR routine 생성, subject method MIR direct path, domain sync registry metadata 반영, world zone lookup registry화, lld 기본화 반영)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -230,17 +230,17 @@
 
 ### 4.4 Class method fallback 현실
 
-- HIR는 이제 class/actor method를 hidden routine로도 수집한다.
+- HIR는 이제 class/subject method를 hidden routine로도 수집한다.
 - MIR/RIR matching도 `owner_name`을 같이 보도록 강화됐다.
 - empty method body도 이제 valid MIR routine로 취급한다.
 - 현재 상태:
   - plain `class` method: MIR direct path 우선, routine 없으면 hard error
   - `subject` method: MIR direct path 우선, routine 없으면 hard error
-  - `actor` method: MIR direct path 우선, 없으면 compatibility fallback 유지
+  - `subject` method: MIR direct path 우선, 없으면 compatibility fallback 유지
   - direct MIR method emission을 모든 nominal family로 hard-require 하는 단계는 아직 남아 있다
 - 확인된 현재 한계:
-  - `actor` method는 MIR direct emission 우선 경로는 들어갔지만, 아직 hard-require fallback 제거까지는 안 갔다
-- 즉 이 항목은 "plain class method는 전진, subject/actor method는 다음 단계" 상태다.
+  - `subject` method는 MIR direct emission 우선 경로는 들어갔지만, 아직 hard-require fallback 제거까지는 안 갔다
+- 즉 이 항목은 "plain class method는 전진, subject method는 다음 단계" 상태다.
 
 ### 4.4 Main-wrapper fallback
 

@@ -214,9 +214,9 @@
 - LLVM projection optimization parity
 - intent step semantic lowering (MIR carrier는 `participant/step/check/on/subintent/compensate/default-dispatch/zone-meta`까지 들어갔고, 남은 건 bootstrap/compatibility 층임)
 - class method MIR migration (현재 plain class method는 MIR routine generation이 닫히지 않아 LLVM fallback을 유지)
-- class/actor hidden method HIR routine 수집과 owner-aware MIR/RIR matching은 들어갔고, plain class method는 LLVM MIR direct path를 타기 시작했다
+- class/subject hidden method HIR routine 수집과 owner-aware MIR/RIR matching은 들어갔고, plain class method는 LLVM MIR direct path를 타기 시작했다
 - empty method body도 valid MIR routine로 취급하게 바뀌었고, 그 결과 subject method는 이제 plain class처럼 LLVM MIR direct path를 탄다
-- actor method도 MIR direct path 우선은 들어갔지만, 아직 hard-require fallback 제거까지는 가지 않았다
+- participant method도 MIR direct path 우선은 들어갔지만, 아직 hard-require fallback 제거까지는 가지 않았다
 - domain 쪽은 sync helper 선택에 이어 world zone class lookup 하나를 registry metadata/field type 역조회로 옮겼다
 
 ### next

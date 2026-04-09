@@ -106,7 +106,7 @@ declare ptr @pgy_intent_history_step_zone_export(i32)
 
 declare ptr @pgy_intent_history_step_phase_export(i32)
 
-declare ptr @pgy_intent_history_step_actor_export(i32)
+declare ptr @pgy_intent_history_step_participant_export(i32)
 
 declare ptr @pgy_intent_history_step_slot_export(i32)
 

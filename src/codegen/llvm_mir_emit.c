@@ -286,9 +286,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             if (involves != NULL && llvm_intent_involves_uses_pointer_self(ctx, involves))
                 pt = LLVMPointerType(pt, 0);
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
-                alias != NULL ? alias : "actor");
+                alias != NULL ? alias : "participant");
             LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
-            llvm_scope_declare(ctx, alias != NULL ? alias : "actor", alloca, pt);
+            llvm_scope_declare(ctx, alias != NULL ? alias : "participant", alloca, pt);
             if (subject_type != NULL)
                 llvm_register_typed_var(ctx, alias, subject_type);
             if (type_name != NULL)

@@ -435,9 +435,9 @@ resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
 }
 
 static ASTNode *
-find_actor_decl(TranspilerCtx *ctx, const char *actor_name)
+find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name)
 {
-    ASTNode *decl = find_class_decl(ctx, actor_name);
+    ASTNode *decl = find_class_decl(ctx, subject_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL
         && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
         return decl;
@@ -3049,7 +3049,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "IntentHistoryStepName") == 0
                 || strcmp(name, "IntentHistoryStepZone") == 0
                 || strcmp(name, "IntentHistoryStepPhase") == 0
-                || strcmp(name, "IntentHistoryStepActor") == 0
+                || strcmp(name, "IntentHistoryStepParticipant") == 0
                 || strcmp(name, "IntentHistoryStepSlot") == 0
                 || strcmp(name, "IntentHistoryStepFromZone") == 0
                 || strcmp(name, "IntentHistoryStepFromSlot") == 0
@@ -3227,7 +3227,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return expr->data.call.arguments[0]->data.identifier.name;
             }
             if (find_class_decl(ctx, name) != NULL
-                || find_actor_decl(ctx, name) != NULL
+                || find_subject_host_decl(ctx, name) != NULL
                 || find_relation_decl(ctx, name) != NULL
                 || find_effect_decl(ctx, name) != NULL
                 || find_zone_decl(ctx, name) != NULL

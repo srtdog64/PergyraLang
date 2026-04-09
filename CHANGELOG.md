@@ -298,10 +298,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `TavernRecruitment(...)`, `DelveThreeFloors(...)`, and `SlayDragon(...)`
   directly, proving that intent moves subjects in the live scenario.
 - Added parser and semantic regression coverage for `intent` declarations,
-  including subject-binding and unknown-actor failure cases.
+  including subject-binding and unknown-participant failure cases.
 - Added stronger `intent step` semantic validation so `who` / `authorized by`
   must match subject-slot types in the referenced zone and `requires`
-  abilities must be implemented by the declared actor subject type.
+  abilities must be implemented by the declared subject type.
 - Added backend-compare coverage for programs that carry `intent`
   declarations but still execute normal code paths, proving current
   parser/semantic/HIR-skip behavior is backend-equal.
@@ -373,7 +373,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Folder-level exact `expected_results.txt` golden comparison for simulator outputs
 - Backend-aware exact stdout goldens for folder-based simulator smoke scenarios
 - Backend-aware exact `expected_results.<backend>.txt` golden comparison for simulator outputs
-- Wider contextual-keyword identifier support for locals and parameters such as `world`, `zone`, `effect`, and `actor`
+- Wider contextual-keyword identifier support for locals and parameters such as `world`, `zone`, `effect`, and `subject`
 - Parser support for leading-dot enum/result variant shorthand such as `.Some(x)`, `.None`, `.Ok(v)`, `.Err(e)`
 
 ### Changed
@@ -509,7 +509,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added C backend incremental sync semantics so zone/world methods run generated sync helpers before and after body execution, applying `refresh` / `publish` projections and lifecycle flags
 - Added LLVM parity for zone/world sync helpers, zone/world method pre/post sync, and contextual `HasLayer(...)` / `HasState(...)` / `HasZone(...)` lowering
 - Added C backend struct/method emission for `relation` and `effect` declarations instead of treating them as declaration-only no-ops
-- `world`, `systemic`, `relation`, `effect`, and `zone` now behave as contextual keywords so they remain valid local variable names outside declaration positions
+- `world`, `roster`, `relation`, `effect`, and `zone` now behave as contextual keywords so they remain valid local variable names outside declaration positions
 - `relation` / `effect` headers now accept `for object ...` bindable targets/endpoints, and zone contracts accept matching object slots in `apply/link/detach/unlink`
 - Domain-local `refresh` / `publish` now accept object sources as well as subject sources, while still rejecting dto sources
 - Fixed LLVM relation/effect projection-ready struct layout for object-target overlays so `object_layer_binding` no longer corrupts memory during `--emit-llvm`
@@ -523,11 +523,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `object` / `dto` declarations now allow passive helper methods again
 - Added subject/class lowering split in both C and LLVM backends: `subject` methods use pointer-self cells, while `class` methods use value-self dispatch
 - Added semantic split so `subject` forbids plain copy / plain value parameter / plain value return, while `class` remains passable and copyable by value
-- Added actor-as-subject-profile semantic alignment so `actor` participates in role binding, `subject slot`, `ToObject` / `ToDto`, and subject copy restrictions
-- Added `subject Name actor { ... }` as a subject-first actor profile surface that lowers through the existing actor pipeline
-- Added a semantic warning on standalone `actor Name { ... }` declarations so `subject Name actor { ... }` becomes the preferred actor surface
-- Added plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor support across semantic, C transpile, and LLVM smoke coverage
-- Added actor constructor compound-literal lowering in the C backend so `actor` values participate in subject-profile object-cell codegen paths
+- Removed legacy host-profile surface and unified role binding, `subject slot`, projection source, and copy restrictions under `subject`
+- Removed the temporary legacy host-profile syntax surface and standardized on plain `subject` declarations
+- Removed standalone host-profile declarations after the model converged on ``subject` + `intent` semantics
+- Added plain/secure `Slot<subject>` local object-cell anchor support across semantic, C transpile, and LLVM smoke coverage
+- Added subject-host compound-literal lowering in the C backend for object-cell codegen paths
 - Added `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` function-boundary transfer in semantic and C/LLVM backend lowering
 - Added automatic paired-token exposure for secure boundary slot parameters (`s_token` inside function bodies)
 - Added C transpiler regression coverage for subject-host slot boundary lowering
@@ -553,12 +553,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Channel non-blocking/timeout built-ins intentionally reject movable resource channels until conditional ownership transfer is modeled explicitly
 - Cancellation is currently best-effort/cooperative rather than preemptive
 - World architecture docs now treat `world` as the final top-level execution boundary and fix the long-term layer model as `ability -> role -> party -> relation -> effect -> zone -> world`
-- Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, `class` remains as a separate nominal surface, and `actor` is positioned as a subject execution profile
-- Actor docs now reflect current implementation state: `actor` is already treated semantically as a subject execution profile, and `subject Name actor { ... }` is now supported alongside transitional standalone actor syntax
+- Architecture docs now adopt a subject-first ontology: `struct` is the value type, `subject` is the identity-bearing host type, `class` remains as a separate nominal surface, 
+- Docs now reflect the current implementation state: `subject` is the single host surface and legacy host-profile syntax is removed
 - Vessel/action docs now match implementation more closely: `subject` uses `action` only, while `object` / `dto` keep passive helper `func`
 - Core docs now define `object` as a passive state target that can hold state and react without initiating intent
 - Core ontology docs now define `dto` as the compact external-boundary projection of an object representation
-- Zone docs now treat authority, `by` actors, and state aliases as the current lifecycle/projection surface
+- Zone docs now treat authority, `by` participants, and state aliases as the current lifecycle/projection surface
 - Class/object model docs now describe the first real behavioral split between `subject` and `class` instead of treating them as parser-only flavors
 - Ownership/object-model docs now describe subject-host slot boundary transfer as a current C/semantic capability and move LLVM parity to remaining work
 - Ownership/object-model and status docs now describe relation/effect runtime instance construction and method-call parity in both C and LLVM backends
@@ -569,7 +569,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 - The C backend now emits hosted method forward declarations for large host
-  declarations such as `class`, `party`, `systemic`, `relation`, `effect`,
+  declarations such as `class`, `party`, `roster`, `relation`, `effect`,
   `zone`, and `world`, so helper-order-sensitive scenario code no longer needs
   manual source reordering just to compile
 - LLVM `ToString(Bool)` now widens bools before calling the integer-to-string
@@ -621,9 +621,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Core pipeline: Lexer → Parser → AST → Semantic → HIR → C Backend
 - Type system: Int, Long, Float, Double, Bool, String, Void
 - Slot<T> / SecureSlot<T> container isolation
-- Actor model with message passing
+- Mailbox-based concurrency model
 - Channel<T> CSP-style communication
-- Ability/Role/Party/Systemic/World hierarchy
+- Ability/Role/Party/Roster/World hierarchy
 - match/for/while/if control flow
 - Parallel blocks with task spawning
 - Event system with subscribe/unsubscribe
@@ -632,7 +632,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added incremental world propagation fields (`__zone_dirty_*`, `__world_derived_dirty`) so C/LLVM world sync can re-sync dirty zones and skip unnecessary derived recomputation
 - Initialized world constructors with dirty zone/derived flags and made world methods conservatively invalidate embedded zones before post-sync, with LLVM smoke coverage for world-owned zone replacement propagation
 - Added LLVM/runtime coverage for deeper nested member assignment (`self.zone.subject.field = value`) and secure boundary slot forwarding with paired token propagation
-- semantic: `world` decl lookup helper가 `world/systemic`도 찾도록 보강되어, world value에 embed된 zone을 옛 바인딩으로 다시 mutate하는 경로가 semantic error로 제대로 차단된다
+- semantic: `world` decl lookup helper가 `world/roster`도 찾도록 보강되어, world value에 embed된 zone을 옛 바인딩으로 다시 mutate하는 경로가 semantic error로 제대로 차단된다
 - build: 초대형 테스트 파일 `src/test_semantic.c`, `src/test_transpile.c`를 include 단위로 분리했고, parser 공용 `ast.c`의 디버그 출력 섹션을 `src/parser/ast_print.c`로 분리해 3000+ 라인 파일을 줄였다
 - build: `src/codegen/llvm_domain.c` 상단 helper 블록도 `llvm_domain_helpers.inc`로 분리해 core codegen 파일 길이를 줄였다
 - Fix C/LLVM campaign graph/FSM parity by making `ToString(Int)` allocate a
@@ -654,7 +654,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - examples/tests/docs: promote `examples/dnd_tavern_campaign/WeaponCard` into a real `class`, embed it directly into `Adventurer`, route loadout/combat narration through subject-owned class methods, and add semantic/transpile regressions for `subject` owning a `class` value and calling its hosted `func`.
 # 2026-04-05
 
-- intent runtime now materializes bound `who` actors into matching live zone
+- intent runtime now materializes bound `who` participants into matching live zone
   subject slots when `using:` binds a concrete zone instance, on both C and
   LLVM backends
 - intent runtime history now exposes `IntentLastName()`,
@@ -665,12 +665,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `IntentHistoryStepZone()` / `IntentHistoryStepOk()` /
   `IntentHistoryStepFailure()`
 - added `pgy_intent_trace_materialize_export(...)` runtime trace lines so
-  intent traces now record actor-to-zone-slot materialization explicitly
+  intent traces now record participant-to-zone-slot materialization explicitly
 - strengthened backend parity coverage for intent trace/rollback/materialize
   via `tests/cases/backend_compare/intent_trace_compensate`
 - documented the post-implementation strengths and weaknesses of Pergyra in
   `docs/35_hands_on_language_assessment.md`
-- intent: added `transfer: source -> target;` to `intent step`, with semantic validation that both bindings are zone participants, target matches `where`, and `who` actors match subject slots on both sides; C/LLVM lowering now performs live handoff materialization, dual-zone sync, and `[transfer] ...` runtime trace lines, with backend parity coverage in `tests/cases/backend_compare/intent_cross_world_transfer/`
+- intent: added `transfer: source -> target;` to `intent step`, with semantic validation that both bindings are zone participants, target matches `where`, and `who` participants match subject slots on both sides; C/LLVM lowering now performs live handoff materialization, dual-zone sync, and `[transfer] ...` runtime trace lines, with backend parity coverage in `tests/cases/backend_compare/intent_cross_world_transfer/`
 - intent/semantic: suppress the misleading "intent is declarative only" warning
   for steps that already declare explicit `on:` expressions; same-name action
   matching is now only warned about when a step has no executable `on:` path
@@ -681,10 +681,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   transfer, profile sync, and runtime `IntentHistory*` inspection on both C
   and LLVM backends
 - intent/codegen/runtime/examples: close the remaining `using:` gap by
-  rebinding bound `who` actors to the live zone subject slots during each
+  rebinding bound `who` participants to the live zone subject slots during each
   step body and restoring them afterward; this lets zone methods mutate deep
-  nested actor state directly while keeping intent clauses, trace, and final
-  canonical actor state consistent on both C and LLVM, and the shopping-mall
+  nested subject state directly while keeping intent clauses, trace, and final
+  canonical subject state consistent on both C and LLVM, and the shopping-mall
   scenario now demonstrates the stronger lowering with zone-method based
   checkout/refund/account sync steps
 # 2026-04-05
@@ -694,7 +694,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - docs/architecture: fixed the compiler contract around `HIR -> DIR -> RIR -> MIR` and separated it from the current implementation state. Added [`docs/37_compiler_contracts.md`](/mnt/e/PergyraLang/docs/37_compiler_contracts.md) to pin the IR layer responsibilities, the resource state lattice, the intent compensation model, the projection sync contract, and the authority/capability split as the forward compiler contract.
 - docs/dir: strengthened the new DIR start point so `pgy --dir` now prints stable unresolved ids, resolved zone-parameter participants, and `transfer: source -> target` metadata in intent steps instead of ambiguous `-0` output. Added a second DIR regression covering transfer aliases and zone-typed intent participants.
 
-- intent/runtime: added richer trace-id and identity-aware step history. `IntentLastTraceId()` and `IntentActiveTraceId()` now expose per-instance trace ids, and `IntentHistoryStepPhase/Actor/Slot/FromZone/FromSlot/ToZone/ToSlot` now expose typed step identity for materialize/transfer flows on both C and LLVM.
+- intent/runtime: added richer trace-id and identity-aware step history. `IntentLastTraceId()` and `IntentActiveTraceId()` now expose per-instance trace ids, and `IntentHistoryStepPhase/Participant/Slot/FromZone/FromSlot/ToZone/ToSlot` now expose typed step identity for materialize/transfer flows on both C and LLVM.
 - intent/codegen: cross-world handoff traces are now reflected in typed history instead of only flat trace strings, so transfer/materialize debugging can be done through builtins rather than transcript scraping.
 - transpiler/llvm: fixed Bool stringification parity around intent/result reporting and world-zone query reporting. `ToString(Bool)` now prints `true/false` consistently on LLVM, and C type inference now recognizes `HasZoneProjection/HasZoneLayer/HasZoneState` plus intent observability builtins as Bool/Int/String instead of falling back to integer lowering.
 - tests: added `tests/cases/backend_compare/intent_rich_history_identity/` and expanded intent parity coverage for rich history / transfer identity, while updating DND and shopping-mall exact goldens to the new Bool text output.

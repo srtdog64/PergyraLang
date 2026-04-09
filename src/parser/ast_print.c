@@ -1407,8 +1407,8 @@ void ast_print(ASTNode* node, int indent) {
                        node->data.zone_apply.effect_slot_name,
                        node->data.zone_apply.target_slot_name);
             }
-            if (node->data.zone_apply.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_apply.actor_slot_name);
+            if (node->data.zone_apply.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_apply.participant_slot_name);
             printf("\n");
             break;
 
@@ -1421,8 +1421,8 @@ void ast_print(ASTNode* node, int indent) {
                        node->data.zone_link.left_slot_name,
                        node->data.zone_link.right_slot_name);
             }
-            if (node->data.zone_link.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_link.actor_slot_name);
+            if (node->data.zone_link.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_link.participant_slot_name);
             printf("\n");
             break;
 
@@ -1434,8 +1434,8 @@ void ast_print(ASTNode* node, int indent) {
                        node->data.zone_detach.effect_slot_name,
                        node->data.zone_detach.target_slot_name);
             }
-            if (node->data.zone_detach.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_detach.actor_slot_name);
+            if (node->data.zone_detach.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_detach.participant_slot_name);
             printf("\n");
             break;
 
@@ -1448,8 +1448,8 @@ void ast_print(ASTNode* node, int indent) {
                        node->data.zone_unlink.left_slot_name,
                        node->data.zone_unlink.right_slot_name);
             }
-            if (node->data.zone_unlink.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_unlink.actor_slot_name);
+            if (node->data.zone_unlink.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_unlink.participant_slot_name);
             printf("\n");
             break;
 
@@ -1459,8 +1459,8 @@ void ast_print(ASTNode* node, int indent) {
                    : (node->data.zone_refresh.requires_dto ? "Publish" : "Refresh"),
                    node->data.zone_refresh.object_slot_name,
                    node->data.zone_refresh.source_slot_name);
-            if (node->data.zone_refresh.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_refresh.actor_slot_name);
+            if (node->data.zone_refresh.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_refresh.participant_slot_name);
             printf("\n");
             break;
 
@@ -1468,8 +1468,8 @@ void ast_print(ASTNode* node, int indent) {
             printf("MaintainEffect: %s on %s",
                    node->data.zone_maintain_effect.effect_slot_name,
                    node->data.zone_maintain_effect.target_slot_name);
-            if (node->data.zone_maintain_effect.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_maintain_effect.actor_slot_name);
+            if (node->data.zone_maintain_effect.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_maintain_effect.participant_slot_name);
             printf("\n");
             break;
 
@@ -1478,16 +1478,16 @@ void ast_print(ASTNode* node, int indent) {
                    node->data.zone_maintain_relation.relation_slot_name,
                    node->data.zone_maintain_relation.left_slot_name,
                    node->data.zone_maintain_relation.right_slot_name);
-            if (node->data.zone_maintain_relation.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_maintain_relation.actor_slot_name);
+            if (node->data.zone_maintain_relation.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_maintain_relation.participant_slot_name);
             printf("\n");
             break;
 
         case AST_ZONE_MAINTAIN_STATE:
             printf("MaintainState: %s",
                    node->data.zone_maintain_state.state_name);
-            if (node->data.zone_maintain_state.actor_slot_name != NULL)
-                printf(" by %s", node->data.zone_maintain_state.actor_slot_name);
+            if (node->data.zone_maintain_state.participant_slot_name != NULL)
+                printf(" by %s", node->data.zone_maintain_state.participant_slot_name);
             printf("\n");
             break;
 

@@ -974,8 +974,8 @@ main(void)
         },
         {
             "Domain Keywords As Parameters",
-            "func Main(world: Int, actor: Int, subject: Int) -> Void {\n"
-            "    Log(world + actor + subject);\n"
+            "func Main(world: Int, participant: Int, subject: Int) -> Void {\n"
+            "    Log(world + participant + subject);\n"
             "}",
             1
         },
@@ -1075,7 +1075,7 @@ main(void)
             2
         },
         {
-            "Actor Declaration",
+            "Subject Declaration",
             "subject Counter {\n"
             "    let count: Int;\n"
             "    func Increment() -> Void {\n"
@@ -1085,7 +1085,7 @@ main(void)
             1
         },
         {
-            "Subject Actor Profile Declaration",
+            "Subject Declaration Alias",
             "subject Counter {\n"
             "    let count: Int;\n"
             "    func Increment() -> Void {\n"

@@ -597,7 +597,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone authority requires declared subject slots and explicit by actors");
+    TEST("zone authority requires declared subject slots and explicit by subject alias");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -677,7 +677,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone warns when authority exists but mutable rules omit by actor");
+    TEST("zone warns when authority exists but mutable rules omit by subject alias");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -1137,7 +1137,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("relation/effect/zone accept actor types in subject slot");
+    TEST("relation/effect/zone accept subject types in subject slot");
     {
         const char *source =
             "subject Bot {\n"

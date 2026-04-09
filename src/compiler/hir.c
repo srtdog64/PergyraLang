@@ -1252,7 +1252,6 @@ hir_phase_for_kind(HIRTopLevelKind kind)
         case HIR_TOPLEVEL_RELATION:
         case HIR_TOPLEVEL_EFFECT:
         case HIR_TOPLEVEL_ZONE:
-        case HIR_TOPLEVEL_ACTOR:
         case HIR_TOPLEVEL_EVENT:
             return HIR_PHASE_DOMAIN;
         case HIR_TOPLEVEL_FUNCTION:
@@ -1586,7 +1585,6 @@ hir_top_level_kind_name(HIRTopLevelKind kind)
         case HIR_TOPLEVEL_RELATION: return "relation";
         case HIR_TOPLEVEL_EFFECT: return "effect";
         case HIR_TOPLEVEL_ZONE: return "zone";
-        case HIR_TOPLEVEL_ACTOR: return "actor";
         case HIR_TOPLEVEL_EVENT: return "event";
         case HIR_TOPLEVEL_INTENT: return "intent";
         case HIR_TOPLEVEL_FUNCTION: return "function";
@@ -1882,7 +1880,7 @@ hir_destroy(HIRProgram *hir)
     free(hir->relations);
     free(hir->effects);
     free(hir->zones);
-    free(hir->actors);
+    free(hir->subjects);
     free(hir->events);
     free(hir->intents);
     free(hir->functions);
@@ -1913,7 +1911,7 @@ hir_dump(const HIRProgram *hir, FILE *out)
             "  parties: %zu\n"
             "  rosters: %zu\n"
             "  worlds: %zu\n"
-            "  actors: %zu\n"
+            "  subjects: %zu\n"
             "  events: %zu\n"
             "  functions: %zu\n"
             "  executables: %zu\n"
@@ -1928,7 +1926,7 @@ hir_dump(const HIRProgram *hir, FILE *out)
             hir->party_count,
             hir->roster_count,
             hir->world_count,
-            hir->actor_count,
+            hir->subject_count,
             hir->event_count,
             hir->function_count,
             hir->executable_count,

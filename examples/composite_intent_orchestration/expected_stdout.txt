@@ -5,7 +5,7 @@
 [PaymentZone] charged=1
 [ShippingZone] shipped=1
 [History] count=1
-[Step] fulfill phase=ok actor= ok=true
+[Step] fulfill phase=ok participant= ok=true
 [Trace] [intent] enter ProcessOrder
 [step] begin fulfill @ <zone>
 [step] ok fulfill

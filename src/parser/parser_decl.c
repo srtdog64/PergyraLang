@@ -449,14 +449,14 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
                 return func;
             }
             do {
-                Token actor = parser_consume(parser, TOKEN_IDENTIFIER,
+                Token participant = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected subject name after 'authorized by'");
                 size_t next = func->data.func_decl.authorized_by_count + 1;
                 func->data.func_decl.authorized_by = realloc(
                     func->data.func_decl.authorized_by,
                     next * sizeof(char *));
                 func->data.func_decl.authorized_by[next - 1] =
-                    pergyra_strdup(actor.text);
+                    pergyra_strdup(participant.text);
                 func->data.func_decl.authorized_by_count = next;
             } while (parser_match(parser, TOKEN_COMMA));
             continue;

@@ -650,10 +650,10 @@ test_async_emit(void)
 
     TEST("subject emits struct typedef");
     {
-        ASTNode actor_node; memset(&actor_node, 0, sizeof(actor_node));
-        actor_node.type = AST_CLASS_DECL;
-        actor_node.data.class_decl.name = "Counter";
-        actor_node.data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
+        ASTNode subject_node; memset(&subject_node, 0, sizeof(subject_node));
+        subject_node.type = AST_CLASS_DECL;
+        subject_node.data.class_decl.name = "Counter";
+        subject_node.data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
 
         ClassField field; memset(&field, 0, sizeof(field));
         field.name = "count";
@@ -663,13 +663,13 @@ test_async_emit(void)
         field.type = &field_type;
 
         ClassField *fields[1] = { &field };
-        actor_node.data.class_decl.fields = fields;
-        actor_node.data.class_decl.field_count = 1;
-        actor_node.data.class_decl.methods = NULL;
-        actor_node.data.class_decl.method_count = 0;
+        subject_node.data.class_decl.fields = fields;
+        subject_node.data.class_decl.field_count = 1;
+        subject_node.data.class_decl.methods = NULL;
+        subject_node.data.class_decl.method_count = 0;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_class_decl(&actor_node, ctx);
+        emit_class_decl(&subject_node, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t count");

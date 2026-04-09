@@ -4239,7 +4239,7 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
 }
 
 static ASTNode *
-find_intent_actor_local(ASTNode *intent, const char *alias)
+find_intent_participant_local(ASTNode *intent, const char *alias)
 {
     if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
         return NULL;
@@ -4304,9 +4304,9 @@ find_zone_decl_in_hir(TranspilerCtx *ctx, const char *zone_name)
 }
 
 static const char *
-intent_actor_type_name(ASTNode *intent, const char *alias)
+intent_participant_type_name(ASTNode *intent, const char *alias)
 {
-    ASTNode *involves = find_intent_actor_local(intent, alias);
+    ASTNode *involves = find_intent_participant_local(intent, alias);
     if (involves != NULL
         && involves->data.intent_involves.subject_type != NULL
         && involves->data.intent_involves.subject_type->type == AST_TYPE) {
@@ -4338,7 +4338,7 @@ intent_step_effective_zone_alias(ASTNode *step)
 static const char *
 intent_zone_binding_type_name(ASTNode *intent, const char *alias)
 {
-    ASTNode *involves = find_intent_actor_local(intent, alias);
+    ASTNode *involves = find_intent_participant_local(intent, alias);
     if (involves != NULL
         && involves->data.intent_involves.subject_type != NULL
         && involves->data.intent_involves.subject_type->type == AST_TYPE) {
@@ -4365,7 +4365,7 @@ intent_involves_is_subject_participant(TranspilerCtx *ctx, ASTNode *involves)
     if (type_name == NULL)
         return false;
     return is_subject_type_name(ctx, type_name)
-        || find_actor_decl(ctx, type_name) != NULL;
+        || find_subject_host_decl(ctx, type_name) != NULL;
 }
 
 static bool
@@ -4375,7 +4375,7 @@ intent_involves_uses_pointer_self(TranspilerCtx *ctx, ASTNode *involves)
     if (type_name == NULL)
         return false;
     return is_pointer_self_host_type_name(ctx, type_name)
-        || find_actor_decl(ctx, type_name) != NULL;
+        || find_subject_host_decl(ctx, type_name) != NULL;
 }
 
 static void
@@ -4481,18 +4481,18 @@ emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
     for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
         const char *alias = step->data.intent_step.who_names[i];
         const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
-        ASTNode *involves = find_intent_actor_local(intent, alias);
-        const char *actor_c_type;
+        ASTNode *involves = find_intent_participant_local(intent, alias);
+        const char *participant_c_type;
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
             || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
             continue;
         }
 
-        actor_c_type = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+        participant_c_type = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
         write_indent(ctx);
         codebuf_write(out, "%s *__intent_saved_%zu_%s = %s;\n",
-            actor_c_type, step_index, alias, alias);
+            participant_c_type, step_index, alias, alias);
         write_indent(ctx);
         codebuf_write(out, "%s = &%s->%s;\n", alias, zone_alias, slot_name);
         rebound = true;
@@ -4544,7 +4544,7 @@ emit_intent_step_restore_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
     for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
         const char *alias = step->data.intent_step.who_names[i];
         const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
-        ASTNode *involves = find_intent_actor_local(intent, alias);
+        ASTNode *involves = find_intent_participant_local(intent, alias);
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
             || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
@@ -4577,7 +4577,7 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
                                        const char *zone_type_name, const char *alias)
 {
     ASTNode *zone_decl = NULL;
-    const char *actor_type = NULL;
+    const char *participant_type = NULL;
     ASTNode *named_match = NULL;
     ASTNode *typed_match = NULL;
 
@@ -4586,7 +4586,7 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
     }
 
     zone_decl = find_zone_decl_in_hir(ctx, zone_type_name);
-    actor_type = intent_actor_type_name(intent, alias);
+    participant_type = intent_participant_type_name(intent, alias);
     if (zone_decl == NULL)
         return "<unbound>";
 
@@ -4601,11 +4601,11 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
             named_match = slot;
             break;
         }
-        if (actor_type != NULL
+        if (participant_type != NULL
             && slot->data.domain_slot.type != NULL
             && slot->data.domain_slot.type->type == AST_TYPE
             && slot->data.domain_slot.type->data.type.name != NULL
-            && strcmp(slot->data.domain_slot.type->data.type.name, actor_type) == 0) {
+            && strcmp(slot->data.domain_slot.type->data.type.name, participant_type) == 0) {
             if (typed_match != NULL)
                 typed_match = (ASTNode *)(uintptr_t)1;
             else
@@ -4655,7 +4655,7 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ",
             involves != NULL && involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "actor");
+                ? involves->data.intent_involves.alias : "participant");
     }
     codebuf_write(buf, ");\n");
 }
@@ -4731,7 +4731,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ",
             involves != NULL && involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "actor");
+                ? involves->data.intent_involves.alias : "participant");
         if (type_name != NULL) {
             register_typed_var(ctx, involves->data.intent_involves.alias, type_name);
             TypedVarEntry *entry = lookup_typed_entry(ctx, involves->data.intent_involves.alias);
@@ -4771,7 +4771,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
                 ASTNode *involves = node->data.intent_decl.involves[i];
                 const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
-                    ? involves->data.intent_involves.alias : "actor";
+                    ? involves->data.intent_involves.alias : "participant";
                 if (!intent_involves_is_subject_participant(ctx, involves))
                     continue;
                 write_indent(ctx);
@@ -4835,7 +4835,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             const char *slot_name = resolve_intent_zone_slot_name(ctx, node, step, alias);
             write_indent(ctx);
             codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
-                alias != NULL ? alias : "<actor>",
+                alias != NULL ? alias : "<participant>",
                 slot_name != NULL ? slot_name : "<unbound>");
         }
         emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
@@ -4903,7 +4903,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         } else if (step->data.intent_step.on_expr_count == 0) {
             for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
                 const char *alias = step->data.intent_step.who_names[j];
-                ASTNode *involves = find_intent_actor_local(node, alias);
+                ASTNode *involves = find_intent_participant_local(node, alias);
                 const char *subject_name = NULL;
                 ASTNode *action_decl = NULL;
                 if (involves != NULL && involves->data.intent_involves.subject_type != NULL

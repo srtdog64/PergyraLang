@@ -167,7 +167,7 @@ func Main() -> Void
     {
         Log("[Step] " + IntentHistoryStepName(i)
             + " phase=" + IntentHistoryStepPhase(i)
-            + " actor=" + IntentHistoryStepActor(i)
+            + " participant=" + IntentHistoryStepParticipant(i)
             + " ok=" + ToString(IntentHistoryStepOk(i)));
         i = i + 1;
     }

@@ -17,7 +17,7 @@
 ### 문법/시맨틱
 - `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`
 - `slot/view/move`, `SecureSlot`, `DeviceSlot`, `QubitSlot`
-- `ability/role/party/relation/effect/zone/roster/world`, `event`, `actor`
+- `ability/role/party/relation/effect/zone/roster/world`, `event`, `subject`
 - 장기 의미론은 `struct` / `class` / `subject` 분리를 채택했고, 현재 surface도 parser/semantic/codegen에서 이 nominal flavor를 구분한다
 - `import/export/namespace`, `extern "C"`
 - `RemoteFuture<T>`의 `await` 결과는 `Result<T>`

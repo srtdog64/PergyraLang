@@ -12,14 +12,14 @@
 - `subject`는 의사결정과 오케스트레이션을 담당하는 능동 주체 타입이다
 - `subject`는 `func`가 아닌 `action`으로 행동한다 — action은 zone/ability/effect와 연동되는 플롯 행위다(2026-04-04 추가)
 - 현재 구현 surface는 `subject`와 `class`를 서로 다른 nominal declaration flavor로 기록하고, semantic/lowering도 둘을 점진적으로 다르게 다룬다
-- 현재 구현에서 `actor`는 별도 선언 키워드이지만 semantic에서는 subject execution profile로 취급된다
+- 현재 구현에서 `subject`는 별도 선언 키워드이지만 semantic에서는 subject execution profile로 취급된다
 - `object`는 intent를 시작하지 않는 피동 상태 대상이다. `object`는 상태와 `func`(메서드)를 가질 수 있다.
 - `ability`는 subject 위의 행위 계약이다
 - 장기 모델에서 `role`은 subject에 ability를 바인딩한다
 - `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
 - 상세 설계: [26_vessel_action_model.md](26_vessel_action_model.md)
 
-현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, actor subject-profile semantic, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
+현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, participant subject-profile semantic, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
 role/ability/party 중심 객체 모델은 아직 이행 중이다.
 
 즉 장기적으로 Pergyra에서 중심 이름은 `class`보다 `subject`다.
@@ -37,7 +37,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - identity가 중요한 객체
 - 상태를 가진 행위 주체
 - ability를 수행하는 객체 셀
-- party slot에 들어가 협력하는 actor/object
+- party slot에 들어가 협력하는 participant/object
 
 따라서 장기 모델에서 필요한 것은 `class`라는 OOP 이름이 아니라,
 객체적 행위와 자원 셀을 연결하는 `subject` 중심 타입이다.
@@ -110,7 +110,7 @@ vessel HealthState {
 - `subject`는 `vessel`뿐 아니라 일반 `class` field도 값으로 소유할 수 있다. `let weapon: Item;`은 subject-owned tool/thing surface다.
 
 현재 surface syntax에서는 `subject`와 `class`가 모두 허용되지만, 둘은 더 이상 같은 declaration으로 기록되지 않는다.
-`subject slot`, `ToObject`, `ToTObject`처럼 주체성을 요구하는 표면은 현재 subject host (`subject`, `actor`)만 받는다.
+`subject slot`, `ToObject`, `ToTObject`처럼 주체성을 요구하는 표면은 현재 subject host (`subject`, `subject`)만 받는다.
 또한 plain copy / plain value parameter / plain value return은 `subject`에 대해서는 금지되고, `class`에 대해서는 허용된다.
 
 ```pergyra
@@ -264,7 +264,7 @@ object Door {
 
 이 셋은 서로 대체 관계가 아니라 서로 다른 축이다.
 
-## 7. subject와 role / party / actor / world의 관계
+## 7. subject와 role / party / participant / world의 관계
 
 ### role
 
@@ -278,14 +278,14 @@ object Door {
 - party는 struct 값 모음이 아니라 subject collaboration unit이다
 - 현재 구현에서는 party role slot에 적은 ability가 실제 subject-bound role impl로 뒷받침되지 않으면 semantic error를 낸다
 
-### actor
+### participant
 
-- actor는 subject와 병렬인 존재론적 계층이 아니다
-- actor는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
-- 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToTObject`, subject copy restriction에 actor를 포함한다
+- participant는 subject와 병렬인 존재론적 계층이 아니다
+- participant는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
+- 현재 semantic은 participant를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToTObject`, subject copy restriction에 participant를 포함한다
 - 현재 parser surface는 standalone `subject Counter { ... }`와 subject-first `subject Counter { ... }`를 모두 받는다
 - standalone `subject Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter { ... }`다
-- 즉 장기 모델에서도 구현 상태에서도 `actor`보다 `subject`가 먼저다
+- 즉 장기 모델에서도 구현 상태에서도 `subject`보다 `subject`가 먼저다
 
 ### roster / world
 
@@ -316,19 +316,19 @@ object Door {
 3. role은 subject에만 바인딩하는 것을 기본 모델로 삼음
 4. party slot은 subject를 담음
 5. plain subject copy는 점진적으로 제한하거나 명시화
-6. actor는 subject의 실행 프로파일로 다룸
+6. participant는 subject의 실행 프로파일로 다룸
 
 현재 구현에서도 이 방향으로 일부 정렬했다.
 - plain subject copy와 plain subject value parameter/return은 시맨틱에서 거부한다
 - class는 plain copy / value parameter / value return을 허용한다
-- actor는 semantic에서 subject-profile로 동작하므로 plain actor copy와 plain actor value parameter/return도 subject와 같은 제약을 따른다
+- participant는 semantic에서 subject-profile로 동작하므로 plain participant copy와 plain participant value parameter/return도 subject와 같은 제약을 따른다
 - subject func/action은 C/LLVM backend에서 `self*` 기반 객체 셀 호출로 lower된다
 - class func는 C/LLVM backend에서 value-self 호출로 lower된다
 - bare field name과 bare hosted helper call은 subject/class/relation/effect/zone/world body 안에서 각각 현재 host의 `self` 대상으로 해석된다. `self.` 표기는 여전히 선택적으로 허용된다
 - 클래스 생성자는 현재 "필드 순서 기반 positional initialization"으로 동작한다
 - role이 non-subject nominal declaration에 바인딩되면 semantic error를 낸다
 - party role slot은 subject-bound role impl이 없는 ability를 받을 수 없다
-- actor type도 subject-bound role/party/projection 계약에 참여한다
+- participant type도 subject-bound role/party/projection 계약에 참여한다
 
 ### 현재 닫힌 범위
 
@@ -343,12 +343,12 @@ object Door {
 - `Box<class>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>`를 함수 파라미터/리턴 타입으로 명시적으로 전달 가능
 - generic class codegen (단형화 전략: `Pair<Int>` → `Pair_Int` struct + methods)
-- actor를 subject host로 인식하는 semantic predeclaration / constructor / projection / domain check
+- participant를 subject host로 인식하는 semantic predeclaration / constructor / projection / domain check
 - plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달
 - secure boundary forwarding call에서 paired token 전파
 - LLVM nested member assignment (`self.zone.subject.field = value`) runtime parity
-- actor constructor가 C backend에서도 compound literal로 lowering됨
+- participant constructor가 C backend에서도 compound literal로 lowering됨
 
 ### 아직 닫히지 않은 범위
 
@@ -369,7 +369,7 @@ object Door {
 
 - 장기 모델: subject는 ability-hosting identity-bearing type
 - 이행기 구현: `subject`와 `class`는 서로 다른 nominal flavor로 기록되지만, lowering과 runtime semantics는 아직 크게 공유한다
-- actor는 독립 타입축이 아니라 이미 semantic에서는 subject profile로 취급되고, 남은 일은 surface 재배치와 deeper runtime semantics다
+- participant는 독립 타입축이 아니라 이미 semantic에서는 execution model로 취급되고, 남은 일은 surface 재배치와 deeper runtime semantics다
 
 하지만 문서와 설계의 중심은 후자가 아니라 전자다.
 

@@ -116,7 +116,7 @@
   - **테스트**: 428 passed, 0 failed (기존 403 passed, 5 failed)
   - **아키텍처**:
     ```
-    Domain IR:   Intent Recover → policy exclusive → step Heal → zone main → actor unit
+    Domain IR:   Intent Recover → policy exclusive → step Heal → zone main → participant unit
     Resource IR: IntentBegin I1 → ConflictCheck exclusive → BindZone main → CallAction Recover
     MIR:         bb0: conflict_check(unit) → br !r0, bb_fail, bb1
                  bb1: call recover(unit) → call sync_projection(main, unit)
@@ -324,7 +324,7 @@
   - 완료: direct `apply/link/detach/unlink`와 `maintain effect/relation/state`가 C/LLVM zone sync에서 실제 layer/state propagation으로 연결됨
   - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
   - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
-  - 현재 구현: `ability/role/party/relation/effect/zone/systemic/world`
+  - 현재 구현: `ability/role/party/relation/effect/zone/roster/world`
   - 완료: `world`가 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`로 앞서 선언된 zone/state alias를 최소 조합 contract로 합성
   - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
 
@@ -332,12 +332,12 @@
 - [~] **subject-first 존재론 고정** — `struct` vs `subject`
   - 완료: `subject = 상태와 identity를 가진 주체 타입`으로 문서화
   - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
-  - 완료: `actor`를 독립 존재론 계층이 아니라 subject의 실행 profile/sugar로 정리
+  - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
   - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
   - 완료: `object`는 intent를 시작하지 않는 passive state target이라고 문서화
   - 완료: `dto`는 object의 외부 경계용 축약 투영이라고 문서화
   - 완료: `subject`, `class`, `struct`, `object`, `dto` declaration flavor를 parser AST에 분리 기록
-  - 완료: `subject slot`과 `ToObject` / `ToDto` source가 subject host (`subject`, `actor`)만 받도록 semantic 분기
+  - 완료: `subject slot`과 `ToObject` / `ToDto` source가 `subject` host만 받도록 semantic 분기
   - 완료: `object` keyword alias를 parser/LSP surface에 반영
   - 완료: `object`를 passive state/value 형식으로, `dto`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
   - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
@@ -345,9 +345,9 @@
   - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
   - 완료: `role`/`party`/`authority`를 subject-first로 더 강하게 제한
   - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
-  - 완료: actor를 subject profile semantic에 정렬해 `role`, `subject slot`, projection source, copy restriction에 참여시킴
-  - 완료: `subject Name actor { ... }` subject-first actor profile surface
-  - 완료: standalone `actor Name { ... }` transitional semantic warning
+  - 완료: legacy host-profile surface를 제거하고 관련 규칙을 `subject`에 통합
+  - 완료: `subject` 단일 host surface로 통일
+  - 완료: standalone host-profile surface 삭제
   - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
   - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 dto source는 금지
   - 남음: relation/projection 중심 surface 고정
@@ -358,9 +358,9 @@
 - [~] **subject/class/object model 구현 정렬**
   - 완료: subject direct copy/plain value parameter/return 금지, positional constructor
   - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
-  - 완료: actor를 subject execution profile로 semantic 정렬
-  - 완료: `subject Name actor { ... }` subject-first actor profile surface
-  - 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor 지원
+  - 완료: legacy host-profile을 `subject` 규칙으로 통합
+  - 완료: `subject` 단일 host surface로 통일
+  - 완료: plain/secure `Slot<subject>` local object-cell anchor 지원
   - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
   - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
   - 남음: richer object-handle cell propagation

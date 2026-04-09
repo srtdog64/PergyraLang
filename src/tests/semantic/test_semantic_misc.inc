@@ -345,7 +345,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ToTObject accepts actor source as subject profile");
+    TEST("ToTObject accepts subject source");
     {
         const char *source =
             "tobject BotDto { hp: Int; }\n"
@@ -1811,7 +1811,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("intent declaration rejects unknown who actor");
+    TEST("intent declaration rejects unknown who participant");
     {
         const char *source =
             "subject Player {\n"
@@ -1837,7 +1837,7 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "unknown actor 'ghost'"));
+            "unknown participant 'ghost'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1845,7 +1845,7 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("intent declaration enforces zone slots and actor abilities");
+    TEST("intent declaration enforces zone slots and subject abilities");
     {
         const char *source =
             "subject Player {\n"
@@ -2006,7 +2006,7 @@ test_misc_grammar_edges(void)
             "    Log(IntentHistoryStepName(0));\n"
             "    Log(IntentHistoryStepZone(0));\n"
             "    Log(IntentHistoryStepPhase(0));\n"
-            "    Log(IntentHistoryStepActor(0));\n"
+            "    Log(IntentHistoryStepParticipant(0));\n"
             "    Log(IntentHistoryStepSlot(0));\n"
             "    Log(IntentHistoryStepFromZone(0));\n"
             "    Log(IntentHistoryStepFromSlot(0));\n"

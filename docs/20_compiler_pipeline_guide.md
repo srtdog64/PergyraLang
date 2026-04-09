@@ -381,7 +381,7 @@
 - `parties`
 - `rosters`
 - `worlds`
-- `actors`
+- `subjects`
 - `events`
 - `functions`
 - `executables`

@@ -28,7 +28,7 @@
 - `action` clause는 이제 존재 확인을 넘어서 `authorized by` subject-host 검증, `within` zone subject/authority 적합성 검증, `causes` effect target/zone layer 적합성 검증까지 포함함.
 - `intent` declaration이 parser/AST/semantic/HIR/codegen에 반영되어 `intent Name(args...)`, legacy `involves`, `step`, `exclusive`/`concurrent`, `priority`, `where`, `who`, repeated `on`, `pre`, `post`, `requires`, `authorized by`, `causes`, `expect`, `success`, `failure`를 검증하고 executable generated function으로 lowering함
 - `intent` clause는 이제 suspension/concurrency control을 직접 담지 않는 것으로 잠갔고, semantic은 `spawn` 같은 async/fiber 제어를 step clause에서 거부한다. `await`는 원래 async context 바깥 parser surface에서 막히며, intent는 orchestration 계약에 머문다.
-- `intent` runtime은 이제 same-subject conflict registry를 가져서 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행함. step-level `guard` / `invariant`도 실행되며, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작하고, `IntentHistoryCount()` / `IntentHistoryStep*()`로 마지막 completed intent의 typed step history도 읽을 수 있으며, `using: zoneAlias;`와 `transfer: source -> target;`를 통해 live zone instance sync, actor-to-zone-slot materialization, cross-zone handoff materialization도 수행함
+- `intent` runtime은 이제 same-subject conflict registry를 가져서 `exclusive` 차단, `concurrent` 병행, higher-`priority` nested override까지 수행함. step-level `guard` / `invariant`도 실행되며, reverse-order `compensate` rollback과 `IntentLastTrace()` / `IntentLastFailure()` / `IntentLastName()` / `IntentLastHandle()` / `IntentLastStepCount()` / `IntentLastFailed()` history도 동작하고, `IntentHistoryCount()` / `IntentHistoryStep*()`로 마지막 completed intent의 typed step history도 읽을 수 있으며, `using: zoneAlias;`와 `transfer: source -> target;`를 통해 live zone instance sync, participant-to-zone-slot materialization, cross-zone handoff materialization도 수행함
 - hosted `func` / `action` body 안의 bare field access와 bare helper call은 이제 subject/class/relation/effect/zone/world 전반에서 implicit `self`로 해석되며, `self.`는 선택적 표기로 남음
 - `object`는 현재 `struct` 호환 passive state-target declaration alias로 동작하며 helper `func`와 국소 상태를 가질 수 있고, `tobject`는 더 좁은 transfer/projection declaration alias로 동작함.
 - `ToObject(TargetObject, subjectBinding)` 최소 passive projection surface가 semantic/C/LLVM backend에 반영됨.
@@ -42,7 +42,7 @@
 
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
-- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/tobject`, `ability/role/party/relation/effect/zone/roster/world`, `event`, `actor`, `import/export/namespace`
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/tobject`, `ability/role/party/relation/effect/zone/roster/world`, `event`, `subject`, `import/export/namespace`
 - `world`, `roster`, `relation`, `effect`, `zone`은 declaration position에서만 키워드처럼 동작하고, local variable / expression position에서는 식별자로 그대로 쓸 수 있음
 - `subject`, `class`, `struct`, `object`, `tobject` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
 - 현재 domain 표면은 `ability/role/party/roster/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
@@ -96,7 +96,7 @@
 - `zone`의 `apply/detach`는 `effect` declaration의 bindable target 수와 타입을 검사하며 object target도 허용함
 - `zone`의 `link/unlink`는 `relation` declaration의 bindable endpoint 수와 타입을 검사하며 object endpoint도 허용함
 - `zone` / `relation` / `effect`의 `refresh`/`publish`/`bind`는 object/tobject slot kind와 projection field 정합성을 검사하고, source는 subject/object를 허용하되 tobject source는 금지함
-- `zone` subject slot은 이제 bare `class`가 아니라 subject host (`subject`, `actor`)만 허용함
+- `zone` subject slot은 이제 bare `class`가 아니라 subject host (`subject`, `subject`)만 허용함
 - `ToObject` / `ToTObject` source projection은 이제 bare `class`가 아니라 subject host binding만 허용함
 - `role`은 이제 non-subject nominal declaration에 바인딩되면 semantic error를 냄
 - `party` role slot은 이제 subject-bound role impl이 실제로 존재하는 ability만 협력 슬롯으로 받을 수 있음
@@ -106,7 +106,7 @@
 - `zone`은 현재 subject가 0개이거나 4개를 크게 넘는 형태에 대해 운영 lint를 냄
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
-- `actor`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
+- `subject`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
 - `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
 - `tobject`는 `object`보다 더 좁은 boundary transfer/publish 형식으로 유지됨
 - `object`와 `tobject`는 struct-style declaration syntax를 공유하지만 같은 계약은 아니다. `object`는 local/internal projection contract이고, `tobject`는 boundary projection contract다.
@@ -198,8 +198,8 @@
 - partial 완료: source-level `with effects ...` signature surface
 - partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
-- partial 완료: `actor`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
-- partial 완료: `subject Name { ... }` subject-first actor profile surface
+- partial 완료: `subject`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
+- partial 완료: `subject Name { ... }` subject-first surface
 - partial 완료: standalone `subject Name { ... }`를 transitional syntax로 경고
 - partial 완료: plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
 - partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)

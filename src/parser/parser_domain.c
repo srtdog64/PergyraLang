@@ -488,16 +488,16 @@ append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node)
 }
 
 static char *
-parse_optional_zone_actor_name(Parser *parser)
+parse_optional_zone_participant_name(Parser *parser)
 {
-    Token actor_slot;
+    Token participant_slot;
 
     if (!parser_match_identifier_keyword(parser, "by"))
         return NULL;
 
-    actor_slot = consume_name_token(parser,
+    participant_slot = consume_name_token(parser,
         "Expected subject slot name after 'by'");
-    return pergyra_strdup(actor_slot.text);
+    return pergyra_strdup(participant_slot.text);
 }
 
 static void
@@ -922,8 +922,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 apply->data.zone_apply.state_name = pergyra_strdup(effect_slot.text);
             }
 
-            apply->data.zone_apply.actor_slot_name =
-                parse_optional_zone_actor_name(parser);
+            apply->data.zone_apply.participant_slot_name =
+                parse_optional_zone_participant_name(parser);
             apply->line = effect_slot.line;
             apply->column = effect_slot.column;
 
@@ -952,8 +952,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 link->data.zone_link.state_name = pergyra_strdup(relation_slot.text);
             }
 
-            link->data.zone_link.actor_slot_name =
-                parse_optional_zone_actor_name(parser);
+            link->data.zone_link.participant_slot_name =
+                parse_optional_zone_participant_name(parser);
             link->line = relation_slot.line;
             link->column = relation_slot.column;
 
@@ -977,8 +977,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 detach->data.zone_detach.state_name = pergyra_strdup(effect_slot.text);
             }
 
-            detach->data.zone_detach.actor_slot_name =
-                parse_optional_zone_actor_name(parser);
+            detach->data.zone_detach.participant_slot_name =
+                parse_optional_zone_participant_name(parser);
             detach->line = effect_slot.line;
             detach->column = effect_slot.column;
 
@@ -1007,8 +1007,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 unlink->data.zone_unlink.state_name = pergyra_strdup(relation_slot.text);
             }
 
-            unlink->data.zone_unlink.actor_slot_name =
-                parse_optional_zone_actor_name(parser);
+            unlink->data.zone_unlink.participant_slot_name =
+                parse_optional_zone_participant_name(parser);
             unlink->line = relation_slot.line;
             unlink->column = relation_slot.column;
 
@@ -1050,8 +1050,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 object_slot.text, source_slot.text);
             refresh->data.zone_refresh.requires_dto = requires_dto;
             refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
-            refresh->data.zone_refresh.actor_slot_name =
-                parse_optional_zone_actor_name(parser);
+            refresh->data.zone_refresh.participant_slot_name =
+                parse_optional_zone_participant_name(parser);
             refresh->line = object_slot.line;
             refresh->column = object_slot.column;
 
@@ -1069,8 +1069,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                     "Expected target slot name after 'on'");
                 ASTNode *maintain = ast_create_zone_maintain_effect(
                     layer_slot.text, target_slot.text);
-                maintain->data.zone_maintain_effect.actor_slot_name =
-                    parse_optional_zone_actor_name(parser);
+                maintain->data.zone_maintain_effect.participant_slot_name =
+                    parse_optional_zone_participant_name(parser);
                 maintain->line = layer_slot.line;
                 maintain->column = layer_slot.column;
 
@@ -1085,8 +1085,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                     "Expected right slot name after ','");
                 ASTNode *maintain = ast_create_zone_maintain_relation(
                     layer_slot.text, left_slot.text, right_slot.text);
-                maintain->data.zone_maintain_relation.actor_slot_name =
-                    parse_optional_zone_actor_name(parser);
+                maintain->data.zone_maintain_relation.participant_slot_name =
+                    parse_optional_zone_participant_name(parser);
                 maintain->line = layer_slot.line;
                 maintain->column = layer_slot.column;
 
@@ -1094,8 +1094,8 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                     &zone->data.zone_decl.maintained_relation_count, maintain);
             } else {
                 ASTNode *maintain = ast_create_zone_maintain_state(layer_slot.text);
-                maintain->data.zone_maintain_state.actor_slot_name =
-                    parse_optional_zone_actor_name(parser);
+                maintain->data.zone_maintain_state.participant_slot_name =
+                    parse_optional_zone_participant_name(parser);
                 maintain->line = layer_slot.line;
                 maintain->column = layer_slot.column;
 

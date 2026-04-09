@@ -34,7 +34,7 @@
       "/// [Why]: ${2:왜 이 zone이 필요한가}",
       "zone ${3:Name}",
       "{",
-      "    subject slot ${4:actor}: ${5:SubjectType};",
+      "    subject slot ${4:subject}: ${5:SubjectType};",
       "    $0",
       "}"
     ],
@@ -64,7 +64,7 @@
       "action ${3:Name}(self${4:, params})",
       "    requires ${5:Ability}",
       "    within ${6:Zone}",
-      "    authorized by ${7:actor}",
+      "    authorized by ${7:participant}",
       "{",
       "    $0",
       "}"
@@ -77,7 +77,7 @@
     "body": [
       "/// [What]: ${1:사용자가 무엇을 하려 하는가}",
       "/// [Why]: ${2:왜 이 의도가 존재하는가}",
-      "intent ${3:Name}(${4:actor}: ${5:SubjectType})",
+      "intent ${3:Name}(${4:subject}: ${5:SubjectType})",
       "{",
       "    ${6|exclusive,concurrent|};",
       "",
@@ -98,7 +98,7 @@
       "step ${1:name}",
       "{",
       "    where: ${2:ZoneType};",
-      "    who: ${3:actor};",
+      "    who: ${3:participant};",
       "    ${4|on,pre,post,guard,invariant|}: ${5:condition};",
       "    $0",
       "}"

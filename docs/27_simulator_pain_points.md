@@ -22,9 +22,9 @@ examples such as the battle simulator and biome simulator.
   `IntentLastTraceId()` / `IntentLastStepCount()` / `IntentLastFailed()`
   expose minimal history. `IntentHistoryCount()` / `IntentHistoryStep*()`
   also expose typed step-level history for the last completed intent,
-  including actor/slot and transfer source-target identity data.
+  including participant/slot and transfer source-target identity data.
   `using: zoneAlias;` now gives intent steps a live concrete zone instance and
-  now also materializes bound `who` actors into matching zone subject slots
+  now also materializes bound `who` participants into matching zone subject slots
   before sync. `transfer: source -> target;` now also performs v1 cross-world
   handoff materialization and leaves explicit transfer trace lines on both C
   and LLVM. Active registry observability is now available through
@@ -88,7 +88,7 @@ examples such as the battle simulator and biome simulator.
   as `cycle.age` or `traits.metabolism` automatically.
 - Zone ecology/state no longer has to explode into many `shared Int` fields.
   `zone vessel` now gives larger scenarios a grouped passive state holder.
-- `world`/`zone`/`effect`/`relation`/`actor`-style names now work in many more
+- `world`/`zone`/`effect`/`relation`/`subject`-style names now work in many more
   plain identifier positions, including local bindings and function parameters.
 - Scenario result files are no longer substring-only. Folder-level
   `expected_results.txt` goldens now allow exact comparison for simulator
@@ -137,7 +137,7 @@ examples such as the battle simulator and biome simulator.
 - Intent step contracts no longer stop at name lookup. The semantic checker now
   validates that `who` / `authorized by` actors have matching subject slots in
   the referenced zone, and that `requires` abilities are actually implemented
-  by the declared actor subject type.
+  by the declared participant subject type.
 - Runtime hashmap helpers no longer leak raw `strdup(...)` warnings into large
   example builds. They now route string duplication through the local
   `pgy_runtime_strdup(...)` wrapper.
@@ -156,10 +156,10 @@ examples such as the battle simulator and biome simulator.
   action exists. If a step has concrete `on:` expressions, the compiler now
   treats that as a real executable lowering path.
 - The shopping-mall checkout/refund scenario originally exposed a practical
-  boundary in `using:` + actor materialization: trace and slot binding were
-  strong, but nested actor state still drifted unless the canonical actor was
+  boundary in `using:` + participant materialization: trace and slot binding were
+  strong, but nested participant state still drifted unless the canonical participant was
   updated explicitly and zones mirrored the result. That gap is now closed.
-  Bound `who` actors are rebound to the live zone subject slots during the
+  Bound `who` participants are rebound to the live zone subject slots during the
   step body and restored afterward, so zone methods such as
   `payment.Capture(...)`, `refund.Process(...)`, and `account.Sync(...)`
-  mutate the same live actor state that the surrounding intent clauses read.
+  mutate the same live participant state that the surrounding intent clauses read.

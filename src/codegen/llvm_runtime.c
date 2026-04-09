@@ -108,7 +108,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i32 }, 1 },
             { "pgy_intent_history_step_phase_export", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },
-            { "pgy_intent_history_step_actor_export", ctx->type_i8ptr,
+            { "pgy_intent_history_step_participant_export", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },
             { "pgy_intent_history_step_slot_export", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },

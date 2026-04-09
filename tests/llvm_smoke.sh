@@ -741,7 +741,7 @@ func Main() -> Void {
 EOF
 run_case "secure_slot_subject_cell" "$TMPDIR/secure_slot_subject_cell.pgy" "1"
 
-cat > "$TMPDIR/secure_slot_actor_cell.pgy" <<'EOF'
+cat > "$TMPDIR/secure_slot_subject_bot.pgy" <<'EOF'
 subject Bot {
     let hp: Int;
 }
@@ -753,7 +753,7 @@ func Main() -> Void {
     Log(1);
 }
 EOF
-run_case "secure_slot_actor_cell" "$TMPDIR/secure_slot_actor_cell.pgy" "1"
+run_case "secure_slot_subject_bot" "$TMPDIR/secure_slot_subject_bot.pgy" "1"
 
 cat > "$TMPDIR/slot_subject_boundary_ref.pgy" <<'EOF'
 subject Vec2 {

@@ -236,8 +236,8 @@ llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
                                             const char *zone_type_name, const char *alias)
 {
     LLVMClassTypeEntry *zone_cls = NULL;
-    const char *actor_type = NULL;
-    LLVMTypeRef actor_llvm_type = NULL;
+    const char *participant_type = NULL;
+    LLVMTypeRef participant_llvm_type = NULL;
     const char *named_match = NULL;
     const char *typed_match = NULL;
     bool typed_ambiguous = false;
@@ -249,9 +249,9 @@ llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
     }
 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
-    actor_type = llvm_lookup_var_class(ctx, alias);
-    if (actor_type != NULL)
-        actor_llvm_type = pergyra_type_to_llvm(ctx, actor_type);
+    participant_type = llvm_lookup_var_class(ctx, alias);
+    if (participant_type != NULL)
+        participant_llvm_type = pergyra_type_to_llvm(ctx, participant_type);
     if (zone_cls == NULL)
         return "<unbound>";
 
@@ -264,8 +264,8 @@ llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
             named_match = field->field_name;
             break;
         }
-        if (actor_type != NULL && actor_llvm_type != NULL
-            && field->field_type == actor_llvm_type) {
+        if (participant_type != NULL && participant_llvm_type != NULL
+            && field->field_type == participant_llvm_type) {
             if (typed_match != NULL)
                 typed_ambiguous = true;
             else
@@ -341,28 +341,28 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                     ctx, intent, from_zone_type_name, alias);
                 const char *to_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                     ctx, intent, zone_type_name, alias);
-                LLVMVarEntry *actor_var;
-                const char *actor_type_name;
-                LLVMTypeRef actor_ptr_type;
-                LLVMTypeRef actor_value_type;
-                LLVMValueRef actor_ptr;
-                LLVMValueRef actor_value;
+                LLVMVarEntry *participant_var;
+                const char *participant_type_name;
+                LLVMTypeRef participant_ptr_type;
+                LLVMTypeRef participant_value_type;
+                LLVMValueRef participant_ptr;
+                LLVMValueRef participant_value;
                 LLVMValueRef handle;
 
                 if (alias == NULL)
                     continue;
 
-                actor_var = llvm_scope_lookup(ctx, alias);
-                actor_type_name = llvm_lookup_var_class(ctx, alias);
-                if (actor_var == NULL || actor_type_name == NULL) {
+                participant_var = llvm_scope_lookup(ctx, alias);
+                participant_type_name = llvm_lookup_var_class(ctx, alias);
+                if (participant_var == NULL || participant_type_name == NULL) {
                     continue;
                 }
 
-                actor_ptr_type = actor_var->type;
-                actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
-                actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
+                participant_ptr_type = participant_var->type;
+                participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+                participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
                     llvm_tmp_name(ctx));
-                actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
+                participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type, participant_ptr,
                     llvm_tmp_name(ctx));
                 handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
                     ? LLVMBuildLoad2(ctx->builder, ctx->type_i32,
@@ -376,7 +376,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                         LLVMValueRef from_slot_ptr = LLVMBuildStructGEP2(ctx->builder,
                             from_zone_cls->struct_type, from_zone_ptr, (unsigned)from_field_idx,
                             llvm_tmp_name(ctx));
-                        LLVMBuildStore(ctx->builder, actor_value, from_slot_ptr);
+                        LLVMBuildStore(ctx->builder, participant_value, from_slot_ptr);
                         if (trace_materialize_fn != NULL) {
                             LLVMValueRef args[] = {
                                 handle,
@@ -397,7 +397,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                         LLVMValueRef to_slot_ptr = LLVMBuildStructGEP2(ctx->builder,
                             zone_cls->struct_type, zone_ptr, (unsigned)to_field_idx,
                             llvm_tmp_name(ctx));
-                        LLVMBuildStore(ctx->builder, actor_value, to_slot_ptr);
+                        LLVMBuildStore(ctx->builder, participant_value, to_slot_ptr);
                         if (trace_transfer_fn != NULL) {
                             LLVMValueRef transfer_args[] = {
                                 handle,
@@ -439,12 +439,12 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             const char *alias = who_aliases[i];
             const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                 ctx, intent, zone_type_name, alias);
-            LLVMVarEntry *actor_var;
-            const char *actor_type_name;
-            LLVMTypeRef actor_ptr_type;
-            LLVMTypeRef actor_value_type;
-            LLVMValueRef actor_ptr;
-            LLVMValueRef actor_value;
+            LLVMVarEntry *participant_var;
+            const char *participant_type_name;
+            LLVMTypeRef participant_ptr_type;
+            LLVMTypeRef participant_value_type;
+            LLVMValueRef participant_ptr;
+            LLVMValueRef participant_value;
             LLVMValueRef slot_ptr;
             int field_idx;
 
@@ -455,21 +455,21 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             if (field_idx < 0)
                 continue;
 
-            actor_var = llvm_scope_lookup(ctx, alias);
-            actor_type_name = llvm_lookup_var_class(ctx, alias);
-            if (actor_var == NULL || actor_type_name == NULL) {
+            participant_var = llvm_scope_lookup(ctx, alias);
+            participant_type_name = llvm_lookup_var_class(ctx, alias);
+            if (participant_var == NULL || participant_type_name == NULL) {
                 continue;
             }
 
-            actor_ptr_type = actor_var->type;
-            actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
-            actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
+            participant_ptr_type = participant_var->type;
+            participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+            participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
                 llvm_tmp_name(ctx));
-            actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
+            participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type, participant_ptr,
                 llvm_tmp_name(ctx));
             slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,
                 (unsigned)field_idx, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, actor_value, slot_ptr);
+            LLVMBuildStore(ctx->builder, participant_value, slot_ptr);
 
             if (trace_materialize_fn != NULL) {
                 LLVMValueRef handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
@@ -529,7 +529,7 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
-        LLVMVarEntry *actor_var;
+        LLVMVarEntry *participant_var;
         int field_idx;
         LLVMValueRef original_ptr;
         LLVMValueRef slot_ptr;
@@ -537,20 +537,20 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
 
-        actor_var = llvm_scope_lookup(ctx, alias);
-        if (actor_var == NULL || LLVMGetTypeKind(actor_var->type) != LLVMPointerTypeKind)
+        participant_var = llvm_scope_lookup(ctx, alias);
+        if (participant_var == NULL || LLVMGetTypeKind(participant_var->type) != LLVMPointerTypeKind)
             continue;
 
         field_idx = llvm_class_field_index(zone_cls, slot_name);
         if (field_idx < 0)
             continue;
 
-        original_ptr = LLVMBuildLoad2(ctx->builder, actor_var->type, actor_var->alloca, llvm_tmp_name(ctx));
-        saved_allocas[i] = LLVMBuildAlloca(ctx->builder, actor_var->type, llvm_tmp_name(ctx));
+        original_ptr = LLVMBuildLoad2(ctx->builder, participant_var->type, participant_var->alloca, llvm_tmp_name(ctx));
+        saved_allocas[i] = LLVMBuildAlloca(ctx->builder, participant_var->type, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, original_ptr, saved_allocas[i]);
         slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,
             (unsigned)field_idx, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, slot_ptr, actor_var->alloca);
+        LLVMBuildStore(ctx->builder, slot_ptr, participant_var->alloca);
         rebound = true;
     }
 
@@ -603,10 +603,10 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
-        LLVMVarEntry *actor_var;
-        const char *actor_type_name;
-        LLVMTypeRef actor_ptr_type;
-        LLVMTypeRef actor_value_type;
+        LLVMVarEntry *participant_var;
+        const char *participant_type_name;
+        LLVMTypeRef participant_ptr_type;
+        LLVMTypeRef participant_value_type;
         LLVMValueRef zone_bound_ptr;
         LLVMValueRef zone_bound_value;
         LLVMValueRef saved_ptr;
@@ -616,19 +616,19 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
             continue;
         }
 
-        actor_var = llvm_scope_lookup(ctx, alias);
-        actor_type_name = llvm_lookup_var_class(ctx, alias);
-        if (actor_var == NULL || actor_type_name == NULL) {
+        participant_var = llvm_scope_lookup(ctx, alias);
+        participant_type_name = llvm_lookup_var_class(ctx, alias);
+        if (participant_var == NULL || participant_type_name == NULL) {
             continue;
         }
 
-        actor_ptr_type = actor_var->type;
-        actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
-        zone_bound_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca, llvm_tmp_name(ctx));
-        zone_bound_value = LLVMBuildLoad2(ctx->builder, actor_value_type, zone_bound_ptr, llvm_tmp_name(ctx));
-        saved_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, saved_allocas[i], llvm_tmp_name(ctx));
+        participant_ptr_type = participant_var->type;
+        participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+        zone_bound_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca, llvm_tmp_name(ctx));
+        zone_bound_value = LLVMBuildLoad2(ctx->builder, participant_value_type, zone_bound_ptr, llvm_tmp_name(ctx));
+        saved_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, saved_allocas[i], llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, zone_bound_value, saved_ptr);
-        LLVMBuildStore(ctx->builder, saved_ptr, actor_var->alloca);
+        LLVMBuildStore(ctx->builder, saved_ptr, participant_var->alloca);
     }
 }
 
@@ -1104,9 +1104,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (llvm_intent_involves_uses_pointer_self(ctx, involves))
                 pt = LLVMPointerType(pt, 0);
         }
-        LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "actor");
+        LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "participant");
         LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), a);
-        llvm_scope_declare(ctx, alias != NULL ? alias : "actor", a, pt);
+        llvm_scope_declare(ctx, alias != NULL ? alias : "participant", a, pt);
         if (type_name != NULL)
             llvm_register_var_class(ctx, alias, type_name);
     }
@@ -1159,21 +1159,21 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             const char *type_name = participant_types != NULL
                 ? participant_types[i]
                 : llvm_intent_involves_type_name(involves);
-            LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "actor");
+            LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "participant");
             LLVMValueRef indices[] = {
                 zero,
                 LLVMConstInt(ctx->type_i32, subject_index, 0)
             };
-            LLVMValueRef actor_ptr = actor_var != NULL
-                ? LLVMBuildLoad2(ctx->builder, actor_var->type, actor_var->alloca, llvm_tmp_name(ctx))
+            LLVMValueRef participant_ptr = participant_var != NULL
+                ? LLVMBuildLoad2(ctx->builder, participant_var->type, participant_var->alloca, llvm_tmp_name(ctx))
                 : LLVMConstPointerNull(ctx->type_i8ptr);
-            LLVMValueRef cast_actor = LLVMBuildBitCast(ctx->builder, actor_ptr,
+            LLVMValueRef cast_participant = LLVMBuildBitCast(ctx->builder, participant_ptr,
                 ctx->type_i8ptr, llvm_tmp_name(ctx));
             if (!llvm_intent_type_is_subject_participant(ctx, type_name))
                 continue;
             LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder, subject_array_type,
                 subjects_alloca, indices, 2, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, cast_actor, elem_ptr);
+            LLVMBuildStore(ctx->builder, cast_participant, elem_ptr);
             subject_index++;
         }
 
@@ -1237,7 +1237,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         size_t who_alias_count = 0;
         const char **dispatch_aliases = NULL;
         size_t dispatch_alias_count = 0;
-        LLVMValueRef *saved_actor_ptrs = NULL;
+        LLVMValueRef *saved_participant_ptrs = NULL;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
@@ -1309,7 +1309,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 ctx, node, zone_type_name, alias);
             LLVMValueRef args[] = {
                 handle,
-                LLVMBuildGlobalStringPtr(ctx->builder, alias != NULL ? alias : "<actor>",
+                LLVMBuildGlobalStringPtr(ctx->builder, alias != NULL ? alias : "<participant>",
                     llvm_tmp_name(ctx)),
                 LLVMBuildGlobalStringPtr(ctx->builder, slot_name != NULL ? slot_name : "<unbound>",
                     llvm_tmp_name(ctx))
@@ -1319,10 +1319,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_intent_step_bind_bound_zone(
             ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
         if (who_alias_count > 0) {
-            saved_actor_ptrs = calloc(who_alias_count, sizeof(LLVMValueRef));
-            if (saved_actor_ptrs != NULL)
+            saved_participant_ptrs = calloc(who_alias_count, sizeof(LLVMValueRef));
+            if (saved_participant_ptrs != NULL)
                 rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
-                    ctx, node, zone_type_name, zone_alias, who_aliases, who_alias_count, saved_actor_ptrs);
+                    ctx, node, zone_type_name, zone_alias, who_aliases, who_alias_count, saved_participant_ptrs);
         }
 
         if (pre_expr != NULL) {
@@ -1386,15 +1386,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 if (subject_name != NULL) {
                     char full_name[256];
                     LLVMFuncEntry *action_fn;
-                    LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias);
+                    LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias);
                     snprintf(full_name, sizeof(full_name), "%s_%s",
                         subject_name, step->data.intent_step.name);
                     action_fn = llvm_lookup_function(ctx, full_name);
                     if (action_fn != NULL && action_fn->is_action
-                        && action_fn->action_self_only && actor_var != NULL) {
-                        LLVMValueRef actor_ptr = LLVMBuildLoad2(ctx->builder,
-                            actor_var->type, actor_var->alloca, llvm_tmp_name(ctx));
-                        LLVMValueRef args[] = { actor_ptr };
+                        && action_fn->action_self_only && participant_var != NULL) {
+                        LLVMValueRef participant_ptr = LLVMBuildLoad2(ctx->builder,
+                            participant_var->type, participant_var->alloca, llvm_tmp_name(ctx));
+                        LLVMValueRef args[] = { participant_ptr };
                         if (action_fn->ret_type == ctx->type_void) {
                             LLVMBuildCall2(ctx->builder, action_fn->fn_type, action_fn->fn,
                                 args, 1, "");
@@ -1413,7 +1413,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
         if (rebound_aliases)
             llvm_emit_intent_step_restore_bound_zone_aliases(
-                ctx, node, zone_type_name, who_aliases, who_alias_count, saved_actor_ptrs);
+                ctx, node, zone_type_name, who_aliases, who_alias_count, saved_participant_ptrs);
 
         if (completed_allocas != NULL) {
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), completed_allocas[i]);
@@ -1482,8 +1482,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (who_aliases != NULL && who_aliases != (const char **)step->data.intent_step.who_names)
             free((void *)who_aliases);
         free((void *)dispatch_aliases);
-        free(saved_actor_ptrs);
-        saved_actor_ptrs = NULL;
+        free(saved_participant_ptrs);
+        saved_participant_ptrs = NULL;
         {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 handle_alloca, llvm_tmp_name(ctx));

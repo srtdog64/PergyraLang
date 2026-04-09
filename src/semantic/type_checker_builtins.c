@@ -977,7 +977,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "IntentHistoryStepName") == 0) return BUILTIN_INTENT_HISTORY_STEP_NAME;
     if (strcmp(name, "IntentHistoryStepZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_ZONE;
     if (strcmp(name, "IntentHistoryStepPhase") == 0) return BUILTIN_INTENT_HISTORY_STEP_PHASE;
-    if (strcmp(name, "IntentHistoryStepActor") == 0) return BUILTIN_INTENT_HISTORY_STEP_ACTOR;
+    if (strcmp(name, "IntentHistoryStepParticipant") == 0) return BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT;
     if (strcmp(name, "IntentHistoryStepSlot") == 0) return BUILTIN_INTENT_HISTORY_STEP_SLOT;
     if (strcmp(name, "IntentHistoryStepFromZone") == 0) return BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE;
     if (strcmp(name, "IntentHistoryStepFromSlot") == 0) return BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT;
@@ -2805,8 +2805,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_STRING;
-    case BUILTIN_INTENT_HISTORY_STEP_ACTOR:
-        check_call_arity(call, 1, "IntentHistoryStepActor", ctx);
+    case BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT:
+        check_call_arity(call, 1, "IntentHistoryStepParticipant", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_STRING;

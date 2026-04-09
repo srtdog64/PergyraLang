@@ -160,7 +160,7 @@ class ParallelArray<T> where T: Send + Sync {
 }
 
 // 제네릭 액터
-actor Storage<T> where T: Sendable {
+participant Storage<T> where T: Sendable {
     private var items: Array<T> = []
     
     func Add(item: T) {

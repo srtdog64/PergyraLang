@@ -40,7 +40,7 @@ class
 struct
 tobject
 enum
-actor
+participant
 ability
 role
 party

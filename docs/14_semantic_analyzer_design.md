@@ -63,7 +63,7 @@ typedef enum
     SYMBOL_VARIABLE,    /* let x = ... */
     SYMBOL_FUNCTION,    /* func Foo() */
     SYMBOL_CLASS,       /* class Bar */
-    SYMBOL_ACTOR,       /* actor Baz */
+    /* legacy host declaration removed: subject-only host model */
     SYMBOL_TYPE_PARAM,  /* T, U (제네릭) */
     SYMBOL_SLOT,        /* Slot<T> 변수 */
     SYMBOL_TOKEN        /* SecureSlot 토큰 */
@@ -358,7 +358,7 @@ if (!result->success) {
 
 - Effect System (with effects IO) → Phase 2
 - 제네릭 타입 추론 (unification) → 단계 2 이후
-- Actor 메시지 타입 검사 → Phase 2
+- Participant 메시지 타입 검사 → Phase 2
 - 분산 Party/Roster/World 검사 → Phase 3
 - NUMA/멀티소켓 관련 → Phase 3
 

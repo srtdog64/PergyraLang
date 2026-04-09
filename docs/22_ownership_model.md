@@ -57,7 +57,7 @@ Log(Read(t));   // 컴파일 에러
 
 - `QubitSlot` 같은 movable handle은 기존 move 규칙을 따른다 **(단, QubitSlot 자체가 v2 계획이므로 현재는 스케줄톤만 존재)**
 - anchored handle 중에서는 현재 `Slot<subject-host>` / `SecureSlot<subject-host>`만 `own/ref` 함수 경계를 지원한다
-- 여기서 `subject-host`는 `subject` 또는 `actor`를 뜻한다
+- 여기서 `subject-host`는 `subject` 또는 `subject`를 뜻한다
 - `Slot<Int>`, `SecureSlot<String>`, `DeviceSlot<T>` 같은 다른 anchored handle은 아직 local-only다
 - 경계 전달 구현은 semantic + C backend + LLVM 경로까지 닫혔다
 

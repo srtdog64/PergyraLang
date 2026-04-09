@@ -23,7 +23,7 @@ typedef enum
     HIR_TOPLEVEL_RELATION,
     HIR_TOPLEVEL_EFFECT,
     HIR_TOPLEVEL_ZONE,
-    HIR_TOPLEVEL_ACTOR,
+    
     HIR_TOPLEVEL_EVENT,
     HIR_TOPLEVEL_INTENT,
     HIR_TOPLEVEL_FUNCTION,
@@ -224,8 +224,8 @@ struct HIRProgram
     size_t            effect_count;
     ASTNode         **zones;
     size_t            zone_count;
-    ASTNode         **actors;
-    size_t            actor_count;
+    ASTNode         **subjects;
+    size_t            subject_count;
     ASTNode         **events;
     size_t            event_count;
     ASTNode         **intents;

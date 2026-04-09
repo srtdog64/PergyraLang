@@ -61,9 +61,9 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
 {
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' after intent name");
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-        Token alias = consume_name_token(parser, "Expected intent actor name");
+        Token alias = consume_name_token(parser, "Expected intent participant name");
         ASTNode *involves = ast_create_intent_involves(alias.text);
-        parser_consume(parser, TOKEN_COLON, "Expected ':' after intent actor name");
+        parser_consume(parser, TOKEN_COLON, "Expected ':' after intent participant name");
         involves->data.intent_involves.subject_type = parse_type(parser);
         intent_append_node(&intent->data.intent_decl.involves,
             &intent->data.intent_decl.involve_count, involves);

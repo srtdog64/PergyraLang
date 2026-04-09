@@ -180,9 +180,9 @@ runtime은 same-subject conflict scheduler, last-trace/last-failure history,
 intent(args...) → callable symbol로 등록
 involves        → subject type만 허용
 where           → zone declaration이어야 함
-who             → 선언된 actor alias여야 함
+who             → 선언된 participant alias여야 함
 requires        → 알려진 ability여야 함
-authorized by   → 선언된 actor alias여야 함
+authorized by   → 선언된 participant alias여야 함
 causes          → 알려진 effect여야 함
 pre/guard/post/invariant/expect → Bool이어야 함
 success/failure → Bool이어야 함
@@ -200,7 +200,7 @@ priority        → Int여야 함
 `IntentLastFailed()`로 마지막 실행 기록의 핵심 요약을 읽을 수 있고,
 `IntentHistoryCount()` / `IntentHistoryStepName(i)` /
 `IntentHistoryStepZone(i)` / `IntentHistoryStepPhase(i)` /
-`IntentHistoryStepActor(i)` / `IntentHistoryStepSlot(i)` /
+`IntentHistoryStepParticipant(i)` / `IntentHistoryStepSlot(i)` /
 `IntentHistoryStepFromZone(i)` / `IntentHistoryStepFromSlot(i)` /
 `IntentHistoryStepToZone(i)` / `IntentHistoryStepToSlot(i)` /
 `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)`로 step-level typed
@@ -210,13 +210,13 @@ history를 읽을 수 있다.
 `IntentActivePriority(i)` /
 `IntentActiveConcurrent(i)` / `IntentActiveTrace(i)`로 현재 active intent
 registry를 직접 읽을 수 있다.
-`using:` bound zone이 있으면 현재 `who` actor를 matching subject slot에
+`using:` bound zone이 있으면 현재 `who` participant를 matching subject slot에
 실제로 materialize한 뒤 sync를 돈다. `transfer: source -> target;`가 붙으면
 source/target zone을 둘 다 live sync하고 `[transfer] ...` trace를 남기며
 target zone 쪽으로 handoff materialization을 수행한다. 이제 step body는
-`using:` zone의 live subject slot pointer에 `who` actor alias를 재바인딩한 뒤
-실행되고, sync 후 canonical actor로 복구된다. 그래서 zone method가 deep nested
-actor state를 직접 바꿔도 clause evaluation, rollback, final actor state가 맞는다.
+`using:` zone의 live subject slot pointer에 `who` participant alias를 재바인딩한 뒤
+실행되고, sync 후 canonical participant로 복구된다. 그래서 zone method가 deep nested
+participant state를 직접 바꿔도 clause evaluation, rollback, final participant state가 맞는다.
 rollback도 이제 intent-level policy를 가진다:
 
 - `rollback: full` = completed step 전체를 reverse-order로 보상
@@ -225,7 +225,7 @@ rollback도 이제 intent-level policy를 가진다:
 
 즉 v0.3의 intent는 **실행 가능한 declaration + conflict scheduler +
 trace/rollback runtime + trace-id/history observability +
-live zone-instance binding + actor-slot materialization + cross-zone handoff**
+live zone-instance binding + participant-slot materialization + cross-zone handoff**
 까지는 들어왔고, 남은 것은 richer multi-instance timeline query와
 richer rollback policy detail이다.
 
@@ -266,7 +266,7 @@ intent Purchase
     // failure 시 reverse-order compensate 실행
 // last trace / last failure / last handle / last step count 조회 가능
 // step-level typed history 조회 가능
-    // using zoneAlias가 있으면 actor -> zone subject slot materialization 수행
+    // using zoneAlias가 있으면 participant -> zone subject slot materialization 수행
     //
     // 다음 단계:
     // richer trace id / step history API
@@ -284,7 +284,7 @@ materialization과 trace line까지 수행한다.
 다만 richer trace id/history model과 richer rollback policy는 아직 완전히
 명세되지 않았다. cross-world transfer v1은 이제 구현되어, `transfer: cart -> payment;`
 같이 source/target zone binding을 선언하면 runtime이 source/target 양쪽을 live sync하고
-actor를 target zone slot으로 handoff materialization한다.
+participant를 target zone slot으로 handoff materialization한다.
 
 구체적으로 다음이 정의되어야 한다:
 
@@ -292,7 +292,7 @@ actor를 target zone slot으로 handoff materialization한다.
 Q1. step이 실행될 때, 해당 zone의 action만 호출 가능하도록 어떻게 제한하는가?
 Q2. step이 여러 zone/world 경계를 넘을 때 transfer identity를 어떻게 유지하는가?
    → v1은 "consume"이 아니라 handoff materialization이다.
-   → source/target zone 둘 다 sync되고 trace에 `[transfer] actor: From.slot -> To.slot`가 남는다.
+   → source/target zone 둘 다 sync되고 trace에 `[transfer] participant: From.slot -> To.slot`가 남는다.
 Q3. step 간 전이 history를 typed API로 어떻게 노출하는가?
 ```
 
@@ -314,7 +314,7 @@ causes ✓                     intent 성공/실패 판정
 
 연결 지점 (부분 구현 / 남은 것):
   step ↔ zone action 바인딩
-  step ↔ concrete zone instance 바인딩 (`using:` + actor-slot materialization 있음)
+  step ↔ concrete zone instance 바인딩 (`using:` + participant-slot materialization 있음)
   step ↔ cross-world zone handoff (`transfer:` v1 있음)
   step ↔ step 상태 전달
   typed trace/history API (v1 step surface는 구현됨)
@@ -452,7 +452,7 @@ intent Purchase
 
 3. 전이 시 subject handoff
    → v1 구현은 `transfer: source -> target;`로 concrete zone binding을 잡고,
-     `who` actor를 source/target zone의 matching subject slot에 materialize한 뒤
+     `who` participant를 source/target zone의 matching subject slot에 materialize한 뒤
      양쪽 zone을 sync한다.
    → 즉 현재는 "cross-world consume-move"가 아니라 "live handoff materialization"이다.
    → tobject는 여전히 경계 투영 역할을 맡고, richer identity handoff는 다음 단계다.

@@ -19,7 +19,7 @@ Structure:
 
 The important point is that `FulfillOrder` and `ProcessOrder` do not directly own
 zone contracts. They act as orchestration containers, while the leaf intents keep
-the concrete zone/actor semantics.
+the concrete zone/participant semantics.
 
 Expected runtime shape:
 - `ProcessOrder=true`
