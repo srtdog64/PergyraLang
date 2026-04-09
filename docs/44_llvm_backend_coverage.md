@@ -93,7 +93,7 @@
 | `AST_PARTY_DECL` | 파티 선언 (구조체 + vtable) | OK |
 | `AST_ABILITY_DECL` | 어빌리티(인터페이스) 선언 | OK |
 | `AST_ROLE_DECL` | 역할 선언 (vtable 구현) | OK |
-| `AST_SYSTEMIC_DECL` | 시스테믹 선언 | OK |
+| `AST_ROSTER_DECL` | 시스테믹 선언 | OK |
 | `AST_WORLD_DECL` | 월드 선언 (sync 메서드) | OK |
 | `AST_ZONE_DECL` | 존 선언 (sync) | OK |
 | `AST_RELATION_DECL` | 관계 선언 | OK |
@@ -217,8 +217,8 @@
 ### Party/상호작용
 `party` `relation` `effect` `zone` `slot` `shared` `context`
 
-### Systemic/World
-`systemic` `world`
+### Roster/World
+`roster` `world`
 
 ### 안전
 `unsafe` `defer` `bind`

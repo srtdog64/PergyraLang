@@ -1,4 +1,4 @@
-# Pergyra World-Systemic Architecture
+# Pergyra World-Roster Architecture
 
 ## 🌍 Target Hierarchy
 
@@ -56,16 +56,16 @@ party DungeonTeam {
     shared strategy: Int = 0;
 }
 
-systemic CombatSystem {
+roster CombatSystem {
     party slot team1: DungeonTeam;
 }
 
 world GameWorld {
-    systemic combat: CombatSystem;
+    roster combat: CombatSystem;
 }
 ```
 
-현재 stable current surface는 대체로 `subject/class / ability / role / party / relation / effect / zone / systemic / world`까지다.
+현재 stable current surface는 대체로 `subject/class / ability / role / party / relation / effect / zone / roster / world`까지다.
 장기 의미론 중심 이름은 `class`보다 `subject`가 더 정확하다.
 또한 `subject slot`과 `ToObject` / `ToTObject` projection source처럼 주체성을 요구하는 표면은 현재 `subject`에만 열려 있다.
 `relation`, `effect`, `zone`은 이제 `for ...` header와 `subject slot` / `object slot` / `tobject slot` / `shared` / `func` 수준의 최소 body surface까지 올라왔고, `relation` / `effect` / `zone` 모두 `refresh objectSlot from subjectSlot` / `publish dtoSlot from subjectSlot` / `bind slotName from sourceSlot` projection sync와 `HasProjection(slotName)` query를 가진다. `bind`는 target slot declaration이 `object`인지 `tobject`인지에 따라 `refresh` / `publish` semantic contract를 자동 선택한다. `zone`은 추가로 `relation slot` / `effect slot` / `authority subjectSlot` / `authority subjectSlot requires Ability[, Ability]` / `state name: effect ... on ...` / `state name: relation ... between ..., ...` / `apply effectSlot to targetSlot` / `apply stateName` / `detach effectSlot from targetSlot` / `detach stateName` / `link relationSlot between left, right` / `link stateName` / `unlink relationSlot between left, right` / `unlink stateName` / `maintain effectSlot on targetSlot` / `maintain relationSlot between left, right` / `maintain stateName` / `HasLayer(layerSlot)` / `HasState(stateName)` / `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`과 optional `by subjectSlot` authority annotation까지 가진다. `world`는 `zone` slot과 `state name: zone zoneSlot`, `state name: zone zoneSlot projection projectionSlot`, `state name: zone zoneSlot layer layerSlot`, `state name: zone zoneSlot state zoneStateName`, `state name: all zoneOrState[, ...]`, `state name: any zoneOrState[, ...]`, `activate/deactivate/maintain zoneOrState`, `HasZone(zoneOrState)`, `HasZoneProjection(zoneSlot, projectionSlot)`, `HasZoneLayer(zoneSlot, layerSlot)`, `HasZoneState(zoneSlot, stateName)`까지 최소 조립/lifecycle/cross-layer query surface를 가진다. 또한 `apply/detach`는 `effect`의 subject target contract와, `link/unlink`는 `relation`의 two-endpoint contract와 기본 타입 정합성을 검사하고, `refresh`/`publish`/`bind`는 projection field 정합성을 검사하며, `maintain`은 duplicate/conflicting lifecycle rule에 warning을 낸다. `authority`는 mutable rule의 승인 주체를 검사하고, 필요하면 그 주체 타입이 특정 ability를 수행할 수 있는 role impl도 검사한다. state shorthand는 kind mismatch를 semantic error로 보고한다. `HasProjection`은 relation/effect/zone 안에서 선언된 object/tobject projection slot의 sync-ready 여부를 Bool로 질의한다. 구현상 relation/effect/zone runtime은 이제 `__projection_ready_*`와 `__projection_dirty_*`를 함께 유지하며, dirty projection target만 다시 materialize한다. source subject slot assignment는 matching projection target을 invalidate해 stale-ready 상태를 피한다. `HasLayer`는 zone 안에서 선언된 relation/effect layer slot의 활성 여부를 Bool로 질의한다. `HasState`는 zone 안에서 선언된 state alias를 Bool로 질의하고, 선택적으로 slot 조합까지 검증한다. `HasZone`은 world 안에서 선언된 zone slot 또는 world state alias를 Bool로 질의한다. `HasZoneProjection` / `HasZoneLayer` / `HasZoneState`는 world 안에서 embedded zone의 projection/layer/state flag를 Bool로 직접 질의한다. 파생 `world state`는 zone active flag와 embedded zone projection/layer/state flag를 자동 조합하는 읽기 전용 contract이고, `all` / `any` 조합 state는 앞서 선언된 zone slot 또는 world state alias를 다시 합성하는 최소 inter-layer composition policy로 동작한다. 이때 duplicate input과 direct zone slot + plain `state name: zone zoneSlot` alias 중복은 semantic warning으로 정리한다. `world` lifecycle도 duplicate `activate` / `deactivate`, conflicting `activate` + `deactivate`, redundant `activate` + `maintain`를 warning으로 보고한다. `activate/deactivate/maintain`은 plain `state name: zone zoneSlot` alias나 direct zone slot만 대상으로 삼는다. 현재 C backend와 LLVM backend 모두 relation/effect/zone/world method를 각 `<Type>_sync(self)` helper 전후로 감싸고, relation/effect/zone/world가 가진 projection sync와 lifecycle flag를 incremental하게 맞춘다. world sync는 이제 내부적으로 `command pass(reset/directives) -> zone sync pass -> derived pass` 순서를 고정하고, `__zone_dirty_<slot>`와 `__world_derived_dirty`를 이용해 dirty zone만 다시 sync한 뒤 derived layer를 필요한 경우에만 다시 계산한다. world constructor는 zone dirty와 derived dirty를 `true`로 시작시켜 첫 sync에서 embedded zone projection/layer/state를 놓치지 않으며, world method는 post-sync 전에 embedded zone dirty를 보수적으로 다시 올려 world-owned zone 교체가 derived layer까지 전파되게 한다. zone의 `relation slot` / `effect slot`은 더 이상 placeholder pointer가 아니라 typed overlay runtime instance로 유지되며, zone sync가 subject slot 값을 overlay endpoint/target에 바인딩하고 `<Layer>_sync(&self->layer)`를 호출한다. 그래서 `self.poison.view.hp`, `self.trust.packet.name` 같은 embedded overlay projection read도 현재 LLVM runtime smoke까지 닫혀 있다. `HasProjection(...)` / `HasLayer(...)` / `HasState(...)` / `HasZone(...)` / `HasZoneProjection(...)` / `HasZoneLayer(...)` / `HasZoneState(...)`는 두 backend에서 현재 self 또는 embedded zone state flag로 직접 lowering된다. 다만 현재 구현은 object/tobject projection surface가 가장 앞서 있고, object를 effect/relation target으로 더 깊게 쓰는 semantics는 아직 남아 있다.
@@ -210,10 +210,10 @@ party DungeonTeam {
 관련된 party들을 모아서 하나의 시스템을 구성. 전체 시스템의 조합.
 
 현재 구현에는 존재하지만, 장기적으로는 `zone`/`world` 층과 역할이 재정리될 수 있다.
-즉 `systemic`은 현 단계의 조율/구성 단위이며, 최종 목표 계층의 절대적 중심축이라고 고정하지 않는다.
+즉 `roster`은 현 단계의 조율/구성 단위이며, 최종 목표 계층의 절대적 중심축이라고 고정하지 않는다.
 
 ```pergyra
-systemic CombatSystem {
+roster CombatSystem {
     // 던전 팀들
     party slot dungeonTeam1: DungeonTeam
     party slot dungeonTeam2: DungeonTeam
@@ -243,15 +243,15 @@ systemic CombatSystem {
 ```
 
 ### 5. **WORLD** - 최상위 컨테이너
-모든 systemic의 모음. 전체 애플리케이션/게임 세계를 표현.
+모든 roster의 모음. 전체 애플리케이션/게임 세계를 표현.
 
 ```pergyra
 world GameWorld {
     // 핵심 시스템들
-    systemic combat: CombatSystem
-    systemic economy: EconomySystem
-    systemic social: SocialSystem
-    systemic crafting: CraftingSystem
+    roster combat: CombatSystem
+    roster economy: EconomySystem
+    roster social: SocialSystem
+    roster crafting: CraftingSystem
     
     // 월드 전체 상태
     shared worldTime: GameTime
@@ -357,9 +357,9 @@ party CraftingGuild {
 }
 ```
 
-### Systemic 레벨
+### Roster 레벨
 ```pergyra
-systemic EconomySystem {
+roster EconomySystem {
     // 거래소들
     party slot mainTradingPost: TradingPost
     party slot auctionHouse: AuctionHouse
@@ -390,7 +390,7 @@ systemic EconomySystem {
     }
 }
 
-systemic CombatSystem {
+roster CombatSystem {
     party slot pveBattles: Array<DungeonTeam>
     party slot pvpArenas: Array<PvPMatch>
     party slot worldBosses: Array<RaidEncounter>
@@ -404,11 +404,11 @@ systemic CombatSystem {
 ```pergyra
 world MMORPGWorld {
     // 모든 주요 시스템
-    systemic economy: EconomySystem
-    systemic combat: CombatSystem
-    systemic social: SocialSystem
-    systemic quests: QuestSystem
-    systemic housing: HousingSystem
+    roster economy: EconomySystem
+    roster combat: CombatSystem
+    roster social: SocialSystem
+    roster quests: QuestSystem
+    roster housing: HousingSystem
     
     // 월드 상태
     shared worldClock: GameTime
@@ -450,7 +450,7 @@ world MMORPGWorld {
 - `role`은 subject와 ability를 묶는다
 - `party`는 subject들의 협력 단위다
 - `object`는 subject가 수동 문맥으로 해석된 모습이다
-- `systemic/world`는 그 협력을 더 큰 단위로 조율한다
+- `roster/world`는 그 협력을 더 큰 단위로 조율한다
 
 ## 🚀 장점
 
@@ -458,20 +458,20 @@ world MMORPGWorld {
 - Ability: "무엇을 할 수 있는가?"
 - Role: "어떻게 하는가?"
 - Party: "누가 함께 하는가?"
-- Systemic: "어떤 시스템인가?"
+- Roster: "어떤 시스템인가?"
 - World: "전체가 어떻게 동작하는가?"
 
 ### 2. **확장성**
 - 새로운 ability 추가 → 기존 시스템 영향 없음
-- 새로운 party 추가 → systemic에 슬롯만 추가
-- 새로운 systemic 추가 → world에 등록만
+- 새로운 party 추가 → roster에 슬롯만 추가
+- 새로운 roster 추가 → world에 등록만
 
 ### 3. **병렬성의 계층적 관리**
 ```pergyra
 // World 레벨: 시스템들을 병렬로
 parallel { economy, combat, social }
 
-// Systemic 레벨: 파티들을 병렬로
+// Roster 레벨: 파티들을 병렬로
 parallel (allDungeonTeams)
 
 // Party 레벨: 역할들을 병렬로
@@ -488,23 +488,23 @@ parallel on (gpuThread) { ... }
 
 ## 💡 구현 로드맵
 
-### Phase 1: Systemic 구현
-- [ ] AST에 `AST_SYSTEMIC_DECL` 추가
-- [ ] `systemic` 키워드 파싱
+### Phase 1: Roster 구현
+- [ ] AST에 `AST_ROSTER_DECL` 추가
+- [ ] `roster` 키워드 파싱
 - [ ] Party 슬롯 관리 시스템
 
 ### Phase 2: World 구현
 - [ ] AST에 `AST_WORLD_DECL` 추가
 - [ ] `world` 키워드 파싱
-- [ ] Systemic 조합 관리
+- [ ] Roster 조합 관리
 
 ### Phase 3: 런타임 통합
 - [ ] 계층적 FiberMap 생성
 - [ ] World-level 스케줄러
-- [ ] Cross-systemic 통신
+- [ ] Cross-roster 통신
 
 ### Phase 4: 최적화
-- [ ] Static systemic 분석
+- [ ] Static roster 분석
 - [ ] World-wide 병렬 최적화
 - [ ] 메모리 레이아웃 최적화
 

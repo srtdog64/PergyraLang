@@ -30,10 +30,6 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             && node->data.role_decl.for_type->data.type.name != NULL) {
             ASTNode *type_decl = find_type_decl_by_name(
                 ctx->program_root, node->data.role_decl.for_type->data.type.name);
-            if (type_decl == NULL) {
-                type_decl = find_actor_decl_by_name(
-                    ctx->program_root, node->data.role_decl.for_type->data.type.name);
-            }
             if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
                 semantic_error(ctx, node->data.role_decl.for_type,
                     "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
@@ -181,25 +177,25 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
-type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
+type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.systemic_decl.name;
+    const char *name = node->data.roster_decl.name;
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_SYSTEMIC;
+    sym->kind = SYMBOL_ROSTER;
     sym->type = create_overlay_nominal_type(name);
     sym->decl_line = node->line;
     sym->decl_col = node->column;
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL && existing->kind == SYMBOL_CLASS) {
-        existing->kind = SYMBOL_SYSTEMIC;
+        existing->kind = SYMBOL_ROSTER;
         if (existing->type == NULL || existing->type == TYPE_VOID)
             existing->type = create_overlay_nominal_type(name);
         symbol_destroy(sym);
     } else if (existing != NULL) {
-        semantic_error(ctx, node, "Redeclaration of systemic '%s'", name);
+        semantic_error(ctx, node, "Redeclaration of roster '%s'", name);
         symbol_destroy(sym);
         return false;
     } else {
@@ -207,23 +203,23 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check party slot references */
-    for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
-        ASTNode *ps = node->data.systemic_decl.party_slots[i];
-        if (ps->data.systemic_slot.party_type != NULL) {
+    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
+        ASTNode *ps = node->data.roster_decl.party_slots[i];
+        if (ps->data.roster_slot.party_type != NULL) {
             Symbol *party = scope_lookup(ctx->scope,
-                ps->data.systemic_slot.party_type);
+                ps->data.roster_slot.party_type);
             if (party == NULL || party->kind != SYMBOL_PARTY) {
                 semantic_warning(ctx, ps,
                     "Party type '%s' not found for slot '%s'",
-                    ps->data.systemic_slot.party_type,
-                    ps->data.systemic_slot.slot_name);
+                    ps->data.roster_slot.party_type,
+                    ps->data.roster_slot.slot_name);
             }
         }
     }
 
     /* Check shared fields */
-    for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++) {
-        ASTNode *shared = node->data.systemic_decl.shared_fields[i];
+    for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
+        ASTNode *shared = node->data.roster_decl.shared_fields[i];
         if (shared->data.party_shared.type != NULL)
             resolve_type_node(shared->data.party_shared.type, ctx);
         if (shared->data.party_shared.initializer != NULL)
@@ -232,8 +228,8 @@ type_check_systemic_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
-        type_check_func_decl(node->data.systemic_decl.methods[i], ctx);
+    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+        type_check_func_decl(node->data.roster_decl.methods[i], ctx);
     }
     scope_exit(&ctx->scope);
 
@@ -1093,17 +1089,17 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     ctx->current_world = node;
 
-    /* Check systemic references */
-    for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
-        ASTNode *ws = node->data.world_decl.systemics[i];
-        if (ws->data.world_systemic.systemic_type != NULL) {
+    /* Check roster references */
+    for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
+        ASTNode *ws = node->data.world_decl.rosters[i];
+        if (ws->data.world_roster.roster_type != NULL) {
             Symbol *sys = scope_lookup(ctx->scope,
-                ws->data.world_systemic.systemic_type);
-            if (sys == NULL || sys->kind != SYMBOL_SYSTEMIC) {
+                ws->data.world_roster.roster_type);
+            if (sys == NULL || sys->kind != SYMBOL_ROSTER) {
                 semantic_warning(ctx, ws,
-                    "Systemic type '%s' not found for slot '%s'",
-                    ws->data.world_systemic.systemic_type,
-                    ws->data.world_systemic.slot_name);
+                    "Roster type '%s' not found for slot '%s'",
+                    ws->data.world_roster.roster_type,
+                    ws->data.world_roster.slot_name);
             }
         }
     }
@@ -1752,8 +1748,8 @@ find_domain_decl_by_name(ASTNode *program,
             decl_name = stmt->data.zone_decl.name;
         else if (decl_type == AST_WORLD_DECL)
             decl_name = stmt->data.world_decl.name;
-        else if (decl_type == AST_SYSTEMIC_DECL)
-            decl_name = stmt->data.systemic_decl.name;
+        else if (decl_type == AST_ROSTER_DECL)
+            decl_name = stmt->data.roster_decl.name;
 
         if (decl_name != NULL && strcmp(decl_name, name) == 0)
             return stmt;
@@ -3202,97 +3198,6 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 /* -----------------------------------------------------------------
  * Async system type checkers
  * ----------------------------------------------------------------- */
-
-bool
-type_check_actor_decl(ASTNode *node, SemanticContext *ctx)
-{
-    const char *name = node->data.actor_decl.name;
-    Type *actor_type;
-
-    if (!node->data.actor_decl.from_subject_profile_surface) {
-        semantic_warning(ctx, node,
-            "Standalone actor syntax is transitional; prefer 'subject %s actor { ... }'",
-            name != NULL ? name : "<Actor>");
-    }
-
-    /* Register actor as a symbol */
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    sym->name = pergyra_strdup(name);
-    sym->kind = SYMBOL_ACTOR;
-    actor_type = calloc(1, sizeof(Type));
-    if (actor_type != NULL) {
-        actor_type->kind = TYPE_KIND_CLASS;
-        actor_type->nominal_flavor = TYPE_NOMINAL_SUBJECT;
-        actor_type->name = pergyra_strdup(name);
-    }
-    sym->type = actor_type != NULL ? actor_type : TYPE_UNKNOWN;
-    sym->decl_line = node->line;
-    sym->decl_col  = node->column;
-
-    Symbol *existing = scope_lookup_current(ctx->scope, name);
-    if (existing != NULL && existing->kind == SYMBOL_ACTOR
-        && existing->decl_line == node->line
-        && existing->decl_col == node->column) {
-        if (existing->type != NULL && existing->type != TYPE_UNKNOWN) {
-            actor_type = existing->type;
-        } else {
-            existing->type = sym->type;
-        }
-        symbol_destroy(sym);
-    } else if (existing != NULL) {
-        semantic_error(ctx, node,
-            "Duplicate actor declaration '%s'", name);
-        symbol_destroy(sym);
-        return false;
-    } else {
-        scope_declare(ctx->scope, sym);
-    }
-
-    /* Check fields */
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
-        ClassField *f = node->data.actor_decl.fields[i];
-        if (f && f->type) {
-            Type *ft = resolve_type_node(f->type, ctx);
-            if (ft && f->name) {
-                Symbol *fsym = symbol_create_variable(f->name, ft,
-                                                       node->line, node->column);
-                scope_declare(ctx->scope, fsym);
-            }
-        }
-    }
-
-    /* Check methods (implicitly async) */
-    bool saved_async = ctx->in_async_func;
-    ctx->in_async_func = true;
-    for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
-        ASTNode *method = node->data.actor_decl.methods[i];
-        if (method) {
-            scope_enter(&ctx->scope, SCOPE_FUNCTION);
-            /* Register self + params */
-            Symbol *self_sym = symbol_create_variable("self",
-                sym->type != NULL ? sym->type : TYPE_UNKNOWN,
-                node->line, node->column);
-            scope_declare(ctx->scope, self_sym);
-            for (size_t k = 0; k < method->data.async_func_decl.param_count; k++) {
-                FuncParam *p = method->data.async_func_decl.params[k];
-                if (p == NULL || (p->type == NULL && strcmp(p->name, "self") == 0))
-                    continue;
-                Type *pt = (p->type != NULL) ? resolve_type_node(p->type, ctx) : TYPE_UNKNOWN;
-                Symbol *ps = symbol_create_variable(p->name, pt,
-                                                      node->line, node->column);
-                scope_declare(ctx->scope, ps);
-            }
-            if (method->data.async_func_decl.body)
-                type_check_block(method->data.async_func_decl.body, ctx);
-            scope_exit(&ctx->scope);
-        }
-    }
-    ctx->in_async_func = saved_async;
-    scope_exit(&ctx->scope);
-
-    return !ctx->has_error;
-}
 
 bool
 type_check_async_block(ASTNode *node, SemanticContext *ctx)

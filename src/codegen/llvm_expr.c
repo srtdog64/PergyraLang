@@ -1012,7 +1012,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             {
                 ASTNode *party_decl = llvm_find_named_domain_decl(ctx, AST_PARTY_DECL,
                     callee_name);
-                ASTNode *systemic_decl = llvm_find_named_domain_decl(ctx, AST_SYSTEMIC_DECL,
+                ASTNode *roster_decl = llvm_find_named_domain_decl(ctx, AST_ROSTER_DECL,
                     callee_name);
                 ASTNode *relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
                     callee_name);
@@ -1027,9 +1027,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (party_decl != NULL) {
                     shared_fields = party_decl->data.party_decl.shared_fields;
                     shared_count = party_decl->data.party_decl.shared_count;
-                } else if (systemic_decl != NULL) {
-                    shared_fields = systemic_decl->data.systemic_decl.shared_fields;
-                    shared_count = systemic_decl->data.systemic_decl.shared_count;
+                } else if (roster_decl != NULL) {
+                    shared_fields = roster_decl->data.roster_decl.shared_fields;
+                    shared_count = roster_decl->data.roster_decl.shared_count;
                 } else if (relation_decl != NULL) {
                     shared_fields = relation_decl->data.relation_decl.shared_fields;
                     shared_count = relation_decl->data.relation_decl.shared_count;
@@ -3950,7 +3950,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_CONTEXT_ACCESS: {
         /* context.GetRole("slotName") → load role slot from self (i8*)
-         * self is in scope as the party/systemic method's first param */
+         * self is in scope as the party/roster method's first param */
         LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
         if (self_var == NULL)
             return LLVMConstNull(ctx->type_i8ptr);

@@ -121,12 +121,12 @@ llvm_domain_decl_parts(ASTNode *stmt,
         *methods = stmt->data.party_decl.methods;
         *method_count = stmt->data.party_decl.method_count;
         break;
-    case AST_SYSTEMIC_DECL:
-        *decl_name = stmt->data.systemic_decl.name;
-        *shared_fields = stmt->data.systemic_decl.shared_fields;
-        *shared_count = stmt->data.systemic_decl.shared_count;
-        *methods = stmt->data.systemic_decl.methods;
-        *method_count = stmt->data.systemic_decl.method_count;
+    case AST_ROSTER_DECL:
+        *decl_name = stmt->data.roster_decl.name;
+        *shared_fields = stmt->data.roster_decl.shared_fields;
+        *shared_count = stmt->data.roster_decl.shared_count;
+        *methods = stmt->data.roster_decl.methods;
+        *method_count = stmt->data.roster_decl.method_count;
         break;
     case AST_WORLD_DECL:
         *decl_name = stmt->data.world_decl.name;
@@ -582,11 +582,6 @@ llvm_find_projection_nominal_decl_local(LLVMGenCtx *ctx, const char *name)
             && strcmp(stmt->data.class_decl.name, name) == 0) {
             return stmt;
         }
-        if (stmt->type == AST_ACTOR_DECL
-            && stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, name) == 0) {
-            return stmt;
-        }
     }
     return NULL;
 }
@@ -598,8 +593,6 @@ llvm_projection_field_count_local(ASTNode *decl)
         return 0;
     if (decl->type == AST_CLASS_DECL)
         return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
     return 0;
 }
 
@@ -611,11 +604,6 @@ llvm_projection_field_at_local(ASTNode *decl, size_t index)
     if (decl->type == AST_CLASS_DECL) {
         if (index < decl->data.class_decl.field_count)
             return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
         return NULL;
     }
     return NULL;

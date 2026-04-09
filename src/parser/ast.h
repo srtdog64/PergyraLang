@@ -95,7 +95,6 @@ typedef enum
     AST_LET_DECL,
     AST_LET_DESTRUCTURE,   /* let (a, b) = expr; */
     AST_TYPE_ALIAS,
-    AST_ACTOR_DECL,
     
     /* Statements */
     AST_WITH_STMT,
@@ -155,8 +154,8 @@ typedef enum
     AST_CONTEXT_ACCESS,
     AST_PARTY_INSTANCE,
     
-    /* Systemic and World */
-    AST_SYSTEMIC_DECL,
+    /* Roster and World */
+    AST_ROSTER_DECL,
     AST_SYSTEMIC_SLOT,
     AST_WORLD_DECL,
     AST_WORLD_SYSTEMIC,
@@ -488,18 +487,6 @@ struct ASTNode
             StructuredComment* doc_comment;
         } async_func_decl;
         
-        /* Actor declaration */
-        struct {
-            char*          name;
-            ClassField**   fields;
-            size_t         field_count;
-            ASTNode**      methods;
-            size_t         method_count;
-            GenericParams* generic_params;
-            bool           from_subject_profile_surface;
-            StructuredComment* doc_comment;
-        } actor_decl;
-        
         /* Await expression */
         struct {
             ASTNode* expression;
@@ -667,7 +654,7 @@ struct ASTNode
             size_t assignment_count;
         } party_instance;
         
-        /* Systemic declaration */
+        /* Roster declaration */
         struct {
             char* name;
             ASTNode** party_slots;     /* Party slots */
@@ -678,20 +665,20 @@ struct ASTNode
             size_t method_count;
             GenericParams* generic_params;
             StructuredComment* doc_comment;
-        } systemic_decl;
+        } roster_decl;
         
-        /* Systemic slot */
+        /* Roster slot */
         struct {
             char* slot_name;
             char* party_type;          /* Required party type */
             bool is_array;             /* Array<Party> slot */
-        } systemic_slot;
+        } roster_slot;
         
         /* World declaration */
         struct {
             char* name;
-            ASTNode** systemics;       /* Systemic instances */
-            size_t systemic_count;
+            ASTNode** rosters;       /* Roster instances */
+            size_t roster_count;
             ASTNode** zones;           /* Zone instances */
             size_t zone_count;
             ASTNode** shared_fields;   /* World-level data */
@@ -709,12 +696,12 @@ struct ASTNode
             StructuredComment* doc_comment;
         } world_decl;
         
-        /* World systemic instance */
+        /* World roster instance */
         struct {
             char* slot_name;
-            char* systemic_type;
+            char* roster_type;
             ASTNode* initializer;      /* Optional initialization */
-        } world_systemic;
+        } world_roster;
 
         /* World zone instance */
         struct {
@@ -1078,7 +1065,6 @@ ASTNode* ast_create_type(const char* name);
 
 /* Async AST creation functions */
 ASTNode* ast_create_async_function(const char* name, bool is_async);
-ASTNode* ast_create_actor(const char* name);
 ASTNode* ast_create_await_expression(ASTNode* expression);
 ASTNode* ast_create_channel_send(ASTNode* channel, ASTNode* value);
 ASTNode* ast_create_channel_recv(ASTNode* channel);
@@ -1108,11 +1094,11 @@ ASTNode* ast_create_require_field(const char* name);
 ASTNode* ast_create_impl_ability(const char* ability_name);
 ASTNode* ast_create_override_func(ASTNode* func_decl);
 
-/* Systemic/World system AST creation functions */
-ASTNode* ast_create_systemic_declaration(const char* name);
-ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type);
+/* Roster/World system AST creation functions */
+ASTNode* ast_create_roster_declaration(const char* name);
+ASTNode* ast_create_roster_slot(const char* slot_name, const char* party_type);
 ASTNode* ast_create_world_declaration(const char* name);
-ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type);
+ASTNode* ast_create_world_roster(const char* slot_name, const char* roster_type);
 ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type);
 ASTNode* ast_create_world_activate(const char* zone_slot_name);
 ASTNode* ast_create_world_deactivate(const char* zone_slot_name);

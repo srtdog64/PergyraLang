@@ -20,8 +20,7 @@ async func FetchWeatherData(city: String) -> Result<WeatherData, Error>
 }
 
 // Actor for managing weather cache
-actor WeatherCache
-{
+subject WeatherCache {
     private _cache: Map<String, WeatherData>
     private _lastUpdate: Map<String, Timestamp>
     private const CACHE_TTL = 300 // 5 minutes

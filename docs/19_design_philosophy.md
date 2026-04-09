@@ -162,11 +162,11 @@ world    = 전체 시스템의 경계
 - effect
 - zone
 - world
-- systemic (이행기 조립 단위)
+- roster (이행기 조립 단위)
 
 즉 Pergyra의 가장 깊은 정체성은 `party/world`가 아니라, 슬롯과 제네릭과 subject/ability 계약 시스템이다.
 `party/relation/effect/zone/world`는 그 위에 올라가는 문맥 계층으로 보는 것이 맞다.
-`systemic`은 현재 구현에 존재하지만 최종 존재론 계층이라기보다 이행기 조립 단위로 보는 편이 자연스럽다.
+`roster`은 현재 구현에 존재하지만 최종 존재론 계층이라기보다 이행기 조립 단위로 보는 편이 자연스럽다.
 
 ## 7. 컨테이너 격리는 결과이지 출발점이 아니다
 

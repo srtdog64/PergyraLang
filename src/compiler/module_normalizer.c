@@ -190,11 +190,10 @@ node_name_slot(ASTNode *node)
         case AST_FUNC_DECL: return &node->data.func_decl.name;
         case AST_CLASS_DECL: return &node->data.class_decl.name;
         case AST_LET_DECL: return &node->data.let_decl.name;
-        case AST_ACTOR_DECL: return &node->data.actor_decl.name;
         case AST_ABILITY_DECL: return &node->data.ability_decl.name;
         case AST_ROLE_DECL: return &node->data.role_decl.name;
         case AST_PARTY_DECL: return &node->data.party_decl.name;
-        case AST_SYSTEMIC_DECL: return &node->data.systemic_decl.name;
+        case AST_ROSTER_DECL: return &node->data.roster_decl.name;
         case AST_WORLD_DECL: return &node->data.world_decl.name;
         case AST_RELATION_DECL: return &node->data.relation_decl.name;
         case AST_EFFECT_DECL: return &node->data.effect_decl.name;
@@ -355,16 +354,6 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
                 normalize_node_refs(node->data.class_decl.methods[i], scope, shadow);
             return;
 
-        case AST_ACTOR_DECL:
-            normalize_generic_params(node->data.actor_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
-                if (node->data.actor_decl.fields[i] != NULL)
-                    normalize_node_refs(node->data.actor_decl.fields[i]->type, scope, shadow);
-            }
-            for (size_t i = 0; i < node->data.actor_decl.method_count; i++)
-                normalize_node_refs(node->data.actor_decl.methods[i], scope, shadow);
-            return;
-
         case AST_ABILITY_DECL:
             for (size_t i = 0; i < node->data.ability_decl.require_count; i++)
                 normalize_node_refs(node->data.ability_decl.require_fields[i], scope, shadow);
@@ -393,19 +382,19 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
                 normalize_node_refs(node->data.party_decl.methods[i], scope, shadow);
             return;
 
-        case AST_SYSTEMIC_DECL:
-            normalize_generic_params(node->data.systemic_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.systemic_decl.party_count; i++)
-                normalize_node_refs(node->data.systemic_decl.party_slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++)
-                normalize_node_refs(node->data.systemic_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.systemic_decl.method_count; i++)
-                normalize_node_refs(node->data.systemic_decl.methods[i], scope, shadow);
+        case AST_ROSTER_DECL:
+            normalize_generic_params(node->data.roster_decl.generic_params, scope, shadow);
+            for (size_t i = 0; i < node->data.roster_decl.party_count; i++)
+                normalize_node_refs(node->data.roster_decl.party_slots[i], scope, shadow);
+            for (size_t i = 0; i < node->data.roster_decl.shared_count; i++)
+                normalize_node_refs(node->data.roster_decl.shared_fields[i], scope, shadow);
+            for (size_t i = 0; i < node->data.roster_decl.method_count; i++)
+                normalize_node_refs(node->data.roster_decl.methods[i], scope, shadow);
             return;
 
         case AST_WORLD_DECL:
-            for (size_t i = 0; i < node->data.world_decl.systemic_count; i++)
-                normalize_node_refs(node->data.world_decl.systemics[i], scope, shadow);
+            for (size_t i = 0; i < node->data.world_decl.roster_count; i++)
+                normalize_node_refs(node->data.world_decl.rosters[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
                 normalize_node_refs(node->data.world_decl.zones[i], scope, shadow);
             for (size_t i = 0; i < node->data.world_decl.activate_count; i++)
@@ -510,26 +499,26 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
             return;
 
         case AST_SYSTEMIC_SLOT:
-            if (node->data.systemic_slot.party_type != NULL) {
-                const char *replacement = rename_scope_lookup(scope, node->data.systemic_slot.party_type);
+            if (node->data.roster_slot.party_type != NULL) {
+                const char *replacement = rename_scope_lookup(scope, node->data.roster_slot.party_type);
                 if (replacement != NULL
-                    && strcmp(node->data.systemic_slot.party_type, replacement) != 0) {
-                    free(node->data.systemic_slot.party_type);
-                    node->data.systemic_slot.party_type = pergyra_strdup(replacement);
+                    && strcmp(node->data.roster_slot.party_type, replacement) != 0) {
+                    free(node->data.roster_slot.party_type);
+                    node->data.roster_slot.party_type = pergyra_strdup(replacement);
                 }
             }
             return;
 
         case AST_WORLD_SYSTEMIC:
-            if (node->data.world_systemic.systemic_type != NULL) {
-                const char *replacement = rename_scope_lookup(scope, node->data.world_systemic.systemic_type);
+            if (node->data.world_roster.roster_type != NULL) {
+                const char *replacement = rename_scope_lookup(scope, node->data.world_roster.roster_type);
                 if (replacement != NULL
-                    && strcmp(node->data.world_systemic.systemic_type, replacement) != 0) {
-                    free(node->data.world_systemic.systemic_type);
-                    node->data.world_systemic.systemic_type = pergyra_strdup(replacement);
+                    && strcmp(node->data.world_roster.roster_type, replacement) != 0) {
+                    free(node->data.world_roster.roster_type);
+                    node->data.world_roster.roster_type = pergyra_strdup(replacement);
                 }
             }
-            normalize_node_refs(node->data.world_systemic.initializer, scope, shadow);
+            normalize_node_refs(node->data.world_roster.initializer, scope, shadow);
             return;
 
         case AST_BLOCK:

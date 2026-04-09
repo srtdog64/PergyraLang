@@ -81,7 +81,24 @@ llvm_register_function(LLVMGenCtx *ctx, const char *name,
     ctx->functions[ctx->func_count].fn       = fn;
     ctx->functions[ctx->func_count].fn_type  = fn_type;
     ctx->functions[ctx->func_count].ret_type = ret_type;
+    ctx->functions[ctx->func_count].is_action = false;
+    ctx->functions[ctx->func_count].action_self_only = false;
     ctx->func_count++;
+}
+
+void
+llvm_set_function_flags(LLVMGenCtx *ctx, const char *name,
+                        bool is_action, bool action_self_only)
+{
+    LLVMFuncEntry *entry;
+
+    if (ctx == NULL || name == NULL)
+        return;
+    entry = llvm_lookup_function(ctx, name);
+    if (entry == NULL)
+        return;
+    entry->is_action = is_action;
+    entry->action_self_only = action_self_only;
 }
 
 LLVMFuncEntry *
@@ -495,6 +512,8 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
     entry->is_pointer_self_host = is_pointer_self_host;
     entry->is_immutable = false;
     entry->is_boundary_transfer_contract = false;
+    entry->domain_kind = LLVM_DOMAIN_NONE;
+    entry->sync_function_name = NULL;
     entry->field_count = 0;
     return entry;
 }
@@ -503,12 +522,21 @@ void
 llvm_class_add_field(LLVMClassTypeEntry *entry, const char *field_name,
                      LLVMTypeRef field_type, int index)
 {
+    llvm_class_add_field_ex(entry, field_name, field_type, index, false);
+}
+
+void
+llvm_class_add_field_ex(LLVMClassTypeEntry *entry, const char *field_name,
+                        LLVMTypeRef field_type, int index,
+                        bool is_subject_slot)
+{
     if (entry->field_count >= MAX_CLASS_FIELDS)
         return;
 
     entry->fields[entry->field_count].field_name = field_name;
     entry->fields[entry->field_count].field_type = field_type;
     entry->fields[entry->field_count].index      = index;
+    entry->fields[entry->field_count].is_subject_slot = is_subject_slot;
     entry->field_count++;
 }
 
@@ -517,6 +545,18 @@ llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name)
 {
     for (int i = 0; i < ctx->class_type_count; i++) {
         if (strcmp(ctx->class_types[i].class_name, class_name) == 0)
+            return &ctx->class_types[i];
+    }
+    return NULL;
+}
+
+LLVMClassTypeEntry *
+llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
+{
+    if (ctx == NULL || struct_type == NULL)
+        return NULL;
+    for (int i = 0; i < ctx->class_type_count; i++) {
+        if (ctx->class_types[i].struct_type == struct_type)
             return &ctx->class_types[i];
     }
     return NULL;

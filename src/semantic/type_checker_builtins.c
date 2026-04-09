@@ -309,33 +309,13 @@ find_named_class_decl(ASTNode *program, const char *name)
     return NULL;
 }
 
-static ASTNode *
-find_named_actor_decl(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ACTOR_DECL
-            || stmt->data.actor_decl.name == NULL) {
-            continue;
-        }
-        if (strcmp(stmt->data.actor_decl.name, name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
 static bool
 decl_is_subject_nominal(ASTNode *decl)
 {
     return (decl != NULL
             && decl->type == AST_CLASS_DECL
             && !decl->data.class_decl.is_struct
-            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT)
-        || (decl != NULL && decl->type == AST_ACTOR_DECL);
+            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT);
 }
 
 static size_t
@@ -345,8 +325,6 @@ projection_source_field_count_local(ASTNode *decl)
         return 0;
     if (decl->type == AST_CLASS_DECL)
         return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
     return 0;
 }
 
@@ -358,11 +336,6 @@ projection_source_field_at_local(ASTNode *decl, size_t index)
     if (decl->type == AST_CLASS_DECL) {
         if (index < decl->data.class_decl.field_count)
             return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
         return NULL;
     }
     return NULL;
@@ -2550,9 +2523,7 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    source_decl = find_named_class_decl(ctx->program_root, source_type->name);
-    if (source_decl == NULL)
-        source_decl = find_named_actor_decl(ctx->program_root, source_type->name);
+        source_decl = find_named_class_decl(ctx->program_root, source_type->name);
     if (!decl_is_subject_nominal(source_decl)) {
         semantic_error(ctx, source_arg,
             "%s source '%s' must be a subject declaration",

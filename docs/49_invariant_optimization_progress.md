@@ -55,9 +55,9 @@
 
 ### 1.5 nominal constructor parity
 
-- `party`와 `systemic` nominal constructor는 이제 C/LLVM 양쪽에서 같은 field order와 shared initializer contract를 가진다.
+- `party`와 `roster` nominal constructor는 이제 C/LLVM 양쪽에서 같은 field order와 shared initializer contract를 가진다.
 - 즉 `party slot ...` 또는 `shared x: T = ...`가 섞여 있어도 constructor materialization이 backend마다 다르게 깨지지 않는다.
-- 이 수정으로 `party/shared initializer`, `systemic shared + nested party shared` 샘플이 다시 양 backend에서 같은 값을 낸다.
+- 이 수정으로 `party/shared initializer`, `roster shared + nested party shared` 샘플이 다시 양 backend에서 같은 값을 낸다.
 
 ## 2. 지금 실제로 측정된 상태
 
@@ -84,6 +84,7 @@
 - C backend는 transpile 자체보다 native compile/link 비용이 지배적이다.
 - LLVM backend도 LLVM IR/object emission보다 runtime library compile 비용이 더 크다.
 - prebuilt runtime object를 bench target에 연결한 뒤, LLVM compile 총합은 크게 줄었고 남은 주 병목은 거의 전부 link다.
+- non-Windows에서는 `PGY_USE_LLD`를 명시하지 않아도 `ld.lld`가 설치돼 있으면 기본적으로 `lld`를 사용한다.
 - 따라서 현재 “느리다”는 체감은 IR 단계 자체보다 toolchain fixed cost 영향이 크다.
 
 ## 3. AlphaDev식 invariant 최적화 관점에서 이미 찾은 핵심 후보
@@ -189,7 +190,9 @@
 ### 4.3 backend 간 projection 최적화 비대칭
 
 - C는 dirty invalidation/incremental rebuild가 앞서 있다.
-- LLVM은 object borrow/materialize 분리는 들어갔고 `party/systemic` constructor parity도 맞췄지만, domain projection dirty 모델은 아직 덜 정렬됐다.
+- LLVM은 object borrow/materialize 분리는 들어갔고 `party/roster` constructor parity도 맞췄다.
+- 추가로 domain sync helper 선택은 이제 class registry metadata(`domain_kind`, `sync_function_name`)를 우선 사용한다.
+- 하지만 domain projection dirty 모델과 declaration emission 본체는 아직 HIR 의존이 남아 있다.
 
 ## 5. 지금 기준 체크리스트
 
@@ -209,11 +212,16 @@
 - MIR-only backend migration
 - ABI-first transpiler
 - LLVM projection optimization parity
-- intent step semantic lowering (MIR carrier는 들어갔고 expression-level lowering이 남음)
+- intent step semantic lowering (MIR carrier는 `participant/step/check/on/subintent/compensate/default-dispatch/zone-meta`까지 들어갔고, 남은 건 bootstrap/compatibility 층임)
+- class method MIR migration (현재 plain class method는 MIR routine generation이 닫히지 않아 LLVM fallback을 유지)
+- class/actor hidden method HIR routine 수집과 owner-aware MIR/RIR matching은 들어갔고, plain class method는 LLVM MIR direct path를 타기 시작했다
+- empty method body도 valid MIR routine로 취급하게 바뀌었고, 그 결과 subject method는 이제 plain class처럼 LLVM MIR direct path를 탄다
+- actor method도 MIR direct path 우선은 들어갔지만, 아직 hard-require fallback 제거까지는 가지 않았다
+- domain 쪽은 sync helper 선택에 이어 world zone class lookup 하나를 registry metadata/field type 역조회로 옮겼다
 
 ### next
 
-1. intent step 내부 의미의 MIR instruction화
+1. intent bootstrap metadata의 MIR/native symbol table화
 2. transpiler의 `type_layout` / ABI table 실사용 강화
 3. LLVM true PHI lowering
 4. main wrapper / top-level executable MIR metadata화

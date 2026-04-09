@@ -276,14 +276,13 @@ char *emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx
 void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
-void emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_roster_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 
 /* -----------------------------------------------------------------
  * Async system emitters
  * ----------------------------------------------------------------- */
 
-void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 char *emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx);
 char *emit_channel_send(ASTNode *node, TranspilerCtx *ctx);

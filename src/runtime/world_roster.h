@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2025 Pergyra Language Project
- * World-Systemic Runtime Implementation
+ * World-Roster Runtime Implementation
  * Hierarchical execution management from World to Ability
  */
 
-#ifndef PERGYRA_WORLD_SYSTEMIC_H
-#define PERGYRA_WORLD_SYSTEMIC_H
+#ifndef PERGYRA_WORLD_ROSTER_H
+#define PERGYRA_WORLD_ROSTER_H
 
 #include "party_runtime.h"
 #include "../slot_manager.h"
 
-/* ============= Systemic Level ============= */
+/* ============= Roster Level ============= */
 
-/* Systemic: Collection of related parties forming a system */
+/* Roster: Collection of related parties forming a system */
 typedef struct {
     const char* name;
     
@@ -38,68 +38,68 @@ typedef struct {
     /* System metadata */
     const char* systemType;
     void* customData;
-} SystemicContext;
+} RosterContext;
 
-/* Create a new systemic instance */
-SystemicContext* CreateSystemic(
-    const char* systemicType,
+/* Create a new roster instance */
+RosterContext* CreateRoster(
+    const char* rosterType,
     const char* instanceName
 );
 
-/* Add party to systemic */
-bool SystemicAddParty(
-    SystemicContext* systemic,
+/* Add party to roster */
+bool RosterAddParty(
+    RosterContext* roster,
     const char* slotName,
     void* partyInstance,
     PartyContext* partyContext
 );
 
-/* Execute all parties in systemic */
+/* Execute all parties in roster */
 typedef struct {
     const char* partySlot;
     DispatchResult result;
-} SystemicPartyResult;
+} RosterPartyResult;
 
 typedef struct {
-    SystemicPartyResult* partyResults;
+    RosterPartyResult* partyResults;
     size_t resultCount;
     bool allSucceeded;
     uint64_t totalExecutionTimeNs;
-} SystemicExecutionResult;
+} RosterExecutionResult;
 
-SystemicExecutionResult ExecuteSystemic(
-    SystemicContext* systemic,
+RosterExecutionResult ExecuteRoster(
+    RosterContext* roster,
     JoinStrategy defaultStrategy,
     DispatcherConfig* config
 );
 
 /* Async execution */
-typedef struct SystemicHandle SystemicHandle;
+typedef struct RosterHandle RosterHandle;
 
-SystemicHandle* ExecuteSystemicAsync(
-    SystemicContext* systemic,
+RosterHandle* ExecuteRosterAsync(
+    RosterContext* roster,
     JoinStrategy defaultStrategy,
     DispatcherConfig* config
 );
 
-SystemicExecutionResult WaitForSystemic(
-    SystemicHandle* handle,
+RosterExecutionResult WaitForRoster(
+    RosterHandle* handle,
     uint64_t timeoutMs
 );
 
 /* ============= World Level ============= */
 
-/* World: The top-level container of all systemics */
+/* World: The top-level container of all rosters */
 typedef struct {
     const char* name;
     
-    /* Systemic instances */
+    /* Roster instances */
     struct {
         const char* slotName;
-        const char* systemicType;
-        SystemicContext* instance;
-    }* systemics;
-    size_t systemicCount;
+        const char* rosterType;
+        RosterContext* instance;
+    }* rosters;
+    size_t rosterCount;
     
     /* World-level shared data */
     struct {
@@ -121,17 +121,17 @@ typedef struct {
 /* Create a new world */
 WorldContext* CreateWorld(const char* worldName);
 
-/* Add systemic to world */
+/* Add roster to world */
 bool WorldAddSystemic(
     WorldContext* world,
     const char* slotName,
-    SystemicContext* systemic
+    RosterContext* roster
 );
 
 /* World execution result */
 typedef struct {
     const char* systemicSlot;
-    SystemicExecutionResult result;
+    RosterExecutionResult result;
 } WorldSystemicResult;
 
 typedef struct {
@@ -157,7 +157,7 @@ typedef struct {
     /* Callbacks */
     void (*onFrameStart)(WorldContext* world, uint64_t frameNum);
     void (*onFrameEnd)(WorldContext* world, WorldFrameResult* result);
-    void (*onSystemicError)(const char* systemic, const char* error);
+    void (*onSystemicError)(const char* roster, const char* error);
 } WorldLoopConfig;
 
 /* Run world loop */
@@ -172,19 +172,19 @@ void StopWorld(WorldContext* world);
 
 /* ============= Cross-Level Communication ============= */
 
-/* Find party in systemic */
+/* Find party in roster */
 PartyContext* SystemicFindParty(
-    SystemicContext* systemic,
+    RosterContext* roster,
     const char* partySlot
 );
 
-/* Find systemic in world */
-SystemicContext* WorldFindSystemic(
+/* Find roster in world */
+RosterContext* WorldFindRoster(
     WorldContext* world,
     const char* systemicSlot
 );
 
-/* Cross-systemic party access */
+/* Cross-roster party access */
 PartyContext* WorldFindParty(
     WorldContext* world,
     const char* systemicSlot,
@@ -197,9 +197,9 @@ PartyContext* WorldFindParty(
 typedef struct {
     /* World level */
     const char* worldName;
-    size_t systemicCount;
+    size_t rosterCount;
     
-    /* Per-systemic plans */
+    /* Per-roster plans */
     struct {
         const char* systemicName;
         size_t partyCount;
@@ -210,7 +210,7 @@ typedef struct {
             FiberMap* fiberMap;
             size_t roleCount;
         }* parties;
-    }* systemics;
+    }* rosters;
     
     /* Total counts */
     size_t totalParties;
@@ -249,7 +249,7 @@ typedef struct {
     uint64_t avgFrameTimeNs;
     uint64_t maxFrameTimeNs;
     
-    /* Per-systemic stats */
+    /* Per-roster stats */
     struct {
         const char* systemicName;
         uint64_t totalExecutions;
@@ -267,7 +267,7 @@ typedef struct {
         }* partyStats;
         size_t partyCount;
     }* systemicStats;
-    size_t systemicCount;
+    size_t rosterCount;
 } WorldStatistics;
 
 /* Get world statistics */
@@ -290,17 +290,17 @@ char* GenerateWorldVisualization(
 /* ============= Memory Management ============= */
 
 /* Cleanup functions */
-void FreeSystemicContext(SystemicContext* systemic);
+void FreeRosterContext(RosterContext* roster);
 void FreeWorldContext(WorldContext* world);
 void FreeExecutionPlan(HierarchicalExecutionPlan* plan);
 void FreeWorldStatistics(WorldStatistics* stats);
 
 /* ============= Integration Helpers ============= */
 
-/* Macro for defining systemic */
+/* Macro for defining roster */
 #define DEFINE_SYSTEMIC(name, ...) \
-    static SystemicContext* Create##name##Systemic() { \
-        SystemicContext* sys = CreateSystemic(#name, #name "_instance"); \
+    static RosterContext* Create##name##Roster() { \
+        RosterContext* sys = CreateRoster(#name, #name "_instance"); \
         __VA_ARGS__ \
         return sys; \
     }
@@ -317,4 +317,4 @@ void FreeWorldStatistics(WorldStatistics* stats);
         .adaptiveSync = true \
     }, NULL)
 
-#endif /* PERGYRA_WORLD_SYSTEMIC_H */
+#endif /* PERGYRA_WORLD_ROSTER_H */

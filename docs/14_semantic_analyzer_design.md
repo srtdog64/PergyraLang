@@ -359,7 +359,7 @@ if (!result->success) {
 - Effect System (with effects IO) → Phase 2
 - 제네릭 타입 추론 (unification) → 단계 2 이후
 - Actor 메시지 타입 검사 → Phase 2
-- 분산 Party/Systemic/World 검사 → Phase 3
+- 분산 Party/Roster/World 검사 → Phase 3
 - NUMA/멀티소켓 관련 → Phase 3
 
 ---

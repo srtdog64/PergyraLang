@@ -593,13 +593,6 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
                                                 node->data.class_decl.methods[j]);
                 }
                 break;
-            case AST_ACTOR_DECL:
-                for (size_t j = 0; ok && j < node->data.actor_decl.method_count; j++) {
-                    ok = rir_collect_func_scope(rir, RIR_SCOPE_METHOD,
-                                                node->data.actor_decl.name,
-                                                node->data.actor_decl.methods[j]);
-                }
-                break;
             case AST_ZONE_DECL:
                 ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_ZONE, node->data.zone_decl.name);
                 break;

@@ -111,11 +111,6 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
             && strcmp(stmt->data.class_decl.name, type_name) == 0) {
             return stmt;
         }
-        if (stmt->type == AST_ACTOR_DECL
-            && stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, type_name) == 0) {
-            return stmt;
-        }
     }
     return NULL;
 }
@@ -458,15 +453,6 @@ llvm_stmt_find_host_method_decl(ASTNode *host_decl, const char *method_name)
     if (host_decl->type == AST_CLASS_DECL) {
         for (size_t i = 0; i < host_decl->data.class_decl.method_count; i++) {
             ASTNode *method = host_decl->data.class_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    } else if (host_decl->type == AST_ACTOR_DECL) {
-        for (size_t i = 0; i < host_decl->data.actor_decl.method_count; i++) {
-            ASTNode *method = host_decl->data.actor_decl.methods[i];
             if (method != NULL && method->type == AST_FUNC_DECL
                 && method->data.func_decl.name != NULL
                 && strcmp(method->data.func_decl.name, method_name) == 0) {
@@ -2896,11 +2882,10 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_FUNC_DECL:
     case AST_CLASS_DECL:
-    case AST_ACTOR_DECL:
     case AST_ABILITY_DECL:
     case AST_ROLE_DECL:
     case AST_PARTY_DECL:
-    case AST_SYSTEMIC_DECL:
+    case AST_ROSTER_DECL:
     case AST_WORLD_DECL:
     case AST_RELATION_DECL:
     case AST_EFFECT_DECL:

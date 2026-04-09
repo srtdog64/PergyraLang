@@ -191,7 +191,17 @@ compiler_env_truthy(const char *name)
 static bool
 compiler_should_use_lld(void)
 {
-    return compiler_env_truthy("PGY_USE_LLD");
+    const char *value = getenv("PGY_USE_LLD");
+
+    if (value != NULL && value[0] != '\0')
+        return compiler_env_truthy("PGY_USE_LLD");
+#ifdef _WIN32
+    return false;
+#else
+    return access("/usr/bin/ld.lld", X_OK) == 0
+        || access("/usr/local/bin/ld.lld", X_OK) == 0
+        || access("/bin/ld.lld", X_OK) == 0;
+#endif
 }
 
 static char *

@@ -994,33 +994,33 @@ void ast_print(ASTNode* node, int indent) {
             }
             break;
 
-        case AST_SYSTEMIC_DECL:
-            printf("Systemic: %s", node->data.systemic_decl.name);
-            print_generic_params_inline(node->data.systemic_decl.generic_params);
+        case AST_ROSTER_DECL:
+            printf("Roster: %s", node->data.roster_decl.name);
+            print_generic_params_inline(node->data.roster_decl.generic_params);
             printf("\n");
-            for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
-                ast_print(node->data.systemic_decl.party_slots[i], indent + 1);
+            for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
+                ast_print(node->data.roster_decl.party_slots[i], indent + 1);
             }
-            for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++) {
-                ast_print(node->data.systemic_decl.shared_fields[i], indent + 1);
+            for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
+                ast_print(node->data.roster_decl.shared_fields[i], indent + 1);
             }
-            for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
-                ast_print(node->data.systemic_decl.methods[i], indent + 1);
+            for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+                ast_print(node->data.roster_decl.methods[i], indent + 1);
             }
             break;
 
         case AST_SYSTEMIC_SLOT:
-            printf("SystemicSlot: %s: %s", node->data.systemic_slot.slot_name,
-                   node->data.systemic_slot.party_type);
-            if (node->data.systemic_slot.is_array)
+            printf("SystemicSlot: %s: %s", node->data.roster_slot.slot_name,
+                   node->data.roster_slot.party_type);
+            if (node->data.roster_slot.is_array)
                 printf("[]");
             printf("\n");
             break;
 
         case AST_WORLD_DECL:
             printf("World: %s\n", node->data.world_decl.name);
-            for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
-                ast_print(node->data.world_decl.systemics[i], indent + 1);
+            for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
+                ast_print(node->data.world_decl.rosters[i], indent + 1);
             }
             for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
                 ast_print(node->data.world_decl.zones[i], indent + 1);
@@ -1047,11 +1047,11 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_WORLD_SYSTEMIC:
             printf("WorldSystemic: %s: %s",
-                   node->data.world_systemic.slot_name,
-                   node->data.world_systemic.systemic_type);
-            if (node->data.world_systemic.initializer != NULL) {
+                   node->data.world_roster.slot_name,
+                   node->data.world_roster.roster_type);
+            if (node->data.world_roster.initializer != NULL) {
                 printf(" = ");
-                ast_print_inline(node->data.world_systemic.initializer);
+                ast_print_inline(node->data.world_roster.initializer);
             }
             printf("\n");
             break;
@@ -1519,23 +1519,6 @@ void ast_print(ASTNode* node, int indent) {
                 printf(", %s", node->data.zone_state.right_slot_name);
             }
             printf("\n");
-            break;
-
-        case AST_ACTOR_DECL:
-            printf("Actor: %s\n", node->data.actor_decl.name);
-            if (node->data.actor_decl.field_count > 0) {
-                print_indent(indent + 1);
-                printf("Fields:\n");
-                for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
-                    print_indent(indent + 2);
-                    printf("%s: ", node->data.actor_decl.fields[i]->name);
-                    ast_print_inline(node->data.actor_decl.fields[i]->type);
-                    printf("\n");
-                }
-            }
-            for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
-                ast_print(node->data.actor_decl.methods[i], indent + 1);
-            }
             break;
 
         case AST_EVENT_DECL:

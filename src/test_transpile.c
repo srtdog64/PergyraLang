@@ -2167,10 +2167,10 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("SecureSlot<actor> lowers through generated secure object-cell slot helpers");
+    TEST("SecureSlot<subject> lowers through generated secure object-cell slot helpers");
     {
         const char *source =
-            "actor Bot {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -2597,7 +2597,7 @@ test_party_emit(void)
 }
 
 /* -----------------------------------------------------------------
- * Systemic / World codegen
+ * Roster / World codegen
  * ----------------------------------------------------------------- */
 
 #include "tests/transpile/test_transpile_domain_async.inc"
@@ -3677,7 +3677,7 @@ main(void)
     test_program_emit();
     test_ability_role_emit();
     test_party_emit();
-    test_systemic_world_emit();
+    test_roster_world_emit();
     test_async_emit();
     test_slot_sugar();
     test_stdlib_and_enum_emit();

@@ -191,7 +191,17 @@ typedef struct
     const char  *field_name;
     LLVMTypeRef  field_type;
     int          index;
+    bool         is_subject_slot;
 } LLVMClassFieldInfo;
+
+typedef enum
+{
+    LLVM_DOMAIN_NONE,
+    LLVM_DOMAIN_PROJECTION,
+    LLVM_DOMAIN_ZONE,
+    LLVM_DOMAIN_WORLD,
+    LLVM_DOMAIN_SYSTEMIC
+} LLVMDomainKind;
 
 typedef struct
 {
@@ -201,6 +211,8 @@ typedef struct
     bool               is_pointer_self_host;
     bool               is_immutable;       /* storage-level immutability for object/tobject */
     bool               is_boundary_transfer_contract; /* true only for tobject */
+    LLVMDomainKind     domain_kind;
+    const char        *sync_function_name;
     LLVMClassFieldInfo fields[MAX_CLASS_FIELDS];
     int                field_count;
 } LLVMClassTypeEntry;
@@ -282,6 +294,8 @@ typedef struct
     LLVMValueRef  fn;
     LLVMTypeRef   fn_type;
     LLVMTypeRef   ret_type;
+    bool          is_action;
+    bool          action_self_only;
 } LLVMFuncEntry;
 
 /* Generic template entry (for lazy monomorphization) */
@@ -517,6 +531,8 @@ void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
 void           llvm_register_function(LLVMGenCtx *ctx, const char *name,
                                        LLVMValueRef fn, LLVMTypeRef fn_type,
                                        LLVMTypeRef ret_type);
+void           llvm_set_function_flags(LLVMGenCtx *ctx, const char *name,
+                                       bool is_action, bool action_self_only);
 LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
 LLVMFuncEntry *llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
                                               LLVMTypeRef fn_type,
@@ -567,7 +583,13 @@ LLVMClassTypeEntry *llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
 void                llvm_class_add_field(LLVMClassTypeEntry *entry,
                                           const char *field_name,
                                           LLVMTypeRef field_type, int index);
+void                llvm_class_add_field_ex(LLVMClassTypeEntry *entry,
+                                            const char *field_name,
+                                            LLVMTypeRef field_type, int index,
+                                            bool is_subject_slot);
 LLVMClassTypeEntry *llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name);
+LLVMClassTypeEntry *llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx,
+                                                     LLVMTypeRef struct_type);
 int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
                                             const char *field_name);
 void                llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,

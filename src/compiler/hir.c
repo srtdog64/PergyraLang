@@ -1276,6 +1276,74 @@ hir_routine_body(ASTNode *node)
 }
 
 static bool
+hir_append_hidden_method_routine(HIRProgram *hir,
+                                 size_t decl_id,
+                                 const char *owner_name,
+                                 ASTNode *method)
+{
+    HIRRoutine routine;
+    HIRRoutine *grown;
+
+    if (hir == NULL || owner_name == NULL || method == NULL || method->type != AST_FUNC_DECL)
+        return true;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.decl_id = decl_id;
+    routine.kind = HIR_TOPLEVEL_FUNCTION;
+    routine.name = method->data.func_decl.name;
+    routine.owner_name = owner_name;
+    routine.ast = method;
+    routine.body = hir_routine_body(method);
+    routine.is_hosted = true;
+    routine.is_action_like = method->data.func_decl.is_action;
+    routine.is_exported = method->is_exported;
+    routine.has_control_flow = ast_contains_control_flow(routine.body);
+
+    if (!hir_lower_func_body_cfg(method->data.func_decl.body, &routine))
+        goto oom_free_calls;
+    if (!hir_finalize_cfg(&routine))
+        goto oom_free_calls;
+    if (!hir_compute_cfg_dominance(&routine))
+        goto oom_free_calls;
+    if (!hir_compute_cfg_dominance_frontier(&routine))
+        goto oom_free_calls;
+    if (!hir_compute_cfg_dom_tree(&routine))
+        goto oom_free_calls;
+    if (!hir_compute_cfg_loops(&routine))
+        goto oom_free_calls;
+    if (!hir_collect_cfg_local_defs(&routine))
+        goto oom_free_calls;
+    if (!hir_compute_cfg_phi_candidates(&routine))
+        goto oom_free_calls;
+    if (!hir_materialize_phi_nodes(&routine))
+        goto oom_free_calls;
+    hir_finalize_cfg_summary(&routine);
+    if (!hir_collect_func_signature_refs(method,
+                                         &routine.signature_type_refs,
+                                         &routine.signature_type_ref_count)) {
+        free((void *)routine.signature_type_refs);
+        return false;
+    }
+    if (!hir_collect_direct_calls(method->data.func_decl.body,
+                                  &routine.direct_calls,
+                                  &routine.direct_call_count))
+        goto oom_free_calls;
+
+    grown = realloc(hir->routines, (hir->routine_count + 1) * sizeof(HIRRoutine));
+    if (grown == NULL)
+        goto oom_free_calls;
+    grown[hir->routine_count] = routine;
+    hir->routines = grown;
+    hir->routine_count++;
+    return true;
+
+oom_free_calls:
+    free((void *)routine.signature_type_refs);
+    free((void *)routine.direct_calls);
+    return false;
+}
+
+static bool
 hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_message)
 {
     HIRDecl decl;
@@ -1429,6 +1497,17 @@ oom_free_calls:
         hir->routine_count++;
     }
 
+    if (item.ast != NULL && item.ast->type == AST_CLASS_DECL) {
+        for (size_t i = 0; i < item.ast->data.class_decl.method_count; i++) {
+            if (!hir_append_hidden_method_routine(hir,
+                                                  decl.id,
+                                                  item.ast->data.class_decl.name,
+                                                  item.ast->data.class_decl.methods[i])) {
+                goto oom;
+            }
+        }
+    }
+
     return true;
 
 oom:
@@ -1458,8 +1537,8 @@ hir_node_name(ASTNode *node)
             return node->data.role_decl.name;
         case AST_PARTY_DECL:
             return node->data.party_decl.name;
-        case AST_SYSTEMIC_DECL:
-            return node->data.systemic_decl.name;
+        case AST_ROSTER_DECL:
+            return node->data.roster_decl.name;
         case AST_WORLD_DECL:
             return node->data.world_decl.name;
         case AST_INTENT_DECL:
@@ -1470,8 +1549,6 @@ hir_node_name(ASTNode *node)
             return node->data.effect_decl.name;
         case AST_ZONE_DECL:
             return node->data.zone_decl.name;
-        case AST_ACTOR_DECL:
-            return node->data.actor_decl.name;
         case AST_EVENT_DECL:
             return node->data.event_decl.name;
         case AST_LET_DECL:
@@ -1504,7 +1581,7 @@ hir_top_level_kind_name(HIRTopLevelKind kind)
         case HIR_TOPLEVEL_ABILITY: return "ability";
         case HIR_TOPLEVEL_ROLE: return "role";
         case HIR_TOPLEVEL_PARTY: return "party";
-        case HIR_TOPLEVEL_SYSTEMIC: return "systemic";
+        case HIR_TOPLEVEL_SYSTEMIC: return "roster";
         case HIR_TOPLEVEL_WORLD: return "world";
         case HIR_TOPLEVEL_RELATION: return "relation";
         case HIR_TOPLEVEL_EFFECT: return "effect";
@@ -1568,9 +1645,9 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             if (!append_ast(&hir->parties, &hir->party_count, node))
                 goto oom;
             break;
-        case AST_SYSTEMIC_DECL:
+        case AST_ROSTER_DECL:
             item.kind = HIR_TOPLEVEL_SYSTEMIC;
-            if (!append_ast(&hir->systemics, &hir->systemic_count, node))
+            if (!append_ast(&hir->rosters, &hir->roster_count, node))
                 goto oom;
             break;
         case AST_WORLD_DECL:
@@ -1596,11 +1673,6 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
         case AST_ZONE_DECL:
             item.kind = HIR_TOPLEVEL_ZONE;
             if (!append_ast(&hir->zones, &hir->zone_count, node))
-                goto oom;
-            break;
-        case AST_ACTOR_DECL:
-            item.kind = HIR_TOPLEVEL_ACTOR;
-            if (!append_ast(&hir->actors, &hir->actor_count, node))
                 goto oom;
             break;
         case AST_EVENT_DECL:
@@ -1805,7 +1877,7 @@ hir_destroy(HIRProgram *hir)
     free(hir->abilities);
     free(hir->roles);
     free(hir->parties);
-    free(hir->systemics);
+    free(hir->rosters);
     free(hir->worlds);
     free(hir->relations);
     free(hir->effects);
@@ -1839,7 +1911,7 @@ hir_dump(const HIRProgram *hir, FILE *out)
             "  abilities: %zu\n"
             "  roles: %zu\n"
             "  parties: %zu\n"
-            "  systemics: %zu\n"
+            "  rosters: %zu\n"
             "  worlds: %zu\n"
             "  actors: %zu\n"
             "  events: %zu\n"
@@ -1854,7 +1926,7 @@ hir_dump(const HIRProgram *hir, FILE *out)
             hir->ability_count,
             hir->role_count,
             hir->party_count,
-            hir->systemic_count,
+            hir->roster_count,
             hir->world_count,
             hir->actor_count,
             hir->event_count,

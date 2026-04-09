@@ -290,14 +290,13 @@ semantic_symbol_kind_label(SymbolKind kind)
     case SYMBOL_VARIABLE: return "variable";
     case SYMBOL_FUNCTION: return "function";
     case SYMBOL_CLASS: return "class";
-    case SYMBOL_ACTOR: return "actor";
     case SYMBOL_TYPE_PARAM: return "type parameter";
     case SYMBOL_SLOT: return "slot";
     case SYMBOL_TOKEN: return "token";
     case SYMBOL_ABILITY: return "ability";
     case SYMBOL_ROLE: return "role";
     case SYMBOL_PARTY: return "party";
-    case SYMBOL_SYSTEMIC: return "systemic";
+    case SYMBOL_ROSTER: return "roster";
     case SYMBOL_WORLD: return "world";
     case SYMBOL_INTENT: return "intent";
     case SYMBOL_RELATION: return "relation";
@@ -720,25 +719,6 @@ find_type_decl_by_name(ASTNode *program, const char *type_name)
 }
 
 static ASTNode *
-find_actor_decl_by_name(ASTNode *program, const char *type_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ACTOR_DECL)
-            continue;
-        if (stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, type_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
-}
-
-static ASTNode *
 find_ability_decl_by_name(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -790,10 +770,6 @@ decl_is_subject_type(const ASTNode *decl)
 static bool
 decl_is_subject_host(const ASTNode *decl)
 {
-    if (decl == NULL)
-        return false;
-    if (decl->type == AST_ACTOR_DECL)
-        return true;
     return decl_is_subject_type(decl);
 }
 
@@ -801,9 +777,6 @@ static ASTNode *
 find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
 {
     ASTNode *decl = find_type_decl_by_name(program, type_name);
-    if (decl_is_subject_host(decl))
-        return decl;
-    decl = find_actor_decl_by_name(program, type_name);
     if (decl_is_subject_host(decl))
         return decl;
     return NULL;
@@ -840,11 +813,6 @@ subject_host_field_at(ASTNode *decl, size_t index)
             return decl->data.class_decl.fields[index];
         return NULL;
     }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
-        return NULL;
-    }
     return NULL;
 }
 
@@ -855,8 +823,6 @@ projection_source_field_count(ASTNode *decl)
         return 0;
     if (decl->type == AST_CLASS_DECL)
         return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
     return 0;
 }
 
@@ -868,11 +834,6 @@ projection_source_field_at(ASTNode *decl, size_t index)
     if (decl->type == AST_CLASS_DECL) {
         if (index < decl->data.class_decl.field_count)
             return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
         return NULL;
     }
     return NULL;
@@ -1009,11 +970,11 @@ overlay_field_count(ASTNode *decl)
     if (decl == NULL)
         return 0;
     switch (decl->type) {
-    case AST_SYSTEMIC_DECL:
-        return decl->data.systemic_decl.party_count
-            + decl->data.systemic_decl.shared_count;
+    case AST_ROSTER_DECL:
+        return decl->data.roster_decl.party_count
+            + decl->data.roster_decl.shared_count;
     case AST_WORLD_DECL:
-        return decl->data.world_decl.systemic_count
+        return decl->data.world_decl.roster_count
             + decl->data.world_decl.zone_count
             + decl->data.world_decl.shared_count;
     case AST_ZONE_DECL:
@@ -1039,21 +1000,21 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         return NULL;
 
     switch (decl->type) {
-    case AST_SYSTEMIC_DECL:
-        if (index < decl->data.systemic_decl.party_count)
+    case AST_ROSTER_DECL:
+        if (index < decl->data.roster_decl.party_count)
             return NULL;
-        index -= decl->data.systemic_decl.party_count;
-        if (index < decl->data.systemic_decl.shared_count) {
-            ASTNode *shared = decl->data.systemic_decl.shared_fields[index];
+        index -= decl->data.roster_decl.party_count;
+        if (index < decl->data.roster_decl.shared_count) {
+            ASTNode *shared = decl->data.roster_decl.shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
     case AST_WORLD_DECL:
-        if (index < decl->data.world_decl.systemic_count)
+        if (index < decl->data.world_decl.roster_count)
             return NULL;
-        index -= decl->data.world_decl.systemic_count;
+        index -= decl->data.world_decl.roster_count;
         if (index < decl->data.world_decl.zone_count)
             return NULL;
         index -= decl->data.world_decl.zone_count;
@@ -1141,7 +1102,7 @@ current_host_field_type(SemanticContext *ctx, const char *field_name)
     if (decl == NULL || field_name == NULL)
         return NULL;
 
-    if (decl->type == AST_CLASS_DECL || decl->type == AST_ACTOR_DECL) {
+    if (decl->type == AST_CLASS_DECL) {
         size_t field_count = projection_source_field_count(decl);
         for (size_t i = 0; i < field_count; i++) {
             ClassField *field = projection_source_field_at(decl, i);
@@ -1154,11 +1115,11 @@ current_host_field_type(SemanticContext *ctx, const char *field_name)
     }
 
     if (decl->type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
-            ASTNode *slot = decl->data.world_decl.systemics[i];
-            if (slot != NULL && slot->data.world_systemic.slot_name != NULL
-                && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
-                return resolve_named_type(slot->data.world_systemic.systemic_type,
+        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
+            ASTNode *slot = decl->data.world_decl.rosters[i];
+            if (slot != NULL && slot->data.world_roster.slot_name != NULL
+                && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
+                return resolve_named_type(slot->data.world_roster.roster_type,
                     ctx, slot);
             }
         }
@@ -1195,10 +1156,6 @@ current_host_method_decl(SemanticContext *ctx, const char *method_name)
     case AST_CLASS_DECL:
         methods = decl->data.class_decl.methods;
         method_count = decl->data.class_decl.method_count;
-        break;
-    case AST_ACTOR_DECL:
-        methods = decl->data.actor_decl.methods;
-        method_count = decl->data.actor_decl.method_count;
         break;
     case AST_RELATION_DECL:
         methods = decl->data.relation_decl.methods;
@@ -1293,10 +1250,8 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
     switch (kind) {
     case SYMBOL_CLASS:
         return find_type_decl_by_name(program, name);
-    case SYMBOL_ACTOR:
-        return find_actor_decl_by_name(program, name);
-    case SYMBOL_SYSTEMIC:
-        return find_domain_decl_by_name(program, AST_SYSTEMIC_DECL, name);
+    case SYMBOL_ROSTER:
+        return find_domain_decl_by_name(program, AST_ROSTER_DECL, name);
     case SYMBOL_WORLD:
         return find_domain_decl_by_name(program, AST_WORLD_DECL, name);
     case SYMBOL_ZONE:
@@ -1341,7 +1296,7 @@ type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
         return !decl->data.class_decl.is_struct
             || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
             || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
-    return find_actor_decl_by_name(ctx->program_root, type->name) != NULL;
+    return false;
 }
 
 static bool
@@ -1488,9 +1443,7 @@ expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
         expr->data.call.callee->data.identifier.name);
     if (decl != NULL)
         return !decl->data.class_decl.is_struct;
-    decl = find_actor_decl_by_name(ctx->program_root,
-        expr->data.call.callee->data.identifier.name);
-    return decl != NULL;
+    return false;
 }
 
 static bool
@@ -1630,8 +1583,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     if (sym->kind == SYMBOL_CLASS || sym->kind == SYMBOL_PARTY
-        || sym->kind == SYMBOL_ACTOR || sym->kind == SYMBOL_RELATION
-        || sym->kind == SYMBOL_EFFECT || sym->kind == SYMBOL_SYSTEMIC
+        || sym->kind == SYMBOL_RELATION
+        || sym->kind == SYMBOL_EFFECT || sym->kind == SYMBOL_ROSTER
         || sym->kind == SYMBOL_WORLD || sym->kind == SYMBOL_ZONE) {
         if (ctx->program_root != NULL) {
             ASTNode *decl = constructor_decl_for_symbol_kind(ctx->program_root,
@@ -1643,12 +1596,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 decl_is_generic =
                     (decl->data.class_decl.generic_params != NULL
                      && decl->data.class_decl.generic_params->count > 0);
-            } else if (decl != NULL && decl->type == AST_ACTOR_DECL) {
-                field_count = decl->data.actor_decl.field_count;
             } else if (decl != NULL
                        && (decl->type == AST_RELATION_DECL
                            || decl->type == AST_EFFECT_DECL
-                           || decl->type == AST_SYSTEMIC_DECL
+                           || decl->type == AST_ROSTER_DECL
                            || decl->type == AST_WORLD_DECL
                            || decl->type == AST_ZONE_DECL)) {
                 field_count = overlay_field_count(decl);
@@ -1666,7 +1617,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     for (size_t i = 0; i < provided; i++) {
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
-                        if (decl->type == AST_CLASS_DECL || decl->type == AST_ACTOR_DECL) {
+                        if (decl->type == AST_CLASS_DECL) {
                             ClassField *field = subject_host_field_at(decl, i);
                             if (field != NULL) {
                                 field_name = field->name;

@@ -150,7 +150,7 @@ void parser_synchronize(Parser* parser) {
             || parser_check_contextual_keyword(parser, "tobject")
             || parser_check_contextual_keyword(parser, "world")
             || parser_check_contextual_keyword(parser, "roster")
-            || parser_check_contextual_keyword(parser, "systemic")  /* deprecated */
+            || parser_check_contextual_keyword(parser, "roster")  /* deprecated */
             || parser_check_contextual_keyword(parser, "relation")
             || parser_check_contextual_keyword(parser, "effect")
             || parser_check_contextual_keyword(parser, "zone")) {
@@ -446,10 +446,6 @@ parser_attach_pending_doc_comment(Parser *parser, ASTNode *node)
             node->data.class_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
             return true;
-        case AST_ACTOR_DECL:
-            node->data.actor_decl.doc_comment = parser->pending_doc_comment;
-            parser->pending_doc_comment = NULL;
-            return true;
         case AST_ABILITY_DECL:
             node->data.ability_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
@@ -462,8 +458,8 @@ parser_attach_pending_doc_comment(Parser *parser, ASTNode *node)
             node->data.party_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
             return true;
-        case AST_SYSTEMIC_DECL:
-            node->data.systemic_decl.doc_comment = parser->pending_doc_comment;
+        case AST_ROSTER_DECL:
+            node->data.roster_decl.doc_comment = parser->pending_doc_comment;
             parser->pending_doc_comment = NULL;
             return true;
         case AST_WORLD_DECL:
@@ -503,11 +499,10 @@ parser_is_exportable_decl(ASTNode *node)
         case AST_EXTERN_BLOCK:
         case AST_LET_DECL:
         case AST_TYPE_ALIAS:
-        case AST_ACTOR_DECL:
         case AST_ABILITY_DECL:
         case AST_ROLE_DECL:
         case AST_PARTY_DECL:
-        case AST_SYSTEMIC_DECL:
+        case AST_ROSTER_DECL:
         case AST_WORLD_DECL:
         case AST_INTENT_DECL:
         case AST_RELATION_DECL:
@@ -530,8 +525,6 @@ parser_parse_export_declaration(Parser *parser)
 
     if (parser_match(parser, TOKEN_ASYNC))
         node = parser_parse_async_function(parser);
-    else if (parser_match(parser, TOKEN_ACTOR))
-        node = parser_parse_actor_declaration(parser);
     else if (parser_match(parser, TOKEN_FUNC))
         node = parse_function_declaration(parser);
     else if (parser_match(parser, TOKEN_IMPORT)) {
@@ -636,8 +629,8 @@ parser_parse_export_declaration(Parser *parser)
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
     } else if (parser_match_contextual_keyword(parser, "roster")
-               || parser_match_contextual_keyword(parser, "systemic"))  /* systemic deprecated */
-        node = parse_systemic_declaration(parser);
+               || parser_match_contextual_keyword(parser, "roster"))  /* roster legacy alias */
+        node = parse_roster_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "world"))
         node = parse_world_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "relation"))
@@ -720,11 +713,6 @@ ASTNode* parser_parse_statement(Parser* parser) {
             return parser_finalize_statement(parser, parser_parse_async_block(parser));
         parser_error(parser, "Expected 'func' or '{' after 'async'");
         return NULL;
-    }
-
-    // actor 선언
-    if (parser_match(parser, TOKEN_ACTOR)) {
-        return parser_finalize_statement(parser, parser_parse_actor_declaration(parser));
     }
 
     // select 문
@@ -995,11 +983,11 @@ ASTNode* parser_parse_statement(Parser* parser) {
             ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
     }
 
-    // roster (formerly systemic) 선언
+    // roster declaration (roster kept as legacy alias)
     if (parser_starts_contextual_declaration(parser, "roster")
-        || parser_starts_contextual_declaration(parser, "systemic")) {
+        || parser_starts_contextual_declaration(parser, "roster")) {
         parser_advance(parser);
-        return parser_finalize_statement(parser, parse_systemic_declaration(parser));
+        return parser_finalize_statement(parser, parse_roster_declaration(parser));
     }
 
     // world 선언

@@ -1340,33 +1340,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
         ASTNode *class_decl = find_class_decl(ctx, fn);
-        ASTNode *actor_decl = find_actor_decl(ctx, fn);
         if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
             size_t argc = call->data.call.arg_count;
             CodeBuf *fields = codebuf_create();
             for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
                 ClassField *field = class_decl->data.class_decl.fields[i];
-                char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                if (i > 0)
-                    codebuf_write(fields, ", ");
-                codebuf_write(fields, ".%s = %s",
-                    field != NULL && field->name != NULL ? field->name : "field",
-                    arg != NULL ? arg : "0");
-                free(arg);
-            }
-            char *result;
-            if (fields->len > 0)
-                result = strdup_fmt("(%s){ %s }", fn, fields->data);
-            else
-                result = strdup_fmt("(%s){0}", fn);
-            codebuf_destroy(fields);
-            return result;
-        }
-        if (actor_decl != NULL && actor_decl->type == AST_ACTOR_DECL) {
-            size_t argc = call->data.call.arg_count;
-            CodeBuf *fields = codebuf_create();
-            for (size_t i = 0; i < argc && i < actor_decl->data.actor_decl.field_count; i++) {
-                ClassField *field = actor_decl->data.actor_decl.fields[i];
                 char *arg = emit_expression(call->data.call.arguments[i], ctx);
                 if (i > 0)
                     codebuf_write(fields, ", ");
@@ -1428,21 +1406,21 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             }
         }
         {
-            ASTNode *systemic_decl = find_systemic_decl(ctx, fn);
-            if (systemic_decl != NULL && systemic_decl->type == AST_SYSTEMIC_DECL) {
+            ASTNode *roster_decl = find_roster_decl(ctx, fn);
+            if (roster_decl != NULL && roster_decl->type == AST_ROSTER_DECL) {
                 size_t argc = call->data.call.arg_count;
-                size_t exposed = systemic_decl->data.systemic_decl.party_count
-                    + systemic_decl->data.systemic_decl.shared_count;
+                size_t exposed = roster_decl->data.roster_decl.party_count
+                    + roster_decl->data.roster_decl.shared_count;
                 CodeBuf *fields = codebuf_create();
                 for (size_t i = 0; i < argc && i < exposed; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < systemic_decl->data.systemic_decl.party_count) {
-                        ASTNode *slot = systemic_decl->data.systemic_decl.party_slots[i];
-                        field_name = slot != NULL ? slot->data.systemic_slot.slot_name : "field";
+                    if (i < roster_decl->data.roster_decl.party_count) {
+                        ASTNode *slot = roster_decl->data.roster_decl.party_slots[i];
+                        field_name = slot != NULL ? slot->data.roster_slot.slot_name : "field";
                     } else {
-                        ASTNode *shared = systemic_decl->data.systemic_decl.shared_fields[
-                            i - systemic_decl->data.systemic_decl.party_count];
+                        ASTNode *shared = roster_decl->data.roster_decl.shared_fields[
+                            i - roster_decl->data.roster_decl.party_count];
                         field_name = shared != NULL ? shared->data.party_shared.name : "field";
                     }
                     if (i > 0)
@@ -1452,14 +1430,14 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
-                for (size_t i = 0; i < systemic_decl->data.systemic_decl.shared_count; i++) {
-                    size_t absolute_index = systemic_decl->data.systemic_decl.party_count + i;
+                for (size_t i = 0; i < roster_decl->data.roster_decl.shared_count; i++) {
+                    size_t absolute_index = roster_decl->data.roster_decl.party_count + i;
                     ASTNode *shared;
                     const char *field_name;
                     char *init_expr;
                     if (absolute_index < argc)
                         continue;
-                    shared = systemic_decl->data.systemic_decl.shared_fields[i];
+                    shared = roster_decl->data.roster_decl.shared_fields[i];
                     if (shared == NULL || shared->data.party_shared.initializer == NULL)
                         continue;
                     field_name = shared->data.party_shared.name;
@@ -1642,23 +1620,23 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
                 size_t argc = call->data.call.arg_count;
                 CodeBuf *fields = codebuf_create();
-                size_t exposed = world_decl->data.world_decl.systemic_count
+                size_t exposed = world_decl->data.world_decl.roster_count
                     + world_decl->data.world_decl.zone_count
                     + world_decl->data.world_decl.shared_count;
                 for (size_t i = 0; i < argc && i < exposed; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < world_decl->data.world_decl.systemic_count) {
-                        ASTNode *slot = world_decl->data.world_decl.systemics[i];
-                        field_name = slot != NULL ? slot->data.world_systemic.slot_name : "field";
-                    } else if (i < world_decl->data.world_decl.systemic_count
+                    if (i < world_decl->data.world_decl.roster_count) {
+                        ASTNode *slot = world_decl->data.world_decl.rosters[i];
+                        field_name = slot != NULL ? slot->data.world_roster.slot_name : "field";
+                    } else if (i < world_decl->data.world_decl.roster_count
                                    + world_decl->data.world_decl.zone_count) {
                         ASTNode *slot = world_decl->data.world_decl.zones[
-                            i - world_decl->data.world_decl.systemic_count];
+                            i - world_decl->data.world_decl.roster_count];
                         field_name = slot != NULL ? slot->data.world_zone.slot_name : "field";
                     } else {
                         ASTNode *shared = world_decl->data.world_decl.shared_fields[
-                            i - world_decl->data.world_decl.systemic_count
+                            i - world_decl->data.world_decl.roster_count
                               - world_decl->data.world_decl.zone_count];
                         field_name = shared != NULL ? shared->data.party_shared.name : "field";
                     }
@@ -1670,7 +1648,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                     free(arg);
                 }
                 for (size_t i = 0; i < world_decl->data.world_decl.shared_count; i++) {
-                    size_t absolute_index = world_decl->data.world_decl.systemic_count
+                    size_t absolute_index = world_decl->data.world_decl.roster_count
                         + world_decl->data.world_decl.zone_count + i;
                     ASTNode *shared;
                     const char *field_name;

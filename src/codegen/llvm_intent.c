@@ -9,51 +9,6 @@
 
 #include "llvm_internal.h"
 
-static ASTNode *
-llvm_find_intent_actor_local(ASTNode *intent, const char *alias)
-{
-    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
-        return NULL;
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
-        if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-            && involves->data.intent_involves.alias != NULL
-            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
-            return involves;
-        }
-    }
-    return NULL;
-}
-
-static ASTNode *
-llvm_find_zone_decl_in_hir(LLVMGenCtx *ctx, const char *zone_name)
-{
-    if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-        ASTNode *zone = ctx->hir->zones[i];
-        if (zone != NULL && zone->type == AST_ZONE_DECL
-            && zone->data.zone_decl.name != NULL
-            && strcmp(zone->data.zone_decl.name, zone_name) == 0) {
-            return zone;
-        }
-    }
-    return NULL;
-}
-
-static const char *
-llvm_intent_actor_type_name(ASTNode *intent, const char *alias)
-{
-    ASTNode *involves = llvm_find_intent_actor_local(intent, alias);
-    if (involves != NULL
-        && involves->data.intent_involves.subject_type != NULL
-        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-        return involves->data.intent_involves.subject_type->data.type.name;
-    }
-    return NULL;
-}
-
 static const char *
 llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
                                             const char *zone_type_name, const char *alias);
@@ -70,86 +25,38 @@ llvm_intent_involves_type_name(ASTNode *involves)
 }
 
 static bool
-llvm_intent_involves_is_subject_participant(LLVMGenCtx *ctx, ASTNode *involves)
+llvm_intent_type_is_subject_participant(LLVMGenCtx *ctx, const char *type_name)
 {
-    const char *type_name = llvm_intent_involves_type_name(involves);
+    LLVMClassTypeEntry *cls;
 
-    if (ctx == NULL || type_name == NULL || ctx->hir == NULL)
+    if (ctx == NULL || type_name == NULL)
         return false;
+    cls = llvm_lookup_class(ctx, type_name);
+    return cls != NULL && cls->is_subject;
+}
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt == NULL)
-            continue;
-        if (stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, type_name) == 0
-            && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
-            return true;
-        }
-        if (stmt->type == AST_ACTOR_DECL
-            && stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, type_name) == 0) {
-            return true;
-        }
-    }
-    return false;
+static bool
+llvm_intent_type_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
+{
+    LLVMClassTypeEntry *cls;
+
+    if (ctx == NULL || type_name == NULL)
+        return false;
+    cls = llvm_lookup_class(ctx, type_name);
+    return cls != NULL && cls->is_pointer_self_host;
 }
 
 bool
 llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves)
 {
     const char *type_name = llvm_intent_involves_type_name(involves);
-    if (ctx == NULL || type_name == NULL || ctx->hir == NULL)
+    LLVMClassTypeEntry *cls;
+
+    if (ctx == NULL || type_name == NULL)
         return false;
 
-    {
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, type_name);
-        if (cls != NULL && cls->is_pointer_self_host)
-            return true;
-    }
-
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt == NULL)
-            continue;
-        switch (stmt->type) {
-        case AST_CLASS_DECL:
-            if (stmt->data.class_decl.name != NULL
-                && strcmp(stmt->data.class_decl.name, type_name) == 0
-                && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
-                return true;
-            break;
-        case AST_ACTOR_DECL:
-        case AST_PARTY_DECL:
-        case AST_SYSTEMIC_DECL:
-        case AST_WORLD_DECL:
-        case AST_RELATION_DECL:
-        case AST_EFFECT_DECL:
-        case AST_ZONE_DECL:
-            if (((stmt->type == AST_ACTOR_DECL) && stmt->data.actor_decl.name != NULL
-                    && strcmp(stmt->data.actor_decl.name, type_name) == 0)
-                || ((stmt->type == AST_PARTY_DECL) && stmt->data.party_decl.name != NULL
-                    && strcmp(stmt->data.party_decl.name, type_name) == 0)
-                || ((stmt->type == AST_SYSTEMIC_DECL) && stmt->data.systemic_decl.name != NULL
-                    && strcmp(stmt->data.systemic_decl.name, type_name) == 0)
-                || ((stmt->type == AST_WORLD_DECL) && stmt->data.world_decl.name != NULL
-                    && strcmp(stmt->data.world_decl.name, type_name) == 0)
-                || ((stmt->type == AST_RELATION_DECL) && stmt->data.relation_decl.name != NULL
-                    && strcmp(stmt->data.relation_decl.name, type_name) == 0)
-                || ((stmt->type == AST_EFFECT_DECL) && stmt->data.effect_decl.name != NULL
-                    && strcmp(stmt->data.effect_decl.name, type_name) == 0)
-                || ((stmt->type == AST_ZONE_DECL) && stmt->data.zone_decl.name != NULL
-                    && strcmp(stmt->data.zone_decl.name, type_name) == 0)) {
-                return true;
-            }
-            break;
-        default:
-            break;
-        }
-    }
-
-    return false;
+    cls = llvm_lookup_class(ctx, type_name);
+    return cls != NULL && cls->is_pointer_self_host;
 }
 
 static const char *
@@ -165,85 +72,223 @@ llvm_intent_step_effective_zone_alias(ASTNode *step)
 }
 
 static const char *
-llvm_intent_zone_binding_type_name(ASTNode *intent, const char *alias)
+llvm_find_mir_intent_meta_arg(const MIRRoutine *routine,
+                              const char *step_name,
+                              const char *inst_name)
 {
-    ASTNode *involves = llvm_find_intent_actor_local(intent, alias);
-    if (involves != NULL
-        && involves->data.intent_involves.subject_type != NULL
-        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-        return involves->data.intent_involves.subject_type->data.type.name;
+    if (routine == NULL || inst_name == NULL)
+        return NULL;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            return inst->arg0;
+        }
     }
     return NULL;
 }
 
-static const char *
-llvm_resolve_intent_zone_slot_name(LLVMGenCtx *ctx, ASTNode *intent,
-                                   ASTNode *step, const char *alias)
+static size_t
+llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
+                                    const char *step_name,
+                                    const char ***aliases_out)
 {
-    if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE
-        || step->data.intent_step.where_type->data.type.name == NULL) {
-        return "<unbound>";
+    const char **aliases = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)aliases);
+                    return 0;
+                }
+                aliases = grown;
+                capacity = new_capacity;
+            }
+            aliases[count++] = inst->arg0;
+        }
     }
-    return llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent,
-        step->data.intent_step.where_type->data.type.name, alias);
+
+    *aliases_out = aliases;
+    return count;
+}
+
+static size_t
+llvm_collect_mir_intent_participants(const MIRRoutine *routine,
+                                     const char ***aliases_out,
+                                     const char ***types_out)
+{
+    const char **aliases = NULL;
+    const char **types = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (types_out != NULL)
+        *types_out = NULL;
+    if (routine == NULL || aliases_out == NULL || types_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown_aliases;
+            const char **grown_types;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
+                continue;
+            if (inst->arg0 == NULL || inst->arg1 == NULL)
+                continue;
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown_aliases = malloc(new_capacity * sizeof(const char *));
+                grown_types = malloc(new_capacity * sizeof(const char *));
+                if (grown_aliases == NULL || grown_types == NULL) {
+                    free((void *)grown_aliases);
+                    free((void *)grown_types);
+                    free((void *)aliases);
+                    free((void *)types);
+                    return 0;
+                }
+                if (count > 0) {
+                    memcpy((void *)grown_aliases, (const void *)aliases,
+                           count * sizeof(const char *));
+                    memcpy((void *)grown_types, (const void *)types,
+                           count * sizeof(const char *));
+                }
+                free((void *)aliases);
+                free((void *)types);
+                aliases = grown_aliases;
+                types = grown_types;
+                capacity = new_capacity;
+            }
+            aliases[count] = inst->arg0;
+            types[count] = inst->arg1;
+            count++;
+        }
+    }
+
+    *aliases_out = aliases;
+    *types_out = types;
+    return count;
+}
+
+static const char *
+llvm_intent_zone_binding_type_name(LLVMGenCtx *ctx, const char *alias)
+{
+    if (ctx == NULL || alias == NULL)
+        return NULL;
+    return llvm_lookup_var_class(ctx, alias);
 }
 
 static const char *
 llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
                                             const char *zone_type_name, const char *alias)
 {
-    ASTNode *zone_decl = NULL;
+    LLVMClassTypeEntry *zone_cls = NULL;
     const char *actor_type = NULL;
-    ASTNode *named_match = NULL;
-    ASTNode *typed_match = NULL;
+    LLVMTypeRef actor_llvm_type = NULL;
+    const char *named_match = NULL;
+    const char *typed_match = NULL;
+    bool typed_ambiguous = false;
 
-    if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
+    (void)intent;
+
+    if (ctx == NULL || zone_type_name == NULL || alias == NULL) {
         return "<unbound>";
     }
 
-    zone_decl = llvm_find_zone_decl_in_hir(ctx, zone_type_name);
-    actor_type = llvm_intent_actor_type_name(intent, alias);
-    if (zone_decl == NULL)
+    zone_cls = llvm_lookup_class(ctx, zone_type_name);
+    actor_type = llvm_lookup_var_class(ctx, alias);
+    if (actor_type != NULL)
+        actor_llvm_type = pergyra_type_to_llvm(ctx, actor_type);
+    if (zone_cls == NULL)
         return "<unbound>";
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.slot_name == NULL) {
+    for (int i = 0; i < zone_cls->field_count; i++) {
+        LLVMClassFieldInfo *field = &zone_cls->fields[i];
+        if (!field->is_subject_slot || field->field_name == NULL) {
             continue;
         }
-        if (strcmp(slot->data.domain_slot.slot_name, alias) == 0) {
-            named_match = slot;
+        if (strcmp(field->field_name, alias) == 0) {
+            named_match = field->field_name;
             break;
         }
-        if (actor_type != NULL
-            && slot->data.domain_slot.type != NULL
-            && slot->data.domain_slot.type->type == AST_TYPE
-            && slot->data.domain_slot.type->data.type.name != NULL
-            && strcmp(slot->data.domain_slot.type->data.type.name, actor_type) == 0) {
+        if (actor_type != NULL && actor_llvm_type != NULL
+            && field->field_type == actor_llvm_type) {
             if (typed_match != NULL)
-                typed_match = (ASTNode *)(uintptr_t)1;
+                typed_ambiguous = true;
             else
-                typed_match = slot;
+                typed_match = field->field_name;
         }
     }
 
     if (named_match != NULL)
-        return named_match->data.domain_slot.slot_name;
-    if (typed_match != NULL && typed_match != (ASTNode *)(uintptr_t)1)
-        return typed_match->data.domain_slot.slot_name;
+        return named_match;
+    if (typed_match != NULL && !typed_ambiguous)
+        return typed_match;
     return "<unbound>";
 }
 
 static void
-llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode *step)
+llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
+                                      ASTNode *intent,
+                                      const char *zone_type_name,
+                                      const char *zone_alias,
+                                      const char *from_alias,
+                                      const char **who_aliases,
+                                      size_t who_alias_count)
 {
-    const char *zone_alias;
-    const char *zone_type_name;
-    const char *from_alias;
     const char *from_zone_type_name;
     LLVMVarEntry *zone_var;
     LLVMValueRef zone_ptr;
@@ -253,14 +298,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
     LLVMFuncEntry *trace_materialize_fn;
     LLVMFuncEntry *trace_transfer_fn;
 
-    if (ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+    if (ctx == NULL || intent == NULL) {
         return;
     }
-
-    zone_alias = llvm_intent_step_effective_zone_alias(step);
-    zone_type_name = step->data.intent_step.where_type->data.type.name;
     if (zone_alias == NULL || zone_type_name == NULL)
         return;
 
@@ -277,8 +317,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
     trace_materialize_fn = llvm_lookup_function(ctx, "pgy_intent_trace_materialize_export");
     trace_transfer_fn = llvm_lookup_function(ctx, "pgy_intent_trace_transfer_export");
-    from_alias = step->data.intent_step.transfer_from_alias;
-    from_zone_type_name = llvm_intent_zone_binding_type_name(intent, from_alias);
+    from_zone_type_name = llvm_intent_zone_binding_type_name(ctx, from_alias);
 
     if (from_alias != NULL && from_zone_type_name != NULL) {
         LLVMVarEntry *from_zone_var = llvm_scope_lookup(ctx, from_alias);
@@ -296,14 +335,14 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
             return;
 
         if (from_zone_cls != NULL) {
-            for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-                const char *alias = step->data.intent_step.who_names[i];
+            for (size_t i = 0; i < who_alias_count; i++) {
+                const char *alias = who_aliases[i];
                 const char *from_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                     ctx, intent, from_zone_type_name, alias);
                 const char *to_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                     ctx, intent, zone_type_name, alias);
-                ASTNode *involves;
                 LLVMVarEntry *actor_var;
+                const char *actor_type_name;
                 LLVMTypeRef actor_ptr_type;
                 LLVMTypeRef actor_value_type;
                 LLVMValueRef actor_ptr;
@@ -313,15 +352,14 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
                 if (alias == NULL)
                     continue;
 
-                involves = llvm_find_intent_actor_local(intent, alias);
                 actor_var = llvm_scope_lookup(ctx, alias);
-                if (involves == NULL || actor_var == NULL
-                    || involves->data.intent_involves.subject_type == NULL) {
+                actor_type_name = llvm_lookup_var_class(ctx, alias);
+                if (actor_var == NULL || actor_type_name == NULL) {
                     continue;
                 }
 
                 actor_ptr_type = actor_var->type;
-                actor_value_type = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
                 actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
                     llvm_tmp_name(ctx));
                 actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
@@ -397,11 +435,12 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
     }
 
     if (zone_cls != NULL) {
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names[i];
-            const char *slot_name = llvm_resolve_intent_zone_slot_name(ctx, intent, step, alias);
-            ASTNode *involves;
+        for (size_t i = 0; i < who_alias_count; i++) {
+            const char *alias = who_aliases[i];
+            const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
+                ctx, intent, zone_type_name, alias);
             LLVMVarEntry *actor_var;
+            const char *actor_type_name;
             LLVMTypeRef actor_ptr_type;
             LLVMTypeRef actor_value_type;
             LLVMValueRef actor_ptr;
@@ -416,15 +455,14 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
             if (field_idx < 0)
                 continue;
 
-            involves = llvm_find_intent_actor_local(intent, alias);
             actor_var = llvm_scope_lookup(ctx, alias);
-            if (involves == NULL || actor_var == NULL
-                || involves->data.intent_involves.subject_type == NULL) {
+            actor_type_name = llvm_lookup_var_class(ctx, alias);
+            if (actor_var == NULL || actor_type_name == NULL) {
                 continue;
             }
 
             actor_ptr_type = actor_var->type;
-            actor_value_type = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+            actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
             actor_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca,
                 llvm_tmp_name(ctx));
             actor_value = LLVMBuildLoad2(ctx->builder, actor_value_type, actor_ptr,
@@ -460,25 +498,22 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx, ASTNode *intent, ASTNode 
 }
 
 static bool
-llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx, ASTNode *intent,
-                                                ASTNode *step, LLVMValueRef *saved_allocas)
+llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
+                                                ASTNode *intent,
+                                                const char *zone_type_name,
+                                                const char *zone_alias,
+                                                const char **who_aliases,
+                                                size_t who_alias_count,
+                                                LLVMValueRef *saved_allocas)
 {
-    const char *zone_alias;
-    const char *zone_type_name;
     LLVMVarEntry *zone_var;
     LLVMValueRef zone_ptr;
     LLVMClassTypeEntry *zone_cls;
     bool rebound = false;
 
-    if (ctx == NULL || intent == NULL || step == NULL || saved_allocas == NULL
-        || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+    if (ctx == NULL || intent == NULL || saved_allocas == NULL) {
         return false;
     }
-
-    zone_alias = llvm_intent_step_effective_zone_alias(step);
-    zone_type_name = step->data.intent_step.where_type->data.type.name;
     if (zone_alias == NULL || zone_type_name == NULL)
         return false;
 
@@ -491,8 +526,8 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx, ASTNode *intent
     if (zone_cls == NULL)
         return false;
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < who_alias_count; i++) {
+        const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
         LLVMVarEntry *actor_var;
         int field_idx;
@@ -523,23 +558,18 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx, ASTNode *intent
 }
 
 static void
-llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx, ASTNode *step)
+llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
+                                          const char *zone_type_name,
+                                          const char *zone_alias)
 {
-    const char *zone_alias;
-    const char *zone_type_name;
     LLVMVarEntry *zone_var;
     LLVMValueRef zone_ptr;
     char sync_name[256];
     LLVMFuncEntry *sync_fn;
 
-    if (ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+    if (ctx == NULL) {
         return;
     }
-
-    zone_alias = llvm_intent_step_effective_zone_alias(step);
-    zone_type_name = step->data.intent_step.where_type->data.type.name;
     if (zone_alias == NULL || zone_type_name == NULL)
         return;
 
@@ -557,27 +587,24 @@ llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx, ASTNode *step)
 }
 
 static void
-llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx, ASTNode *intent,
-                                                 ASTNode *step, LLVMValueRef *saved_allocas)
+llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
+                                                 ASTNode *intent,
+                                                 const char *zone_type_name,
+                                                 const char **who_aliases,
+                                                 size_t who_alias_count,
+                                                 LLVMValueRef *saved_allocas)
 {
-    const char *zone_type_name;
-
-    if (ctx == NULL || intent == NULL || step == NULL || saved_allocas == NULL
-        || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+    if (ctx == NULL || intent == NULL || saved_allocas == NULL) {
         return;
     }
-
-    zone_type_name = step->data.intent_step.where_type->data.type.name;
     if (zone_type_name == NULL)
         return;
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < who_alias_count; i++) {
+        const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
-        ASTNode *involves;
         LLVMVarEntry *actor_var;
+        const char *actor_type_name;
         LLVMTypeRef actor_ptr_type;
         LLVMTypeRef actor_value_type;
         LLVMValueRef zone_bound_ptr;
@@ -590,63 +617,19 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx, ASTNode *inten
         }
 
         actor_var = llvm_scope_lookup(ctx, alias);
-        involves = llvm_find_intent_actor_local(intent, alias);
-        if (actor_var == NULL || involves == NULL
-            || involves->data.intent_involves.subject_type == NULL) {
+        actor_type_name = llvm_lookup_var_class(ctx, alias);
+        if (actor_var == NULL || actor_type_name == NULL) {
             continue;
         }
 
         actor_ptr_type = actor_var->type;
-        actor_value_type = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+        actor_value_type = pergyra_type_to_llvm(ctx, actor_type_name);
         zone_bound_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, actor_var->alloca, llvm_tmp_name(ctx));
         zone_bound_value = LLVMBuildLoad2(ctx->builder, actor_value_type, zone_bound_ptr, llvm_tmp_name(ctx));
         saved_ptr = LLVMBuildLoad2(ctx->builder, actor_ptr_type, saved_allocas[i], llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, zone_bound_value, saved_ptr);
         LLVMBuildStore(ctx->builder, saved_ptr, actor_var->alloca);
     }
-}
-
-static ASTNode *
-llvm_find_subject_action_decl(LLVMGenCtx *ctx, const char *subject_name, const char *action_name)
-{
-    if (ctx == NULL || ctx->hir == NULL || subject_name == NULL || action_name == NULL)
-        return NULL;
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *decl = ctx->hir->types[i];
-        if (decl == NULL || decl->type != AST_CLASS_DECL
-            || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT
-            || decl->data.class_decl.name == NULL
-            || strcmp(decl->data.class_decl.name, subject_name) != 0) {
-            continue;
-        }
-        for (size_t j = 0; j < decl->data.class_decl.method_count; j++) {
-            ASTNode *method = decl->data.class_decl.methods[j];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.is_action
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, action_name) == 0) {
-                return method;
-            }
-        }
-    }
-    return NULL;
-}
-
-static bool
-llvm_intent_action_has_only_self(ASTNode *action_decl)
-{
-    size_t real_pc = 0;
-    if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
-        return false;
-    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = action_decl->data.func_decl.params[i];
-        if (p == NULL || p->name == NULL)
-            continue;
-        if (p->type == NULL && strcmp(p->name, "self") == 0)
-            continue;
-        real_pc++;
-    }
-    return real_pc == 0;
 }
 
 static const MIRRoutine *
@@ -736,6 +719,8 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
                 || inst->ast->type != AST_INTENT_STEP) {
                 continue;
             }
+            if (inst->name != NULL && strncmp(inst->name, "Intent", 6) == 0)
+                continue;
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
                 grown = realloc(steps, new_capacity * sizeof(ASTNode *));
@@ -786,26 +771,168 @@ llvm_find_mir_intent_check_expr(const MIRRoutine *routine,
     return NULL;
 }
 
+static size_t
+llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
+                                   const char *step_name,
+                                   const char *phase_name,
+                                   ASTNode ***exprs_out)
+{
+    ASTNode **exprs = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (exprs_out != NULL)
+        *exprs_out = NULL;
+    if (routine == NULL || phase_name == NULL || exprs_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            ASTNode **grown;
+
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentEval") != 0)
+                continue;
+            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc(exprs, new_capacity * sizeof(ASTNode *));
+                if (grown == NULL) {
+                    free(exprs);
+                    return 0;
+                }
+                exprs = grown;
+                capacity = new_capacity;
+            }
+            exprs[count++] = inst->ast;
+        }
+    }
+
+    *exprs_out = exprs;
+    return count;
+}
+
+static ASTNode *
+llvm_find_mir_intent_eval_expr(const MIRRoutine *routine,
+                               const char *step_name,
+                               const char *phase_name)
+{
+    ASTNode **exprs = NULL;
+    ASTNode *result = NULL;
+    size_t count = llvm_collect_mir_intent_eval_exprs(
+        routine, step_name, phase_name, &exprs);
+    if (count > 0)
+        result = exprs[0];
+    free(exprs);
+    return result;
+}
+
+static size_t
+llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
+                                         const char *step_name,
+                                         const char ***aliases_out)
+{
+    const char **aliases = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentDispatch") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)aliases);
+                    return 0;
+                }
+                aliases = grown;
+                capacity = new_capacity;
+            }
+            aliases[count++] = inst->arg0;
+        }
+    }
+
+    *aliases_out = aliases;
+    return count;
+}
+
 void
 llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
 {
+    const MIRRoutine *mir_routine;
     const char *name;
     LLVMTypeRef *param_types = NULL;
     LLVMTypeRef fn_type;
     LLVMValueRef fn;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    size_t participant_count = 0;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
     name = node->data.intent_decl.name;
     if (name == NULL || llvm_lookup_function(ctx, name) != NULL)
         return;
+    mir_routine = llvm_find_mir_intent_routine(ctx, node);
+    if (mir_routine != NULL) {
+        participant_count = llvm_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+    }
+    if (participant_count == 0)
+        participant_count = node->data.intent_decl.involve_count;
 
-    if (node->data.intent_decl.involve_count > 0) {
-        param_types = calloc(node->data.intent_decl.involve_count, sizeof(LLVMTypeRef));
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-            ASTNode *involves = node->data.intent_decl.involves[i];
+    if (participant_count > 0) {
+        param_types = calloc(participant_count, sizeof(LLVMTypeRef));
+        for (size_t i = 0; i < participant_count; i++) {
+            ASTNode *involves = i < node->data.intent_decl.involve_count
+                ? node->data.intent_decl.involves[i]
+                : NULL;
+            const char *type_name = participant_types != NULL
+                ? participant_types[i]
+                : llvm_intent_involves_type_name(involves);
             LLVMTypeRef pt = ctx->type_i32;
-            if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+            if (type_name != NULL) {
+                pt = pergyra_type_to_llvm(ctx, type_name);
+                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                    pt = LLVMPointerType(pt, 0);
+            } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
                 pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
                 if (llvm_intent_involves_uses_pointer_self(ctx, involves))
                     pt = LLVMPointerType(pt, 0);
@@ -815,7 +942,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     fn_type = LLVMFunctionType(ctx->type_i1, param_types,
-        (unsigned)node->data.intent_decl.involve_count, 0);
+        (unsigned)participant_count, 0);
     fn = LLVMAddFunction(ctx->module, name, fn_type);
     /* Disable stack probing (avoids __chkstk linking issues with mingw) */
     {
@@ -827,6 +954,8 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
     free(param_types);
 }
 
@@ -836,6 +965,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     const MIRRoutine *mir_routine;
     ASTNode **mir_steps = NULL;
     ASTNode **step_nodes = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
     LLVMFuncEntry *entry;
     LLVMFuncEntry *enter_fn;
     LLVMFuncEntry *exit_fn;
@@ -861,6 +992,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef handle_alloca;
     LLVMValueRef subjects_ptr;
     LLVMValueRef *completed_allocas = NULL;
+    size_t participant_count = 0;
     size_t subject_count = 0;
     size_t step_count = 0;
     bool has_compensate_steps = false;
@@ -900,6 +1032,12 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         step_count = node->data.intent_decl.step_count;
         step_nodes = node->data.intent_decl.steps;
     }
+    if (mir_routine != NULL) {
+        participant_count = llvm_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+    }
+    if (participant_count == 0)
+        participant_count = node->data.intent_decl.involve_count;
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
@@ -943,15 +1081,25 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, entry_bb);
     llvm_scope_push(ctx);
 
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = node->data.intent_decl.involves[i];
-        const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
-        const char *type_name = (involves != NULL
-            && involves->data.intent_involves.subject_type != NULL
-            && involves->data.intent_involves.subject_type->type == AST_TYPE)
-            ? involves->data.intent_involves.subject_type->data.type.name : NULL;
+    for (size_t i = 0; i < participant_count; i++) {
+        ASTNode *involves = i < node->data.intent_decl.involve_count
+            ? node->data.intent_decl.involves[i]
+            : NULL;
+        const char *alias = participant_aliases != NULL
+            ? participant_aliases[i]
+            : (involves != NULL ? involves->data.intent_involves.alias : NULL);
+        const char *type_name = participant_types != NULL
+            ? participant_types[i]
+            : ((involves != NULL
+                && involves->data.intent_involves.subject_type != NULL
+                && involves->data.intent_involves.subject_type->type == AST_TYPE)
+                ? involves->data.intent_involves.subject_type->data.type.name : NULL);
         LLVMTypeRef pt = ctx->type_i8ptr;
-        if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+        if (type_name != NULL) {
+            pt = pergyra_type_to_llvm(ctx, type_name);
+            if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                pt = LLVMPointerType(pt, 0);
+        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
             pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
             if (llvm_intent_involves_uses_pointer_self(ctx, involves))
                 pt = LLVMPointerType(pt, 0);
@@ -981,9 +1129,14 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        if (llvm_intent_involves_is_subject_participant(ctx,
-                node->data.intent_decl.involves[i])) {
+    for (size_t i = 0; i < participant_count; i++) {
+        ASTNode *involves = i < node->data.intent_decl.involve_count
+            ? node->data.intent_decl.involves[i]
+            : NULL;
+        const char *type_name = participant_types != NULL
+            ? participant_types[i]
+            : llvm_intent_involves_type_name(involves);
+        if (llvm_intent_type_is_subject_participant(ctx, type_name)) {
             subject_count++;
         }
     }
@@ -996,9 +1149,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef zero = LLVMConstInt(ctx->type_i32, 0, 0);
         unsigned subject_index = 0;
 
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-            ASTNode *involves = node->data.intent_decl.involves[i];
-            const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
+        for (size_t i = 0; i < participant_count; i++) {
+            ASTNode *involves = i < node->data.intent_decl.involve_count
+                ? node->data.intent_decl.involves[i]
+                : NULL;
+            const char *alias = participant_aliases != NULL
+                ? participant_aliases[i]
+                : (involves != NULL ? involves->data.intent_involves.alias : NULL);
+            const char *type_name = participant_types != NULL
+                ? participant_types[i]
+                : llvm_intent_involves_type_name(involves);
             LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "actor");
             LLVMValueRef indices[] = {
                 zero,
@@ -1009,7 +1169,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 : LLVMConstPointerNull(ctx->type_i8ptr);
             LLVMValueRef cast_actor = LLVMBuildBitCast(ctx->builder, actor_ptr,
                 ctx->type_i8ptr, llvm_tmp_name(ctx));
-            if (!llvm_intent_involves_is_subject_participant(ctx, involves))
+            if (!llvm_intent_type_is_subject_participant(ctx, type_name))
                 continue;
             LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder, subject_array_type,
                 subjects_alloca, indices, 2, llvm_tmp_name(ctx));
@@ -1067,6 +1227,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         ASTNode *expect_expr = NULL;
         ASTNode *invariant_pre_expr = NULL;
         ASTNode *invariant_post_expr = NULL;
+        ASTNode **on_exprs = NULL;
+        size_t on_expr_count = 0;
+        ASTNode *subintent_expr = NULL;
+        const char *zone_type_name = NULL;
+        const char *zone_alias = NULL;
+        const char *from_alias = NULL;
+        const char **who_aliases = NULL;
+        size_t who_alias_count = 0;
+        const char **dispatch_aliases = NULL;
+        size_t dispatch_alias_count = 0;
         LLVMValueRef *saved_actor_ptrs = NULL;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
@@ -1079,6 +1249,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             expect_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "expect");
             invariant_pre_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "invariant-pre");
             invariant_post_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "invariant-post");
+            on_expr_count = llvm_collect_mir_intent_eval_exprs(
+                mir_routine, step_name, "on", &on_exprs);
+            subintent_expr = llvm_find_mir_intent_eval_expr(mir_routine, step_name, "intent");
+            zone_type_name = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
+            zone_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
+            from_alias = llvm_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
+            who_alias_count = llvm_collect_mir_intent_who_aliases(mir_routine, step_name, &who_aliases);
+            dispatch_alias_count = llvm_collect_mir_intent_dispatch_aliases(
+                mir_routine, step_name, &dispatch_aliases);
         }
         if (pre_expr == NULL)
             pre_expr = step->data.intent_step.pre_expr;
@@ -1092,6 +1271,21 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             invariant_pre_expr = step->data.intent_step.invariant_expr;
         if (invariant_post_expr == NULL)
             invariant_post_expr = step->data.intent_step.invariant_expr;
+        if (subintent_expr == NULL)
+            subintent_expr = step->data.intent_step.intent_expr;
+        if (zone_type_name == NULL
+            && step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE) {
+            zone_type_name = step->data.intent_step.where_type->data.type.name;
+        }
+        if (zone_alias == NULL)
+            zone_alias = llvm_intent_step_effective_zone_alias(step);
+        if (from_alias == NULL)
+            from_alias = step->data.intent_step.transfer_from_alias;
+        if (who_alias_count == 0) {
+            who_alias_count = step->data.intent_step.who_count;
+            who_aliases = (const char **)step->data.intent_step.who_names;
+        }
 
         {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
@@ -1102,19 +1296,17 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     llvm_tmp_name(ctx)),
                 LLVMBuildGlobalStringPtr(ctx->builder,
-                    (step->data.intent_step.where_type != NULL
-                        && step->data.intent_step.where_type->type == AST_TYPE
-                        && step->data.intent_step.where_type->data.type.name != NULL)
-                        ? step->data.intent_step.where_type->data.type.name : "<zone>",
+                    zone_type_name != NULL ? zone_type_name : "<zone>",
                     llvm_tmp_name(ctx))
             };
             LLVMBuildCall2(ctx->builder, trace_step_fn->fn_type, trace_step_fn->fn, args, 3, "");
         }
-        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+        for (size_t j = 0; j < who_alias_count; j++) {
             LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 handle_alloca, llvm_tmp_name(ctx));
-            const char *alias = step->data.intent_step.who_names[j];
-            const char *slot_name = llvm_resolve_intent_zone_slot_name(ctx, node, step, alias);
+            const char *alias = who_aliases[j];
+            const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
+                ctx, node, zone_type_name, alias);
             LLVMValueRef args[] = {
                 handle,
                 LLVMBuildGlobalStringPtr(ctx->builder, alias != NULL ? alias : "<actor>",
@@ -1124,11 +1316,13 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             };
             LLVMBuildCall2(ctx->builder, trace_bind_fn->fn_type, trace_bind_fn->fn, args, 3, "");
         }
-        llvm_emit_intent_step_bind_bound_zone(ctx, node, step);
-        if (step->data.intent_step.who_count > 0) {
-            saved_actor_ptrs = calloc(step->data.intent_step.who_count, sizeof(LLVMValueRef));
+        llvm_emit_intent_step_bind_bound_zone(
+            ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
+        if (who_alias_count > 0) {
+            saved_actor_ptrs = calloc(who_alias_count, sizeof(LLVMValueRef));
             if (saved_actor_ptrs != NULL)
-                rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(ctx, node, step, saved_actor_ptrs);
+                rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
+                    ctx, node, zone_type_name, zone_alias, who_aliases, who_alias_count, saved_actor_ptrs);
         }
 
         if (pre_expr != NULL) {
@@ -1161,16 +1355,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         }
 
-        if (step->data.intent_step.on_expr_count > 0) {
-            for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-                if (step->data.intent_step.on_exprs[j] != NULL)
-                    (void)llvm_emit_expression(step->data.intent_step.on_exprs[j], ctx);
+        if (on_expr_count > 0) {
+            for (size_t j = 0; j < on_expr_count; j++) {
+                if (on_exprs[j] != NULL)
+                    (void)llvm_emit_expression(on_exprs[j], ctx);
             }
         }
-        if (step->data.intent_step.intent_expr != NULL) {
+        if (subintent_expr != NULL) {
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
-            LLVMValueRef cond = llvm_emit_expression(step->data.intent_step.intent_expr, ctx);
+            LLVMValueRef cond = llvm_emit_expression(subintent_expr, ctx);
             snprintf(reason, sizeof(reason), "intent:%s",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             LLVMBuildStore(ctx->builder,
@@ -1180,25 +1374,24 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 fail_reason_alloca);
             LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
-        } else if (step->data.intent_step.on_expr_count == 0) {
-            for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-                const char *alias = step->data.intent_step.who_names[j];
-                ASTNode *involves = llvm_find_intent_actor_local(node, alias);
-                const char *subject_name = (involves != NULL
-                    && involves->data.intent_involves.subject_type != NULL
-                    && involves->data.intent_involves.subject_type->type == AST_TYPE)
-                    ? involves->data.intent_involves.subject_type->data.type.name : NULL;
-                ASTNode *action_decl = llvm_find_subject_action_decl(ctx, subject_name,
-                    step->data.intent_step.name);
-                if (subject_name != NULL && action_decl != NULL
-                    && llvm_intent_action_has_only_self(action_decl)) {
+        } else if (on_expr_count == 0) {
+            size_t alias_count = dispatch_alias_count;
+            if (alias_count == 0)
+                alias_count = step->data.intent_step.who_count;
+            for (size_t j = 0; j < alias_count; j++) {
+                const char *alias = dispatch_alias_count > 0
+                    ? dispatch_aliases[j]
+                    : step->data.intent_step.who_names[j];
+                const char *subject_name = llvm_lookup_var_class(ctx, alias);
+                if (subject_name != NULL) {
                     char full_name[256];
                     LLVMFuncEntry *action_fn;
                     LLVMVarEntry *actor_var = llvm_scope_lookup(ctx, alias);
                     snprintf(full_name, sizeof(full_name), "%s_%s",
                         subject_name, step->data.intent_step.name);
                     action_fn = llvm_lookup_function(ctx, full_name);
-                    if (action_fn != NULL && actor_var != NULL) {
+                    if (action_fn != NULL && action_fn->is_action
+                        && action_fn->action_self_only && actor_var != NULL) {
                         LLVMValueRef actor_ptr = LLVMBuildLoad2(ctx->builder,
                             actor_var->type, actor_var->alloca, llvm_tmp_name(ctx));
                         LLVMValueRef args[] = { actor_ptr };
@@ -1214,11 +1407,13 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         if (rebound_aliases)
-            llvm_emit_intent_step_sync_effective_zone(ctx, step);
+            llvm_emit_intent_step_sync_effective_zone(ctx, zone_type_name, zone_alias);
         else
-            llvm_emit_intent_step_bind_bound_zone(ctx, node, step);
+            llvm_emit_intent_step_bind_bound_zone(
+                ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
         if (rebound_aliases)
-            llvm_emit_intent_step_restore_bound_zone_aliases(ctx, node, step, saved_actor_ptrs);
+            llvm_emit_intent_step_restore_bound_zone_aliases(
+                ctx, node, zone_type_name, who_aliases, who_alias_count, saved_actor_ptrs);
 
         if (completed_allocas != NULL) {
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), completed_allocas[i]);
@@ -1283,6 +1478,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         }
+        free(on_exprs);
+        if (who_aliases != NULL && who_aliases != (const char **)step->data.intent_step.who_names)
+            free((void *)who_aliases);
+        free((void *)dispatch_aliases);
         free(saved_actor_ptrs);
         saved_actor_ptrs = NULL;
         {
@@ -1353,9 +1552,45 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (completed_allocas != NULL) {
         for (size_t i = step_count; i-- > 0;) {
             ASTNode *step = step_nodes[i];
+            ASTNode **compensate_exprs = NULL;
+            size_t compensate_expr_count = 0;
+            const char *zone_type_name = NULL;
+            const char *zone_alias = NULL;
+            const char *from_alias = NULL;
+            const char **who_aliases = NULL;
+            size_t who_alias_count = 0;
             if (step == NULL || step->type != AST_INTENT_STEP
                 || step->data.intent_step.compensate_expr_count == 0)
                 continue;
+            if (mir_routine != NULL) {
+                compensate_expr_count = llvm_collect_mir_intent_eval_exprs(
+                    mir_routine, step->data.intent_step.name, "compensate", &compensate_exprs);
+                zone_type_name = llvm_find_mir_intent_meta_arg(
+                    mir_routine, step->data.intent_step.name, "IntentZoneWhere");
+                zone_alias = llvm_find_mir_intent_meta_arg(
+                    mir_routine, step->data.intent_step.name, "IntentZoneAlias");
+                from_alias = llvm_find_mir_intent_meta_arg(
+                    mir_routine, step->data.intent_step.name, "IntentZoneFrom");
+                who_alias_count = llvm_collect_mir_intent_who_aliases(
+                    mir_routine, step->data.intent_step.name, &who_aliases);
+            }
+            if (compensate_expr_count == 0) {
+                compensate_expr_count = step->data.intent_step.compensate_expr_count;
+                compensate_exprs = step->data.intent_step.compensate_exprs;
+            }
+            if (zone_type_name == NULL
+                && step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE) {
+                zone_type_name = step->data.intent_step.where_type->data.type.name;
+            }
+            if (zone_alias == NULL)
+                zone_alias = llvm_intent_step_effective_zone_alias(step);
+            if (from_alias == NULL)
+                from_alias = step->data.intent_step.transfer_from_alias;
+            if (who_alias_count == 0) {
+                who_alias_count = step->data.intent_step.who_count;
+                who_aliases = (const char **)step->data.intent_step.who_names;
+            }
             {
                 LLVMBasicBlockRef do_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.comp.do");
                 LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.comp.next");
@@ -1363,17 +1598,24 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     completed_allocas[i], llvm_tmp_name(ctx));
                 LLVMBuildCondBr(ctx->builder, done, do_bb, next_bb);
                 LLVMPositionBuilderAtEnd(ctx->builder, do_bb);
-                for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
-                    if (step->data.intent_step.compensate_exprs[j] != NULL)
-                        (void)llvm_emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                for (size_t j = compensate_expr_count; j-- > 0;) {
+                    if (compensate_exprs[j] != NULL)
+                        (void)llvm_emit_expression(compensate_exprs[j], ctx);
                 }
-                llvm_emit_intent_step_bind_bound_zone(ctx, node, step);
+                llvm_emit_intent_step_bind_bound_zone(
+                    ctx, node, zone_type_name, zone_alias, from_alias, who_aliases, who_alias_count);
                 if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT)
                     LLVMBuildBr(ctx->builder, maybe_exit_bb);
                 else
                     LLVMBuildBr(ctx->builder, next_bb);
                 LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
             }
+            if (compensate_exprs != NULL
+                && compensate_exprs != step->data.intent_step.compensate_exprs) {
+                free(compensate_exprs);
+            }
+            if (who_aliases != NULL && who_aliases != (const char **)step->data.intent_step.who_names)
+                free((void *)who_aliases);
         }
     }
     LLVMBuildBr(ctx->builder, maybe_exit_bb);
@@ -1415,6 +1657,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     llvm_scope_pop(ctx);
     free(completed_allocas);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
     free(mir_steps);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;

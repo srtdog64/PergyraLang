@@ -220,6 +220,71 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         if (!append_instruction(block, inst))
             return false;
 
+        if (step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE
+            && step->data.intent_step.where_type->data.type.name != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentZoneWhere";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = step->data.intent_step.where_type->data.type.name;
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+
+        {
+            const char *effective_zone_alias = NULL;
+            if (step->data.intent_step.using_expr != NULL
+                && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
+                effective_zone_alias = step->data.intent_step.using_expr->data.identifier.name;
+            } else if (step->data.intent_step.transfer_to_alias != NULL) {
+                effective_zone_alias = step->data.intent_step.transfer_to_alias;
+            }
+            if (effective_zone_alias != NULL) {
+                memset(&inst, 0, sizeof(inst));
+                inst.id = routine->instruction_count++;
+                inst.kind = MIR_INST_STMT;
+                inst.name = "IntentZoneAlias";
+                inst.slot_anchor = step->data.intent_step.name;
+                inst.arg0 = effective_zone_alias;
+                inst.arg1 = step->data.intent_step.name;
+                inst.ast = step;
+                if (!append_instruction(block, inst))
+                    return false;
+            }
+        }
+
+        if (step->data.intent_step.transfer_from_alias != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentZoneFrom";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = step->data.intent_step.transfer_from_alias;
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+
+        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+            if (step->data.intent_step.who_names[j] == NULL)
+                continue;
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentWho";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = step->data.intent_step.who_names[j];
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+
         if (step->data.intent_step.pre_expr != NULL) {
             memset(&inst, 0, sizeof(inst));
             inst.id = routine->instruction_count++;
@@ -288,6 +353,63 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
             inst.arg0 = "post";
             inst.arg1 = step->data.intent_step.name;
             inst.ast = step->data.intent_step.post_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
+            if (step->data.intent_step.on_exprs[j] == NULL)
+                continue;
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentEval";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "on";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.on_exprs[j];
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.intent_expr != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentEval";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "intent";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.intent_expr;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+        if (step->data.intent_step.on_expr_count == 0
+            && step->data.intent_step.intent_expr == NULL) {
+            for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
+                if (step->data.intent_step.who_names[j] == NULL)
+                    continue;
+                memset(&inst, 0, sizeof(inst));
+                inst.id = routine->instruction_count++;
+                inst.kind = MIR_INST_STMT;
+                inst.name = "IntentDispatch";
+                inst.slot_anchor = step->data.intent_step.name;
+                inst.arg0 = step->data.intent_step.who_names[j];
+                inst.arg1 = step->data.intent_step.name;
+                inst.ast = step;
+                if (!append_instruction(block, inst))
+                    return false;
+            }
+        }
+        for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
+            if (step->data.intent_step.compensate_exprs[j] == NULL)
+                continue;
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentEval";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = "compensate";
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step->data.intent_step.compensate_exprs[j];
             if (!append_instruction(block, inst))
                 return false;
         }

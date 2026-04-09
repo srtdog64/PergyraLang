@@ -9,6 +9,8 @@
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - 아직 미완료인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.
+- C backend의 공식 역할 재정의는 `docs/51_c_backend_reference_policy.md`에 정리한다.
+- LLVM/native-first 전환 단계는 `docs/52_llvm_native_first_roadmap.md`에서 추적한다.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
@@ -16,7 +18,7 @@
 - RIR는 이제 `object slot`도 `ObjectSlot` resource fact/state로 materialize하며, `rir_validate_against_dir()`를 통해 `DIR`의 `zone-slot / projection-slot / authority-slot` 계약이 matching `RIR` scope/fact/state/capability로 실제 내려갔는지 driver 단계에서 교차 검증한다
 - DIR는 이제 intent participant/type edge, step zone/ability/authority/effect edge, step predecessor dependency뿐 아니라 `party-slot / zone-slot / projection-slot / authority-slot`를 owner-qualified node로 materialize하는 slot-contract graph까지 직접 가진다
 - MIR는 HIR CFG와 RIR op를 묶는 실행 skeleton으로 시작됐고, routine/block/instruction/cleanup-block을 가지며 intent compensation/abort 경로를 cleanup instruction으로 분리함. 최근 패스로 `phi` materialization, instruction-level `def/use`, block entry/exit SSA version map, cleanup convergence root, rollback/invalidation exceptional CFG, routine-level value summary(`def_block`, `def_inst`, `use_count`, `live_in/out block count`, `reaches_cleanup`, `slot_anchor`)까지 들어와 `--mir`가 더 이상 순수 block 껍데기만 덤프하지 않음. resource/cleanup instruction은 matching `RIR` op의 `slot_anchor`를 그대로 보존하고, `def/phi`와 value summary는 base local 이름을 slot anchor로 유지한다. validator도 이제 slot anchor 누락이나 `RIR`와의 slot mismatch를 실패로 본다. 추가로 lowering 경로에서 실제 `liveness` 재계산과 dead `def/phi` 제거 DCE pass가 돌고, C backend에는 branch/return top-level function subset, MIR block 안의 non-SSA statement fallback, intent cleanup/rollback/invalidation CFG subset을 MIR block/terminator에서 직접 emit하는 첫 codegen vertical slice가 들어갔음. intent exceptional CFG에서 MIR cleanup/resource op는 이제 no-op runtime hook 호출로 직접 emit된다.
-- LLVM이 기본 백엔드이며, C 백엔드는 폴백/reference 경로로 유지됨.
+- LLVM이 기본 백엔드이며, C 백엔드는 reference/bootstrap/debug 경로로 유지됨.
 - `driver_run_pipeline_timed(...)`와 `test-abi-perf`가 들어가 phase별 compile timing(`module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total`)을 직접 계측한다. backend는 다시 `codegen / native_compile / link`로 쪼개진다. CI에서는 hard upper bound를, 로컬 benchmark에서는 comparative metrics를 분리한다.
 - async/await는 coroutine runtime을 통해 동작하며, channel/select/parallel이 동작함.
 - 최종 목표 계층은 `ability -> role -> party -> relation -> effect -> zone -> world`로 문서화됨.
@@ -40,10 +42,10 @@
 
 ### 렉서 / 파서
 - 파서는 파일 분할 구조: `parser.c`, `parser_expr.c`, `parser_stmt.c`, `parser_decl.c`, `parser_domain.c`, `parser_async.c`
-- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/tobject`, `ability/role/party/relation/effect/zone/systemic/world`, `event`, `actor`, `import/export/namespace`
-- `world`, `systemic`, `relation`, `effect`, `zone`은 declaration position에서만 키워드처럼 동작하고, local variable / expression position에서는 식별자로 그대로 쓸 수 있음
+- 문법 표면: `let`, `func`, `async`, `spawn/await`, `if/for/while/match/select`, `slot/view/move`, `subject/class`, `struct/object/tobject`, `ability/role/party/relation/effect/zone/roster/world`, `event`, `actor`, `import/export/namespace`
+- `world`, `roster`, `relation`, `effect`, `zone`은 declaration position에서만 키워드처럼 동작하고, local variable / expression position에서는 식별자로 그대로 쓸 수 있음
 - `subject`, `class`, `struct`, `object`, `tobject` declaration은 parser AST에서 서로 다른 nominal flavor로 보존됨
-- 현재 domain 표면은 `ability/role/party/systemic/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
+- 현재 domain 표면은 `ability/role/party/roster/world`에 더해 `relation/effect/zone`의 최소 body surface까지 parser/semantic에 연결됨
 - `relation`, `effect`, `zone`은 `subject slot` / `object slot` / `tobject slot` / `shared` / `func`까지의 최소 표면이 parser/semantic에 연결됨
 - `relation` / `effect`도 `refresh objectSlot from subjectSlot`, `publish dtoSlot from subjectSlot`, `bind slotName from sourceSlot` projection sync를 declaration body에서 직접 가질 수 있음
 - `relation`, `effect`, `zone`의 domain slot은 optional initializer를 받아 `object slot view: PlayerView = ToObject(PlayerView, player)` 같은 local projection wiring을 직접 표현할 수 있음
@@ -122,9 +124,9 @@
 - `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
-- plain `Slot<subject>`와 `Slot<actor>`는 이제 local object-cell anchor로 허용됨
+- plain `Slot<subject>`와 `Slot<subject>`는 이제 local object-cell anchor로 허용됨
 - 현재 회귀 수치: `make test-transpile` 통과, `make llvm-test-smoke` 통과, `make test-abi` 통과, `make test-abi-perf` 통과
-- `SecureSlot<subject>`와 `SecureSlot<actor>`도 이제 local secure object-cell anchor로 허용됨
+- `SecureSlot<subject>`와 `SecureSlot<subject>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
 - secure boundary slot은 helper를 한 번 더 거치는 forwarding call에서도 paired token이 함께 전달됨
@@ -197,9 +199,9 @@
 - partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
 - partial 완료: `actor`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
-- partial 완료: `subject Name actor { ... }` subject-first actor profile surface
-- partial 완료: standalone `actor Name { ... }`를 transitional syntax로 경고
-- partial 완료: plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor
+- partial 완료: `subject Name { ... }` subject-first actor profile surface
+- partial 완료: standalone `subject Name { ... }`를 transitional syntax로 경고
+- partial 완료: plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
 - partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화

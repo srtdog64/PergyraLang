@@ -6,27 +6,27 @@ static bool parser_match_identifier_keyword_on_line(Parser *parser, const char *
 static void append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node);
 
 /* =================================================================
- * Systemic/World system parsing functions
+ * Roster/World system parsing functions
  * ================================================================= */
 
 /*
- * systemic CombatSystem {
+ * roster CombatSystem {
  *     party slot team1: DungeonTeam
  *     party slot team2: DungeonTeam
  *     shared rules: CombatRules
  *     func ScheduleMatches() -> Void { ... }
  * }
  */
-ASTNode* parse_systemic_declaration(Parser* parser) {
-    Token name = consume_name_token(parser, "Expected systemic name");
-    ASTNode* sys = ast_create_systemic_declaration(name.text);
-    sys->data.systemic_decl.doc_comment = parser_take_pending_doc_comment(parser);
+ASTNode* parse_roster_declaration(Parser* parser) {
+    Token name = consume_name_token(parser, "Expected roster name");
+    ASTNode* sys = ast_create_roster_declaration(name.text);
+    sys->data.roster_decl.doc_comment = parser_take_pending_doc_comment(parser);
     sys->line = name.line;
     sys->column = name.column;
 
-    sys->data.systemic_decl.generic_params = parse_generic_params(parser);
+    sys->data.roster_decl.generic_params = parse_generic_params(parser);
 
-    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after systemic name");
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after roster name");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
@@ -34,7 +34,7 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
         if (parser_match(parser, TOKEN_PARTY)) {
             /* party slot name: PartyType */
             parser_consume(parser, TOKEN_SLOT,
-                "Expected 'slot' after 'party' in systemic");
+                "Expected 'slot' after 'party' in roster");
             Token slot_name = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected slot name");
             parser_consume(parser, TOKEN_COLON,
@@ -42,16 +42,16 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
             Token party_type = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected party type");
 
-            ASTNode* ps = ast_create_systemic_slot(slot_name.text, party_type.text);
+            ASTNode* ps = ast_create_roster_slot(slot_name.text, party_type.text);
             ps->line = slot_name.line;
             ps->column = slot_name.column;
 
-            sys->data.systemic_decl.party_count++;
-            sys->data.systemic_decl.party_slots = realloc(
-                sys->data.systemic_decl.party_slots,
-                sys->data.systemic_decl.party_count * sizeof(ASTNode*));
-            sys->data.systemic_decl.party_slots[
-                sys->data.systemic_decl.party_count - 1] = ps;
+            sys->data.roster_decl.party_count++;
+            sys->data.roster_decl.party_slots = realloc(
+                sys->data.roster_decl.party_slots,
+                sys->data.roster_decl.party_count * sizeof(ASTNode*));
+            sys->data.roster_decl.party_slots[
+                sys->data.roster_decl.party_count - 1] = ps;
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -74,12 +74,12 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
                     parser_parse_expression(parser);
             }
 
-            sys->data.systemic_decl.shared_count++;
-            sys->data.systemic_decl.shared_fields = realloc(
-                sys->data.systemic_decl.shared_fields,
-                sys->data.systemic_decl.shared_count * sizeof(ASTNode*));
-            sys->data.systemic_decl.shared_fields[
-                sys->data.systemic_decl.shared_count - 1] = shared;
+            sys->data.roster_decl.shared_count++;
+            sys->data.roster_decl.shared_fields = realloc(
+                sys->data.roster_decl.shared_fields,
+                sys->data.roster_decl.shared_count * sizeof(ASTNode*));
+            sys->data.roster_decl.shared_fields[
+                sys->data.roster_decl.shared_count - 1] = shared;
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
@@ -87,29 +87,29 @@ ASTNode* parse_systemic_declaration(Parser* parser) {
         } else if (parser_match(parser, TOKEN_FUNC)) {
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
 
-            sys->data.systemic_decl.method_count++;
-            sys->data.systemic_decl.methods = realloc(
-                sys->data.systemic_decl.methods,
-                sys->data.systemic_decl.method_count * sizeof(ASTNode*));
-            sys->data.systemic_decl.methods[
-                sys->data.systemic_decl.method_count - 1] = method;
+            sys->data.roster_decl.method_count++;
+            sys->data.roster_decl.methods = realloc(
+                sys->data.roster_decl.methods,
+                sys->data.roster_decl.method_count * sizeof(ASTNode*));
+            sys->data.roster_decl.methods[
+                sys->data.roster_decl.method_count - 1] = method;
 
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,
-                "Expected 'party slot', 'shared', or 'func' in systemic body");
+                "Expected 'party slot', 'shared', or 'func' in roster body");
             parser_advance(parser);
         }
     }
 
-    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after systemic body");
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after roster body");
     return sys;
 }
 
 /*
  * world GameWorld {
- *     systemic combat: CombatSystem
- *     systemic economy: EconomySystem
+ *     roster combat: CombatSystem
+ *     roster economy: EconomySystem
  *     shared tick: Int = 0
  *     func Update() -> Void { ... }
  * }
@@ -127,8 +127,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
         parser_collect_doc_comments(parser);
 
         if (parser_match_identifier_keyword(parser, "roster")
-            || parser_match_identifier_keyword(parser, "systemic")) {
-            /* roster name: RosterType  (systemic is deprecated alias) */
+            || parser_match_identifier_keyword(parser, "roster")) {
+            /* roster name: RosterType  (roster remains legacy alias) */
             Token slot_name = consume_name_token(parser,
                 "Expected roster name");
             parser_consume(parser, TOKEN_COLON,
@@ -136,17 +136,17 @@ ASTNode* parse_world_declaration(Parser* parser) {
             Token sys_type = parser_consume(parser, TOKEN_IDENTIFIER,
                 "Expected roster type");
 
-            ASTNode* ws = ast_create_world_systemic(
+            ASTNode* ws = ast_create_world_roster(
                 slot_name.text, sys_type.text);
             ws->line = slot_name.line;
             ws->column = slot_name.column;
 
-            world->data.world_decl.systemic_count++;
-            world->data.world_decl.systemics = realloc(
-                world->data.world_decl.systemics,
-                world->data.world_decl.systemic_count * sizeof(ASTNode*));
-            world->data.world_decl.systemics[
-                world->data.world_decl.systemic_count - 1] = ws;
+            world->data.world_decl.roster_count++;
+            world->data.world_decl.rosters = realloc(
+                world->data.world_decl.rosters,
+                world->data.world_decl.roster_count * sizeof(ASTNode*));
+            world->data.world_decl.rosters[
+                world->data.world_decl.roster_count - 1] = ws;
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);

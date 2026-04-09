@@ -162,7 +162,7 @@ with
 | 모듈 | export, namespace, import, use, extern | ✅ namespace+export |
 | Role/Ability | ability, role, include, require, override, super, secure | ✅ ability+role+require |
 | 도메인 | party, relation, effect, zone, slot, shared, context | ✅ 대부분 |
-| Systemic/World | systemic, world | ✅ world |
+| Roster/World | roster, world | ✅ world |
 | 안전 | unsafe, defer, bind | ✅ defer |
 | 리터럴 | true, false | ✅ |
 
@@ -174,7 +174,7 @@ with
 | `trait` | ability의 별칭? | 명확화 필요 |
 | `extends` | 상속 — 별도 시나리오 | 기본 테스트 필요 |
 | `super` | 부모 호출 | extends와 함께 |
-| `systemic` | 시스테믹 컴포넌트 | world 내부 고급 |
+| `roster` | 시스테믹 컴포넌트 | world 내부 고급 |
 | `actor` | 액터 모델 | 별도 동시성 테스트 |
 
 ---

@@ -1053,7 +1053,7 @@ test_shared_memory_features(void)
     TEST("relation/effect/zone accept actor types in subject slot");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "relation ActiveLink {\n"
@@ -1090,36 +1090,36 @@ test_async_system(void)
 {
     printf("\n[async_system]\n");
 
-    TEST("actor declaration registers SYMBOL_ACTOR");
+    TEST("subject declaration registers SYMBOL_CLASS");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *actor = ast_create_actor("Counter");
+        ASTNode *actor = ast_create_subject("Counter");
         actor->line = 1; actor->column = 1;
-        type_check_actor_decl(actor, ctx);
+        type_check_class_decl(actor, ctx);
         EXPECT(!ctx->has_error);
 
         /* Verify symbol was registered */
         Symbol *sym = scope_lookup(ctx->scope, "Counter");
-        EXPECT(sym != NULL && sym->kind == SYMBOL_ACTOR);
+        EXPECT(sym != NULL && sym->kind == SYMBOL_CLASS);
 
         semantic_context_destroy(ctx);
         ast_destroy(actor);
     }
 
-    TEST("duplicate actor declaration triggers error");
+    TEST("duplicate subject declaration triggers error");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *a1 = ast_create_actor("Counter");
+        ASTNode *a1 = ast_create_subject("Counter");
         a1->line = 1; a1->column = 1;
-        type_check_actor_decl(a1, ctx);
+        type_check_class_decl(a1, ctx);
 
-        ASTNode *a2 = ast_create_actor("Counter");
+        ASTNode *a2 = ast_create_subject("Counter");
         a2->line = 3; a2->column = 1;
-        type_check_actor_decl(a2, ctx);
+        type_check_class_decl(a2, ctx);
         EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
@@ -1127,10 +1127,10 @@ test_async_system(void)
         ast_destroy(a2);
     }
 
-    TEST("role can bind to actor as subject profile");
+    TEST("role can bind to subject host");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "ability Tickable { func Tick() -> Void; }\n"
@@ -2196,7 +2196,7 @@ test_effect_inference(void)
     TEST("actor copy into new binding is rejected as subject profile");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -2219,10 +2219,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("standalone actor syntax warns to prefer subject-first surface");
+    TEST("subject declaration emits no actor deprecation warning");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -2232,9 +2232,7 @@ test_effect_inference(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count == 1);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Standalone actor syntax is transitional; prefer 'subject Counter actor { ... }'"));
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2245,7 +2243,7 @@ test_effect_inference(void)
     TEST("subject actor profile syntax is rejected by subject copy rules");
     {
         const char *source =
-            "subject Counter actor {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -2461,10 +2459,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("Slot<actor> is accepted as a local object-cell anchor");
+    TEST("Slot<subject> is accepted as a local object-cell anchor");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -2512,10 +2510,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("SecureSlot<actor> is accepted as a secure object-cell anchor");
+    TEST("SecureSlot<subject> is accepted as a secure object-cell anchor");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -3025,7 +3023,7 @@ test_misc_grammar_edges(void)
     {
         const char *source =
             "tobject BotDto { hp: Int; }\n"
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"

@@ -853,8 +853,8 @@ main(void)
             1
         },
         {
-            "Systemic Declaration",
-            "systemic CombatSystem {\n"
+            "Roster Declaration",
+            "roster CombatSystem {\n"
             "    party slot team1: DungeonTeam\n"
             "    party slot team2: DungeonTeam\n"
             "    shared round: Int = 0\n"
@@ -867,7 +867,7 @@ main(void)
         {
             "World Declaration",
             "world GameWorld {\n"
-            "    systemic combat: CombatSystem\n"
+            "    roster combat: CombatSystem\n"
             "    zone battle: BattleZone\n"
             "    state liveBattle: zone battle\n"
             "    activate liveBattle\n"
@@ -966,8 +966,8 @@ main(void)
             "    let zone = 1;\n"
             "    let effect = zone;\n"
             "    let relation = effect;\n"
-            "    let systemic = relation;\n"
-            "    let world = systemic;\n"
+            "    let roster = relation;\n"
+            "    let world = roster;\n"
             "    Log(world);\n"
             "}",
             1
@@ -1076,7 +1076,7 @@ main(void)
         },
         {
             "Actor Declaration",
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "    func Increment() -> Void {\n"
             "        count = count + 1;\n"
@@ -1086,7 +1086,7 @@ main(void)
         },
         {
             "Subject Actor Profile Declaration",
-            "subject Counter actor {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "    func Increment() -> Void {\n"
             "        count = count + 1;\n"

@@ -3,36 +3,36 @@ test_async_system(void)
 {
     printf("\n[async_system]\n");
 
-    TEST("actor declaration registers SYMBOL_ACTOR");
+    TEST("subject declaration registers SYMBOL_CLASS");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *actor = ast_create_actor("Counter");
+        ASTNode *actor = ast_create_subject("Counter");
         actor->line = 1; actor->column = 1;
-        type_check_actor_decl(actor, ctx);
+        type_check_class_decl(actor, ctx);
         EXPECT(!ctx->has_error);
 
         /* Verify symbol was registered */
         Symbol *sym = scope_lookup(ctx->scope, "Counter");
-        EXPECT(sym != NULL && sym->kind == SYMBOL_ACTOR);
+        EXPECT(sym != NULL && sym->kind == SYMBOL_CLASS);
 
         semantic_context_destroy(ctx);
         ast_destroy(actor);
     }
 
-    TEST("duplicate actor declaration triggers error");
+    TEST("duplicate subject declaration triggers error");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *a1 = ast_create_actor("Counter");
+        ASTNode *a1 = ast_create_subject("Counter");
         a1->line = 1; a1->column = 1;
-        type_check_actor_decl(a1, ctx);
+        type_check_class_decl(a1, ctx);
 
-        ASTNode *a2 = ast_create_actor("Counter");
+        ASTNode *a2 = ast_create_subject("Counter");
         a2->line = 3; a2->column = 1;
-        type_check_actor_decl(a2, ctx);
+        type_check_class_decl(a2, ctx);
         EXPECT(ctx->has_error);
 
         semantic_context_destroy(ctx);
@@ -40,10 +40,10 @@ test_async_system(void)
         ast_destroy(a2);
     }
 
-    TEST("role can bind to actor as subject profile");
+    TEST("role can bind to subject host");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "ability Tickable { func Tick() -> Void; }\n"

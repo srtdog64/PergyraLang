@@ -1762,8 +1762,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_role_decl(node, ctx);
     case AST_PARTY_DECL:
         return type_check_party_decl(node, ctx);
-    case AST_SYSTEMIC_DECL:
-        return type_check_systemic_decl(node, ctx);
+    case AST_ROSTER_DECL:
+        return type_check_roster_decl(node, ctx);
     case AST_WORLD_DECL:
         return type_check_world_decl(node, ctx);
     case AST_INTENT_DECL:
@@ -1774,8 +1774,6 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_effect_decl(node, ctx);
     case AST_ZONE_DECL:
         return type_check_zone_decl(node, ctx);
-    case AST_ACTOR_DECL:
-        return type_check_actor_decl(node, ctx);
     case AST_ASYNC_BLOCK:
         return type_check_async_block(node, ctx);
     case AST_SELECT_STMT:
@@ -2548,20 +2546,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     scope_declare(ctx->scope, s);
                 }
             }
-        } else if (stmt->type == AST_ACTOR_DECL) {
-            const char *aname = stmt->data.actor_decl.name;
-            if (aname != NULL && scope_lookup_current(ctx->scope, aname) == NULL) {
-                Type *t = calloc(1, sizeof(Type));
-                if (t != NULL) {
-                    t->kind = TYPE_KIND_CLASS;
-                    t->nominal_flavor = TYPE_NOMINAL_SUBJECT;
-                    t->name = pergyra_strdup(aname);
-                }
-                Symbol *s = symbol_create_function(aname,
-                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
-                s->kind = SYMBOL_ACTOR;
-                scope_declare(ctx->scope, s);
-            }
         } else if (stmt->type == AST_INTENT_DECL) {
             const char *iname = stmt->data.intent_decl.name;
             if (iname != NULL && scope_lookup_current(ctx->scope, iname) == NULL) {
@@ -2592,7 +2576,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_PARTY_DECL
-                   || stmt->type == AST_SYSTEMIC_DECL
+                   || stmt->type == AST_ROSTER_DECL
                    || stmt->type == AST_WORLD_DECL
                    || stmt->type == AST_RELATION_DECL
                    || stmt->type == AST_EFFECT_DECL
@@ -2602,8 +2586,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             const char *dname = NULL;
             if (stmt->type == AST_PARTY_DECL)
                 dname = stmt->data.party_decl.name;
-            else if (stmt->type == AST_SYSTEMIC_DECL)
-                dname = stmt->data.systemic_decl.name;
+            else if (stmt->type == AST_ROSTER_DECL)
+                dname = stmt->data.roster_decl.name;
             else if (stmt->type == AST_WORLD_DECL)
                 dname = stmt->data.world_decl.name;
             else if (stmt->type == AST_RELATION_DECL)

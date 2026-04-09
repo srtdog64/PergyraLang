@@ -349,7 +349,7 @@ test_misc_grammar_edges(void)
     {
         const char *source =
             "tobject BotDto { hp: Int; }\n"
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"

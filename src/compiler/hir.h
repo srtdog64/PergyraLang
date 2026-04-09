@@ -61,6 +61,7 @@ typedef struct
     size_t           decl_id;
     HIRTopLevelKind  kind;
     const char      *name;
+    const char      *owner_name;
     ASTNode         *ast;
     ASTNode         *body;
     bool             is_hosted;
@@ -213,8 +214,8 @@ struct HIRProgram
     size_t            role_count;
     ASTNode         **parties;
     size_t            party_count;
-    ASTNode         **systemics;
-    size_t            systemic_count;
+    ASTNode         **rosters;
+    size_t            roster_count;
     ASTNode         **worlds;
     size_t            world_count;
     ASTNode         **relations;

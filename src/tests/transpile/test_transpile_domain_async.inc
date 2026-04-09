@@ -1,29 +1,29 @@
 static void
-test_systemic_world_emit(void)
+test_roster_world_emit(void)
 {
-    printf("\n[systemic_world_emit]\n");
+    printf("\n[roster_world_emit]\n");
 
-    TEST("systemic emits struct with party slot");
+    TEST("roster emits struct with party slot");
     {
         ASTNode sys_node; memset(&sys_node, 0, sizeof(sys_node));
-        sys_node.type = AST_SYSTEMIC_DECL;
-        sys_node.data.systemic_decl.name = "CombatSystem";
+        sys_node.type = AST_ROSTER_DECL;
+        sys_node.data.roster_decl.name = "CombatSystem";
 
         ASTNode ps; memset(&ps, 0, sizeof(ps));
         ps.type = AST_SYSTEMIC_SLOT;
-        ps.data.systemic_slot.slot_name = "team1";
-        ps.data.systemic_slot.party_type = "DungeonTeam";
+        ps.data.roster_slot.slot_name = "team1";
+        ps.data.roster_slot.party_type = "DungeonTeam";
 
         ASTNode *party_slots[1] = { &ps };
-        sys_node.data.systemic_decl.party_slots = party_slots;
-        sys_node.data.systemic_decl.party_count = 1;
-        sys_node.data.systemic_decl.shared_fields = NULL;
-        sys_node.data.systemic_decl.shared_count = 0;
-        sys_node.data.systemic_decl.methods = NULL;
-        sys_node.data.systemic_decl.method_count = 0;
+        sys_node.data.roster_decl.party_slots = party_slots;
+        sys_node.data.roster_decl.party_count = 1;
+        sys_node.data.roster_decl.shared_fields = NULL;
+        sys_node.data.roster_decl.shared_count = 0;
+        sys_node.data.roster_decl.methods = NULL;
+        sys_node.data.roster_decl.method_count = 0;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_systemic_decl(&sys_node, ctx);
+        emit_roster_decl(&sys_node, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct CombatSystem");
         EXPECT_STR_CONTAINS(ctx->out->data, "DungeonTeam team1");
@@ -32,7 +32,7 @@ test_systemic_world_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("world emits struct with systemic and zone members");
+    TEST("world emits struct with roster and zone members");
     {
         ASTNode world_node; memset(&world_node, 0, sizeof(world_node));
         world_node.type = AST_WORLD_DECL;
@@ -40,18 +40,18 @@ test_systemic_world_emit(void)
 
         ASTNode ws; memset(&ws, 0, sizeof(ws));
         ws.type = AST_WORLD_SYSTEMIC;
-        ws.data.world_systemic.slot_name = "combat";
-        ws.data.world_systemic.systemic_type = "CombatSystem";
+        ws.data.world_roster.slot_name = "combat";
+        ws.data.world_roster.roster_type = "CombatSystem";
 
         ASTNode wz; memset(&wz, 0, sizeof(wz));
         wz.type = AST_WORLD_ZONE;
         wz.data.world_zone.slot_name = "battle";
         wz.data.world_zone.zone_type = "BattleZone";
 
-        ASTNode *systemics[1] = { &ws };
+        ASTNode *rosters[1] = { &ws };
         ASTNode *zones[1] = { &wz };
-        world_node.data.world_decl.systemics = systemics;
-        world_node.data.world_decl.systemic_count = 1;
+        world_node.data.world_decl.rosters = rosters;
+        world_node.data.world_decl.roster_count = 1;
         world_node.data.world_decl.zones = zones;
         world_node.data.world_decl.zone_count = 1;
         world_node.data.world_decl.shared_fields = NULL;
@@ -648,11 +648,12 @@ test_async_emit(void)
 {
     printf("\n[async_emit]\n");
 
-    TEST("actor emits struct typedef");
+    TEST("subject emits struct typedef");
     {
         ASTNode actor_node; memset(&actor_node, 0, sizeof(actor_node));
-        actor_node.type = AST_ACTOR_DECL;
-        actor_node.data.actor_decl.name = "Counter";
+        actor_node.type = AST_CLASS_DECL;
+        actor_node.data.class_decl.name = "Counter";
+        actor_node.data.class_decl.nominal_kind = NOMINAL_DECL_SUBJECT;
 
         ClassField field; memset(&field, 0, sizeof(field));
         field.name = "count";
@@ -662,13 +663,13 @@ test_async_emit(void)
         field.type = &field_type;
 
         ClassField *fields[1] = { &field };
-        actor_node.data.actor_decl.fields = fields;
-        actor_node.data.actor_decl.field_count = 1;
-        actor_node.data.actor_decl.methods = NULL;
-        actor_node.data.actor_decl.method_count = 0;
+        actor_node.data.class_decl.fields = fields;
+        actor_node.data.class_decl.field_count = 1;
+        actor_node.data.class_decl.methods = NULL;
+        actor_node.data.class_decl.method_count = 0;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_actor_decl(&actor_node, ctx);
+        emit_class_decl(&actor_node, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter");
         EXPECT_STR_CONTAINS(ctx->out->data, "int32_t count");
@@ -680,10 +681,10 @@ test_async_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("subject actor profile syntax lowers through actor codegen");
+    TEST("subject syntax lowers through subject codegen");
     {
         const char *source =
-            "subject Counter actor {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "func Main() -> Void {\n"

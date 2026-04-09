@@ -355,8 +355,8 @@ main(void)
                         hover_text = "**tobject** — Transfer object. Boundary transfer data type";
                     else if (strcmp(word, "roster") == 0)
                         hover_text = "**roster** — Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)";
-                    else if (strcmp(word, "systemic") == 0)
-                        hover_text = "**systemic** — Deprecated. Use **roster** instead. Party container";
+                    else if (strcmp(word, "roster") == 0)
+                        hover_text = "**roster** — Legacy alias. Use **roster**.";
                     else if (strcmp(word, "class") == 0)
                         hover_text = "**class** — Subject declaration (compatibility keyword)";
                     else if (strcmp(word, "subject") == 0)

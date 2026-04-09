@@ -1140,7 +1140,7 @@ test_shared_memory_features(void)
     TEST("relation/effect/zone accept actor types in subject slot");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "relation ActiveLink {\n"

@@ -288,7 +288,7 @@ func GenericAlgorithm<T>() {
 module FinancialCore {
     type AccountSlot = Slot<Account, Hardware>
     
-    actor Bank {
+    subject Bank {
         private _accounts: Map<String, AccountSlot>
         
         public func Transfer(

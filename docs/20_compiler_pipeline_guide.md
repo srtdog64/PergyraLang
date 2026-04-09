@@ -37,6 +37,7 @@
 - **양쪽 백엔드 모두 MIR을 수신한다.** C 백엔드는 `transpile_with_mir(bundle->hir, bundle->mir, ...)`, LLVM 백엔드는 `llvm_codegen_with_mir(bundle->hir, bundle->mir, ...)`를 호출한다.
 - C 백엔드: MIR CFG/SSA 기반 함수 본문 emit + intent cleanup/rollback/invalidation block 직접 emit. 도메인 선언(zone/world/relation/effect)과 intent step은 아직 HIR 기반이지만, object projection lowering은 이제 borrow-first이고 relation/effect/zone projection sync는 dirty-target만 다시 build한다.
 - LLVM 백엔드: MIR 기반 함수 본문 emit (`llvm_emit_func_from_mir`) + HIR fallback으로 도메인 선언과 intent 함수를 emit. Domain struct 타입 등록은 MIR emit 전에 수행.
+- backend 정책상 LLVM/native가 primary path이고, C backend는 reference/bootstrap/debug path로 취급한다. 자세한 역할 정의는 [51_c_backend_reference_policy.md](/mnt/e/PergyraLang/docs/51_c_backend_reference_policy.md), 전환 계획은 [52_llvm_native_first_roadmap.md](/mnt/e/PergyraLang/docs/52_llvm_native_first_roadmap.md)에 둔다.
 - `driver_run_pipeline_timed()`는 같은 파이프라인을 phase별로 계측한다. ABI benchmark harness는 이 timing을 읽어 CI에서는 hard upper bound, 로컬에서는 comparative metric으로 사용한다. backend timing은 다시 `codegen`, `native_compile`, `link`로 분해된다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 - compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`의 low-level helper/public API를 [`mir_base.inc`](../src/compiler/mir_base.inc) / [`mir_public.inc`](../src/compiler/mir_public.inc)로 떼어내고, `rir.c`도 [`rir_flow.inc`](../src/compiler/rir_flow.inc) / [`rir_builder.inc`](../src/compiler/rir_builder.inc) / [`rir_public.inc`](../src/compiler/rir_public.inc)로 분리해 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
@@ -179,7 +180,7 @@
 
 현재 DIR가 하는 일:
 
-- `ability`, `role`, `party`, `systemic`, `world`, `relation`, `effect`, `zone`, `intent`를 node로 수집
+- `ability`, `role`, `party`, `roster`, `world`, `relation`, `effect`, `zone`, `intent`를 node로 수집
 - `role -> for type`, `role -> impl ability`, `party -> ability slot`, `world -> zone`, `zone -> effect/relation slot` 같은 declaration edge를 수집
 - owner-qualified slot contract node를 직접 만든다
   - `party-slot`
@@ -378,7 +379,7 @@
 - `abilities`
 - `roles`
 - `parties`
-- `systemics`
+- `rosters`
 - `worlds`
 - `actors`
 - `events`

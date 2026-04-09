@@ -25,14 +25,13 @@ typedef enum
     SYMBOL_VARIABLE,    /* let x = ...              */
     SYMBOL_FUNCTION,    /* func Foo()               */
     SYMBOL_CLASS,       /* class Bar                */
-    SYMBOL_ACTOR,       /* actor Baz                */
     SYMBOL_TYPE_PARAM,  /* T, U (generic parameter) */
     SYMBOL_SLOT,        /* Slot<T> variable         */
     SYMBOL_TOKEN,       /* SecurityToken for SecureSlot */
     SYMBOL_ABILITY,     /* ability Foo              */
     SYMBOL_ROLE,        /* role Bar for Baz         */
     SYMBOL_PARTY,       /* party Baz                */
-    SYMBOL_SYSTEMIC,    /* systemic Sys             */
+    SYMBOL_ROSTER,    /* roster Sys             */
     SYMBOL_WORLD,       /* world W                  */
     SYMBOL_INTENT,      /* intent Purchase          */
     SYMBOL_RELATION,    /* relation R               */

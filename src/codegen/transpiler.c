@@ -22,12 +22,11 @@
 void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_party_decl(ASTNode *node, TranspilerCtx *ctx);
-void emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx);
+void emit_roster_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-void emit_actor_decl(ASTNode *node, TranspilerCtx *ctx);
 static void emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx);
 static bool ast_uses_thread_pool(ASTNode *node);
 static bool hir_requires_thread_pool(const HIRProgram *hir);
@@ -922,11 +921,11 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *relation_decl = find_relation_decl(ctx, ann_type_name);
             ASTNode *effect_decl = find_effect_decl(ctx, ann_type_name);
             ASTNode *party_decl = find_party_decl(ctx, ann_type_name);
-            ASTNode *systemic_decl = find_systemic_decl(ctx, ann_type_name);
+            ASTNode *roster_decl = find_roster_decl(ctx, ann_type_name);
             if ((zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
                 || (world_decl != NULL && world_decl->type == AST_WORLD_DECL)
                 || (party_decl != NULL && party_decl->type == AST_PARTY_DECL)
-                || (systemic_decl != NULL && systemic_decl->type == AST_SYSTEMIC_DECL)
+                || (roster_decl != NULL && roster_decl->type == AST_ROSTER_DECL)
                 || (relation_decl != NULL && relation_decl->type == AST_RELATION_DECL)
                 || (effect_decl != NULL && effect_decl->type == AST_EFFECT_DECL)) {
                 char *init_expr = emit_expression(init, ctx);
@@ -4007,8 +4006,8 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_PARTY_DECL:
         emit_party_decl(node, ctx);
         break;
-    case AST_SYSTEMIC_DECL:
-        emit_systemic_decl(node, ctx);
+    case AST_ROSTER_DECL:
+        emit_roster_decl(node, ctx);
         break;
     case AST_WORLD_DECL:
         emit_world_decl(node, ctx);
@@ -4182,9 +4181,6 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             free(expr);
             break;
         }
-    case AST_ACTOR_DECL:
-        emit_actor_decl(node, ctx);
-        break;
     case AST_SELECT_STMT:
         emit_select_stmt(node, ctx);
         break;
@@ -5279,9 +5275,9 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     for (size_t i = 0; i < hir->party_count; i++)
         emit_party_decl(hir->parties[i], ctx);
 
-    /* Pass 3.7: systemics (struct + methods) */
-    for (size_t i = 0; i < hir->systemic_count; i++)
-        emit_systemic_decl(hir->systemics[i], ctx);
+    /* Pass 3.7: rosters (struct + methods) */
+    for (size_t i = 0; i < hir->roster_count; i++)
+        emit_roster_decl(hir->rosters[i], ctx);
 
     /* Pass 3.75: relations and effects (must precede zones that reference them) */
     for (size_t i = 0; i < hir->relation_count; i++)
@@ -5309,10 +5305,6 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Pass 3.9: worlds (struct + methods) */
     for (size_t i = 0; i < hir->world_count; i++)
         emit_world_decl(hir->worlds[i], ctx);
-
-    /* Pass 3.95: actors (struct + methods) */
-    for (size_t i = 0; i < hir->actor_count; i++)
-        emit_actor_decl(hir->actors[i], ctx);
 
     for (size_t i = 0; i < hir->event_count; i++)
         emit_event_decl(hir->events[i], ctx);

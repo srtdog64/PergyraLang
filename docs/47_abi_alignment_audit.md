@@ -16,7 +16,7 @@
 - driver는 `driver_run_pipeline_timed(...)`를 통해 `module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total` timing을 직접 제공한다.
 - `object` lowering은 이제 C/LLVM 양쪽에서 borrow-first다. non-escaping `ToObject(...)` local binding은 source subject를 직접 읽는 projection alias로 다뤄진다.
 - `tobject` lowering은 여전히 materialize-first다. `ToTObject(...)`는 boundary transfer value를 실제로 만든다.
-- nominal constructor의 shared initializer 적용도 C/LLVM 양쪽에서 다시 맞춰졌다. `party`와 `systemic`는 constructor argument 뒤의 shared field default를 동일하게 materialize한다.
+- nominal constructor의 shared initializer 적용도 C/LLVM 양쪽에서 다시 맞춰졌다. `party`와 `roster`는 constructor argument 뒤의 shared field default를 동일하게 materialize한다.
 - relation/effect/zone projection sync는 C backend에서 `__projection_ready_*` + `__projection_dirty_*` 기반 incremental rebuild를 사용한다.
 - normal compile path에서 `[MIR LOWER] ...` debug 출력은 기본 비활성화되어 있다. 필요할 때만 `PGY_DEBUG_MIR_LOWER=1`로 켠다.
 
@@ -63,7 +63,7 @@
 - [`docs/20_compiler_pipeline_guide.md`](20_compiler_pipeline_guide.md)
   - `driver_run_pipeline_timed()`와 ABI benchmark harness 추가
   - C backend projection lowering 최신 상태 반영
-- [`docs/13_world_systemic_architecture.md`](13_world_systemic_architecture.md)
+- [`docs/13_world_roster_architecture.md`](13_world_roster_architecture.md)
   - relation/effect/zone projection dirty model 반영
   - `tobject`를 boundary projection contract로 명시
 - [`docs/22_class_object_model.md`](22_class_object_model.md)

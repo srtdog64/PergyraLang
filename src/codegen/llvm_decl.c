@@ -90,9 +90,9 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
                 && strcmp(stmt->data.party_decl.name, type_name) == 0)
                 return true;
             break;
-        case AST_SYSTEMIC_DECL:
-            if (stmt->data.systemic_decl.name != NULL
-                && strcmp(stmt->data.systemic_decl.name, type_name) == 0)
+        case AST_ROSTER_DECL:
+            if (stmt->data.roster_decl.name != NULL
+                && strcmp(stmt->data.roster_decl.name, type_name) == 0)
                 return true;
             break;
         case AST_WORLD_DECL:

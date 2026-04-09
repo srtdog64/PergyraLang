@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-09 (intent/MIR step carrier 반영)
+마지막 업데이트: 2026-04-09 (intent forward-declare MIR seed, hidden method HIR/MIR routine 생성, subject/actor method MIR direct path, domain sync registry metadata 반영, world zone lookup registry화, lld 기본화 반영)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -211,14 +211,36 @@
 - `intent`는 이제 MIR routine이 없거나 MIR step sequence가 없으면 LLVM MIR path에서 hard error로 실패한다.
 - `intent` cleanup / rollback / invalidation은 MIR topology를 읽는다.
 - `intent` run-body의 step 순서도 이제 MIR `STMT(intent step)` carrier를 읽는다.
-- 아직 남은 직접 AST 해석:
-  - step 내부 `pre/guard/post/invariant/expect`
-  - `on:` / subintent expression
-  - default action dispatch
-  - compensation expression body
+- `intent` step check(`pre/guard/post/invariant/expect`)와 eval(`on:` / subintent / compensate), default dispatch alias, zone metadata(`where/using/from/who`)도 MIR carrier를 우선 읽는다.
+- `intent` forward declaration/signature seed도 MIR `IntentParticipant` carrier를 우선 읽는다.
+- 남은 직접 AST/HIR 의존:
+  - MIR participant metadata가 없을 때의 compatibility fallback
+  - domain/world/zone declaration emission 자체
+
+- 이번 라운드에서 줄인 것:
+  - zone slot resolution은 LLVM class registry metadata(`is_subject_slot`)를 우선 사용한다
+  - default action dispatch는 function registry metadata(`is_action`, `action_self_only`)를 사용한다
+  - intent participant alias/type seed는 MIR `IntentParticipant` carrier를 우선 사용한다
+  - intent forward declaration도 MIR participant type seed를 우선 사용한다
+  - domain sync helper 선택도 LLVM class registry metadata(`domain_kind`, `sync_function_name`)를 우선 사용한다
+  - world sync의 zone class lookup 하나는 이제 AST `world_zone` declaration lookup 대신 class registry의 field LLVM type 역조회로 처리한다
 
 즉, `intent`는 더 이상 "전체 body가 HIR fallback"인 상태는 아니다.
-남은 부채는 "step 내부 의미를 AST에서 직접 읽는 마지막 층"이다.
+남은 부채는 "intent orchestration의 마지막 symbol/bootstrap 층"이다.
+
+### 4.4 Class method fallback 현실
+
+- HIR는 이제 class/actor method를 hidden routine로도 수집한다.
+- MIR/RIR matching도 `owner_name`을 같이 보도록 강화됐다.
+- empty method body도 이제 valid MIR routine로 취급한다.
+- 현재 상태:
+  - plain `class` method: MIR direct path 우선, routine 없으면 hard error
+  - `subject` method: MIR direct path 우선, routine 없으면 hard error
+  - `actor` method: MIR direct path 우선, 없으면 compatibility fallback 유지
+  - direct MIR method emission을 모든 nominal family로 hard-require 하는 단계는 아직 남아 있다
+- 확인된 현재 한계:
+  - `actor` method는 MIR direct emission 우선 경로는 들어갔지만, 아직 hard-require fallback 제거까지는 안 갔다
+- 즉 이 항목은 "plain class method는 전진, subject/actor method는 다음 단계" 상태다.
 
 ### 4.4 Main-wrapper fallback
 

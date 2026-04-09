@@ -363,27 +363,27 @@ ASTNode* ast_create_override_func(ASTNode* func_decl) {
     return node;
 }
 
-// Systemic declaration
-ASTNode* ast_create_systemic_declaration(const char* name) {
-    ASTNode* node = ast_create_node(AST_SYSTEMIC_DECL);
-    node->data.systemic_decl.name = name ? pergyra_strdup(name) : NULL;
-    node->data.systemic_decl.party_slots = NULL;
-    node->data.systemic_decl.party_count = 0;
-    node->data.systemic_decl.shared_fields = NULL;
-    node->data.systemic_decl.shared_count = 0;
-    node->data.systemic_decl.methods = NULL;
-    node->data.systemic_decl.method_count = 0;
-    node->data.systemic_decl.generic_params = NULL;
-    node->data.systemic_decl.doc_comment = NULL;
+// Roster declaration
+ASTNode* ast_create_roster_declaration(const char* name) {
+    ASTNode* node = ast_create_node(AST_ROSTER_DECL);
+    node->data.roster_decl.name = name ? pergyra_strdup(name) : NULL;
+    node->data.roster_decl.party_slots = NULL;
+    node->data.roster_decl.party_count = 0;
+    node->data.roster_decl.shared_fields = NULL;
+    node->data.roster_decl.shared_count = 0;
+    node->data.roster_decl.methods = NULL;
+    node->data.roster_decl.method_count = 0;
+    node->data.roster_decl.generic_params = NULL;
+    node->data.roster_decl.doc_comment = NULL;
     return node;
 }
 
-// Systemic slot
-ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type) {
+// Roster slot
+ASTNode* ast_create_roster_slot(const char* slot_name, const char* party_type) {
     ASTNode* node = ast_create_node(AST_SYSTEMIC_SLOT);
-    node->data.systemic_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
-    node->data.systemic_slot.party_type = party_type ? pergyra_strdup(party_type) : NULL;
-    node->data.systemic_slot.is_array = false;
+    node->data.roster_slot.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.roster_slot.party_type = party_type ? pergyra_strdup(party_type) : NULL;
+    node->data.roster_slot.is_array = false;
     return node;
 }
 
@@ -391,8 +391,8 @@ ASTNode* ast_create_systemic_slot(const char* slot_name, const char* party_type)
 ASTNode* ast_create_world_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_WORLD_DECL);
     node->data.world_decl.name = name ? pergyra_strdup(name) : NULL;
-    node->data.world_decl.systemics = NULL;
-    node->data.world_decl.systemic_count = 0;
+    node->data.world_decl.rosters = NULL;
+    node->data.world_decl.roster_count = 0;
     node->data.world_decl.zones = NULL;
     node->data.world_decl.zone_count = 0;
     node->data.world_decl.shared_fields = NULL;
@@ -411,12 +411,12 @@ ASTNode* ast_create_world_declaration(const char* name) {
     return node;
 }
 
-// World systemic instance
-ASTNode* ast_create_world_systemic(const char* slot_name, const char* systemic_type) {
+// World roster instance
+ASTNode* ast_create_world_roster(const char* slot_name, const char* roster_type) {
     ASTNode* node = ast_create_node(AST_WORLD_SYSTEMIC);
-    node->data.world_systemic.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
-    node->data.world_systemic.systemic_type = systemic_type ? pergyra_strdup(systemic_type) : NULL;
-    node->data.world_systemic.initializer = NULL;
+    node->data.world_roster.slot_name = slot_name ? pergyra_strdup(slot_name) : NULL;
+    node->data.world_roster.roster_type = roster_type ? pergyra_strdup(roster_type) : NULL;
+    node->data.world_roster.initializer = NULL;
     return node;
 }
 
@@ -1106,21 +1106,6 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     return node;
 }
 
-ASTNode* ast_create_actor(const char* name) {
-    ASTNode* node = ast_create_node(AST_ACTOR_DECL);
-    if (!node) return NULL;
-
-    node->data.actor_decl.name = pergyra_strdup(name);
-    node->data.actor_decl.fields = NULL;
-    node->data.actor_decl.field_count = 0;
-    node->data.actor_decl.methods = NULL;
-    node->data.actor_decl.method_count = 0;
-    node->data.actor_decl.generic_params = NULL;
-    node->data.actor_decl.from_subject_profile_surface = false;
-    node->data.actor_decl.doc_comment = NULL;
-    return node;
-}
-
 ASTNode* ast_create_await_expression(ASTNode* expression) {
     ASTNode* node = ast_create_node(AST_AWAIT_EXPR);
     if (!node) return NULL;
@@ -1492,22 +1477,6 @@ void ast_destroy(ASTNode* node) {
             free(node->data.async_block.statements);
             break;
 
-        case AST_ACTOR_DECL:
-            free(node->data.actor_decl.name);
-            for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
-                free(node->data.actor_decl.fields[i]->name);
-                ast_destroy(node->data.actor_decl.fields[i]->type);
-                free(node->data.actor_decl.fields[i]);
-            }
-            free(node->data.actor_decl.fields);
-            for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
-                ast_destroy(node->data.actor_decl.methods[i]);
-            }
-            free(node->data.actor_decl.methods);
-            ast_destroy_generic_params(node->data.actor_decl.generic_params);
-            ast_destroy_structured_comment(node->data.actor_decl.doc_comment);
-            break;
-
         case AST_AWAIT_EXPR:
             ast_destroy(node->data.await_expr.expression);
             break;
@@ -1553,31 +1522,31 @@ void ast_destroy(ASTNode* node) {
             free(node->data.task_group.tasks);
             break;
 
-        case AST_SYSTEMIC_DECL:
-            free(node->data.systemic_decl.name);
-            for (size_t i = 0; i < node->data.systemic_decl.party_count; i++)
-                ast_destroy(node->data.systemic_decl.party_slots[i]);
-            free(node->data.systemic_decl.party_slots);
-            for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++)
-                ast_destroy(node->data.systemic_decl.shared_fields[i]);
-            free(node->data.systemic_decl.shared_fields);
-            for (size_t i = 0; i < node->data.systemic_decl.method_count; i++)
-                ast_destroy(node->data.systemic_decl.methods[i]);
-            free(node->data.systemic_decl.methods);
-            ast_destroy_generic_params(node->data.systemic_decl.generic_params);
-            ast_destroy_structured_comment(node->data.systemic_decl.doc_comment);
+        case AST_ROSTER_DECL:
+            free(node->data.roster_decl.name);
+            for (size_t i = 0; i < node->data.roster_decl.party_count; i++)
+                ast_destroy(node->data.roster_decl.party_slots[i]);
+            free(node->data.roster_decl.party_slots);
+            for (size_t i = 0; i < node->data.roster_decl.shared_count; i++)
+                ast_destroy(node->data.roster_decl.shared_fields[i]);
+            free(node->data.roster_decl.shared_fields);
+            for (size_t i = 0; i < node->data.roster_decl.method_count; i++)
+                ast_destroy(node->data.roster_decl.methods[i]);
+            free(node->data.roster_decl.methods);
+            ast_destroy_generic_params(node->data.roster_decl.generic_params);
+            ast_destroy_structured_comment(node->data.roster_decl.doc_comment);
             break;
 
         case AST_SYSTEMIC_SLOT:
-            free(node->data.systemic_slot.slot_name);
-            free(node->data.systemic_slot.party_type);
+            free(node->data.roster_slot.slot_name);
+            free(node->data.roster_slot.party_type);
             break;
 
         case AST_WORLD_DECL:
             free(node->data.world_decl.name);
-            for (size_t i = 0; i < node->data.world_decl.systemic_count; i++)
-                ast_destroy(node->data.world_decl.systemics[i]);
-            free(node->data.world_decl.systemics);
+            for (size_t i = 0; i < node->data.world_decl.roster_count; i++)
+                ast_destroy(node->data.world_decl.rosters[i]);
+            free(node->data.world_decl.rosters);
             for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
                 ast_destroy(node->data.world_decl.zones[i]);
             free(node->data.world_decl.zones);
@@ -1603,9 +1572,9 @@ void ast_destroy(ASTNode* node) {
             break;
 
         case AST_WORLD_SYSTEMIC:
-            free(node->data.world_systemic.slot_name);
-            free(node->data.world_systemic.systemic_type);
-            ast_destroy(node->data.world_systemic.initializer);
+            free(node->data.world_roster.slot_name);
+            free(node->data.world_roster.roster_type);
+            ast_destroy(node->data.world_roster.initializer);
             break;
 
         case AST_WORLD_ZONE:

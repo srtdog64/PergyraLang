@@ -12,8 +12,8 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- 예약 키워드 (57개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `actor`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `tobject`, `object`
-- 컨텍스트 키워드: `world`, `systemic`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
+- 예약 키워드 (56개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `super`, `with`, `parallel`, `trait`, `private`, `public`, `true`, `false`, `tobject`, `object`
+- 컨텍스트 키워드: `world`, `roster`, `roster`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
   선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
@@ -302,7 +302,7 @@ enum Shape {
 - `HasState(<stateName>)`는 zone declaration / zone method 안에서만 유효하며, 선언된 zone state alias를 Bool로 조회한다. 인자는 identifier나 string literal을 받을 수 있다.
 - `HasState(<effectState>, <targetSlot>)`와 `HasState(<relationState>, <leftSlot>, <rightSlot>)`는 선언된 state alias와 slot 조합이 정확히 맞는지까지 검증한다.
 - `zone` body는 여기에 더해 `relation slot`, `effect slot`을 지원한다.
-- `world` body는 `systemic`, `zone`, `state <name>: zone <zoneSlot>`, `state <name>: zone <zoneSlot> projection <projectionSlot>`, `state <name>: zone <zoneSlot> layer <layerSlot>`, `state <name>: zone <zoneSlot> state <zoneStateName>`, `state <name>: all <zoneOrState>[, ...]`, `state <name>: any <zoneOrState>[, ...]`, `activate <zoneOrState>`, `deactivate <zoneOrState>`, `maintain <zoneOrState>`, `shared`, `func`를 지원한다.
+- `world` body는 `roster`, `zone`, `state <name>: zone <zoneSlot>`, `state <name>: zone <zoneSlot> projection <projectionSlot>`, `state <name>: zone <zoneSlot> layer <layerSlot>`, `state <name>: zone <zoneSlot> state <zoneStateName>`, `state <name>: all <zoneOrState>[, ...]`, `state <name>: any <zoneOrState>[, ...]`, `activate <zoneOrState>`, `deactivate <zoneOrState>`, `maintain <zoneOrState>`, `shared`, `func`를 지원한다.
 - `shared`는 프로그램 전역 global이 아니라 해당 host에 귀속된 "local-global" 상태다. 예: `zone`의 `shared round`, `relation`의 `shared trust`, `world`의 `shared season`.
 - `HasZone(<zoneOrState>)`는 world declaration / world method 안에서만 유효하며, 선언된 zone slot 또는 world state alias를 Bool로 조회한다.
 - `HasZoneProjection(<zoneSlot>, <projectionSlot>)`는 world declaration / world method 안에서만 유효하며, embedded zone의 선언된 object/tobject projection slot sync-ready flag를 Bool로 조회한다.
@@ -565,7 +565,7 @@ role PlayerDamageable for Player {
 }
 ```
 
-### 8.2 party / systemic / world
+### 8.2 party / roster / world
 
 ```pergyra
 party Team {
@@ -573,23 +573,23 @@ party Team {
     shared formation: String = "standard";
 }
 
-systemic CombatSystem {
+roster CombatSystem {
     party slot team1: Team;
 }
 
 world GameWorld {
-    systemic combat: CombatSystem;
+    roster combat: CombatSystem;
 }
 ```
 
 ### 8.3 actor / event / lambda
 
 ```pergyra
-actor Counter {
+subject Counter {
     let count: Int;
 }
 
-subject Counter actor {
+subject Counter {
     let count: Int;
 }
 

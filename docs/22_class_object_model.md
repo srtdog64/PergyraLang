@@ -251,7 +251,7 @@ object Door {
 - 자원 셀
 - 점유 / 접근 / 이동 / 해제 / 보호 규율
 - 메모리 박스가 아니라 규율 셀
-- 현재 단계에서는 plain/secure `Slot<subject>`와 `Slot<actor>`를 local object-cell anchor로 허용한다
+- 현재 단계에서는 plain/secure `Slot<subject>`와 `Slot<subject>`를 local object-cell anchor로 허용한다
 - 현재 단계에서는 `func F(ref s: Slot<SubjectHost>)`, `func G(own s: SecureSlot<SubjectHost>)`처럼 subject-host slot을 함수 경계로 넘길 수 있다
 - 이 경계 전달은 semantic, C backend, LLVM smoke까지 닫혔다
 - secure token 모델은 local anchor와 함수 경계 전달까지는 붙었고, 남은 공백은 richer handle semantics다
@@ -283,14 +283,14 @@ object Door {
 - actor는 subject와 병렬인 존재론적 계층이 아니다
 - actor는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
 - 현재 semantic은 actor를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToTObject`, subject copy restriction에 actor를 포함한다
-- 현재 parser surface는 standalone `actor Counter { ... }`와 subject-first `subject Counter actor { ... }`를 모두 받는다
-- standalone `actor Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter actor { ... }`다
+- 현재 parser surface는 standalone `subject Counter { ... }`와 subject-first `subject Counter { ... }`를 모두 받는다
+- standalone `subject Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter { ... }`다
 - 즉 장기 모델에서도 구현 상태에서도 `actor`보다 `subject`가 먼저다
 
-### systemic / world
+### roster / world
 
-- systemic은 party를 묶는 시스템 단위다
-- world는 systemic을 묶는 최상위 조율 단위다
+- roster은 party를 묶는 시스템 단위다
+- world는 roster을 묶는 최상위 조율 단위다
 
 즉 `subject`는 이 계층 전체의 leaf object가 아니라,
 실제로는 role/party/world 체계를 떠받치는 실행 주체다.
@@ -344,7 +344,7 @@ object Door {
 - `Box<class>`를 함수 파라미터/리턴 타입으로 명시적으로 전달 가능
 - generic class codegen (단형화 전략: `Pair<Int>` → `Pair_Int` struct + methods)
 - actor를 subject host로 인식하는 semantic predeclaration / constructor / projection / domain check
-- plain/secure `Slot<subject>` / `Slot<actor>` local object-cell anchor
+- plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달
 - secure boundary forwarding call에서 paired token 전파
 - LLVM nested member assignment (`self.zone.subject.field = value`) runtime parity
@@ -356,7 +356,7 @@ object Door {
 - `super`
 - 복잡한 object hierarchy
 - `class`와 `subject`의 deeper behavioral split
-- standalone `actor Name { ... }`를 언제까지 유지할지에 대한 최종 surface 정책
+- standalone `subject Name { ... }`를 언제까지 유지할지에 대한 최종 surface 정책
 - subject/object view 전환을 표면 문법으로 드러낼지 여부
 - richer handle/object-cell propagation semantics
 

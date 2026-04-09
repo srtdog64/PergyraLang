@@ -423,7 +423,7 @@ test_effect_inference(void)
     TEST("actor copy into new binding is rejected as subject profile");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -446,10 +446,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("standalone actor syntax warns to prefer subject-first surface");
+    TEST("subject declaration emits no actor deprecation warning");
     {
         const char *source =
-            "actor Counter {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -459,9 +459,7 @@ test_effect_inference(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count == 1);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Standalone actor syntax is transitional; prefer 'subject Counter actor { ... }'"));
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -472,7 +470,7 @@ test_effect_inference(void)
     TEST("subject actor profile syntax is rejected by subject copy rules");
     {
         const char *source =
-            "subject Counter actor {\n"
+            "subject Counter {\n"
             "    let count: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -688,10 +686,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("Slot<actor> is accepted as a local object-cell anchor");
+    TEST("Slot<subject> is accepted as a local object-cell anchor");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"
@@ -739,10 +737,10 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("SecureSlot<actor> is accepted as a secure object-cell anchor");
+    TEST("SecureSlot<subject> is accepted as a secure object-cell anchor");
     {
         const char *source =
-            "subject Bot actor {\n"
+            "subject Bot {\n"
             "    let hp: Int;\n"
             "}\n"
             "func Main() -> Void {\n"

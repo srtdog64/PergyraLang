@@ -9,10 +9,10 @@ Party 시스템의 컴파일 타임 처리 흐름을 정의합니다.
 
 ## Current Implementation Snapshot (2026-04-03)
 
-- 파서: `AST_PARTY_DECL`, `AST_ROLE_DECL`, `AST_SYSTEMIC_DECL`, `AST_WORLD_DECL`
-- 시맨틱: ability/role/party/systemic/world 선언 검증
+- 파서: `AST_PARTY_DECL`, `AST_ROLE_DECL`, `AST_ROSTER_DECL`, `AST_WORLD_DECL`
+- 시맨틱: ability/role/party/roster/world 선언 검증
 - 코드젠:
-  - C: party/systemic/world struct + role slot + vtable 포인터 생성
+  - C: party/roster/world struct + role slot + vtable 포인터 생성
   - LLVM: 동일한 구조체/함수/바인딩 경로
 - `bind`는 vtable 포인터를 slot에 연결하는 경로로 구현됨
 

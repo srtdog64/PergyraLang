@@ -2442,46 +2442,46 @@ test_party_decl(void)
 }
 
 /* -----------------------------------------------------------------
- * Systemic / World declarations
+ * Roster / World declarations
  * ----------------------------------------------------------------- */
 
 static void
-test_systemic_world_decl(void)
+test_roster_world_decl(void)
 {
-    printf("\n[systemic_world_decl]\n");
+    printf("\n[roster_world_decl]\n");
 
-    TEST("valid systemic declaration passes");
+    TEST("valid roster declaration passes");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        ASTNode *sys = ast_create_systemic_declaration("CombatSystem");
+        ASTNode *sys = ast_create_roster_declaration("CombatSystem");
         sys->line = 1; sys->column = 1;
-        type_check_systemic_decl(sys, ctx);
+        type_check_roster_decl(sys, ctx);
         EXPECT(!ctx->has_error);
 
         semantic_context_destroy(ctx);
         ast_destroy(sys);
     }
 
-    TEST("valid world with systemic ref passes");
+    TEST("valid world with roster ref passes");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
 
-        /* Register systemic first */
-        ASTNode *sys = ast_create_systemic_declaration("Combat");
+        /* Register roster first */
+        ASTNode *sys = ast_create_roster_declaration("Combat");
         sys->line = 1; sys->column = 1;
-        type_check_systemic_decl(sys, ctx);
+        type_check_roster_decl(sys, ctx);
 
         /* Create world referencing it */
         ASTNode *world = ast_create_world_declaration("GameWorld");
         world->line = 3; world->column = 1;
-        ASTNode *ws = ast_create_world_systemic("combat", "Combat");
+        ASTNode *ws = ast_create_world_roster("combat", "Combat");
         ws->line = 4; ws->column = 1;
-        world->data.world_decl.systemic_count = 1;
-        world->data.world_decl.systemics = malloc(sizeof(ASTNode*));
-        world->data.world_decl.systemics[0] = ws;
+        world->data.world_decl.roster_count = 1;
+        world->data.world_decl.rosters = malloc(sizeof(ASTNode*));
+        world->data.world_decl.rosters[0] = ws;
 
         type_check_world_decl(world, ctx);
         EXPECT(!ctx->has_error);
@@ -2671,7 +2671,7 @@ main(void)
     test_ability_decl();
     test_role_decl();
     test_party_decl();
-    test_systemic_world_decl();
+    test_roster_world_decl();
     test_extern_block();
     test_engine_collections();
     test_subject_class_ownership();

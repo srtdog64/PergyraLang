@@ -3,7 +3,7 @@
 ## 한 줄 요약
 
 > **roster**는 party들의 컨테이너다. 인원 제한, 편성 규칙, 파티 간 공유 상태를 관리한다.
-> (구 `systemic`을 대체)
+> (구 `roster`을 대체)
 
 ---
 
@@ -113,9 +113,9 @@ SQL로 치면:
 
 ---
 
-## 4. 이름 변경: systemic → roster
+## 4. 이름 변경: roster → roster
 
-| | systemic (구) | roster (신) |
+| | roster (구) | roster (신) |
 |--|--------------|-------------|
 | 의미 | "시스템적인" (형용사, 모호) | "명부/편성" (명사, 명확) |
 | 읽을 때 | "이게 뭐지?" | "아 파티 편성이구나" |
@@ -126,7 +126,7 @@ SQL로 치면:
 ### 호환성
 
 - `roster`가 새 키워드
-- `systemic`은 deprecated alias로 남겨둠 (기존 코드 호환)
+- `roster`은 deprecated alias로 남겨둠 (기존 코드 호환)
 - 새 코드는 `roster` 사용
 
 ---
@@ -154,7 +154,7 @@ role    (이행)     → 자격의 구체적 구현
 
 | 결정 | 선택 | 이유 |
 |------|------|------|
-| systemic 이름 | roster로 변경 | systemic은 형용사, 의미 불명. roster는 명사, 즉시 이해 |
+| roster 이름 | roster로 변경 | roster은 형용사, 의미 불명. roster는 명사, 즉시 이해 |
 | party 유지 | O | 집계 경계 + 게임/시뮬레이션 핵심 개념 |
 | roster 유지 | O | party 컨테이너로서 zone과 다른 축 |
-| systemic 호환 | deprecated alias | 기존 코드 깨지지 않게 |
+| roster 호환 | deprecated alias | 기존 코드 깨지지 않게 |

@@ -423,28 +423,28 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 }
 
 /* =================================================================
- * Systemic/World system emitters
+ * Roster/World system emitters
  * ================================================================= */
 
 void
-emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx)
+emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.systemic_decl.name;
+    const char *name = node->data.roster_decl.name;
 
-    codebuf_write(ctx->out, "\n/* Systemic: %s */\n", name);
+    codebuf_write(ctx->out, "\n/* Roster: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     /* Party slots */
-    for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
-        ASTNode *ps = node->data.systemic_decl.party_slots[i];
+    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
+        ASTNode *ps = node->data.roster_decl.party_slots[i];
         codebuf_write(ctx->out, "    %s %s;\n",
-            ps->data.systemic_slot.party_type,
-            ps->data.systemic_slot.slot_name);
+            ps->data.roster_slot.party_type,
+            ps->data.roster_slot.slot_name);
     }
 
     /* Shared fields */
-    for (size_t i = 0; i < node->data.systemic_decl.shared_count; i++) {
-        ASTNode *shared = node->data.systemic_decl.shared_fields[i];
+    for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
+        ASTNode *shared = node->data.roster_decl.shared_fields[i];
         const char *ft = "int32_t";
         if (shared->data.party_shared.type != NULL)
             ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
@@ -454,13 +454,13 @@ emit_systemic_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "} %s;\n", name);
 
     /* Methods */
-    for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
+    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
         emit_hosted_method_forward_decl_named(name,
-            node->data.systemic_decl.methods[i], true, ctx->out, ctx);
+            node->data.roster_decl.methods[i], true, ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.systemic_decl.method_count; i++) {
-        ASTNode *method = node->data.systemic_decl.methods[i];
+    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+        ASTNode *method = node->data.roster_decl.methods[i];
         if (method->type != AST_FUNC_DECL) continue;
 
         const char *method_name = method->data.func_decl.name;
@@ -1389,12 +1389,12 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    /* Systemic instances */
-    for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
-        ASTNode *ws = node->data.world_decl.systemics[i];
+    /* Roster instances */
+    for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
+        ASTNode *ws = node->data.world_decl.rosters[i];
         codebuf_write(ctx->out, "    %s %s;\n",
-            ws->data.world_systemic.systemic_type,
-            ws->data.world_systemic.slot_name);
+            ws->data.world_roster.roster_type,
+            ws->data.world_roster.slot_name);
     }
 
     /* Zone instances */
@@ -1699,66 +1699,6 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 /* =================================================================
  * Async system emitters
  * ================================================================= */
-
-void
-emit_actor_decl(ASTNode *node, TranspilerCtx *ctx)
-{
-    const char *name = node->data.actor_decl.name;
-
-    codebuf_write(ctx->out, "\n/* Actor: %s */\n", name);
-    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
-
-    /* Fields */
-    for (size_t i = 0; i < node->data.actor_decl.field_count; i++) {
-        ClassField *f = node->data.actor_decl.fields[i];
-        const char *ft = "int32_t";
-        if (f->type != NULL)
-            ft = pergyra_ast_type_to_c(f->type);
-        codebuf_write(ctx->out, "    %s %s;\n", ft, f->name);
-    }
-
-    codebuf_write(ctx->out, "} %s;\n", name);
-
-    codebuf_write(ctx->out,
-        "\n/* Auto-generated container types for actor host %s */\n"
-        "PGY_SLOT_DEFINE(%s, %s)\n"
-        "PGY_SECURE_SLOT_DEFINE(%s, %s)\n"
-        "PGY_BOX_DEFINE(%s, %s)\n",
-        name,
-        name, name,
-        name, name,
-        name, name);
-
-    /* Methods (actor methods are emitted as free functions) */
-    for (size_t i = 0; i < node->data.actor_decl.method_count; i++) {
-        ASTNode *method = node->data.actor_decl.methods[i];
-        if (method == NULL) continue;
-
-        const char *method_name = method->data.async_func_decl.name;
-        const char *ret_type = "void";
-        if (method->data.async_func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.async_func_decl.return_type);
-
-        codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
-                      ret_type, name, method_name, name);
-        for (size_t j = 0; j < method->data.async_func_decl.param_count; j++) {
-            FuncParam *p = method->data.async_func_decl.params[j];
-            if (p != NULL && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)
-                continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
-            codebuf_write(ctx->out, ", %s %s", pt, p->name);
-        }
-        codebuf_write(ctx->out, ")\n{\n");
-        ctx->indent++;
-        if (method->data.async_func_decl.body != NULL)
-            emit_block(method->data.async_func_decl.body, ctx);
-        ctx->indent--;
-        codebuf_write(ctx->out, "}\n");
-    }
-}
 
 void
 emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)

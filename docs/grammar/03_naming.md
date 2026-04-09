@@ -47,7 +47,7 @@ party
 relation
 effect
 zone
-systemic
+roster
 world
 ```
 
@@ -198,9 +198,9 @@ namespace Math {
 ability Damageable { }
 role PlayerDamageable for Player { }
 party DungeonTeam { }
-systemic CombatSystem { }
+roster CombatSystem { }
 world GameWorld { }
-actor Counter { }
+subject Counter { }
 ```
 
 ## 11. 현재 주의할 점

@@ -259,6 +259,12 @@ mir_find_matching_rir_scope(const RIRProgram *rir, const HIRRoutine *routine)
         if (scope->kind == wanted_kind
             && scope->name != NULL
             && strcmp(scope->name, routine->name) == 0) {
+            if (routine->owner_name != NULL) {
+                if (scope->owner_name == NULL
+                    || strcmp(scope->owner_name, routine->owner_name) != 0) {
+                    continue;
+                }
+            }
             return scope;
         }
     }

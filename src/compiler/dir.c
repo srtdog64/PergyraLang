@@ -238,7 +238,7 @@ dir_find_party_node_by_name(const DIRProgram *dir, const char *name)
 }
 
 static ssize_t
-dir_find_systemic_node_by_name(const DIRProgram *dir, const char *name)
+dir_find_roster_node_by_name(const DIRProgram *dir, const char *name)
 {
     return dir_find_node_by_name_kind(dir, name, DIR_NODE_SYSTEMIC);
 }
@@ -444,10 +444,6 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
                 if (!dir_add_node(dir, DIR_NODE_TYPE, node->data.enum_decl.name, node))
                     return false;
                 break;
-            case AST_ACTOR_DECL:
-                if (!dir_add_node(dir, DIR_NODE_TYPE, node->data.actor_decl.name, node))
-                    return false;
-                break;
             case AST_ABILITY_DECL:
                 if (!dir_add_node(dir, DIR_NODE_ABILITY, node->data.ability_decl.name, node))
                     return false;
@@ -460,8 +456,8 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
                 if (!dir_add_node(dir, DIR_NODE_PARTY, node->data.party_decl.name, node))
                     return false;
                 break;
-            case AST_SYSTEMIC_DECL:
-                if (!dir_add_node(dir, DIR_NODE_SYSTEMIC, node->data.systemic_decl.name, node))
+            case AST_ROSTER_DECL:
+                if (!dir_add_node(dir, DIR_NODE_SYSTEMIC, node->data.roster_decl.name, node))
                     return false;
                 break;
             case AST_WORLD_DECL:
@@ -606,16 +602,16 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 }
 
 static bool
-dir_collect_systemic_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
+dir_collect_roster_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
-    for (size_t i = 0; i < node->data.systemic_decl.party_count; i++) {
-        ASTNode *slot = node->data.systemic_decl.party_slots[i];
+    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
+        ASTNode *slot = node->data.roster_decl.party_slots[i];
         if (!dir_add_named_edge(dir, DIR_EDGE_SYSTEMIC_PARTY, from_id,
-                                dir_find_party_node_by_name(dir, slot->data.systemic_slot.party_type) >= 0
-                                    ? (size_t)dir_find_party_node_by_name(dir, slot->data.systemic_slot.party_type)
+                                dir_find_party_node_by_name(dir, slot->data.roster_slot.party_type) >= 0
+                                    ? (size_t)dir_find_party_node_by_name(dir, slot->data.roster_slot.party_type)
                                     : SIZE_MAX,
-                                slot->data.systemic_slot.slot_name,
-                                slot->data.systemic_slot.party_type))
+                                slot->data.roster_slot.slot_name,
+                                slot->data.roster_slot.party_type))
             return false;
     }
     return true;
@@ -624,13 +620,13 @@ dir_collect_systemic_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 static bool
 dir_collect_world_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
-    for (size_t i = 0; i < node->data.world_decl.systemic_count; i++) {
-        ASTNode *slot = node->data.world_decl.systemics[i];
-        ssize_t to = dir_find_systemic_node_by_name(dir, slot->data.world_systemic.systemic_type);
+    for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
+        ASTNode *slot = node->data.world_decl.rosters[i];
+        ssize_t to = dir_find_roster_node_by_name(dir, slot->data.world_roster.roster_type);
         if (!dir_add_named_edge(dir, DIR_EDGE_WORLD_SYSTEMIC, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.world_systemic.slot_name,
-                                slot->data.world_systemic.systemic_type))
+                                slot->data.world_roster.slot_name,
+                                slot->data.world_roster.roster_type))
             return false;
     }
     for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
@@ -976,9 +972,9 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                 if (from >= 0 && !dir_collect_party_edges(dir, (size_t)from, node))
                     return false;
                 break;
-            case AST_SYSTEMIC_DECL:
-                from = dir_find_systemic_node_by_name(dir, node->data.systemic_decl.name);
-                if (from >= 0 && !dir_collect_systemic_edges(dir, (size_t)from, node))
+            case AST_ROSTER_DECL:
+                from = dir_find_roster_node_by_name(dir, node->data.roster_decl.name);
+                if (from >= 0 && !dir_collect_roster_edges(dir, (size_t)from, node))
                     return false;
                 break;
             case AST_WORLD_DECL:
@@ -1093,7 +1089,7 @@ dir_node_kind_name(DIRNodeKind kind)
         case DIR_NODE_ROLE: return "role";
         case DIR_NODE_PARTY: return "party";
         case DIR_NODE_PARTY_SLOT: return "party-slot";
-        case DIR_NODE_SYSTEMIC: return "systemic";
+        case DIR_NODE_SYSTEMIC: return "roster";
         case DIR_NODE_WORLD: return "world";
         case DIR_NODE_RELATION: return "relation";
         case DIR_NODE_EFFECT: return "effect";
@@ -1117,8 +1113,8 @@ dir_edge_kind_name(DIREdgeKind kind)
         case DIR_EDGE_ROLE_MISSING_ABILITY_METHOD: return "role-missing-method";
         case DIR_EDGE_PARTY_HAS_SLOT: return "party-has-slot";
         case DIR_EDGE_PARTY_SLOT_ABILITY: return "party-slot";
-        case DIR_EDGE_SYSTEMIC_PARTY: return "systemic-party";
-        case DIR_EDGE_WORLD_SYSTEMIC: return "world-systemic";
+        case DIR_EDGE_SYSTEMIC_PARTY: return "roster-party";
+        case DIR_EDGE_WORLD_SYSTEMIC: return "world-roster";
         case DIR_EDGE_WORLD_ZONE: return "world-zone";
         case DIR_EDGE_ZONE_HAS_SLOT: return "zone-has-slot";
         case DIR_EDGE_ZONE_SLOT_TYPE: return "zone-slot";

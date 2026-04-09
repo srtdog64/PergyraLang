@@ -72,7 +72,7 @@ examples such as the battle simulator and biome simulator.
   tmp build artifact produced by test targets. It now auto-picks the newer
   `/tmp/pgy-PergyraLang-bin/pgy` unless `PGY_BIN` is explicitly set.
 - Hosted helper forward declarations are no longer order-sensitive only because
-  of source layout. Large class/party/systemic/relation/effect/zone/world hosts
+  of source layout. Large class/party/roster/relation/effect/zone/world hosts
   now emit method prototypes before bodies on the C backend, so scenario code
   such as `JourneyZone.Snapshot()` can call helpers declared later in the host.
 - LLVM `ToString(Bool)` no longer sends raw `i1` values into the integer-string

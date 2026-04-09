@@ -49,7 +49,6 @@ static const KeywordEntry keywords[] = {
     {"impl",     TOKEN_IMPL},
     {"async",    TOKEN_ASYNC},
     {"await",    TOKEN_AWAIT},
-    {"actor",    TOKEN_ACTOR},
     {"channel",  TOKEN_CHANNEL},
     {"select",   TOKEN_SELECT},
     {"case",     TOKEN_CASE},
@@ -580,7 +579,6 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_WHERE: return "WHERE";
         case TOKEN_ASYNC: return "ASYNC";
         case TOKEN_AWAIT: return "AWAIT";
-        case TOKEN_ACTOR: return "ACTOR";
         case TOKEN_CHANNEL: return "CHANNEL";
         case TOKEN_SELECT: return "SELECT";
         case TOKEN_CASE: return "CASE";
@@ -597,7 +595,7 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_PARTY: return "PARTY";
         case TOKEN_SHARED: return "SHARED";
         case TOKEN_EXTENDS: return "EXTENDS";
-        case TOKEN_SYSTEMIC: return "SYSTEMIC";
+        case TOKEN_ROSTER: return "SYSTEMIC";
         case TOKEN_WORLD: return "WORLD";
         case TOKEN_INCLUDE: return "INCLUDE";
         case TOKEN_REQUIRE: return "REQUIRE";

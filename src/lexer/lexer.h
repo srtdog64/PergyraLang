@@ -93,14 +93,13 @@ typedef enum
     TOKEN_EXTENDS,
     TOKEN_DYN,
 
-    /* Systemic and World keywords */
-    TOKEN_SYSTEMIC,
+    /* Roster and World keywords */
+    TOKEN_ROSTER,
     TOKEN_WORLD,
     
     /* Async keywords */
     TOKEN_ASYNC,
     TOKEN_AWAIT,
-    TOKEN_ACTOR,
     TOKEN_CHANNEL,
     TOKEN_SELECT,
     TOKEN_CASE,

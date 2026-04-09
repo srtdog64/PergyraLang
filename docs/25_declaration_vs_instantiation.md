@@ -87,16 +87,16 @@ zone TradeZone {
 | `relation Alliance { ... }` | 개체 간 관계 유형 | 종 간 상호작용 패턴 |
 | `effect Poisoned { ... }` | 환경 효과 유형 | 환경 압력의 종류 |
 | `zone BattleZone { ... }` | 규칙 구역 | 바이옴 정의 |
-| `systemic CombatSystem { ... }` | 관리 하위 시스템 | 생태계 순환 시스템 |
+| `roster CombatSystem { ... }` | 관리 하위 시스템 | 생태계 순환 시스템 |
 | `world GameWorld { ... }` | 실행/신뢰/실패 경계 | 생태계 전체 |
 
 ### 인스턴스화 (개체/서식)
 
-zone, systemic, world 내부에서 slot으로 인스턴스화한다:
+zone, roster, world 내부에서 slot으로 인스턴스화한다:
 
 ```
 world GameWorld {
-    systemic combat: CombatSystem;     // 관리 시스템 인스턴스
+    roster combat: CombatSystem;     // 관리 시스템 인스턴스
     zone battle: BattleZone;           // 바이옴 인스턴스
 }
 
@@ -106,7 +106,7 @@ zone BattleZone {
     effect slot poison: Poisoned;      // 효과 인스턴스
 }
 
-systemic CombatSystem {
+roster CombatSystem {
     party slot team: Team;             // 무리 인스턴스
 }
 ```
@@ -134,7 +134,7 @@ world (생태계)
   struct, vessel                       -- 값/수용체 선언
   subject, ability, role, party        -- 개체 계층 선언
   relation, effect                     -- 상호작용 선언
-  zone, systemic                       -- 구역/시스템 선언
+  zone, roster                       -- 구역/시스템 선언
   world                                -- 생태계 선언
 
 subject 내부:
@@ -142,7 +142,7 @@ subject 내부:
   action                               -- 플롯 행위 선언 (func 아님)
 
 world 내부:
-  systemic slot, zone slot             -- 인스턴스화
+  roster slot, zone slot             -- 인스턴스화
 
 zone 내부:
   subject slot, relation slot,         -- 인스턴스화
@@ -208,16 +208,16 @@ world    = 소설 전체
 3. **컴파일 타임 계약 검증** -- zone이 relation/effect의 타입 계약을 참조 시점에 검증
 4. **점진적 조합** -- 작은 단위(ability)부터 큰 단위(world)까지 단계적으로 조립
 
-## systemic vs zone
+## roster vs zone
 
 둘 다 world의 직속이지만 역할이 다르다:
 
 - **zone** = 물리적 구역. subject, relation, effect가 활성화되는 공간. "어디서 무슨 일이 일어나는가"
-- **systemic** = 관리 시스템. party를 조직하고 운영하는 로직. "누가 어떻게 협력하는가"
+- **roster** = 관리 시스템. party를 조직하고 운영하는 로직. "누가 어떻게 협력하는가"
 
 생태계 비유:
 - zone = 사바나, 심해, 열대우림 (서식 환경)
-- systemic = 먹이 사슬 시스템, 번식 시스템, 이주 시스템 (생태 순환)
+- roster = 먹이 사슬 시스템, 번식 시스템, 이주 시스템 (생태 순환)
 
 ## vessel과 action의 위치 (참조: docs/26)
 

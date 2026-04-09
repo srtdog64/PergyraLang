@@ -377,7 +377,7 @@ find_party_decl(TranspilerCtx *ctx, const char *party_name)
 }
 
 static ASTNode *
-find_systemic_decl(TranspilerCtx *ctx, const char *systemic_name);
+find_roster_decl(TranspilerCtx *ctx, const char *roster_name);
 
 static ASTNode *
 find_class_decl(TranspilerCtx *ctx, const char *class_name)
@@ -437,18 +437,11 @@ resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
 static ASTNode *
 find_actor_decl(TranspilerCtx *ctx, const char *actor_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || actor_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->actor_count; i++) {
-        ASTNode *stmt = ctx->hir->actors[i];
-        if (stmt != NULL && stmt->type == AST_ACTOR_DECL
-            && stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, actor_name) == 0) {
-            return stmt;
-        }
+    ASTNode *decl = find_class_decl(ctx, actor_name);
+    if (decl != NULL && decl->type == AST_CLASS_DECL
+        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
+        return decl;
     }
-
     return NULL;
 }
 
@@ -479,8 +472,7 @@ transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
     if (find_class_decl(ctx, name) != NULL
         || find_zone_decl(ctx, name) != NULL
         || find_party_decl(ctx, name) != NULL
-        || find_systemic_decl(ctx, name) != NULL
-        || find_actor_decl(ctx, name) != NULL)
+        || find_roster_decl(ctx, name) != NULL)
         return true;
     for (size_t i = 0; i < ctx->hir->world_count; i++) {
         (void)i;
@@ -562,8 +554,6 @@ projection_source_field_count_local(ASTNode *decl)
         return 0;
     if (decl->type == AST_CLASS_DECL)
         return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
     return 0;
 }
 
@@ -575,11 +565,6 @@ projection_source_field_at_local(ASTNode *decl, size_t index)
     if (decl->type == AST_CLASS_DECL) {
         if (index < decl->data.class_decl.field_count)
             return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
         return NULL;
     }
     return NULL;
@@ -1171,16 +1156,16 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
 }
 
 static ASTNode *
-find_systemic_decl(TranspilerCtx *ctx, const char *systemic_name)
+find_roster_decl(TranspilerCtx *ctx, const char *roster_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || systemic_name == NULL)
+    if (ctx == NULL || ctx->hir == NULL || roster_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
-        ASTNode *stmt = ctx->hir->systemics[i];
-        if (stmt != NULL && stmt->type == AST_SYSTEMIC_DECL
-            && stmt->data.systemic_decl.name != NULL
-            && strcmp(stmt->data.systemic_decl.name, systemic_name) == 0) {
+    for (size_t i = 0; i < ctx->hir->roster_count; i++) {
+        ASTNode *stmt = ctx->hir->rosters[i];
+        if (stmt != NULL && stmt->type == AST_ROSTER_DECL
+            && stmt->data.roster_decl.name != NULL
+            && strcmp(stmt->data.roster_decl.name, roster_name) == 0) {
             return stmt;
         }
     }
@@ -1266,10 +1251,10 @@ current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
-        ASTNode *slot = decl->data.world_decl.systemics[i];
-        if (slot != NULL && slot->data.world_systemic.slot_name != NULL
-            && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
+    for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
+        ASTNode *slot = decl->data.world_decl.rosters[i];
+        if (slot != NULL && slot->data.world_roster.slot_name != NULL
+            && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
             return true;
         }
     }
@@ -1376,18 +1361,6 @@ find_subject_host_method_decl(TranspilerCtx *ctx, const char *type_name,
         }
     }
 
-    decl = find_actor_decl(ctx, type_name);
-    if (decl != NULL && decl->type == AST_ACTOR_DECL) {
-        for (size_t i = 0; i < decl->data.actor_decl.method_count; i++) {
-            ASTNode *method = decl->data.actor_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    }
-
     return NULL;
 }
 
@@ -1419,11 +1392,6 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
             const char *var_type = lookup_typed_var(ctx, slot_name);
             if (var_type != NULL && is_subject_type_name(ctx, var_type))
                 type_name = var_type;
-            else if (var_type != NULL) {
-                ASTNode *actor_decl = find_actor_decl(ctx, var_type);
-                if (actor_decl != NULL)
-                    type_name = var_type;
-            }
         }
     } else if (receiver->type == AST_MEMBER_ACCESS
                && receiver->data.member.object != NULL
@@ -1612,11 +1580,11 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
     if (ctx->current_world_name != NULL) {
         decl = find_world_decl(ctx, ctx->current_world_name);
         if (decl != NULL && decl->type == AST_WORLD_DECL) {
-            for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
-                ASTNode *slot = decl->data.world_decl.systemics[i];
-                if (slot != NULL && slot->data.world_systemic.slot_name != NULL
-                    && strcmp(slot->data.world_systemic.slot_name, field_name) == 0) {
-                    return slot->data.world_systemic.systemic_type;
+            for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
+                ASTNode *slot = decl->data.world_decl.rosters[i];
+                if (slot != NULL && slot->data.world_roster.slot_name != NULL
+                    && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
+                    return slot->data.world_roster.roster_type;
                 }
             }
             for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
@@ -1696,12 +1664,6 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
         if (decl != NULL && decl->type == AST_CLASS_DECL) {
             methods = decl->data.class_decl.methods;
             method_count = decl->data.class_decl.method_count;
-        } else {
-            decl = find_actor_decl(ctx, ctx->current_class_name);
-            if (decl != NULL && decl->type == AST_ACTOR_DECL) {
-                methods = decl->data.actor_decl.methods;
-                method_count = decl->data.actor_decl.method_count;
-            }
         }
     }
 
@@ -1752,12 +1714,6 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                     if (decl != NULL && decl->type == AST_CLASS_DECL) {
                         methods = decl->data.class_decl.methods;
                         method_count = decl->data.class_decl.method_count;
-                    } else {
-                        decl = find_actor_decl(ctx, host_type_name);
-                        if (decl != NULL && decl->type == AST_ACTOR_DECL) {
-                            methods = decl->data.actor_decl.methods;
-                            method_count = decl->data.actor_decl.method_count;
-                        }
                     }
                 }
             }
@@ -1799,7 +1755,7 @@ find_nominal_host_decl_local(TranspilerCtx *ctx, const char *host_type_name)
     decl = find_class_decl(ctx, host_type_name);
     if (decl != NULL)
         return decl;
-    return find_actor_decl(ctx, host_type_name);
+    return NULL;
 }
 
 static const char *
@@ -1819,16 +1775,6 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
     case AST_CLASS_DECL:
         for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
             ClassField *field = decl->data.class_decl.fields[i];
-            if (field != NULL && field->name != NULL
-                && strcmp(field->name, member_name) == 0
-                && field->type != NULL && field->type->type == AST_TYPE) {
-                return field->type->data.type.name;
-            }
-        }
-        break;
-    case AST_ACTOR_DECL:
-        for (size_t i = 0; i < decl->data.actor_decl.field_count; i++) {
-            ClassField *field = decl->data.actor_decl.fields[i];
             if (field != NULL && field->name != NULL
                 && strcmp(field->name, member_name) == 0
                 && field->type != NULL && field->type->type == AST_TYPE) {
@@ -1902,11 +1848,11 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
         }
         break;
     case AST_WORLD_DECL:
-        for (size_t i = 0; i < decl->data.world_decl.systemic_count; i++) {
-            ASTNode *slot = decl->data.world_decl.systemics[i];
-            if (slot != NULL && slot->data.world_systemic.slot_name != NULL
-                && strcmp(slot->data.world_systemic.slot_name, member_name) == 0) {
-                return slot->data.world_systemic.systemic_type;
+        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
+            ASTNode *slot = decl->data.world_decl.rosters[i];
+            if (slot != NULL && slot->data.world_roster.slot_name != NULL
+                && strcmp(slot->data.world_roster.slot_name, member_name) == 0) {
+                return slot->data.world_roster.roster_type;
             }
         }
         for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {

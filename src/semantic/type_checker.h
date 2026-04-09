@@ -116,14 +116,13 @@ bool type_check_return_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_ability_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_role_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_party_decl(ASTNode* node, SemanticContext* ctx);
-bool type_check_systemic_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_roster_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_world_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_relation_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_effect_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_zone_decl(ASTNode* node, SemanticContext* ctx);
 
 /* Async system checkers */
-bool type_check_actor_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_async_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_select_stmt(ASTNode* node, SemanticContext* ctx);
 Type* type_check_spawn_expr(ASTNode* expr, SemanticContext* ctx);

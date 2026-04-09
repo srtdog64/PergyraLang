@@ -253,11 +253,6 @@ llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
             && strcmp(stmt->data.class_decl.name, name) == 0) {
             return stmt;
         }
-        if (stmt->type == AST_ACTOR_DECL
-            && stmt->data.actor_decl.name != NULL
-            && strcmp(stmt->data.actor_decl.name, name) == 0) {
-            return stmt;
-        }
     }
     return NULL;
 }
@@ -269,8 +264,6 @@ llvm_projection_field_count(ASTNode *decl)
         return 0;
     if (decl->type == AST_CLASS_DECL)
         return decl->data.class_decl.field_count;
-    if (decl->type == AST_ACTOR_DECL)
-        return decl->data.actor_decl.field_count;
     return 0;
 }
 
@@ -282,11 +275,6 @@ llvm_projection_field_at(ASTNode *decl, size_t index)
     if (decl->type == AST_CLASS_DECL) {
         if (index < decl->data.class_decl.field_count)
             return decl->data.class_decl.fields[index];
-        return NULL;
-    }
-    if (decl->type == AST_ACTOR_DECL) {
-        if (index < decl->data.actor_decl.field_count)
-            return decl->data.actor_decl.fields[index];
         return NULL;
     }
     return NULL;
@@ -528,12 +516,12 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *
         return NULL;
     }
 
-    if (decl_type == AST_SYSTEMIC_DECL) {
-        for (size_t i = 0; i < ctx->hir->systemic_count; i++) {
-            ASTNode *stmt = ctx->hir->systemics[i];
-            if (stmt != NULL && stmt->type == AST_SYSTEMIC_DECL
-                && stmt->data.systemic_decl.name != NULL
-                && strcmp(stmt->data.systemic_decl.name, name) == 0) {
+    if (decl_type == AST_ROSTER_DECL) {
+        for (size_t i = 0; i < ctx->hir->roster_count; i++) {
+            ASTNode *stmt = ctx->hir->rosters[i];
+            if (stmt != NULL && stmt->type == AST_ROSTER_DECL
+                && stmt->data.roster_decl.name != NULL
+                && strcmp(stmt->data.roster_decl.name, name) == 0) {
                 return stmt;
             }
         }
@@ -593,10 +581,6 @@ llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
     case AST_CLASS_DECL:
         methods = decl->data.class_decl.methods;
         method_count = decl->data.class_decl.method_count;
-        break;
-    case AST_ACTOR_DECL:
-        methods = decl->data.actor_decl.methods;
-        method_count = decl->data.actor_decl.method_count;
         break;
     case AST_RELATION_DECL:
         methods = decl->data.relation_decl.methods;
@@ -771,9 +755,9 @@ llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
                 && strcmp(stmt->data.party_decl.name, type_name) == 0)
                 return true;
             break;
-        case AST_SYSTEMIC_DECL:
-            if (stmt->data.systemic_decl.name != NULL
-                && strcmp(stmt->data.systemic_decl.name, type_name) == 0)
+        case AST_ROSTER_DECL:
+            if (stmt->data.roster_decl.name != NULL
+                && strcmp(stmt->data.roster_decl.name, type_name) == 0)
                 return true;
             break;
         case AST_WORLD_DECL:
@@ -976,14 +960,6 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
                 decl = stmt;
                 methods = stmt->data.class_decl.methods;
                 method_count = stmt->data.class_decl.method_count;
-            }
-            break;
-        case AST_ACTOR_DECL:
-            if (stmt->data.actor_decl.name != NULL
-                && strcmp(stmt->data.actor_decl.name, ctx->current_class_name) == 0) {
-                decl = stmt;
-                methods = stmt->data.actor_decl.methods;
-                method_count = stmt->data.actor_decl.method_count;
             }
             break;
         case AST_RELATION_DECL:

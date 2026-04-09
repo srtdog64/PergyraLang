@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend — domain-specific passes (Party/Systemic/World, Ability,
+ * LLVM backend — domain-specific passes (Party/Roster/World, Ability,
  * Role, Event).  Extracted from llvm_backend.c to keep file sizes
  * manageable.
  */
@@ -1128,10 +1128,12 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                     && state->data.world_state.source_kind != WORLD_STATE_SOURCE_ALL
                     && state->data.world_state.source_kind != WORLD_STATE_SOURCE_ANY
                     && state->data.world_state.detail_name != NULL) {
-                    ASTNode *zone_slot = llvm_find_world_zone_slot_decl(stmt, slot_name);
-                    LLVMClassTypeEntry *zone_cls = zone_slot != NULL && zone_slot->data.world_zone.zone_type != NULL
-                        ? llvm_lookup_class(ctx, zone_slot->data.world_zone.zone_type) : NULL;
                     int zone_idx = llvm_class_field_index(decl_cls, slot_name);
+                    LLVMClassTypeEntry *zone_cls = NULL;
+                    if (zone_idx >= 0) {
+                        LLVMTypeRef zone_field_ty = decl_cls->fields[zone_idx].field_type;
+                        zone_cls = llvm_lookup_class_by_struct_type(ctx, zone_field_ty);
+                    }
                     if (zone_cls != NULL && zone_idx >= 0) {
                         char detail_field[256];
                         int detail_idx = -1;
@@ -1307,30 +1309,30 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 ftypes[idx] = ctx->type_i1;
                 idx++;
             }
-        } else if (stmt->type == AST_SYSTEMIC_DECL) {
-            fc = stmt->data.systemic_decl.party_count
-                + stmt->data.systemic_decl.shared_count;
+        } else if (stmt->type == AST_ROSTER_DECL) {
+            fc = stmt->data.roster_decl.party_count
+                + stmt->data.roster_decl.shared_count;
             ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
             size_t idx = 0;
-            for (size_t j = 0; j < stmt->data.systemic_decl.party_count; j++, idx++) {
-                ASTNode *slot = stmt->data.systemic_decl.party_slots[j];
+            for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, idx++) {
+                ASTNode *slot = stmt->data.roster_decl.party_slots[j];
                 LLVMClassTypeEntry *field_cls = NULL;
                 if (slot != NULL && slot->type == AST_SYSTEMIC_SLOT
-                    && slot->data.systemic_slot.party_type != NULL) {
+                    && slot->data.roster_slot.party_type != NULL) {
                     field_cls = llvm_lookup_class(ctx,
-                        slot->data.systemic_slot.party_type);
+                        slot->data.roster_slot.party_type);
                 }
                 ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
             }
-            for (size_t j = 0; j < stmt->data.systemic_decl.shared_count; j++, idx++) {
-                ASTNode *sf = stmt->data.systemic_decl.shared_fields[j];
+            for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, idx++) {
+                ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
                 ASTNode *sf_type = sf->data.party_shared.type;
                 ftypes[idx] = (sf_type != NULL)
                     ? ast_type_to_llvm(ctx, sf_type)
                     : ctx->type_i32;
             }
         } else if (stmt->type == AST_WORLD_DECL) {
-            fc = stmt->data.world_decl.systemic_count
+            fc = stmt->data.world_decl.roster_count
                 + stmt->data.world_decl.zone_count
                 + stmt->data.world_decl.shared_count
                 + stmt->data.world_decl.zone_count
@@ -1339,10 +1341,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 + 1;
             ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
             size_t idx = 0;
-            for (size_t j = 0; j < stmt->data.world_decl.systemic_count; j++, idx++) {
-                ASTNode *ws = stmt->data.world_decl.systemics[j];
+            for (size_t j = 0; j < stmt->data.world_decl.roster_count; j++, idx++) {
+                ASTNode *ws = stmt->data.world_decl.rosters[j];
                 LLVMClassTypeEntry *field_cls = ws != NULL
-                    ? llvm_lookup_class(ctx, ws->data.world_systemic.systemic_type) : NULL;
+                    ? llvm_lookup_class(ctx, ws->data.world_roster.roster_type) : NULL;
                 ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
             }
             for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++) {
@@ -1414,11 +1416,13 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             decl_name, struct_ty, false, true);
         if (entry != NULL) {
             if (stmt->type == AST_ZONE_DECL) {
+                entry->domain_kind = LLVM_DOMAIN_ZONE;
                 int field_index = 0;
                 for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, field_index++) {
                     ASTNode *slot = stmt->data.zone_decl.slots[j];
-                    llvm_class_add_field(entry, slot->data.domain_slot.slot_name,
-                        ftypes[field_index], field_index);
+                    llvm_class_add_field_ex(entry, slot->data.domain_slot.slot_name,
+                        ftypes[field_index], field_index,
+                        slot->data.domain_slot.is_subject);
                 }
                 for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, field_index++) {
                     ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
@@ -1463,23 +1467,25 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                         ftypes[field_index], field_index);
                     field_index++;
                 }
-            } else if (stmt->type == AST_SYSTEMIC_DECL) {
+            } else if (stmt->type == AST_ROSTER_DECL) {
+                entry->domain_kind = LLVM_DOMAIN_SYSTEMIC;
                 int field_index = 0;
-                for (size_t j = 0; j < stmt->data.systemic_decl.party_count; j++, field_index++) {
-                    ASTNode *slot = stmt->data.systemic_decl.party_slots[j];
-                    llvm_class_add_field(entry, slot->data.systemic_slot.slot_name,
+                for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, field_index++) {
+                    ASTNode *slot = stmt->data.roster_decl.party_slots[j];
+                    llvm_class_add_field(entry, slot->data.roster_slot.slot_name,
                         ftypes[field_index], field_index);
                 }
-                for (size_t j = 0; j < stmt->data.systemic_decl.shared_count; j++, field_index++) {
-                    ASTNode *sf = stmt->data.systemic_decl.shared_fields[j];
+                for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, field_index++) {
+                    ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
                     llvm_class_add_field(entry, sf->data.party_shared.name,
                         ftypes[field_index], field_index);
                 }
             } else if (stmt->type == AST_WORLD_DECL) {
+                entry->domain_kind = LLVM_DOMAIN_WORLD;
                 int field_index = 0;
-                for (size_t j = 0; j < stmt->data.world_decl.systemic_count; j++, field_index++) {
-                    ASTNode *ws = stmt->data.world_decl.systemics[j];
-                    llvm_class_add_field(entry, ws->data.world_systemic.slot_name,
+                for (size_t j = 0; j < stmt->data.world_decl.roster_count; j++, field_index++) {
+                    ASTNode *ws = stmt->data.world_decl.rosters[j];
+                    llvm_class_add_field(entry, ws->data.world_roster.slot_name,
                         ftypes[field_index], field_index);
                 }
                 for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
@@ -1519,6 +1525,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_class_add_field(entry, pergyra_strdup("__world_derived_dirty"),
                     ftypes[field_index], field_index);
             } else {
+                if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
+                    entry->domain_kind = LLVM_DOMAIN_PROJECTION;
                 int field_index = 0;
                 for (size_t j = 0; j < slot_count; j++, field_index++) {
                     ASTNode *slot = slots[j];
@@ -1579,6 +1587,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             sync_fn = LLVMAddFunction(ctx->module, sync_name, sync_ft);
             llvm_register_function(ctx, LLVMGetValueName(sync_fn),
                 sync_fn, sync_ft, ctx->type_void);
+            if (entry != NULL)
+                entry->sync_function_name = pergyra_strdup(sync_name);
         }
 
         /* Forward-declare methods */
@@ -2349,17 +2359,15 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
 
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, decl_name);
-        if ((stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
-             || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL)
-            && cls != NULL) {
-            char sync_name[256];
+        if (cls != NULL && cls->domain_kind != LLVM_DOMAIN_NONE
+            && cls->domain_kind != LLVM_DOMAIN_SYSTEMIC
+            && cls->sync_function_name != NULL) {
             LLVMFuncEntry *sync_entry;
-            snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
-            sync_entry = llvm_lookup_function(ctx, sync_name);
+            sync_entry = llvm_lookup_function(ctx, cls->sync_function_name);
             if (sync_entry != NULL) {
-                if (stmt->type == AST_ZONE_DECL)
+                if (cls->domain_kind == LLVM_DOMAIN_ZONE)
                     llvm_emit_zone_sync(stmt, decl_name, cls, sync_entry->fn, ctx);
-                else if (stmt->type == AST_WORLD_DECL)
+                else if (cls->domain_kind == LLVM_DOMAIN_WORLD)
                     llvm_emit_world_sync(stmt, decl_name, cls, sync_entry->fn, ctx);
                 else
                     llvm_emit_domain_projection_sync(stmt, decl_name, cls,
@@ -2390,11 +2398,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             ctx->current_ret_type = ret_type;
             ctx->current_class_name = decl_name;
 
-            if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL
-                || stmt->type == AST_ZONE_DECL || stmt->type == AST_WORLD_DECL) {
-                char sync_name[256];
-                snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
-                sync_entry = llvm_lookup_function(ctx, sync_name);
+            if (cls != NULL && cls->sync_function_name != NULL
+                && cls->domain_kind != LLVM_DOMAIN_NONE
+                && cls->domain_kind != LLVM_DOMAIN_SYSTEMIC) {
+                sync_entry = llvm_lookup_function(ctx, cls->sync_function_name);
                 has_sync = (sync_entry != NULL);
             }
 

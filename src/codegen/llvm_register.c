@@ -156,69 +156,10 @@ llvm_register_hir_class_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, method_name);
         LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
+        llvm_set_function_flags(ctx, LLVMGetValueName(fn),
+                                method->data.func_decl.is_action,
+                                method->data.func_decl.is_action && user_pc == 0);
         free(param_types);
-    }
-}
-
-static void
-llvm_register_hir_actor_decl(LLVMGenCtx *ctx, ASTNode *stmt)
-{
-    const char *aname = stmt->data.actor_decl.name;
-    size_t fc = stmt->data.actor_decl.field_count;
-    LLVMTypeRef *ftypes = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
-    for (size_t j = 0; j < fc; j++) {
-        ClassField *f = stmt->data.actor_decl.fields[j];
-        ftypes[j] = (f->type != NULL) ? ast_type_to_llvm(ctx, f->type) : ctx->type_i32;
-    }
-
-    LLVMTypeRef sty = LLVMStructCreateNamed(ctx->context, aname);
-    LLVMStructSetBody(sty, ftypes, (unsigned)fc, 0);
-
-    LLVMClassTypeEntry *entry = llvm_register_class(ctx, aname, sty, true, true);
-    if (entry != NULL) {
-        for (size_t j = 0; j < fc; j++) {
-            ClassField *f = stmt->data.actor_decl.fields[j];
-            llvm_class_add_field(entry, f->name, ftypes[j], (int)j);
-        }
-    }
-    free(ftypes);
-
-    for (size_t j = 0; j < stmt->data.actor_decl.method_count; j++) {
-        ASTNode *method = stmt->data.actor_decl.methods[j];
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
-
-        const char *mname = method->data.func_decl.name;
-        size_t pc = method->data.func_decl.param_count;
-        LLVMTypeRef ret = ctx->type_void;
-        if (method->data.func_decl.return_type != NULL)
-            ret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
-
-        size_t user_pc = 0;
-        for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
-                continue;
-            user_pc++;
-        }
-
-        LLVMTypeRef *ptypes = calloc(user_pc + 1, sizeof(LLVMTypeRef));
-        ptypes[0] = ctx->type_i8ptr;
-        size_t pidx = 1;
-        for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = method->data.func_decl.params[k];
-            if (p->type == NULL && strcmp(p->name, "self") == 0)
-                continue;
-            ptypes[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
-                                               : ctx->type_i32;
-        }
-
-        LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
-        char fname[256];
-        snprintf(fname, sizeof(fname), "%s_%s", aname, mname);
-        LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
-        llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
-        free(ptypes);
     }
 }
 
@@ -238,11 +179,6 @@ llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_register_hir_class_decl(ctx, stmt);
     }
 
-    for (size_t i = 0; i < hir->actor_count; i++) {
-        ASTNode *stmt = hir->actors[i];
-        if (stmt != NULL && stmt->type == AST_ACTOR_DECL)
-            llvm_register_hir_actor_decl(ctx, stmt);
-    }
 }
 
 void

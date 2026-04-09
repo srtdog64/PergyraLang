@@ -13,7 +13,7 @@
 | 구분 | 현재 상태 | 예시 |
 |---|---|---|
 | Stable | parser/semantic/examples/backend smoke로 계속 검증되는 핵심 문법 | `let`, `func`, `if/else`, `for`, `while`, `match`, 배열, 문자열, `slot/view/move`, `spawn/await`, `Channel`, `import/export/namespace`, `enum` |
-| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `actor`, `event + lambda`, `ability/role`, `party/systemic/world`, structured comment `@effects`, `defer`, `unsafe` |
+| Supported but Evolving | 구현은 있지만 조합/의미론이 더 변할 수 있는 문법 | `select`, `actor`, `event + lambda`, `ability/role`, `party/roster/world`, structured comment `@effects`, `defer`, `unsafe` |
 | Not Current Surface | AST 흔적이나 설계 문서만 있고 공식 문법으로 보면 안 되는 것 | `type alias`, 고급 DSL 확장 초안, 미문서 실험 노드 |
 
 규칙:
@@ -49,7 +49,7 @@
 
 | 키워드 | 용도 |
 |--------|------|
-| `world`, `systemic`, `zone`, `relation`, `effect`, `intent` | 도메인/intent 선언 |
+| `world`, `roster`, `zone`, `relation`, `effect`, `intent` | 도메인/intent 선언 |
 | `vessel` | 피동 수용체 선언 |
 | `event` | 이벤트 선언 |
 | `action` | subject 전용 플롯 행위 |
@@ -315,7 +315,7 @@ enum Color { Red, Green, Blue }
 - `class`
 - `enum`
 - `actor`
-- `subject Name actor { ... }`
+- `subject Name { ... }`
 - `relation`
 - `effect`
 - `zone`
@@ -658,7 +658,7 @@ role IntMath for Int {
 }
 ```
 
-### 8.3 party / relation / effect / zone / systemic / world
+### 8.3 party / relation / effect / zone / roster / world
 
 ```pergyra
 party DungeonTeam {
@@ -691,12 +691,12 @@ zone BattleZone {
     shared round: Int = 1
 }
 
-systemic CombatSystem {
+roster CombatSystem {
     party slot team1: DungeonTeam
 }
 
 world GameWorld {
-    systemic combat: CombatSystem
+    roster combat: CombatSystem
     zone battle: BattleZone
 }
 ```

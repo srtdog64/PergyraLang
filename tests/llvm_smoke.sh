@@ -742,7 +742,7 @@ EOF
 run_case "secure_slot_subject_cell" "$TMPDIR/secure_slot_subject_cell.pgy" "1"
 
 cat > "$TMPDIR/secure_slot_actor_cell.pgy" <<'EOF'
-actor Bot {
+subject Bot {
     let hp: Int;
 }
 

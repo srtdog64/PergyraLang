@@ -225,7 +225,7 @@ This scenario is likely to expose:
 - Hosted helper forward declarations in the C transpiler were too weak for
   larger zone/world hosts. `JourneyZone.Snapshot()` exposed this when it called
   helpers defined later in the same host. The C backend now emits hosted
-  forward declarations for class/party/systemic/relation/effect/zone/world
+  forward declarations for class/party/roster/relation/effect/zone/world
   methods before bodies.
 - Standalone helper predeclarations also needed filtering. The DND campaign's
   factory refactor introduced helpers like `BuildJourneyZone() -> JourneyZone`,

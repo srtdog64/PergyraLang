@@ -391,7 +391,7 @@ MIR로 이월하는 것:
 - `relation`
 - `effect`
 - `zone`
-- `systemic`
+- `roster`
 - `world`
 - `event`
 - `action`
@@ -508,7 +508,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 - `vessel`
 - `intent`
 - `world`
-- `systemic`
+- `roster`
 - `roster`
 - `relation`
 - `effect`
@@ -751,8 +751,8 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `vessel` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | subject internal state vessel |
 | `intent` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration declaration root |
 | `world` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
-| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 낮음 | `HIR -> DIR` | systemic alias surface |
-| `systemic` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | deprecated but active host keyword |
+| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 낮음 | `HIR -> DIR` | roster alias surface |
+| `roster` | `TOKEN_IDENTIFIER` | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | deprecated but active host keyword |
 | `relation` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | relation contract root |
 | `effect` | `TOKEN_IDENTIFIER` | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | effect contract root |
 | `zone` | `TOKEN_IDENTIFIER` | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |

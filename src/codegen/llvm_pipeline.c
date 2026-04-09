@@ -134,6 +134,8 @@ llvm_mir_routine_has_instructions(const MIRRoutine *routine)
 {
     if (routine == NULL)
         return false;
+    if (routine->block_count > 0)
+        return true;
     for (size_t i = 0; i < routine->block_count; i++) {
         if (routine->blocks[i].instruction_count > 0)
             return true;
@@ -465,87 +467,6 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < hir->actor_count; i++) {
-        ASTNode *stmt = hir->actors[i];
-        if (stmt == NULL || stmt->type != AST_ACTOR_DECL)
-            continue;
-
-        const char *aname = stmt->data.actor_decl.name;
-        LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, aname);
-
-        for (size_t j = 0; j < stmt->data.actor_decl.method_count; j++) {
-            ASTNode *method = stmt->data.actor_decl.methods[j];
-            if (method == NULL || method->type != AST_FUNC_DECL)
-                continue;
-
-            char fname[256];
-            snprintf(fname, sizeof(fname), "%s_%s", aname, method->data.func_decl.name);
-
-            LLVMFuncEntry *fentry = llvm_lookup_function(ctx, fname);
-            if (fentry == NULL)
-                continue;
-
-            LLVMValueRef fn = fentry->fn;
-            LLVMTypeRef ret_type = fentry->ret_type;
-            LLVMValueRef saved_fn = ctx->current_function;
-            LLVMTypeRef saved_ret = ctx->current_ret_type;
-            ctx->current_function = fn;
-            ctx->current_ret_type = ret_type;
-
-            LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
-            LLVMPositionBuilderAtEnd(ctx->builder, bb);
-            llvm_scope_push(ctx);
-
-            LLVMValueRef self_val = LLVMGetParam(fn, 0);
-            if (cls != NULL) {
-                LLVMTypeRef self_ptr_t = LLVMPointerType(cls->struct_type, 0);
-                LLVMValueRef sa = llvm_create_entry_alloca(ctx, self_ptr_t, "self.addr");
-                LLVMBuildStore(ctx->builder, self_val, sa);
-                llvm_scope_declare(ctx, "self", sa, self_ptr_t);
-                llvm_register_var_class(ctx, "self", aname);
-            } else {
-                LLVMValueRef sa = llvm_create_entry_alloca(ctx, ctx->type_i8ptr, "self.addr");
-                LLVMBuildStore(ctx->builder, self_val, sa);
-                llvm_scope_declare(ctx, "self", sa, ctx->type_i8ptr);
-            }
-
-            size_t pc = method->data.func_decl.param_count;
-            unsigned lpidx = 1;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (p->type == NULL && strcmp(p->name, "self") == 0)
-                    continue;
-                LLVMTypeRef pt = (p->type != NULL)
-                    ? ast_type_to_llvm(ctx, p->type)
-                    : ctx->type_i32;
-                LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, p->name);
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, lpidx++), a);
-                llvm_scope_declare(ctx, p->name, a, pt);
-                llvm_register_typed_var(ctx, p->name, p->type);
-            }
-
-            if (method->data.func_decl.body != NULL)
-                llvm_emit_block(method->data.func_decl.body, ctx);
-
-            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                if (ret_type == ctx->type_void)
-                    LLVMBuildRetVoid(ctx->builder);
-                else
-                    LLVMBuildRet(ctx->builder, LLVMConstInt(ret_type, 0, 0));
-            }
-
-            llvm_scope_pop(ctx);
-            ctx->current_function = saved_fn;
-            ctx->current_ret_type = saved_ret;
-
-            if (saved_fn != NULL) {
-                LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-                if (last != NULL)
-                    LLVMPositionBuilderAtEnd(ctx->builder, last);
-            }
-        }
-    }
-
     llvm_emit_mir_main_wrapper(hir, ctx);
     llvm_set_type_render_ctx(NULL);
 }
@@ -743,6 +664,9 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 llvm_emit_intent_decl(stmt, ctx);
             } else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
                 const char *cls_name = stmt->data.class_decl.name;
+                bool require_mir_methods =
+                    stmt->data.class_decl.nominal_kind == NOMINAL_DECL_CLASS
+                    || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
                 for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
                     ASTNode *method = stmt->data.class_decl.methods[j];
                     const MIRRoutine *mir_method;
@@ -756,14 +680,27 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                         ctx->current_class_name = saved_class_name;
                         continue;
                     }
-                    char *orig_name = method->data.func_decl.name;
-                    char prefixed[256];
-                    snprintf(prefixed, sizeof(prefixed), "%s_%s", cls_name, orig_name);
-                    method->data.func_decl.name = prefixed;
-                    ctx->current_class_name = cls_name;
-                    llvm_emit_func_decl(method, ctx);
-                    ctx->current_class_name = NULL;
-                    method->data.func_decl.name = orig_name;
+                    if (require_mir_methods) {
+                        char msg[384];
+                        snprintf(msg, sizeof(msg),
+                                 "MIR-only LLVM path missing routine for class method '%s.%s'",
+                                 cls_name != NULL ? cls_name : "(anonymous-class)",
+                                 method->data.func_decl.name != NULL
+                                     ? method->data.func_decl.name
+                                     : "(anonymous)");
+                        llvm_set_error(ctx, msg);
+                        return false;
+                    }
+                    {
+                        char *orig_name = method->data.func_decl.name;
+                        char prefixed[256];
+                        snprintf(prefixed, sizeof(prefixed), "%s_%s", cls_name, orig_name);
+                        method->data.func_decl.name = prefixed;
+                        ctx->current_class_name = cls_name;
+                        llvm_emit_func_decl(method, ctx);
+                        ctx->current_class_name = NULL;
+                        method->data.func_decl.name = orig_name;
+                    }
                 }
             }
         }
