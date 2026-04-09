@@ -17,9 +17,18 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+#ifndef _WIN32
+extern int setenv(const char *name, const char *value, int overwrite);
+extern int unsetenv(const char *name);
+extern int symlink(const char *target, const char *linkpath);
+#endif
 
 #include "runtime/slot_manager.h"
 #include "runtime/slot_security.h"
+#include "runtime/pgy_runtime.h"
 
 /* Global test manager */
 SlotManager *g_pergyraSlotManager = NULL;
@@ -475,6 +484,76 @@ void test_sealed_storage_and_shadow_recovery()
     g_pergyraSlotManager = NULL;
 }
 
+void test_runtime_file_io_policy()
+{
+    const char *ok_path = "pgy_security_io_ok.txt";
+    const char *abs_path = "/tmp/pgy_security_io_abs.txt";
+    const char *escape_path = "../pgy_security_io_escape.txt";
+    const char *root_dir = "pgy_security_root";
+    const char *outside_dir = "pgy_security_outside";
+    const char *root_file = "inside.txt";
+    const char *escape_link = "pgy_security_root/escape";
+    char rooted_path[256];
+    char outside_path[256];
+    char *content;
+
+    printf("\n=== Test 10: Runtime File I/O Policy ===\n");
+
+    unlink(ok_path);
+    unlink(abs_path);
+    unlink(escape_path);
+    unlink(escape_link);
+    unlink("pgy_security_root/inside.txt");
+    rmdir(root_dir);
+    rmdir(outside_dir);
+    mkdir(root_dir, 0700);
+    mkdir(outside_dir, 0700);
+    snprintf(rooted_path, sizeof(rooted_path), "%s/%s", root_dir, root_file);
+    snprintf(outside_path, sizeof(outside_path), "%s/blocked.txt", outside_dir);
+
+    pgy_write_file(ok_path, "ok");
+    content = pgy_read_file(ok_path);
+    TEST_ASSERT(content != NULL && strcmp(content, "ok") == 0,
+                "Relative runtime file I/O remains allowed");
+    free(content);
+    unlink(ok_path);
+
+    setenv("PGY_IO_ROOT", root_dir, 1);
+    pgy_write_file(abs_path, "blocked");
+    TEST_SECURITY_VIOLATION(access(abs_path, F_OK) != 0,
+                            "Absolute runtime file writes are denied by default");
+
+    pgy_write_file(root_file, "rooted");
+    content = pgy_read_file(root_file);
+    TEST_ASSERT(content != NULL && strcmp(content, "rooted") == 0
+                && access(rooted_path, F_OK) == 0,
+                "Relative runtime file I/O is rooted under PGY_IO_ROOT");
+    free(content);
+
+    pgy_write_file(escape_path, "blocked");
+    TEST_SECURITY_VIOLATION(access(escape_path, F_OK) != 0,
+                            "Parent-traversal runtime file writes are denied");
+
+    content = pgy_read_file(escape_path);
+    TEST_SECURITY_VIOLATION(content != NULL && content[0] == '\0',
+                            "Parent-traversal runtime file reads are denied");
+    free(content);
+
+#ifndef _WIN32
+    symlink("../pgy_security_outside", escape_link);
+    pgy_write_file("escape/blocked.txt", "blocked");
+    TEST_SECURITY_VIOLATION(access(outside_path, F_OK) != 0,
+                            "Symlink escape outside PGY_IO_ROOT is denied");
+#endif
+
+    unsetenv("PGY_IO_ROOT");
+    unlink(rooted_path);
+    unlink(outside_path);
+    unlink(escape_link);
+    rmdir(root_dir);
+    rmdir(outside_dir);
+}
+
 /*
  * Main test runner
  */
@@ -498,6 +577,7 @@ int main(int argc, char *argv[])
     test_pergyra_api();
     test_performance();
     test_sealed_storage_and_shadow_recovery();
+    test_runtime_file_io_policy();
     
     /* Print final results */
     print_test_results();

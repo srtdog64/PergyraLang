@@ -11,6 +11,13 @@
 - 아직 미완료인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.
 - C backend의 공식 역할 재정의는 `docs/51_c_backend_reference_policy.md`에 정리한다.
 - LLVM/native-first 전환 단계는 `docs/52_llvm_native_first_roadmap.md`에서 추적한다.
+- `parallel`을 코어 실행 primitive로 재정의한 정책은 `docs/53_parallel_core_policy.md`에 정리한다.
+- `spawn/select/async`를 `parallel` 아래 실행 family로 재배치하는 작업 보드는 `docs/54_parallel_execution_relayout_board.md`에서 추적한다.
+- 전체 언어 키워드의 현재 완성도와 공백은 `docs/55_keyword_progress_board.md`에서 추적한다.
+- runtime 파일 I/O 보안 정책은 이제 기본적으로 `상대경로만 허용 + parent traversal 금지 + 절대경로 기본 거부`로 잠겨 있다. `PGY_IO_ROOT`가 있으면 runtime `ReadFile/WriteFile`는 해당 root 아래로 고정되고, non-Windows에서는 canonical path 검사로 symlink escape도 차단한다. `PGY_IO_ALLOW_ABSOLUTE=1`일 때만 절대경로를 허용한다.
+- whole-file read 경로는 compiler/runtime 공통으로 `64 MiB` 상한, `fseek/ftell/fread` 실패 방어, short read 거부를 가진다.
+- hardware fingerprint는 이제 probe 실패 시 즉시 붕괴하지 않고 stable fallback identity를 채운다. Linux는 `machine-id/hostname/uname/non-loopback MAC`, Windows는 `computer name` 기반 fallback을 사용한다.
+- 보안 회귀는 `make test-security`에서 runtime file I/O policy, fingerprint consistency, secure slot/token 경로를 함께 검증한다.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
@@ -120,6 +127,9 @@
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
 - `match` 품질 진단: duplicate variant case와 redundant default를 warning으로 보고함
 - `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
+- effect contract는 이제 최소 closure/subsumption을 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급된다.
+- `use module;` duplicate import는 semantic warning으로 보고한다.
+- ability `require` field는 duplicate declaration을 semantic error로 보고한다.
 - `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
@@ -150,6 +160,7 @@
 - slot/secure slot/device slot/qubit slot 런타임
 - coroutine runtime (POSIX ucontext + Windows Fiber)
 - channel/parallel/select 지원
+- runtime `ReadFile/WriteFile`는 경로 정책과 크기 상한을 강제한다
 - channel non-blocking/timeout helper 지원
 - helper body를 따라가는 parallel slot conflict detection이 들어가서, top-level helper가 `ref Slot<subject>` / `own Slot<subject>`를 받는 경우도 동일 슬롯 병렬 mutation/release 충돌로 거부됨
 - `select`는 round-robin 시작 인덱스로 readiness를 검사해 단순 고정 순서 starvation을 줄임
@@ -206,6 +217,10 @@
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화
 - 안정화 문서 갱신 및 표면 문법 정리
+- 보안 2단계:
+  - `PGY_IO_ROOT`의 Windows canonical enforcement 강화
+  - runtime file I/O의 symlink 정책을 플랫폼별로 더 일관화
+  - secure slot/capability 문서를 현재 구현 수준과 더 정렬
 
 ### 중기
 - stable stdlib surface 고정

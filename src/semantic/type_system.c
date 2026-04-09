@@ -268,10 +268,28 @@ type_function_effects(const Type *type)
     return type->data.function.effect_mask;
 }
 
+uint32_t
+type_effect_mask_closure(uint32_t mask)
+{
+    if ((mask & EFFECT_COLLAPSE) != 0)
+        mask |= EFFECT_NONDETERMINISTIC;
+    return mask;
+}
+
 bool
 type_effect_mask_has(uint32_t mask, uint32_t effect)
 {
-    return (mask & effect) == effect;
+    uint32_t closed_mask = type_effect_mask_closure(mask);
+    uint32_t closed_effect = type_effect_mask_closure(effect);
+    return (closed_mask & closed_effect) == closed_effect;
+}
+
+bool
+type_effect_mask_subsumes(uint32_t available, uint32_t required)
+{
+    uint32_t closed_available = type_effect_mask_closure(available);
+    uint32_t closed_required = type_effect_mask_closure(required);
+    return (closed_available & closed_required) == closed_required;
 }
 
 Type *

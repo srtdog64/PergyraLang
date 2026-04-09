@@ -75,11 +75,12 @@ bool slot_analyze_with_stmt(ASTNode* with, SlotAnalyzer* sa);
 bool slot_analyze_if_stmt(ASTNode* ifstmt, SlotAnalyzer* sa);
 
 /*
- * Parallel block analysis:
- * Checks that no two tasks reference the same slot in write position.
+ * Parallel context analysis:
+ * Checks that no two tasks in the same parallel context reference
+ * the same slot in conflicting positions.
  * Write-write conflict → error.
  * Read-read is fine.
- * Write-read conflict → warning (data race risk).
+ * Write-read conflict → warning (race risk).
  */
 bool slot_analyze_parallel_block(ASTNode* parallel, SlotAnalyzer* sa);
 

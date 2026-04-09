@@ -1125,6 +1125,12 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     if (slot_type->data.slot.is_secure)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
+    if (ctx->in_parallel && slot_type->data.slot.is_secure) {
+        semantic_error(ctx, slot_arg,
+            "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
+        return false;
+    }
+
     if (slot_arg->type == AST_IDENTIFIER) {
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
@@ -1228,6 +1234,12 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
     if (slot_type->data.slot.is_secure)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
+    if (ctx->in_parallel && slot_type->data.slot.is_secure) {
+        semantic_error(ctx, slot_arg,
+            "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
+        return TYPE_UNKNOWN;
+    }
+
     if (slot_arg->type == AST_IDENTIFIER) {
         Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
@@ -1321,6 +1333,12 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
     if (sym->slot_info.is_secure)
         semantic_record_effect(ctx, EFFECT_SECURE);
 
+    if (ctx->in_parallel && sym->slot_info.is_secure) {
+        semantic_error(ctx, slot_arg,
+            "Parallel context does not permit SecureSlot access yet; serialize capability-bearing slot reads/writes/releases outside the parallel block");
+        return false;
+    }
+
     if (sym->slot_info.state == SLOT_STATE_RELEASED) {
         semantic_error(ctx, slot_arg,
             "Slot '%s' has already been released", slot_name);
@@ -1367,6 +1385,12 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
                 expr->data.identifier.name, builtin_name);
             return TYPE_UNKNOWN;
         }
+    }
+
+    if (ctx->in_parallel) {
+        semantic_error(ctx, expr,
+            "Parallel context does not permit DeviceSlot operations yet; keep device access serialized outside the parallel block");
+        return TYPE_UNKNOWN;
     }
 
     semantic_record_effect(ctx, EFFECT_REMOTE);

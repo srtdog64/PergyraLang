@@ -753,6 +753,28 @@ test_undefined_symbol(void)
         semantic_context_destroy(ctx);
         ast_destroy(log_call);
     }
+
+    TEST("duplicate stdlib use emits warning");
+    {
+        const char *source =
+            "use pool;\n"
+            "use pool;\n"
+            "func Main() -> Void { return; }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Duplicate stdlib use"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 static void
@@ -2209,6 +2231,35 @@ test_ability_decl(void)
         ast_destroy(ability1);
         ast_destroy(ability2);
     }
+
+    TEST("duplicate ability require field triggers error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        ASTNode *ability = ast_create_ability_declaration("Damageable");
+        ability->line = 1; ability->column = 1;
+
+        ASTNode *req_a = ast_create_require_field("health");
+        req_a->data.require_field.type = ast_create_type("Int");
+        req_a->line = 2; req_a->column = 1;
+
+        ASTNode *req_b = ast_create_require_field("health");
+        req_b->data.require_field.type = ast_create_type("Int");
+        req_b->line = 3; req_b->column = 1;
+
+        ability->data.ability_decl.require_count = 2;
+        ability->data.ability_decl.require_fields = malloc(2 * sizeof(ASTNode *));
+        ability->data.ability_decl.require_fields[0] = req_a;
+        ability->data.ability_decl.require_fields[1] = req_b;
+
+        type_check_ability_decl(ability, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx, "duplicate require field"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(ability);
+    }
 }
 
 static void
@@ -2643,6 +2694,8 @@ test_subject_class_ownership(void)
 }
 
 #include "tests/semantic/test_semantic_shared_domain.inc"
+#include "tests/semantic/test_semantic_parallel_family.inc"
+#include "tests/semantic/test_semantic_parallel_context.inc"
 #include "tests/semantic/test_semantic_async.inc"
 #include "tests/semantic/test_semantic_effects.inc"
 #include "tests/semantic/test_semantic_misc.inc"
@@ -2676,7 +2729,9 @@ main(void)
     test_engine_collections();
     test_subject_class_ownership();
     test_shared_memory_features();
-    test_async_system();
+    test_parallel_family_semantics();
+    test_parallel_context_semantics();
+    test_parallel_execution_semantics();
     test_effect_inference();
     test_misc_grammar_edges();
 

@@ -8,7 +8,7 @@ It is not a UI/gameplay scenario. Its purpose is narrower:
 - prove that multiple resources can be scheduled concurrently without losing
   resource discipline
 - prove that helper-based `ref Slot<subject>` mutation is still caught by the
-  parallel slot analyzer
+  parallel context analyzer
 - exercise async runtime paths with multiple outstanding `DeviceSlot<Int>` and
   `RemoteFuture<Int>` values
 
@@ -48,9 +48,9 @@ The program:
 `async func` parameters with `ref` / `own` modifiers were not parsed like
 regular function parameters. This is now fixed in the parser.
 
-### 2. Helper-based parallel slot conflict detection
+### 2. Helper-based parallel context slot conflict detection
 
-The parallel slot analyzer originally detected only direct `Read/Write/Release`
+The parallel context analyzer originally detected only direct `Read/Write/Release`
 inside each task. It missed helper calls such as:
 
 ```pergyra

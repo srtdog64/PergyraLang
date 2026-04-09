@@ -1137,8 +1137,9 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                 ClassField *cf = stmt->data.class_decl.fields[fi];
                 if (cf == NULL || cf->name == NULL)
                     continue;
-                if (strcmp(cf->name, field_name) == 0)
+                if (strcmp(cf->name, field_name) == 0) {
                     return resolve_type_node(cf->type, ctx);
+                }
             }
             /* Field not found in this class — fall through to UNKNOWN */
             break;
@@ -1580,6 +1581,25 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     /* Check require fields have valid types */
     for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
         ASTNode *req = node->data.ability_decl.require_fields[i];
+        if (req == NULL || req->data.require_field.name == NULL
+            || req->data.require_field.type == NULL) {
+            semantic_error(ctx, node,
+                "Ability '%s' has an invalid require field declaration",
+                name != NULL ? name : "<ability>");
+            continue;
+        }
+        for (size_t j = 0; j < i; j++) {
+            ASTNode *prev = node->data.ability_decl.require_fields[j];
+            if (prev != NULL && prev->data.require_field.name != NULL
+                && strcmp(prev->data.require_field.name,
+                          req->data.require_field.name) == 0) {
+                semantic_error(ctx, req,
+                    "Ability '%s' declares duplicate require field '%s'",
+                    name != NULL ? name : "<ability>",
+                    req->data.require_field.name);
+                break;
+            }
+        }
         resolve_type_node(req->data.require_field.type, ctx);
     }
 
@@ -2193,8 +2213,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         type_check_block(node->data.func_decl.body, ctx);
 
     {
-        uint32_t inferred_effects = ctx->current_function_effects;
-        uint32_t missing_effects = inferred_effects & ~declared_effects;
+        uint32_t inferred_effects = type_effect_mask_closure(ctx->current_function_effects);
+        uint32_t missing_effects =
+            type_effect_mask_closure(inferred_effects) & ~type_effect_mask_closure(declared_effects);
         char inferred_buf[128];
         char missing_buf[128];
         char declared_buf[128];
@@ -2209,7 +2230,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 missing_buf, declared_buf, inferred_buf);
         }
 
-        func_type->data.function.effect_mask = declared_effects | inferred_effects;
+        func_type->data.function.effect_mask =
+            type_effect_mask_closure(declared_effects | inferred_effects);
     }
 
     ctx->current_return = prev_return;
@@ -2625,6 +2647,26 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_USE_DECL
+            || stmt->data.use_decl.module_name == NULL) {
+            continue;
+        }
+        for (size_t j = 0; j < i; j++) {
+            ASTNode *prev = program->data.program.statements[j];
+            if (prev != NULL && prev->type == AST_USE_DECL
+                && prev->data.use_decl.module_name != NULL
+                && strcmp(prev->data.use_decl.module_name,
+                          stmt->data.use_decl.module_name) == 0) {
+                semantic_warning(ctx, stmt,
+                    "Duplicate stdlib use '%s'; resolver will merge it once",
+                    stmt->data.use_decl.module_name);
+                break;
+            }
+        }
+    }
+
     for (size_t i = 0; i < program->data.program.count; i++)
         type_check_statement(program->data.program.statements[i], ctx);
 

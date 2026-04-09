@@ -26,16 +26,119 @@
 #include <fcntl.h>
 #include <sys/random.h>
 #include <sys/mman.h>
+#include <sys/utsname.h>
 #include <cpuid.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netpacket/packet.h>
+extern int gethostname(char *name, size_t len);
 #endif
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <openssl/aes.h>
+
+static uint64_t
+SecurityHashBytes64(const void *data, size_t size)
+{
+    const uint8_t *bytes = (const uint8_t *)data;
+    uint64_t hash = 1469598103934665603ULL;
+
+    for (size_t i = 0; i < size; i++) {
+        hash ^= (uint64_t)bytes[i];
+        hash *= 1099511628211ULL;
+    }
+
+    return hash;
+}
+
+static uint64_t
+SecurityHashString64(const char *text)
+{
+    return text != NULL ? SecurityHashBytes64(text, strlen(text)) : 0ULL;
+}
+
+static bool
+SecurityBytesAllZero(const uint8_t *data, size_t size)
+{
+    for (size_t i = 0; i < size; i++) {
+        if (data[i] != 0)
+            return false;
+    }
+    return true;
+}
+
+static void
+SecurityFillFallbackIdentity(HardwareFingerprint *fingerprint)
+{
+#ifdef _WIN32
+    char host[256];
+    DWORD host_len = (DWORD)sizeof(host);
+
+    if (fingerprint == NULL)
+        return;
+
+    if (GetComputerNameA(host, &host_len) && host_len > 0) {
+        if (fingerprint->boardId == 0)
+            fingerprint->boardId = SecurityHashBytes64(host, host_len) ^ 0x1234567890ABCDEFULL;
+        if (fingerprint->macAddress == 0)
+            fingerprint->macAddress = SecurityHashBytes64(host, host_len) ^ 0x4d414343ULL;
+    }
+    if (fingerprint->platformHash == 0)
+        fingerprint->platformHash = (uint32_t)SecurityHashBytes64(&host_len, sizeof(host_len));
+#elif defined(__linux__)
+    char host[256];
+    struct utsname uts;
+    const char *machine_id_paths[] = {
+        "/etc/machine-id",
+        "/var/lib/dbus/machine-id"
+    };
+
+    if (fingerprint == NULL)
+        return;
+
+    if (fingerprint->boardId == 0) {
+        for (size_t i = 0; i < sizeof(machine_id_paths) / sizeof(machine_id_paths[0]); i++) {
+            FILE *fp = fopen(machine_id_paths[i], "r");
+            char buffer[256];
+            if (fp == NULL)
+                continue;
+            if (fgets(buffer, sizeof(buffer), fp) != NULL)
+                fingerprint->boardId = SecurityHashString64(buffer);
+            fclose(fp);
+            if (fingerprint->boardId != 0)
+                break;
+        }
+    }
+
+    if (gethostname(host, sizeof(host)) == 0)
+        host[sizeof(host) - 1] = '\0';
+    else
+        host[0] = '\0';
+
+    if (fingerprint->macAddress == 0 && host[0] != '\0')
+        fingerprint->macAddress = SecurityHashString64(host) ^ 0x4d414343ULL;
+
+    if (fingerprint->platformHash == 0) {
+        memset(&uts, 0, sizeof(uts));
+        if (uname(&uts) == 0) {
+            fingerprint->platformHash =
+                (uint32_t)SecurityHashString64(uts.sysname) ^
+                (uint32_t)SecurityHashString64(uts.release) ^
+                (uint32_t)SecurityHashString64(uts.machine);
+        } else {
+            fingerprint->platformHash = (uint32_t)getuid();
+        }
+    }
+#endif
+
+    if (fingerprint->cpuId == 0) {
+        uint64_t entropy = 0;
+        (void)SecureRandomGenerate((uint8_t *)&entropy, sizeof(entropy));
+        fingerprint->cpuId = entropy != 0 ? entropy : 0x43505546414c4c42ULL;
+    }
+}
 
 /*
  * Global security context (singleton pattern for performance)
@@ -193,32 +296,34 @@ HardwareFingerprintGenerate(HardwareFingerprint *fingerprint)
 #ifdef _WIN32
     result = HardwareGetCpuIdWindows(&fingerprint->cpuId);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->cpuId = 0;
     
     result = HardwareGetBoardIdWindows(&fingerprint->boardId);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->boardId = 0;
     
     result = HardwareGetMacAddressWindows(&fingerprint->macAddress);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->macAddress = 0;
     
-    fingerprint->platformHash = GetVersion();
+    fingerprint->platformHash = 0;
 #elif defined(__linux__)
     result = HardwareGetCpuIdLinux(&fingerprint->cpuId);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->cpuId = 0;
     
     result = HardwareGetBoardIdLinux(&fingerprint->boardId);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->boardId = 0;
     
     result = HardwareGetMacAddressLinux(&fingerprint->macAddress);
     if (result != SECURITY_SUCCESS)
-        return result;
+        fingerprint->macAddress = 0;
     
-    fingerprint->platformHash = (uint32_t)getpid() ^ (uint32_t)getuid();
+    fingerprint->platformHash = 0;
 #endif
+
+    SecurityFillFallbackIdentity(fingerprint);
     
     /* Calculate fingerprint checksum */
     uint32_t checksum = 0;
@@ -536,9 +641,13 @@ HardwareGetCpuIdWindows(uint64_t *cpuId)
 SecurityError
 HardwareGetBoardIdWindows(uint64_t *boardId)
 {
-    /* This is a simplified implementation */
-    /* In production, would query WMI for motherboard serial */
-    *boardId = GetTickCount64() ^ 0x1234567890ABCDEF;
+    char host[256];
+    DWORD host_len = (DWORD)sizeof(host);
+
+    if (GetComputerNameA(host, &host_len) && host_len > 0)
+        *boardId = SecurityHashBytes64(host, host_len) ^ 0x1234567890ABCDEFULL;
+    else
+        *boardId = 0;
     return SECURITY_SUCCESS;
 }
 
@@ -617,7 +726,10 @@ HardwareGetMacAddressLinux(uint64_t *macAddress)
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && ifa->ifa_addr->sa_family == AF_PACKET) {
             struct sockaddr_ll *s = (struct sockaddr_ll *)ifa->ifa_addr;
-            if (s->sll_halen == 6) {
+            if (s->sll_halen == 6
+                && ifa->ifa_name != NULL
+                && strcmp(ifa->ifa_name, "lo") != 0
+                && !SecurityBytesAllZero(s->sll_addr, 6)) {
                 for (int i = 0; i < 6; i++) {
                     *macAddress |= ((uint64_t)s->sll_addr[i]) << (8 * i);
                 }

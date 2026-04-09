@@ -41,23 +41,6 @@ static int g_fail = 0;
 #define EXPECT_STR_CONTAINS(haystack, needle) \
     EXPECT(strstr((haystack), (needle)) != NULL)
 
-static int
-count_substring(const char *haystack, const char *needle)
-{
-    int count = 0;
-    const char *cursor;
-    size_t needle_len;
-
-    if (haystack == NULL || needle == NULL)
-        return 0;
-    needle_len = strlen(needle);
-    if (needle_len == 0)
-        return 0;
-    for (cursor = strstr(haystack, needle); cursor != NULL; cursor = strstr(cursor + needle_len, needle))
-        count++;
-    return count;
-}
-
 static bool
 mir_block_slice_contains(const char *output, const char *label, const char *needle)
 {
@@ -2600,6 +2583,7 @@ test_party_emit(void)
  * Roster / World codegen
  * ----------------------------------------------------------------- */
 
+#include "tests/transpile/test_transpile_parallel_family.inc"
 #include "tests/transpile/test_transpile_domain_async.inc"
 
 static void
@@ -3678,7 +3662,8 @@ main(void)
     test_ability_role_emit();
     test_party_emit();
     test_roster_world_emit();
-    test_async_emit();
+    test_parallel_family_emit();
+    test_parallel_execution_emit();
     test_slot_sugar();
     test_stdlib_and_enum_emit();
     test_mir_vertical_slice_emit();

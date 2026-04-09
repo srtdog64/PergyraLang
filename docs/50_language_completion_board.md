@@ -4,6 +4,11 @@
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
+병렬 실행 계층의 재정렬은 별도 보드로 추적한다.
+
+- 정책: [53_parallel_core_policy.md](/mnt/e/PergyraLang/docs/53_parallel_core_policy.md)
+- 보드: [54_parallel_execution_relayout_board.md](/mnt/e/PergyraLang/docs/54_parallel_execution_relayout_board.md)
+
 이번 라운드에서 착수한 범위:
 
 - 완전한 effect system (라티스 기반 체크)
@@ -17,8 +22,8 @@
 
 | 항목 | 현재 상태 | 이번 착수 내용 | 다음 구현 단위 |
 |------|-----------|----------------|----------------|
-| Effect lattice | 부분 구현 | 현재 `effect_mask` / mismatch 진입점 정리 | effect partial order와 join/check 모델 도입 |
-| Capability security | 부분 구현 | `SecureSlot`이 capability의 첫 anchored family라는 점을 보드에 고정 | 토큰/권한/호출 계약을 type rule로 확장 |
+| Effect lattice | 부분 구현 | `effect_mask` closure, 최소 subsumption, mismatch 진입점 정리 | effect partial order와 join/check 모델 도입 |
+| Capability security | 부분 구현 | `SecureSlot`이 capability의 첫 anchored family라는 점을 보드에 고정, runtime file I/O path policy와 fingerprint fallback 강화 | 토큰/권한/호출 계약을 type rule로 확장 |
 | MIR -> LLVM | 진행 중 | 남은 HIR fallback 범주를 명시 | domain/intent/main-wrapper fallback 제거 |
 | Debugger / Formatter / LSP | 초기 상태 | 현재 범위를 명시 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 미구현 | 후보 위치를 고정 | alloca escape 분류 + non-escaping local sinking |
@@ -33,11 +38,13 @@
 - `Type.function.effect_mask`
 - declared/inferred mismatch 진단
 - `with effects ...` 계약
+- `collapse -> nondeterministic` closure
+- 최소 subeffect/subsumption check
 
 부족한 것:
 
-- 라티스 기반 subeffect check
-- join/meet를 사용하는 제어흐름 병합
+- richer partial order와 lattice 확장
+- join/meet를 사용하는 정교한 제어흐름 병합 모델
 - resource/authority/effect를 하나의 partial order로 검증하는 모델
 
 현재 진입점:
@@ -53,18 +60,25 @@
 - `SecureSlot<T>` + token 기반 최소 capability
 - secure read/write/release builtin 규칙
 - runtime secure storage policy 일부
+- runtime file I/O는 기본적으로 상대경로만 허용하고 `..` traversal을 금지한다
+- `PGY_IO_ROOT`가 있으면 runtime file I/O는 root 아래로 고정되고, non-Windows에서는 canonical path로 symlink escape를 차단한다
+- hardware fingerprint는 stable fallback identity를 채워 zeroed fingerprint 붕괴를 막는다
 
 부족한 것:
 
 - capability를 `SecureSlot` 밖으로 일반화한 타입 규칙
 - authority / token / effect declaration 간 정적 연결
 - zone/intent/domain 호출 규약과의 일관된 보안 계약
+- Windows 쪽 runtime file I/O canonical enforcement 강화
+- capability 문서와 runtime policy를 하나의 계약으로 더 통합
 
 현재 진입점:
 
 - [type_checker_builtins.c](/mnt/e/PergyraLang/src/semantic/type_checker_builtins.c)
 - [slot_security.h](/mnt/e/PergyraLang/src/runtime/slot_security.h)
 - [slot_security.c](/mnt/e/PergyraLang/src/runtime/slot_security.c)
+- [pgy_runtime.h](/mnt/e/PergyraLang/src/runtime/pgy_runtime.h)
+- [pgy_runtime_lib.c](/mnt/e/PergyraLang/src/runtime/pgy_runtime_lib.c)
 
 ### 2.3 MIR -> LLVM 완전 전환
 

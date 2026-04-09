@@ -145,7 +145,9 @@ Type* type_create_slot_access(Type* inner_type, bool is_secure, SlotAccessMode a
 Type* type_create_read_view(Type* inner_type);
 Type* type_create_write_view(Type* inner_type);
 uint32_t type_function_effects(const Type* type);
+uint32_t type_effect_mask_closure(uint32_t mask);
 bool type_effect_mask_has(uint32_t mask, uint32_t effect);
+bool type_effect_mask_subsumes(uint32_t available, uint32_t required);
 
 /* Type checking */
 bool type_equals(const Type* a, const Type* b);

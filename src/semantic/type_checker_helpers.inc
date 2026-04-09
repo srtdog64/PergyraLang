@@ -510,6 +510,7 @@ effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
         return;
 
     buf[0] = '\0';
+    mask = type_effect_mask_closure(mask);
     if (mask == EFFECT_NONE) {
         strncat(buf, "local", buf_size - 1);
         return;
@@ -594,7 +595,7 @@ declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
     if (has_contract_out != NULL)
         *has_contract_out = has_doc_contract || has_sig_contract;
 
-    return doc_effects | sig_effects;
+    return type_effect_mask_closure(doc_effects | sig_effects);
 }
 
 void
@@ -602,7 +603,7 @@ semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
 {
     if (ctx == NULL || !ctx->tracking_function_effects)
         return;
-    ctx->current_function_effects |= effect_mask;
+    ctx->current_function_effects |= type_effect_mask_closure(effect_mask);
 }
 
 bool

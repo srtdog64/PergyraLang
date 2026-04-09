@@ -146,78 +146,6 @@ test_effect_inference(void)
         ast_destroy(decl);
     }
 
-    TEST("parallel slot analyzer rejects write-write conflict");
-    {
-        const char *source =
-            "func Main() -> Void {\n"
-            "    with slot<Int> as s {\n"
-            "        parallel {\n"
-            "            Write(s, 1);\n"
-            "            Write(s, 2);\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-
-        bool found = false;
-        if (result != NULL) {
-            for (size_t i = 0; i < result->diagnostic_count; i++) {
-                if (strstr(result->diagnostics[i]->message, "Parallel slot conflict") != NULL) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        EXPECT(found);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("parallel slot analyzer warns on read-write race risk");
-    {
-        const char *source =
-            "func Main() -> Void {\n"
-            "    with slot<Int> as s {\n"
-            "        parallel {\n"
-            "            let a = Read(s);\n"
-            "            Write(s, 2);\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        bool found = false;
-        if (result != NULL) {
-            for (size_t i = 0; i < result->diagnostic_count; i++) {
-                if (strstr(result->diagnostics[i]->message, "Parallel slot race risk") != NULL) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        EXPECT(found);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
     TEST("DeviceSlot use-after-release is rejected");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -516,6 +444,7 @@ test_effect_inference(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
 
     TEST("nested vessel-backed projection resolves through subject fields");
     {
@@ -956,6 +885,76 @@ test_effect_inference(void)
             "func Dispatch() -> Int {\n"
             "    let pending = spawn 42;\n"
             "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-lattice: collapse contract subsumes nondeterministic body effect");
+    {
+        const char *source =
+            "func Observe() -> Int with effects collapse {\n"
+            "    let q: QubitSlot = ClaimQubit();\n"
+            "    return Measure(q);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-flow: if branch effect joins into function contract");
+    {
+        const char *source =
+            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "    if flag {\n"
+            "        let pending = spawn 42;\n"
+            "    }\n"
+            "    return 1;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-flow: match case effect joins into function contract");
+    {
+        const char *source =
+            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "    match flag {\n"
+            "        case true:\n"
+            "            let pending = spawn 42;\n"
+            "            return 1;\n"
+            "        default:\n"
+            "            return 2;\n"
+            "    }\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

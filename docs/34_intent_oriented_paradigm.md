@@ -159,10 +159,19 @@ runtime은 same-subject conflict scheduler, last-trace/last-failure history,
 중요한 경계:
 
 - intent는 orchestration declaration이다
-- async/fiber는 suspension/concurrency control이다
+- `parallel`은 core execution primitive다
+- `spawn/select/async/await`는 `parallel` 아래의 execution surface다
 
 따라서 intent clause 안에 `await`, `spawn`, `async`, `parallel`, `select`, channel send/recv를 직접 넣지 않는다.
 비동기 작업은 adapter, worker, hosted action 밖에서 수행하고, intent는 그 결과를 관찰하거나 다음 state transition을 선언하는 쪽에 머문다.
+
+정리:
+
+- `intent`는 왜/무엇을 한다
+- `parallel`은 동시에 어떻게 산다
+- `async`는 언제 멈추고 재개한다
+
+즉 intent와 parallel은 둘 다 1급시민이지만, 서로 다른 층의 1급시민이다.
 
 ```
 언어:
@@ -170,7 +179,7 @@ runtime은 same-subject conflict scheduler, last-trace/last-failure history,
   → 무엇이 존재하고 의도가 어떤 정적 계약을 가지는가
 
 런타임 엔진:
-  step ordering, success/failure, conflict arbitration, trace, compensation
+  parallel scheduling, step ordering, success/failure, conflict arbitration, trace, compensation
   → 그 의도를 실제로 어떻게 진행하고 실패를 다루는가
 ```
 

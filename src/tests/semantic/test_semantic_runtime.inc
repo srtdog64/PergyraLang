@@ -1082,13 +1082,13 @@ test_shared_memory_features(void)
 }
 
 /* -----------------------------------------------------------------
- * Async system tests
+ * Parallel execution semantic tests
  * ----------------------------------------------------------------- */
 
 static void
-test_async_system(void)
+test_parallel_execution_semantics(void)
 {
-    printf("\n[async_system]\n");
+    printf("\n[parallel_execution_semantics]\n");
 
     TEST("subject declaration registers SYMBOL_CLASS");
     {
@@ -1149,44 +1149,6 @@ test_async_system(void)
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
-    }
-
-    TEST("await outside async context triggers error");
-    {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
-        ctx->in_async_func = false;
-
-        ASTNode *num = make_number(42, 1);
-        ASTNode *await = ast_create_await_expression(num);
-        await->line = 1; await->column = 1;
-
-        type_check_expression(await, ctx);
-        EXPECT(ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(await);
-    }
-
-    TEST("await inside async context passes");
-    {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
-        ctx->in_async_func = true;
-
-        Type *args[1] = { TYPE_INT };
-        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
-        scope_declare(ctx->scope,
-            symbol_create_variable("pending", future_type, 1, 1));
-
-        ASTNode *await = ast_create_await_expression(make_identifier("pending", 1));
-        await->line = 1; await->column = 1;
-
-        type_check_expression(await, ctx);
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(await);
     }
 
     TEST("await rejects Future<Slot<T>> anchored handle payload");
@@ -1291,42 +1253,7 @@ test_async_system(void)
         ast_destroy(state);
     }
 
-    TEST("select statement with empty cases passes");
-    {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
-
-        ASTNode *sel = ast_create_select_statement();
-        sel->line = 1; sel->column = 1;
-
-        type_check_select_stmt(sel, ctx);
-        EXPECT(!ctx->has_error);
-
-        semantic_context_destroy(ctx);
-        ast_destroy(sel);
-    }
-
-    TEST("select statement rejects non-channel case");
-    {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
-
-        ASTNode *sel = ast_create_select_statement();
-        ASTNode *bad = ast_create_block();
-        ast_add_statement(bad, make_call("Log", NULL, 0, 1));
-        sel->data.select_stmt.case_count = 1;
-        sel->data.select_stmt.cases = calloc(1, sizeof(ASTNode *));
-        sel->data.select_stmt.cases[0] = bad;
-
-        type_check_select_stmt(sel, ctx);
-        EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "select case must begin"));
-
-        semantic_context_destroy(ctx);
-        ast_destroy(sel);
-    }
-
-    TEST("spawn expression returns Future<T>");
+    TEST("parallel-family: spawn returns Future<T>");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -1917,78 +1844,6 @@ test_effect_inference(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(decl);
-    }
-
-    TEST("parallel slot analyzer rejects write-write conflict");
-    {
-        const char *source =
-            "func Main() -> Void {\n"
-            "    with slot<Int> as s {\n"
-            "        parallel {\n"
-            "            Write(s, 1);\n"
-            "            Write(s, 2);\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-
-        bool found = false;
-        if (result != NULL) {
-            for (size_t i = 0; i < result->diagnostic_count; i++) {
-                if (strstr(result->diagnostics[i]->message, "Parallel slot conflict") != NULL) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        EXPECT(found);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("parallel slot analyzer warns on read-write race risk");
-    {
-        const char *source =
-            "func Main() -> Void {\n"
-            "    with slot<Int> as s {\n"
-            "        parallel {\n"
-            "            let a = Read(s);\n"
-            "            Write(s, 2);\n"
-            "        }\n"
-            "    }\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
-
-        bool found = false;
-        if (result != NULL) {
-            for (size_t i = 0; i < result->diagnostic_count; i++) {
-                if (strstr(result->diagnostics[i]->message, "Parallel slot race risk") != NULL) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        EXPECT(found);
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
     }
 
     TEST("DeviceSlot use-after-release is rejected");

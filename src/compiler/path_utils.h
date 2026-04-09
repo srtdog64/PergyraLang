@@ -8,7 +8,12 @@
 #ifndef PGY_PATH_UTILS_H
 #define PGY_PATH_UTILS_H
 
+#include <stddef.h>
 #include <stdbool.h>
+
+#ifndef PGY_MAX_TEXT_FILE_BYTES
+#define PGY_MAX_TEXT_FILE_BYTES (64u * 1024u * 1024u)
+#endif
 
 /* Return the directory part of path (heap-allocated). "a/b.c" → "a" */
 char *path_dirname_dup(const char *path);

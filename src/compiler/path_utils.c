@@ -108,13 +108,27 @@ path_has_extension(const char *path)
 char *
 path_read_file(const char *path)
 {
+    if (path == NULL)
+        return NULL;
+
     FILE *f = fopen(path, "rb");
     if (f == NULL)
         return NULL;
 
-    fseek(f, 0, SEEK_END);
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return NULL;
+    }
+
     long sz = ftell(f);
-    rewind(f);
+    if (sz < 0 || (unsigned long)sz > (unsigned long)PGY_MAX_TEXT_FILE_BYTES) {
+        fclose(f);
+        return NULL;
+    }
+    if (fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        return NULL;
+    }
 
     char *buf = malloc((size_t)sz + 1);
     if (buf == NULL) {

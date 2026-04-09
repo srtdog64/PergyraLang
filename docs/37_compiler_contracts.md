@@ -301,6 +301,37 @@ MIR로 이월하는 것:
 | `compensate` / `rollback` | HIR | DIR | RIR | MIR |
 | `using` / `transfer` | HIR | DIR | RIR | MIR |
 
+## 1.6.A 실행 계약 표
+
+이 표는 concurrency / execution family의 역할을 고정한다.
+
+핵심 원칙:
+
+- `parallel`은 core execution primitive다.
+- `async`는 suspension/coroutine surface다.
+- `spawn`은 task-producing surface다.
+- `await`는 completion join surface다.
+- `select`는 readiness arbitration surface다.
+
+즉:
+
+- `parallel`은 “동시에 살아도 되는 실행 관계”를 정한다.
+- `async`는 “그 실행 하나가 멈췄다가 재개될 수 있는가”를 정한다.
+
+| 표면 | 역할 | 최종 고정 계층 | 직접 바꾸는 것 | 비고 |
+| --- | --- | --- | --- | --- |
+| `parallel` | core execution primitive | `HIR -> MIR` | 동시 실행 관계, slot/resource conflict, join/cancel/fairness family | execution 최상위 축 |
+| `spawn` | task-producing surface | `HIR -> MIR` | 새 task 생성, future 반환 | `parallel` 아래 surface |
+| `async` | suspension/coroutine surface | `HIR -> MIR` | suspend/resume, async context | 병렬성 그 자체는 아님 |
+| `await` | completion join surface | `HIR -> RIR -> MIR` | future/result 합류, remote future unwrap | async completion 관측 |
+| `select` | readiness arbitration surface | `HIR -> MIR` | ready case 선택, fairness 시작점 | channel/parallel 하위 surface |
+| `channel` | execution dataflow surface | `HIR -> RIR -> MIR` | send/recv/backpressure | `select`와 함께 사용 |
+| `cancel` family | execution control surface | `HIR -> MIR` | cancellation chain, cooperative stop | runtime propagation contract |
+
+한 줄 정의:
+
+> `parallel`은 실행 관계의 코어이고, `async/spawn/await/select`는 그 관계 위에서 동작하는 표면이다.
+
 ## 1.6.1 전체 키워드 인벤토리
 
 위 표는 "backend/IR 책임이 큰 키워드" 중심이다.
@@ -694,7 +725,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `extern` | `TOKEN_EXTERN` | declaration | 낮음 | `HIR` | foreign block surface |
 | `with` | `TOKEN_WITH` | statement / clause | 중간 | `HIR -> RIR -> MIR` | scoped resource binding |
 | `as` | `TOKEN_AS` | type / alias / clause | 낮음 | `HIR` | naming/typing helper |
-| `parallel` | `TOKEN_PARALLEL` | statement | 중간 | `HIR -> MIR` | parallel execution surface |
+| `parallel` | `TOKEN_PARALLEL` | statement | 큼 | `HIR -> MIR` | core execution primitive |
 | `for` | `TOKEN_FOR` | statement | 중간 | `HIR -> MIR` | loop surface |
 | `in` | `TOKEN_IN` | statement / type syntax | 낮음 | `HIR` | iterator/member syntax helper |
 | `if` | `TOKEN_IF` | statement | 중간 | `HIR -> MIR` | branch surface |
@@ -714,14 +745,14 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `type` | `PGY_TOKEN_TYPE` | declaration | 중간 | `HIR` | alias/type declaration |
 | `trait` | `TOKEN_TRAIT` | declaration surface | 낮음 | `HIR` | currently shallow contract |
 | `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
-| `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | async control surface |
+| `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | suspension/coroutine surface |
 | `await` | `TOKEN_AWAIT` | expression | 중간 | `HIR -> RIR -> MIR` | future synchronization |
 | `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host type |
 | `channel` | `TOKEN_CHANNEL` | type/declaration surface | 중간 | `HIR -> RIR -> MIR` | channel resource surface |
-| `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | channel control surface |
+| `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | readiness arbitration surface |
 | `case` | `TOKEN_CASE` | statement | 낮음 | `HIR -> MIR` | match/select arm |
 | `default` | `TOKEN_DEFAULT` | statement | 낮음 | `HIR -> MIR` | fallback arm |
-| `spawn` | `TOKEN_SPAWN` | expression | 중간 | `HIR -> MIR` | task launch surface |
+| `spawn` | `TOKEN_SPAWN` | expression | 중간 | `HIR -> MIR` | task-producing surface |
 | `match` | `TOKEN_MATCH` | statement / expression | 중간 | `HIR -> MIR` | pattern dispatch |
 | `import` | `TOKEN_IMPORT` | declaration | 낮음 | `HIR` | module import |
 | `use` | `TOKEN_USE` | declaration surface | 낮음 | `HIR` | module binding helper |

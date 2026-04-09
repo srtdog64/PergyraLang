@@ -26,11 +26,223 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
+#include <ctype.h>
+#include <limits.h>
 #include <pthread.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #endif
 #include "pgy_parallel.h"
+
+#ifndef PGY_RUNTIME_MAX_FILE_BYTES
+#define PGY_RUNTIME_MAX_FILE_BYTES (64u * 1024u * 1024u)
+#endif
+
+static inline char *pgy_runtime_strdup(const char *src);
+
+static inline bool
+pgy_runtime_path_is_absolute(const char *path)
+{
+    if (path == NULL || path[0] == '\0')
+        return false;
+#ifdef _WIN32
+    if ((path[0] == '/' || path[0] == '\\')
+        || (isalpha((unsigned char)path[0]) && path[1] == ':'))
+        return true;
+#else
+    if (path[0] == '/')
+        return true;
+#endif
+    return false;
+}
+
+static inline bool
+pgy_runtime_path_has_parent_ref(const char *path)
+{
+    const char *seg = path;
+
+    if (path == NULL)
+        return true;
+
+    while (*seg != '\0') {
+        const char *end = seg;
+        while (*end != '\0' && *end != '/' && *end != '\\')
+            end++;
+        if ((size_t)(end - seg) == 2 && seg[0] == '.' && seg[1] == '.')
+            return true;
+        if (*end == '\0')
+            break;
+        seg = end + 1;
+    }
+
+    return false;
+}
+
+static inline bool
+pgy_runtime_path_is_within_root(const char *path, const char *root)
+{
+    size_t root_len;
+
+    if (path == NULL || root == NULL || root[0] == '\0')
+        return false;
+
+    root_len = strlen(root);
+    if (strncmp(path, root, root_len) != 0)
+        return false;
+    return path[root_len] == '\0'
+        || path[root_len] == '/'
+        || path[root_len] == '\\';
+}
+
+static inline bool
+pgy_runtime_file_path_allowed(const char *path)
+{
+    const char *root;
+    const char *allow_abs;
+
+    if (path == NULL || path[0] == '\0')
+        return false;
+    if (pgy_runtime_path_has_parent_ref(path))
+        return false;
+
+    root = getenv("PGY_IO_ROOT");
+    if (root != NULL && root[0] != '\0') {
+        if (pgy_runtime_path_is_absolute(path))
+            return pgy_runtime_path_is_within_root(path, root);
+        return true;
+    }
+
+    if (!pgy_runtime_path_is_absolute(path))
+        return true;
+
+    allow_abs = getenv("PGY_IO_ALLOW_ABSOLUTE");
+    return allow_abs != NULL && strcmp(allow_abs, "1") == 0;
+}
+
+static inline char *
+pgy_runtime_path_join_dup(const char *dir, const char *path)
+{
+    size_t dlen;
+    size_t plen;
+    bool needs_sep;
+    char *result;
+
+    if (dir == NULL || path == NULL)
+        return NULL;
+
+    dlen = strlen(dir);
+    plen = strlen(path);
+    needs_sep = dlen > 0 && dir[dlen - 1] != '/' && dir[dlen - 1] != '\\';
+    result = (char *)malloc(dlen + (needs_sep ? 1 : 0) + plen + 1);
+    if (result == NULL)
+        return NULL;
+
+    memcpy(result, dir, dlen);
+    if (needs_sep)
+        result[dlen++] = '/';
+    memcpy(result + dlen, path, plen + 1);
+    return result;
+}
+
+static inline char *
+pgy_runtime_path_dirname_dup(const char *path)
+{
+    const char *last_sep;
+    const char *last_bsep;
+    size_t len;
+    char *dir;
+
+    if (path == NULL)
+        return NULL;
+
+    last_sep = strrchr(path, '/');
+    last_bsep = strrchr(path, '\\');
+    if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
+        last_sep = last_bsep;
+
+    if (last_sep == NULL)
+        return pgy_runtime_strdup(".");
+
+    len = (size_t)(last_sep - path);
+    dir = (char *)malloc(len + 1);
+    if (dir == NULL)
+        return NULL;
+    memcpy(dir, path, len);
+    dir[len] = '\0';
+    return dir;
+}
+
+static inline bool
+pgy_runtime_prefix_match_path(const char *root, const char *path)
+{
+    size_t root_len;
+
+    if (root == NULL || path == NULL)
+        return false;
+    root_len = strlen(root);
+    if (strncmp(root, path, root_len) != 0)
+        return false;
+    return path[root_len] == '\0'
+        || path[root_len] == '/'
+        || path[root_len] == '\\';
+}
+
+static inline char *
+pgy_runtime_resolve_file_path(const char *path, bool for_write)
+{
+    const char *root = getenv("PGY_IO_ROOT");
+    const char *allow_abs;
+    char *candidate = NULL;
+
+    if (!pgy_runtime_file_path_allowed(path))
+        return NULL;
+
+    if (root != NULL && root[0] != '\0') {
+        if (pgy_runtime_path_is_absolute(path))
+            candidate = pgy_runtime_strdup(path);
+        else
+            candidate = pgy_runtime_path_join_dup(root, path);
+    } else if (pgy_runtime_path_is_absolute(path)) {
+        allow_abs = getenv("PGY_IO_ALLOW_ABSOLUTE");
+        if (allow_abs == NULL || strcmp(allow_abs, "1") != 0)
+            return NULL;
+        candidate = pgy_runtime_strdup(path);
+    } else {
+        candidate = pgy_runtime_strdup(path);
+    }
+
+#ifndef _WIN32
+    if (candidate != NULL && root != NULL && root[0] != '\0') {
+        char root_real[PATH_MAX];
+        char check_real[PATH_MAX];
+        char *check_path = NULL;
+
+        if (realpath(root, root_real) == NULL) {
+            free(candidate);
+            return NULL;
+        }
+
+        if (for_write)
+            check_path = pgy_runtime_path_dirname_dup(candidate);
+        else
+            check_path = pgy_runtime_strdup(candidate);
+
+        if (check_path == NULL || realpath(check_path, check_real) == NULL
+            || !pgy_runtime_prefix_match_path(root_real, check_real)) {
+            free(check_path);
+            free(candidate);
+            return NULL;
+        }
+
+        free(check_path);
+    }
+#endif
+
+    return candidate;
+}
 
 /* =================================================================
  * Build Mode Configuration
@@ -3880,17 +4092,36 @@ pgy_file_close(int32_t fd)
 static inline char *
 pgy_read_file(const char *path)
 {
-    FILE *fp = fopen(path, "rb");
+    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    if (resolved == NULL)
+        return pgy_runtime_strdup("");
+    FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) return pgy_runtime_strdup("");
-    fseek(fp, 0, SEEK_END);
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        return pgy_runtime_strdup("");
+    }
     long len = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    if (len < 0) { fclose(fp); return pgy_runtime_strdup(""); }
+    if (len < 0 || (unsigned long)len > (unsigned long)PGY_RUNTIME_MAX_FILE_BYTES) {
+        fclose(fp);
+        return pgy_runtime_strdup("");
+    }
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        fclose(fp);
+        return pgy_runtime_strdup("");
+    }
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) { fclose(fp); return pgy_runtime_strdup(""); }
     size_t read_len = fread(buf, 1, (size_t)len, fp);
+    if (read_len != (size_t)len) {
+        fclose(fp);
+        free(resolved);
+        free(buf);
+        return pgy_runtime_strdup("");
+    }
     buf[read_len] = '\0';
     fclose(fp);
+    free(resolved);
     return buf;
 }
 
@@ -3898,11 +4129,17 @@ pgy_read_file(const char *path)
 static inline void
 pgy_write_file(const char *path, const char *data)
 {
-    FILE *fp = fopen(path, "wb");
+    char *resolved = pgy_runtime_resolve_file_path(path, true);
+    if (resolved == NULL)
+        return;
+    FILE *fp = fopen(resolved, "wb");
     if (fp == NULL) return;
-    if (data != NULL)
-        fwrite(data, 1, strlen(data), fp);
+    if (data != NULL) {
+        size_t len = strlen(data);
+        (void)fwrite(data, 1, len, fp);
+    }
     fclose(fp);
+    free(resolved);
 }
 
 /* Input(prompt) → read line from stdin */
