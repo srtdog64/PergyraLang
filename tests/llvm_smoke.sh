@@ -206,6 +206,19 @@ async func Main() -> Void {
 EOF
 run_case "device_slot_remote" "$TMPDIR/device_slot_remote.pgy" "11"
 
+cat > "$TMPDIR/async_func_decl.pgy" <<'EOF'
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    let f: Future<Int> = spawn Inc(4);
+    let v: Int = await f;
+    Log(v);
+}
+EOF
+run_case "async_func_decl" "$TMPDIR/async_func_decl.pgy" "5"
+
 cat > "$TMPDIR/secure_slot_view.pgy" <<'EOF'
 func Main() -> Void {
     let ss: SecureSlot<Int> = ClaimSecureSlot();
@@ -244,6 +257,27 @@ func Main() -> Void {
 }
 EOF
 run_case "subject_projection" "$TMPDIR/subject_projection.pgy" "42" "neo"
+
+cat > "$TMPDIR/subject_method_recursion_defer.pgy" <<'EOF'
+subject Counter {
+    let ticks: Int;
+
+    func Sum(self, n: Int) -> Int {
+        if n <= 0 { return 0; }
+        defer {
+            ticks = ticks + 1;
+        };
+        return n + self.Sum(n - 1);
+    }
+}
+
+func Main() -> Void {
+    let c: Counter = Counter(0);
+    Log(c.Sum(4));
+    Log(c.ticks);
+}
+EOF
+run_case "subject_method_recursion_defer" "$TMPDIR/subject_method_recursion_defer.pgy" "10" "4"
 
 cat > "$TMPDIR/intent_failure_result.pgy" <<'EOF'
 subject Driver {

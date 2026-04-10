@@ -118,6 +118,11 @@
 - [llvm_pipeline.c](/mnt/e/PergyraLang/src/codegen/llvm_pipeline.c)
 - [llvm_mir_emit.c](/mnt/e/PergyraLang/src/codegen/llvm_mir_emit.c)
 
+현재 검증/부채 요약은:
+
+- [44_llvm_backend_coverage.md](/mnt/e/PergyraLang/docs/44_llvm_backend_coverage.md)
+- [62_llvm_backend_debt_ledger.md](/mnt/e/PergyraLang/docs/62_llvm_backend_debt_ledger.md)
+
 ### 2.4 Debugger / Formatter / LSP
 
 현재:
