@@ -24,7 +24,7 @@
 | `tobject` | 95% | `dto` 제거 후 표면 정렬 완료 |
 | `enum` | 90% | tagged/value sum type 경로 실사용 가능 |
 | `type` | 85% | alias 표면 안정, richer tooling은 남음 |
-| `ability` | 93% | 기본 공개 계약으로 정렬됨, `private ability`는 숨김 surface로 동작, generic declaration + generic impl/requires satisfaction 지원, `export ability`는 중복 표기 |
+| `ability` | 95% | 기본 공개 계약으로 정렬됨, `private ability`는 숨김 surface로 동작, generic declaration + `where` surface + generic impl/requires satisfaction 지원, `export ability`는 중복 표기 |
 | `role` | 85% | ability 구현과 where 일부 연결 |
 | `party` | 80% | domain 축은 살아 있으나 코어성은 재평가 여지 |
 | `channel` | 90% | runtime/select/backpressure surface 연결 |
@@ -39,7 +39,7 @@
 | `as` | 75% | alias/type helper 표면 안정 |
 | `impl` | 85% | role/ability 구현 핵심 표면 |
 | `include` | 75% | role composition helper 수준 |
-| `require` | 95% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 + generic ability declaration/arity/type-arg validation + generic impl/requires satisfaction까지 연결됨 |
+| `require` | 96% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 + generic ability declaration/arity/type-arg validation + generic impl/requires satisfaction + richer required/actual generic mismatch diagnostics까지 연결됨 |
 | `override` | 55% | role/party 보조 modifier는 있으나 inheritance override는 코어 대상 아님 |
 | `extends` | 30% | party 보조 관계 표면은 있으나 inheritance 코어 축은 아님 |
 | `if` | 100% | 안정 |
@@ -118,6 +118,7 @@
 3. `override`
 4. `effect`의 authority/resource 통합 partial order
 5. `secure`의 zone/authority declaration 일반화 잔여분
+6. `subject/class/struct/object/tobject`의 lexer token aliasing 제거
 
 ## E. 현재 가장 잘 닫힌 키워드 축
 

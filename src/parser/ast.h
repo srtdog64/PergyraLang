@@ -39,6 +39,13 @@ typedef enum {
 } NominalDeclKind;
 
 typedef enum {
+    RELATION_ENDPOINT_NAMED,
+    RELATION_ENDPOINT_SUBJECT,
+    RELATION_ENDPOINT_OBJECT,
+    RELATION_ENDPOINT_CLASS
+} RelationEndpointKind;
+
+typedef enum {
     WORLD_STATE_SOURCE_ZONE,
     WORLD_STATE_SOURCE_PROJECTION,
     WORLD_STATE_SOURCE_LAYER,
@@ -580,6 +587,7 @@ struct ASTNode
             ASTNode** methods;
             size_t method_count;
             GenericParams* generic_params;
+            WhereClause* where_clause;
             AccessModifier access;
             bool has_explicit_access;
             bool is_innate;
@@ -821,6 +829,8 @@ struct ASTNode
             size_t method_count;
             StructuredComment* doc_comment;
             /* between clause: relation X between Left, Right */
+            RelationEndpointKind between_left_kind;
+            RelationEndpointKind between_right_kind;
             char* between_left;       /* "subject", "object", "class" or concrete type */
             char* between_right;      /* "subject", "object", "class" or concrete type */
             bool between_left_many;   /* true if left[] */

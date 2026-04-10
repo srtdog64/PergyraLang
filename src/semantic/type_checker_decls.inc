@@ -306,6 +306,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
             ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
             if (ab_type != NULL && ab_type->data.type.name != NULL) {
                 const char *ability_name = ab_type->data.type.name;
+                char *required_text = ability_ref_display(ab_type);
                 Symbol *ab = scope_lookup(ctx->scope, ab_type->data.type.name);
                 if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
                     semantic_warning(ctx, rs,
@@ -318,8 +319,9 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                     semantic_error(ctx, rs,
                         "Party role slot '%s' requires ability '%s', but no subject-bound role implements it",
                         rs->data.role_slot.slot_name,
-                        ability_name);
+                        required_text != NULL ? required_text : ability_name);
                 }
+                free(required_text);
             }
         }
     }
@@ -958,9 +960,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
             ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
             const char *ability = ability_ref_name(ability_ref);
+            char *required_text = ability_ref_display(ability_ref);
             if (resolve_required_ability_decl(
                     ability_ref, step, ctx, "Intent step",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>") == NULL) {
+                free(required_text);
                 continue;
             }
 
@@ -972,14 +976,23 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     continue;
                 if (participant_type_name != NULL
                     && !subject_type_has_ability(ctx->program_root, participant_type_name, ability_ref)) {
+                    ASTNode *actual_impl = subject_type_find_base_ability_impl(
+                        ctx->program_root, participant_type_name, ability);
+                    char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                     semantic_error(ctx, step,
-                        "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it",
+                        actual_impl != NULL
+                            ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead"
+                            : "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                        ability != NULL ? ability : "<ability>",
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
                         alias != NULL ? alias : "<participant>",
-                        participant_type_name);
+                        participant_type_name,
+                        actual_text != NULL ? actual_text : NULL);
+                    free(actual_text);
                 }
             }
+            free(required_text);
         }
 
         if (step->data.intent_step.causes_effect != NULL
@@ -1867,6 +1880,40 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
     return false;
 }
 
+static ASTNode *
+subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
+                                    const char *ability_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM
+        || type_name == NULL || ability_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL || stmt->type != AST_ROLE_DECL
+            || stmt->data.role_decl.for_type == NULL
+            || stmt->data.role_decl.for_type->type != AST_TYPE
+            || stmt->data.role_decl.for_type->data.type.name == NULL
+            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
+            continue;
+        }
+        for (size_t j = 0; j < stmt->data.role_decl.impl_count; j++) {
+            ASTNode *impl = stmt->data.role_decl.impl_abilities[j];
+            if (impl != NULL
+                && impl->type == AST_IMPL_ABILITY
+                && impl->data.impl_ability.ability_ref != NULL
+                && impl->data.impl_ability.ability_ref->type == AST_TYPE
+                && impl->data.impl_ability.ability_ref->data.type.name != NULL
+                && strcmp(impl->data.impl_ability.ability_ref->data.type.name, ability_name) == 0) {
+                return impl->data.impl_ability.ability_ref;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 static bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 {
@@ -2454,18 +2501,19 @@ type_check_zone_effect_contract(ASTNode *zone,
 static bool
 relation_slot_matches_between_kind(ASTNode *slot,
                                    Type *slot_type,
-                                   const char *kind,
+                                   RelationEndpointKind kind,
+                                   const char *named_type,
                                    SemanticContext *ctx)
 {
     ASTNode *decl;
 
-    if (slot == NULL || kind == NULL)
+    if (slot == NULL)
         return false;
 
-    if (strcmp(kind, "subject") == 0)
+    if (kind == RELATION_ENDPOINT_SUBJECT)
         return slot->data.domain_slot.is_subject;
 
-    if (strcmp(kind, "object") == 0) {
+    if (kind == RELATION_ENDPOINT_OBJECT) {
         if (slot->data.domain_slot.is_subject)
             return false;
         if (slot->data.domain_slot.is_tobject)
@@ -2477,7 +2525,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
     }
 
-    if (strcmp(kind, "tobject") == 0) {
+    if (named_type != NULL && strcmp(named_type, "tobject") == 0) {
         if (slot->data.domain_slot.is_subject)
             return false;
         if (!slot->data.domain_slot.is_tobject)
@@ -2489,7 +2537,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && decl->data.class_decl.nominal_kind == NOMINAL_DECL_TOBJECT;
     }
 
-    if (strcmp(kind, "class") == 0) {
+    if (kind == RELATION_ENDPOINT_CLASS) {
         if (slot->data.domain_slot.is_subject || slot->data.domain_slot.is_tobject)
             return false;
         decl = find_named_class_decl_local(ctx->program_root,
@@ -2502,7 +2550,8 @@ relation_slot_matches_between_kind(ASTNode *slot,
 
     return slot_type != NULL
         && slot_type->name != NULL
-        && strcmp(slot_type->name, kind) == 0;
+        && named_type != NULL
+        && strcmp(slot_type->name, named_type) == 0;
 }
 
 static bool
@@ -2525,6 +2574,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     Type *decl_left_type;
     Type *decl_right_type;
     size_t endpoint_count;
+    RelationEndpointKind between_left_kind;
+    RelationEndpointKind between_right_kind;
     const char *between_left;
     const char *between_right;
 
@@ -2539,13 +2590,15 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (relation_decl == NULL)
         return false;
 
+    between_left_kind = relation_decl->data.relation_decl.between_left_kind;
+    between_right_kind = relation_decl->data.relation_decl.between_right_kind;
     between_left = relation_decl->data.relation_decl.between_left;
     between_right = relation_decl->data.relation_decl.between_right;
     left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
     right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
 
     if (between_left != NULL && between_right != NULL) {
-        if (!relation_slot_matches_between_kind(left_slot, left_type, between_left, ctx)) {
+        if (!relation_slot_matches_between_kind(left_slot, left_type, between_left_kind, between_left, ctx)) {
             semantic_error(ctx, link_like,
                 "Zone %s left slot '%s' does not satisfy relation '%s' between-left contract '%s'",
                 action_name,
@@ -2556,7 +2609,7 @@ type_check_zone_relation_contract(ASTNode *zone,
                 between_left);
         }
 
-        if (!relation_slot_matches_between_kind(right_slot, right_type, between_right, ctx)) {
+        if (!relation_slot_matches_between_kind(right_slot, right_type, between_right_kind, between_right, ctx)) {
             semantic_error(ctx, link_like,
                 "Zone %s right slot '%s' does not satisfy relation '%s' between-right contract '%s'",
                 action_name,
@@ -2778,12 +2831,14 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             node->data.relation_decl.name);
     }
     /* Validate 'between' clause if present */
+    RelationEndpointKind blk = node->data.relation_decl.between_left_kind;
+    RelationEndpointKind brk = node->data.relation_decl.between_right_kind;
     const char *bl = node->data.relation_decl.between_left;
     const char *br = node->data.relation_decl.between_right;
     if (bl != NULL && br != NULL) {
         /* At least one side must be 'subject' */
-        bool left_is_subject = (strcmp(bl, "subject") == 0);
-        bool right_is_subject = (strcmp(br, "subject") == 0);
+        bool left_is_subject = (blk == RELATION_ENDPOINT_SUBJECT);
+        bool right_is_subject = (brk == RELATION_ENDPOINT_SUBJECT);
         if (!left_is_subject && !right_is_subject) {
             semantic_error(ctx, node,
                 "Relation '%s': at least one side of 'between' must be 'subject' "
@@ -2927,22 +2982,33 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t j = 0; j < authority->data.zone_authority.ability_count; j++) {
             ASTNode *ability_ref = authority->data.zone_authority.required_abilities[j];
             const char *ability_name = ability_ref_name(ability_ref);
+            char *required_text = ability_ref_display(ability_ref);
             if (resolve_required_ability_decl(
                     ability_ref, authority, ctx, "Zone authority",
                     authority->data.zone_authority.subject_slot_name) == NULL) {
+                free(required_text);
                 continue;
             }
             if (slot_type == NULL || slot_type == TYPE_UNKNOWN
                 || slot_type->name == NULL) {
+                free(required_text);
                 continue;
             }
             if (!subject_type_has_ability(ctx->program_root, slot_type->name, ability_ref)) {
+                ASTNode *actual_impl = subject_type_find_base_ability_impl(
+                    ctx->program_root, slot_type->name, ability_name);
+                char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                 semantic_error(ctx, authority,
-                    "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl",
+                    actual_impl != NULL
+                        ? "Zone authority '%s' requires ability '%s', but subject type '%s' implements '%s' instead"
+                        : "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl",
                     authority->data.zone_authority.subject_slot_name,
-                    ability_name,
-                    slot_type->name);
+                    required_text != NULL ? required_text : ability_name,
+                    slot_type->name,
+                    actual_text != NULL ? actual_text : NULL);
+                free(actual_text);
             }
+            free(required_text);
         }
         for (size_t j = i + 1; j < node->data.zone_decl.authority_count; j++) {
             ASTNode *other = node->data.zone_decl.authorities[j];

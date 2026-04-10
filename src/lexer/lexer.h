@@ -42,8 +42,11 @@ typedef enum
     /* Keywords */
     TOKEN_LET,
     TOKEN_FUNC,
+    TOKEN_SUBJECT,
     TOKEN_CLASS,
     TOKEN_STRUCT,
+    TOKEN_OBJECT,
+    TOKEN_TOBJECT,
     TOKEN_EXTERN,
     TOKEN_WITH,
     TOKEN_AS,
@@ -171,12 +174,11 @@ typedef enum
     
     /* Structured Comments */
     TOKEN_DOC_COMMENT,      /* /// */
-    /* Domain / contextual keywords — lexed as IDENTIFIER, recognized by parser */
-    /* These have NO dedicated token; parser handles them contextually */
-    /* TOKEN_OBJECT, TOKEN_VESSEL, TOKEN_INTENT, TOKEN_EVENT, TOKEN_ACTION,
-       TOKEN_REQUIRES, TOKEN_WITHIN, TOKEN_CAUSES, TOKEN_AUTHORIZED, TOKEN_BY,
-       TOKEN_INVOLVES, TOKEN_STEP, TOKEN_WHO, TOKEN_EXPECT, TOKEN_SUCCESS,
-       TOKEN_FAILURE — all lexed as TOKEN_IDENTIFIER */
+    /* Domain / contextual keywords — most are still lexed as IDENTIFIER and
+       recognized by parser. Core nominal declarations now have dedicated
+       tokens: TOKEN_SUBJECT, TOKEN_CLASS, TOKEN_STRUCT, TOKEN_OBJECT,
+       TOKEN_TOBJECT. Remaining contextual surfaces such as vessel/intent/event
+       are still parser-recognized identifiers. */
 
     /* Doc comment tags — produced by scan_doc_comment() */
     TOKEN_DOC_TAG_WHAT,     /* [What]: */

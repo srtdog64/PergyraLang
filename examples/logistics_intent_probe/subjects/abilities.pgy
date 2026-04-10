@@ -7,3 +7,8 @@ ability Approvable
 {
     func ApprovalMark() -> String;
 }
+
+ability BatchReady<T>
+{
+    func BatchMark(value: T) -> String;
+}

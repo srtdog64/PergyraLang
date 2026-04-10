@@ -6,6 +6,46 @@ ability_ref_name(ASTNode *ability_ref)
     return ability_ref->data.type.name;
 }
 
+static char *
+ability_ref_display(ASTNode *ability_ref)
+{
+    if (ability_ref == NULL || ability_ref->type != AST_TYPE)
+        return pergyra_strdup("<ability>");
+    if (ability_ref->data.type.name == NULL)
+        return pergyra_strdup("<ability>");
+    if (ability_ref->data.type.generic_args == NULL
+        || ability_ref->data.type.generic_args->count == 0) {
+        return pergyra_strdup(ability_ref->data.type.name);
+    }
+
+    char *result = tc_strdup_fmt("%s<", ability_ref->data.type.name);
+    if (result == NULL)
+        return pergyra_strdup(ability_ref->data.type.name);
+
+    for (size_t i = 0; i < ability_ref->data.type.generic_args->count; i++) {
+        GenericParam *gp = ability_ref->data.type.generic_args->params[i];
+        ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+        char *arg_text = ability_ref_display(arg);
+        char *next;
+        if (i + 1 < ability_ref->data.type.generic_args->count) {
+            next = tc_strdup_fmt("%s%s, ", result, arg_text != NULL ? arg_text : "<type>");
+        } else {
+            next = tc_strdup_fmt("%s%s>", result, arg_text != NULL ? arg_text : "<type>");
+        }
+        free(arg_text);
+        free(result);
+        result = next;
+        if (result == NULL)
+            return pergyra_strdup(ability_ref->data.type.name);
+    }
+
+    return result;
+}
+
+static ASTNode *
+subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
+                                    const char *ability_name);
+
 static bool
 ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
 {
@@ -192,26 +232,41 @@ validate_action_required_abilities(ASTNode *node,
     for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
         ASTNode *ability_ref = node->data.func_decl.required_abilities[i];
         const char *ability = ability_ref_name(ability_ref);
+        char *required_text = ability_ref_display(ability_ref);
         ASTNode *ability_decl = resolve_required_ability_decl(
             ability_ref, node, ctx, "action", name);
         if (ability_decl == NULL)
+        {
+            free(required_text);
             continue;
+        }
         if (ability_decl->type == AST_ABILITY_DECL
             && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
             semantic_error(ctx, node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
-                ability != NULL ? ability : "<ability>");
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"));
+            free(required_text);
             continue;
         }
         if (subject_name != NULL
             && !subject_type_has_ability(ctx->program_root, subject_name, ability_ref)) {
+            ASTNode *actual_impl = subject_type_find_base_ability_impl(
+                ctx->program_root, subject_name, ability);
+            char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
             semantic_error(ctx, node,
-                "action '%s' requires ability '%s' but subject '%s' does not implement it",
+                actual_impl != NULL
+                    ? "action '%s' requires ability '%s' but subject '%s' implements '%s' instead"
+                    : "action '%s' requires ability '%s' but subject '%s' does not implement it",
                 name != NULL ? name : "<anonymous>",
-                ability != NULL ? ability : "<ability>",
-                subject_name);
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
+                subject_name,
+                actual_text != NULL ? actual_text : NULL);
+            free(actual_text);
         }
+        free(required_text);
     }
 }
 

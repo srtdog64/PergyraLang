@@ -19,10 +19,11 @@ typedef struct {
 static const KeywordEntry keywords[] = {
     {"let",      TOKEN_LET},
     {"func",     TOKEN_FUNC},
+    {"subject",  TOKEN_SUBJECT},
     {"class",    TOKEN_CLASS},
-    {"subject",  TOKEN_CLASS},
     {"struct",   TOKEN_STRUCT},
-    {"tobject",  TOKEN_STRUCT},
+    {"object",   TOKEN_OBJECT},
+    {"tobject",  TOKEN_TOBJECT},
     {"extern",   TOKEN_EXTERN},
     {"with",     TOKEN_WITH},
     {"as",       TOKEN_AS},
@@ -551,8 +552,11 @@ const char* token_type_to_string(PgyTokenType type) {
     switch (type) {
         case TOKEN_LET: return "LET";
         case TOKEN_FUNC: return "FUNC";
+        case TOKEN_SUBJECT: return "SUBJECT";
         case TOKEN_CLASS: return "CLASS";
         case TOKEN_STRUCT: return "STRUCT";
+        case TOKEN_OBJECT: return "OBJECT";
+        case TOKEN_TOBJECT: return "TOBJECT";
         case TOKEN_EXTERN: return "EXTERN";
         case TOKEN_WITH: return "WITH";
         case TOKEN_AS: return "AS";

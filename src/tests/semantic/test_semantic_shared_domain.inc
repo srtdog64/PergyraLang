@@ -1185,6 +1185,8 @@ test_shared_memory_features(void)
         /* verify between fields were parsed */
         ASTNode *rel = program->data.program.statements[1];
         EXPECT(rel->data.relation_decl.between_left != NULL);
+        EXPECT(rel->data.relation_decl.between_left_kind == RELATION_ENDPOINT_SUBJECT);
+        EXPECT(rel->data.relation_decl.between_right_kind == RELATION_ENDPOINT_SUBJECT);
         EXPECT(strcmp(rel->data.relation_decl.between_left, "subject") == 0);
         EXPECT(strcmp(rel->data.relation_decl.between_right, "subject") == 0);
         EXPECT(!rel->data.relation_decl.between_left_many);
@@ -1214,6 +1216,8 @@ test_shared_memory_features(void)
         EXPECT(result != NULL && result->error_count == 0);
 
         ASTNode *rel = program->data.program.statements[2];
+        EXPECT(rel->data.relation_decl.between_left_kind == RELATION_ENDPOINT_SUBJECT);
+        EXPECT(rel->data.relation_decl.between_right_kind == RELATION_ENDPOINT_CLASS);
         EXPECT(strcmp(rel->data.relation_decl.between_left, "subject") == 0);
         EXPECT(strcmp(rel->data.relation_decl.between_right, "class") == 0);
         EXPECT(!rel->data.relation_decl.between_left_many);

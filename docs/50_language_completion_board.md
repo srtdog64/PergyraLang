@@ -189,12 +189,14 @@
 - `impl ability Ability<T>`도 type-reference AST를 사용한다
 - subject/role satisfaction은 이제 base name이 아니라 full generic ability ref 기준으로 판정된다
 - foreign hidden ability / default-export ability 정책도 generic ability ref와 같은 규칙으로 정렬되었다
+- `ability<T> where ...` declaration surface도 parser/AST/semantic에 연결되었다
+- generic mismatch diagnostics는 이제 `required Ability<Int>` vs `actual Ability<String>`를 action/zone 경로에서 직접 보여준다
 
 부족한 것:
 
-- richer diagnostics (`required Ability<Int>`, `actual Ability<String>`) 추가
-- generic ability declaration의 constraint/where surface
-- intent/zone/role 예시를 generic ability style로 더 보강
+- intent/step/party role slot까지 같은 품질의 richer diagnostics 확장
+- generic ability declaration의 richer constraint validation
+- 예제 전반의 generic ability authoring 확대
 
 현재 진입점:
 
@@ -204,6 +206,25 @@
 - [ast.h](/mnt/e/PergyraLang/src/parser/ast.h)
 
 ## 3. 이번 라운드에서 실제 시작한 것
+
+### 3.0 token split debt
+
+실제 코드/문서 관찰:
+
+- `subject -> TOKEN_CLASS`
+- `tobject -> TOKEN_STRUCT`
+- `object`는 contextual keyword
+
+이건 코어 존재론이 lexer/parser 단계에서 aliasing되는 부채다.
+
+다음 단계:
+
+- [57_token_split_plan.md](/mnt/e/PergyraLang/docs/57_token_split_plan.md)
+  기준으로
+  - `TOKEN_SUBJECT`
+  - `TOKEN_OBJECT`
+  - `TOKEN_TOBJECT`
+  를 추가하고 declaration dispatch를 token-kind 기반으로 정리한다.
 
 ### 3.1 `where` 제약 검증
 

@@ -315,6 +315,7 @@ ASTNode* ast_create_ability_declaration(const char* name) {
     node->data.ability_decl.methods = NULL;
     node->data.ability_decl.method_count = 0;
     node->data.ability_decl.generic_params = NULL;
+    node->data.ability_decl.where_clause = NULL;
     node->data.ability_decl.access = ACCESS_PUBLIC;
     node->data.ability_decl.has_explicit_access = false;
     node->data.ability_decl.is_innate = false;
@@ -565,6 +566,8 @@ ASTNode* ast_create_relation_declaration(const char* name) {
     node->data.relation_decl.methods = NULL;
     node->data.relation_decl.method_count = 0;
     node->data.relation_decl.doc_comment = NULL;
+    node->data.relation_decl.between_left_kind = RELATION_ENDPOINT_NAMED;
+    node->data.relation_decl.between_right_kind = RELATION_ENDPOINT_NAMED;
     node->data.relation_decl.between_left = NULL;
     node->data.relation_decl.between_right = NULL;
     node->data.relation_decl.between_left_many = false;
@@ -1922,6 +1925,7 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.ability_decl.methods[i]);
             free(node->data.ability_decl.methods);
             ast_destroy_generic_params(node->data.ability_decl.generic_params);
+            ast_destroy_where_clause(node->data.ability_decl.where_clause);
             ast_destroy_structured_comment(node->data.ability_decl.doc_comment);
             break;
 

@@ -126,8 +126,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        if (parser_match_identifier_keyword(parser, "roster")
-            || parser_match_identifier_keyword(parser, "roster")) {
+        if (parser_match_identifier_keyword(parser, "roster")) {
             /* roster name: RosterType  (roster remains legacy alias) */
             Token slot_name = consume_name_token(parser,
                 "Expected roster name");
@@ -378,7 +377,7 @@ static bool
 parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
                               bool *is_tobject)
 {
-    if (parser_match(parser, TOKEN_CLASS)) {
+    if (parser_match(parser, TOKEN_SUBJECT)) {
         if (is_subject != NULL)
             *is_subject = true;
         if (is_vessel != NULL)
@@ -398,11 +397,7 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
         return true;
     }
 
-    if ((parser_check(parser, TOKEN_IDENTIFIER)
-         || parser_check(parser, TOKEN_STRUCT))
-        && parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "tobject") == 0) {
-        parser_advance(parser);
+    if (parser_match(parser, TOKEN_TOBJECT)) {
         if (is_subject != NULL)
             *is_subject = false;
         if (is_vessel != NULL)
@@ -412,11 +407,7 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
         return true;
     }
 
-    if ((parser_check(parser, TOKEN_IDENTIFIER)
-         || parser_check(parser, TOKEN_STRUCT))
-        && parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "object") == 0) {
-        parser_advance(parser);
+    if (parser_match(parser, TOKEN_OBJECT)) {
         if (is_subject != NULL)
             *is_subject = false;
         if (is_vessel != NULL)
@@ -509,13 +500,9 @@ parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_coun
 
     do {
         bool is_subject = true;
-        if ((parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_STRUCT))
-            && parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "object") == 0) {
-            parser_advance(parser);
+        if (parser_match(parser, TOKEN_OBJECT)) {
             is_subject = false;
-        } else if (parser_check(parser, TOKEN_CLASS)) {
-            parser_advance(parser);
+        } else if (parser_match(parser, TOKEN_SUBJECT)) {
             is_subject = true;
         }
         Token slot_name = consume_name_token(parser,
@@ -535,6 +522,21 @@ parse_header_subject_targets(Parser *parser, ASTNode ***slots, size_t *slot_coun
     (void)owner_kind;
 }
 
+static RelationEndpointKind
+relation_endpoint_kind_from_token(Token token)
+{
+    switch (token.type) {
+    case TOKEN_SUBJECT:
+        return RELATION_ENDPOINT_SUBJECT;
+    case TOKEN_OBJECT:
+        return RELATION_ENDPOINT_OBJECT;
+    case TOKEN_CLASS:
+        return RELATION_ENDPOINT_CLASS;
+    default:
+        return RELATION_ENDPOINT_NAMED;
+    }
+}
+
 ASTNode* parse_relation_declaration(Parser* parser) {
     Token name = consume_name_token(parser, "Expected relation name");
     ASTNode* relation = ast_create_relation_declaration(name.text);
@@ -551,6 +553,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     if (parser_match_identifier_keyword(parser, "between")) {
         Token left = consume_name_token(parser,
             "Expected type keyword after 'between' (subject, object, class, or type name)");
+        relation->data.relation_decl.between_left_kind =
+            relation_endpoint_kind_from_token(left);
         relation->data.relation_decl.between_left = pergyra_strdup(left.text);
         if (parser_match(parser, TOKEN_LBRACKET)) {
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
@@ -562,6 +566,8 @@ ASTNode* parse_relation_declaration(Parser* parser) {
 
         Token right = consume_name_token(parser,
             "Expected type keyword after ',' (subject, object, class, or type name)");
+        relation->data.relation_decl.between_right_kind =
+            relation_endpoint_kind_from_token(right);
         relation->data.relation_decl.between_right = pergyra_strdup(right.text);
         if (parser_match(parser, TOKEN_LBRACKET)) {
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
@@ -796,10 +802,9 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         if (parser_match_identifier_keyword(parser, "subjects")
             || parser_match_identifier_keyword(parser, "objects")
             || parser_match_identifier_keyword(parser, "tobjects")) {
-            bool is_subject = parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "subjects") == 0;
-            bool is_tobject = parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "tobjects") == 0;
+            const char *group_kw = parser->previous_token.text;
+            bool is_subject = group_kw != NULL && strcmp(group_kw, "subjects") == 0;
+            bool is_tobject = group_kw != NULL && strcmp(group_kw, "tobjects") == 0;
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group slot keyword");
             /* Collect names */
             char **names = NULL;
@@ -1370,6 +1375,7 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
     ability->line = name.line;
     ability->column = name.column;
     ability->data.ability_decl.generic_params = parse_generic_params(parser);
+    ability->data.ability_decl.where_clause = parse_where_clause(parser);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after ability name");
 

@@ -144,13 +144,12 @@ void parser_synchronize(Parser* parser) {
 
     while (!parser_is_at_end(parser)) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
-        if (parser_check_contextual_keyword(parser, "object")
+        if (parser_check(parser, TOKEN_OBJECT)
             || parser_check_contextual_keyword(parser, "vessel")
             || parser_check_contextual_keyword(parser, "intent")
-            || parser_check_contextual_keyword(parser, "tobject")
+            || parser_check(parser, TOKEN_TOBJECT)
             || parser_check_contextual_keyword(parser, "world")
             || parser_check_contextual_keyword(parser, "roster")
-            || parser_check_contextual_keyword(parser, "roster")  /* deprecated */
             || parser_check_contextual_keyword(parser, "relation")
             || parser_check_contextual_keyword(parser, "effect")
             || parser_check_contextual_keyword(parser, "zone")) {
@@ -158,8 +157,11 @@ void parser_synchronize(Parser* parser) {
         }
 
         switch (parser->current_token.type) {
+            case TOKEN_SUBJECT:
             case TOKEN_CLASS:
             case TOKEN_STRUCT:
+            case TOKEN_OBJECT:
+            case TOKEN_TOBJECT:
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
             case PGY_TOKEN_TYPE:
@@ -551,25 +553,20 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_extern_block(parser);
     else if (parser_match(parser, PGY_TOKEN_TYPE))
         node = parse_type_alias_declaration(parser);
-    else if (parser_check(parser, TOKEN_CLASS)) {
-        bool is_subject = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "subject") == 0;
-        parser_advance(parser);
-        node = is_subject ? parse_subject_declaration(parser)
-                          : parse_class_declaration(parser);
-    } else if (parser_match_contextual_keyword(parser, "object"))
+    else if (parser_match(parser, TOKEN_SUBJECT))
+        node = parse_subject_declaration(parser);
+    else if (parser_match(parser, TOKEN_CLASS))
+        node = parse_class_declaration(parser);
+    else if (parser_match(parser, TOKEN_OBJECT))
         node = parse_object_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "vessel"))
         node = parse_vessel_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "intent"))
         node = parse_intent_declaration(parser);
-    else if (parser_check(parser, TOKEN_STRUCT)) {
-        bool is_tobject = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "tobject") == 0;
-        parser_advance(parser);
-        node = is_tobject ? parse_tobject_declaration(parser)
-                      : parse_struct_declaration(parser);
-    }
+    else if (parser_match(parser, TOKEN_TOBJECT))
+        node = parse_tobject_declaration(parser);
+    else if (parser_match(parser, TOKEN_STRUCT))
+        node = parse_struct_declaration(parser);
     else if (parser_match(parser, TOKEN_LET))
         node = parser_parse_let_declaration(parser);
     else if (parser_match(parser, TOKEN_ENUM)) {
@@ -640,8 +637,7 @@ parser_parse_export_declaration(Parser *parser)
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-    } else if (parser_match_contextual_keyword(parser, "roster")
-               || parser_match_contextual_keyword(parser, "roster"))  /* roster legacy alias */
+    } else if (parser_match_contextual_keyword(parser, "roster"))
         node = parse_roster_declaration(parser);
     else if (parser_match_contextual_keyword(parser, "world"))
         node = parse_world_declaration(parser);
@@ -828,18 +824,16 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // 클래스 / subject 선언
-    if (parser_check(parser, TOKEN_CLASS)) {
-        bool is_subject = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "subject") == 0;
-        parser_advance(parser);
-        return parser_finalize_statement(parser,
-            is_subject ? parse_subject_declaration(parser)
-                       : parse_class_declaration(parser));
+    if (parser_match(parser, TOKEN_SUBJECT)) {
+        return parser_finalize_statement(parser, parse_subject_declaration(parser));
+    }
+
+    if (parser_match(parser, TOKEN_CLASS)) {
+        return parser_finalize_statement(parser, parse_class_declaration(parser));
     }
 
     // object declaration: declaration-context keyword for local/internal projection
-    if (parser_starts_contextual_declaration(parser, "object")) {
-        parser_advance(parser);
+    if (parser_match(parser, TOKEN_OBJECT)) {
         return parser_finalize_statement(parser, parse_object_declaration(parser));
     }
 
@@ -854,13 +848,12 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // tobject / struct declarations share a token family today, but not a language contract
-    if (parser_check(parser, TOKEN_STRUCT)) {
-        bool is_tobject = parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "tobject") == 0;
-        parser_advance(parser);
-        return parser_finalize_statement(parser,
-            is_tobject ? parse_tobject_declaration(parser)
-                   : parse_struct_declaration(parser));
+    if (parser_match(parser, TOKEN_TOBJECT)) {
+        return parser_finalize_statement(parser, parse_tobject_declaration(parser));
+    }
+
+    if (parser_match(parser, TOKEN_STRUCT)) {
+        return parser_finalize_statement(parser, parse_struct_declaration(parser));
     }
 
     // let 선언

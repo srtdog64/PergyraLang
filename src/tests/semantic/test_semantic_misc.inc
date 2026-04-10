@@ -3013,7 +3013,39 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "does not implement it"));
+            "requires ability 'Combatable<Int>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implements 'Combatable<String>' instead"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority reports required and actual generic ability mismatch");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<String> { func Ping() -> Void { return; } }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero requires Combatable<Int>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "requires ability 'Combatable<Int>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implements 'Combatable<String>' instead"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3035,6 +3067,49 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration accepts where clause bounds");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: String {\n"
+            "    require items: List<T>;\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration rejects unknown where bound");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: MissingBound {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown constraint type 'MissingBound'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

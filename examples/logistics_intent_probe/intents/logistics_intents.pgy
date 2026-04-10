@@ -10,6 +10,7 @@ intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier
         using: loading;
         who: courier;
         requires: Routable;
+        requires: BatchReady<Int>;
         authorized by: courier;
         on: loading.Stage(5);
         pre: courier.prepared == 0;
@@ -26,6 +27,7 @@ intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier
         transfer: loading -> delivery;
         who: courier;
         requires: Routable;
+        requires: BatchReady<Int>;
         authorized by: courier;
         causes: CargoSeal;
         on: delivery.Receive(3);

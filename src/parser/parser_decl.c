@@ -109,8 +109,11 @@ parser_check_name_token(Parser *parser)
     switch (parser->current_token.type) {
     case TOKEN_IDENTIFIER:
     case TOKEN_SLOT:
+    case TOKEN_SUBJECT:
     case TOKEN_CLASS:
     case TOKEN_STRUCT:
+    case TOKEN_OBJECT:
+    case TOKEN_TOBJECT:
         return true;
     default:
         return false;

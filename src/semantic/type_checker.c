@@ -137,6 +137,9 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
                          ASTNode *ability_ref);
+static ASTNode *
+subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
+                                    const char *ability_name);
 
 static int
 semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
@@ -1711,6 +1714,7 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
+    validate_where_clause_bounds(node->data.ability_decl.where_clause, ctx, node);
     validate_ability_require_fields(node, ctx);
 
     /* Check method signatures */

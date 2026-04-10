@@ -894,6 +894,10 @@ void ast_print(ASTNode* node, int indent) {
         case AST_ABILITY_DECL:
             printf("Ability: %s", node->data.ability_decl.name);
             print_generic_params_inline(node->data.ability_decl.generic_params);
+            if (node->data.ability_decl.where_clause) {
+                printf(" ");
+                print_where_clause_inline(node->data.ability_decl.where_clause);
+            }
             printf("\n");
             for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
                 ast_print(node->data.ability_decl.require_fields[i], indent + 1);

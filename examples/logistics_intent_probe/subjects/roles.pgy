@@ -7,6 +7,14 @@ role CourierRoute for Courier
             return "route-ready";
         }
     }
+
+    impl ability BatchReady<Int>
+    {
+        func BatchMark(value: Int) -> String
+        {
+            return "batch-" + ToString(value);
+        }
+    }
 }
 
 role DispatcherApprove for Dispatcher

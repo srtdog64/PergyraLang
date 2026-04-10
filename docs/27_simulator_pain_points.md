@@ -12,9 +12,9 @@ examples such as the battle simulator and biome simulator.
 - Projection sync is lighter now, but larger framework work still wants a
   richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
   bindings and deeper auto-propagation are the next pressure point.
-- `requires`는 이제 type-reference AST를 타고 generic ability declaration도 된다.
-  남은 pain point는 generic satisfaction이 아직 base ability name 기준이라,
-  `SomeAbility<Int>`와 `SomeAbility<String>`를 정밀하게 구분하는 계약은 아직 없다.
+- `requires`는 이제 type-reference AST를 타고 generic ability declaration/impl/satisfaction까지 된다.
+  `ability<T> where ...`도 표면상 들어갔다. 남은 pain point는 intent/zone/party 전반의 richer diagnostics
+  품질 통일과, 예제 authoring에서 generic ability 패턴을 더 많이 보여주는 것이다.
 - Large story scenarios now support scripted, seeded-random, and player-input
   modes, but the encounter engine is still world-hosted orchestration rather
   than a first-class encounter/turn DSL with richer AI policy authoring and
