@@ -563,7 +563,13 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     host = current_projection_host_decl(ctx, &label, &slots, &slot_count);
     if (host == NULL) {
         semantic_error(ctx, call,
-            "HasProjection(...) is only available inside relation/effect/zone declarations and methods");
+            "HasProjection(...) is only available inside relation/effect/zone declarations and methods.\n"
+            "Reason:\n"
+            "- projection slots only exist on relation/effect/zone surfaces\n"
+            "- the current function is outside domain projection context\n"
+            "Fix:\n"
+            "- call HasProjection(...) inside a relation/effect/zone body\n"
+            "- or pass projection state into this function explicitly");
         return TYPE_BOOL;
     }
     if (host->type == AST_RELATION_DECL) {
@@ -604,8 +610,18 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         refreshes, refresh_count, slot_name);
     if (slot == NULL) {
         semantic_error(ctx, arg,
-            "Unknown %s projection slot '%s' in HasProjection(...)",
-            label != NULL ? label : "domain", slot_name);
+            "Unknown %s projection slot '%s' in HasProjection(...).\n"
+            "Reason:\n"
+            "- HasProjection(...) only accepts object/tobject slots declared on the current %s\n"
+            "- '%s' is either missing or not a projection slot\n"
+            "Fix:\n"
+            "- declare an object/tobject slot named '%s'\n"
+            "- or call HasProjection(...) with an existing projection slot name",
+            label != NULL ? label : "domain",
+            slot_name,
+            label != NULL ? label : "domain",
+            slot_name,
+            slot_name);
         return TYPE_BOOL;
     }
 
@@ -630,7 +646,13 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     zone = ctx->current_zone;
     if (zone == NULL || zone->type != AST_ZONE_DECL) {
         semantic_error(ctx, call,
-            "HasLayer(...) is only available inside zone declarations and zone methods");
+            "HasLayer(...) is only available inside zone declarations and zone methods.\n"
+            "Reason:\n"
+            "- relation/effect layer slots are zone-local\n"
+            "- the current function is outside zone context\n"
+            "Fix:\n"
+            "- call HasLayer(...) inside a zone body\n"
+            "- or pass the needed layer state into this function explicitly");
         return TYPE_BOOL;
     }
 
@@ -660,8 +682,13 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     layer_slot = find_zone_layer_slot_local(zone, slot_name);
     if (layer_slot == NULL) {
         semantic_error(ctx, arg,
-            "Unknown zone layer slot '%s' in HasLayer(...)",
-            slot_name);
+            "Unknown zone layer slot '%s' in HasLayer(...).\n"
+            "Reason:\n"
+            "- '%s' is not a declared relation/effect slot in the current zone\n"
+            "Fix:\n"
+            "- declare a relation/effect slot named '%s'\n"
+            "- or call HasLayer(...) with an existing zone layer slot name",
+            slot_name, slot_name, slot_name);
         return TYPE_BOOL;
     }
 
@@ -689,7 +716,13 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     zone = ctx->current_zone;
     if (zone == NULL || zone->type != AST_ZONE_DECL) {
         semantic_error(ctx, call,
-            "HasState(...) is only available inside zone declarations and zone methods");
+            "HasState(...) is only available inside zone declarations and zone methods.\n"
+            "Reason:\n"
+            "- zone state contracts are scoped to a zone body\n"
+            "- the current function is outside zone context\n"
+            "Fix:\n"
+            "- call HasState(...) inside a zone body\n"
+            "- or pass the relevant state into this function explicitly");
         return TYPE_BOOL;
     }
 
@@ -729,8 +762,13 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     if (state == NULL) {
         semantic_error(ctx, arg,
-            "Unknown zone state '%s' in HasState(...)",
-            state_name);
+            "Unknown zone state '%s' in HasState(...).\n"
+            "Reason:\n"
+            "- '%s' is not a declared state in the current zone\n"
+            "Fix:\n"
+            "- declare a zone state named '%s'\n"
+            "- or call HasState(...) with an existing state name",
+            state_name, state_name, state_name);
         return TYPE_BOOL;
     }
 

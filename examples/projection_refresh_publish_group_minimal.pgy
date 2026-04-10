@@ -1,0 +1,36 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+object PlayerCard {
+    hp: Int;
+}
+
+tobject PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+tobject PlayerPacket {
+    hp: Int;
+    name: String;
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    object slot playerCard: PlayerCard
+    tobject slot snapshot: PlayerDto
+    tobject slot packet: PlayerPacket
+    refresh [playerView, playerCard] from player by player
+    publish [snapshot, packet] from player by player
+}
+
+func Main() -> Void {
+    Log("projection refresh publish group minimal");
+}

@@ -816,6 +816,7 @@ struct ASTNode
             char** authorized_by;
             size_t authorized_by_count;
             ASTNode* expect_expr;
+            bool inferred_who_from_action;
             bool inherited_where_from_action;
             bool inherited_requires_from_action;
             bool inherited_causes_from_action;

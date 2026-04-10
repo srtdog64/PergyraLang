@@ -285,8 +285,14 @@ run_stable_examples() {
         "$ROOT_DIR/examples/transfer_move_minimal.pgy" "transfer move minimal"
     run_expect_lines "transfer_move_typed_minimal" "$backend" \
         "$ROOT_DIR/examples/transfer_move_typed_minimal.pgy" "transfer move typed minimal"
+    run_expect_lines "surface_compression_maximal" "$backend" \
+        "$ROOT_DIR/examples/surface_compression_maximal.pgy" "surface compression maximal"
     run_expect_lines "zone_context_minimal" "$backend" \
         "$ROOT_DIR/examples/zone_context_minimal.pgy" "zone context minimal"
+    run_expect_lines "projection_bind_group_minimal" "$backend" \
+        "$ROOT_DIR/examples/projection_bind_group_minimal.pgy" "projection bind group minimal"
+    run_expect_lines "projection_refresh_publish_group_minimal" "$backend" \
+        "$ROOT_DIR/examples/projection_refresh_publish_group_minimal.pgy" "projection refresh publish group minimal"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \

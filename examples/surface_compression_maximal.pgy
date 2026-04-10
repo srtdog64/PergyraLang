@@ -1,0 +1,62 @@
+// surface_compression_maximal.pgy
+//
+// 현재 구현된 authoring compression을 한 파일에 모은 예제:
+// - top-level lexical zone context
+// - action contract inference
+// - who inference from unique matching subject action
+// - transfer target -> using inference
+// - move <from-alias> to <ZoneType>
+
+ability Payable {
+    func CanPay() -> Bool;
+}
+
+within PaymentZone {
+    subject Buyer {
+        let hp: Int;
+
+        action Promote(self) -> Void
+            requires Payable
+            authorized by self
+            causes Charged
+        {
+            self.hp = self.hp + 1;
+        }
+    }
+}
+
+role BuyerPayable for Buyer
+{
+    impl ability Payable
+    {
+        func CanPay() -> Bool
+        {
+            return true;
+        }
+    }
+}
+
+effect Charged for bearer: Buyer {
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    effect slot charged: Charged
+    authority buyer requires Payable
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        move cart to PaymentZone;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("surface compression maximal");
+}

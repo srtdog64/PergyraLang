@@ -46,7 +46,6 @@ zone BattleZone {
 intent Patrol(battle: BattleZone, hero: Hero) {
     step Guard {
         using: battle;
-        who: hero;
         on: hero.Guard();
         expect: true;
     }

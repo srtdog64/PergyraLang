@@ -1287,6 +1287,37 @@ main(void)
             4
         },
         {
+            "Zone Bind Group Declaration",
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    tobject slot snapshot: PlayerDto\n"
+            "    bind [playerView, snapshot] from player\n"
+            "}\n",
+            4
+        },
+        {
+            "Zone Refresh Publish Group Declaration",
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "object PlayerCard { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerPacket { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    object slot playerCard: PlayerCard\n"
+            "    tobject slot snapshot: PlayerDto\n"
+            "    tobject slot packet: PlayerPacket\n"
+            "    refresh [playerView, playerCard] from player by player\n"
+            "    publish [snapshot, packet] from player by player\n"
+            "}\n",
+            6
+        },
+        {
             "Zone Effect Pool Declaration",
             "subject Player { let hp: Int; }\n"
             "effect DamageEffect for bearer: Player { }\n"

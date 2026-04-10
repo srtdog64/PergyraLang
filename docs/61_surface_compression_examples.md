@@ -63,7 +63,7 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 현재 구현 상태:
 
-- `where / requires / causes / authorized by`는 matching action contract에서 기본 추론된다
+- `who / where / requires / causes / authorized by`는 matching action contract과 유일 subject participant에서 기본 추론된다
 - `transfer target -> using/where inference`도 구현돼 있다
 
 설명:
@@ -83,19 +83,28 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)
+- [surface_compression_maximal.pgy](/mnt/e/PergyraLang/examples/surface_compression_maximal.pgy)
 - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
 - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
+- [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)
+- [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)
 
 주의:
 
 - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)는
   현재 실제로 되는 최소 surface만 보여준다
 - [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)는
-  action contract 기반 추론을 보여준다
+  action contract 기반 `who / where / requires / causes / authorized by` 추론을 보여준다
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)는
   `move <from> to <to>;`와 transfer inference를 함께 보여준다
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)는
   `move <from> to <ZoneType>;` target-zone 추론을 보여준다
+- [surface_compression_maximal.pgy](/mnt/e/PergyraLang/examples/surface_compression_maximal.pgy)는
+  현재 구현된 축소 표면을 한 번에 묶은 최대치 예제다
+- [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)는
+  `bind [view, dto] from source`처럼 projection wiring 여러 줄을 한 줄로 줄이는 group bind 표면을 보여준다
+- [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)는
+  `refresh [a, b] from source`와 `publish [x, y] from source` 그룹 표면을 보여준다
 - 즉 지금 smoke에 박힌 것은 `transfer -> using/where` 추론이다
 
 ### 1.2 clause 순서 자유화
@@ -195,7 +204,44 @@ seal.Validate();
 - implicit magic보다 explicit alias가 먼저다
 - 이름 충돌 규칙을 단순하게 유지할 수 있다
 
-### 2.3 transfer short surface
+### 2.3 group bind / projection scaffold
+
+현재 구현:
+
+```pgy
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    tobject slot snapshot: PlayerDto
+    bind [playerView, snapshot] from player
+}
+```
+
+이 표면은 기존의
+
+```pgy
+bind playerView from player
+bind snapshot from player
+```
+
+를 그대로 확장한다.
+
+핵심:
+
+- 새 projection 의미론을 추가하지 않는다
+- parser가 기존 `bind` 두 줄로 펼치기 때문에 semantic/codegen debt가 늘지 않는다
+- object/tobject target 혼합도 기존 `bind`의 target-kind inference를 그대로 탄다
+
+같은 패턴으로 다음도 된다:
+
+```pgy
+refresh [playerView, playerCard] from player by player
+publish [snapshot, packet] from player by player
+```
+
+이 역시 parser가 기존 개별 `refresh` / `publish` statement 여러 개로 펼친다.
+
+### 2.4 transfer short surface
 
 이전 긴 표면:
 

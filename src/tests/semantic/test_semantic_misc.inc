@@ -1033,6 +1033,10 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "zone state contracts are scoped to a zone body"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declare a zone state named 'missing'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1096,6 +1100,10 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "relation/effect layer slots are zone-local"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declare a relation/effect slot named 'missing'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1231,6 +1239,10 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 3);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "projection slots only exist on relation/effect/zone surfaces"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "only accepts object/tobject slots declared on the current zone"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2643,6 +2655,40 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone projection diagnostic includes reason and fix");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    subject slot wrong: Player\n"
+            "    bind wrong from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "is not a projection slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ownership anchors, not projection sinks"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "choose an object slot for local projection sync"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent authority-bearing zone rejects secure helper call without authorized by");
     {
         const char *source =
@@ -3016,6 +3062,61 @@ test_misc_grammar_edges(void)
         EXPECT(step != NULL
             && step->data.intent_step.authorized_by_count == 1
             && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step infers who from unique matching subject action");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Guard(self) -> Void\n"
+            "        within BattleZone\n"
+            "        authorized by self {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    step Guard {\n"
+            "        using: battle;\n"
+            "        on: hero.Guard();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL && step->data.intent_step.inferred_who_from_action);
+        EXPECT(step != NULL && step->data.intent_step.who_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "hero") == 0);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3833,6 +3934,130 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
         remove(main_path);
         remove(module_path);
+    }
+
+    TEST("zone bind group expands into multiple inferred projection sync entries");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    tobject slot snapshot: PlayerDto\n"
+            "    bind [playerView, snapshot] from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *zone = NULL;
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        if (program != NULL) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_ZONE_DECL
+                    && stmt->data.zone_decl.name != NULL
+                    && strcmp(stmt->data.zone_decl.name, "BattleZone") == 0) {
+                    zone = stmt;
+                    break;
+                }
+            }
+        }
+        EXPECT(zone != NULL);
+        EXPECT(zone != NULL && zone->data.zone_decl.refresh_count == 2);
+        if (zone != NULL && zone->data.zone_decl.refresh_count == 2) {
+            ASTNode *first = zone->data.zone_decl.refreshes[0];
+            ASTNode *second = zone->data.zone_decl.refreshes[1];
+            EXPECT(first != NULL
+                && first->data.zone_refresh.infer_target_kind
+                && strcmp(first->data.zone_refresh.object_slot_name, "playerView") == 0
+                && strcmp(first->data.zone_refresh.source_slot_name, "player") == 0);
+            EXPECT(second != NULL
+                && second->data.zone_refresh.infer_target_kind
+                && strcmp(second->data.zone_refresh.object_slot_name, "snapshot") == 0
+                && strcmp(second->data.zone_refresh.source_slot_name, "player") == 0);
+        }
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh and publish groups expand with participant and target kind");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { hp: Int; }\n"
+            "object PlayerCard { hp: Int; }\n"
+            "tobject PlayerDto { hp: Int; name: String; }\n"
+            "tobject PlayerPacket { hp: Int; name: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    object slot playerCard: PlayerCard\n"
+            "    tobject slot snapshot: PlayerDto\n"
+            "    tobject slot packet: PlayerPacket\n"
+            "    refresh [playerView, playerCard] from player by player\n"
+            "    publish [snapshot, packet] from player by player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *zone = NULL;
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        if (program != NULL) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_ZONE_DECL
+                    && stmt->data.zone_decl.name != NULL
+                    && strcmp(stmt->data.zone_decl.name, "BattleZone") == 0) {
+                    zone = stmt;
+                    break;
+                }
+            }
+        }
+        EXPECT(zone != NULL);
+        EXPECT(zone != NULL && zone->data.zone_decl.refresh_count == 4);
+        if (zone != NULL && zone->data.zone_decl.refresh_count == 4) {
+            ASTNode *refresh_a = zone->data.zone_decl.refreshes[0];
+            ASTNode *refresh_b = zone->data.zone_decl.refreshes[1];
+            ASTNode *publish_a = zone->data.zone_decl.refreshes[2];
+            ASTNode *publish_b = zone->data.zone_decl.refreshes[3];
+
+            EXPECT(refresh_a != NULL
+                && !refresh_a->data.zone_refresh.requires_dto
+                && !refresh_a->data.zone_refresh.infer_target_kind
+                && strcmp(refresh_a->data.zone_refresh.object_slot_name, "playerView") == 0
+                && strcmp(refresh_a->data.zone_refresh.participant_slot_name, "player") == 0);
+            EXPECT(refresh_b != NULL
+                && !refresh_b->data.zone_refresh.requires_dto
+                && !refresh_b->data.zone_refresh.infer_target_kind
+                && strcmp(refresh_b->data.zone_refresh.object_slot_name, "playerCard") == 0
+                && strcmp(refresh_b->data.zone_refresh.participant_slot_name, "player") == 0);
+            EXPECT(publish_a != NULL
+                && publish_a->data.zone_refresh.requires_dto
+                && !publish_a->data.zone_refresh.infer_target_kind
+                && strcmp(publish_a->data.zone_refresh.object_slot_name, "snapshot") == 0
+                && strcmp(publish_a->data.zone_refresh.participant_slot_name, "player") == 0);
+            EXPECT(publish_b != NULL
+                && publish_b->data.zone_refresh.requires_dto
+                && !publish_b->data.zone_refresh.infer_target_kind
+                && strcmp(publish_b->data.zone_refresh.object_slot_name, "packet") == 0
+                && strcmp(publish_b->data.zone_refresh.participant_slot_name, "player") == 0);
+        }
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 }
 

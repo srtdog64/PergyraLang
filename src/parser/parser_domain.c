@@ -4,6 +4,10 @@ static bool parser_match_identifier_keyword(Parser *parser, const char *keyword)
 static bool parser_match_identifier_keyword_on_line(Parser *parser, const char *keyword,
                                                     unsigned line);
 static void append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node);
+static void append_domain_projection_sync_entries(Parser *parser,
+                                                  ASTNode ***refreshes,
+                                                  size_t *refresh_count,
+                                                  bool allow_participant);
 
 typedef enum {
     DOMAIN_GROUP_NONE,
@@ -615,6 +619,89 @@ parser_match_domain_layer_group_kind(Parser *parser)
     return DOMAIN_LAYER_GROUP_NONE;
 }
 
+static void
+append_domain_projection_sync_entries(Parser *parser,
+                                      ASTNode ***refreshes,
+                                      size_t *refresh_count,
+                                      bool allow_participant)
+{
+    bool infer_target_kind =
+        parser->previous_token.text != NULL
+        && strcmp(parser->previous_token.text, "bind") == 0;
+    bool requires_dto =
+        !infer_target_kind
+        && parser->previous_token.text != NULL
+        && strcmp(parser->previous_token.text, "publish") == 0;
+    char **target_names = NULL;
+    size_t target_count = 0;
+    unsigned first_line = parser->current_token.line;
+    unsigned first_column = parser->current_token.column;
+
+    if (parser_match(parser, TOKEN_LBRACKET)) {
+        do {
+            Token target_name = consume_name_token(parser,
+                infer_target_kind
+                    ? "Expected object/tobject slot name in bind group"
+                    : (requires_dto
+                        ? "Expected tobject slot name in publish group"
+                        : "Expected object slot name in refresh group"));
+            target_names = realloc(target_names, sizeof(char *) * (target_count + 1));
+            target_names[target_count++] = pergyra_strdup(target_name.text);
+            if (target_count == 1) {
+                first_line = target_name.line;
+                first_column = target_name.column;
+            }
+        } while (parser_match(parser, TOKEN_COMMA));
+        parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after projection group slot names");
+    } else {
+        Token target_name = consume_name_token(parser,
+            infer_target_kind
+                ? "Expected object/tobject slot name after 'bind'"
+                : (requires_dto
+                    ? "Expected tobject slot name after 'publish'"
+                    : "Expected object slot name after 'refresh'"));
+        target_names = realloc(target_names, sizeof(char *));
+        target_names[target_count++] = pergyra_strdup(target_name.text);
+        first_line = target_name.line;
+        first_column = target_name.column;
+    }
+
+    if (!parser_match_identifier_keyword(parser, "from")) {
+        parser_error(parser,
+            infer_target_kind
+                ? "Expected 'from' after bind slot name or group"
+                : (requires_dto
+                    ? "Expected 'from' after publish slot name or group"
+                    : "Expected 'from' after refresh slot name or group"));
+        for (size_t i = 0; i < target_count; i++)
+            free(target_names[i]);
+        free(target_names);
+        parser_advance(parser);
+        return;
+    }
+
+    Token source_slot = consume_name_token(parser,
+        "Expected source slot name after 'from'");
+    char *participant_slot_name = allow_participant
+        ? parse_optional_zone_participant_name(parser)
+        : NULL;
+
+    for (size_t i = 0; i < target_count; i++) {
+        ASTNode *refresh = ast_create_zone_refresh(target_names[i], source_slot.text);
+        refresh->data.zone_refresh.requires_dto = requires_dto;
+        refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
+        refresh->data.zone_refresh.participant_slot_name =
+            participant_slot_name != NULL ? pergyra_strdup(participant_slot_name) : NULL;
+        refresh->line = first_line;
+        refresh->column = first_column;
+        append_child_node(refreshes, refresh_count, refresh);
+        free(target_names[i]);
+    }
+
+    free(participant_slot_name);
+    free(target_names);
+}
+
 ASTNode* parse_relation_declaration(Parser* parser) {
     Token name = consume_name_token(parser, "Expected relation name");
     ASTNode* relation = ast_create_relation_declaration(name.text);
@@ -690,42 +777,9 @@ ASTNode* parse_relation_declaration(Parser* parser) {
         } else if (parser_match_identifier_keyword(parser, "refresh")
                    || parser_match_identifier_keyword(parser, "publish")
                    || parser_match(parser, TOKEN_BIND)) {
-            bool infer_target_kind =
-                parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "bind") == 0;
-            bool requires_dto =
-                !infer_target_kind
-                && parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "publish") == 0;
-            Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                infer_target_kind
-                    ? "Expected object/tobject slot name after 'bind'"
-                    : (requires_dto
-                        ? "Expected tobject slot name after 'publish'"
-                        : "Expected object slot name after 'refresh'"));
-            if (!parser_match_identifier_keyword(parser, "from")) {
-                parser_error(parser,
-                    infer_target_kind
-                        ? "Expected 'from' after slot name in bind"
-                        : (requires_dto
-                            ? "Expected 'from' after tobject slot name in publish"
-                            : "Expected 'from' after object slot name in refresh"));
-                parser_advance(parser);
-                continue;
-            }
-            Token source_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected source slot name after 'from'");
-
-            ASTNode *refresh = ast_create_zone_refresh(
-                object_slot.text, source_slot.text);
-            refresh->data.zone_refresh.requires_dto = requires_dto;
-            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
-            refresh->line = object_slot.line;
-            refresh->column = object_slot.column;
-
-            append_child_node(&relation->data.relation_decl.refreshes,
-                &relation->data.relation_decl.refresh_count, refresh);
-
+            append_domain_projection_sync_entries(parser,
+                &relation->data.relation_decl.refreshes,
+                &relation->data.relation_decl.refresh_count, false);
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
@@ -799,42 +853,9 @@ ASTNode* parse_effect_declaration(Parser* parser) {
         } else if (parser_match_identifier_keyword(parser, "refresh")
                    || parser_match_identifier_keyword(parser, "publish")
                    || parser_match(parser, TOKEN_BIND)) {
-            bool infer_target_kind =
-                parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "bind") == 0;
-            bool requires_dto =
-                !infer_target_kind
-                && parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "publish") == 0;
-            Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                infer_target_kind
-                    ? "Expected object/tobject slot name after 'bind'"
-                    : (requires_dto
-                        ? "Expected tobject slot name after 'publish'"
-                        : "Expected object slot name after 'refresh'"));
-            if (!parser_match_identifier_keyword(parser, "from")) {
-                parser_error(parser,
-                    infer_target_kind
-                        ? "Expected 'from' after slot name in bind"
-                        : (requires_dto
-                            ? "Expected 'from' after tobject slot name in publish"
-                            : "Expected 'from' after object slot name in refresh"));
-                parser_advance(parser);
-                continue;
-            }
-            Token source_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected source slot name after 'from'");
-
-            ASTNode *refresh = ast_create_zone_refresh(
-                object_slot.text, source_slot.text);
-            refresh->data.zone_refresh.requires_dto = requires_dto;
-            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
-            refresh->line = object_slot.line;
-            refresh->column = object_slot.column;
-
-            append_child_node(&effect->data.effect_decl.refreshes,
-                &effect->data.effect_decl.refresh_count, refresh);
-
+            append_domain_projection_sync_entries(parser,
+                &effect->data.effect_decl.refreshes,
+                &effect->data.effect_decl.refresh_count, false);
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
@@ -1092,44 +1113,9 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         } else if (parser_match_identifier_keyword(parser, "refresh")
                    || parser_match_identifier_keyword(parser, "publish")
                    || parser_match(parser, TOKEN_BIND)) {
-            bool infer_target_kind =
-                parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "bind") == 0;
-            bool requires_dto =
-                !infer_target_kind
-                && parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "publish") == 0;
-            Token object_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                infer_target_kind
-                    ? "Expected object/tobject slot name after 'bind'"
-                    : (requires_dto
-                        ? "Expected tobject slot name after 'publish'"
-                        : "Expected object slot name after 'refresh'"));
-            if (!parser_match_identifier_keyword(parser, "from")) {
-                parser_error(parser,
-                    infer_target_kind
-                        ? "Expected 'from' after slot name in bind"
-                        : (requires_dto
-                            ? "Expected 'from' after tobject slot name in publish"
-                            : "Expected 'from' after object slot name in refresh"));
-                parser_advance(parser);
-                continue;
-            }
-            Token source_slot = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected source slot name after 'from'");
-
-            ASTNode *refresh = ast_create_zone_refresh(
-                object_slot.text, source_slot.text);
-            refresh->data.zone_refresh.requires_dto = requires_dto;
-            refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
-            refresh->data.zone_refresh.participant_slot_name =
-                parse_optional_zone_participant_name(parser);
-            refresh->line = object_slot.line;
-            refresh->column = object_slot.column;
-
-            append_child_node(&zone->data.zone_decl.refreshes,
-                &zone->data.zone_decl.refresh_count, refresh);
-
+            append_domain_projection_sync_entries(parser,
+                &zone->data.zone_decl.refreshes,
+                &zone->data.zone_decl.refresh_count, true);
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match_identifier_keyword(parser, "maintain")) {

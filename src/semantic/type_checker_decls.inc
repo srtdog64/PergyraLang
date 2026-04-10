@@ -795,6 +795,44 @@ intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
 }
 
 static void
+intent_step_infer_who_from_action(ASTNode *intent_decl, ASTNode *step,
+                                  SemanticContext *ctx)
+{
+    const char *matched_alias = NULL;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.who_count != 0) {
+        return;
+    }
+
+    for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+        ASTNode *subject_decl;
+        ASTNode *action_decl;
+
+        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+            continue;
+        subject_decl = find_subject_host_decl_by_name(
+            ctx->program_root, intent_involves_type_name(involves));
+        action_decl = subject_decl_find_action_named(
+            subject_decl, step->data.intent_step.name);
+        if (action_decl == NULL)
+            continue;
+
+        if (matched_alias != NULL)
+            return;
+        matched_alias = involves->data.intent_involves.alias;
+    }
+
+    if (matched_alias != NULL
+        && intent_semantic_append_name(&step->data.intent_step.who_names,
+               &step->data.intent_step.who_count, matched_alias)) {
+        step->data.intent_step.inferred_who_from_action = true;
+    }
+}
+
+static void
 intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
                                     SemanticContext *ctx)
 {
@@ -981,6 +1019,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         has_subintent = (step->data.intent_step.intent_expr != NULL);
+        intent_step_infer_who_from_action(node, step, ctx);
         intent_step_inherit_action_contract(node, step, ctx);
         intent_step_infer_transfer_context(node, step, ctx);
 
@@ -2647,9 +2686,16 @@ type_check_projection_contract(ASTNode **slots,
     if (object_slot->data.domain_slot.is_subject
         || object_slot->data.domain_slot.is_vessel) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must be an object/tobject slot",
+            "%s %s target slot '%s' is not a projection slot.\n"
+            "Reason:\n"
+            "- %s only writes into object/tobject projection targets\n"
+            "- subject/vessel slots are ownership anchors, not projection sinks\n"
+            "Fix:\n"
+            "- choose an object slot for local projection sync\n"
+            "- or choose a tobject slot for boundary publication",
             owner_label, action_name,
-            object_slot_name != NULL ? object_slot_name : "<unknown>");
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            action_name);
         return true;
     }
     requires_dto =
@@ -2659,9 +2705,16 @@ type_check_projection_contract(ASTNode **slots,
             : site->data.zone_refresh.requires_dto);
     if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must be a tobject slot",
+            "%s %s target slot '%s' must be a tobject slot.\n"
+            "Reason:\n"
+            "- publish writes a boundary transfer snapshot\n"
+            "- object slots are local projections and cannot be published as transfer targets\n"
+            "Fix:\n"
+            "- change '%s' to a tobject slot\n"
+            "- or use refresh/bind into an object slot instead",
             owner_label, action_name,
-            object_slot_name != NULL ? object_slot_name : "<unknown>");
+            object_slot_name != NULL ? object_slot_name : "<unknown>",
+            object_slot_name != NULL ? object_slot_name : "<slot>");
         return true;
     }
     target_type = resolve_type_node(object_slot->data.domain_slot.type, ctx);
@@ -2674,7 +2727,13 @@ type_check_projection_contract(ASTNode **slots,
     target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
     if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
         semantic_error(ctx, site,
-            "%s %s target slot '%s' must use an object/tobject projection type, got '%s'",
+            "%s %s target slot '%s' does not use a projection declaration.\n"
+            "Reason:\n"
+            "- projection sync requires an object/tobject nominal target\n"
+            "- '%s' is not an object/tobject declaration\n"
+            "Fix:\n"
+            "- change the target slot type to an object or tobject declaration\n"
+            "- or move this data through a plain assignment path instead",
             owner_label, action_name,
             object_slot_name != NULL ? object_slot_name : "<unknown>",
             target_type->name != NULL ? target_type->name : "<unknown>");
@@ -2688,18 +2747,32 @@ type_check_projection_contract(ASTNode **slots,
 
         if (target_decl->data.class_decl.nominal_kind != expected_kind) {
             semantic_error(ctx, site,
-                "%s %s target slot '%s' must use a %s declaration, got '%s'",
+                "%s %s target slot '%s' uses the wrong projection kind.\n"
+                "Reason:\n"
+                "- %s expects a %s declaration\n"
+                "- '%s' is declared as a different projection kind\n"
+                "Fix:\n"
+                "- change '%s' to a %s declaration\n"
+                "- or switch to the matching projection operation",
                 owner_label, action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 expected_label,
-                target_type->name != NULL ? target_type->name : "<unknown>");
+                target_type->name != NULL ? target_type->name : "<unknown>",
+                object_slot_name != NULL ? object_slot_name : "<slot>",
+                expected_label);
             return true;
         }
     }
 
     if (source_slot->data.domain_slot.is_tobject) {
         semantic_error(ctx, site,
-            "%s %s source slot '%s' cannot be a tobject slot",
+            "%s %s source slot '%s' cannot be a tobject slot.\n"
+            "Reason:\n"
+            "- tobject is already a boundary snapshot\n"
+            "- projection sync must read from a subject/object source, not from a transfer snapshot\n"
+            "Fix:\n"
+            "- use the original subject/object slot as the source\n"
+            "- or materialize a new object/tobject from the original source instead",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>",
             source_type != NULL && source_type->name != NULL
@@ -2713,7 +2786,13 @@ type_check_projection_contract(ASTNode **slots,
         source_decl = find_named_class_decl_local(ctx->program_root, source_type->name);
     if (!decl_is_projection_source(source_decl)) {
         semantic_error(ctx, site,
-            "%s %s source slot '%s' must reference a subject or object declaration",
+            "%s %s source slot '%s' is not a valid projection source.\n"
+            "Reason:\n"
+            "- projection sync reads fields from a subject/object declaration\n"
+            "- this slot does not point at a subject/object source host\n"
+            "Fix:\n"
+            "- use a subject slot as the source\n"
+            "- or use an object slot that mirrors the desired fields",
             owner_label, action_name,
             source_slot_name != NULL ? source_slot_name : "<unknown>");
         return true;
@@ -3564,15 +3643,33 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error(ctx, refresh,
-                "Zone %s references unknown target slot '%s'",
+                "Zone %s references unknown target slot '%s'.\n"
+                "Reason:\n"
+                "- the projection target must already be declared in the zone\n"
+                "- '%s' is not a known object/tobject slot in zone '%s'\n"
+                "Fix:\n"
+                "- declare object/tobject slot '%s' in the zone first\n"
+                "- or change %s to an existing projection target slot",
                 action_name,
-                object_slot_name != NULL ? object_slot_name : "<unknown>");
+                object_slot_name != NULL ? object_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                object_slot_name != NULL ? object_slot_name : "<slot>",
+                action_name);
         }
         if (find_zone_domain_slot(node, source_slot_name) == NULL) {
             semantic_error(ctx, refresh,
-                "Zone %s references unknown source slot '%s'",
+                "Zone %s references unknown source slot '%s'.\n"
+                "Reason:\n"
+                "- projection sync must read from a declared zone slot\n"
+                "- '%s' is not a known source slot in zone '%s'\n"
+                "Fix:\n"
+                "- declare source slot '%s' in the zone first\n"
+                "- or change %s to an existing source slot",
                 action_name,
-                source_slot_name != NULL ? source_slot_name : "<unknown>");
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                source_slot_name != NULL ? source_slot_name : "<slot>",
+                action_name);
         }
         target_slot = find_zone_domain_slot(node, object_slot_name);
         boundary_projection = target_slot != NULL

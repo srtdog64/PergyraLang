@@ -1299,7 +1299,15 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_resource_handle(target_type) || type_is_resource_handle(value_type)) {
         semantic_error(ctx, expr,
-            "Resource handle assignment is not allowed; anchored handles (Slot/SecureSlot/DeviceSlot) cannot be copied or rebound with '=', and movable handles must be transferred through a new binding. Use Read/Write for Slot<T>, keep DeviceSlot local, move a QubitSlot into a new binding, or Claim... to create a fresh handle");
+            "Resource handle assignment is not allowed.\n"
+            "Reason:\n"
+            "- anchored handles (Slot/SecureSlot/DeviceSlot) cannot be copied or rebound with '='\n"
+            "- movable handles must transfer ownership through a new binding\n"
+            "Fix:\n"
+            "- use Read/Write for Slot<T>\n"
+            "- keep DeviceSlot local\n"
+            "- move a QubitSlot into a new binding\n"
+            "- or Claim... to create a fresh handle");
         return target_type;
     }
 
@@ -1328,11 +1336,23 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                     NominalDeclKind nk = decl->data.class_decl.nominal_kind;
                     if (nk == NOMINAL_DECL_OBJECT) {
                         semantic_error(ctx, expr,
-                            "object '%s' fields are read-only after construction; object is an internal projection contract and must be refreshed from its source instead of mutated directly",
+                            "object '%s' fields are read-only after construction.\n"
+                            "Reason:\n"
+                            "- object is an internal projection contract\n"
+                            "- projection state must be refreshed from its source, not mutated directly\n"
+                            "Fix:\n"
+                            "- update the source subject/value and refresh the object slot\n"
+                            "- or construct a new object projection",
                             var_name);
                     } else if (nk == NOMINAL_DECL_TOBJECT) {
                         semantic_error(ctx, expr,
-                            "tobject '%s' fields are immutable; tobject is a boundary transfer contract and must be republished from its source instead of mutated directly",
+                            "tobject '%s' fields are immutable.\n"
+                            "Reason:\n"
+                            "- tobject is a boundary transfer contract\n"
+                            "- transfer snapshots must be republished from their source, not mutated in place\n"
+                            "Fix:\n"
+                            "- update the source subject/value and publish a new tobject\n"
+                            "- or construct a new transfer snapshot",
                             var_name);
                     }
                 }

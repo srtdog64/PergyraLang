@@ -227,6 +227,7 @@
 - top-level `within Zone { ... }` lexical zone context 1차
 - `using self.route as route;` / `using self.seal as seal;` explicit alias
 - `move <from-alias> to <to-alias>;` transfer short surface 1차
+- `who`의 유일 subject participant + matching action 기반 추론
 
 아직 설계 단계:
 
