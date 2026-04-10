@@ -1,9 +1,14 @@
 /*
  * Pergyra Language Server Protocol (LSP) implementation
  *
- * Minimal LSP server that provides:
+ * Lightweight LSP server that currently provides:
  *   - Diagnostics (parse errors, semantic errors)
  *   - Hover information (keyword help)
+ *   - Completion
+ *   - Document symbols
+ *   - Definition
+ *   - References
+ *   - Rename
  *
  * Communicates via stdin/stdout JSON-RPC 2.0 with Content-Length headers.
  */

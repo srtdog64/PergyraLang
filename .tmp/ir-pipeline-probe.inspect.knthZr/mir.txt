@@ -1,0 +1,420 @@
+MIR Program
+  routines: 24
+  routine[00] function ProbeHeader blocks=1 instructions=1 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=0 cleanup-edges=0 uses=0 live=0 dce=0
+    values=0
+    block[00] label=_pgy_mir_bb_ProbeHeader_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b968c390 preds=0 succT=no succF=no cleanupSucc=no instructions=1 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] return       slot=- name=return result=- arg0=- arg1=-
+  routine[01] function ProbeSubtitle blocks=1 instructions=1 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=0 cleanup-edges=0 uses=0 live=0 dce=0
+    values=0
+    block[00] label=_pgy_mir_bb_ProbeSubtitle_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b968cb40 preds=0 succT=no succF=no cleanupSucc=no instructions=1 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] return       slot=- name=return result=- arg0=- arg1=-
+  routine[02] function MergeRouteScore blocks=6 instructions=9 cleanup-block=no rollback-block=no invalidation-block=no phi=2 renamed=4 cleanup-edges=0 uses=8 live=8 dce=0
+    values=6
+      value[00] score.1 slot=score def=b0:i0 uses=2 liveIn=2 liveOut=1 cleanup=no
+        use-range=b1..b3
+      value[01] score.2 slot=score def=b1:i0 uses=1 liveIn=0 liveOut=1 cleanup=no
+        use-range=b2..b2
+      value[02] score.3 slot=score def=b2:i0 uses=2 liveIn=1 liveOut=1 cleanup=no
+        use-range=b4..b5
+      value[03] score.6 slot=score def=b3:i0 uses=1 liveIn=0 liveOut=1 cleanup=no
+        use-range=b2..b2
+      value[04] score.4 slot=score def=b4:i0 uses=1 liveIn=0 liveOut=1 cleanup=no
+        use-range=b5..b5
+      value[05] score.5 slot=score def=b5:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b5..b5
+    block[00] label=_pgy_mir_bb_MergeRouteScore_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b968d770 preds=0 succT=yes succF=yes cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=1
+      renamed: score.1
+      exit: score.1
+      defs: score.1
+      live-out: score.1
+      inst[00] def          slot=score name=ssa-def result=score.1 arg0=score arg1=-
+      inst[01] branch       slot=- name=branch result=- arg0=- arg1=-
+    block[01] label=_pgy_mir_bb_MergeRouteScore_1 reachable=yes cleanup=no source-hir=1 source-ast=line 0:0 source-ast-id=0x5750b968e390 preds=1 succT=yes succF=no cleanupSucc=no instructions=1 defs=1 uses=1 liveIn=1 liveOut=1
+      entry: score.1
+      renamed: score.2
+      exit: score.2
+      defs: score.2
+      uses: score.1
+      live-in: score.1
+      live-out: score.2
+      inst[00] def          slot=score name=ssa-def result=score.2 arg0=score arg1=- uses=score.1
+    block[02] label=_pgy_mir_bb_MergeRouteScore_2 reachable=yes cleanup=no source-hir=2 source-ast=line 0:0 source-ast-id=0x5750b968ee10 preds=2 succT=yes succF=yes cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=1
+      entry: score.1
+      exit: score.3
+      defs: score.3
+      live-out: score.3
+      inst[00] phi          slot=score name=score result=score.3 arg0=phi arg1=- incoming=1:score.2,3:score.6 uses=score.2,score.6
+      inst[01] branch       slot=- name=branch result=- arg0=- arg1=-
+    block[03] label=_pgy_mir_bb_MergeRouteScore_3 reachable=yes cleanup=no source-hir=3 source-ast=line 0:0 source-ast-id=0x5750b968ebe0 preds=1 succT=yes succF=no cleanupSucc=no instructions=1 defs=1 uses=1 liveIn=1 liveOut=1
+      entry: score.1
+      renamed: score.6
+      exit: score.6
+      defs: score.6
+      uses: score.1
+      live-in: score.1
+      live-out: score.6
+      inst[00] def          slot=score name=ssa-def result=score.6 arg0=score arg1=- uses=score.1
+    block[04] label=_pgy_mir_bb_MergeRouteScore_4 reachable=yes cleanup=no source-hir=4 source-ast=line 0:0 source-ast-id=0x5750b968f940 preds=1 succT=yes succF=no cleanupSucc=no instructions=1 defs=1 uses=1 liveIn=1 liveOut=1
+      entry: score.3
+      renamed: score.4
+      exit: score.4
+      defs: score.4
+      uses: score.3
+      live-in: score.3
+      live-out: score.4
+      inst[00] def          slot=score name=ssa-def result=score.4 arg0=score arg1=- uses=score.3
+    block[05] label=_pgy_mir_bb_MergeRouteScore_5 reachable=yes cleanup=no source-hir=5 source-ast=line 0:0 source-ast-id=0x5750b968fb70 preds=2 succT=no succF=no cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=0
+      entry: score.3
+      exit: score.5
+      defs: score.5
+      inst[00] phi          slot=score name=score result=score.5 arg0=phi arg1=- incoming=2:score.3,4:score.4 uses=score.3,score.4
+      inst[01] return       slot=- name=return result=- arg0=- arg1=- uses=score.5
+  routine[03] method   Claim blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=1 live=0 dce=0
+    values=2
+      value[00] claimed.1 slot=claimed def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] lane.1 slot=lane def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Claim_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9691be0 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: claimed.1 lane.1
+      exit: claimed.1 lane.1
+      defs: claimed.1 lane.1
+      inst[00] def          slot=claimed name=ssa-def result=claimed.1 arg0=claimed arg1=-
+      inst[01] def          slot=lane name=ssa-def result=lane.1 arg0=lane arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=claimed.1
+  routine[04] method   Deliver blocks=1 instructions=2 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=1 cleanup-edges=0 uses=1 live=0 dce=0
+    values=1
+      value[00] delivered.1 slot=delivered def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_Deliver_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9693100 preds=0 succT=no succF=no cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=0
+      renamed: delivered.1
+      exit: delivered.1
+      defs: delivered.1
+      inst[00] def          slot=delivered name=ssa-def result=delivered.1 arg0=delivered arg1=-
+      inst[01] return       slot=- name=return result=- arg0=- arg1=- uses=delivered.1
+  routine[05] method   Reset blocks=1 instructions=4 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=3 cleanup-edges=0 uses=1 live=0 dce=0
+    values=3
+      value[00] claimed.1 slot=claimed def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] delivered.1 slot=delivered def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] lane.1 slot=lane def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Reset_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9693d80 preds=0 succT=no succF=no cleanupSucc=no instructions=4 defs=3 uses=0 liveIn=0 liveOut=0
+      renamed: claimed.1 delivered.1 lane.1
+      exit: claimed.1 delivered.1 lane.1
+      defs: claimed.1 delivered.1 lane.1
+      inst[00] def          slot=claimed name=ssa-def result=claimed.1 arg0=claimed arg1=-
+      inst[01] def          slot=delivered name=ssa-def result=delivered.1 arg0=delivered arg1=-
+      inst[02] def          slot=lane name=ssa-def result=lane.1 arg0=lane arg1=-
+      inst[03] return       slot=- name=return result=- arg0=- arg1=- uses=claimed.1
+  routine[06] method   Approve blocks=1 instructions=2 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=1 cleanup-edges=0 uses=1 live=0 dce=0
+    values=1
+      value[00] approved.1 slot=approved def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_Approve_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9695da0 preds=0 succT=no succF=no cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=0
+      renamed: approved.1
+      exit: approved.1
+      defs: approved.1
+      inst[00] def          slot=approved name=ssa-def result=approved.1 arg0=approved arg1=-
+      inst[01] return       slot=- name=return result=- arg0=- arg1=- uses=approved.1
+  routine[07] method   Ship blocks=1 instructions=2 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=1 cleanup-edges=0 uses=1 live=0 dce=0
+    values=1
+      value[00] shipped.1 slot=shipped def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_Ship_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9696c80 preds=0 succT=no succF=no cleanupSucc=no instructions=2 defs=1 uses=0 liveIn=0 liveOut=0
+      renamed: shipped.1
+      exit: shipped.1
+      defs: shipped.1
+      inst[00] def          slot=shipped name=ssa-def result=shipped.1 arg0=shipped arg1=-
+      inst[01] return       slot=- name=return result=- arg0=- arg1=- uses=shipped.1
+  routine[08] method   Rollback blocks=1 instructions=4 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=3 cleanup-edges=0 uses=2 live=1 dce=0
+    values=3
+      value[00] rolledBack.1 slot=rolledBack def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] approved.1 slot=approved def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] shipped.1 slot=shipped def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Rollback_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b9697b80 preds=0 succT=no succF=no cleanupSucc=no instructions=4 defs=3 uses=1 liveIn=1 liveOut=0
+      renamed: rolledBack.1 approved.1 shipped.1
+      exit: rolledBack.1 approved.1 shipped.1
+      defs: rolledBack.1 approved.1 shipped.1
+      uses: rolledBack.0
+      live-in: rolledBack.0
+      inst[00] def          slot=rolledBack name=ssa-def result=rolledBack.1 arg0=rolledBack arg1=- uses=rolledBack.0
+      inst[01] def          slot=approved name=ssa-def result=approved.1 arg0=approved arg1=-
+      inst[02] def          slot=shipped name=ssa-def result=shipped.1 arg0=shipped arg1=-
+      inst[03] return       slot=- name=return result=- arg0=- arg1=- uses=rolledBack.1
+  routine[09] method   Prepare blocks=1 instructions=4 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=3 cleanup-edges=0 uses=2 live=0 dce=0
+    values=3
+      value[00] staged.1 slot=staged def=b0:i0 uses=2 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] prepared.1 slot=prepared def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] lastPhase.1 slot=lastPhase def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Prepare_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b969bd20 preds=0 succT=no succF=no cleanupSucc=no instructions=4 defs=3 uses=0 liveIn=0 liveOut=0
+      renamed: staged.1 prepared.1 lastPhase.1
+      exit: staged.1 prepared.1 lastPhase.1
+      defs: staged.1 prepared.1 lastPhase.1
+      inst[00] def          slot=staged name=ssa-def result=staged.1 arg0=staged arg1=-
+      inst[01] def          slot=prepared name=ssa-def result=prepared.1 arg0=prepared arg1=- uses=staged.1
+      inst[02] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[03] return       slot=- name=return result=- arg0=- arg1=- uses=staged.1
+  routine[10] method   Deliver blocks=1 instructions=4 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=3 cleanup-edges=0 uses=2 live=0 dce=0
+    values=3
+      value[00] shipped.1 slot=shipped def=b0:i0 uses=2 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] delivered.1 slot=delivered def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] lastPhase.1 slot=lastPhase def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Deliver_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b969d8c0 preds=0 succT=no succF=no cleanupSucc=no instructions=4 defs=3 uses=0 liveIn=0 liveOut=0
+      renamed: shipped.1 delivered.1 lastPhase.1
+      exit: shipped.1 delivered.1 lastPhase.1
+      defs: shipped.1 delivered.1 lastPhase.1
+      inst[00] def          slot=shipped name=ssa-def result=shipped.1 arg0=shipped arg1=-
+      inst[01] def          slot=delivered name=ssa-def result=delivered.1 arg0=delivered arg1=- uses=shipped.1
+      inst[02] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[03] return       slot=- name=return result=- arg0=- arg1=- uses=shipped.1
+  routine[11] method   RollbackPrepare blocks=1 instructions=5 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=3 cleanup-edges=0 uses=1 live=0 dce=0
+    values=3
+      value[00] prepared.1 slot=prepared def=b0:i1 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] delivered.1 slot=delivered def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] lastPhase.1 slot=lastPhase def=b0:i3 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_RollbackPrepare_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b969f430 preds=0 succT=no succF=no cleanupSucc=no instructions=5 defs=3 uses=0 liveIn=0 liveOut=0
+      renamed: prepared.1 delivered.1 lastPhase.1
+      exit: prepared.1 delivered.1 lastPhase.1
+      defs: prepared.1 delivered.1 lastPhase.1
+      inst[00] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[01] def          slot=prepared name=ssa-def result=prepared.1 arg0=prepared arg1=-
+      inst[02] def          slot=delivered name=ssa-def result=delivered.1 arg0=delivered arg1=-
+      inst[03] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[04] return       slot=- name=return result=- arg0=- arg1=- uses=prepared.1
+  routine[12] method   RollbackDelivery blocks=1 instructions=4 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=1 live=0 dce=0
+    values=2
+      value[00] delivered.1 slot=delivered def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] lastPhase.1 slot=lastPhase def=b0:i2 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_RollbackDelivery_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a0de0 preds=0 succT=no succF=no cleanupSucc=no instructions=4 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: delivered.1 lastPhase.1
+      exit: delivered.1 lastPhase.1
+      defs: delivered.1 lastPhase.1
+      inst[00] def          slot=delivered name=ssa-def result=delivered.1 arg0=delivered arg1=-
+      inst[01] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[02] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[03] return       slot=- name=return result=- arg0=- arg1=- uses=delivered.1
+  routine[13] method   Summary blocks=1 instructions=1 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=0 cleanup-edges=0 uses=0 live=0 dce=0
+    values=0
+    block[00] label=_pgy_mir_bb_Summary_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a2210 preds=0 succT=no succF=no cleanupSucc=no instructions=1 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] return       slot=- name=return result=- arg0=- arg1=-
+  routine[14] method   ApproveDispatch blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=1 live=0 dce=0
+    values=2
+      value[00] approved.1 slot=approved def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] lastPhase.1 slot=lastPhase def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_ApproveDispatch_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a50a0 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: approved.1 lastPhase.1
+      exit: approved.1 lastPhase.1
+      defs: approved.1 lastPhase.1
+      inst[00] def          slot=approved name=ssa-def result=approved.1 arg0=approved arg1=-
+      inst[01] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=approved.1
+  routine[15] method   ConfirmDelivery blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=1 live=0 dce=0
+    values=2
+      value[00] shipped.1 slot=shipped def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] lastPhase.1 slot=lastPhase def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_ConfirmDelivery_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a6700 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: shipped.1 lastPhase.1
+      exit: shipped.1 lastPhase.1
+      defs: shipped.1 lastPhase.1
+      inst[00] def          slot=shipped name=ssa-def result=shipped.1 arg0=shipped arg1=-
+      inst[01] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=shipped.1
+  routine[16] method   RollbackDispatch blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=1 live=0 dce=0
+    values=2
+      value[00] rolled.1 slot=rolled def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] lastPhase.1 slot=lastPhase def=b0:i1 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_RollbackDispatch_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a7b40 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: rolled.1 lastPhase.1
+      exit: rolled.1 lastPhase.1
+      defs: rolled.1 lastPhase.1
+      inst[00] def          slot=rolled name=ssa-def result=rolled.1 arg0=rolled arg1=-
+      inst[01] def          slot=lastPhase name=ssa-def result=lastPhase.1 arg0=lastPhase arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=rolled.1
+  routine[17] method   Summary blocks=1 instructions=1 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=0 cleanup-edges=0 uses=0 live=0 dce=0
+    values=0
+    block[00] label=_pgy_mir_bb_Summary_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96a8df0 preds=0 succT=no succF=no cleanupSucc=no instructions=1 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] return       slot=- name=return result=- arg0=- arg1=-
+  routine[18] intent   RouteCargo blocks=4 instructions=43 cleanup-block=yes rollback-block=yes invalidation-block=yes phi=0 renamed=0 cleanup-edges=5 uses=0 live=0 dce=0
+    values=0
+    block[00] label=_pgy_mir_bb_RouteCargo_0 reachable=yes cleanup=no source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=0 succT=no succF=no cleanupSucc=yes instructions=31 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] resource-op  slot=loading name=Read result=- arg0=loading arg1=stage
+      inst[01] resource-op  slot=courier name=Authorize result=- arg0=courier arg1=stage
+      inst[02] resource-op  slot=delivery name=Read result=- arg0=delivery arg1=handoff
+      inst[03] resource-op  slot=loading name=Move result=- arg0=loading arg1=delivery
+      inst[04] resource-op  slot=delivery name=Claim result=- arg0=delivery arg1=loading
+      inst[05] resource-op  slot=courier name=Authorize result=- arg0=courier arg1=handoff
+      inst[06] resource-op  slot=RouteCargo name=CommitIntent result=- arg0=RouteCargo arg1=-
+      inst[07] stmt         slot=- name=stage result=- arg0=- arg1=-
+      inst[08] stmt         slot=stage name=IntentZoneWhere result=- arg0=LoadingZone arg1=stage
+      inst[09] stmt         slot=stage name=IntentZoneAlias result=- arg0=loading arg1=stage
+      inst[10] stmt         slot=stage name=IntentWho result=- arg0=courier arg1=stage
+      inst[11] stmt         slot=stage name=IntentCheck result=- arg0=pre arg1=stage
+      inst[12] stmt         slot=stage name=IntentCheck result=- arg0=invariant-pre arg1=stage
+      inst[13] stmt         slot=stage name=IntentCheck result=- arg0=invariant-post arg1=stage
+      inst[14] stmt         slot=stage name=IntentCheck result=- arg0=guard arg1=stage
+      inst[15] stmt         slot=stage name=IntentCheck result=- arg0=post arg1=stage
+      inst[16] stmt         slot=stage name=IntentEval result=- arg0=on arg1=stage
+      inst[17] stmt         slot=stage name=IntentEval result=- arg0=compensate arg1=stage
+      inst[18] stmt         slot=- name=handoff result=- arg0=- arg1=-
+      inst[19] stmt         slot=handoff name=IntentZoneWhere result=- arg0=DeliveryZone arg1=handoff
+      inst[20] stmt         slot=handoff name=IntentZoneAlias result=- arg0=delivery arg1=handoff
+      inst[21] stmt         slot=handoff name=IntentZoneFrom result=- arg0=loading arg1=handoff
+      inst[22] stmt         slot=handoff name=IntentWho result=- arg0=courier arg1=handoff
+      inst[23] stmt         slot=handoff name=IntentCheck result=- arg0=pre arg1=handoff
+      inst[24] stmt         slot=handoff name=IntentCheck result=- arg0=invariant-pre arg1=handoff
+      inst[25] stmt         slot=handoff name=IntentCheck result=- arg0=invariant-post arg1=handoff
+      inst[26] stmt         slot=handoff name=IntentCheck result=- arg0=guard arg1=handoff
+      inst[27] stmt         slot=handoff name=IntentCheck result=- arg0=post arg1=handoff
+      inst[28] stmt         slot=handoff name=IntentEval result=- arg0=on arg1=handoff
+      inst[29] stmt         slot=handoff name=IntentEval result=- arg0=compensate arg1=handoff
+      inst[30] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+    block[01] label=_pgy_mir_bb_RouteCargo_1 reachable=yes cleanup=yes source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=3 succT=no succF=no cleanupSucc=no instructions=0 defs=0 uses=0 liveIn=0 liveOut=0
+      exceptional rollback=yes invalidation=yes
+    block[02] label=_pgy_mir_bb_RouteCargo_2 reachable=yes cleanup=yes source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=1 succT=no succF=no cleanupSucc=yes instructions=6 defs=0 uses=0 liveIn=0 liveOut=0
+      exceptional rollback=no invalidation=yes
+      inst[00] cleanup      slot=- name=RollbackPolicy result=- arg0=full arg1=-
+      inst[01] cleanup      slot=stage name=CompensateIntentStep result=- arg0=stage arg1=RollbackPrepare
+      inst[02] cleanup      slot=handoff name=CompensateIntentStep result=- arg0=handoff arg1=RollbackDelivery
+      inst[03] cleanup      slot=RouteCargo name=AbortIntent result=- arg0=RouteCargo arg1=full
+      inst[04] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+      inst[05] cleanup      slot=cleanup name=cleanup-edge-from-rollback result=- arg0=cleanup arg1=-
+    block[03] label=_pgy_mir_bb_RouteCargo_3 reachable=yes cleanup=yes source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=2 succT=no succF=no cleanupSucc=yes instructions=6 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] cleanup      slot=loading name=DetachInvalidation result=- arg0=loading arg1=ZoneHandle
+      inst[01] cleanup      slot=delivery name=DetachInvalidation result=- arg0=delivery arg1=ZoneHandle
+      inst[02] cleanup      slot=loading name=DetachInvalidation result=- arg0=loading arg1=stage
+      inst[03] cleanup      slot=delivery name=DetachInvalidation result=- arg0=delivery arg1=handoff
+      inst[04] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+      inst[05] cleanup      slot=cleanup name=cleanup-edge-from-invalidation result=- arg0=cleanup arg1=-
+  routine[19] function BuildLoadingZone blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=2 live=0 dce=0
+    values=2
+      value[00] courier.1 slot=courier def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] dispatcher.1 slot=dispatcher def=b0:i1 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_BuildLoadingZone_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96d6680 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: courier.1 dispatcher.1
+      exit: courier.1 dispatcher.1
+      defs: courier.1 dispatcher.1
+      inst[00] def          slot=courier name=ssa-def result=courier.1 arg0=courier arg1=-
+      inst[01] def          slot=dispatcher name=ssa-def result=dispatcher.1 arg0=dispatcher arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=courier.1,dispatcher.1
+  routine[20] function BuildDeliveryZone blocks=1 instructions=3 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=2 live=0 dce=0
+    values=2
+      value[00] courier.1 slot=courier def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] dispatcher.1 slot=dispatcher def=b0:i1 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_BuildDeliveryZone_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96dbcd0 preds=0 succT=no succF=no cleanupSucc=no instructions=3 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: courier.1 dispatcher.1
+      exit: courier.1 dispatcher.1
+      defs: courier.1 dispatcher.1
+      inst[00] def          slot=courier name=ssa-def result=courier.1 arg0=courier arg1=-
+      inst[01] def          slot=dispatcher name=ssa-def result=dispatcher.1 arg0=dispatcher arg1=-
+      inst[02] return       slot=- name=return result=- arg0=- arg1=- uses=courier.1,dispatcher.1
+  routine[21] function OpenLogisticsWorld blocks=1 instructions=5 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=2 cleanup-edges=0 uses=2 live=0 dce=0
+    values=2
+      value[00] loading.1 slot=loading def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] delivery.1 slot=delivery def=b0:i1 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+    block[00] label=_pgy_mir_bb_OpenLogisticsWorld_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b96e0ec0 preds=0 succT=no succF=no cleanupSucc=no instructions=5 defs=2 uses=0 liveIn=0 liveOut=0
+      renamed: loading.1 delivery.1
+      exit: loading.1 delivery.1
+      defs: loading.1 delivery.1
+      inst[00] def          slot=loading name=ssa-def result=loading.1 arg0=loading arg1=-
+      inst[01] def          slot=delivery name=ssa-def result=delivery.1 arg0=delivery arg1=-
+      inst[02] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[03] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[04] return       slot=- name=return result=- arg0=- arg1=- uses=loading.1,delivery.1
+  routine[22] function AuditHandles blocks=6 instructions=15 cleanup-block=yes rollback-block=no invalidation-block=yes phi=1 renamed=3 cleanup-edges=6 uses=5 live=5 dce=0
+    values=4
+      value[00] bias.1 slot=bias def=b0:i0 uses=2 liveIn=2 liveOut=1 cleanup=no
+        use-range=b1..b3
+      value[01] bias.2 slot=bias def=b1:i0 uses=1 liveIn=0 liveOut=1 cleanup=no
+        use-range=b2..b2
+      value[02] bias.3 slot=bias def=b2:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b2..b2
+      value[03] bias.4 slot=bias def=b3:i0 uses=1 liveIn=0 liveOut=1 cleanup=no
+        use-range=b2..b2
+    block[00] label=_pgy_mir_bb_AuditHandles_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b967a590 preds=0 succT=yes succF=yes cleanupSucc=yes instructions=3 defs=1 uses=0 liveIn=0 liveOut=1
+      renamed: bias.1
+      exit: bias.1
+      defs: bias.1
+      live-out: bias.1
+      inst[00] def          slot=bias name=ssa-def result=bias.1 arg0=bias arg1=-
+      inst[01] branch       slot=- name=branch result=- arg0=- arg1=-
+      inst[02] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+    block[01] label=_pgy_mir_bb_AuditHandles_1 reachable=yes cleanup=no source-hir=1 source-ast=line 0:0 source-ast-id=0x5750b967b560 preds=1 succT=yes succF=no cleanupSucc=yes instructions=2 defs=1 uses=1 liveIn=1 liveOut=1
+      entry: bias.1
+      renamed: bias.2
+      exit: bias.2
+      defs: bias.2
+      uses: bias.1
+      live-in: bias.1
+      live-out: bias.2
+      inst[00] def          slot=bias name=ssa-def result=bias.2 arg0=bias arg1=- uses=bias.1
+      inst[01] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+    block[02] label=_pgy_mir_bb_AuditHandles_2 reachable=yes cleanup=no source-hir=2 source-ast=line 0:0 source-ast-id=0x5750b967bfe0 preds=2 succT=no succF=no cleanupSucc=yes instructions=3 defs=1 uses=0 liveIn=0 liveOut=0
+      entry: bias.1
+      exit: bias.3
+      defs: bias.3
+      inst[00] phi          slot=bias name=bias result=bias.3 arg0=phi arg1=- incoming=1:bias.2,3:bias.4 uses=bias.2,bias.4
+      inst[01] return       slot=- name=return result=- arg0=- arg1=- uses=bias.3
+      inst[02] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+    block[03] label=_pgy_mir_bb_AuditHandles_3 reachable=yes cleanup=no source-hir=3 source-ast=line 0:0 source-ast-id=0x5750b967bdb0 preds=1 succT=yes succF=no cleanupSucc=yes instructions=2 defs=1 uses=1 liveIn=1 liveOut=1
+      entry: bias.1
+      renamed: bias.4
+      exit: bias.4
+      defs: bias.4
+      uses: bias.1
+      live-in: bias.1
+      live-out: bias.4
+      inst[00] def          slot=bias name=ssa-def result=bias.4 arg0=bias arg1=- uses=bias.1
+      inst[01] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+    block[04] label=_pgy_mir_bb_AuditHandles_4 reachable=yes cleanup=yes source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=5 succT=no succF=no cleanupSucc=no instructions=0 defs=0 uses=0 liveIn=0 liveOut=0
+      exceptional rollback=no invalidation=yes
+    block[05] label=_pgy_mir_bb_AuditHandles_5 reachable=yes cleanup=yes source-hir=18446744073709551615 source-ast=<none> source-ast-id=<none> preds=1 succT=no succF=no cleanupSucc=yes instructions=5 defs=0 uses=0 liveIn=0 liveOut=0
+      inst[00] cleanup      slot=loading name=DetachInvalidation result=- arg0=loading arg1=ZoneHandle
+      inst[01] cleanup      slot=route name=DetachInvalidation result=- arg0=route arg1=RelationInstance
+      inst[02] cleanup      slot=seal name=DetachInvalidation result=- arg0=seal arg1=EffectInstance
+      inst[03] cleanup      slot=cleanup name=cleanup-edge result=- arg0=cleanup arg1=-
+      inst[04] cleanup      slot=cleanup name=cleanup-edge-from-invalidation result=- arg0=cleanup arg1=-
+  routine[23] function Main blocks=1 instructions=21 cleanup-block=no rollback-block=no invalidation-block=no phi=0 renamed=4 cleanup-edges=0 uses=1 live=0 dce=0
+    values=4
+      value[00] world.1 slot=world def=b0:i0 uses=1 liveIn=0 liveOut=0 cleanup=no
+        use-range=b0..b0
+      value[01] mergeA.1 slot=mergeA def=b0:i4 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[02] mergeB.1 slot=mergeB def=b0:i5 uses=0 liveIn=0 liveOut=0 cleanup=no
+      value[03] ok.1 slot=ok def=b0:i8 uses=0 liveIn=0 liveOut=0 cleanup=no
+    block[00] label=_pgy_mir_bb_Main_0 reachable=yes cleanup=no source-hir=0 source-ast=line 0:0 source-ast-id=0x5750b967e5c0 preds=0 succT=no succF=no cleanupSucc=no instructions=21 defs=4 uses=0 liveIn=0 liveOut=0
+      renamed: world.1 mergeA.1 mergeB.1 ok.1
+      exit: world.1 mergeA.1 mergeB.1 ok.1
+      defs: world.1 mergeA.1 mergeB.1 ok.1
+      inst[00] def          slot=world name=ssa-def result=world.1 arg0=world arg1=-
+      inst[01] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[02] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[03] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[04] def          slot=mergeA name=ssa-def result=mergeA.1 arg0=mergeA arg1=-
+      inst[05] def          slot=mergeB name=ssa-def result=mergeB.1 arg0=mergeB arg1=-
+      inst[06] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[07] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[08] def          slot=ok name=ssa-def result=ok.1 arg0=ok arg1=- uses=world.1
+      inst[09] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[10] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[11] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[12] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[13] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[14] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[15] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[16] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[17] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[18] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[19] stmt         slot=- name=stmt result=- arg0=- arg1=-
+      inst[20] stmt         slot=- name=stmt result=- arg0=- arg1=-

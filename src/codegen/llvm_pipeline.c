@@ -9,6 +9,13 @@
 
 #include "llvm_internal.h"
 
+static void
+llvm_pipeline_debug_stage(const char *stage)
+{
+    if (stage != NULL && getenv("PGY_DEBUG_LLVM_STAGE") != NULL)
+        fprintf(stderr, "[llvm stage] %s\n", stage);
+}
+
 static bool
 llvm_ast_uses_thread_pool(ASTNode *node)
 {
@@ -338,6 +345,16 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         if (llvm_can_forward_declare_func_early(ctx, stmt))
             llvm_forward_declare_func(stmt, ctx);
     }
+    for (size_t i = 0; i < hir->item_count; i++) {
+        ASTNode *stmt = hir->items[i].ast;
+        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
+            continue;
+        if (stmt->data.func_decl.generic_params != NULL
+            && stmt->data.func_decl.generic_params->count > 0)
+            continue;
+        if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
+            llvm_forward_declare_func(stmt, ctx);
+    }
 
     llvm_emit_domain_passes(hir, ctx);
 
@@ -403,11 +420,9 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMTypeRef ret_type = entry->ret_type;
                 LLVMValueRef saved_fn = ctx->current_function;
                 LLVMTypeRef saved_ret = ctx->current_ret_type;
-                ASTNode *saved_func_decl = ctx->current_func_decl;
                 const char *saved_class_name = ctx->current_class_name;
                 ctx->current_function = fn;
                 ctx->current_ret_type = ret_type;
-                ctx->current_func_decl = method;
                 ctx->current_class_name = cls_name;
 
                 LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
@@ -458,7 +473,6 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_scope_pop(ctx);
                 ctx->current_function = saved_fn;
                 ctx->current_ret_type = saved_ret;
-                ctx->current_func_decl = saved_func_decl;
                 ctx->current_class_name = saved_class_name;
 
                 if (saved_fn != NULL) {
@@ -488,9 +502,11 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
      * - intent forward declaration + body emission
      * - main-wrapper/top-level executable orchestration
      */
+    llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
     if (ctx->hir != NULL) {
+        llvm_pipeline_debug_stage("emit_program_from_mir:register_hir_items");
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
             ASTNode *stmt = ctx->hir->items[i].ast;
             if (stmt == NULL)
@@ -564,8 +580,10 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 llvm_register_enum_decl(ctx, stmt);
             }
         }
+        llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
         llvm_emit_domain_passes(ctx->hir, ctx);
 
+        llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
             ASTNode *stmt = ctx->hir->items[i].ast;
             if (stmt == NULL || stmt->type != AST_FUNC_DECL)
@@ -598,10 +616,12 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             llvm_forward_declare_func(stmt, ctx);
         }
 
+        llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_intents");
         for (size_t i = 0; i < ctx->hir->intent_count; i++)
             llvm_forward_declare_intent(ctx->hir->intents[i], ctx);
     }
 
+    llvm_pipeline_debug_stage("emit_program_from_mir:emit_function_routines");
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         if (routine->kind != MIR_SCOPE_FUNCTION)
@@ -629,6 +649,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     if (ctx->hir != NULL) {
+        llvm_pipeline_debug_stage("emit_program_from_mir:emit_hir_residuals");
         for (size_t i = 0; i < ctx->hir->item_count; i++) {
             ASTNode *stmt = ctx->hir->items[i].ast;
             if (stmt != NULL && stmt->type == AST_FUNC_DECL) {
@@ -709,7 +730,9 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         }
     }
 
+    llvm_pipeline_debug_stage("emit_program_from_mir:emit_main_wrapper");
     llvm_emit_mir_main_wrapper(ctx->hir, ctx);
+    llvm_pipeline_debug_stage("emit_program_from_mir:end");
     return !ctx->has_error;
 }
 

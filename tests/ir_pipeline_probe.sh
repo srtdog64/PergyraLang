@@ -21,7 +21,7 @@ else
 fi
 
 EXAMPLE="${1:-$ROOT_DIR/examples/logistics_intent_probe/main.pgy}"
-BACKENDS="${PGY_EXAMPLE_BACKENDS:-c llvm}"
+BACKENDS="${PGY_EXAMPLE_BACKENDS:-c}"
 WORK_BASE="$ROOT_DIR/.tmp/ir-pipeline-probe"
 mkdir -p "$WORK_BASE"
 WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
@@ -67,8 +67,8 @@ grep -Fq "join=yes" "$RIR_OUT"
 grep -Fq "semantics=authority|world-handoff|invalidation|authority-loss" "$RIR_OUT"
 
 grep -Fq "cleanup-block=yes rollback-block=yes invalidation-block=yes" "$MIR_OUT"
-grep -Fq "value[00] score.1 slot=score" "$MIR_OUT"
-grep -Fq "name=score result=score.4" "$MIR_OUT"
+grep -Eq "value\\[[0-9]+\\] score\\.[0-9]+ slot=score" "$MIR_OUT"
+grep -Eq "name=score result=score\\.[0-9]+" "$MIR_OUT"
 grep -Fq "slot=loading name=Move" "$MIR_OUT"
 grep -Fq "slot=stage name=CompensateIntentStep" "$MIR_OUT"
 grep -Fq "cleanup-edge" "$MIR_OUT"

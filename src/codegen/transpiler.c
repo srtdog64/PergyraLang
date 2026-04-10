@@ -1160,6 +1160,10 @@ transpiler_ssa_map_clear(TranspilerSSANameMap *map)
 {
     if (map == NULL)
         return;
+    for (size_t i = 0; i < TRANSPILE_SSA_NAME_BUCKETS; ++i) {
+        if (map->buckets[i].in_use && map->buckets[i].base_name != NULL)
+            free((void *)map->buckets[i].base_name);
+    }
     memset(map, 0, sizeof(*map));
 }
 
@@ -1178,7 +1182,11 @@ transpiler_ssa_name_map_set(TranspilerSSANameMap *map,
         TranspilerSSANameBucket *bucket = &map->buckets[idx];
         if (!bucket->in_use) {
             bucket->in_use = true;
-            bucket->base_name = base_name;
+            bucket->base_name = pergyra_strdup(base_name);
+            if (bucket->base_name == NULL) {
+                bucket->in_use = false;
+                return false;
+            }
             bucket->versioned_name = versioned_name;
             return true;
         }
@@ -1614,7 +1622,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      size_t reason_cap)
 {
     const HIRBasicBlock *hir_block = transpiler_find_hir_block_for_mir(mir_routine, block->id);
-    TranspilerSSANameMap ssa_map;
+    TranspilerSSANameMap ssa_map = {0};
     TranspilerSSANameMap *ssa_map_out = &ssa_map;
 
     if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
@@ -1852,7 +1860,7 @@ transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
         return false;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
-        TranspilerSSANameMap ssa_map;
+        TranspilerSSANameMap ssa_map = {0};
 
         if (block == NULL || (require_non_cleanup && block->is_cleanup)
             || !block->is_reachable)
@@ -2468,7 +2476,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     for (size_t i = 0; i < mir_routine->block_count; i++) {
         const MIRBasicBlock *block = &mir_routine->blocks[i];
-        TranspilerSSANameMap block_ssa_map;
+        TranspilerSSANameMap block_ssa_map = {0};
         bool block_emitted;
         bool terminator_emitted = false;
         char block_reason[512];

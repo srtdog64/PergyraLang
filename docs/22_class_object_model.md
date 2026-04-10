@@ -12,14 +12,14 @@
 - `subject`는 의사결정과 오케스트레이션을 담당하는 능동 주체 타입이다
 - `subject`는 `func`가 아닌 `action`으로 행동한다 — action은 zone/ability/effect와 연동되는 플롯 행위다(2026-04-04 추가)
 - 현재 구현 surface는 `subject`와 `class`를 서로 다른 nominal declaration flavor로 기록하고, semantic/lowering도 둘을 점진적으로 다르게 다룬다
-- 현재 구현에서 `subject`는 별도 선언 키워드이지만 semantic에서는 subject execution profile로 취급된다
+- 현재 구현에서 `subject`는 별도 선언 키워드이자 코어 identity-bearing host로 semantic에 고정되어 있다
 - `object`는 intent를 시작하지 않는 피동 상태 대상이다. `object`는 상태와 `func`(메서드)를 가질 수 있다.
 - `ability`는 subject 위의 행위 계약이다
 - 장기 모델에서 `role`은 subject에 ability를 바인딩한다
 - `entity`는 코어 언어 존재론이 아니라 프레임워크/도메인 용어로 남긴다
 - 상세 설계: [26_vessel_action_model.md](26_vessel_action_model.md)
 
-현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, participant subject-profile semantic, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
+현재 컴파일러는 bare `subject/class`, `self` 메서드, positional constructor, subject-only projection/domain checks, subject/class 저장·복사·dispatch 분기 1단계까지는 구현했고,
 role/ability/party 중심 객체 모델은 아직 이행 중이다.
 
 즉 장기적으로 Pergyra에서 중심 이름은 `class`보다 `subject`다.

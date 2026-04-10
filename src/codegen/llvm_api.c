@@ -9,6 +9,13 @@
 
 #include "llvm_internal.h"
 
+static void
+llvm_debug_stage(const char *stage)
+{
+    if (stage != NULL && getenv("PGY_DEBUG_LLVM_STAGE") != NULL)
+        fprintf(stderr, "[llvm stage] %s\n", stage);
+}
+
 static LLVMGenResult *
 llvm_result_from_ctx_error(LLVMGenCtx *ctx)
 {
@@ -171,6 +178,7 @@ LLVMGenResult *
 llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
                       const char *module_name)
 {
+    llvm_debug_stage("codegen_with_mir:ctx_create");
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     LLVMGenResult *verify_result;
 
@@ -181,6 +189,7 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
     ctx->mir = mir;
 
     if (mir != NULL) {
+        llvm_debug_stage("codegen_with_mir:validate_mir");
         char *mir_error = NULL;
         if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
             LLVMGenResult *res = llvm_result_error(
@@ -189,12 +198,14 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
             llvm_ctx_destroy(ctx);
             return res;
         }
+        llvm_debug_stage("codegen_with_mir:emit_program_from_mir");
         if (!llvm_emit_program_from_mir(mir, ctx)) {
             LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
             llvm_ctx_destroy(ctx);
             return res;
         }
     } else {
+        llvm_debug_stage("codegen_with_mir:emit_program");
         llvm_emit_program(hir, ctx);
     }
 
@@ -204,6 +215,7 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         return res;
     }
 
+    llvm_debug_stage("codegen_with_mir:verify");
     verify_result = llvm_verify_module_result(ctx);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
@@ -211,6 +223,7 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
     }
 
     {
+        llvm_debug_stage("codegen_with_mir:print_module");
         char *ir = LLVMPrintModuleToString(ctx->module);
         char *ir_copy = pergyra_strdup(ir);
         LLVMGenResult *res;
@@ -219,7 +232,9 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         res = llvm_result_success(ir_copy);
         if (res != NULL)
             res->uses_intent_observability = ctx->uses_intent_observability;
+        llvm_debug_stage("codegen_with_mir:ctx_destroy");
         llvm_ctx_destroy(ctx);
+        llvm_debug_stage("codegen_with_mir:return");
         return res;
     }
 }
@@ -238,6 +253,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
                                 const char *output_path,
                                 bool release_opt)
 {
+    llvm_debug_stage("codegen_to_object:ctx_create");
     LLVMGenCtx *ctx = llvm_ctx_create(module_name);
     LLVMGenResult *verify_result;
     char *triple = NULL;
@@ -252,6 +268,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
     ctx->mir = mir;
 
     if (mir != NULL) {
+        llvm_debug_stage("codegen_to_object:validate_mir");
         char *mir_error = NULL;
         if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
             LLVMGenResult *res = llvm_result_error(
@@ -260,12 +277,14 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
             llvm_ctx_destroy(ctx);
             return res;
         }
+        llvm_debug_stage("codegen_to_object:emit_program_from_mir");
         if (!llvm_emit_program_from_mir(mir, ctx)) {
             LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
             llvm_ctx_destroy(ctx);
             return res;
         }
     } else {
+        llvm_debug_stage("codegen_to_object:emit_program");
         llvm_emit_program(hir, ctx);
     }
 
@@ -275,6 +294,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         return res;
     }
 
+    llvm_debug_stage("codegen_to_object:verify");
     verify_result = llvm_verify_module_result(ctx);
     if (verify_result != NULL) {
         llvm_ctx_destroy(ctx);
@@ -294,6 +314,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         }
     }
 
+    llvm_debug_stage("codegen_to_object:create_machine");
     machine = llvm_create_host_machine(&triple, &cpu, &features);
     if (machine == NULL) {
         LLVMGenResult *res = llvm_result_error("Cannot create LLVM target machine");
@@ -301,11 +322,13 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         return res;
     }
 
+    llvm_debug_stage("codegen_to_object:optimize");
     llvm_run_optimization(ctx, machine, triple, release_opt);
     llvm_apply_target_machine(ctx, machine, triple);
 
     {
         char *emit_error = NULL;
+        llvm_debug_stage("codegen_to_object:emit_file");
         if (LLVMTargetMachineEmitToFile(machine, ctx->module,
                                         (char *)output_path,
                                         LLVMObjectFile, &emit_error)) {
@@ -327,6 +350,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         }
     }
 
+    llvm_debug_stage("codegen_to_object:dispose_machine");
     LLVMDisposeTargetMachine(machine);
     if (triple != NULL)
         LLVMDisposeMessage(triple);
@@ -339,7 +363,9 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
         LLVMGenResult *res = llvm_result_success(NULL);
         if (res != NULL)
             res->uses_intent_observability = ctx->uses_intent_observability;
+        llvm_debug_stage("codegen_to_object:ctx_destroy");
         llvm_ctx_destroy(ctx);
+        llvm_debug_stage("codegen_to_object:return");
         return res;
     }
 }

@@ -1,6 +1,6 @@
 # PergyraLang 전체 문서 인덱스
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-10
 
 ## 문서 분류
 
@@ -27,7 +27,7 @@
 | **레퍼런스** | [`README.md`](README.md) | 언어 소개, 시작 가이드 |
 | **레퍼런스** | [`TODO.md`](TODO.md) | 상세 TODO |
 
-## 최신 변경 사항 (2026-04-08)
+## 최신 변경 사항 (2026-04-10)
 
 ### 컴파일러 아키텍처
 
@@ -50,9 +50,9 @@
    - `where`: 예약 키워드(TOKEN_WHERE), intent 절에서 재사용
    - `object` vs `tobject`: 별개 nominal kind, 경계 통과 여부로 구분
 
-### v2 계획: 양자 연산
+### 양자 표면 / v2 경계
 
-- **현 상태**: `PgyQubit` struct는 시뮬레이션 스케줄톤일 뿐, 양자 시맨틱스 미지원
+- **현 상태**: `QubitSlot`, `ClaimQubit`, `Measure`, `Entangle` 표면은 존재하지만 전체 quantum resource semantics는 아직 미완료
 - **v2 계획**: Linear 타입, Measure 후 상태 붕괴 추적, 얽힘 관계 검증
 - **문서**: `docs/00_vision.md`, `docs/18_language_status.md` 업데이트
 
@@ -69,6 +69,6 @@
 
 - [ ] Step 6: 전체 빌드 + 회귀 테스트 (Linux 환경)
 - [ ] stdlib 인프라 구현 (fsm, pool, timer, math, string utils)
-- [ ] LSP 완성 (diagnostics, go-to-definition, autocomplete)
+- [ ] LSP 고도화 (semantic symbols, richer diagnostics, references/rename 품질 개선)
 - [ ] 패키지 매니저 구현
 - [ ] v2 양자 연산 설계 착수

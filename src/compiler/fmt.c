@@ -19,96 +19,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static char *
-read_file(const char *path)
-{
-    FILE *f = fopen(path, "rb");
-    size_t read_len;
-    if (!f) return NULL;
-    fseek(f, 0, SEEK_END);
-    long len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *buf = malloc((size_t)len + 1);
-    if (!buf) { fclose(f); return NULL; }
-    read_len = fread(buf, 1, (size_t)len, f);
-    buf[read_len] = '\0';
-    fclose(f);
-    return buf;
-}
+static bool format_source_to_stream(const char *source, FILE *out);
 
-static bool
-source_is_parseable(const char *source)
-{
-    Lexer *lexer;
-    Parser *parser;
-    ASTNode *program;
-    bool ok;
-
-    if (source == NULL)
-        return false;
-
-    lexer = lexer_create(source);
-    if (lexer == NULL)
-        return false;
-    parser = parser_create(lexer);
-    if (parser == NULL) {
-        lexer_destroy(lexer);
-        return false;
-    }
-
-    program = parser_parse_program(parser);
-    ok = !parser_has_error(parser);
-    ast_destroy(program);
-    parser_destroy(parser);
-    lexer_destroy(lexer);
-    return ok;
-}
-
-static char *
-read_stream(FILE *f)
-{
-    long len;
-    size_t read_len;
-    char *buf;
-
-    if (f == NULL)
-        return NULL;
-    if (fseek(f, 0, SEEK_END) != 0)
-        return NULL;
-    len = ftell(f);
-    if (len < 0)
-        return NULL;
-    if (fseek(f, 0, SEEK_SET) != 0)
-        return NULL;
-    buf = malloc((size_t)len + 1);
-    if (buf == NULL)
-        return NULL;
-    read_len = fread(buf, 1, (size_t)len, f);
-    buf[read_len] = '\0';
-    return buf;
-}
-
-typedef struct {
-    FILE *out;
-    int indent;
-    bool at_line_start;
-    bool needs_blank_before_block;
-} FmtCtx;
-
-static void
-fmt_indent(FmtCtx *ctx)
-{
-    for (int i = 0; i < ctx->indent; i++)
-        fprintf(ctx->out, "    ");
-    ctx->at_line_start = false;
-}
-
-static void
-fmt_newline(FmtCtx *ctx)
-{
-    fprintf(ctx->out, "\n");
-    ctx->at_line_start = true;
-}
+#include "fmt_io.inc"
+#include "fmt_layout.inc"
 
 static bool
 format_source_to_stream(const char *source, FILE *out)
@@ -164,8 +78,7 @@ format_source_to_stream(const char *source, FILE *out)
             break;
         case TOKEN_STRING:
             if (ctx.at_line_start) fmt_indent(&ctx);
-            else if (prev.type != TOKEN_LPAREN && prev.type != TOKEN_LBRACKET
-                     && prev.type != TOKEN_COMMA)
+            else if (fmt_token_needs_space(prev, tok))
                 fprintf(out, " ");
             fprintf(out, "\"%s\"", tok.text ? tok.text : "");
             break;
@@ -174,8 +87,12 @@ format_source_to_stream(const char *source, FILE *out)
             break;
         case TOKEN_COLON:
             fprintf(out, ":");
+            if (fmt_token_is_case_label(prev.type))
+                fmt_newline(&ctx);
             break;
         case TOKEN_LPAREN:
+            if (!ctx.at_line_start && fmt_token_needs_space(prev, tok))
+                fprintf(out, " ");
             fprintf(out, "(");
             break;
         case TOKEN_RPAREN:
@@ -188,12 +105,21 @@ format_source_to_stream(const char *source, FILE *out)
             fprintf(out, "]");
             break;
         default:
-            if (ctx.at_line_start) fmt_indent(&ctx);
-            else if (tok.text && prev.type != TOKEN_LPAREN
-                     && prev.type != TOKEN_DOT
-                     && tok.type != TOKEN_DOT
-                     && prev.type != TOKEN_LBRACKET
-                     && tok.type != TOKEN_RBRACKET)
+            if (ctx.at_line_start && ctx.indent == 0
+                && prev.type == TOKEN_RBRACE
+                && fmt_token_starts_toplevel_decl(tok.type)) {
+                fmt_newline(&ctx);
+            }
+            if (ctx.at_line_start) {
+                if (fmt_token_is_case_label(tok.type) && ctx.indent > 0) {
+                    for (int i = 0; i < ctx.indent - 1; i++)
+                        fprintf(ctx.out, "    ");
+                    ctx.at_line_start = false;
+                } else {
+                    fmt_indent(&ctx);
+                }
+            }
+            else if (tok.text && fmt_token_needs_space(prev, tok))
                 fprintf(out, " ");
             if (tok.text) fprintf(out, "%s", tok.text);
             break;
@@ -206,27 +132,6 @@ format_source_to_stream(const char *source, FILE *out)
     if (!ctx.at_line_start) fmt_newline(&ctx);
     lexer_destroy(lexer);
     return true;
-}
-
-static char *
-format_source_to_string(const char *source)
-{
-    FILE *tmp;
-    char *result;
-
-    if (source == NULL)
-        return NULL;
-    tmp = tmpfile();
-    if (tmp == NULL)
-        return NULL;
-    if (!format_source_to_stream(source, tmp)) {
-        fclose(tmp);
-        return NULL;
-    }
-    fflush(tmp);
-    result = read_stream(tmp);
-    fclose(tmp);
-    return result;
 }
 
 int

@@ -54,6 +54,14 @@ llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
             return stmt;
         }
     }
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt != NULL && stmt->type == AST_FUNC_DECL
+            && stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, name) == 0) {
+            return stmt;
+        }
+    }
     return llvm_lookup_generic_template(ctx, name);
 }
 

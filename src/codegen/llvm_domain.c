@@ -2164,10 +2164,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMTypeRef ret_type = fentry->ret_type;
                 LLVMValueRef saved_fn = ctx->current_function;
                 LLVMTypeRef saved_ret = ctx->current_ret_type;
-                ASTNode *saved_func_decl = ctx->current_func_decl;
                 ctx->current_function = fn;
                 ctx->current_ret_type = ret_type;
-                ctx->current_func_decl = method;
 
                 LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                     ctx->context, fn, "entry");
@@ -2214,7 +2212,6 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_scope_pop(ctx);
                 ctx->current_function = saved_fn;
                 ctx->current_ret_type = saved_ret;
-                ctx->current_func_decl = saved_func_decl;
 
                 if (saved_fn != NULL) {
                     LLVMBasicBlockRef last =
@@ -2394,13 +2391,11 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             LLVMTypeRef ret_type = fentry->ret_type;
             LLVMValueRef saved_fn = ctx->current_function;
             LLVMTypeRef saved_ret = ctx->current_ret_type;
-            ASTNode *saved_func_decl = ctx->current_func_decl;
             const char *saved_class_name = ctx->current_class_name;
             LLVMFuncEntry *sync_entry = NULL;
             bool has_sync = false;
             ctx->current_function = fn;
             ctx->current_ret_type = ret_type;
-            ctx->current_func_decl = method;
             ctx->current_class_name = decl_name;
 
             if (cls != NULL && cls->sync_function_name != NULL
@@ -2525,7 +2520,6 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_scope_pop(ctx);
             ctx->current_function = saved_fn;
             ctx->current_ret_type = saved_ret;
-            ctx->current_func_decl = saved_func_decl;
             ctx->current_class_name = saved_class_name;
 
             if (saved_fn != NULL) {

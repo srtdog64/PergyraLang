@@ -18,9 +18,9 @@
   <a href="docs/INDEX.md">All Documentation</a>
 </p>
 
-> **Current Status**: Executable experimental alpha. Core compiler pipeline works (C + LLVM backends, 892+ tests passing).
-> Standard library, tooling (LSP/debugger), and ecosystem are under development.
-> **Quantum operations (Qubit/Measure/Entangle) are planned for v2**, not supported in v1.
+> **Current Status**: Executable experimental alpha. Core compiler pipeline works (`HIR -> DIR -> RIR -> MIR`) with C and LLVM backends, and the repository currently carries 1200+ direct regression checks across semantic/transpile/security/ABI/smoke suites.
+> Standard library, tooling, and ecosystem are still incomplete, but LSP/debugger/formatter are no longer stubs.
+> **Quantum surface exists in v1 as a partial runtime/semantic skeleton** (`QubitSlot`, `ClaimQubit`, `Measure`, `Entangle`), while the full quantum resource model remains a v2 target.
 
 ---
 
@@ -121,7 +121,7 @@ Pergyra uses 6 keywords to declare types. Each keyword carries **intended** dist
 | `object` | Internal projection/view contract | Value | func only | ⚠️ Shares struct-style syntax today |
 | `tobject` | Transfer/export boundary contract | Value | func only | ⚠️ Shares struct-style syntax today |
 
-> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리 완료. `object`/`tobject`/`struct`는 아직 struct-style syntax와 일부 lowering 경로를 공유하지만, 언어 계약상 같은 타입 분류가 아니다. `object`는 local/internal projection, `tobject`는 publish/transfer/export boundary projection으로 구분된다.
+> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리되어 있다. `object`와 `tobject`는 선언 키워드와 계약이 모두 distinct하며, `object`는 local/internal projection contract, `tobject`는 publish/transfer/export boundary contract로 고정되어 있다.
 
 ```pergyra
 subject Player
@@ -329,7 +329,7 @@ QueuePush(queue, 1);
 let front: Int = QueuePop(queue);
 ```
 
-> `Set<T>`은 아직 미구현. `Array<T>`는 리터럴 `[1, 2, 3]`과 `ArrayPush`/`ArrayPop`/`ArrayLength` 함수로 사용.
+> `Set<T>`은 현재 `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` 표면이 semantic/C/LLVM 경로에 연결되어 있다. `Array<T>`는 리터럴 `[1, 2, 3]`과 `ArrayPush`/`ArrayPop`/`ArrayLength` 함수로 사용한다.
 
 ## Standard Library (`use`)
 

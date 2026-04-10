@@ -257,5 +257,5 @@ func Main() -> Void {
     }
 }
 EOF
-run_fail "parallel_ref_slot_conflict" "Parallel slot conflict on 'left'" \
+run_fail "parallel_ref_slot_conflict" "Parallel context slot conflict on 'left'" \
     "$WORK_DIR/parallel_ref_slot_conflict/main.pgy"

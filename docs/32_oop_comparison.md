@@ -279,4 +279,4 @@ Pergyra:
 | 행위 제약 | 없음 (런타임 assertion) | 4 (`requires`, `within`, `causes`, `authorized by`) |
 | 세계 모델 | 프레임워크 의존 | 언어 내장 (`zone`, `effect`, `relation`, `world`) |
 | 메서드 | 1종 (`method`) | 4종 (`free func`, `hosted func`, `general func`, `action`) |
-| 가시성 | 3+ (`public`, `private`, `protected`) | 2 (`public`, `private`) + `innate` (미래) |
+| 가시성 | 3+ (`public`, `private`, `protected`) | `public`, `private`, `protected` + ability 전용 `innate` |

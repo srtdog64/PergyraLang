@@ -9,7 +9,7 @@ Pergyra는 자원의 세부 구현을 직접 드러내기보다, 서로 다른 �
 PergyraLang은 자원을 **Slot 계열 핸들 + 비동기 경계**라는 공통 모델로 다룬다.
 
 `Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`는 로컬에 고정된 anchored 자원 핸들이고,
-`QubitSlot`은 복사 불가 move-only 자원 핸들이다.
+`QubitSlot`은 현재 partial quantum surface 위의 복사 불가 move-only 자원 핸들이다.
 원격 작업은 슬롯 자체를 직접 넘기기보다 `RemoteFuture<T>`를 `await`해 `Result<T>`로 회수한다.
 
 이로써 언어는 최고 성능 대신, **이종 자원 통합**과 **도메인 파편화 감소**를 목표로 한다.
@@ -37,13 +37,13 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 
 - **Slot 기반 자원 모델**: `Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`는 anchored handle, `QubitSlot`은 move-only handle로 구분
 - **보안 슬롯**: `SecureSlot<T>`에 토큰 기반 접근 제어
-- **Subject-first 철학**: 장기 의미론은 `struct`와 `subject`를 구분하며, 현재 surface는 `subject`와 `class`를 같은 subject declaration으로 받음
+- **Subject-first 철학**: `subject`는 코어 host, `class`는 보조 nominal value 축으로 semantic/codegen에서 실제로 구분됨
 - **제네릭 클래스**: `class Pair<T>` 단형화 기반 제네릭 (Pair<Int> → Pair_Int)
 - **비동기 오케스트레이션**: `async/await`, `spawn`, `Channel<T>`, `select`, `parallel`
 - **원격 결과 의미론**: `RemoteFuture<T>`를 `await`하면 `Result<T>`가 되어 실패 가능성을 타입에 남김
 - **내장 병렬성**: `parallel` 블록으로 선언적 병렬 처리
 - **스코프 기반 해제**: `with` 블록으로 자동 자원 반환
-- **양자 자원 의미론**: `QubitSlot`의 move/collapse/entanglement 규칙을 부분적으로 시맨틱과 런타임에서 추적
+- **양자 자원 표면**: `QubitSlot`/`ClaimQubit`/`Measure`/`Entangle` 표면은 존재하지만, 전체 quantum resource semantics는 아직 v2 작업
 
 ## 빠른 시작
 
@@ -150,7 +150,7 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 | `Slot<T>` | 메모리 | anchored handle: 점유 → 읽기/쓰기 → 반환 |
 | `SecureSlot<T>` | 보안 메모리 | anchored handle: 토큰 없이 접근 불가 |
 | `DeviceSlot<T>` | 디바이스/가속기 자원 | anchored handle: device read/write/submit/release |
-| `QubitSlot` | 양자 큐비트 | movable handle: 복사 금지, move/measure/entangle 규칙 적용 |
+| `QubitSlot` | 양자 큐비트 | movable handle: 복사 금지, partial quantum surface 위에서 move/measure/entangle 표면 제공 |
 
 | 연산 | 설명 |
 |------|------|
@@ -234,7 +234,7 @@ SecureSlot과 Party 시스템이 자원 접근을 토큰과 권한 기반으로 
 Pergyra의 Party 시스템이 이 문제를 풀 수 있는 구조를 가지고 있습니다:
 
 ```pergyra
-// 미래 — 얽힘 = Party 관계로 추적
+// v2 방향 — 얽힘 = Party 관계로 추적
 party EntangledPair {
     role qubitA: QubitSlot;
     role qubitB: QubitSlot;

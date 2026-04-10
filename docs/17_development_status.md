@@ -8,7 +8,7 @@
 - `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. 다만 LLVM backend에는 아직 domain/intent/main-wrapper 쪽 HIR fallback이 남아 있다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
-- 아직 미완료인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.
+- 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.
 - C backend의 공식 역할 재정의는 `docs/51_c_backend_reference_policy.md`에 정리한다.
 - LLVM/native-first 전환 단계는 `docs/52_llvm_native_first_roadmap.md`에서 추적한다.
 - `parallel`을 코어 실행 primitive로 재정의한 정책은 `docs/53_parallel_core_policy.md`에 정리한다.
@@ -113,7 +113,7 @@
 - `zone`은 현재 subject가 0개이거나 4개를 크게 넘는 형태에 대해 운영 lint를 냄
 - `relation`, `effect` declaration은 C backend에서 struct + method wrapper로 codegen됨
 - `relation/effect/zone`은 여전히 계층 간 구조적 의미론이 더 필요함
-- `subject`는 semantic에서 subject execution profile로 취급되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
+- `subject`는 코어 identity-bearing host로 고정되며, role binding, subject slot, `ToObject` / `ToTObject` source, subject copy restriction에 참여함
 - `object`는 intent를 시작하지 않는 passive state target으로 정리되며, 상태/반응/helper `func`를 가질 수 있음
 - `tobject`는 `object`보다 더 좁은 boundary transfer/publish 형식으로 유지됨
 - `object`와 `tobject`는 struct-style declaration syntax를 공유하지만 같은 계약은 아니다. `object`는 local/internal projection contract이고, `tobject`는 boundary projection contract다.
@@ -193,7 +193,7 @@
 | 스위트 | 결과 |
 |---|---|
 | security | 52 passed |
-| semantic | 687 passed |
+| semantic | 695 passed |
 | transpile | 461 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure`, `string_io` 포함) |
 | abi | 56 passed |
@@ -224,10 +224,10 @@
 - partial 완료: source-level `with effects ...` signature surface
 - partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
-- partial 완료: `subject`를 subject execution profile로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
+- partial 완료: `subject`를 코어 host로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
 - partial 완료: `subject Name { ... }` subject-first surface
 - partial 완료: standalone `subject Name { ... }`를 transitional syntax로 경고
-- partial 완료: plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
+- partial 완료: plain `Slot<subject-host>` / secure `SecureSlot<subject-host>` local object-cell anchor
 - partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화

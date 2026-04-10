@@ -7,7 +7,7 @@
 
 - 이 문서는 roadmap 성격의 설계 문서다
 - 현재 구현 기준의 상태 평가는 `docs/17_development_status.md`, `docs/18_language_status.md`를 우선한다
-- 아래 예시 중 일부는 아직 미래 표면이다. 특히 `Result<T, E>`, `Option<T>`, `parallel for`는 현재 stable surface로 간주하지 않는다
+- 아래 예시 중 일부는 아직 미래 표면이다. 현재 기준으로 `Option<T>`와 `Result<T>`는 stable surface에 가깝지만, `parallel for` 같은 표면은 아직 미래 범주에 남아 있다
 
 ## 1. 목표
 

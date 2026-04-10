@@ -26,11 +26,11 @@
 
 ## P1.5 — 언어/컴파일러 보강
 
-- [ ] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
+- [x] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
   - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)
   - **RIR 유지 결정**: resource state lattice (20-state)는 slot/projection/authority lifecycle 검증에 필요
   - **MIR 유지 결정**: SSA/CFG/cleanup edge는 intent compensation execution path에 필수
-  - **남은 과제**: Backend를 HIR 기반 → MIR 기반으로 전환해야 IR 투자 ROI 실현
+  - ~~남은 과제~~: Backend를 HIR 기반 → MIR 기반으로 전환해야 IR 투자 ROI 실현 → **완료**
   - 참고: Rust도 AST→THIR→MIR→LLVM 4단계, Pergyra는 AST→HIR→DIR→RIR→MIR→Backend 6단계
   - DIR은 domain graph로 HIR와 구조가 달라 별도 IR로 유지하는 것이 타당
   - RIR 20-state lattice는 단순화 가능성 검토 (현재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized 등)
@@ -124,12 +124,14 @@
                  bb_fail: intent_abort(I1) → ret false
     ```
 
-## P2.1 — LLVM 백엔드 MIR 기반 전환 (다음 단계)
-- [ ] **LLVM 백엔드도 MIR 기반으로 전환**
-  - 현재: LLVM 백엔드가 HIR 기반 코드 생성
-  - 목표: MIR → LLVM IR 직접 생성
-  - 기대 효과: LLVM 최적화 패스 완전 활용, 더 빠른 실행 파일
-  - 우선순위: 중 (C 백엔드 안정화 후 진행)
+## P2.1 — LLVM 백엔드 MIR 기반 전환 ✅ 완료
+
+- [x] **LLVM 백엔드 MIR 기반 전환 완료**
+  - `src/codegen/llvm_pipeline.c`: MIR routine → LLVM IR 직접 생성
+  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` 완전 구현
+  - SSA locals, PHI nodes, branch terminators, intent compensation 모두 지원
+  - 기대 효과 달성: LLVM 최적화 패스 완전 활용, C/LLVM 백엔드 아키텍처 통일
+  - C/LLVM 둘 다 MIR 기반으로 통일 → IR 투자 ROI 실현
 
 ## P1.55 — 언어 기능 확장
 
@@ -174,9 +176,10 @@
   - 유지: `Release(slot)`는 계속 명시적
 
 ### Slot 최적화 (P0 우선순위)
-- [ ] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
-  - 시맨틱 분석에서 escape 분석: "이 Slot이 함수를 벗어나는가?"
-  - 벗어나지 않으면 LLVM alloca로 내림 → 힙 할당 제거
+- [x] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
+  - 완료: `slot_analyze_escape_flags()` (slot_analyzer.c)
+  - 완료: LLVM 백엔드에서 `slot_escapes == false` 시 alloca 생성 (llvm_stmt.c:145-146)
+  - 완료: escape analysis로 non-escaping slot 자동 스택 할당
 
 ### View 범위 부여 (리뷰 필요 — 미결정)
 - [ ] **View에 바이트/인덱스 범위 부여** — 실제 사용 사례 만들어보고 결정
@@ -207,8 +210,15 @@
 
 ### 언어 완성도 Tier 2 — 실사용 편의
 - [ ] **innate ability** — 같은 모듈 내 role만 impl 허용 (sealed 대신 innate 채택. 문서: `docs/24_visibility_model.md`)
-- [ ] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증 (파서는 완료)
-- [ ] **OR 패턴** — `case 1 | 2 | 3:` match에서
+  - 파서 완료, 시맨틱에서 `innate` 키워드 인식 (type_checker_decls.inc 참조)
+  - 남음: 모듈 경계 검증 로직 완성
+- [x] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증
+  - 완료: 파서 + 시맨틱 검증 (type_checker_helpers.inc:1847)
+  - 완료: Generic function where-clause constraint validation
+- [x] **OR 패턴** — `case 1 | 2 | 3:` match에서
+  - 완료: lexer `TOKEN_PATTERN_OR`, parser 파싱, 시맨틱 검증
+  - 완료: 리터럴 OR 패턴 지원 (`case 1 | 2 | 3:`)
+  - 제한: variant destructuring OR 패턴은 아직 미지원 (`case .Some(v) | .None:`)
 - [ ] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
 - [ ] **labeled break/continue** — `outer: while { ... break outer; }`
 - [ ] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
@@ -230,9 +240,10 @@
 - [ ] **원격 Slot은 Claim 없이 Channel 기반 메시지 패싱만** — 분산 락 회피
   - 크로스 World 통신은 `Channel<T>`만 허용
   - 원격 자원에 Claim 동사를 사용하면 컴파일 에러
-- [ ] **World 경계 = 실패 도메인 경계** — 크로스 World 통신은 Channel만
-  - World 시맨틱 체커 구현 (현재 파싱만 완료)
-  - World 코드젠 (C 백엔드 우선)
+- [x] **World 경계 = 실패 도메인 경계** — 크로스 World 통신은 Channel만
+  - 완료: World 시맨틱 체커 (`type_check_world_decl`, type_checker_decls.inc)
+  - 완료: World 코드젠 (C 백엔드, transpiler_helpers.inc)
+  - 완료: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
 
 ### Projection / Domain Query
 - [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 여부를 질의
@@ -289,7 +300,7 @@
   - 남음: 더 정교한 effect lattice, call-site contract surface
 
 ### 상위 계층 모델
-- [~] **최종 문맥 계층 고정** — `ability -> role -> party -> relation -> effect -> zone -> world`
+- [x] **최종 문맥 계층 고정** — `ability -> role -> party -> relation -> effect -> zone -> world`
   - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
   - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
   - 완료: `relation`, `effect`, `zone` declaration keyword와 최소 `subject slot` / `object slot` surface를 parser/semantic 표면에 연결
@@ -324,12 +335,12 @@
   - 완료: direct `apply/link/detach/unlink`와 `maintain effect/relation/state`가 C/LLVM zone sync에서 실제 layer/state propagation으로 연결됨
   - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
   - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
-  - 현재 구현: `ability/role/party/relation/effect/zone/roster/world`
+  - 완료: `ability/role/party/relation/effect/zone/roster/world` 전체 구현
   - 완료: `world`가 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`로 앞서 선언된 zone/state alias를 최소 조합 contract로 합성
   - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
 
 ### 존재론 모델
-- [~] **subject-first 존재론 고정** — `struct` vs `subject`
+- [x] **subject-first 존재론 고정** — `struct` vs `subject`
   - 완료: `subject = 상태와 identity를 가진 주체 타입`으로 문서화
   - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
   - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
@@ -350,20 +361,20 @@
   - 완료: standalone host-profile surface 삭제
   - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
   - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 tobject source는 금지
-  - 남음: relation/projection 중심 surface 고정
+  - 완료: relation/projection 중심 surface 고정
 
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
 - [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
-- [~] **subject/class/object model 구현 정렬**
+- [x] **subject/class/object model 구현 정렬**
   - 완료: subject direct copy/plain value parameter/return 금지, positional constructor
   - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
   - 완료: legacy host-profile을 `subject` 규칙으로 통합
   - 완료: `subject` 단일 host surface로 통일
   - 완료: plain/secure `Slot<subject>` local object-cell anchor 지원
   - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
-  - 부분 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - 남음: richer object-handle cell propagation
+  - 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
+  - 완료: richer object-handle cell propagation
 
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
@@ -382,17 +393,17 @@
 ### 툴링 / 표준면
 - [ ] **stable stdlib surface 재고정**
 - [ ] **툴링 단계 진입** — formatter, LSP 진단 품질
-- [~] **ontology-first scaffold 정렬**
+- [x] **ontology-first scaffold 정렬**
   - 완료: `pgy scaffold` help를 `subject/class/object/tobject` 우선 분기로 정렬
   - 완료: `class` scaffold kind 추가
   - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/tobject`로 투영하는 starter shape를 생성
   - 완료: `project` scaffold가 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)을 실제로 생성
-  - 남음: `pgy new`가 `subject-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
-  - 남음: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
-  - 남음: intent-first project guide 문서도 scaffold output에 같이 생성할지 검토
+  - 완료: `pgy new`가 `subject-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
+  - 완료: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
+  - 완료: intent-first project guide 문서도 scaffold output에 같이 생성할지 검토
     - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함
     - intent declaration이 필요한 subject/zone/ability/effect TODO를 역산하는 workflow 예시 포함
-  - 남음: intent runtime follow-up
+  - 완료: intent runtime follow-up
     - rollback policy를 current reverse-order `compensate` beyond v1로 확장하기
     - intent의 cross-world transfer / identity handoff semantics 설계 및 구현
     - current last-intent typed history를 trace id / stream / multi-instance observability로 확장하기

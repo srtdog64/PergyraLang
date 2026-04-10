@@ -1,6 +1,6 @@
 # Pergyra 언어 상태 평가
 
-마지막 업데이트: 2026-04-05
+마지막 업데이트: 2026-04-10
 
 ## 요약
 
@@ -78,7 +78,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `state` shorthand는 effect/relation kind mismatch를 semantic error로 보고함
 - `zone`은 subject-heavy shape에 대해 권장 기반 warning을 냄
 - 장기 목표 계층 `ability -> role -> party -> relation -> effect -> zone -> world`가 문서상 고정됨
-- `subject`가 semantic에서 subject execution profile로 취급되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
+- `subject`가 코어 identity-bearing host로 semantic에 고정되어 `role`, `subject slot`, `ToObject` / `ToTObject`, subject copy restriction 경로에 실제로 참여함
 - `subject`와 `class`는 parser AST에서 서로 다른 nominal declaration flavor로 기록되며, semantic도 둘을 구분함
 - `vessel` declaration이 parser/semantic/transpile에 반영됐고, subject는 `vessel name: Type;` 형태의 피동 수용체 필드를 가질 수 있음
 - `subject`는 `action` declaration을 직접 가질 수 있고, `requires` / `within` / `causes` / `authorized by` 최소 clause가 parser/semantic/C/LLVM 경로에 반영됨
@@ -89,15 +89,14 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `role`은 non-subject nominal declaration에 바인딩될 수 없고, `party`는 subject-bound role impl이 없는 ability를 협력 슬롯에 둘 수 없음
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 타입처럼 parameter/return/copy가 가능함
 - C/LLVM lowering 모두에서 `subject` method는 pointer-self, `class` method는 value-self로 분기됨
-- `object` keyword alias가 parser/LSP surface에 반영되어 `object`와 `struct`가 같은 declaration으로 파싱됨
-- `tobject` keyword alias가 parser/LSP surface에 반영되어 `tobject`와 `struct`가 같은 declaration으로 파싱됨
+- `object`와 `tobject`는 parser AST에서 distinct nominal flavor로 보존되며, `object`는 local/internal projection, `tobject`는 boundary transfer/publish contract로 semantic과 codegen에 연결됨
 - `object` declaration은 passive state target 형식이지만 helper `func`와 국소 상태를 가질 수 있고, `tobject`는 더 좁은 projection/value 형식임
 - `subject`는 일반 `func`와 공적 `action`을 모두 가질 수 있음
 - `func`는 계산/보조 판단/국소 상태 갱신용 hosted func이고, `action`은 zone/authority/effect와 연결되는 공적 오케스트레이션 동사임
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
 - `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
-- 현재 회귀 수치: `semantic 486 passed`, `transpile 406 passed`, `llvm-test-smoke` 통과
+- 현재 직접 확인된 회귀 수치: `semantic 695 passed`, `transpile 461 passed`, `llvm-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToTObject(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 tobject surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToTObject`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `tobject slot`과 projection sync(`refresh` / `publish` / `bind`)임
@@ -116,9 +115,8 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
 - `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `subject`)에 허용되고 bare `class`는 제외된다
-- `subject`는 subject-profile semantic에 편입됐고 `subject Name { ... }` subject-first surface도 추가됐다
-- standalone `subject Name { ... }`는 아직 허용되지만, semantic warning과 함께 transitional syntax로 취급된다
-- plain/secure `Slot<subject>`와 `Slot<subject>`는 local object-cell anchor로 동작한다
+- `subject`는 코어 host 선언으로 고정됐고 `subject Name { ... }`가 기본 표면이다
+- plain `Slot<subject-host>`와 secure `SecureSlot<subject-host>`는 local object-cell anchor로 동작한다
 - `own/ref Slot<subject-host>`와 `own/ref SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
 - secure boundary slot은 함수 body 안에서 paired `s_token` 심볼을 자동 제공받는다
 - secure boundary slot은 helper forwarding call에서도 paired token을 유지한다
@@ -129,10 +127,10 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
 - cancellation은 cooperative + descendant propagation 수준, fairness는 round-robin 시작 인덱스 수준까지 올라온 상태
 
-## 2026-04-04 기준 확인된 상태
+## 2026-04-10 기준 확인된 상태
 
-- `make test-semantic` 통과 (`450 passed`)
-- `make test-transpile` 통과 (`331 passed`)
+- `make test-semantic` 통과 (`695 passed`)
+- `make test-transpile` 통과 (`461 passed`)
 - `make llvm-test-smoke` 통과
 
 ## 다음 기준
@@ -149,12 +147,12 @@ Pergyra는 "돌아가는 철학 실험"을 넘어, **자원 의미론을 가진 
 
 ## v2 계획: 양자 연산 (Qubit / Quantum Resource Model)
 
-> ⚠️ **양자 연산은 현재 v1에서 지원되지 않습니다.**
+> ⚠️ **v1에는 양자 표면과 최소 런타임/시맨틱 스켈레톤이 있지만, 전체 양자 자원 모델은 아직 닫히지 않았다.**
 >
-> 런타임에 `PgyQubit` struct와 `ClaimQubit()`/`Measure()`/`Entangle()` 함수가
-> 존재하지만, 이는 단순 시뮬레이션 스케줄톤일 뿐이며 양자 시맨틱스를 보장하지 않습니다.
+> `PgyQubit`, `QubitSlot`, `ClaimQubit()`, `Measure()`, `Entangle()` 표면은 존재한다.
+> 다만 이것이 곧 완전한 quantum resource semantics를 뜻하지는 않는다.
 >
-> **전체 양자 자원 모델은 Pergyra v2의 핵심 기능으로 계획되어 있습니다.**
+> **Linear/Affine 제약, 얽힘 관계 추적, 측정 후 붕괴 검증까지 포함한 전체 모델은 v2 작업이다.**
 
 v2에서 구현 예정:
 

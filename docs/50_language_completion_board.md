@@ -24,8 +24,8 @@
 |------|-----------|----------------|----------------|
 | Effect lattice | 부분 구현 | `effect_mask` closure, join/meet/compare/conflict API, 함수-level conflict warning, if/match branch-local effect join/conflict 경고, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
 | Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
-| MIR -> LLVM | 진행 중 | 남은 HIR fallback 범주를 명시 | domain/intent/main-wrapper fallback 제거 |
-| Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard+idempotent roundtrip guard, LSP completion/documentSymbol/definition/references/rename 추가 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
+| MIR -> LLVM | 진행 중 | ordinary non-async function MIR 경로 고정, intent/class/subject MIR carrier 확장, 남은 HIR fallback 범주 정리 | domain/intent/main-wrapper fallback 제거 |
+| Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard+idempotent roundtrip guard, LSP completion/documentSymbol/definition/references/rename 추가 | formatter AST-aware layout, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 진행 중 | return/call/channel-send 기반 slot escape 분류/경고 추가, LLVM AST path에서 non-escaping local slot을 entry-hoist 대신 current-block alloca로 sink | backend local sinking/elision 연결 확대 |
 | Generic `where` validation | 진행 중 | func/class/role bound validation, function call-site check, class specialization enforcement 추가 | generic instantiation 전반과 richer diagnostics 확장 |
 
@@ -138,8 +138,8 @@
 
 - backend에는 local alloca / temporary materialization이 많음
 - semantic `slot_analyzer`는 이제 `return/call/channel-send` 기반 slot escape를 분류하고 conservative warning을 낸다
-- LLVM AST emission path는 non-escaping local slot에 대해 entry-hoist 대신 current-block alloca sinking을 시작했다
-- MIR/LLVM 전 경로의 실제 local sinking/elision은 아직 미완료다
+- LLVM AST emission path와 hosted method path는 non-escaping local slot에 대해 entry-hoist 대신 current-block alloca sinking을 시작했다
+- MIR temporary/storage placement까지의 실제 local sinking/elision은 아직 미완료다
 
 부족한 것:
 

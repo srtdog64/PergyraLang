@@ -9,6 +9,17 @@
 
 #include "llvm_internal.h"
 
+static void
+llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
+{
+    if (getenv("PGY_DEBUG_LLVM_STAGE") == NULL || stage == NULL)
+        return;
+    fprintf(stderr, "[llvm stage] %s", stage);
+    if (routine != NULL && routine->name != NULL)
+        fprintf(stderr, ":%s", routine->name);
+    fputc('\n', stderr);
+}
+
 typedef struct {
     const char *mir_name;
     LLVMValueRef alloca;
@@ -34,97 +45,8 @@ llvm_mir_type_from_ast(LLVMGenCtx *ctx, ASTNode *type_node)
     return type != NULL ? type : ctx->type_i32;
 }
 
-static void
-llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine *routine,
-                               LLVMGenCtx *ctx, LLVMBasicBlockRef *llvm_blocks,
-                               LLVMMirVar *vars, size_t var_count, ASTNode *func_decl)
-{
-    (void)routine;
-    (void)func_decl;
-    LLVMBasicBlockRef llvm_block = llvm_blocks[mir_block->id];
-    LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
-    bool emitted_terminator = false;
-
-    for (size_t i = 0; i < mir_block->instruction_count; i++) {
-        const MIRInstruction *inst = &mir_block->instructions[i];
-        switch (inst->kind) {
-        case MIR_INST_RESOURCE_OP:
-            break;
-        case MIR_INST_DEF:
-            if (inst->ast != NULL && inst->result_name != NULL) {
-                if (inst->ast->type == AST_LET_DECL || inst->ast->type == AST_ASSIGNMENT) {
-                    llvm_emit_statement(inst->ast, ctx);
-                } else {
-                    LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
-                    if (alloca != NULL) {
-                        LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
-                        if (val != NULL)
-                            LLVMBuildStore(ctx->builder, val, alloca);
-                    }
-                }
-            }
-            break;
-        case MIR_INST_PHI:
-            break;
-        case MIR_INST_BRANCH:
-            if (inst->ast != NULL && mir_block->has_succ_true && mir_block->has_succ_false) {
-                LLVMValueRef cond = llvm_emit_expression(inst->ast, ctx);
-                if (cond != NULL) {
-                    LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
-                    LLVMBasicBlockRef false_bb = llvm_blocks[mir_block->succ_false];
-                    LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
-                    emitted_terminator = true;
-                }
-            } else if (mir_block->has_succ_true) {
-                LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
-                emitted_terminator = true;
-            }
-            break;
-        case MIR_INST_RETURN:
-            llvm_emit_defers_from(ctx, 0);
-            if (inst->ast != NULL) {
-                LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
-                if (val != NULL) {
-                    LLVMBuildRet(ctx->builder, val);
-                    emitted_terminator = true;
-                } else {
-                    LLVMBuildRetVoid(ctx->builder);
-                }
-            } else {
-                LLVMBuildRetVoid(ctx->builder);
-            }
-            emitted_terminator = true;
-            break;
-        case MIR_INST_CLEANUP_EDGE:
-            break;
-        case MIR_INST_STMT:
-            if (inst->ast != NULL)
-                llvm_emit_statement(inst->ast, ctx);
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (!emitted_terminator) {
-        if (mir_block->has_succ_true && mir_block->has_succ_false) {
-            LLVMBuildCondBr(ctx->builder,
-                            LLVMConstInt(LLVMInt1TypeInContext(
-                                LLVMGetModuleContext(ctx->module)), 1, false),
-                            llvm_blocks[mir_block->succ_true],
-                            llvm_blocks[mir_block->succ_false]);
-        } else if (mir_block->has_succ_true) {
-            LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
-        } else {
-            llvm_emit_defers_from(ctx, 0);
-            if (ctx->current_ret_type == ctx->type_void) {
-                LLVMBuildRetVoid(ctx->builder);
-            } else {
-                LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
-            }
-        }
-    }
-}
+#include "llvm_mir_blocks.inc"
+#include "llvm_mir_locals.inc"
 
 LLVMValueRef
 llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
@@ -138,6 +60,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     char qualified_name[256];
     if (routine == NULL || ctx == NULL || routine->hir_routine == NULL)
         return NULL;
+    llvm_mir_debug_stage("emit_func_from_mir:begin", routine);
 
     ASTNode *func_decl = routine->hir_routine->ast;
     if (func_decl == NULL
@@ -215,42 +138,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMValueRef fn = entry != NULL ? entry->fn : NULL;
     if (fn == NULL)
         return NULL;
+    llvm_mir_debug_stage("emit_func_from_mir:fn_ready", routine);
     free(param_types);
-
-    size_t var_capacity = 64;
-    LLVMMirVar *vars = calloc(var_capacity, sizeof(LLVMMirVar));
-    size_t var_count = 0;
-
-    LLVMBasicBlockRef *llvm_blocks = calloc(routine->block_count, sizeof(LLVMBasicBlockRef));
-    for (size_t i = 0; i < routine->block_count; i++) {
-        char bb_name[64];
-        snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
-        llvm_blocks[i] = LLVMAppendBasicBlockInContext(ctx->context, fn, bb_name);
-    }
-
-    LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
-    for (size_t b = 0; b < routine->block_count; b++) {
-        const MIRBasicBlock *mir_block = &routine->blocks[b];
-        for (size_t j = 0; j < mir_block->instruction_count; j++) {
-            const MIRInstruction *inst = &mir_block->instructions[j];
-            if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
-                && inst->result_name != NULL) {
-                LLVMTypeRef alloca_type = ctx->type_i32;
-                if (var_count >= var_capacity) {
-                    var_capacity *= 2;
-                    vars = realloc(vars, var_capacity * sizeof(LLVMMirVar));
-                }
-                vars[var_count].mir_name = inst->result_name;
-                vars[var_count].type = alloca_type;
-                vars[var_count].alloca = LLVMBuildAlloca(ctx->builder, alloca_type,
-                                                         inst->result_name);
-                var_count++;
-            }
-        }
-    }
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
+    ASTNode *saved_func_decl = ctx->current_func_decl;
     int saved_slot_var_count = ctx->slot_var_count;
     int saved_view_var_count = ctx->view_var_count;
     int saved_device_slot_var_count = ctx->device_slot_var_count;
@@ -267,71 +160,38 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     const char *saved_class_name = ctx->current_class_name;
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
+    ctx->current_func_decl = func_decl;
     if (is_method)
         ctx->current_class_name = owner_name;
+
+    size_t var_capacity = 64;
+    LLVMMirVar *vars = calloc(var_capacity, sizeof(LLVMMirVar));
+    size_t var_count = 0;
+
+    LLVMBasicBlockRef *llvm_blocks = calloc(routine->block_count, sizeof(LLVMBasicBlockRef));
+    for (size_t i = 0; i < routine->block_count; i++) {
+        char bb_name[64];
+        snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
+        llvm_blocks[i] = LLVMAppendBasicBlockInContext(ctx->context, fn, bb_name);
+    }
+    llvm_mir_debug_stage("emit_func_from_mir:blocks_ready", routine);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
+    llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
+    llvm_mir_debug_stage("emit_func_from_mir:locals_ready", routine);
 
     llvm_scope_push(ctx);
     llvm_defer_scope_push(ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
-    for (size_t i = 0; i < param_count; i++) {
-        if (is_intent) {
-            ASTNode *involves = func_decl->data.intent_decl.involves[i];
-            const char *alias = involves != NULL ? involves->data.intent_involves.alias : NULL;
-            ASTNode *subject_type = involves != NULL ? involves->data.intent_involves.subject_type : NULL;
-            const char *type_name = (subject_type != NULL && subject_type->type == AST_TYPE)
-                ? subject_type->data.type.name : NULL;
-            LLVMTypeRef pt = (subject_type != NULL) ? llvm_mir_type_from_ast(ctx, subject_type)
-                                                    : ctx->type_i32;
-            if (involves != NULL && llvm_intent_involves_uses_pointer_self(ctx, involves))
-                pt = LLVMPointerType(pt, 0);
-            LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
-                alias != NULL ? alias : "participant");
-            LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
-            llvm_scope_declare(ctx, alias != NULL ? alias : "participant", alloca, pt);
-            if (subject_type != NULL)
-                llvm_register_typed_var(ctx, alias, subject_type);
-            if (type_name != NULL)
-                llvm_register_var_class(ctx, alias, type_name);
-        } else {
-            if (is_method && i == 0) {
-                LLVMTypeRef self_type = owner_cls != NULL
-                    ? (owner_cls->is_pointer_self_host
-                        ? LLVMPointerType(owner_cls->struct_type, 0)
-                        : owner_cls->struct_type)
-                    : ctx->type_i8ptr;
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                    (owner_cls != NULL && owner_cls->is_pointer_self_host) ? "self.addr" : "self");
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
-                llvm_scope_declare(ctx, "self", alloca, self_type);
-                if (owner_name != NULL)
-                    llvm_register_var_class(ctx, "self", owner_name);
-            } else {
-                size_t param_index = is_method ? (i - 1) : i;
-                FuncParam *p = func_decl->data.func_decl.params[param_index];
-                while (is_method && p != NULL && p->type == NULL
-                       && p->name != NULL && strcmp(p->name, "self") == 0) {
-                    param_index++;
-                    p = (param_index < func_decl->data.func_decl.param_count)
-                        ? func_decl->data.func_decl.params[param_index]
-                        : NULL;
-                }
-                if (p == NULL)
-                    continue;
-                LLVMTypeRef pt = (p->type != NULL) ? llvm_mir_type_from_ast(ctx, p->type)
-                                                   : ctx->type_i32;
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
-                llvm_scope_declare(ctx, p->name, alloca, pt);
-                llvm_register_typed_var(ctx, p->name, p->type);
-            }
-        }
-    }
+    llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
+                                owner_cls, owner_name, param_count);
 
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx,
                                        llvm_blocks, vars, var_count, func_decl);
     }
+    llvm_mir_debug_stage("emit_func_from_mir:entry_emitted", routine);
     for (size_t i = 0; i < routine->block_count; i++) {
         if (i == routine->entry_block)
             continue;
@@ -344,6 +204,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             LLVMBuildUnreachable(ctx->builder);
         }
     }
+    llvm_mir_debug_stage("emit_func_from_mir:blocks_emitted", routine);
 
     if (routine->has_cleanup_block) {
         for (size_t i = 0; i < routine->block_count; i++) {
@@ -354,6 +215,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             }
         }
     }
+    llvm_mir_debug_stage("emit_func_from_mir:cleanup_emitted", routine);
 
     llvm_defer_scope_pop(ctx);
     llvm_scope_pop(ctx);
@@ -372,9 +234,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ctx->callable_var_count = saved_callable_var_count;
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_func_decl = saved_func_decl;
     ctx->current_class_name = saved_class_name;
     free(vars);
     free(llvm_blocks);
+    llvm_mir_debug_stage("emit_func_from_mir:return", routine);
     return fn;
 }
 

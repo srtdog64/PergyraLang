@@ -1171,6 +1171,53 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("effect-flow: while body effect joins into function contract");
+    {
+        const char *source =
+            "func Dispatch(flag: Bool) -> Int with effects remote {\n"
+            "    while flag {\n"
+            "        let pending = spawn 42;\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-flow: for body effect joins into function contract");
+    {
+        const char *source =
+            "func Dispatch() -> Int with effects remote {\n"
+            "    for i in 0..3 {\n"
+            "        let pending = spawn i;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("effect-partial-order: disjoint branch effects join into combined contract");
     {
         const char *source =
@@ -1204,6 +1251,41 @@ test_effect_inference(void)
         const char *source =
             "/// @effects secure, remote\n"
             "func Mixed() -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "combines effect classes that are currently treated as conflicting"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-conflict: non-adjacent branch combination still emits warning");
+    {
+        const char *source =
+            "subject Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Mixed(flag: Int) -> Void with effects secure, remote {\n"
+            "    match flag {\n"
+            "        case 0:\n"
+            "            let s: SecureSlot<Bot> = Bot(1);\n"
+            "            return;\n"
+            "        case 1:\n"
+            "            return;\n"
+            "        default:\n"
+            "            let pending = spawn 42;\n"
+            "            return;\n"
+            "    }\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
