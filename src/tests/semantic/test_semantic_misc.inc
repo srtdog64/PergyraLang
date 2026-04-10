@@ -310,6 +310,88 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
     }
 
+    TEST("explicit cross-module private method access is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        ASTNode *vault = ast_create_subject("Vault");
+        ASTNode *call = make_call_expr(
+            make_member_access(make_identifier("v", 2), "Reveal", 2),
+            NULL, 0, 2);
+        ASTNode *method = ast_create_function("Reveal");
+        Symbol *vsym;
+
+        vault->origin_path = pergyra_strdup("vault_module.pgy");
+        method->data.func_decl.return_type = ast_create_type("Int");
+        method->data.func_decl.body = ast_create_block();
+        method->data.func_decl.access = ACCESS_PRIVATE;
+        method->data.func_decl.has_explicit_access = true;
+        ast_add_statement(method->data.func_decl.body,
+            ast_create_return_statement());
+        method->data.func_decl.body->data.block.statements[0]
+            ->data.return_stmt.value = make_number(7, 1);
+        vault->data.class_decl.methods = calloc(1, sizeof(ASTNode *));
+        vault->data.class_decl.methods[0] = method;
+        vault->data.class_decl.method_count = 1;
+        ast_add_statement(program, vault);
+        ctx->program_root = program;
+
+        type_check_class_decl(vault, ctx);
+        ctx->current_module_path = "consumer_module.pgy";
+        vsym = symbol_create_variable("v",
+            scope_lookup(ctx->scope, "Vault")->type, 2, 1);
+        scope_declare(ctx->scope, vsym);
+
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "not accessible across the current visibility boundary"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+        ast_destroy(program);
+    }
+
+    TEST("explicit cross-module public method access remains allowed");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        ASTNode *vault = ast_create_subject("Vault");
+        ASTNode *call = make_call_expr(
+            make_member_access(make_identifier("v", 2), "Reveal", 2),
+            NULL, 0, 2);
+        ASTNode *method = ast_create_function("Reveal");
+        Symbol *vsym;
+
+        vault->origin_path = pergyra_strdup("vault_module.pgy");
+        method->data.func_decl.return_type = ast_create_type("Int");
+        method->data.func_decl.body = ast_create_block();
+        method->data.func_decl.access = ACCESS_PUBLIC;
+        method->data.func_decl.has_explicit_access = true;
+        ast_add_statement(method->data.func_decl.body,
+            ast_create_return_statement());
+        method->data.func_decl.body->data.block.statements[0]
+            ->data.return_stmt.value = make_number(7, 1);
+        vault->data.class_decl.methods = calloc(1, sizeof(ASTNode *));
+        vault->data.class_decl.methods[0] = method;
+        vault->data.class_decl.method_count = 1;
+        ast_add_statement(program, vault);
+        ctx->program_root = program;
+
+        type_check_class_decl(vault, ctx);
+        ctx->current_module_path = "consumer_module.pgy";
+        vsym = symbol_create_variable("v",
+            scope_lookup(ctx->scope, "Vault")->type, 2, 1);
+        scope_declare(ctx->scope, vsym);
+
+        EXPECT(type_check_expression(call, ctx) == TYPE_INT);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+        ast_destroy(program);
+    }
+
     TEST("for-in over List<subject> type-checks");
     {
         const char *source =

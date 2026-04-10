@@ -5,6 +5,7 @@
  * Type Checker control-flow and ownership analysis
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "type_checker_internal.h"
@@ -44,6 +45,56 @@ static FlowFlags type_check_match_stmt_flow(ASTNode *node,
 static FlowFlags type_check_with_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
+
+static uint32_t
+effect_delta_from_baseline(uint32_t baseline, uint32_t after)
+{
+    uint32_t closed_baseline = type_effect_mask_closure(baseline);
+    uint32_t closed_after = type_effect_mask_closure(after);
+    return closed_after & ~closed_baseline;
+}
+
+static void
+flow_effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
+{
+    size_t off = 0;
+    uint32_t closed = type_effect_mask_closure(mask);
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    if (closed == EFFECT_NONE) {
+        snprintf(buf, buf_size, "local");
+        return;
+    }
+
+    if (type_effect_mask_has(closed, EFFECT_SECURE))
+        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0, "%ssecure", off > 0 ? ", " : "");
+    if (type_effect_mask_has(closed, EFFECT_REMOTE))
+        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0, "%sremote", off > 0 ? ", " : "");
+    if (type_effect_mask_has(closed, EFFECT_NONDETERMINISTIC))
+        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0, "%snondeterministic", off > 0 ? ", " : "");
+    if (type_effect_mask_has(closed, EFFECT_COLLAPSE))
+        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0, "%scollapse", off > 0 ? ", " : "");
+}
+
+static void
+flow_record_branch_effect_conflict(SemanticContext *ctx, const ASTNode *node,
+                                   uint32_t left_delta, uint32_t right_delta)
+{
+    char left_buf[128];
+    char right_buf[128];
+
+    if (ctx == NULL || node == NULL)
+        return;
+    if (!type_effect_mask_conflicts(left_delta, right_delta))
+        return;
+
+    flow_effect_mask_to_string(left_delta, left_buf, sizeof(left_buf));
+    flow_effect_mask_to_string(right_delta, right_buf, sizeof(right_buf));
+    semantic_warning(ctx, node,
+        "Control-flow branches combine currently conflicting effect classes (%s vs %s); consider splitting authority-sensitive and remote/resource-boundary work",
+        left_buf, right_buf);
+}
 
 static bool
 match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
@@ -680,11 +731,14 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
                         LoopFlowState *loop_flow)
 {
     Type *cond = type_check_expression(node->data.if_stmt.condition, ctx);
+    uint32_t effect_base = ctx->current_function_effects;
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
     FlowFlags flags = FLOW_NONE;
     FlowFlags then_flags = FLOW_NONE;
+    uint32_t then_effect_delta = EFFECT_NONE;
+    uint32_t else_effect_delta = EFFECT_NONE;
 
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error(ctx, node,
@@ -692,9 +746,12 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     }
 
     restore_resource_states(&base);
+    ctx->current_function_effects = effect_base;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     then_flags = type_check_block_flow(node->data.if_stmt.then_branch, ctx, loop_flow);
     scope_exit(&ctx->scope);
+    then_effect_delta = effect_delta_from_baseline(effect_base,
+        ctx->current_function_effects);
     flags |= (then_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
     if (then_flags & FLOW_FALLTHROUGH) {
         ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
@@ -706,10 +763,13 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     if (node->data.if_stmt.else_branch != NULL) {
         FlowFlags else_flags = FLOW_NONE;
         restore_resource_states(&base);
+        ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         else_flags =
             type_check_statement_flow(node->data.if_stmt.else_branch, ctx, loop_flow);
         scope_exit(&ctx->scope);
+        else_effect_delta = effect_delta_from_baseline(effect_base,
+            ctx->current_function_effects);
         flags |= (else_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
         if (else_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
@@ -720,7 +780,14 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     } else {
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
+        else_effect_delta = EFFECT_NONE;
     }
+
+    flow_record_branch_effect_conflict(ctx, node,
+        then_effect_delta, else_effect_delta);
+    ctx->current_function_effects = type_effect_mask_join(
+        effect_base,
+        type_effect_mask_join(then_effect_delta, else_effect_delta));
 
     if (has_fallthrough)
         restore_resource_states(&fallthrough);
@@ -737,6 +804,10 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
                            LoopFlowState *loop_flow)
 {
     Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
+    uint32_t effect_base = ctx->current_function_effects;
+    uint32_t merged_effect_delta = EFFECT_NONE;
+    uint32_t previous_case_delta = EFFECT_NONE;
+    bool have_previous_case_delta = false;
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
@@ -744,7 +815,9 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *mc = node->data.match_stmt.cases[i];
+        uint32_t case_effect_delta = EFFECT_NONE;
         restore_resource_states(&base);
+        ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
 
         if (mc->data.match_case.pattern != NULL) {
@@ -762,6 +835,15 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         FlowFlags case_flags =
             type_check_block_flow(mc->data.match_case.body, ctx, loop_flow);
         scope_exit(&ctx->scope);
+        case_effect_delta = effect_delta_from_baseline(effect_base,
+            ctx->current_function_effects);
+        merged_effect_delta =
+            type_effect_mask_join(merged_effect_delta, case_effect_delta);
+        if (have_previous_case_delta)
+            flow_record_branch_effect_conflict(ctx, mc,
+                previous_case_delta, case_effect_delta);
+        previous_case_delta = case_effect_delta;
+        have_previous_case_delta = true;
         flags |= (case_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
         if (case_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot case_snap = snapshot_resource_states(ctx);
@@ -773,11 +855,20 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     if (node->data.match_stmt.default_body != NULL) {
         FlowFlags default_flags = FLOW_NONE;
+        uint32_t default_effect_delta = EFFECT_NONE;
         restore_resource_states(&base);
+        ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         default_flags =
             type_check_block_flow(node->data.match_stmt.default_body, ctx, loop_flow);
         scope_exit(&ctx->scope);
+        default_effect_delta = effect_delta_from_baseline(effect_base,
+            ctx->current_function_effects);
+        merged_effect_delta =
+            type_effect_mask_join(merged_effect_delta, default_effect_delta);
+        if (have_previous_case_delta)
+            flow_record_branch_effect_conflict(ctx, node,
+                previous_case_delta, default_effect_delta);
         flags |= (default_flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN));
         if (default_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot default_snap = snapshot_resource_states(ctx);
@@ -792,6 +883,8 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     check_match_redundancy(node, subj_type, ctx);
     check_match_exhaustiveness(node, subj_type, ctx);
+    ctx->current_function_effects =
+        type_effect_mask_join(effect_base, merged_effect_delta);
 
     if (has_fallthrough)
         restore_resource_states(&fallthrough);
@@ -909,6 +1002,10 @@ type_check_if_stmt(ASTNode *node, SemanticContext *ctx)
 bool
 type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 {
+    uint32_t effect_base = ctx->current_function_effects;
+    uint32_t merged_effect_delta = EFFECT_NONE;
+    uint32_t previous_iter_delta = EFFECT_NONE;
+    bool have_previous_iter_delta = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     ctx->loop_depth++;
 
@@ -961,9 +1058,22 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
+        ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(node->data.for_loop.body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        {
+            uint32_t iter_effect_delta =
+                effect_delta_from_baseline(effect_base, ctx->current_function_effects);
+            merged_effect_delta =
+                type_effect_mask_join(merged_effect_delta, iter_effect_delta);
+            if (have_previous_iter_delta) {
+                flow_record_branch_effect_conflict(ctx, node,
+                    previous_iter_delta, iter_effect_delta);
+            }
+            previous_iter_delta = iter_effect_delta;
+            have_previous_iter_delta = true;
+        }
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
             merge_resource_states_or(&merged, &body_snap);
@@ -996,6 +1106,8 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 
     ctx->loop_depth--;
     scope_exit(&ctx->scope);
+    ctx->current_function_effects =
+        type_effect_mask_join(effect_base, merged_effect_delta);
 
     restore_resource_states(&merged);
     destroy_resource_snapshot(&base);
@@ -1007,6 +1119,10 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
 bool
 type_check_while_loop(ASTNode *node, SemanticContext *ctx)
 {
+    uint32_t effect_base = ctx->current_function_effects;
+    uint32_t merged_effect_delta = EFFECT_NONE;
+    uint32_t previous_iter_delta = EFFECT_NONE;
+    bool have_previous_iter_delta = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     ctx->loop_depth++;
 
@@ -1025,6 +1141,7 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
+        ctx->current_function_effects = effect_base;
         Type *cond = type_check_expression(node->data.while_loop.condition, ctx);
         if (!type_equals(cond, TYPE_BOOL)) {
             semantic_error(ctx, node,
@@ -1034,6 +1151,18 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(node->data.while_loop.body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        {
+            uint32_t iter_effect_delta =
+                effect_delta_from_baseline(effect_base, ctx->current_function_effects);
+            merged_effect_delta =
+                type_effect_mask_join(merged_effect_delta, iter_effect_delta);
+            if (have_previous_iter_delta) {
+                flow_record_branch_effect_conflict(ctx, node,
+                    previous_iter_delta, iter_effect_delta);
+            }
+            previous_iter_delta = iter_effect_delta;
+            have_previous_iter_delta = true;
+        }
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
             merge_resource_states_or(&merged, &body_snap);
@@ -1066,6 +1195,8 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
 
     ctx->loop_depth--;
     scope_exit(&ctx->scope);
+    ctx->current_function_effects =
+        type_effect_mask_join(effect_base, merged_effect_delta);
 
     restore_resource_states(&merged);
     destroy_resource_snapshot(&base);

@@ -488,6 +488,74 @@ respond_references(int id, const char *uri, const char *source_text,
     lsp_respond(id, refs);
 }
 
+static void
+respond_rename(int id, const char *uri, const char *source_text,
+               int line, int character, const char *new_name)
+{
+    char word[128];
+    char escaped_uri[2048];
+    char escaped_new[512];
+    char edits[32768];
+    size_t off = 0;
+    const char *p;
+    int cur_line = 0;
+    int cur_col = 0;
+    size_t word_len;
+
+    if (uri == NULL || source_text == NULL || new_name == NULL
+        || !extract_word_at_position(source_text, line, character,
+                                     word, sizeof(word))) {
+        lsp_respond(id, "null");
+        return;
+    }
+
+    if (word[0] == '\0') {
+        lsp_respond(id, "null");
+        return;
+    }
+
+    json_escape_copy(escaped_uri, sizeof(escaped_uri), uri);
+    json_escape_copy(escaped_new, sizeof(escaped_new), new_name);
+    word_len = strlen(word);
+    edits[off++] = '[';
+    p = source_text;
+
+    while (*p && off < sizeof(edits) - 256) {
+        if ((p == source_text || is_word_boundary_char(*(p - 1)))
+            && strncmp(p, word, word_len) == 0
+            && is_word_boundary_char(*(p + word_len))) {
+            int n;
+            if (off > 1)
+                edits[off++] = ',';
+            n = snprintf(edits + off, sizeof(edits) - off,
+                "{\"range\":{\"start\":{\"line\":%d,\"character\":%d},"
+                "\"end\":{\"line\":%d,\"character\":%d}},"
+                "\"newText\":\"%s\"}",
+                cur_line, cur_col, cur_line, cur_col + (int)word_len,
+                escaped_new);
+            if (n > 0)
+                off += (size_t)n;
+        }
+
+        if (*p == '\n') {
+            cur_line++;
+            cur_col = 0;
+        } else {
+            cur_col++;
+        }
+        p++;
+    }
+
+    if (off < sizeof(edits) - 1)
+        edits[off++] = ']';
+    edits[off] = '\0';
+
+    snprintf(response_buf, sizeof(response_buf),
+        "{\"jsonrpc\":\"2.0\",\"id\":%d,\"result\":{\"changes\":{\"%s\":%s}}}",
+        id, escaped_uri, edits);
+    lsp_send(response_buf);
+}
+
 /* ================================================================= */
 /* Diagnostics — parse + semantic check, publish errors              */
 /* ================================================================= */
@@ -661,7 +729,8 @@ main(void)
                     "\"completionProvider\":{\"resolveProvider\":false},"
                     "\"documentSymbolProvider\":true,"
                     "\"definitionProvider\":true,"
-                    "\"referencesProvider\":true"
+                    "\"referencesProvider\":true,"
+                    "\"renameProvider\":true"
                 "},"
                 "\"serverInfo\":{\"name\":\"pgy-lsp\",\"version\":\"0.1\"}"
                 "}");
@@ -813,6 +882,16 @@ main(void)
                 character = json_find_int(pos, "character");
             }
             respond_references(id, doc_uri, doc_content, line, character);
+        }
+        else if (strcmp(method, "textDocument/rename") == 0) {
+            int line = -1, character = -1;
+            const char *pos = strstr(msg, "\"position\"");
+            const char *new_name = json_find_string(msg, "newName");
+            if (pos) {
+                line = json_find_int(pos, "line");
+                character = json_find_int(pos, "character");
+            }
+            respond_rename(id, doc_uri, doc_content, line, character, new_name);
         }
         else {
             /* Unknown method — respond with null for requests */

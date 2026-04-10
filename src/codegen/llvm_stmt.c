@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "../semantic/slot_analyzer.h"
 
 /* =================================================================
  * Statement emission
@@ -131,6 +132,26 @@ llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
     }
 
     return NULL;
+}
+
+static bool
+llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
+        return false;
+    if (ctx->current_func_decl->type != AST_FUNC_DECL
+        || ctx->current_func_decl->data.func_decl.body == NULL)
+        return false;
+    return slot_analyze_escape_flags(ctx->current_func_decl->data.func_decl.body, name)
+        == SLOT_ESCAPE_NONE;
+}
+
+LLVMValueRef
+llvm_create_sinkable_local_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
+{
+    if (llvm_stmt_slot_can_sink_locally(ctx, name))
+        return LLVMBuildAlloca(ctx->builder, type, name);
+    return llvm_create_entry_alloca(ctx, type, name);
 }
 
 static LLVMClassTypeEntry *
@@ -940,7 +961,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef slot_ty = is_secure
                 ? llvm_secure_slot_struct_type(ctx, inner)
                 : llvm_slot_struct_type(ctx, inner);
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+            LLVMValueRef alloca_val = llvm_create_sinkable_local_alloca(ctx, slot_ty, name);
 
             /* Inline Claim: initialize the concrete slot storage directly.
              * SecureSlot also materializes a token bound to the owning alloca. */
@@ -955,7 +976,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
                 char token_name[256];
                 snprintf(token_name, sizeof(token_name), "%s_token", name);
-                LLVMValueRef token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+                LLVMValueRef token_alloca = llvm_create_sinkable_local_alloca(ctx, token_ty, token_name);
                 LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
 
                 LLVMValueRef slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,
@@ -1000,7 +1021,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
 
             LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+            LLVMValueRef alloca_val = llvm_create_sinkable_local_alloca(ctx, slot_ty, name);
 
             LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
             LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -1215,7 +1236,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMTypeRef slot_ty = is_secure
                         ? llvm_secure_slot_struct_type(ctx, inner)
                         : llvm_slot_struct_type(ctx, inner);
-                    LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+                    LLVMValueRef alloca_val = llvm_create_sinkable_local_alloca(ctx, slot_ty, name);
                     LLVMVarEntry *source = llvm_scope_lookup(ctx, init->data.identifier.name);
                     if (source == NULL)
                         return;
@@ -1228,7 +1249,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
                         char token_name[256];
                         snprintf(token_name, sizeof(token_name), "%s_token", name);
-                        LLVMValueRef token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+                        LLVMValueRef token_alloca = llvm_create_sinkable_local_alloca(ctx, token_ty, token_name);
                         LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
                         llvm_scope_declare(ctx, pergyra_strdup(token_name), token_alloca, token_ty);
                     }
@@ -1239,7 +1260,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef slot_ty = is_secure
                 ? llvm_secure_slot_struct_type(ctx, inner)
                 : llvm_slot_struct_type(ctx, inner);
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
+            LLVMValueRef alloca_val = llvm_create_sinkable_local_alloca(ctx, slot_ty, name);
 
             /* Inline Claim: zero-init + set claimed=true */
             LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), alloca_val);
@@ -1261,7 +1282,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef token_read_ptr;
 
                 snprintf(token_name, sizeof(token_name), "%s_token", name);
-                token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+                token_alloca = llvm_create_sinkable_local_alloca(ctx, token_ty, token_name);
                 LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
 
                 slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,
@@ -2186,7 +2207,7 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef slot_ty = is_secure
         ? llvm_secure_slot_struct_type(ctx, inner)
         : llvm_slot_struct_type(ctx, inner);
-    LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, alias);
+    LLVMValueRef alloca_val = llvm_create_sinkable_local_alloca(ctx, slot_ty, alias);
 
     /* Inline claim: zero-init + set claimed=true (avoids ABI mismatch) */
     char fn_name[64];
@@ -2203,7 +2224,7 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
         char token_name[256];
         snprintf(token_name, sizeof(token_name), "%s_token", alias);
-        LLVMValueRef token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
+        LLVMValueRef token_alloca = llvm_create_sinkable_local_alloca(ctx, token_ty, token_name);
         LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
 
         LLVMValueRef slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,

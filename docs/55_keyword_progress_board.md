@@ -33,8 +33,8 @@
 | `export` | 90% | explicit export가 imported module 경계에서 실제로 비-export 심볼을 숨기고 회귀 테스트도 존재, exported nominal constructor surface까지 반영됨 |
 | `namespace` | 80% | 표면 안정, tooling 보강 여지 |
 | `extern` | 80% | C/LLVM 경로 연결 |
-| `public` | 76% | explicit nominal member visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 exported nominal constructor surface까지 연결됨 |
-| `private` | 76% | explicit nominal member visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 non-exported nominal constructor 차단까지 연결됨 |
+| `public` | 78% | explicit nominal field/method visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 exported nominal constructor surface까지 연결됨 |
+| `private` | 78% | explicit nominal field/method visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 non-exported nominal constructor 차단까지 연결됨 |
 | `where` | 80% | generic/intention clause 공용 reserved token으로 정리, richer constraint는 남음 |
 | `as` | 75% | alias/type helper 표면 안정 |
 | `impl` | 85% | role/ability 구현 핵심 표면 |

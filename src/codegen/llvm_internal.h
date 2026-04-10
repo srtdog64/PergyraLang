@@ -333,6 +333,7 @@ typedef struct LLVMGenCtx
 
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
+    ASTNode        *current_func_decl;
     const char     *current_class_name;
     bool            uses_intent_observability;
 
@@ -631,6 +632,8 @@ LLVMTypeRef   llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name);
 const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);
+LLVMValueRef  llvm_create_sinkable_local_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
+                                                const char *name);
 
 /* =================================================================
  * Generic monomorphization helpers (llvm_backend.c)

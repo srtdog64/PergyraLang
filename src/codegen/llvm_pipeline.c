@@ -403,9 +403,11 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 LLVMTypeRef ret_type = entry->ret_type;
                 LLVMValueRef saved_fn = ctx->current_function;
                 LLVMTypeRef saved_ret = ctx->current_ret_type;
+                ASTNode *saved_func_decl = ctx->current_func_decl;
                 const char *saved_class_name = ctx->current_class_name;
                 ctx->current_function = fn;
                 ctx->current_ret_type = ret_type;
+                ctx->current_func_decl = method;
                 ctx->current_class_name = cls_name;
 
                 LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
@@ -456,6 +458,7 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                 llvm_scope_pop(ctx);
                 ctx->current_function = saved_fn;
                 ctx->current_ret_type = saved_ret;
+                ctx->current_func_decl = saved_func_decl;
                 ctx->current_class_name = saved_class_name;
 
                 if (saved_fn != NULL) {

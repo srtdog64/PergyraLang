@@ -64,6 +64,30 @@ source_is_parseable(const char *source)
     return ok;
 }
 
+static char *
+read_stream(FILE *f)
+{
+    long len;
+    size_t read_len;
+    char *buf;
+
+    if (f == NULL)
+        return NULL;
+    if (fseek(f, 0, SEEK_END) != 0)
+        return NULL;
+    len = ftell(f);
+    if (len < 0)
+        return NULL;
+    if (fseek(f, 0, SEEK_SET) != 0)
+        return NULL;
+    buf = malloc((size_t)len + 1);
+    if (buf == NULL)
+        return NULL;
+    read_len = fread(buf, 1, (size_t)len, f);
+    buf[read_len] = '\0';
+    return buf;
+}
+
 typedef struct {
     FILE *out;
     int indent;
@@ -84,6 +108,125 @@ fmt_newline(FmtCtx *ctx)
 {
     fprintf(ctx->out, "\n");
     ctx->at_line_start = true;
+}
+
+static bool
+format_source_to_stream(const char *source, FILE *out)
+{
+    Lexer *lexer;
+    FmtCtx ctx = { .out = out, .indent = 0, .at_line_start = true,
+                    .needs_blank_before_block = false };
+    Token prev = { .type = TOKEN_EOF };
+    Token tok;
+    uint32_t prev_line = 1;
+
+    if (source == NULL || out == NULL)
+        return false;
+
+    lexer = lexer_create(source);
+    if (lexer == NULL)
+        return false;
+
+    do {
+        tok = lexer_next_token(lexer);
+        if (tok.type == TOKEN_ERROR) {
+            lexer_destroy(lexer);
+            return false;
+        }
+
+        if (tok.line > prev_line + 1 && ctx.indent == 0 && !ctx.at_line_start) {
+            fmt_newline(&ctx);
+        }
+
+        if (tok.line > prev_line && tok.type != TOKEN_EOF) {
+            if (!ctx.at_line_start) fmt_newline(&ctx);
+        }
+
+        switch (tok.type) {
+        case TOKEN_LBRACE:
+            if (!ctx.at_line_start) fmt_newline(&ctx);
+            fmt_indent(&ctx);
+            fprintf(out, "{");
+            fmt_newline(&ctx);
+            ctx.indent++;
+            break;
+        case TOKEN_RBRACE:
+            ctx.indent--;
+            if (ctx.indent < 0) ctx.indent = 0;
+            if (!ctx.at_line_start) fmt_newline(&ctx);
+            fmt_indent(&ctx);
+            fprintf(out, "}");
+            fmt_newline(&ctx);
+            break;
+        case TOKEN_SEMICOLON:
+            fprintf(out, ";");
+            fmt_newline(&ctx);
+            break;
+        case TOKEN_STRING:
+            if (ctx.at_line_start) fmt_indent(&ctx);
+            else if (prev.type != TOKEN_LPAREN && prev.type != TOKEN_LBRACKET
+                     && prev.type != TOKEN_COMMA)
+                fprintf(out, " ");
+            fprintf(out, "\"%s\"", tok.text ? tok.text : "");
+            break;
+        case TOKEN_COMMA:
+            fprintf(out, ",");
+            break;
+        case TOKEN_COLON:
+            fprintf(out, ":");
+            break;
+        case TOKEN_LPAREN:
+            fprintf(out, "(");
+            break;
+        case TOKEN_RPAREN:
+            fprintf(out, ")");
+            break;
+        case TOKEN_LBRACKET:
+            fprintf(out, "[");
+            break;
+        case TOKEN_RBRACKET:
+            fprintf(out, "]");
+            break;
+        default:
+            if (ctx.at_line_start) fmt_indent(&ctx);
+            else if (tok.text && prev.type != TOKEN_LPAREN
+                     && prev.type != TOKEN_DOT
+                     && tok.type != TOKEN_DOT
+                     && prev.type != TOKEN_LBRACKET
+                     && tok.type != TOKEN_RBRACKET)
+                fprintf(out, " ");
+            if (tok.text) fprintf(out, "%s", tok.text);
+            break;
+        }
+
+        prev_line = tok.line;
+        prev = tok;
+    } while (tok.type != TOKEN_EOF);
+
+    if (!ctx.at_line_start) fmt_newline(&ctx);
+    lexer_destroy(lexer);
+    return true;
+}
+
+static char *
+format_source_to_string(const char *source)
+{
+    FILE *tmp;
+    char *result;
+
+    if (source == NULL)
+        return NULL;
+    tmp = tmpfile();
+    if (tmp == NULL)
+        return NULL;
+    if (!format_source_to_stream(source, tmp)) {
+        fclose(tmp);
+        return NULL;
+    }
+    fflush(tmp);
+    result = read_stream(tmp);
+    fclose(tmp);
+    return result;
 }
 
 int
@@ -131,107 +274,19 @@ driver_run_fmt_command(int argc, char *argv[])
         out = stdout;
     }
 
-    /* Token-based reformatting */
-    Lexer *lexer = lexer_create(source);
-    FmtCtx ctx = { .out = out, .indent = 0, .at_line_start = true,
-                    .needs_blank_before_block = false };
-
-    Token prev = { .type = TOKEN_EOF };
-    Token tok;
-    uint32_t prev_line = 1;
-
-    do {
-        tok = lexer_next_token(lexer);
-        if (tok.type == TOKEN_ERROR) break;
-
-        /* Handle blank lines between top-level declarations */
-        if (tok.line > prev_line + 1 && ctx.indent == 0 && !ctx.at_line_start) {
-            fmt_newline(&ctx);
+    if (!format_source_to_stream(source, out)) {
+        if (write_inplace || check_only) {
+            fclose(out);
+            remove(tmppath);
         }
-
-        /* Handle newlines from source */
-        if (tok.line > prev_line && tok.type != TOKEN_EOF) {
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-        }
-
-        switch (tok.type) {
-        case TOKEN_LBRACE:
-            /* BSD style: brace on new line */
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-            fmt_indent(&ctx);
-            fprintf(out, "{");
-            fmt_newline(&ctx);
-            ctx.indent++;
-            break;
-
-        case TOKEN_RBRACE:
-            ctx.indent--;
-            if (ctx.indent < 0) ctx.indent = 0;
-            if (!ctx.at_line_start) fmt_newline(&ctx);
-            fmt_indent(&ctx);
-            fprintf(out, "}");
-            fmt_newline(&ctx);
-            break;
-
-        case TOKEN_SEMICOLON:
-            fprintf(out, ";");
-            fmt_newline(&ctx);
-            break;
-
-        case TOKEN_STRING:
-            if (ctx.at_line_start) fmt_indent(&ctx);
-            else if (prev.type != TOKEN_LPAREN && prev.type != TOKEN_LBRACKET
-                     && prev.type != TOKEN_COMMA)
-                fprintf(out, " ");
-            fprintf(out, "\"%s\"", tok.text ? tok.text : "");
-            break;
-
-        case TOKEN_COMMA:
-            fprintf(out, ",");
-            break;
-
-        case TOKEN_COLON:
-            fprintf(out, ":");
-            break;
-
-        case TOKEN_LPAREN:
-            fprintf(out, "(");
-            break;
-
-        case TOKEN_RPAREN:
-            fprintf(out, ")");
-            break;
-
-        case TOKEN_LBRACKET:
-            fprintf(out, "[");
-            break;
-
-        case TOKEN_RBRACKET:
-            fprintf(out, "]");
-            break;
-
-        default:
-            if (ctx.at_line_start) fmt_indent(&ctx);
-            else if (tok.text && prev.type != TOKEN_LPAREN
-                     && prev.type != TOKEN_DOT
-                     && tok.type != TOKEN_DOT
-                     && prev.type != TOKEN_LBRACKET
-                     && tok.type != TOKEN_RBRACKET)
-                fprintf(out, " ");
-            if (tok.text) fprintf(out, "%s", tok.text);
-            break;
-        }
-
-        prev_line = tok.line;
-        prev = tok;
-    } while (tok.type != TOKEN_EOF);
-
-    if (!ctx.at_line_start) fmt_newline(&ctx);
-
-    lexer_destroy(lexer);
+        free(source);
+        fprintf(stderr, "pgy fmt: failed to format '%s'\n", path);
+        return 1;
+    }
 
     if (write_inplace || check_only) {
         char *formatted;
+        char *roundtrip;
         fclose(out);
         formatted = read_file(tmppath);
         if (formatted == NULL) {
@@ -245,6 +300,15 @@ driver_run_fmt_command(int argc, char *argv[])
             fprintf(stderr, "pgy fmt: formatter produced unparsable output for '%s'\n", path);
             return 1;
         }
+        roundtrip = format_source_to_string(formatted);
+        if (roundtrip == NULL || strcmp(formatted, roundtrip) != 0) {
+            free(formatted);
+            free(roundtrip);
+            remove(tmppath);
+            fprintf(stderr, "pgy fmt: formatter output is not stable for '%s'\n", path);
+            return 1;
+        }
+        free(roundtrip);
         if (check_only) {
             int same = strcmp(source, formatted) == 0;
             free(source);

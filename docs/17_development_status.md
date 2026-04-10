@@ -177,8 +177,8 @@
 
 ### 도구
 - debugger는 breakpoint set/clear/list와 single-frame backtrace를 지원함
-- formatter는 `--write` 외에 `--check`와 parse-guard를 가짐
-- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition을 제공함
+- formatter는 `--write` 외에 `--check`, parse-guard, idempotent roundtrip guard를 가짐
+- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition/references/rename을 제공함
 
 ### 구현 메모
 
@@ -193,7 +193,7 @@
 | 스위트 | 결과 |
 |---|---|
 | security | 52 passed |
-| semantic | 679 passed |
+| semantic | 687 passed |
 | transpile | 461 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure`, `string_io` 포함) |
 | abi | 56 passed |
@@ -208,7 +208,8 @@
 - zone method 안의 subject `action` call은 현재 C/LLVM 모두에서 matching `effect slot` runtime activation과 embedded layer sync까지 연결됨
 - `self.player.Attack()` 같은 nested nominal host method call도 이제 C/LLVM 모두에서 실제 method dispatch로 lowering됨
 - semantic `slot_analyzer`는 이제 `return/call/channel-send` 기반 slot escape를 분류하고 conservative warning을 낸다
-- effect lattice는 이제 `closure/join/compare`뿐 아니라 `meet/conflict` API도 가진다
+- LLVM AST emission path는 non-escaping local slot에 대해 entry-hoist 대신 current-block alloca sinking을 시작했다
+- effect lattice는 이제 `closure/join/compare`뿐 아니라 `meet/conflict` API와 if/match branch-local effect join/conflict 경고도 가진다
 
 ## 남은 주요 작업
 

@@ -191,6 +191,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     /* Save context */
     LLVMValueRef saved_fn       = ctx->current_function;
     LLVMTypeRef  saved_ret_type = ctx->current_ret_type;
+    ASTNode     *saved_func_decl = ctx->current_func_decl;
     int saved_slot_var_count = ctx->slot_var_count;
     int saved_view_var_count = ctx->view_var_count;
     int saved_device_slot_var_count = ctx->device_slot_var_count;
@@ -207,6 +208,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
+    ctx->current_func_decl = node;
 
     /* Create entry block */
     LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
@@ -295,6 +297,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     /* Restore context */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
+    ctx->current_func_decl = saved_func_decl;
 
     /* Position builder back to the calling context */
     if (saved_fn != NULL) {
