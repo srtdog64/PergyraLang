@@ -187,7 +187,7 @@ role MonsterCombat for Monster
     override func TakeDamage(&mut self, amount: Int)
     {
         Log("Monster takes damage!")
-        super.TakeDamage(amount)
+        // parent-call surface removed
     }
 }
 ```

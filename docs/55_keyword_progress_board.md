@@ -24,7 +24,6 @@
 | `tobject` | 95% | `dto` 제거 후 표면 정렬 완료 |
 | `enum` | 90% | tagged/value sum type 경로 실사용 가능 |
 | `type` | 85% | alias 표면 안정, richer tooling은 남음 |
-| `trait` | 20% | 문서/레거시 표면은 있으나 코어 모델로 채택되지 않음 |
 | `ability` | 85% | role/where와 연결됨, richer capability 모델은 남음 |
 | `role` | 85% | ability 구현과 where 일부 연결 |
 | `party` | 80% | domain 축은 살아 있으나 코어성은 재평가 여지 |
@@ -42,7 +41,6 @@
 | `include` | 75% | role composition helper 수준 |
 | `require` | 87% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 non-exported nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 |
 | `override` | 55% | role/party 보조 modifier는 있으나 inheritance override는 코어 대상 아님 |
-| `super` | 10% | 문법/문서 잔재 수준, 코어 언어 채택 대상 아님 |
 | `extends` | 30% | party 보조 관계 표면은 있으나 inheritance 코어 축은 아님 |
 | `if` | 100% | 안정 |
 | `else` | 100% | 안정 |
@@ -110,19 +108,16 @@
 
 이 항목들은 단순히 "구현이 덜 됐다"가 아니라, 현재 언어 철학상 코어로 올릴지 자체가 보류되었거나 축소된 표면이다.
 
-1. `trait`
-2. `super`
-3. `extends`
-4. `dyn`
+1. `extends`
+2. `dyn`
 
 ## D. 현재 가장 부족한 키워드 축
 
-1. `trait`
-2. `public` / `private`의 module/export boundary 확장
-3. `async` family의 문서/테스트 재정렬 잔여분
-4. `override`
-5. `effect`의 authority/resource 통합 partial order
-6. `secure`의 zone/authority declaration 일반화 잔여분
+1. `public` / `private`의 module/export boundary 확장
+2. `async` family의 문서/테스트 재정렬 잔여분
+3. `override`
+4. `effect`의 authority/resource 통합 partial order
+5. `secure`의 zone/authority declaration 일반화 잔여분
 
 ## E. 현재 가장 잘 닫힌 키워드 축
 

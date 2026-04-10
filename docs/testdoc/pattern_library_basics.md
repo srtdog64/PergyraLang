@@ -38,7 +38,7 @@
 
 즉 factory는 단순 `UnitFactory(...) -> UnitSpec` 한 단계가 아니라
 `template -> draft -> finalize` shape를 가진다.
-이 경로가 있어야 이후 `loadout`, `trait`, `policy`, `content table` 주입점도 같은 패턴 위에 올릴 수 있다.
+이 경로가 있어야 이후 `loadout`, `ability`, `policy`, `content table` 주입점도 같은 패턴 위에 올릴 수 있다.
 
 이번 작업에서 실제 언어 문제도 하나 드러나서 고쳤다.
 

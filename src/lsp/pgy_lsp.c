@@ -424,6 +424,70 @@ respond_definition(int id, const char *uri, const char *source_text,
     lsp_respond(id, "null");
 }
 
+static bool
+is_word_boundary_char(char c)
+{
+    return !((c >= 'a' && c <= 'z')
+        || (c >= 'A' && c <= 'Z')
+        || (c >= '0' && c <= '9')
+        || c == '_');
+}
+
+static void
+respond_references(int id, const char *uri, const char *source_text,
+                   int line, int character)
+{
+    char word[128];
+    char escaped_uri[2048];
+    char refs[32768];
+    size_t off = 0;
+    const char *p;
+    int cur_line = 0;
+    int cur_col = 0;
+    size_t word_len;
+
+    if (uri == NULL || source_text == NULL
+        || !extract_word_at_position(source_text, line, character,
+                                     word, sizeof(word))) {
+        lsp_respond(id, "[]");
+        return;
+    }
+
+    json_escape_copy(escaped_uri, sizeof(escaped_uri), uri);
+    word_len = strlen(word);
+    refs[off++] = '[';
+    p = source_text;
+
+    while (*p && off < sizeof(refs) - 256) {
+        if ((p == source_text || is_word_boundary_char(*(p - 1)))
+            && strncmp(p, word, word_len) == 0
+            && is_word_boundary_char(*(p + word_len))) {
+            int n;
+            if (off > 1)
+                refs[off++] = ',';
+            n = snprintf(refs + off, sizeof(refs) - off,
+                "{\"uri\":\"%s\",\"range\":{\"start\":{\"line\":%d,\"character\":%d},"
+                "\"end\":{\"line\":%d,\"character\":%d}}}",
+                escaped_uri, cur_line, cur_col, cur_line, cur_col + (int)word_len);
+            if (n > 0)
+                off += (size_t)n;
+        }
+
+        if (*p == '\n') {
+            cur_line++;
+            cur_col = 0;
+        } else {
+            cur_col++;
+        }
+        p++;
+    }
+
+    if (off < sizeof(refs) - 1)
+        refs[off++] = ']';
+    refs[off] = '\0';
+    lsp_respond(id, refs);
+}
+
 /* ================================================================= */
 /* Diagnostics — parse + semantic check, publish errors              */
 /* ================================================================= */
@@ -596,7 +660,8 @@ main(void)
                     "\"hoverProvider\":true,"
                     "\"completionProvider\":{\"resolveProvider\":false},"
                     "\"documentSymbolProvider\":true,"
-                    "\"definitionProvider\":true"
+                    "\"definitionProvider\":true,"
+                    "\"referencesProvider\":true"
                 "},"
                 "\"serverInfo\":{\"name\":\"pgy-lsp\",\"version\":\"0.1\"}"
                 "}");
@@ -739,6 +804,15 @@ main(void)
                 character = json_find_int(pos, "character");
             }
             respond_definition(id, doc_uri, doc_content, line, character);
+        }
+        else if (strcmp(method, "textDocument/references") == 0) {
+            int line = -1, character = -1;
+            const char *pos = strstr(msg, "\"position\"");
+            if (pos) {
+                line = json_find_int(pos, "line");
+                character = json_find_int(pos, "character");
+            }
+            respond_references(id, doc_uri, doc_content, line, character);
         }
         else {
             /* Unknown method — respond with null for requests */

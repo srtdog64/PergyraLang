@@ -353,7 +353,6 @@ object Door {
 ### 아직 닫히지 않은 범위
 
 - class inheritance
-- `super`
 - 복잡한 object hierarchy
 - `class`와 `subject`의 deeper behavioral split
 - standalone `subject Name { ... }`를 언제까지 유지할지에 대한 최종 surface 정책

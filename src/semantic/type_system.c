@@ -528,9 +528,9 @@ type_satisfies_constraint(const Type *type, const Type *constraint)
     if (type_equals(type, constraint))
         return true;
 
-    /* If constraint is a trait/ability name, check if type implements it */
+    /* If constraint is an ability-style contract name, check if type implements it */
     if (constraint->kind == TYPE_KIND_CLASS) {
-        /* Future: check if type implements the trait/ability */
+        /* Future: check if type implements the ability contract */
         return type_equals(type, constraint);
     }
 

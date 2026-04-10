@@ -45,7 +45,6 @@ static const KeywordEntry keywords[] = {
     {"innate",   TOKEN_INNATE},
     {"where",    TOKEN_WHERE},
     {"type",     PGY_TOKEN_TYPE},
-    {"trait",    TOKEN_TRAIT},
     {"impl",     TOKEN_IMPL},
     {"async",    TOKEN_ASYNC},
     {"await",    TOKEN_AWAIT},
@@ -66,7 +65,6 @@ static const KeywordEntry keywords[] = {
     {"include",  TOKEN_INCLUDE},
     {"require",  TOKEN_REQUIRE},
     {"override", TOKEN_OVERRIDE},
-    {"super",    TOKEN_SUPER},
     {"secure",   TOKEN_SECURE},
     {"party",    TOKEN_PARTY},
     
@@ -595,12 +593,11 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_PARTY: return "PARTY";
         case TOKEN_SHARED: return "SHARED";
         case TOKEN_EXTENDS: return "EXTENDS";
-        case TOKEN_ROSTER: return "SYSTEMIC";
+        case TOKEN_ROSTER: return "ROSTER";
         case TOKEN_WORLD: return "WORLD";
         case TOKEN_INCLUDE: return "INCLUDE";
         case TOKEN_REQUIRE: return "REQUIRE";
         case TOKEN_OVERRIDE: return "OVERRIDE";
-        case TOKEN_SUPER: return "SUPER";
         case TOKEN_SECURE: return "SECURE";
         case TOKEN_MATCH: return "MATCH";
         case TOKEN_DYN: return "DYN";

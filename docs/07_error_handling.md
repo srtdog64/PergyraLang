@@ -134,7 +134,7 @@ func Main() -> Void {
 
 - `Result<T, E>` 두 개의 타입 파라미터를 가진 완전한 표면
 - `try { } catch { }`
-- trait/class 기반 에러 계층
+- ability/class 기반 에러 계층
 - `@[error_type]` 같은 메타프로그래밍 표면
 - `MapErr`, `AndThen` 같은 고수준 combinator 체인
 

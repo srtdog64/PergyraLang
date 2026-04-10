@@ -193,7 +193,7 @@ class AdaptiveCache<K, V> { }
 ```pergyra
 /// [What]: 기본 컨테이너 인터페이스
 /// [Why]: 모든 컬렉션의 공통 동작 정의
-trait Container<T> {
+ability Container<T> {
     /// [inherit_docs]
     func Add(item: T)
 }

@@ -351,7 +351,6 @@ MIR로 이월하는 것:
 - `tobject`
 - `enum`
 - `type`
-- `trait`
 - `ability`
 - `role`
 - `party`
@@ -373,7 +372,6 @@ MIR로 이월하는 것:
 - `include`
 - `require`
 - `override`
-- `super`
 - `extends`
 
 제어 흐름 / 실행:
@@ -743,7 +741,6 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `private` | `TOKEN_PRIVATE` | declaration modifier | 낮음 | `HIR` | visibility |
 | `where` | `TOKEN_WHERE` | clause / generic constraint | 큼 | `HIR -> DIR -> MIR` | reserved token reused by generic and intent/action clauses |
 | `type` | `PGY_TOKEN_TYPE` | declaration | 중간 | `HIR` | alias/type declaration |
-| `trait` | `TOKEN_TRAIT` | declaration surface | 낮음 | `HIR` | currently shallow contract |
 | `impl` | `TOKEN_IMPL` | declaration helper | 중간 | `HIR -> DIR` | role/ability implementation |
 | `async` | `TOKEN_ASYNC` | declaration / statement | 중간 | `HIR -> MIR` | suspension/coroutine surface |
 | `await` | `TOKEN_AWAIT` | expression | 중간 | `HIR -> RIR -> MIR` | future synchronization |
@@ -764,7 +761,6 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `include` | `TOKEN_INCLUDE` | declaration clause | 낮음 | `HIR -> DIR` | role composition helper |
 | `require` | `TOKEN_REQUIRE` | declaration clause | 낮음 | `HIR -> DIR` | declaration constraint helper |
 | `override` | `TOKEN_OVERRIDE` | declaration modifier | 낮음 | `HIR` | method override surface |
-| `super` | `TOKEN_SUPER` | expression | 낮음 | `HIR` | inheritance helper |
 | `secure` | `TOKEN_SECURE` | type/resource modifier | 중간 | `HIR -> RIR -> MIR` | secure resource surface |
 | `party` | `TOKEN_PARTY` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | collaboration contract |
 | `slot` | `TOKEN_SLOT` | declaration / type keyword | 매우 큼 | `HIR -> RIR -> MIR` | common resource anchor |

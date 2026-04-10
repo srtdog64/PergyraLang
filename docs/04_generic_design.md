@@ -36,7 +36,7 @@ func Process<T, U>(input: T) -> U
 #### B. Associated Types
 
 ```pergyra
-trait Container<T> {
+ability Container<T> {
     type Item = T
     type Index = Int
     
@@ -44,7 +44,7 @@ trait Container<T> {
 }
 
 // 슬롯도 associated type 활용
-trait SecureStorage {
+ability SecureStorage {
     type Token
     type Value
     

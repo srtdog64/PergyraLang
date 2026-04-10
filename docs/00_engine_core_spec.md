@@ -38,7 +38,7 @@ Pergyra Engine Core는 다음 요구를 만족해야 한다.
 - 고급 메타프로그래밍
 - 복잡한 역할/파티/world 문법
 - 예외 기반 제어 흐름
-- 고급 trait solver
+- 고급 ability solver
 - 상태 타입을 과도하게 얹은 제네릭 설계
 
 ## 3. 전역 문법 원칙
@@ -99,7 +99,7 @@ struct Transform {
 
 - higher-kinded type
 - 복잡한 암시적 추론
-- trait specialization
+- ability specialization
 
 기준 문법:
 

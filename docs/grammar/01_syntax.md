@@ -40,8 +40,8 @@
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
 | 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
 | 안전 | `unsafe`, `defer`, `secure` |
-| 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override`, `super` |
-| 블록 | `with`, `parallel`, `trait`, `private`, `public` |
+| 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override` |
+| 블록 | `with`, `parallel`, `private`, `public` |
 | 리터럴 | `true`, `false` |
 | 값 타입 | `tobject`, `object` |
 

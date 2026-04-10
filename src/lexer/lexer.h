@@ -63,7 +63,6 @@ typedef enum
     TOKEN_INNATE,
     TOKEN_WHERE,
     PGY_TOKEN_TYPE,
-    TOKEN_TRAIT,
     TOKEN_IMPL,
     
     /* Enum */
@@ -83,7 +82,6 @@ typedef enum
     TOKEN_INCLUDE,
     TOKEN_REQUIRE,
     TOKEN_OVERRIDE,
-    TOKEN_SUPER,
     TOKEN_SECURE,
 
     /* Party keywords */

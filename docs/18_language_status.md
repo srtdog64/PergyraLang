@@ -124,7 +124,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - secure boundary slot은 helper forwarding call에서도 paired token을 유지한다
 - LLVM backend는 nested member assignment와 world-owned zone mutation propagation까지 runtime smoke로 검증된다
 - 남은 공백은 deeper handle/runtime propagation model이다
-- 클래식 OOP 계층(상속, super)은 미지원
+- 클래식 OOP 계층(상속, 부모 호출)은 미지원
 - 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
 - cancellation은 cooperative + descendant propagation 수준, fairness는 round-robin 시작 인덱스 수준까지 올라온 상태

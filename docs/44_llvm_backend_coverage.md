@@ -197,7 +197,7 @@
 `let` `func` `return` `break` `continue` `if` `else` `while` `for` `in` `match` `case` `default`
 
 ### 타입/클래스
-`class` `subject` `struct` `tobject` `enum` `type` `trait` `impl` `extends` `dyn` `where`
+`class` `subject` `struct` `tobject` `enum` `type` `impl` `extends` `dyn` `where`
 
 ### 가시성/접근
 `public` `private` `with` `as`
@@ -212,7 +212,7 @@
 `export` `namespace` `import` `use` `extern`
 
 ### Role/Ability
-`ability` `role` `include` `require` `override` `super` `secure`
+`ability` `role` `include` `require` `override` `secure`
 
 ### Party/상호작용
 `party` `relation` `effect` `zone` `slot` `shared` `context`

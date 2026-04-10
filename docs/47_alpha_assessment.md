@@ -147,8 +147,8 @@ channel  class    continue default  defer    else     enum     event
 export   extends  extern   false    for      func     if       impl
 import   in       include  let      match    namespace override own
 parallel party    private  public   ref      require  return   role
-secure   select   shared   slot     spawn    struct   subject  super
-tobject  trait    true     type     unsafe   use      where    while
+secure   select   shared   slot     spawn    struct   subject  tobject
+true     type     unsafe   use      where    while
 with
 ```
 
@@ -160,7 +160,7 @@ with
 | 비동기 | async, await, channel, select, spawn, parallel | ✅ channel+select |
 | 소유권 | own, ref | ⚠️ 이 테스트에서 미사용 (smoke test에서 커버) |
 | 모듈 | export, namespace, import, use, extern | ✅ namespace+export |
-| Role/Ability | ability, role, include, require, override, super, secure | ✅ ability+role+require |
+| Role/Ability | ability, role, include, require, override, secure | ✅ ability+role+require |
 | 도메인 | party, relation, effect, zone, slot, shared, context | ✅ 대부분 |
 | Roster/World | roster, world | ✅ world |
 | 안전 | unsafe, defer, bind | ✅ defer |
@@ -171,9 +171,7 @@ with
 | 키워드 | 이유 | 상태 |
 |--------|------|------|
 | `dyn` | dynamic dispatch — 고급 기능 | 별도 테스트 필요 |
-| `trait` | ability의 별칭? | 명확화 필요 |
 | `extends` | 상속 — 별도 시나리오 | 기본 테스트 필요 |
-| `super` | 부모 호출 | extends와 함께 |
 | `roster` | 시스테믹 컴포넌트 | world 내부 고급 |
 | `subject` | 액터 모델 | 별도 동시성 테스트 |
 
@@ -216,7 +214,7 @@ with
 
 1. **Intent 시스템** — guard/post/compensate/rollback이 선언적으로 동작, 3가지 rollback 정책 정확 구현
 2. **Zone/World 계층** — layer/state/projection/authority가 런타임에서 동작
-3. **Ability/Role 합성** — trait + vtable 동적 디스패치
+3. **Ability/Role 합성** — ability + vtable 동적 디스패치
 4. **Slot 시스템** — lifecycle 강제 (수정됨), SecureSlot 토큰 검증 동작
 5. **2개 백엔드** — C + LLVM 출력 완전 일치 (intent 포함)
 

@@ -297,7 +297,7 @@ world GameWorld {
 //   subject   = active orchestrator (organism / protagonist)
 //   object    = read-only view      (shadow / snapshot)
 //   tobject       = boundary projection (letter / rumor)
-//   ability   = behavioral contract (genetic trait)
+//   ability   = behavioral contract
 //   role      = ability fulfillment (phenotype)
 //   action    = plot behavior       (protagonist's deed)
 //   relation  = inter-subject bond  (species interaction)

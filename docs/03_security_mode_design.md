@@ -29,8 +29,8 @@ This means the current security story is not only `SecureSlot` token discipline,
 ### 1. Security Level Types
 
 ```pergyra
-// Base trait for all security models
-trait SecurityModel {
+// Base ability for all security models
+ability SecurityModel {
     const IS_SECURE: Bool
     const NEEDS_TOKEN: Bool
 }

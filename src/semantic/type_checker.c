@@ -2428,6 +2428,16 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         func_type->data.function.effect_mask =
             type_effect_mask_join(declared_effects, inferred_effects);
 
+        if (type_effect_mask_conflicts(func_type->data.function.effect_mask,
+                                       func_type->data.function.effect_mask)) {
+            effect_mask_to_string(func_type->data.function.effect_mask,
+                                  inferred_buf, sizeof(inferred_buf));
+            semantic_warning(ctx, node,
+                "Function '%s' combines effect classes that are currently treated as conflicting (%s); consider splitting authority-sensitive and remote/resource-boundary work",
+                name != NULL ? name : "<anonymous>",
+                inferred_buf);
+        }
+
         if (is_action
             && node->data.func_decl.within_zone != NULL
             && type_effect_mask_requires_authority(func_type->data.function.effect_mask)

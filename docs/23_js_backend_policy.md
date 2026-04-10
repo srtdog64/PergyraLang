@@ -5,7 +5,7 @@
 ## 목적
 
 JavaScript 백엔드는 브라우저와 Node.js 실행을 위한 타겟이다.
-하지만 JS 생태계의 `class` / `extends` / `super` 의미론이
+하지만 JS 생태계의 `class` / `extends` / 부모 호출 의미론이
 Pergyra 코어 존재론을 오염시키면 안 된다.
 
 따라서 JS 백엔드는 **언어 의미론을 JS에 맞추는 작업**이 아니라,
@@ -20,13 +20,13 @@ scene/projection UI IR을 먼저 고정해야 한다.
 ## 고정 원칙
 
 - 코어 언어는 inheritance를 기본 의미론으로 채택하지 않는다
-- 코어 언어는 `super`를 기본 표면으로 채택하지 않는다
+- 코어 언어는 부모 호출 표면을 기본 표면으로 채택하지 않는다
 - 재사용은 `ability`, `role`, composition, delegation을 우선한다
 - JS backend는 필요하면 내부 lowering에서 delegation/mixin/object composition을 사용한다
 - JS interop은 별도 `extern js` 계층으로 분리한다
 
 즉 JS 백엔드가 필요하다는 이유로
-Pergyra 코어에 `extends` / `super` / prototype-chain 중심 사고를 들이지 않는다.
+Pergyra 코어에 `extends` / 부모 호출 / prototype-chain 중심 사고를 들이지 않는다.
 
 ## 존재론 대응
 
@@ -117,7 +117,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 
 1. 코어 의미론 유지
    - `subject != class`
-   - inheritance / `super` 미도입 유지
+   - inheritance / 부모 호출 미도입 유지
 
 2. JS backend IR shape 고정
    - record
@@ -152,7 +152,7 @@ extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 ## 결론
 
 JS 백엔드는 필요하다.
-하지만 그 이유로 코어 언어에 inheritance나 `super`를 넣을 필요는 없다.
+하지만 그 이유로 코어 언어에 inheritance나 부모 호출 표면을 넣을 필요는 없다.
 
 Pergyra는 계속 subject-first 언어로 남고,
 JS는 그 의미론을 구현하는 한 타겟일 뿐이다.

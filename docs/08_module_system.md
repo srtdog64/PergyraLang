@@ -332,7 +332,7 @@ module B
 // 해결: 인터페이스 분리
 module AInterface
 {
-    export trait IA
+    export ability IA
     {
         func FuncA()
     }

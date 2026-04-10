@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 /* 
- * Security model trait representation
+ * Security model ability representation
  * This is now a type-level concept that can be used with generics
  */
 typedef enum {
@@ -22,7 +22,7 @@ typedef enum {
     SECURITY_MODEL_ANY = 0xFF        /* Wildcard for generic constraints */
 } SecurityModel;
 
-/* Security trait for type system */
+/* Security ability for type system */
 typedef struct {
     const char* name;
     bool (*ValidateToken)(void* token);
@@ -35,7 +35,7 @@ extern const SecurityModelTrait BasicSecureModel;
 extern const SecurityModelTrait HardwareSecureModel;
 extern const SecurityModelTrait EncryptedSecureModel;
 
-/* Get trait implementation for a security model */
+/* Get ability implementation for a security model */
 const SecurityModelTrait* GetSecurityTrait(SecurityModel model);
 
 /* Compile-time security properties */

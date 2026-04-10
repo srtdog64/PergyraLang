@@ -1198,5 +1198,28 @@ test_effect_inference(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("effect-conflict: secure and remote combination emits warning");
+    {
+        const char *source =
+            "/// @effects secure, remote\n"
+            "func Mixed() -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "combines effect classes that are currently treated as conflicting"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 

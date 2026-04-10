@@ -209,7 +209,7 @@ typedef enum
  */
 struct GenericParam {
     char*    name;
-    ASTNode* constraint;   /* Optional trait constraint */
+    ASTNode* constraint;   /* Optional ability-style constraint */
     ASTNode* default_type; /* Optional default type */
 };
 

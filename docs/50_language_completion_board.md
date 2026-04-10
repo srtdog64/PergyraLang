@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-10 (effect meet/conflict API, debugger breakpoint/backtrace 명령, formatter check/parse guard, LSP completion/documentSymbol/definition, slot escape 분류 경고 추가)
+마지막 업데이트: 2026-04-10 (effect meet/conflict API와 함수-level conflict warning, debugger breakpoint/backtrace 명령, formatter check/parse guard, LSP completion/documentSymbol/definition/references, slot escape 분류 경고 추가)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -22,10 +22,10 @@
 
 | 항목 | 현재 상태 | 이번 착수 내용 | 다음 구현 단위 |
 |------|-----------|----------------|----------------|
-| Effect lattice | 부분 구현 | `effect_mask` closure, join API, 최소 subsumption, partial-order compare, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
+| Effect lattice | 부분 구현 | `effect_mask` closure, join/meet/compare/conflict API, 함수-level conflict warning, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
 | Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
 | MIR -> LLVM | 진행 중 | 남은 HIR fallback 범주를 명시 | domain/intent/main-wrapper fallback 제거 |
-| Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard, LSP completion/documentSymbol/definition 추가 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
+| Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard, LSP completion/documentSymbol/definition/references 추가 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 진행 중 | return/call/channel-send 기반 slot escape 분류/경고 추가 | backend local sinking/elision 연결 |
 | Generic `where` validation | 진행 중 | func/class/role bound validation, function call-site check, class specialization enforcement 추가 | generic instantiation 전반과 richer diagnostics 확장 |
 
@@ -41,7 +41,9 @@
 - `collapse -> nondeterministic` closure
 - 최소 subeffect/subsumption check
 - explicit partial-order compare API
+- explicit meet/conflict API
 - disjoint branch effect join 회귀
+- 함수-level conflicting effect 조합 warning
 - authority/resource helper (`requires_authority`, `touches_resource_boundary`)
 
 부족한 것:
@@ -119,7 +121,7 @@
 현재:
 
 - `fmt`는 `--write` 외에 `--check`와 formatted output parse-guard를 가진다
-- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition을 제공한다
+- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition/references를 제공한다
 - debugger는 breakpoint set/clear/list와 single-frame backtrace를 지원한다
 
 현재 진입점:
@@ -161,7 +163,7 @@
 
 아직 부족한 것:
 
-- `Comparable` 같은 ability/trait-style constraint를 전 타입군으로 일반화
+- `Comparable` 같은 ability-style constraint를 전 타입군으로 일반화
 - generic class 이외의 instantiation 경로 전반에서 constraint enforcement 확장
 - richer diagnostics (`expected constraint`, `actual type`, fix suggestion)
 

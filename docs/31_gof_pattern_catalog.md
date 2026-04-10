@@ -7,7 +7,7 @@
 핵심 원칙은 다음과 같다.
 
 - 패턴은 코어 문법이 아니라 `use` 계층의 **pattern library**로 간다
-- inheritance / `super` / hidden callback graph에 의존하는 형태는 피한다
+- inheritance / 부모 호출 / hidden callback graph에 의존하는 형태는 피한다
 - `subject / vessel / object / tobject / relation / effect / zone / world / Slot<T>` 위에 다시 해석한다
 - 도메인 코드는 pattern library를 소비하고, 사용 시점에 도메인을 주입한다
 
