@@ -2431,7 +2431,7 @@ test_ability_role_emit(void)
         ASTNode *impl_methods[1] = { &method };
         ASTNode impl_node; memset(&impl_node, 0, sizeof(impl_node));
         impl_node.type = AST_IMPL_ABILITY;
-        impl_node.data.impl_ability.ability_name = "Healable";
+        impl_node.data.impl_ability.ability_ref = ast_create_type("Healable");
         impl_node.data.impl_ability.methods = impl_methods;
         impl_node.data.impl_ability.method_count = 1;
 
@@ -2460,7 +2460,7 @@ test_ability_role_emit(void)
         ASTNode *base_methods[1] = { &base_method };
         ASTNode base_impl; memset(&base_impl, 0, sizeof(base_impl));
         base_impl.type = AST_IMPL_ABILITY;
-        base_impl.data.impl_ability.ability_name = "Updatable";
+        base_impl.data.impl_ability.ability_ref = ast_create_type("Updatable");
         base_impl.data.impl_ability.methods = base_methods;
         base_impl.data.impl_ability.method_count = 1;
 
@@ -3316,7 +3316,7 @@ test_stdlib_and_enum_emit(void)
 
         ASTNode *impl = calloc(1, sizeof(ASTNode));
         impl->type = AST_IMPL_ABILITY;
-        impl->data.impl_ability.ability_name = "Arithmetic";
+        impl->data.impl_ability.ability_ref = ast_create_type("Arithmetic");
         impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode *));
         impl->data.impl_ability.methods[0] = role_method;
         impl->data.impl_ability.method_count = 1;

@@ -181,17 +181,20 @@
 
 현재:
 
+- `ability<T> { ... }` generic declaration 지원
 - `ability { require field: Type; }`는 일반 type parser를 타므로 `List<Int>` 같은 generic field type 자체는 받을 수 있다
 - `action requires Ability` / intent step `requires:` / zone authority `requires`는 이제 type-reference AST를 저장한다
-- 즉 `requires SomeAbility<T>` 같은 generic ability reference를 parser/AST/semantic/DIR 경로에서 표현할 수 있게 구조를 올렸다
-- 현재 semantic은 `requires SomeAbility<T>`를 명시적으로 거부한다. 이유는 ability 자체가 아직 non-generic이라서 type argument를 받을 계약이 없기 때문이다
+- `requires SomeAbility<T>` 같은 generic ability reference를 parser/AST/semantic/DIR 경로에서 표현할 수 있다
+- semantic은 이제 generic reference를 blanket reject하지 않고 declaration 존재 여부, arity, type argument 해석을 검증한다
+- `impl ability Ability<T>`도 type-reference AST를 사용한다
+- subject/role satisfaction은 이제 base name이 아니라 full generic ability ref 기준으로 판정된다
+- foreign hidden ability / default-export ability 정책도 generic ability ref와 같은 규칙으로 정렬되었다
 
 부족한 것:
 
-- generic ability declaration 자체
-- generic ability reference에 대한 richer semantic validation
-- parser/semantic/DIR lowering을 generic ability reference 전반으로 더 확장
-- foreign hidden ability / default-export ability 정책과 generic 인자 해석을 함께 정렬
+- richer diagnostics (`required Ability<Int>`, `actual Ability<String>`) 추가
+- generic ability declaration의 constraint/where surface
+- intent/zone/role 예시를 generic ability style로 더 보강
 
 현재 진입점:
 

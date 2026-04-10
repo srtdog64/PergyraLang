@@ -2782,8 +2782,10 @@ role_has_ability(ASTNode *role, const char *ability_name)
     for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
         ASTNode *impl = role->data.role_decl.impl_abilities[i];
         if (impl->type == AST_IMPL_ABILITY
-            && impl->data.impl_ability.ability_name != NULL
-            && strcmp(impl->data.impl_ability.ability_name, ability_name) == 0) {
+            && impl->data.impl_ability.ability_ref != NULL
+            && impl->data.impl_ability.ability_ref->type == AST_TYPE
+            && impl->data.impl_ability.ability_ref->data.type.name != NULL
+            && strcmp(impl->data.impl_ability.ability_ref->data.type.name, ability_name) == 0) {
             return true;
         }
     }

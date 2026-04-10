@@ -1369,6 +1369,7 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
     ability->data.ability_decl.doc_comment = parser_take_pending_doc_comment(parser);
     ability->line = name.line;
     ability->column = name.column;
+    ability->data.ability_decl.generic_params = parse_generic_params(parser);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after ability name");
 
@@ -1474,11 +1475,10 @@ ASTNode* parse_role_declaration(Parser* parser) {
         } else if (parser_match(parser, TOKEN_IMPL)) {
             /* impl ability AbilityName { ... } */
             parser_match(parser, TOKEN_ABILITY); /* optional 'ability' keyword */
-            Token ability_name = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected ability name after 'impl'");
-            ASTNode* impl = ast_create_impl_ability(ability_name.text);
-            impl->line = ability_name.line;
-            impl->column = ability_name.column;
+            ASTNode *ability_ref = parse_type(parser);
+            ASTNode* impl = ast_create_impl_ability(ability_ref);
+            impl->line = ability_ref != NULL ? ability_ref->line : name.line;
+            impl->column = ability_ref != NULL ? ability_ref->column : name.column;
 
             parser_consume(parser, TOKEN_LBRACE,
                 "Expected '{' after impl ability name");

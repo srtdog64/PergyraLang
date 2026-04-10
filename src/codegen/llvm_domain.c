@@ -2144,7 +2144,10 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
-            const char *ab_name = impl->data.impl_ability.ability_name;
+            const char *ab_name =
+                (impl->data.impl_ability.ability_ref != NULL
+                 && impl->data.impl_ability.ability_ref->type == AST_TYPE)
+                ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
 
             /* Emit method bodies */
             for (size_t j = 0; j < impl->data.impl_ability.method_count;

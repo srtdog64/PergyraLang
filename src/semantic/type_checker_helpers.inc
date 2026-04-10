@@ -810,7 +810,7 @@ find_zone_domain_slot(ASTNode *zone, const char *slot_name);
 
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
-                         const char *ability_name);
+                         ASTNode *ability_ref);
 
 static ClassField *
 subject_host_field_at(ASTNode *decl, size_t index)
@@ -1908,7 +1908,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     satisfies = subject_type_has_ability(
                                         ctx->program_root,
                                         concrete_type->name,
-                                        bound_name);
+                                        tc->bounds[bi]);
                                 }
                             }
                         }

@@ -516,14 +516,18 @@ dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNod
         ASTNode *ability_decl = NULL;
         if (impl == NULL)
             continue;
-        ssize_t to = dir_find_ability_node_by_name(dir, impl->data.impl_ability.ability_name);
+        const char *ability_name =
+            (impl->data.impl_ability.ability_ref != NULL
+             && impl->data.impl_ability.ability_ref->type == AST_TYPE)
+            ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
+        ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
         if (!dir_add_named_edge(dir, DIR_EDGE_ROLE_IMPL_ABILITY, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
                                 "impl",
-                                impl->data.impl_ability.ability_name))
+                                ability_name))
             return false;
 
-        ability_decl = dir_find_ability_decl_ast(program, impl->data.impl_ability.ability_name);
+        ability_decl = dir_find_ability_decl_ast(program, ability_name);
         if (ability_decl != NULL) {
             bool complete = true;
             for (size_t j = 0; j < ability_decl->data.ability_decl.method_count; j++) {
@@ -539,7 +543,7 @@ dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNod
                                             DIR_EDGE_ROLE_MISSING_ABILITY_METHOD,
                                             from_id,
                                             to >= 0 ? (size_t)to : SIZE_MAX,
-                                            impl->data.impl_ability.ability_name,
+                                            ability_name,
                                             method_name))
                         return false;
                 }
@@ -550,7 +554,7 @@ dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNod
                                         from_id,
                                         to >= 0 ? (size_t)to : SIZE_MAX,
                                         "complete",
-                                        impl->data.impl_ability.ability_name))
+                                        ability_name))
                     return false;
             }
         }

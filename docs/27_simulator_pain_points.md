@@ -12,10 +12,9 @@ examples such as the battle simulator and biome simulator.
 - Projection sync is lighter now, but larger framework work still wants a
   richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
   bindings and deeper auto-propagation are the next pressure point.
-- `requires`는 이제 type-reference AST를 타므로 `requires SomeAbility<T>` 같은
-  표면을 구조적으로 표현할 수 있다. 다만 현재 ability 자체는 non-generic이므로,
-  generic type arguments를 붙이면 semantic error로 명시적으로 거부된다.
-  즉 parser debt는 줄었지만, generic ability declaration은 아직 남아 있다.
+- `requires`는 이제 type-reference AST를 타고 generic ability declaration도 된다.
+  남은 pain point는 generic satisfaction이 아직 base ability name 기준이라,
+  `SomeAbility<Int>`와 `SomeAbility<String>`를 정밀하게 구분하는 계약은 아직 없다.
 - Large story scenarios now support scripted, seeded-random, and player-input
   modes, but the encounter engine is still world-hosted orchestration rather
   than a first-class encounter/turn DSL with richer AI policy authoring and

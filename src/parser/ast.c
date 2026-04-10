@@ -314,6 +314,7 @@ ASTNode* ast_create_ability_declaration(const char* name) {
     node->data.ability_decl.require_count = 0;
     node->data.ability_decl.methods = NULL;
     node->data.ability_decl.method_count = 0;
+    node->data.ability_decl.generic_params = NULL;
     node->data.ability_decl.access = ACCESS_PUBLIC;
     node->data.ability_decl.has_explicit_access = false;
     node->data.ability_decl.is_innate = false;
@@ -355,9 +356,9 @@ ASTNode* ast_create_require_field(const char* name) {
 }
 
 // Impl ability block
-ASTNode* ast_create_impl_ability(const char* ability_name) {
+ASTNode* ast_create_impl_ability(ASTNode* ability_ref) {
     ASTNode* node = ast_create_node(AST_IMPL_ABILITY);
-    node->data.impl_ability.ability_name = ability_name ? pergyra_strdup(ability_name) : NULL;
+    node->data.impl_ability.ability_ref = ability_ref;
     node->data.impl_ability.methods = NULL;
     node->data.impl_ability.method_count = 0;
     return node;
@@ -1920,6 +1921,7 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.ability_decl.method_count; i++)
                 ast_destroy(node->data.ability_decl.methods[i]);
             free(node->data.ability_decl.methods);
+            ast_destroy_generic_params(node->data.ability_decl.generic_params);
             ast_destroy_structured_comment(node->data.ability_decl.doc_comment);
             break;
 
@@ -1949,7 +1951,7 @@ void ast_destroy(ASTNode* node) {
             break;
 
         case AST_IMPL_ABILITY:
-            free(node->data.impl_ability.ability_name);
+            ast_destroy(node->data.impl_ability.ability_ref);
             for (size_t i = 0; i < node->data.impl_ability.method_count; i++)
                 ast_destroy(node->data.impl_ability.methods[i]);
             free(node->data.impl_ability.methods);

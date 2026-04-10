@@ -6,6 +6,52 @@ ability_ref_name(ASTNode *ability_ref)
     return ability_ref->data.type.name;
 }
 
+static bool
+ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
+{
+    if (lhs == rhs)
+        return true;
+    if (lhs == NULL || rhs == NULL)
+        return false;
+    if (lhs->type != AST_TYPE || rhs->type != AST_TYPE)
+        return false;
+    if ((lhs->data.type.name == NULL) != (rhs->data.type.name == NULL))
+        return false;
+    if (lhs->data.type.name != NULL
+        && strcmp(lhs->data.type.name, rhs->data.type.name) != 0) {
+        return false;
+    }
+
+    {
+        size_t lhs_count = lhs->data.type.generic_args != NULL
+            ? lhs->data.type.generic_args->count : 0;
+        size_t rhs_count = rhs->data.type.generic_args != NULL
+            ? rhs->data.type.generic_args->count : 0;
+        if (lhs_count != rhs_count)
+            return false;
+        for (size_t i = 0; i < lhs_count; i++) {
+            GenericParam *lhs_gp = lhs->data.type.generic_args->params[i];
+            GenericParam *rhs_gp = rhs->data.type.generic_args->params[i];
+            ASTNode *lhs_arg = lhs_gp != NULL ? lhs_gp->constraint : NULL;
+            ASTNode *rhs_arg = rhs_gp != NULL ? rhs_gp->constraint : NULL;
+            if (!ability_ref_type_arg_equal(lhs_arg, rhs_arg))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+ability_ref_matches(ASTNode *impl_ref, ASTNode *required_ref)
+{
+    if (impl_ref == NULL || required_ref == NULL)
+        return false;
+    if (impl_ref->type != AST_TYPE || required_ref->type != AST_TYPE)
+        return false;
+    return ability_ref_type_arg_equal(impl_ref, required_ref);
+}
+
 static ASTNode *
 resolve_required_ability_decl(ASTNode *ability_ref,
                               const ASTNode *site,
@@ -36,12 +82,36 @@ resolve_required_ability_decl(ASTNode *ability_ref,
     }
 
     if (ability_ref->type == AST_TYPE
-        && ability_ref->data.type.generic_args != NULL
-        && ability_ref->data.type.generic_args->count > 0) {
-        semantic_error(ctx, site,
-            "Ability '%s' does not accept generic type arguments in requires clauses",
-            ability);
-        return NULL;
+        && ability_ref->data.type.generic_args != NULL) {
+        size_t arg_count = ability_ref->data.type.generic_args->count;
+        size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
+            ? ability_decl->data.ability_decl.generic_params->count : 0;
+
+        if (arg_count > 0 && param_count == 0) {
+            semantic_error(ctx, site,
+                "Ability '%s' does not accept generic type arguments in requires clauses",
+                ability);
+            return NULL;
+        }
+
+        if (arg_count != param_count) {
+            semantic_error(ctx, site,
+                "Ability '%s' requires %zu generic argument(s) in requires clauses, got %zu",
+                ability, param_count, arg_count);
+            return NULL;
+        }
+
+        for (size_t i = 0; i < arg_count; i++) {
+            GenericParam *gp = ability_ref->data.type.generic_args->params[i];
+            ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+            if (arg == NULL) {
+                semantic_error(ctx, site,
+                    "Ability '%s' has an invalid generic argument in requires clause",
+                    ability);
+                return NULL;
+            }
+            resolve_type_node(arg, ctx);
+        }
     }
 
     return ability_decl;
@@ -127,11 +197,7 @@ validate_action_required_abilities(ASTNode *node,
         if (ability_decl == NULL)
             continue;
         if (ability_decl->type == AST_ABILITY_DECL
-            && ability_decl->origin_path != NULL
-            && node->origin_path != NULL
-            && strcmp(ability_decl->origin_path, node->origin_path) != 0
-            && ability_decl->data.ability_decl.has_explicit_access
-            && ability_decl->data.ability_decl.access != ACCESS_PUBLIC) {
+            && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
             semantic_error(ctx, node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
@@ -139,7 +205,7 @@ validate_action_required_abilities(ASTNode *node,
             continue;
         }
         if (subject_name != NULL
-            && !subject_type_has_ability(ctx->program_root, subject_name, ability)) {
+            && !subject_type_has_ability(ctx->program_root, subject_name, ability_ref)) {
             semantic_error(ctx, node,
                 "action '%s' requires ability '%s' but subject '%s' does not implement it",
                 name != NULL ? name : "<anonymous>",

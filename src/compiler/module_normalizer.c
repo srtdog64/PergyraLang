@@ -355,6 +355,7 @@ normalize_node_refs(ASTNode *node, RenameScope *scope, ShadowNames *shadow)
             return;
 
         case AST_ABILITY_DECL:
+            normalize_generic_params(node->data.ability_decl.generic_params, scope, shadow);
             for (size_t i = 0; i < node->data.ability_decl.require_count; i++)
                 normalize_node_refs(node->data.ability_decl.require_fields[i], scope, shadow);
             for (size_t i = 0; i < node->data.ability_decl.method_count; i++)

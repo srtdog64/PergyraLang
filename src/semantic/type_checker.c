@@ -136,7 +136,7 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
 
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
-                         const char *ability_name);
+                         ASTNode *ability_ref);
 
 static int
 semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
@@ -201,7 +201,7 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     if (bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY) {
         return subject_type_has_ability(ctx->program_root,
                                         concrete_type->name,
-                                        bound_name);
+                                        bound_node);
     }
 
     return false;
@@ -1672,6 +1672,8 @@ bool
 type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.ability_decl.name;
+    bool has_generics = (node->data.ability_decl.generic_params != NULL
+                         && node->data.ability_decl.generic_params->count > 0);
 
     /* Register ability as a symbol so roles can reference it */
     Symbol *sym = calloc(1, sizeof(Symbol));
@@ -1688,6 +1690,26 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
     scope_declare(ctx->scope, sym);
+
+    if (has_generics) {
+        scope_enter(&ctx->scope, SCOPE_BLOCK);
+        GenericParams *gp = node->data.ability_decl.generic_params;
+        for (size_t gi = 0; gi < gp->count; gi++) {
+            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+                continue;
+            Type *tp = calloc(1, sizeof(Type));
+            if (tp != NULL) {
+                tp->kind = TYPE_KIND_CLASS;
+                tp->name = pergyra_strdup(gp->params[gi]->name);
+            }
+            Symbol *s = symbol_create_variable(
+                gp->params[gi]->name,
+                tp != NULL ? tp : TYPE_UNKNOWN,
+                node->line, node->column);
+            s->kind = SYMBOL_CLASS;
+            scope_declare(ctx->scope, s);
+        }
+    }
 
     validate_ability_require_fields(node, ctx);
 
@@ -1709,6 +1731,8 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
     scope_exit(&ctx->scope);
+    if (has_generics)
+        scope_exit(&ctx->scope);
 
     return !ctx->has_error;
 }

@@ -892,7 +892,9 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_ABILITY_DECL:
-            printf("Ability: %s\n", node->data.ability_decl.name);
+            printf("Ability: %s", node->data.ability_decl.name);
+            print_generic_params_inline(node->data.ability_decl.generic_params);
+            printf("\n");
             for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
                 ast_print(node->data.ability_decl.require_fields[i], indent + 1);
             }
@@ -939,7 +941,9 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_IMPL_ABILITY:
-            printf("Impl ability: %s\n", node->data.impl_ability.ability_name);
+            printf("Impl ability: ");
+            ast_print_inline(node->data.impl_ability.ability_ref);
+            printf("\n");
             for (size_t i = 0; i < node->data.impl_ability.method_count; i++) {
                 ast_print(node->data.impl_ability.methods[i], indent + 1);
             }

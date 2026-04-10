@@ -1,5 +1,5 @@
 static bool
-any_subject_role_has_ability(ASTNode *program, const char *ability_name);
+any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
 static bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
 
@@ -191,26 +191,25 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
         if (impl->type == AST_IMPL_ABILITY) {
             /* Check that the ability exists */
-            if (impl->data.impl_ability.ability_name != NULL) {
+            if (impl->data.impl_ability.ability_ref != NULL
+                && impl->data.impl_ability.ability_ref->type == AST_TYPE
+                && impl->data.impl_ability.ability_ref->data.type.name != NULL) {
+                const char *ability_name = impl->data.impl_ability.ability_ref->data.type.name;
                 ASTNode *ability_decl = find_ability_decl_by_name(
-                    ctx->program_root, impl->data.impl_ability.ability_name);
+                    ctx->program_root, ability_name);
                 Symbol *ab = scope_lookup(ctx->scope,
-                    impl->data.impl_ability.ability_name);
-                if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                    semantic_warning(ctx, impl,
-                        "Ability '%s' not found in current scope",
-                        impl->data.impl_ability.ability_name);
-                } else if (ability_decl != NULL
+                    ability_name);
+                if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
-                           && ability_decl->origin_path != NULL
-                           && node->origin_path != NULL
-                           && strcmp(ability_decl->origin_path, node->origin_path) != 0
-                           && ability_decl->data.ability_decl.has_explicit_access
-                           && ability_decl->data.ability_decl.access != ACCESS_PUBLIC) {
+                           && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
                     semantic_error(ctx, impl,
                         "Role '%s' cannot implement non-exported ability '%s' from another module",
                         name != NULL ? name : "<role>",
-                        impl->data.impl_ability.ability_name);
+                        ability_name);
+                } else if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
+                    semantic_warning(ctx, impl,
+                        "Ability '%s' not found in current scope",
+                        ability_name);
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
                            && ability_decl->data.ability_decl.is_innate
@@ -220,9 +219,31 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                      node->origin_path) != 0) {
                     semantic_error(ctx, impl,
                         "innate ability '%s' cannot be implemented outside its declaring module",
-                        impl->data.impl_ability.ability_name);
+                        ability_name);
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL) {
+                    size_t arg_count = impl->data.impl_ability.ability_ref->data.type.generic_args != NULL
+                        ? impl->data.impl_ability.ability_ref->data.type.generic_args->count : 0;
+                    size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
+                        ? ability_decl->data.ability_decl.generic_params->count : 0;
+
+                    if (arg_count > 0 && param_count == 0) {
+                        semantic_error(ctx, impl,
+                            "Ability '%s' does not accept generic type arguments in impl clauses",
+                            ability_name);
+                    } else if (arg_count != param_count) {
+                        semantic_error(ctx, impl,
+                            "Ability '%s' requires %zu generic argument(s) in impl clauses, got %zu",
+                            ability_name, param_count, arg_count);
+                    } else {
+                        for (size_t k = 0; k < arg_count; k++) {
+                            GenericParam *gp =
+                                impl->data.impl_ability.ability_ref->data.type.generic_args->params[k];
+                            ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+                            if (arg != NULL)
+                                resolve_type_node(arg, ctx);
+                        }
+                    }
                     validate_ability_require_fields_for_role(node, ability_decl, ctx);
                 }
             }
@@ -293,7 +314,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                         rs->data.role_slot.slot_name);
                 } else if (ctx->program_root != NULL
                            && !any_subject_role_has_ability(ctx->program_root,
-                               ability_name)) {
+                               ab_type)) {
                     semantic_error(ctx, rs,
                         "Party role slot '%s' requires ability '%s', but no subject-bound role implements it",
                         rs->data.role_slot.slot_name,
@@ -401,7 +422,7 @@ find_intent_involves_local(ASTNode *intent, const char *alias)
 
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
-                         const char *ability_name);
+                         ASTNode *ability_ref);
 
 static bool
 intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
@@ -950,7 +971,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 if (!intent_involves_is_subject_host(ctx->program_root, involves))
                     continue;
                 if (participant_type_name != NULL
-                    && !subject_type_has_ability(ctx->program_root, participant_type_name, ability)) {
+                    && !subject_type_has_ability(ctx->program_root, participant_type_name, ability_ref)) {
                     semantic_error(ctx, step,
                         "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
@@ -1793,10 +1814,10 @@ find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
 
 static bool
 role_decl_has_ability(ASTNode *role, ASTNode *program,
-                      const char *ability_name, int depth)
+                      ASTNode *ability_ref, int depth)
 {
     if (role == NULL || role->type != AST_ROLE_DECL
-        || ability_name == NULL || depth > 16) {
+        || ability_ref == NULL || depth > 16) {
         return false;
     }
 
@@ -1804,8 +1825,8 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         ASTNode *impl = role->data.role_decl.impl_abilities[i];
         if (impl != NULL
             && impl->type == AST_IMPL_ABILITY
-            && impl->data.impl_ability.ability_name != NULL
-            && strcmp(impl->data.impl_ability.ability_name, ability_name) == 0) {
+            && impl->data.impl_ability.ability_ref != NULL
+            && ability_ref_matches(impl->data.impl_ability.ability_ref, ability_ref)) {
             return true;
         }
     }
@@ -1814,7 +1835,7 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         ASTNode *inc = role->data.role_decl.includes[i];
         ASTNode *included = find_role_decl_in_program(program,
             inc != NULL ? inc->data.include_stmt.role_name : NULL);
-        if (role_decl_has_ability(included, program, ability_name, depth + 1))
+        if (role_decl_has_ability(included, program, ability_ref, depth + 1))
             return true;
     }
 
@@ -1823,10 +1844,10 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
 
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
-                         const char *ability_name)
+                         ASTNode *ability_ref)
 {
     if (program == NULL || program->type != AST_PROGRAM
-        || type_name == NULL || ability_name == NULL) {
+        || type_name == NULL || ability_ref == NULL) {
         return false;
     }
 
@@ -1839,7 +1860,7 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
             || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
             continue;
         }
-        if (role_decl_has_ability(stmt, program, ability_name, 0))
+        if (role_decl_has_ability(stmt, program, ability_ref, 0))
             return true;
     }
 
@@ -1847,10 +1868,10 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
 }
 
 static bool
-any_subject_role_has_ability(ASTNode *program, const char *ability_name)
+any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 {
     if (program == NULL || program->type != AST_PROGRAM
-        || ability_name == NULL) {
+        || ability_ref == NULL) {
         return false;
     }
 
@@ -1871,7 +1892,7 @@ any_subject_role_has_ability(ASTNode *program, const char *ability_name)
         if (!decl_is_subject_host(type_decl))
             continue;
 
-        if (role_decl_has_ability(stmt, program, ability_name, 0))
+        if (role_decl_has_ability(stmt, program, ability_ref, 0))
             return true;
     }
 
@@ -2915,7 +2936,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 || slot_type->name == NULL) {
                 continue;
             }
-            if (!subject_type_has_ability(ctx->program_root, slot_type->name, ability_name)) {
+            if (!subject_type_has_ability(ctx->program_root, slot_type->name, ability_ref)) {
                 semantic_error(ctx, authority,
                     "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl",
                     authority->data.zone_authority.subject_slot_name,

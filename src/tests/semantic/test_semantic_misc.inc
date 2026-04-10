@@ -2887,7 +2887,34 @@ test_misc_grammar_edges(void)
         remove(module_path);
     }
 
-    TEST("action requires rejects generic ability type arguments for now");
+    TEST("action requires accepts generic ability type arguments when ability is generic");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Do(self) -> Void requires Combatable<Int> {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<Int> { func Ping() -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires rejects generic ability type arguments when ability is non-generic");
     {
         const char *source =
             "ability Combatable { func Ping() -> Void; }\n"
@@ -2912,13 +2939,13 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone authority requires rejects generic ability type arguments for now");
+    TEST("zone authority requires accepts generic ability type arguments when ability is generic");
     {
         const char *source =
-            "ability Combatable { func Ping() -> Void; }\n"
+            "ability Combatable<T> { func Ping() -> Void; }\n"
             "subject Hero { let hp: Int; }\n"
             "role HeroRole for Hero {\n"
-            "    impl ability Combatable { func Ping() -> Void { return; } }\n"
+            "    impl ability Combatable<Int> { func Ping() -> Void { return; } }\n"
             "}\n"
             "zone BattleZone {\n"
             "    subject slot hero: Hero\n"
@@ -2930,9 +2957,84 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority requires rejects wrong generic ability arity");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable { func Ping() -> Void { return; } }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero requires Combatable<Int, String>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "does not accept generic type arguments"));
+            "requires 1 generic argument(s)"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires rejects mismatched generic ability impl");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero {\n"
+            "    action Do(self) -> Void requires Combatable<Int> {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<String> { func Ping() -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not implement it"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration accepts generic require fields and method signatures");
+    {
+        const char *source =
+            "ability Bufferable<T> {\n"
+            "    require items: List<T>;\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2978,6 +3080,111 @@ test_misc_grammar_edges(void)
             result = semantic_analyze(program);
         EXPECT(error_message == NULL);
         EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("foreign generic ability is visible by default without explicit export");
+    {
+        const char *module_path = "test_default_export_generic_ability_module_a.pgy";
+        const char *main_path = "test_default_export_generic_ability_module_main_a.pgy";
+        const char *module_source =
+            "ability SharedAbility<T> {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_default_export_generic_ability_module_a.pgy\";\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability SharedAbility<Int> {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "subject Boss {\n"
+            "    action Do(self) -> Void requires SharedAbility<Int> { return; }\n"
+            "}\n"
+            "role BossRole for Boss {\n"
+            "    impl ability SharedAbility<Int> {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private generic ability stays hidden across modules");
+    {
+        const char *module_path = "test_private_generic_ability_module_a.pgy";
+        const char *main_path = "test_private_generic_ability_module_main_a.pgy";
+        const char *module_source =
+            "private ability HiddenAbility<T> {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_generic_ability_module_a.pgy\";\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability HiddenAbility<Int> {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "subject Boss {\n"
+            "    action Do(self) -> Void requires HiddenAbility<Int> { return; }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "non-exported ability 'HiddenAbility'"));
 
         free(error_message);
         semantic_result_destroy(result);

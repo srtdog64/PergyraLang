@@ -579,6 +579,7 @@ struct ASTNode
             size_t require_count;
             ASTNode** methods;
             size_t method_count;
+            GenericParams* generic_params;
             AccessModifier access;
             bool has_explicit_access;
             bool is_innate;
@@ -613,7 +614,7 @@ struct ASTNode
         
         /* Impl ability block */
         struct {
-            char* ability_name;
+            ASTNode* ability_ref;
             ASTNode** methods;
             size_t method_count;
         } impl_ability;
@@ -1109,7 +1110,7 @@ ASTNode* ast_create_ability_declaration(const char* name);
 ASTNode* ast_create_role_declaration(const char* name);
 ASTNode* ast_create_include_statement(const char* role_name);
 ASTNode* ast_create_require_field(const char* name);
-ASTNode* ast_create_impl_ability(const char* ability_name);
+ASTNode* ast_create_impl_ability(ASTNode* ability_ref);
 ASTNode* ast_create_override_func(ASTNode* func_decl);
 
 /* Roster/World system AST creation functions */

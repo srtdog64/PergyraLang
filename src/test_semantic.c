@@ -2543,7 +2543,7 @@ test_role_decl(void)
         ASTNode *role = ast_create_role_declaration("HealerRole");
         role->line = 3; role->column = 1;
 
-        ASTNode *impl = ast_create_impl_ability("Healable");
+        ASTNode *impl = ast_create_impl_ability(ast_create_type("Healable"));
         impl->line = 4; impl->column = 1;
         role->data.role_decl.impl_count = 1;
         role->data.role_decl.impl_abilities = malloc(sizeof(ASTNode*));
@@ -2621,7 +2621,7 @@ test_role_decl(void)
         ASTNode *role = ast_create_role_declaration("BadRole");
         role->line = 1; role->column = 1;
 
-        ASTNode *impl = ast_create_impl_ability("NonExistent");
+        ASTNode *impl = ast_create_impl_ability(ast_create_type("NonExistent"));
         impl->line = 2; impl->column = 1;
         role->data.role_decl.impl_count = 1;
         role->data.role_decl.impl_abilities = malloc(sizeof(ASTNode*));
@@ -2684,7 +2684,7 @@ test_role_decl(void)
         method_body->data.block.count = 1;
         method->data.func_decl.body = method_body;
 
-        ASTNode *impl = ast_create_impl_ability("Arithmetic");
+        ASTNode *impl = ast_create_impl_ability(ast_create_type("Arithmetic"));
         impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode *));
         impl->data.impl_ability.methods[0] = method;
         impl->data.impl_ability.method_count = 1;

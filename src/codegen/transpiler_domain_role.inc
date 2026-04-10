@@ -72,7 +72,10 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
 static void
 emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *ctx)
 {
-    const char *ability_name = impl->data.impl_ability.ability_name;
+    const char *ability_name =
+        (impl->data.impl_ability.ability_ref != NULL
+         && impl->data.impl_ability.ability_ref->type == AST_TYPE)
+        ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
     if (ability_name == NULL || impl->data.impl_ability.method_count == 0)
         return;
 
@@ -183,7 +186,11 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
             if (impl->type != AST_IMPL_ABILITY)
                 continue;
 
-            if (role_has_ability(role, impl->data.impl_ability.ability_name))
+            if (role_has_ability(role,
+                    (impl->data.impl_ability.ability_ref != NULL
+                     && impl->data.impl_ability.ability_ref->type == AST_TYPE)
+                        ? impl->data.impl_ability.ability_ref->data.type.name
+                        : NULL))
                 continue;
 
             for (size_t k = 0; k < impl->data.impl_ability.method_count; k++) {

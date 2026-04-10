@@ -5775,7 +5775,10 @@ emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_impl_ability(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *ability_name = node->data.impl_ability.ability_name;
+    const char *ability_name =
+        (node->data.impl_ability.ability_ref != NULL
+         && node->data.impl_ability.ability_ref->type == AST_TYPE)
+        ? node->data.impl_ability.ability_ref->data.type.name : NULL;
     
     codebuf_write(ctx->out, "/* Impl ability: %s */\n", ability_name);
     
