@@ -41,6 +41,9 @@ static int g_fail = 0;
 #define EXPECT_STR_CONTAINS(haystack, needle) \
     EXPECT(strstr((haystack), (needle)) != NULL)
 
+#define EXPECT_STR_NOT_CONTAINS(haystack, needle) \
+    EXPECT(strstr((haystack), (needle)) == NULL)
+
 static bool
 mir_block_slice_contains(const char *output, const char *label, const char *needle)
 {
@@ -2450,6 +2453,84 @@ test_ability_role_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("generic ability specialization emits canonical vtable tag");
+    {
+        ASTNode ability_node; memset(&ability_node, 0, sizeof(ability_node));
+        ability_node.type = AST_ABILITY_DECL;
+        ability_node.data.ability_decl.name = "BatchReady";
+        ability_node.data.ability_decl.generic_params = calloc(1, sizeof(GenericParams));
+        ability_node.data.ability_decl.generic_params->count = 1;
+        ability_node.data.ability_decl.generic_params->params = calloc(1, sizeof(GenericParam *));
+        GenericParam *ability_gp = calloc(1, sizeof(GenericParam));
+        ability_gp->name = pergyra_strdup("T");
+        ability_gp->constraint = ast_create_type("T");
+        ability_node.data.ability_decl.generic_params->params[0] = ability_gp;
+
+        FuncParam ability_param; memset(&ability_param, 0, sizeof(ability_param));
+        ability_param.name = "batch";
+        ability_param.type = make_type_node("T");
+        FuncParam *ability_params[1] = { &ability_param };
+
+        ASTNode ability_method; memset(&ability_method, 0, sizeof(ability_method));
+        ability_method.type = AST_FUNC_DECL;
+        ability_method.data.func_decl.name = "BatchMark";
+        ability_method.data.func_decl.params = ability_params;
+        ability_method.data.func_decl.param_count = 1;
+        ability_method.data.func_decl.return_type = make_type_node("String");
+        ability_method.data.func_decl.body = NULL;
+
+        ASTNode *ability_methods[1] = { &ability_method };
+        ability_node.data.ability_decl.methods = ability_methods;
+        ability_node.data.ability_decl.method_count = 1;
+
+        ASTNode role_node; memset(&role_node, 0, sizeof(role_node));
+        role_node.type = AST_ROLE_DECL;
+        role_node.data.role_decl.name = "CourierRoute";
+        role_node.data.role_decl.for_type = make_type_node("Int");
+
+        FuncParam impl_param; memset(&impl_param, 0, sizeof(impl_param));
+        impl_param.name = "batch";
+        impl_param.type = make_type_node("Int");
+        FuncParam *impl_params[1] = { &impl_param };
+
+        ASTNode impl_method; memset(&impl_method, 0, sizeof(impl_method));
+        impl_method.type = AST_FUNC_DECL;
+        impl_method.data.func_decl.name = "BatchMark";
+        impl_method.data.func_decl.params = impl_params;
+        impl_method.data.func_decl.param_count = 1;
+        impl_method.data.func_decl.return_type = make_type_node("String");
+        impl_method.data.func_decl.body = NULL;
+
+        ASTNode *impl_methods[1] = { &impl_method };
+        ASTNode impl_node; memset(&impl_node, 0, sizeof(impl_node));
+        impl_node.type = AST_IMPL_ABILITY;
+        impl_node.data.impl_ability.ability_ref = make_generic_type("BatchReady", "Int");
+        impl_node.data.impl_ability.methods = impl_methods;
+        impl_node.data.impl_ability.method_count = 1;
+
+        ASTNode *impls[1] = { &impl_node };
+        role_node.data.role_decl.impl_abilities = impls;
+        role_node.data.role_decl.impl_count = 1;
+
+        ASTNode *abilities[1] = { &ability_node };
+        ASTNode *roles[1] = { &role_node };
+        HIRProgram hir; memset(&hir, 0, sizeof(hir));
+        hir.abilities = abilities;
+        hir.ability_count = 1;
+        hir.roles = roles;
+        hir.role_count = 1;
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = &hir;
+        emit_role_decl(&role_node, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "BatchReady_Int_vtable");
+        EXPECT_STR_CONTAINS(ctx->out->data, "CourierRoute_BatchReady_Int_vtable_instance");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "BatchReady_Int__vtable");
+
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("role include copies inherited impls into current role");
     {
         ASTNode base_method; memset(&base_method, 0, sizeof(base_method));
@@ -3158,11 +3239,11 @@ test_stdlib_and_enum_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data,
             "PgyList_String events = pgy_list_new_string();");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "PgyHashMap_List_String_ buckets = pgy_map_new_List_String_();");
+            "PgyHashMap_List_String buckets = pgy_map_new_List_String();");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "pgy_map_set_List_String_(&buckets, \"today\", events)");
+            "pgy_map_set_List_String(&buckets, \"today\", events)");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "PgyList_String loaded = pgy_map_get_List_String_(&buckets, \"today\");");
+            "PgyList_String loaded = pgy_map_get_List_String(&buckets, \"today\");");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);
@@ -3195,16 +3276,16 @@ test_stdlib_and_enum_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->decls->data,
-            "PGY_HASHMAP_DEFINE(List_String_, PgyList_String)");
+            "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
         EXPECT_STR_CONTAINS(ctx->decls->data,
-            "PgyHashMap_List_String_ BuildBuckets(void);");
+            "PgyHashMap_List_String BuildBuckets(void);");
         EXPECT_STR_CONTAINS(ctx->decls->data,
-            "char* RenderBuckets(PgyHashMap_List_String_ buckets);");
+            "char* RenderBuckets(PgyHashMap_List_String buckets);");
 
         map_define_pos = strstr(ctx->decls->data,
-            "PGY_HASHMAP_DEFINE(List_String_, PgyList_String)");
+            "PGY_HASHMAP_DEFINE(List_String, PgyList_String)");
         build_decl_pos = strstr(ctx->decls->data,
-            "PgyHashMap_List_String_ BuildBuckets(void);");
+            "PgyHashMap_List_String BuildBuckets(void);");
         EXPECT(map_define_pos != NULL && build_decl_pos != NULL && map_define_pos < build_decl_pos);
 
         transpiler_ctx_destroy(ctx);

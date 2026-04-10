@@ -24,6 +24,8 @@ static const KeywordEntry keywords[] = {
     {"struct",   TOKEN_STRUCT},
     {"object",   TOKEN_OBJECT},
     {"tobject",  TOKEN_TOBJECT},
+    {"vessel",   TOKEN_VESSEL},
+    {"intent",   TOKEN_INTENT},
     {"extern",   TOKEN_EXTERN},
     {"with",     TOKEN_WITH},
     {"as",       TOKEN_AS},
@@ -54,7 +56,7 @@ static const KeywordEntry keywords[] = {
     {"case",     TOKEN_CASE},
     {"default",  TOKEN_DEFAULT},
     {"spawn",    TOKEN_SPAWN},
-    /* "event" is now a contextual keyword — parsed as TOKEN_IDENTIFIER */
+    {"event",    TOKEN_EVENT},
     {"match",    TOKEN_MATCH},
     {"import",   TOKEN_IMPORT},
     {"use",      TOKEN_USE},
@@ -68,7 +70,12 @@ static const KeywordEntry keywords[] = {
     {"override", TOKEN_OVERRIDE},
     {"secure",   TOKEN_SECURE},
     {"party",    TOKEN_PARTY},
-    
+    {"roster",   TOKEN_ROSTER},
+    {"world",    TOKEN_WORLD},
+    {"relation", TOKEN_RELATION},
+    {"effect",   TOKEN_EFFECT},
+    {"zone",     TOKEN_ZONE},
+
     {"slot",     TOKEN_SLOT},
     {"shared",   TOKEN_SHARED},
     {"extends",  TOKEN_EXTENDS},
@@ -557,6 +564,8 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_STRUCT: return "STRUCT";
         case TOKEN_OBJECT: return "OBJECT";
         case TOKEN_TOBJECT: return "TOBJECT";
+        case TOKEN_VESSEL: return "VESSEL";
+        case TOKEN_INTENT: return "INTENT";
         case TOKEN_EXTERN: return "EXTERN";
         case TOKEN_WITH: return "WITH";
         case TOKEN_AS: return "AS";
@@ -599,6 +608,9 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_EXTENDS: return "EXTENDS";
         case TOKEN_ROSTER: return "ROSTER";
         case TOKEN_WORLD: return "WORLD";
+        case TOKEN_RELATION: return "RELATION";
+        case TOKEN_EFFECT: return "EFFECT";
+        case TOKEN_ZONE: return "ZONE";
         case TOKEN_INCLUDE: return "INCLUDE";
         case TOKEN_REQUIRE: return "REQUIRE";
         case TOKEN_OVERRIDE: return "OVERRIDE";

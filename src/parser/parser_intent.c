@@ -3,8 +3,14 @@
 static bool
 parser_intent_match_keyword(Parser *parser, const char *keyword)
 {
-    if (parser == NULL || keyword == NULL
-        || !parser_check(parser, TOKEN_IDENTIFIER)
+    if (parser == NULL || keyword == NULL) {
+        return false;
+    }
+
+    if (strcmp(keyword, "intent") == 0)
+        return parser_match(parser, TOKEN_INTENT);
+
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
         || parser->current_token.text == NULL
         || strcmp(parser->current_token.text, keyword) != 0) {
         return false;

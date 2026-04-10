@@ -2379,6 +2379,164 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("intent step inherits action requires within causes and authorized by");
+    {
+        const char *source =
+            "ability Payable { func Pay() -> Void; }\n"
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action Pay(self) -> Void\n"
+            "        requires Payable\n"
+            "        within PaymentZone\n"
+            "        causes PaymentEffect\n"
+            "        authorized by self {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "role BuyerRole for Player {\n"
+            "    impl ability Payable {\n"
+            "        func Pay() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "effect PaymentEffect for bearer: Player { }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Player\n"
+            "    effect slot payment: PaymentEffect\n"
+            "    authority buyer requires Payable\n"
+            "}\n"
+            "intent Purchase {\n"
+            "    involves buyer: Player;\n"
+            "    step Pay {\n"
+            "        who: buyer;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authority diagnostic mentions inherited action zone");
+    {
+        const char *source =
+            "/// @effects secure\n"
+            "func Gate() -> Bool { return true; }\n"
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void\n"
+            "        within CockpitZone {\n"
+            "        self.started = true;\n"
+            "    }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar {\n"
+            "    involves driver: Driver;\n"
+            "    step Ignite {\n"
+            "        who: driver;\n"
+            "        on: Gate();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "inherited from the matching action contract"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject return diagnostic includes reason and fix");
+    {
+        const char *source =
+            "subject Courier {\n"
+            "    let level: Int;\n"
+            "}\n"
+            "func MakeCourier() -> Courier {\n"
+            "    return Courier();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Returning subjects by value is not supported yet"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "subject values are zone/world anchored handles"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "return a struct/class/object/tobject projection instead"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent transfer mismatch diagnostic includes reason and fix");
+    {
+        const char *source =
+            "subject Courier { let level: Int; }\n"
+            "zone LoadingZone {\n"
+            "    subject slot courier: Courier\n"
+            "}\n"
+            "zone DeliveryZone {\n"
+            "    subject slot courier: Courier\n"
+            "}\n"
+            "intent MoveCargo(load: LoadingZone, deliver: DeliveryZone, courier: Courier) {\n"
+            "    step Deliver {\n"
+            "        who: courier;\n"
+            "        where: LoadingZone;\n"
+            "        using: load;\n"
+            "        transfer: load -> deliver;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not match the current zone contract"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "using binding does not match the transfer target"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent authority-bearing zone rejects secure helper call without authorized by");
     {
         const char *source =

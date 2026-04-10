@@ -168,3 +168,19 @@ parser/AST/semantic/codegen은 더 이상
 
 `subject/class/struct/object/tobject`는 이미 언어 코어 존재론으로 취급되고 있다.
 그러면 lexer/parser 내부 표상도 그 사실을 숨기지 말고 그대로 드러내야 한다.
+
+## 8. 현재 진행 상태
+
+완료:
+
+1. `subject/class/struct/object/tobject`는 dedicated token으로 분리됐다
+2. `vessel/intent/world/roster/relation/effect/zone/event`도 declaration-grade token으로 정리됐다
+3. declaration dispatch는 token kind 기반으로 정리됐다
+4. `between subject/object/class/tobject` built-in endpoint는 structured kind로 저장된다
+5. `between Foo<Bar>, Baz` 같은 concrete named endpoint도 이제 string이 아니라 type-reference AST로 저장된다
+
+남은 것:
+
+1. clause word 일부는 여전히 contextual keyword다
+2. relation endpoint diagnostics는 kind 번호 대신 더 읽기 쉬운 문자열로 올릴 여지가 있다
+3. parser/문서 테스트의 오래된 `alias` 표현을 더 줄일 수 있다

@@ -42,7 +42,8 @@ typedef enum {
     RELATION_ENDPOINT_NAMED,
     RELATION_ENDPOINT_SUBJECT,
     RELATION_ENDPOINT_OBJECT,
-    RELATION_ENDPOINT_CLASS
+    RELATION_ENDPOINT_CLASS,
+    RELATION_ENDPOINT_TOBJECT
 } RelationEndpointKind;
 
 typedef enum {
@@ -814,6 +815,10 @@ struct ASTNode
             char** authorized_by;
             size_t authorized_by_count;
             ASTNode* expect_expr;
+            bool inherited_where_from_action;
+            bool inherited_requires_from_action;
+            bool inherited_causes_from_action;
+            bool inherited_authorized_by_from_action;
         } intent_step;
 
         /* Relation declaration */
@@ -831,8 +836,8 @@ struct ASTNode
             /* between clause: relation X between Left, Right */
             RelationEndpointKind between_left_kind;
             RelationEndpointKind between_right_kind;
-            char* between_left;       /* "subject", "object", "class" or concrete type */
-            char* between_right;      /* "subject", "object", "class" or concrete type */
+            ASTNode* between_left_type;   /* concrete named/generic type when kind == NAMED */
+            ASTNode* between_right_type;  /* concrete named/generic type when kind == NAMED */
             bool between_left_many;   /* true if left[] */
             bool between_right_many;  /* true if right[] */
         } relation_decl;

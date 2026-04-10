@@ -1,6 +1,7 @@
 static const char *infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr);
 static char *escape_c_string_literal(const char *src);
 static char *render_type_name(ASTNode *type_node);
+static char *render_ability_ref_vtable_tag(ASTNode *ability_ref);
 static bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx, ASTNode *type_node);
 static bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func);
 static bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx, ASTNode *func);
@@ -2877,6 +2878,7 @@ static void
 sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
 {
     size_t out = 0;
+    bool last_was_underscore = false;
 
     if (buf_size == 0)
         return;
@@ -2892,9 +2894,28 @@ sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
             || (ch >= 'A' && ch <= 'Z')
             || (ch >= '0' && ch <= '9')) {
             buf[out++] = (char)ch;
+            last_was_underscore = false;
         } else {
+            if (out == 0 || last_was_underscore)
+                continue;
             buf[out++] = '_';
+            last_was_underscore = true;
         }
+    }
+    while (out > 0 && buf[out - 1] == '_')
+        out--;
+    if (out == 0) {
+        snprintf(buf, buf_size, "Int");
+        return;
+    }
+    if (buf[0] >= '0' && buf[0] <= '9') {
+        if (out + 2 >= buf_size)
+            out = buf_size > 3 ? buf_size - 3 : 0;
+        if (out > 0)
+            memmove(buf + 2, buf, out);
+        buf[0] = 'T';
+        buf[1] = '_';
+        out += 2;
     }
     buf[out] = '\0';
 }
@@ -3166,6 +3187,28 @@ render_type_name(ASTNode *type_node)
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
     return result;
+}
+
+static char *
+render_ability_ref_vtable_tag(ASTNode *ability_ref)
+{
+    char suffix[128];
+    size_t len;
+    char *rendered;
+
+    if (ability_ref == NULL)
+        return pergyra_strdup("UnknownAbility");
+
+    rendered = render_type_name(ability_ref);
+    sanitize_c_suffix(rendered != NULL ? rendered : "UnknownAbility",
+        suffix, sizeof(suffix));
+    len = strlen(suffix);
+    while (len > 0 && suffix[len - 1] == '_')
+        suffix[--len] = '\0';
+    if (len == 0)
+        snprintf(suffix, sizeof(suffix), "UnknownAbility");
+    free(rendered);
+    return pergyra_strdup(suffix);
 }
 
 static char *

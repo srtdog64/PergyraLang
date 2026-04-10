@@ -620,6 +620,197 @@ subject_decl_has_action_named(ASTNode *decl, const char *action_name)
     return false;
 }
 
+static ASTNode *
+subject_decl_find_action_named(ASTNode *decl, const char *action_name)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
+        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
+        ASTNode *method = decl->data.class_decl.methods[i];
+        if (method != NULL && method->type == AST_FUNC_DECL
+            && method->data.func_decl.is_action
+            && method->data.func_decl.name != NULL
+            && strcmp(method->data.func_decl.name, action_name) == 0) {
+            return method;
+        }
+    }
+    return NULL;
+}
+
+static bool
+intent_semantic_append_name(char ***items, size_t *count, const char *name)
+{
+    char **grown;
+
+    if (items == NULL || count == NULL || name == NULL)
+        return false;
+    grown = realloc(*items, (*count + 1) * sizeof(char *));
+    if (grown == NULL)
+        return false;
+    grown[*count] = pergyra_strdup(name);
+    *items = grown;
+    (*count)++;
+    return true;
+}
+
+static const char *
+intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
+                                SemanticContext *ctx, const char *binding_name)
+{
+    if (binding_name == NULL || action_decl == NULL || ctx == NULL)
+        return NULL;
+    if (strcmp(binding_name, "self") == 0) {
+        return (subject_decl != NULL && subject_decl->type == AST_CLASS_DECL)
+            ? subject_decl->data.class_decl.name
+            : NULL;
+    }
+
+    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
+        FuncParam *param = action_decl->data.func_decl.params[i];
+        Type *param_type;
+        if (param == NULL || param->name == NULL
+            || strcmp(param->name, binding_name) != 0
+            || param->type == NULL) {
+            continue;
+        }
+        param_type = resolve_type_node(param->type, ctx);
+        return (param_type != NULL) ? param_type->name : NULL;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
+                                    SemanticContext *ctx,
+                                    ASTNode **subject_decl_out)
+{
+    ASTNode *matched_action = NULL;
+    ASTNode *matched_subject_decl = NULL;
+
+    if (subject_decl_out != NULL)
+        *subject_decl_out = NULL;
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+        const char *alias = step->data.intent_step.who_names[i];
+        ASTNode *involves = find_intent_involves_local(intent_decl, alias);
+        const char *type_name = intent_involves_type_name(involves);
+        ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root, type_name);
+        ASTNode *action_decl = subject_decl_find_action_named(
+            subject_decl, step->data.intent_step.name);
+
+        if (action_decl == NULL)
+            continue;
+        if (matched_action != NULL && matched_action != action_decl)
+            return NULL;
+        matched_action = action_decl;
+        matched_subject_decl = subject_decl;
+    }
+
+    if (subject_decl_out != NULL)
+        *subject_decl_out = matched_subject_decl;
+    return matched_action;
+}
+
+static void
+intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
+                                    SemanticContext *ctx)
+{
+    ASTNode *action_subject_decl = NULL;
+    ASTNode *action_decl = intent_step_find_inheritable_action(
+        intent_decl, step, ctx, &action_subject_decl);
+
+    if (action_decl == NULL)
+        return;
+
+    if (step->data.intent_step.where_type == NULL
+        && action_decl->data.func_decl.within_zone != NULL) {
+        step->data.intent_step.where_type =
+            ast_create_type(action_decl->data.func_decl.within_zone);
+        step->data.intent_step.inherited_where_from_action = true;
+    }
+
+    if (step->data.intent_step.required_ability_count == 0
+        && action_decl->data.func_decl.required_ability_count > 0) {
+        for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
+            ASTNode *ability_ref = action_decl->data.func_decl.required_abilities[i];
+            ASTNode *ability_copy = ast_clone(ability_ref);
+            size_t next = step->data.intent_step.required_ability_count + 1;
+            step->data.intent_step.required_abilities = realloc(
+                step->data.intent_step.required_abilities,
+                next * sizeof(ASTNode *));
+            step->data.intent_step.required_abilities[next - 1] = ability_copy;
+            step->data.intent_step.required_ability_count = next;
+        }
+        step->data.intent_step.inherited_requires_from_action = true;
+    }
+
+    if (step->data.intent_step.causes_effect == NULL
+        && action_decl->data.func_decl.causes_effect != NULL) {
+        step->data.intent_step.causes_effect =
+            pergyra_strdup(action_decl->data.func_decl.causes_effect);
+        step->data.intent_step.inherited_causes_from_action = true;
+    }
+
+    if (step->data.intent_step.authorized_by_count == 0
+        && action_decl->data.func_decl.authorized_by_count > 0) {
+        bool mapped_all = true;
+
+        for (size_t i = 0; i < action_decl->data.func_decl.authorized_by_count; i++) {
+            const char *binding_name = action_decl->data.func_decl.authorized_by[i];
+            const char *binding_type_name = intent_action_binding_type_name(
+                action_decl, action_subject_decl, ctx, binding_name);
+            const char *mapped_alias = NULL;
+
+            if (strcmp(binding_name, "self") == 0) {
+                if (step->data.intent_step.who_count == 1) {
+                    mapped_alias = step->data.intent_step.who_names[0];
+                }
+            } else if (binding_type_name != NULL) {
+                for (size_t j = 0; j < intent_decl->data.intent_decl.involve_count; j++) {
+                    ASTNode *involves = intent_decl->data.intent_decl.involves[j];
+                    const char *participant_type_name = intent_involves_type_name(involves);
+                    if (participant_type_name != NULL
+                        && strcmp(participant_type_name, binding_type_name) == 0) {
+                        if (mapped_alias != NULL) {
+                            mapped_alias = NULL;
+                            break;
+                        }
+                        mapped_alias = involves->data.intent_involves.alias;
+                    }
+                }
+            }
+
+            if (mapped_alias == NULL) {
+                mapped_all = false;
+                break;
+            }
+            if (!intent_semantic_append_name(&step->data.intent_step.authorized_by,
+                    &step->data.intent_step.authorized_by_count, mapped_alias)) {
+                mapped_all = false;
+                break;
+            }
+        }
+
+        if (mapped_all) {
+            step->data.intent_step.inherited_authorized_by_from_action = true;
+        } else {
+            for (size_t i = 0; i < step->data.intent_step.authorized_by_count; i++)
+                free(step->data.intent_step.authorized_by[i]);
+            free(step->data.intent_step.authorized_by);
+            step->data.intent_step.authorized_by = NULL;
+            step->data.intent_step.authorized_by_count = 0;
+        }
+    }
+}
+
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -683,6 +874,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         has_subintent = (step->data.intent_step.intent_expr != NULL);
+        intent_step_inherit_action_contract(node, step, ctx);
 
         if (step->data.intent_step.where_type == NULL && !has_subintent) {
             semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
@@ -774,19 +966,40 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
             if (to_type != NULL && where_zone_type != NULL && !type_equals(to_type, where_zone_type)) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer target '%s' must match where zone '%s'",
+                    "Intent step '%s' transfer target '%s' does not match the current zone contract.\n"
+                    "Reason:\n"
+                    "- transfer target '%s' has zone type '%s'\n"
+                    "- current step zone is '%s'\n"
+                    "Fix:\n"
+                    "- change the transfer target to a '%s' binding\n"
+                    "- or override the step zone to '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     to_alias != NULL ? to_alias : "<target>",
-                    where_zone_type->name != NULL ? where_zone_type->name : "<zone>");
+                    to_alias != NULL ? to_alias : "<target>",
+                    to_type->name != NULL ? to_type->name : "<zone>",
+                    where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
+                    where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
+                    to_type->name != NULL ? to_type->name : "<zone>");
             }
             if (step->data.intent_step.using_expr != NULL
                 && step->data.intent_step.using_expr->type == AST_IDENTIFIER
                 && to_alias != NULL
                 && strcmp(step->data.intent_step.using_expr->data.identifier.name, to_alias) != 0) {
                 semantic_error(ctx, step->data.intent_step.using_expr,
-                    "Intent step '%s' using binding must match transfer target '%s'",
+                    "Intent step '%s' using binding does not match the transfer target.\n"
+                    "Reason:\n"
+                    "- current using binding is '%s'\n"
+                    "- transfer target binding is '%s'\n"
+                    "Fix:\n"
+                    "- change 'using' to '%s'\n"
+                    "- or change the transfer target to '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    to_alias);
+                    step->data.intent_step.using_expr->data.identifier.name != NULL
+                        ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
+                    to_alias,
+                    to_alias,
+                    step->data.intent_step.using_expr->data.identifier.name != NULL
+                        ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
             }
         }
 
@@ -1020,8 +1233,25 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 || step->data.intent_step.transfer_to_alias != NULL
                 || step_requires_authority_flow)) {
             semantic_error(ctx, step,
-                "Intent step '%s' in authority-bearing zone '%s' must declare 'authorized by' when it causes effects, transfers zone state, or invokes authority-sensitive helpers",
+                step->data.intent_step.inherited_where_from_action
+                    ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
+                      "Reason:\n"
+                      "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
+                      "- zone '%s' was inherited from the matching action contract\n"
+                      "Fix:\n"
+                      "- add 'authorized by <participant>' to the step\n"
+                      "- or move the step to a non-authority zone\n"
+                      "- or change the action contract that this step inherits"
+                    : "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
+                      "Reason:\n"
+                      "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
+                      "- zone '%s' declares authority, so explicit approval is required\n"
+                      "Fix:\n"
+                      "- add 'authorized by <participant>' to the step\n"
+                      "- or move the step to a non-authority zone\n"
+                      "- or remove the authority-sensitive operation from this step",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
         }
 
@@ -2502,10 +2732,11 @@ static bool
 relation_slot_matches_between_kind(ASTNode *slot,
                                    Type *slot_type,
                                    RelationEndpointKind kind,
-                                   const char *named_type,
+                                   ASTNode *named_type_ref,
                                    SemanticContext *ctx)
 {
     ASTNode *decl;
+    Type *named_type;
 
     if (slot == NULL)
         return false;
@@ -2525,7 +2756,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
     }
 
-    if (named_type != NULL && strcmp(named_type, "tobject") == 0) {
+    if (kind == RELATION_ENDPOINT_TOBJECT) {
         if (slot->data.domain_slot.is_subject)
             return false;
         if (!slot->data.domain_slot.is_tobject)
@@ -2548,10 +2779,10 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT;
     }
 
+    named_type = named_type_ref != NULL ? resolve_type_node(named_type_ref, ctx) : NULL;
     return slot_type != NULL
-        && slot_type->name != NULL
         && named_type != NULL
-        && strcmp(slot_type->name, named_type) == 0;
+        && type_equals(slot_type, named_type);
 }
 
 static bool
@@ -2576,8 +2807,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     size_t endpoint_count;
     RelationEndpointKind between_left_kind;
     RelationEndpointKind between_right_kind;
-    const char *between_left;
-    const char *between_right;
+    ASTNode *between_left_type;
+    ASTNode *between_right_type;
 
     relation_slot = find_zone_relation_slot(zone, relation_slot_name);
     left_slot = find_zone_domain_slot(zone, left_slot_name);
@@ -2592,32 +2823,31 @@ type_check_zone_relation_contract(ASTNode *zone,
 
     between_left_kind = relation_decl->data.relation_decl.between_left_kind;
     between_right_kind = relation_decl->data.relation_decl.between_right_kind;
-    between_left = relation_decl->data.relation_decl.between_left;
-    between_right = relation_decl->data.relation_decl.between_right;
+    between_left_type = relation_decl->data.relation_decl.between_left_type;
+    between_right_type = relation_decl->data.relation_decl.between_right_type;
     left_type = resolve_type_node(left_slot->data.domain_slot.type, ctx);
     right_type = resolve_type_node(right_slot->data.domain_slot.type, ctx);
 
-    if (between_left != NULL && between_right != NULL) {
-        if (!relation_slot_matches_between_kind(left_slot, left_type, between_left_kind, between_left, ctx)) {
+    if (between_left_kind != RELATION_ENDPOINT_NAMED || between_right_kind != RELATION_ENDPOINT_NAMED
+        || between_left_type != NULL || between_right_type != NULL) {
+        if (!relation_slot_matches_between_kind(left_slot, left_type, between_left_kind, between_left_type, ctx)) {
             semantic_error(ctx, link_like,
-                "Zone %s left slot '%s' does not satisfy relation '%s' between-left contract '%s'",
+                "Zone %s left slot '%s' does not satisfy relation '%s' between-left contract",
                 action_name,
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
-                    : "<unknown>",
-                between_left);
+                    : "<unknown>");
         }
 
-        if (!relation_slot_matches_between_kind(right_slot, right_type, between_right_kind, between_right, ctx)) {
+        if (!relation_slot_matches_between_kind(right_slot, right_type, between_right_kind, between_right_type, ctx)) {
             semantic_error(ctx, link_like,
-                "Zone %s right slot '%s' does not satisfy relation '%s' between-right contract '%s'",
+                "Zone %s right slot '%s' does not satisfy relation '%s' between-right contract",
                 action_name,
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 relation_decl->data.relation_decl.name != NULL
                     ? relation_decl->data.relation_decl.name
-                    : "<unknown>",
-                between_right);
+                    : "<unknown>");
         }
         return true;
     }
@@ -2820,8 +3050,10 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         node->data.relation_decl.refreshes,
         node->data.relation_decl.refresh_count);
     if (endpoint_count == 0
-        && !(node->data.relation_decl.between_left != NULL
-            && node->data.relation_decl.between_right != NULL)) {
+        && !(node->data.relation_decl.between_left_kind != RELATION_ENDPOINT_NAMED
+            || node->data.relation_decl.between_right_kind != RELATION_ENDPOINT_NAMED
+            || node->data.relation_decl.between_left_type != NULL
+            || node->data.relation_decl.between_right_type != NULL)) {
         semantic_warning(ctx, node,
             "Relation '%s' should declare at least one endpoint slot; use 'for name: Type' or a bindable subject/object slot",
             node->data.relation_decl.name);
@@ -2833,17 +3065,18 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
     /* Validate 'between' clause if present */
     RelationEndpointKind blk = node->data.relation_decl.between_left_kind;
     RelationEndpointKind brk = node->data.relation_decl.between_right_kind;
-    const char *bl = node->data.relation_decl.between_left;
-    const char *br = node->data.relation_decl.between_right;
-    if (bl != NULL && br != NULL) {
+    ASTNode *blt = node->data.relation_decl.between_left_type;
+    ASTNode *brt = node->data.relation_decl.between_right_type;
+    if (blk != RELATION_ENDPOINT_NAMED || brk != RELATION_ENDPOINT_NAMED
+        || blt != NULL || brt != NULL) {
         /* At least one side must be 'subject' */
         bool left_is_subject = (blk == RELATION_ENDPOINT_SUBJECT);
         bool right_is_subject = (brk == RELATION_ENDPOINT_SUBJECT);
         if (!left_is_subject && !right_is_subject) {
             semantic_error(ctx, node,
                 "Relation '%s': at least one side of 'between' must be 'subject' "
-                "(got '%s' and '%s')",
-                node->data.relation_decl.name, bl, br);
+                "(got endpoint kinds %d and %d)",
+                node->data.relation_decl.name, (int)blk, (int)brk);
             ok = false;
         }
     }

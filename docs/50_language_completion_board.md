@@ -217,7 +217,41 @@
 
 이건 코어 존재론이 lexer/parser 단계에서 aliasing되는 부채다.
 
-다음 단계:
+현재:
+
+- `subject/class/struct/object/tobject/vessel/intent/world/roster/relation/effect/zone/event`
+  는 declaration-grade token으로 분리됐다
+- relation `between` clause는
+  - built-in endpoint kind
+  - concrete named endpoint type-reference AST
+  로 구조화됐다
+
+남은 것:
+
+1. clause word 일부의 contextual keyword 유지 여부 재판단
+2. relation endpoint diagnostic 문자열 품질 개선
+3. parser/doc 테스트 표현 추가 정리
+
+작성성 압축 방향:
+
+- parser raw ordering debt는 줄어들었다
+  - function/action clause parser는 `where`, `with effects`, `requires`,
+    `within`, `causes`, `authorized by`를 table-driven으로 처리한다
+  - clause 순서는 현재 고정이 아니고, duplicate clause는 명시적으로 진단한다
+- 남은 부채는 parser ordering보다 authoring compression 쪽이다
+  - intent 계약 추론
+  - lexical zone context
+  - relation/effect 접근 완화
+  - transfer 축약 표면
+  - domain-first diagnostics
+  - domain-first diagnostics는
+    - `subject` by-value return
+    - authority-bearing intent step
+    - transfer target / `using` mismatch
+    부터 `Reason` / `Fix` 형식으로 올리는 중이다
+
+- [58_keyword_authorship_pain_points.md](/mnt/e/PergyraLang/docs/58_keyword_authorship_pain_points.md)
+- [59_authoring_surface_compression_plan.md](/mnt/e/PergyraLang/docs/59_authoring_surface_compression_plan.md)
 
 - [57_token_split_plan.md](/mnt/e/PergyraLang/docs/57_token_split_plan.md)
   기준으로

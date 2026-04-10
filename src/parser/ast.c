@@ -551,6 +551,10 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.authorized_by = NULL;
     node->data.intent_step.authorized_by_count = 0;
     node->data.intent_step.expect_expr = NULL;
+    node->data.intent_step.inherited_where_from_action = false;
+    node->data.intent_step.inherited_requires_from_action = false;
+    node->data.intent_step.inherited_causes_from_action = false;
+    node->data.intent_step.inherited_authorized_by_from_action = false;
     return node;
 }
 
@@ -568,8 +572,8 @@ ASTNode* ast_create_relation_declaration(const char* name) {
     node->data.relation_decl.doc_comment = NULL;
     node->data.relation_decl.between_left_kind = RELATION_ENDPOINT_NAMED;
     node->data.relation_decl.between_right_kind = RELATION_ENDPOINT_NAMED;
-    node->data.relation_decl.between_left = NULL;
-    node->data.relation_decl.between_right = NULL;
+    node->data.relation_decl.between_left_type = NULL;
+    node->data.relation_decl.between_right_type = NULL;
     node->data.relation_decl.between_left_many = false;
     node->data.relation_decl.between_right_many = false;
     return node;
@@ -1724,8 +1728,8 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.relation_decl.method_count; i++)
                 ast_destroy(node->data.relation_decl.methods[i]);
             free(node->data.relation_decl.methods);
-            free(node->data.relation_decl.between_left);
-            free(node->data.relation_decl.between_right);
+            ast_destroy(node->data.relation_decl.between_left_type);
+            ast_destroy(node->data.relation_decl.between_right_type);
             ast_destroy_structured_comment(node->data.relation_decl.doc_comment);
             break;
 

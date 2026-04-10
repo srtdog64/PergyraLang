@@ -16,6 +16,15 @@ parser_decl_match_contextual_keyword(Parser *parser, const char *keyword)
 }
 
 static bool
+parser_decl_check_contextual_keyword(Parser *parser, const char *keyword)
+{
+    return parser != NULL && keyword != NULL
+        && parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, keyword) == 0;
+}
+
+static bool
 parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
 {
     if (mask_out == NULL)
@@ -92,6 +101,129 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
     *mask_out = mask;
 }
 
+typedef bool (*FunctionClauseParser)(Parser *parser, ASTNode *func,
+                                     bool is_action);
+
+static bool
+parse_function_clause_where(Parser *parser, ASTNode *func, bool is_action)
+{
+    WhereClause *where_clause = NULL;
+    (void)is_action;
+    if (parser == NULL || func == NULL || !parser_check(parser, TOKEN_WHERE))
+        return false;
+    if (func->data.func_decl.where_clause != NULL)
+        parser_error(parser, "Duplicate 'where' clause");
+    where_clause = parse_where_clause(parser);
+    if (func->data.func_decl.where_clause == NULL)
+        func->data.func_decl.where_clause = where_clause;
+    return true;
+}
+
+static bool
+parse_function_clause_effects(Parser *parser, ASTNode *func, bool is_action)
+{
+    bool has_clause = false;
+    uint32_t mask = 0;
+    (void)is_action;
+    if (parser == NULL || func == NULL || !parser_check(parser, TOKEN_WITH))
+        return false;
+    if (func->data.func_decl.has_effects_clause)
+        parser_error(parser, "Duplicate 'with effects' clause");
+    parse_optional_effect_clause(parser, &has_clause, &mask);
+    if (!func->data.func_decl.has_effects_clause && has_clause) {
+        func->data.func_decl.has_effects_clause = true;
+        func->data.func_decl.declared_effects = mask;
+    }
+    return true;
+}
+
+static bool
+parse_function_clause_requires(Parser *parser, ASTNode *func, bool is_action)
+{
+    if (parser == NULL || func == NULL || !is_action
+        || !parser_decl_check_contextual_keyword(parser, "requires")) {
+        return false;
+    }
+    if (func->data.func_decl.required_ability_count > 0)
+        parser_error(parser, "Duplicate 'requires' clause");
+    parser_advance(parser);
+    do {
+        ASTNode *ability = parse_type(parser);
+        size_t next = func->data.func_decl.required_ability_count + 1;
+        func->data.func_decl.required_abilities = realloc(
+            func->data.func_decl.required_abilities,
+            next * sizeof(ASTNode *));
+        func->data.func_decl.required_abilities[next - 1] = ability;
+        func->data.func_decl.required_ability_count = next;
+    } while (parser_match(parser, TOKEN_COMMA));
+    return true;
+}
+
+static bool
+parse_function_clause_within(Parser *parser, ASTNode *func, bool is_action)
+{
+    Token zone;
+    if (parser == NULL || func == NULL || !is_action
+        || !parser_decl_check_contextual_keyword(parser, "within")) {
+        return false;
+    }
+    if (func->data.func_decl.within_zone != NULL)
+        parser_error(parser, "Duplicate 'within' clause");
+    parser_advance(parser);
+    zone = parser_consume(parser, TOKEN_IDENTIFIER,
+        "Expected zone name after 'within'");
+    if (func->data.func_decl.within_zone == NULL)
+        func->data.func_decl.within_zone = pergyra_strdup(zone.text);
+    return true;
+}
+
+static bool
+parse_function_clause_causes(Parser *parser, ASTNode *func, bool is_action)
+{
+    Token effect;
+    if (parser == NULL || func == NULL || !is_action
+        || !parser_decl_check_contextual_keyword(parser, "causes")) {
+        return false;
+    }
+    if (func->data.func_decl.causes_effect != NULL)
+        parser_error(parser, "Duplicate 'causes' clause");
+    parser_advance(parser);
+    effect = parser_consume(parser, TOKEN_IDENTIFIER,
+        "Expected effect name after 'causes'");
+    if (func->data.func_decl.causes_effect == NULL)
+        func->data.func_decl.causes_effect = pergyra_strdup(effect.text);
+    return true;
+}
+
+static bool
+parse_function_clause_authorized_by(Parser *parser, ASTNode *func,
+                                    bool is_action)
+{
+    if (parser == NULL || func == NULL || !is_action
+        || !parser_decl_check_contextual_keyword(parser, "authorized")) {
+        return false;
+    }
+    if (func->data.func_decl.authorized_by_count > 0)
+        parser_error(parser, "Duplicate 'authorized by' clause");
+    parser_advance(parser);
+    if (!parser_decl_match_contextual_keyword(parser, "by")) {
+        parser_error(parser, "Expected 'by' after 'authorized'");
+        return true;
+    }
+    do {
+        Token participant = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected subject name after 'authorized by'");
+        size_t next = func->data.func_decl.authorized_by_count + 1;
+        func->data.func_decl.authorized_by = realloc(
+            func->data.func_decl.authorized_by,
+            next * sizeof(char *));
+        func->data.func_decl.authorized_by[next - 1] =
+            pergyra_strdup(participant.text);
+        func->data.func_decl.authorized_by_count = next;
+    } while (parser_match(parser, TOKEN_COMMA));
+    return true;
+}
+
 Token
 consume_name_token(Parser* parser, const char* message)
 {
@@ -114,6 +246,14 @@ parser_check_name_token(Parser *parser)
     case TOKEN_STRUCT:
     case TOKEN_OBJECT:
     case TOKEN_TOBJECT:
+    case TOKEN_VESSEL:
+    case TOKEN_INTENT:
+    case TOKEN_ROSTER:
+    case TOKEN_WORLD:
+    case TOKEN_RELATION:
+    case TOKEN_EFFECT:
+    case TOKEN_ZONE:
+    case TOKEN_EVENT:
         return true;
     default:
         return false;
@@ -406,64 +546,27 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
     }
 
     while (!parser_is_at_end(parser)) {
-        if (func->data.func_decl.where_clause == NULL
-            && parser_check(parser, TOKEN_WHERE)) {
-            func->data.func_decl.where_clause = parse_where_clause(parser);
-            continue;
+        static const FunctionClauseParser clause_parsers[] = {
+            parse_function_clause_where,
+            parse_function_clause_effects,
+            parse_function_clause_requires,
+            parse_function_clause_within,
+            parse_function_clause_causes,
+            parse_function_clause_authorized_by,
+        };
+        size_t i;
+        bool matched = false;
+
+        for (i = 0; i < sizeof(clause_parsers) / sizeof(clause_parsers[0]); i++) {
+            if (!clause_parsers[i](parser, func, is_action))
+                continue;
+            matched = true;
+            break;
         }
-        if (!func->data.func_decl.has_effects_clause
-            && parser_check(parser, TOKEN_WITH)) {
-            parse_optional_effect_clause(parser,
-                &func->data.func_decl.has_effects_clause,
-                &func->data.func_decl.declared_effects);
-            continue;
-        }
-        if (is_action && parser_decl_match_contextual_keyword(parser, "requires")) {
-            do {
-                ASTNode *ability = parse_type(parser);
-                size_t next = func->data.func_decl.required_ability_count + 1;
-                func->data.func_decl.required_abilities = realloc(
-                    func->data.func_decl.required_abilities,
-                    next * sizeof(ASTNode *));
-                func->data.func_decl.required_abilities[next - 1] =
-                    ability;
-                func->data.func_decl.required_ability_count = next;
-            } while (parser_match(parser, TOKEN_COMMA));
-            continue;
-        }
-        if (is_action && parser_decl_match_contextual_keyword(parser, "within")) {
-            Token zone = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected zone name after 'within'");
-            free(func->data.func_decl.within_zone);
-            func->data.func_decl.within_zone = pergyra_strdup(zone.text);
-            continue;
-        }
-        if (is_action && parser_decl_match_contextual_keyword(parser, "causes")) {
-            Token effect = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected effect name after 'causes'");
-            free(func->data.func_decl.causes_effect);
-            func->data.func_decl.causes_effect = pergyra_strdup(effect.text);
-            continue;
-        }
-        if (is_action && parser_decl_match_contextual_keyword(parser, "authorized")) {
-            if (!parser_decl_match_contextual_keyword(parser, "by")) {
-                parser_error(parser, "Expected 'by' after 'authorized'");
-                return func;
-            }
-            do {
-                Token participant = parser_consume(parser, TOKEN_IDENTIFIER,
-                    "Expected subject name after 'authorized by'");
-                size_t next = func->data.func_decl.authorized_by_count + 1;
-                func->data.func_decl.authorized_by = realloc(
-                    func->data.func_decl.authorized_by,
-                    next * sizeof(char *));
-                func->data.func_decl.authorized_by[next - 1] =
-                    pergyra_strdup(participant.text);
-                func->data.func_decl.authorized_by_count = next;
-            } while (parser_match(parser, TOKEN_COMMA));
-            continue;
-        }
-        break;
+        if (parser_has_error(parser))
+            return func;
+        if (!matched)
+            break;
     }
 
     if (parser->in_extern_block) {
@@ -596,14 +699,12 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
         // 클래스 필드 또는 구조체 bare field / let field
         if (parser_check(parser, TOKEN_LET) ||
             (decl_kind == NOMINAL_DECL_SUBJECT
-             && parser_check(parser, TOKEN_IDENTIFIER)
-             && parser->current_token.text != NULL
-             && strcmp(parser->current_token.text, "vessel") == 0) ||
+             && parser_check(parser, TOKEN_VESSEL)) ||
             (is_struct && parser_check(parser, TOKEN_IDENTIFIER))) {
             bool has_let = parser_match(parser, TOKEN_LET);
             bool is_vessel_field = false;
             if (!has_let && decl_kind == NOMINAL_DECL_SUBJECT) {
-                is_vessel_field = parser_decl_match_contextual_keyword(parser, "vessel");
+                is_vessel_field = parser_match(parser, TOKEN_VESSEL);
             }
             if (!has_let && !is_struct) {
                 if (is_vessel_field) {

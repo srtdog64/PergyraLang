@@ -74,43 +74,6 @@ bool parser_match(Parser* parser, PgyTokenType type) {
     return true;
 }
 
-static bool
-parser_match_contextual_keyword(Parser *parser, const char *keyword)
-{
-    if (!parser_check(parser, TOKEN_IDENTIFIER)
-        || parser->current_token.text == NULL
-        || keyword == NULL) {
-        return false;
-    }
-
-    if (strcmp(parser->current_token.text, keyword) != 0)
-        return false;
-
-    parser_advance(parser);
-    return true;
-}
-
-static bool
-parser_check_contextual_keyword(Parser *parser, const char *keyword)
-{
-    return parser_check(parser, TOKEN_IDENTIFIER)
-        && parser->current_token.text != NULL
-        && keyword != NULL
-        && strcmp(parser->current_token.text, keyword) == 0;
-}
-
-static bool
-parser_starts_contextual_declaration(Parser *parser, const char *keyword)
-{
-    Token next;
-
-    if (!parser_check_contextual_keyword(parser, keyword))
-        return false;
-
-    next = parser_peek_next(parser);
-    return next.type == TOKEN_IDENTIFIER;
-}
-
 // 토큰 소비 (필수)
 Token parser_consume(Parser* parser, PgyTokenType type, const char* message) {
     if (parser_check(parser, type)) {
@@ -123,6 +86,11 @@ Token parser_consume(Parser* parser, PgyTokenType type, const char* message) {
 
 // 에러 처리
 void parser_error(Parser* parser, const char* format, ...) {
+    if (parser == NULL)
+        return;
+    if (parser->has_error)
+        return;
+
     parser->has_error = true;
 
     va_list args;
@@ -145,14 +113,15 @@ void parser_synchronize(Parser* parser) {
     while (!parser_is_at_end(parser)) {
         if (parser->previous_token.type == TOKEN_SEMICOLON) return;
         if (parser_check(parser, TOKEN_OBJECT)
-            || parser_check_contextual_keyword(parser, "vessel")
-            || parser_check_contextual_keyword(parser, "intent")
+            || parser_check(parser, TOKEN_VESSEL)
+            || parser_check(parser, TOKEN_INTENT)
             || parser_check(parser, TOKEN_TOBJECT)
-            || parser_check_contextual_keyword(parser, "world")
-            || parser_check_contextual_keyword(parser, "roster")
-            || parser_check_contextual_keyword(parser, "relation")
-            || parser_check_contextual_keyword(parser, "effect")
-            || parser_check_contextual_keyword(parser, "zone")) {
+            || parser_check(parser, TOKEN_WORLD)
+            || parser_check(parser, TOKEN_ROSTER)
+            || parser_check(parser, TOKEN_RELATION)
+            || parser_check(parser, TOKEN_EFFECT)
+            || parser_check(parser, TOKEN_ZONE)
+            || parser_check(parser, TOKEN_EVENT)) {
             return;
         }
 
@@ -162,6 +131,14 @@ void parser_synchronize(Parser* parser) {
             case TOKEN_STRUCT:
             case TOKEN_OBJECT:
             case TOKEN_TOBJECT:
+            case TOKEN_VESSEL:
+            case TOKEN_INTENT:
+            case TOKEN_WORLD:
+            case TOKEN_ROSTER:
+            case TOKEN_RELATION:
+            case TOKEN_EFFECT:
+            case TOKEN_ZONE:
+            case TOKEN_EVENT:
             case TOKEN_EXTERN:
             case TOKEN_FUNC:
             case PGY_TOKEN_TYPE:
@@ -559,9 +536,9 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_class_declaration(parser);
     else if (parser_match(parser, TOKEN_OBJECT))
         node = parse_object_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "vessel"))
+    else if (parser_match(parser, TOKEN_VESSEL))
         node = parse_vessel_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "intent"))
+    else if (parser_match(parser, TOKEN_INTENT))
         node = parse_intent_declaration(parser);
     else if (parser_match(parser, TOKEN_TOBJECT))
         node = parse_tobject_declaration(parser);
@@ -637,15 +614,15 @@ parser_parse_export_declaration(Parser *parser)
             if (!parser_match(parser, TOKEN_COMMA)) break;
         }
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");
-    } else if (parser_match_contextual_keyword(parser, "roster"))
+    } else if (parser_match(parser, TOKEN_ROSTER))
         node = parse_roster_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "world"))
+    else if (parser_match(parser, TOKEN_WORLD))
         node = parse_world_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "relation"))
+    else if (parser_match(parser, TOKEN_RELATION))
         node = parse_relation_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "effect"))
+    else if (parser_match(parser, TOKEN_EFFECT))
         node = parse_effect_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "zone"))
+    else if (parser_match(parser, TOKEN_ZONE))
         node = parse_zone_declaration(parser);
     else if (parser_match(parser, TOKEN_PARTY))
         node = parse_party_declaration(parser);
@@ -658,7 +635,7 @@ parser_parse_export_declaration(Parser *parser)
         node = parse_ability_declaration(parser, false);
     else if (parser_match(parser, TOKEN_ROLE))
         node = parse_role_declaration(parser);
-    else if (parser_match_contextual_keyword(parser, "event"))
+    else if (parser_match(parser, TOKEN_EVENT))
         node = parse_event_declaration(parser);
 
     if (node == NULL) {
@@ -707,6 +684,34 @@ ASTNode* parser_parse_program(Parser* parser) {
     }
 
     return program;
+}
+
+static bool
+parser_starts_named_declaration(Parser *parser, PgyTokenType keyword)
+{
+    Token next;
+
+    if (parser == NULL || !parser_check(parser, keyword))
+        return false;
+
+    next = parser_peek_next(parser);
+
+    switch (next.type) {
+    case TOKEN_IDENTIFIER:
+    case TOKEN_SLOT:
+    case TOKEN_SUBJECT:
+    case TOKEN_CLASS:
+    case TOKEN_STRUCT:
+    case TOKEN_OBJECT:
+    case TOKEN_TOBJECT:
+    case TOKEN_VESSEL:
+    case TOKEN_INTENT:
+    case TOKEN_ROSTER:
+    case TOKEN_WORLD:
+        return true;
+    default:
+        return false;
+    }
 }
 
 // 문장 파싱
@@ -824,35 +829,40 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // 클래스 / subject 선언
-    if (parser_match(parser, TOKEN_SUBJECT)) {
+    if (parser_starts_named_declaration(parser, TOKEN_SUBJECT)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_subject_declaration(parser));
     }
 
-    if (parser_match(parser, TOKEN_CLASS)) {
+    if (parser_starts_named_declaration(parser, TOKEN_CLASS)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_class_declaration(parser));
     }
 
     // object declaration: declaration-context keyword for local/internal projection
-    if (parser_match(parser, TOKEN_OBJECT)) {
+    if (parser_starts_named_declaration(parser, TOKEN_OBJECT)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_object_declaration(parser));
     }
 
-    if (parser_starts_contextual_declaration(parser, "vessel")) {
+    if (parser_starts_named_declaration(parser, TOKEN_VESSEL)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_vessel_declaration(parser));
     }
 
-    if (parser_starts_contextual_declaration(parser, "intent")) {
+    if (parser_starts_named_declaration(parser, TOKEN_INTENT)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_intent_declaration(parser));
     }
 
     // tobject / struct declarations share a token family today, but not a language contract
-    if (parser_match(parser, TOKEN_TOBJECT)) {
+    if (parser_starts_named_declaration(parser, TOKEN_TOBJECT)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_tobject_declaration(parser));
     }
 
-    if (parser_match(parser, TOKEN_STRUCT)) {
+    if (parser_starts_named_declaration(parser, TOKEN_STRUCT)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_struct_declaration(parser));
     }
 
@@ -1080,33 +1090,32 @@ ASTNode* parser_parse_statement(Parser* parser) {
             ast_create_bind_statement(party_tok.text, slot_tok.text, role_tok.text));
     }
 
-    // roster declaration (roster kept as legacy alias)
-    if (parser_starts_contextual_declaration(parser, "roster")
-        || parser_starts_contextual_declaration(parser, "roster")) {
+    // roster declaration
+    if (parser_starts_named_declaration(parser, TOKEN_ROSTER)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_roster_declaration(parser));
     }
 
     // world 선언
-    if (parser_starts_contextual_declaration(parser, "world")) {
+    if (parser_starts_named_declaration(parser, TOKEN_WORLD)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_world_declaration(parser));
     }
 
     // relation 선언
-    if (parser_starts_contextual_declaration(parser, "relation")) {
+    if (parser_starts_named_declaration(parser, TOKEN_RELATION)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_relation_declaration(parser));
     }
 
     // effect 선언
-    if (parser_starts_contextual_declaration(parser, "effect")) {
+    if (parser_starts_named_declaration(parser, TOKEN_EFFECT)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_effect_declaration(parser));
     }
 
     // zone 선언
-    if (parser_starts_contextual_declaration(parser, "zone")) {
+    if (parser_starts_named_declaration(parser, TOKEN_ZONE)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_zone_declaration(parser));
     }
@@ -1134,8 +1143,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_role_declaration(parser));
     }
 
-    // event 선언 (contextual keyword)
-    if (parser_starts_contextual_declaration(parser, "event")) {
+    // event 선언
+    if (parser_starts_named_declaration(parser, TOKEN_EVENT)) {
         parser_advance(parser);
         return parser_finalize_statement(parser, parse_event_declaration(parser));
     }

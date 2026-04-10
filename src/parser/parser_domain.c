@@ -5,6 +5,19 @@ static bool parser_match_identifier_keyword_on_line(Parser *parser, const char *
                                                     unsigned line);
 static void append_child_node(ASTNode ***nodes, size_t *count, ASTNode *node);
 
+typedef enum {
+    DOMAIN_GROUP_NONE,
+    DOMAIN_GROUP_SUBJECTS,
+    DOMAIN_GROUP_OBJECTS,
+    DOMAIN_GROUP_TOBJECTS
+} DomainSlotGroupKind;
+
+typedef enum {
+    DOMAIN_LAYER_GROUP_NONE,
+    DOMAIN_LAYER_GROUP_EFFECTS,
+    DOMAIN_LAYER_GROUP_RELATIONS
+} DomainLayerGroupKind;
+
 /* =================================================================
  * Roster/World system parsing functions
  * ================================================================= */
@@ -126,8 +139,8 @@ ASTNode* parse_world_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        if (parser_match_identifier_keyword(parser, "roster")) {
-            /* roster name: RosterType  (roster remains legacy alias) */
+        if (parser_match(parser, TOKEN_ROSTER)) {
+            /* roster name: RosterType */
             Token slot_name = consume_name_token(parser,
                 "Expected roster name");
             parser_consume(parser, TOKEN_COLON,
@@ -150,7 +163,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
 
-        } else if (parser_match_identifier_keyword(parser, "zone")) {
+        } else if (parser_match(parser, TOKEN_ZONE)) {
             Token slot_name = consume_name_token(parser,
                 "Expected zone name");
             parser_consume(parser, TOKEN_COLON,
@@ -256,7 +269,7 @@ ASTNode* parse_world_declaration(Parser* parser) {
                 parser_discard_pending_doc_comment(parser);
                 continue;
             }
-            if (!parser_match_identifier_keyword(parser, "zone")) {
+            if (!parser_match(parser, TOKEN_ZONE)) {
                 parser_error(parser, "Expected 'zone' after ':' in world state");
                 parser_advance(parser);
                 continue;
@@ -387,7 +400,7 @@ parser_match_domain_slot_kind(Parser *parser, bool *is_subject, bool *is_vessel,
         return true;
     }
 
-    if (parser_match_identifier_keyword(parser, "vessel")) {
+    if (parser_match(parser, TOKEN_VESSEL)) {
         if (is_subject != NULL)
             *is_subject = false;
         if (is_vessel != NULL)
@@ -532,9 +545,74 @@ relation_endpoint_kind_from_token(Token token)
         return RELATION_ENDPOINT_OBJECT;
     case TOKEN_CLASS:
         return RELATION_ENDPOINT_CLASS;
+    case TOKEN_TOBJECT:
+        return RELATION_ENDPOINT_TOBJECT;
     default:
         return RELATION_ENDPOINT_NAMED;
     }
+}
+
+static ASTNode *
+parse_relation_endpoint_type(Parser *parser,
+                             RelationEndpointKind *kind_out,
+                             bool *many_out,
+                             const char *message)
+{
+    ASTNode *type_ref = NULL;
+    RelationEndpointKind kind;
+
+    if (kind_out != NULL)
+        *kind_out = RELATION_ENDPOINT_NAMED;
+    if (many_out != NULL)
+        *many_out = false;
+
+    if (!parser_check(parser, TOKEN_IDENTIFIER)
+        && !parser_check(parser, TOKEN_SUBJECT)
+        && !parser_check(parser, TOKEN_OBJECT)
+        && !parser_check(parser, TOKEN_CLASS)
+        && !parser_check(parser, TOKEN_TOBJECT)) {
+        parser_error(parser, message);
+        return NULL;
+    }
+
+    kind = relation_endpoint_kind_from_token(parser->current_token);
+    if (kind != RELATION_ENDPOINT_NAMED) {
+        parser_advance(parser);
+    } else {
+        type_ref = parse_type(parser);
+    }
+
+    if (parser_match(parser, TOKEN_LBRACKET)) {
+        parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
+        if (many_out != NULL)
+            *many_out = true;
+    }
+
+    if (kind_out != NULL)
+        *kind_out = kind;
+    return type_ref;
+}
+
+static DomainSlotGroupKind
+parser_match_domain_slot_group_kind(Parser *parser)
+{
+    if (parser_match_identifier_keyword(parser, "subjects"))
+        return DOMAIN_GROUP_SUBJECTS;
+    if (parser_match_identifier_keyword(parser, "objects"))
+        return DOMAIN_GROUP_OBJECTS;
+    if (parser_match_identifier_keyword(parser, "tobjects"))
+        return DOMAIN_GROUP_TOBJECTS;
+    return DOMAIN_GROUP_NONE;
+}
+
+static DomainLayerGroupKind
+parser_match_domain_layer_group_kind(Parser *parser)
+{
+    if (parser_match_identifier_keyword(parser, "effects"))
+        return DOMAIN_LAYER_GROUP_EFFECTS;
+    if (parser_match_identifier_keyword(parser, "relations"))
+        return DOMAIN_LAYER_GROUP_RELATIONS;
+    return DOMAIN_LAYER_GROUP_NONE;
 }
 
 ASTNode* parse_relation_declaration(Parser* parser) {
@@ -545,34 +623,26 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     relation->column = name.column;
 
     /* Parse 'between Left, Right' clause (optional for backward compat) */
-    relation->data.relation_decl.between_left = NULL;
-    relation->data.relation_decl.between_right = NULL;
+    relation->data.relation_decl.between_left_type = NULL;
+    relation->data.relation_decl.between_right_type = NULL;
     relation->data.relation_decl.between_left_many = false;
     relation->data.relation_decl.between_right_many = false;
 
     if (parser_match_identifier_keyword(parser, "between")) {
-        Token left = consume_name_token(parser,
-            "Expected type keyword after 'between' (subject, object, class, or type name)");
-        relation->data.relation_decl.between_left_kind =
-            relation_endpoint_kind_from_token(left);
-        relation->data.relation_decl.between_left = pergyra_strdup(left.text);
-        if (parser_match(parser, TOKEN_LBRACKET)) {
-            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
-            relation->data.relation_decl.between_left_many = true;
-        }
+        relation->data.relation_decl.between_left_type =
+            parse_relation_endpoint_type(parser,
+                &relation->data.relation_decl.between_left_kind,
+                &relation->data.relation_decl.between_left_many,
+                "Expected type keyword after 'between' (subject, object, class, tobject, or type name)");
 
         parser_consume(parser, TOKEN_COMMA,
             "Expected ',' between left and right types in 'between' clause");
 
-        Token right = consume_name_token(parser,
-            "Expected type keyword after ',' (subject, object, class, or type name)");
-        relation->data.relation_decl.between_right_kind =
-            relation_endpoint_kind_from_token(right);
-        relation->data.relation_decl.between_right = pergyra_strdup(right.text);
-        if (parser_match(parser, TOKEN_LBRACKET)) {
-            parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after '['");
-            relation->data.relation_decl.between_right_many = true;
-        }
+        relation->data.relation_decl.between_right_type =
+            parse_relation_endpoint_type(parser,
+                &relation->data.relation_decl.between_right_kind,
+                &relation->data.relation_decl.between_right_many,
+                "Expected type keyword after ',' (subject, object, class, tobject, or type name)");
     }
 
     parse_header_subject_targets(parser,
@@ -799,12 +869,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
         parser_collect_doc_comments(parser);
 
         /* Group slot syntax: subjects [a, b, c]: Type */
-        if (parser_match_identifier_keyword(parser, "subjects")
-            || parser_match_identifier_keyword(parser, "objects")
-            || parser_match_identifier_keyword(parser, "tobjects")) {
-            const char *group_kw = parser->previous_token.text;
-            bool is_subject = group_kw != NULL && strcmp(group_kw, "subjects") == 0;
-            bool is_tobject = group_kw != NULL && strcmp(group_kw, "tobjects") == 0;
+        DomainSlotGroupKind slot_group = parser_match_domain_slot_group_kind(parser);
+        if (slot_group != DOMAIN_GROUP_NONE) {
+            bool is_subject = (slot_group == DOMAIN_GROUP_SUBJECTS);
+            bool is_tobject = (slot_group == DOMAIN_GROUP_TOBJECTS);
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group slot keyword");
             /* Collect names */
             char **names = NULL;
@@ -831,10 +899,10 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             free(names);
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
-        } else if (parser_match_identifier_keyword(parser, "effects")
-                   || parser_match_identifier_keyword(parser, "relations")) {
-            bool is_relation = parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "relations") == 0;
+        } else {
+            DomainLayerGroupKind layer_group = parser_match_domain_layer_group_kind(parser);
+            if (layer_group != DOMAIN_LAYER_GROUP_NONE) {
+            bool is_relation = (layer_group == DOMAIN_LAYER_GROUP_RELATIONS);
             parser_consume(parser, TOKEN_LBRACKET, "Expected '[' after group layer keyword");
             char **names = NULL;
             size_t name_count = 0;
@@ -869,10 +937,9 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
             parser_match(parser, TOKEN_SEMICOLON);
             parser_discard_pending_doc_comment(parser);
-        } else if (parser_match_identifier_keyword(parser, "relation")
-                   || parser_match_identifier_keyword(parser, "effect")) {
-            bool is_relation = parser->previous_token.text != NULL
-                && strcmp(parser->previous_token.text, "relation") == 0;
+        } else if (parser_match(parser, TOKEN_RELATION)
+                   || parser_match(parser, TOKEN_EFFECT)) {
+            bool is_relation = parser->previous_token.type == TOKEN_RELATION;
             bool is_pool = false;
             if (is_relation) {
                 parser_consume(parser, TOKEN_SLOT,
@@ -1139,7 +1206,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_consume(parser, TOKEN_COLON,
                 "Expected ':' after zone state name");
 
-            if (parser_match_identifier_keyword(parser, "effect")) {
+            if (parser_match(parser, TOKEN_EFFECT)) {
                 Token effect_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected effect slot name after 'effect'");
                 if (!parser_match_identifier_keyword(parser, "on")) {
@@ -1156,7 +1223,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
 
                 append_child_node(&zone->data.zone_decl.states,
                     &zone->data.zone_decl.state_count, state);
-            } else if (parser_match_identifier_keyword(parser, "relation")) {
+            } else if (parser_match(parser, TOKEN_RELATION)) {
                 Token relation_slot = parser_consume(parser, TOKEN_IDENTIFIER,
                     "Expected relation slot name after 'relation'");
                 if (!parser_match_identifier_keyword(parser, "between")) {
@@ -1227,6 +1294,7 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             parser_advance(parser);
         }
         } /* end outer else (single slot branch) */
+        } /* end outer else (group layer / single slot branch) */
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after zone body");

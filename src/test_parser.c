@@ -246,7 +246,7 @@ run_subject_keyword_alias_test(void)
     ASTNode *ast = NULL;
     ASTNode *decl = NULL;
 
-    printf("\n=== Test: Subject Keyword Alias ===\n");
+    printf("\n=== Test: Subject Keyword Surface ===\n");
 
     if (lexer == NULL) {
         printf("[FAIL] Failed to create lexer\n");
@@ -304,6 +304,143 @@ cleanup:
 }
 
 static int
+run_action_clause_reordering_test(void)
+{
+    const char *code =
+        "subject Player {\n"
+        "    action Attack(self, target: Player) -> Void\n"
+        "        authorized by self, target\n"
+        "        causes DamageEffect\n"
+        "        within BattleZone\n"
+        "        requires Combatable, Movable\n"
+        "        with effects secure, remote\n"
+        "        where T: Combatable {\n"
+        "        return;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *decl = NULL;
+    ASTNode *method = NULL;
+
+    printf("\n=== Test: Action Clause Reordering ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count != 1) {
+        printf("[FAIL] Expected program with one declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    decl = ast->data.program.statements[0];
+    if (decl == NULL || decl->type != AST_CLASS_DECL
+        || decl->data.class_decl.method_count != 1) {
+        printf("[FAIL] Expected subject with one action declaration\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    method = decl->data.class_decl.methods[0];
+    if (method == NULL || method->type != AST_FUNC_DECL
+        || method->data.func_decl.where_clause == NULL
+        || !method->data.func_decl.has_effects_clause
+        || method->data.func_decl.declared_effects != (EFFECT_SECURE | EFFECT_REMOTE)
+        || method->data.func_decl.required_ability_count != 2
+        || method->data.func_decl.within_zone == NULL
+        || strcmp(method->data.func_decl.within_zone, "BattleZone") != 0
+        || method->data.func_decl.causes_effect == NULL
+        || strcmp(method->data.func_decl.causes_effect, "DamageEffect") != 0
+        || method->data.func_decl.authorized_by_count != 2) {
+        printf("[FAIL] Reordered action clauses were not parsed correctly\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Action clauses parsed successfully regardless of order!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_duplicate_action_clause_diagnostic_test(void)
+{
+    const char *code =
+        "subject Player {\n"
+        "    action Attack(self) -> Void\n"
+        "        requires Combatable\n"
+        "        requires Movable {\n"
+        "        return;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    const char *error = NULL;
+
+    printf("\n=== Test: Duplicate Action Clause Diagnostic ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (!parser_has_error(parser)) {
+        printf("[FAIL] Expected duplicate clause parse error\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    error = parser_get_error(parser);
+    if (error == NULL || strstr(error, "Duplicate 'requires' clause") == NULL) {
+        printf("[FAIL] Expected duplicate clause diagnostic, got: %s\n",
+               error != NULL ? error : "<null>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Duplicate action clause reports an explicit diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_vessel_keyword_alias_test(void)
 {
     const char *code =
@@ -320,7 +457,7 @@ run_vessel_keyword_alias_test(void)
     ASTNode *ast = NULL;
     ASTNode *decl = NULL;
 
-    printf("\n=== Test: Vessel Keyword Alias ===\n");
+    printf("\n=== Test: Vessel Keyword Surface ===\n");
 
     if (lexer == NULL) {
         printf("[FAIL] Failed to create lexer\n");
@@ -416,7 +553,7 @@ run_tobject_keyword_test(void)
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT) {
-        printf("[FAIL] Expected 'tobject' to parse as struct-compatible declaration\n");
+        printf("[FAIL] Expected 'tobject' to parse as tobject declaration surface\n");
         failed = 1;
         goto cleanup;
     }
@@ -428,7 +565,7 @@ run_tobject_keyword_test(void)
         goto cleanup;
     }
 
-    printf("TObject keyword parsed successfully as struct-compatible declaration!\n");
+    printf("TObject keyword parsed successfully as tobject declaration surface!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -481,7 +618,7 @@ run_tobject_keyword_alias_test(void)
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT) {
-        printf("[FAIL] Expected 'tobject' to parse as transfer-object declaration\n");
+        printf("[FAIL] Expected 'tobject' to parse as transfer object surface\n");
         failed = 1;
         goto cleanup;
     }
@@ -493,7 +630,7 @@ run_tobject_keyword_alias_test(void)
         goto cleanup;
     }
 
-    printf("TObject keyword parsed successfully as transfer-object declaration!\n");
+    printf("TObject keyword parsed successfully as transfer object surface!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -516,7 +653,7 @@ run_object_keyword_alias_test(void)
     ASTNode *ast = NULL;
     ASTNode *decl = NULL;
 
-    printf("\n=== Test: Object Keyword Alias ===\n");
+    printf("\n=== Test: Object Keyword Surface ===\n");
 
     if (lexer == NULL) {
         printf("[FAIL] Failed to create lexer\n");
@@ -546,7 +683,7 @@ run_object_keyword_alias_test(void)
     decl = ast->data.program.statements[0];
     if (decl == NULL || decl->type != AST_CLASS_DECL || !decl->data.class_decl.is_struct
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_OBJECT) {
-        printf("[FAIL] Expected 'object' to parse as struct-compatible declaration\n");
+        printf("[FAIL] Expected 'object' to parse as object declaration surface\n");
         failed = 1;
         goto cleanup;
     }
@@ -558,7 +695,7 @@ run_object_keyword_alias_test(void)
         goto cleanup;
     }
 
-    printf("Object keyword parsed successfully as struct-compatible declaration!\n");
+    printf("Object keyword parsed successfully as object declaration surface!\n");
 
 cleanup:
     ast_destroy(ast);
@@ -1239,6 +1376,10 @@ main(void)
     failures += run_doc_comment_attachment_test();
     printf("\n");
     failures += run_signature_effect_clause_test();
+    printf("\n");
+    failures += run_action_clause_reordering_test();
+    printf("\n");
+    failures += run_duplicate_action_clause_diagnostic_test();
     printf("\n");
     failures += run_subject_keyword_alias_test();
     printf("\n");

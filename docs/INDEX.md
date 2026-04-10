@@ -22,6 +22,8 @@
 | **소유권** | [`docs/21_slot_relation_model.md`](docs/21_slot_relation_model.md) | Slot 관계 모델 |
 | **소유권** | [`docs/22_ownership_model.md`](docs/22_ownership_model.md) | own/ref 소유권 모델 |
 | **소유권** | [`docs/56_tobject_boundary_snapshot_policy.md`](docs/56_tobject_boundary_snapshot_policy.md) | `tobject` 전송 계약과 telemetry snapshot 분리 정책 |
+| **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
+| **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **리뷰** | [`review/abi_unification_log.md`](review/abi_unification_log.md) | ABI 통일 실행 로그 |
 | **리뷰** | [`review/channel_ownership_tier.md`](review/channel_ownership_tier.md) | Channel Zone/World 이중 소유 모델 |
 | **리뷰** | [`review/object_vs_tobject_semantics.md`](review/object_vs_tobject_semantics.md) | object vs tobject 의미론 |

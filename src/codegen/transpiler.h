@@ -91,6 +91,7 @@ typedef struct
 } GenericSpecializationEntry;
 
 #define MAX_GENERIC_CLASS_SPECIALIZATIONS 64
+#define MAX_ABILITY_VTABLE_SPECIALIZATIONS 128
 
 typedef struct
 {
@@ -106,6 +107,11 @@ typedef struct
     char kind[16];
     char suffix[128];
 } CollectionSpecEntry;
+
+typedef struct
+{
+    char name[128];
+} AbilityVtableSpecEntry;
 
 /* -----------------------------------------------------------------
  * Transpiler context
@@ -174,6 +180,10 @@ typedef struct
     /* Runtime collection helper specializations (List/Queue) emitted on demand. */
     CollectionSpecEntry collection_specs[MAX_COLLECTION_SPECIALIZATIONS];
     int                 collection_spec_count;
+
+    /* Generic ability vtable specializations emitted on demand. */
+    AbilityVtableSpecEntry ability_vtable_specs[MAX_ABILITY_VTABLE_SPECIALIZATIONS];
+    int                    ability_vtable_spec_count;
 
     /* Current class method emission context for implicit self-field access. */
     const char *current_class_name;

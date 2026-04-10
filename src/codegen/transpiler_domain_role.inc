@@ -3,6 +3,153 @@
  * ================================================================= */
 
 static void
+build_ability_ref_bindings(ASTNode *ability_decl,
+                           ASTNode *ability_ref,
+                           GenericBindingEntry *bindings,
+                           size_t *binding_count)
+{
+    size_t out = 0;
+
+    if (binding_count != NULL)
+        *binding_count = 0;
+    if (ability_decl == NULL || ability_ref == NULL
+        || ability_decl->type != AST_ABILITY_DECL
+        || ability_ref->type != AST_TYPE
+        || ability_decl->data.ability_decl.generic_params == NULL
+        || ability_ref->data.type.generic_args == NULL) {
+        return;
+    }
+
+    for (size_t i = 0;
+         i < ability_decl->data.ability_decl.generic_params->count
+         && i < ability_ref->data.type.generic_args->count
+         && out < MAX_GENERIC_BINDINGS;
+         i++) {
+        GenericParam *formal = ability_decl->data.ability_decl.generic_params->params[i];
+        GenericParam *actual = ability_ref->data.type.generic_args->params[i];
+        char *rendered = NULL;
+
+        if (formal == NULL || formal->name == NULL || actual == NULL || actual->constraint == NULL)
+            continue;
+
+        rendered = render_type_name(actual->constraint);
+        snprintf(bindings[out].name, sizeof(bindings[out].name), "%s", formal->name);
+        snprintf(bindings[out].concrete_type, sizeof(bindings[out].concrete_type),
+            "%s", rendered != NULL ? rendered : "Int");
+        free(rendered);
+        out++;
+    }
+
+    if (binding_count != NULL)
+        *binding_count = out;
+}
+
+static const char *
+ability_ref_vtable_typedef_name(ASTNode *ability_ref, char *buf, size_t buf_size)
+{
+    char *tag;
+
+    if (buf == NULL || buf_size == 0)
+        return "UnknownAbility_vtable";
+
+    tag = render_ability_ref_vtable_tag(ability_ref);
+    snprintf(buf, buf_size, "%s_vtable", tag != NULL ? tag : "UnknownAbility");
+    free(tag);
+    return buf;
+}
+
+static void
+ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
+{
+    ASTNode *ability_decl;
+    const char *ability_name;
+    char typedef_name[128];
+    char *tag = NULL;
+    bool already_emitted = false;
+    CodeBuf *target;
+
+    if (ctx == NULL || ability_ref == NULL
+        || ability_ref->type != AST_TYPE || ability_ref->data.type.name == NULL) {
+        return;
+    }
+    target = ctx->out != NULL ? ctx->out : ctx->decls;
+    if (target == NULL)
+        return;
+
+    ability_name = ability_ref->data.type.name;
+    ability_decl = find_ability_decl(ctx, ability_name);
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
+        return;
+
+    if (ability_decl->data.ability_decl.generic_params == NULL
+        || ability_decl->data.ability_decl.generic_params->count == 0) {
+        return;
+    }
+
+    tag = render_ability_ref_vtable_tag(ability_ref);
+    for (int i = 0; i < ctx->ability_vtable_spec_count; i++) {
+        if (strcmp(ctx->ability_vtable_specs[i].name, tag) == 0) {
+            already_emitted = true;
+            break;
+        }
+    }
+    if (already_emitted) {
+        free(tag);
+        return;
+    }
+
+    if (ctx->ability_vtable_spec_count < MAX_ABILITY_VTABLE_SPECIALIZATIONS) {
+        snprintf(ctx->ability_vtable_specs[ctx->ability_vtable_spec_count++].name,
+            sizeof(ctx->ability_vtable_specs[0].name), "%s", tag);
+    }
+
+    ability_ref_vtable_typedef_name(ability_ref, typedef_name, sizeof(typedef_name));
+    codebuf_write(target, "\ntypedef struct\n{\n");
+
+    for (size_t i = 0; i < ability_decl->data.ability_decl.method_count; i++) {
+        ASTNode *method = ability_decl->data.ability_decl.methods[i];
+        GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
+        size_t binding_count = 0;
+        char *ret_name = NULL;
+        const char *ret_type = "void";
+
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+
+        build_ability_ref_bindings(ability_decl, ability_ref, bindings, &binding_count);
+        if (method->data.func_decl.return_type != NULL) {
+            ret_name = render_type_name_with_bindings(ctx,
+                method->data.func_decl.return_type, bindings, binding_count);
+            ret_type = pergyra_type_to_c(ret_name);
+        }
+
+        codebuf_write(target, "    %s (*%s)(void *self",
+            ret_type, method->data.func_decl.name);
+
+        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+            FuncParam *p = method->data.func_decl.params[j];
+            char *param_name = NULL;
+            const char *pt = "int32_t";
+            if (p == NULL)
+                continue;
+            if (strcmp(p->name, "self") == 0 && p->type == NULL)
+                continue;
+            if (p->type != NULL) {
+                param_name = render_type_name_with_bindings(ctx, p->type, bindings, binding_count);
+                pt = pergyra_type_to_c(param_name);
+            }
+            codebuf_write(target, ", %s %s", pt, p->name);
+            free(param_name);
+        }
+        codebuf_write(target, ");\n");
+        free(ret_name);
+    }
+
+    codebuf_write(target, "} %s;\n", typedef_name);
+    free(tag);
+}
+
+static void
 emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx)
 {
     const char *method_name = method->data.func_decl.name;
@@ -76,12 +223,17 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         (impl->data.impl_ability.ability_ref != NULL
          && impl->data.impl_ability.ability_ref->type == AST_TYPE)
         ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
+    char typedef_name[128];
+    char *vtable_tag = NULL;
     if (ability_name == NULL || impl->data.impl_ability.method_count == 0)
         return;
 
+    ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx);
+    ability_ref_vtable_typedef_name(impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name));
+    vtable_tag = render_ability_ref_vtable_tag(impl->data.impl_ability.ability_ref);
     codebuf_write(ctx->out,
-        "\nstatic const %s_vtable %s_%s_vtable_instance __attribute__((unused)) = {\n",
-        ability_name, role_name, ability_name);
+        "\nstatic const %s %s_%s_vtable_instance __attribute__((unused)) = {\n",
+        typedef_name, role_name, vtable_tag != NULL ? vtable_tag : ability_name);
 
     for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
         ASTNode *method = impl->data.impl_ability.methods[j];
@@ -93,6 +245,7 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
     }
 
     codebuf_write(ctx->out, "};\n");
+    free(vtable_tag);
 }
 
 static void
@@ -340,16 +493,21 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
             ASTNode *ab = rs->data.role_slot.required_abilities[j];
             if (ab != NULL && ab->data.type.name != NULL) {
+                char typedef_name[128];
+                char *vtable_tag = render_ability_ref_vtable_tag(ab);
+                ensure_ability_ref_vtable_decl(ab, ctx);
+                ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name));
                 if (is_dyn) {
                     /* dyn: mutable vtable pointer — swappable at runtime */
                     codebuf_write(ctx->out,
-                        "    const %s_vtable *%s_%s_vt; /* dyn */\n",
-                        ab->data.type.name, slot_name, ab->data.type.name);
+                        "    const %s *%s_%s_vt; /* dyn */\n",
+                        typedef_name, slot_name, vtable_tag);
                 } else {
                     codebuf_write(ctx->out,
-                        "    const %s_vtable *%s_%s_vt;\n",
-                        ab->data.type.name, slot_name, ab->data.type.name);
+                        "    const %s *%s_%s_vt;\n",
+                        typedef_name, slot_name, vtable_tag);
                 }
+                free(vtable_tag);
             }
         }
     }
@@ -414,17 +572,21 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *ab = rs->data.role_slot.required_abilities[j];
             if (ab == NULL || ab->data.type.name == NULL)
                 continue;
-            const char *ab_name = ab->data.type.name;
+            char typedef_name[128];
+            char *vtable_tag = render_ability_ref_vtable_tag(ab);
+            ensure_ability_ref_vtable_decl(ab, ctx);
+            ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name));
             codebuf_write(ctx->out,
                 "\nstatic inline void\n"
-                "%s_bind_%s(%s *self, void *impl, const %s_vtable *vt)\n"
+                "%s_bind_%s(%s *self, void *impl, const %s *vt)\n"
                 "{\n"
                 "    self->%s = impl;\n"
                 "    self->%s_%s_vt = vt;\n"
                 "}\n",
-                name, slot_name, name, ab_name,
+                name, slot_name, name, typedef_name,
                 slot_name,
-                slot_name, ab_name);
+                slot_name, vtable_tag);
+            free(vtable_tag);
         }
     }
 }

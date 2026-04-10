@@ -1320,12 +1320,31 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_RELATION_DECL:
             printf("Relation: %s", node->data.relation_decl.name);
-            if (node->data.relation_decl.between_left) {
-                printf(" between %s%s, %s%s",
-                    node->data.relation_decl.between_left,
-                    node->data.relation_decl.between_left_many ? "[]" : "",
-                    node->data.relation_decl.between_right,
-                    node->data.relation_decl.between_right_many ? "[]" : "");
+            if (node->data.relation_decl.between_left_kind != RELATION_ENDPOINT_NAMED
+                || node->data.relation_decl.between_right_kind != RELATION_ENDPOINT_NAMED
+                || node->data.relation_decl.between_left_type != NULL
+                || node->data.relation_decl.between_right_type != NULL) {
+                printf(" between ");
+                switch (node->data.relation_decl.between_left_kind) {
+                    case RELATION_ENDPOINT_SUBJECT: printf("subject"); break;
+                    case RELATION_ENDPOINT_OBJECT: printf("object"); break;
+                    case RELATION_ENDPOINT_CLASS: printf("class"); break;
+                    case RELATION_ENDPOINT_TOBJECT: printf("tobject"); break;
+                    case RELATION_ENDPOINT_NAMED:
+                        ast_print_inline(node->data.relation_decl.between_left_type);
+                        break;
+                }
+                printf("%s, ", node->data.relation_decl.between_left_many ? "[]" : "");
+                switch (node->data.relation_decl.between_right_kind) {
+                    case RELATION_ENDPOINT_SUBJECT: printf("subject"); break;
+                    case RELATION_ENDPOINT_OBJECT: printf("object"); break;
+                    case RELATION_ENDPOINT_CLASS: printf("class"); break;
+                    case RELATION_ENDPOINT_TOBJECT: printf("tobject"); break;
+                    case RELATION_ENDPOINT_NAMED:
+                        ast_print_inline(node->data.relation_decl.between_right_type);
+                        break;
+                }
+                printf("%s", node->data.relation_decl.between_right_many ? "[]" : "");
             }
             printf("\n");
             for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {

@@ -4118,6 +4118,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         /* Find the ability name by scanning the HIR for the party declaration.
          * The dyn role slot records the required ability. */
         const char *ability_name = slot; /* fallback: use slot name */
+        char *ability_tag = NULL;
         if (ctx->hir != NULL) {
             for (size_t hi = 0; hi < ctx->hir->item_count; hi++) {
                 ASTNode *it = ctx->hir->items[hi].ast;
@@ -4130,7 +4131,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                     if (strcmp(rs->data.role_slot.slot_name, slot) == 0
                         && rs->data.role_slot.ability_count > 0
                         && rs->data.role_slot.required_abilities[0] != NULL) {
-                        ability_name = rs->data.role_slot.required_abilities[0]->data.type.name;
+                        ability_tag = render_ability_ref_vtable_tag(
+                            rs->data.role_slot.required_abilities[0]);
+                        ability_name = ability_tag;
                     }
                 }
             }
@@ -4140,6 +4143,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
             party_type, slot, pvar,
             role, ability_name);
+        free(ability_tag);
         break;
     }
     case AST_ABILITY_DECL:

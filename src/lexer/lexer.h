@@ -47,6 +47,8 @@ typedef enum
     TOKEN_STRUCT,
     TOKEN_OBJECT,
     TOKEN_TOBJECT,
+    TOKEN_VESSEL,
+    TOKEN_INTENT,
     TOKEN_EXTERN,
     TOKEN_WITH,
     TOKEN_AS,
@@ -97,6 +99,9 @@ typedef enum
     /* Roster and World keywords */
     TOKEN_ROSTER,
     TOKEN_WORLD,
+    TOKEN_RELATION,
+    TOKEN_EFFECT,
+    TOKEN_ZONE,
     
     /* Async keywords */
     TOKEN_ASYNC,
@@ -174,11 +179,8 @@ typedef enum
     
     /* Structured Comments */
     TOKEN_DOC_COMMENT,      /* /// */
-    /* Domain / contextual keywords — most are still lexed as IDENTIFIER and
-       recognized by parser. Core nominal declarations now have dedicated
-       tokens: TOKEN_SUBJECT, TOKEN_CLASS, TOKEN_STRUCT, TOKEN_OBJECT,
-       TOKEN_TOBJECT. Remaining contextual surfaces such as vessel/intent/event
-       are still parser-recognized identifiers. */
+    /* Domain / declaration-grade surfaces now have dedicated tokens.
+       Clause words may still be parser-recognized identifiers. */
 
     /* Doc comment tags — produced by scan_doc_comment() */
     TOKEN_DOC_TAG_WHAT,     /* [What]: */

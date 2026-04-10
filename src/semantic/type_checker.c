@@ -2238,7 +2238,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error(ctx, node->data.func_decl.return_type,
-            "Returning subjects by value is not supported yet; return a struct/class value, keep the subject local, or use Box<T>/another handle layer explicitly");
+            "Returning subjects by value is not supported yet.\n"
+            "Reason:\n"
+            "- return type '%s' is a subject, and subject values are zone/world anchored handles\n"
+            "Fix:\n"
+            "- return a struct/class/object/tobject projection instead\n"
+            "- keep the subject local to its owning zone/world\n"
+            "- or use Box<T>/another explicit handle layer",
+            type_name_or_unknown(return_type));
     }
 
     for (size_t i = 0; i < param_count; i++) {

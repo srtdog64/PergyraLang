@@ -2666,7 +2666,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 const char *party_var = party_node->data.identifier.name;
                 const char *party_type = lookup_typed_var(ctx, party_var);
                 ASTNode *party_decl = find_party_decl(ctx, party_type);
-                const char *ability_name = NULL;
+                char *ability_name = NULL;
 
                 if (party_decl != NULL) {
                     for (size_t i = 0; i < party_decl->data.party_decl.role_count; i++) {
@@ -2677,6 +2677,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                             ASTNode *ab = rs->data.role_slot.required_abilities[j];
                             ASTNode *ability_decl;
                             bool has_method = false;
+                            char *ability_tag = NULL;
                             if (ab == NULL || ab->data.type.name == NULL)
                                 continue;
                             ability_decl = find_ability_decl(ctx, ab->data.type.name);
@@ -2691,8 +2692,13 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                                     }
                                 }
                             }
-                            if (has_method || ability_name == NULL)
-                                ability_name = ab->data.type.name;
+                            if (has_method || ability_name == NULL) {
+                                free(ability_name);
+                                ability_tag = render_ability_ref_vtable_tag(ab);
+                                ability_name = ability_tag;
+                            } else {
+                                free(ability_tag);
+                            }
                             if (has_method)
                                 break;
                         }
@@ -2713,6 +2719,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                                               party_var, slot_name, ability_name,
                                               method, args_buf->data);
                     codebuf_destroy(args_buf);
+                    free(ability_name);
                     return result;
                 }
             }
