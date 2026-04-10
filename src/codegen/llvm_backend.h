@@ -43,8 +43,8 @@ LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
 
 /*
  * Generate LLVM IR from MIR (preferred) with HIR fallback.
- * Current fallback debt still includes async/lambda functions,
- * intent/domain emission, and main-wrapper metadata.
+ * Current fallback debt still includes intent/domain emission,
+ * and main-wrapper metadata.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,

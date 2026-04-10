@@ -268,15 +268,8 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
 bool
 llvm_func_requires_hir_fallback(ASTNode *func_decl)
 {
-    /* Current MIR->LLVM gap inventory for ordinary functions:
-     * 1. async declarations
-     *
-     * Everything else should keep shrinking toward MIR-only emission.
-     */
-    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
-        return false;
-
-    return func_decl->is_async_decl;
+    (void)func_decl;
+    return false;
 }
 
 bool

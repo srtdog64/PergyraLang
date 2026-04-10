@@ -10,7 +10,7 @@
 
 - LLVM backend는 `누락돼서 전반적으로 동작 안 하는 상태`가 아니다.
 - 실제 경로는 `MIR-led / HIR-assisted hybrid`다.
-- ordinary non-async function과 subject/class method의 주 경로는 MIR emission을 탄다.
+- ordinary/async function과 subject/class method의 주 경로는 MIR emission을 탄다.
 - 일부 표면은 여전히 HIR fallback debt를 가진다.
 
 ## 직접 검증된 범위
@@ -73,7 +73,6 @@
 
 ### 1. MIR-only 미완료
 
-- `async func`는 아직 HIR fallback이 남아 있다
 - intent/domain/main-wrapper 일부는 여전히 HIR-assisted path를 쓴다
 - MIR routine/step sequence가 비어 있으면 LLVM은 hard error로 실패한다
 
@@ -122,7 +121,6 @@
   - intent trace
   - subject/class dispatch
 - remaining debt:
-  - async-function HIR fallback
   - domain/intent/main-wrapper HIR-assisted paths
   - some expression type exactness
   - MIR-only completion

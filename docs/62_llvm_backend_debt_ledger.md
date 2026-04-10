@@ -54,7 +54,6 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 
 ### 3.1 MIR-only completion debt
 
-- `async func`는 아직 HIR fallback
 - domain / intent / main-wrapper 일부는 HIR-assisted
 - MIR routine/sequence가 없으면 LLVM은 hard error
 

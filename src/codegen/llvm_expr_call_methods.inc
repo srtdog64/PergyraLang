@@ -75,34 +75,10 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                 ctx->builder, vt_cls->struct_type, vt_typed,
                                 (unsigned)method_idx, llvm_tmp_name(ctx));
 
-                            /* Build the function type: ret(self_ptr, user_args...) */
                             size_t argc = node->data.call.arg_count;
-                            LLVMTypeRef *fn_params = calloc(argc + 1,
-                                sizeof(LLVMTypeRef));
-                            fn_params[0] = ctx->type_i8ptr; /* self */
-                            for (size_t ai = 0; ai < argc; ai++)
-                                fn_params[ai + 1] = ctx->type_i32; /* TODO: resolve arg types */
-
-                            /* Determine return type from callee name lookup:
-                             * search registered role methods for this name */
-                            LLVMTypeRef ret_type = ctx->type_i32; /* default */
-                            /* Look for any Role_MethodName function */
-                            for (int ri = 0; ri < ctx->func_count; ri++) {
-                                const char *fn_name = LLVMGetValueName(ctx->functions[ri].fn);
-                                if (fn_name != NULL
-                                    && strlen(fn_name) > strlen(method_name) + 1) {
-                                    const char *suffix = fn_name + strlen(fn_name) - strlen(method_name);
-                                    if (suffix > fn_name && *(suffix - 1) == '_'
-                                        && strcmp(suffix, method_name) == 0) {
-                                        ret_type = ctx->functions[ri].ret_type;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            LLVMTypeRef fn_type = LLVMFunctionType(ret_type,
-                                fn_params, (unsigned)(argc + 1), 0);
-                            LLVMTypeRef fn_ptr_ty = LLVMPointerType(fn_type, 0);
+                            LLVMTypeRef fn_ptr_ty = vt_cls->fields[method_idx].field_type;
+                            LLVMTypeRef fn_type = LLVMGetElementType(fn_ptr_ty);
+                            LLVMTypeRef ret_type = LLVMGetReturnType(fn_type);
 
                             /* Load the function pointer from vtable */
                             LLVMValueRef fn_ptr = LLVMBuildLoad2(ctx->builder,
@@ -128,7 +104,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                     fn_ptr, args, (unsigned)(argc + 1),
                                     llvm_tmp_name(ctx));
                             }
-                            free(fn_params);
                             free(args);
                             return result;
                         }
