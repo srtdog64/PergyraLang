@@ -1657,7 +1657,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         size_t def_index = 0;
         for (size_t i = 0; i < hir_block->statement_count; i++) {
             ASTNode *stmt = hir_block->statements[i];
-            if (stmt == NULL || stmt->type == AST_IF_STMT || stmt->type == AST_RETURN)
+            if (stmt == NULL
+                || stmt->type == AST_IF_STMT
+                || stmt->type == AST_WHILE_LOOP
+                || stmt->type == AST_RETURN)
                 continue;
             if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
                 while (def_index < block->instruction_count

@@ -17,9 +17,13 @@
 
 static bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
+static bool
+semantic_is_known_stdlib_use_module(const char *module_name);
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
+#include "type_checker_visibility.inc"
+#include "type_checker_module_contracts.inc"
 
 const char *
 qubit_state_name(QubitSemanticState state)
@@ -128,87 +132,6 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
             }
         }
     }
-}
-
-static bool
-nominal_decl_matches_runtime_type(ASTNode *decl, Type *object_type)
-{
-    return decl != NULL
-        && decl->type == AST_CLASS_DECL
-        && object_type != NULL
-        && object_type->kind == TYPE_KIND_CLASS
-        && decl->data.class_decl.name != NULL
-        && object_type->name != NULL
-        && strcmp(decl->data.class_decl.name, object_type->name) == 0;
-}
-
-static bool
-private_member_access_allowed(ASTNode *decl, Type *object_type, SemanticContext *ctx)
-{
-    ASTNode *host;
-
-    if (!nominal_decl_matches_runtime_type(decl, object_type) || ctx == NULL)
-        return false;
-
-    host = current_host_decl(ctx);
-    if (host == NULL || host->type != AST_CLASS_DECL)
-        return false;
-
-    if (host == decl)
-        return true;
-
-    return host->data.class_decl.name != NULL
-        && decl->data.class_decl.name != NULL
-        && strcmp(host->data.class_decl.name, decl->data.class_decl.name) == 0;
-}
-
-static bool
-same_module_origin(const char *left, const char *right)
-{
-    return left != NULL && right != NULL && strcmp(left, right) == 0;
-}
-
-static bool
-cross_module_member_access(ASTNode *decl, SemanticContext *ctx)
-{
-    if (decl == NULL || ctx == NULL)
-        return false;
-    if (ctx->current_module_path == NULL || decl->origin_path == NULL)
-        return false;
-    return !same_module_origin(ctx->current_module_path, decl->origin_path);
-}
-
-static bool
-explicit_member_access_allowed(ASTNode *decl,
-                               Type *object_type,
-                               AccessModifier access,
-                               bool has_explicit_access,
-                               SemanticContext *ctx)
-{
-    if (!has_explicit_access)
-        return true;
-    if (access == ACCESS_PUBLIC)
-        return true;
-    if (access == ACCESS_PRIVATE)
-        return private_member_access_allowed(decl, object_type, ctx);
-    if (access == ACCESS_PROTECTED) {
-        if (private_member_access_allowed(decl, object_type, ctx))
-            return true;
-        return !cross_module_member_access(decl, ctx);
-    }
-    return true;
-}
-
-static bool
-explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx)
-{
-    if (decl == NULL || site == NULL || ctx == NULL)
-        return true;
-    if (site->origin_path == NULL || decl->origin_path == NULL)
-        return true;
-    if (same_module_origin(site->origin_path, decl->origin_path))
-        return true;
-    return decl->is_exported;
 }
 
 static bool
@@ -1727,44 +1650,7 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_declare(ctx->scope, sym);
 
-    /* Check require fields have valid types */
-    for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
-        ASTNode *req = node->data.ability_decl.require_fields[i];
-        if (req == NULL || req->data.require_field.name == NULL
-            || req->data.require_field.type == NULL) {
-            semantic_error(ctx, node,
-                "Ability '%s' has an invalid require field declaration",
-                name != NULL ? name : "<ability>");
-            continue;
-        }
-        for (size_t j = 0; j < i; j++) {
-            ASTNode *prev = node->data.ability_decl.require_fields[j];
-            if (prev != NULL && prev->data.require_field.name != NULL
-                && strcmp(prev->data.require_field.name,
-                          req->data.require_field.name) == 0) {
-                semantic_error(ctx, req,
-                    "Ability '%s' declares duplicate require field '%s'",
-                    name != NULL ? name : "<ability>",
-                    req->data.require_field.name);
-                break;
-            }
-        }
-        resolve_type_node(req->data.require_field.type, ctx);
-        if (req->data.require_field.type != NULL
-            && req->data.require_field.type->type == AST_TYPE
-            && req->data.require_field.type->data.type.name != NULL) {
-            ASTNode *type_decl = find_type_decl_by_name(
-                ctx->program_root, req->data.require_field.type->data.type.name);
-            if (type_decl != NULL
-                && !explicit_type_reference_allowed(type_decl, node, ctx)) {
-                semantic_error(ctx, req,
-                    "Ability '%s' cannot require field '%s' with non-exported type '%s' from another module",
-                    name != NULL ? name : "<ability>",
-                    req->data.require_field.name,
-                    req->data.require_field.type->data.type.name);
-            }
-        }
-    }
+    validate_ability_require_fields(node, ctx);
 
     /* Check method signatures */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
@@ -2019,42 +1905,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (is_action) {
         const char *subject_name = NULL;
 
-        if (enclosing_nominal == NULL
-            || enclosing_nominal->type != AST_CLASS_DECL
-            || enclosing_nominal->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
-            semantic_error(ctx, node,
-                "action '%s' is only supported inside subject declarations",
-                name != NULL ? name : "<anonymous>");
-        } else {
+        if (enclosing_nominal != NULL
+            && enclosing_nominal->type == AST_CLASS_DECL
+            && enclosing_nominal->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
             subject_name = enclosing_nominal->data.class_decl.name;
         }
-
-        for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
-            const char *ability = node->data.func_decl.required_abilities[i];
-            ASTNode *ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
-            if (ability_decl == NULL) {
-                semantic_error(ctx, node,
-                    "action '%s' requires unknown ability '%s'",
-                    name != NULL ? name : "<anonymous>",
-                    ability != NULL ? ability : "<ability>");
-                continue;
-            }
-            if (!explicit_type_reference_allowed(ability_decl, node, ctx)) {
-                semantic_error(ctx, node,
-                    "action '%s' cannot require non-exported ability '%s' from another module",
-                    name != NULL ? name : "<anonymous>",
-                    ability != NULL ? ability : "<ability>");
-                continue;
-            }
-            if (subject_name != NULL
-                && !subject_type_has_ability(ctx->program_root, subject_name, ability)) {
-                semantic_error(ctx, node,
-                    "action '%s' requires ability '%s' but subject '%s' does not implement it",
-                    name != NULL ? name : "<anonymous>",
-                    ability != NULL ? ability : "<ability>",
-                    subject_name);
-            }
-        }
+        validate_action_required_abilities(node, enclosing_nominal, ctx);
 
         /* Auto-infer 'within' when action is inside a zone */
         if (node->data.func_decl.within_zone == NULL
@@ -2873,31 +2729,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_USE_DECL
-            || stmt->data.use_decl.module_name == NULL) {
-            continue;
-        }
-        if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
-            semantic_error(ctx, stmt,
-                "Unknown stdlib use '%s'; expected one of datetime, http, page, spray, storage",
-                stmt->data.use_decl.module_name);
-            continue;
-        }
-        for (size_t j = 0; j < i; j++) {
-            ASTNode *prev = program->data.program.statements[j];
-            if (prev != NULL && prev->type == AST_USE_DECL
-                && prev->data.use_decl.module_name != NULL
-                && strcmp(prev->data.use_decl.module_name,
-                          stmt->data.use_decl.module_name) == 0) {
-                semantic_warning(ctx, stmt,
-                    "Duplicate stdlib use '%s'; resolver will merge it once",
-                    stmt->data.use_decl.module_name);
-                break;
-            }
-        }
-    }
+    validate_program_stdlib_use_decls(program, ctx);
 
     for (size_t i = 0; i < program->data.program.count; i++)
         type_check_statement(program->data.program.statements[i], ctx);
