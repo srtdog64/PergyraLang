@@ -9,6 +9,8 @@
 
 #include "fmt.h"
 #include "../lexer/lexer.h"
+#include "../parser/parser.h"
+#include "../parser/ast.h"
 #include "../common/string_compat.h"
 
 #include <stdio.h>
@@ -21,16 +23,45 @@ static char *
 read_file(const char *path)
 {
     FILE *f = fopen(path, "rb");
+    size_t read_len;
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
     long len = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *buf = malloc((size_t)len + 1);
     if (!buf) { fclose(f); return NULL; }
-    fread(buf, 1, (size_t)len, f);
-    buf[len] = '\0';
+    read_len = fread(buf, 1, (size_t)len, f);
+    buf[read_len] = '\0';
     fclose(f);
     return buf;
+}
+
+static bool
+source_is_parseable(const char *source)
+{
+    Lexer *lexer;
+    Parser *parser;
+    ASTNode *program;
+    bool ok;
+
+    if (source == NULL)
+        return false;
+
+    lexer = lexer_create(source);
+    if (lexer == NULL)
+        return false;
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        return false;
+    }
+
+    program = parser_parse_program(parser);
+    ok = !parser_has_error(parser);
+    ast_destroy(program);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return ok;
 }
 
 typedef struct {
@@ -59,18 +90,21 @@ int
 driver_run_fmt_command(int argc, char *argv[])
 {
     bool write_inplace = false;
+    bool check_only = false;
     const char *path = NULL;
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--write") == 0 || strcmp(argv[i], "-w") == 0) {
             write_inplace = true;
+        } else if (strcmp(argv[i], "--check") == 0) {
+            check_only = true;
         } else if (argv[i][0] != '-') {
             path = argv[i];
         }
     }
 
     if (!path) {
-        fprintf(stderr, "Usage: pgy fmt <file.pgy> [--write]\n");
+        fprintf(stderr, "Usage: pgy fmt <file.pgy> [--write] [--check]\n");
         return 1;
     }
 
@@ -85,7 +119,7 @@ driver_run_fmt_command(int argc, char *argv[])
     char tmppath[512];
     tmppath[0] = '\0';
 
-    if (write_inplace) {
+    if (write_inplace || check_only) {
         snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
         out = fopen(tmppath, "w");
         if (!out) {
@@ -195,14 +229,48 @@ driver_run_fmt_command(int argc, char *argv[])
     if (!ctx.at_line_start) fmt_newline(&ctx);
 
     lexer_destroy(lexer);
-    free(source);
 
-    if (write_inplace) {
+    if (write_inplace || check_only) {
+        char *formatted;
         fclose(out);
+        formatted = read_file(tmppath);
+        if (formatted == NULL) {
+            remove(tmppath);
+            fprintf(stderr, "pgy fmt: cannot read temp output\n");
+            return 1;
+        }
+        if (!source_is_parseable(formatted)) {
+            free(formatted);
+            remove(tmppath);
+            fprintf(stderr, "pgy fmt: formatter produced unparsable output for '%s'\n", path);
+            return 1;
+        }
+        if (check_only) {
+            int same = strcmp(source, formatted) == 0;
+            free(source);
+            free(formatted);
+            remove(tmppath);
+            if (!same) {
+                fprintf(stderr, "pgy fmt: '%s' needs formatting\n", path);
+                return 1;
+            }
+            return 0;
+        }
+        if (strcmp(source, formatted) == 0) {
+            free(source);
+            free(formatted);
+            remove(tmppath);
+            printf("pgy fmt: '%s' already formatted\n", path);
+            return 0;
+        }
+        free(source);
+        free(formatted);
         remove(path);
         rename(tmppath, path);
         printf("pgy fmt: formatted '%s'\n", path);
+        return 0;
     }
 
+    free(source);
     return 0;
 }

@@ -285,6 +285,12 @@ type_effect_mask_join(uint32_t left, uint32_t right)
     return type_effect_mask_closure(left) | type_effect_mask_closure(right);
 }
 
+uint32_t
+type_effect_mask_meet(uint32_t left, uint32_t right)
+{
+    return type_effect_mask_closure(left) & type_effect_mask_closure(right);
+}
+
 bool
 type_effect_mask_requires_authority(uint32_t mask)
 {
@@ -313,6 +319,19 @@ type_effect_mask_subsumes(uint32_t available, uint32_t required)
     uint32_t closed_available = type_effect_mask_closure(available);
     uint32_t closed_required = type_effect_mask_closure(required);
     return (closed_available & closed_required) == closed_required;
+}
+
+bool
+type_effect_mask_conflicts(uint32_t left, uint32_t right)
+{
+    uint32_t closed_left = type_effect_mask_closure(left);
+    uint32_t closed_right = type_effect_mask_closure(right);
+
+    if ((closed_left & EFFECT_SECURE) != 0 && (closed_right & EFFECT_REMOTE) != 0)
+        return true;
+    if ((closed_left & EFFECT_REMOTE) != 0 && (closed_right & EFFECT_SECURE) != 0)
+        return true;
+    return false;
 }
 
 EffectMaskRelation

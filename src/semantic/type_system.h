@@ -147,10 +147,12 @@ Type* type_create_write_view(Type* inner_type);
 uint32_t type_function_effects(const Type* type);
 uint32_t type_effect_mask_closure(uint32_t mask);
 uint32_t type_effect_mask_join(uint32_t left, uint32_t right);
+uint32_t type_effect_mask_meet(uint32_t left, uint32_t right);
 bool type_effect_mask_requires_authority(uint32_t mask);
 bool type_effect_mask_touches_resource_boundary(uint32_t mask);
 bool type_effect_mask_has(uint32_t mask, uint32_t effect);
 bool type_effect_mask_subsumes(uint32_t available, uint32_t required);
+bool type_effect_mask_conflicts(uint32_t left, uint32_t right);
 typedef enum {
     EFFECT_REL_EQUAL = 0,
     EFFECT_REL_SUPERSET,

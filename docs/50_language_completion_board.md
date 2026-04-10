@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-10 (effect partial-order compare/join/authority-resource helper, secure token pairing/channel transport/zone-intent authority 규칙, foreign hidden ability contract, constructor visibility boundary, subject/class method MIR path 기반 반영)
+마지막 업데이트: 2026-04-10 (effect meet/conflict API, debugger breakpoint/backtrace 명령, formatter check/parse guard, LSP completion/documentSymbol/definition, slot escape 분류 경고 추가)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -25,8 +25,8 @@
 | Effect lattice | 부분 구현 | `effect_mask` closure, join API, 최소 subsumption, partial-order compare, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
 | Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
 | MIR -> LLVM | 진행 중 | 남은 HIR fallback 범주를 명시 | domain/intent/main-wrapper fallback 제거 |
-| Debugger / Formatter / LSP | 초기 상태 | 현재 범위를 명시 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
-| Stack slot / escape analysis | 미구현 | 후보 위치를 고정 | alloca escape 분류 + non-escaping local sinking |
+| Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard, LSP completion/documentSymbol/definition 추가 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
+| Stack slot / escape analysis | 진행 중 | return/call/channel-send 기반 slot escape 분류/경고 추가 | backend local sinking/elision 연결 |
 | Generic `where` validation | 진행 중 | func/class/role bound validation, function call-site check, class specialization enforcement 추가 | generic instantiation 전반과 richer diagnostics 확장 |
 
 ## 2. 항목별 현재 진실
@@ -118,9 +118,9 @@
 
 현재:
 
-- `fmt` command는 존재하지만 완성된 formatter 수준은 아님
-- LSP는 hover/기본 응답 위주
-- debugger는 driver surface는 있으나 완성된 language debugging workflow는 아님
+- `fmt`는 `--write` 외에 `--check`와 formatted output parse-guard를 가진다
+- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition을 제공한다
+- debugger는 breakpoint set/clear/list와 single-frame backtrace를 지원한다
 
 현재 진입점:
 
@@ -133,7 +133,8 @@
 현재:
 
 - backend에는 local alloca / temporary materialization이 많음
-- MIR/LLVM 모두 “non-escaping local”을 아직 강하게 분류하지 않음
+- semantic `slot_analyzer`는 이제 `return/call/channel-send` 기반 slot escape를 분류하고 conservative warning을 낸다
+- MIR/LLVM의 실제 local sinking/elision은 아직 미완료다
 
 부족한 것:
 

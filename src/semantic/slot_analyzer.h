@@ -38,6 +38,14 @@ typedef struct
     ASTNode*           program_root;
 } SlotAnalyzer;
 
+typedef enum
+{
+    SLOT_ESCAPE_NONE    = 0,
+    SLOT_ESCAPE_RETURN  = 1 << 0,
+    SLOT_ESCAPE_CALL    = 1 << 1,
+    SLOT_ESCAPE_CHANNEL = 1 << 2
+} SlotEscapeFlags;
+
 /* -----------------------------------------------------------------
  * Lifecycle
  * ----------------------------------------------------------------- */
@@ -83,5 +91,6 @@ bool slot_analyze_if_stmt(ASTNode* ifstmt, SlotAnalyzer* sa);
  * Write-read conflict → warning (race risk).
  */
 bool slot_analyze_parallel_block(ASTNode* parallel, SlotAnalyzer* sa);
+unsigned slot_analyze_escape_flags(ASTNode* node, const char* slot_name);
 
 #endif /* PERGYRA_SLOT_ANALYZER_H */

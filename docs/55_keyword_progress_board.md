@@ -80,7 +80,7 @@
 | `object` | 95% | local projection contract로 정리 완료 |
 | `vessel` | 85% | subject 내부 수용체 모델 안정 |
 | `relation` | 80% | domain/runtime projection sync 경로 존재 |
-| `effect` | 94% | closure + join API + partial-order compare API, authority/resource helper, contract check, branch/match/disjoint-branch join 회귀까지 반영, richer authority/resource 통합 partial order는 일부 남음 |
+| `effect` | 95% | closure + join/meet API + partial-order compare/conflict API, authority/resource helper, contract check, branch/match/disjoint-branch join 회귀까지 반영, richer authority/resource 통합 partial order는 일부 남음 |
 | `zone` | 85% | core execution/authority boundary |
 | `roster` | 90% | `systemic` 제거 후 일관화 완료 |
 | `world` | 85% | cross-zone orchestration 경계 |

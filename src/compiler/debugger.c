@@ -29,6 +29,7 @@ typedef struct {
     int bp_count;
     bool step_mode;
     bool running;
+    int current_line;
     char **source_lines;
     int line_count;
     const char *current_file;
@@ -91,9 +92,45 @@ is_breakpoint(DebugCtx *ctx, int line)
 }
 
 static void
+list_breakpoints(DebugCtx *ctx)
+{
+    if (ctx->bp_count == 0) {
+        printf("No breakpoints set\n");
+        return;
+    }
+    printf("Breakpoints:\n");
+    for (int i = 0; i < ctx->bp_count; i++)
+        printf("  %d\n", ctx->breakpoints[i]);
+}
+
+static void
+clear_breakpoint(DebugCtx *ctx, int line)
+{
+    for (int i = 0; i < ctx->bp_count; i++) {
+        if (ctx->breakpoints[i] == line) {
+            for (int j = i; j + 1 < ctx->bp_count; j++)
+                ctx->breakpoints[j] = ctx->breakpoints[j + 1];
+            ctx->bp_count--;
+            printf("Breakpoint cleared at line %d\n", line);
+            return;
+        }
+    }
+    printf("No breakpoint set at line %d\n", line);
+}
+
+static void
+print_backtrace(DebugCtx *ctx)
+{
+    printf("#0  %s:%d in Main\n",
+        ctx->current_file != NULL ? ctx->current_file : "<unknown>",
+        ctx->current_line);
+}
+
+static void
 debug_prompt(DebugCtx *ctx, int current_line)
 {
     char cmd[256];
+    ctx->current_line = current_line;
 
     show_context(ctx, current_line, 3);
 
@@ -134,7 +171,23 @@ debug_prompt(DebugCtx *ctx, int current_line)
             }
             continue;
         }
-        printf("Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)\n");
+        if (strncmp(cmd, "cl ", 3) == 0 || strncmp(cmd, "clear ", 6) == 0) {
+            const char *arg = (cmd[1] == 'l') ? (cmd + 3) : (cmd + 6);
+            int line = atoi(arg);
+            if (line > 0)
+                clear_breakpoint(ctx, line);
+            continue;
+        }
+        if (strcmp(cmd, "info break") == 0
+            || strcmp(cmd, "info breakpoints") == 0) {
+            list_breakpoints(ctx);
+            continue;
+        }
+        if (strcmp(cmd, "bt") == 0 || strcmp(cmd, "backtrace") == 0) {
+            print_backtrace(ctx);
+            continue;
+        }
+        printf("Commands: n(ext), c(ontinue), b <line>, cl <line>, info break, bt, l(ist), q(uit)\n");
     }
 }
 
@@ -236,6 +289,7 @@ driver_run_debug_command(int argc, char *argv[])
     DebugCtx ctx = {0};
     ctx.step_mode = true;
     ctx.running = true;
+    ctx.current_line = 1;
     ctx.current_file = path;
     ctx.source_lines = split_lines(source, &ctx.line_count);
 

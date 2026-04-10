@@ -21,6 +21,7 @@
 #include "../common/string_compat.h"
 #include "../lexer/lexer.h"
 #include "../parser/parser.h"
+#include "../parser/ast.h"
 #include "../semantic/semantic.h"
 
 /* ================================================================= */
@@ -99,6 +100,328 @@ lsp_notify(const char *method, const char *params_json)
         "{\"jsonrpc\":\"2.0\",\"method\":\"%s\",\"params\":%s}",
         method, params_json);
     lsp_send(response_buf);
+}
+
+static const char *lsp_completion_items =
+    "["
+    "{\"label\":\"subject\",\"kind\":14,\"detail\":\"Identity-bearing host type\"},"
+    "{\"label\":\"object\",\"kind\":14,\"detail\":\"Passive local projection/state type\"},"
+    "{\"label\":\"tobject\",\"kind\":14,\"detail\":\"Boundary transfer type\"},"
+    "{\"label\":\"intent\",\"kind\":14,\"detail\":\"Orchestration core declaration\"},"
+    "{\"label\":\"parallel\",\"kind\":14,\"detail\":\"Core execution primitive\"},"
+    "{\"label\":\"spawn\",\"kind\":14,\"detail\":\"Parallel task creation\"},"
+    "{\"label\":\"async\",\"kind\":14,\"detail\":\"Suspension surface\"},"
+    "{\"label\":\"await\",\"kind\":14,\"detail\":\"Join/completion surface\"},"
+    "{\"label\":\"select\",\"kind\":14,\"detail\":\"Readiness arbitration\"},"
+    "{\"label\":\"zone\",\"kind\":14,\"detail\":\"Authority/boundary execution layer\"},"
+    "{\"label\":\"roster\",\"kind\":14,\"detail\":\"Party container declaration\"},"
+    "{\"label\":\"world\",\"kind\":14,\"detail\":\"Cross-zone orchestration boundary\"},"
+    "{\"label\":\"ability\",\"kind\":14,\"detail\":\"Behavior contract\"},"
+    "{\"label\":\"role\",\"kind\":14,\"detail\":\"Ability implementation\"},"
+    "{\"label\":\"func\",\"kind\":14,\"detail\":\"Function declaration\"},"
+    "{\"label\":\"let\",\"kind\":14,\"detail\":\"Variable declaration\"}"
+    "]";
+
+static void
+json_escape_copy(char *dst, size_t dst_size, const char *src)
+{
+    size_t di = 0;
+    if (dst == NULL || dst_size == 0) return;
+    if (src == NULL) {
+        dst[0] = '\0';
+        return;
+    }
+    for (const char *p = src; *p && di + 2 < dst_size; p++) {
+        if (*p == '"' || *p == '\\')
+            dst[di++] = '\\';
+        dst[di++] = *p;
+    }
+    dst[di] = '\0';
+}
+
+static void
+append_document_symbol(char *buf, size_t buf_size, size_t *off,
+                       const char *name, int kind, int line)
+{
+    char escaped[256];
+    int n;
+
+    if (buf == NULL || off == NULL || name == NULL || *off >= buf_size)
+        return;
+    json_escape_copy(escaped, sizeof(escaped), name);
+    if (*off > 1 && *off < buf_size - 1)
+        buf[(*off)++] = ',';
+    n = snprintf(buf + *off, buf_size - *off,
+        "{\"name\":\"%s\",\"kind\":%d,"
+        "\"range\":{\"start\":{\"line\":%d,\"character\":0},\"end\":{\"line\":%d,\"character\":0}},"
+        "\"selectionRange\":{\"start\":{\"line\":%d,\"character\":0},\"end\":{\"line\":%d,\"character\":0}}}",
+        escaped, kind, line, line, line, line);
+    if (n > 0)
+        *off += (size_t)n;
+}
+
+static void
+respond_document_symbols(int id, const char *source_text)
+{
+    Lexer *lexer;
+    Parser *parser;
+    ASTNode *ast;
+    char symbols[16384];
+    size_t off = 0;
+
+    lexer = lexer_create(source_text);
+    if (lexer == NULL) {
+        lsp_respond(id, "[]");
+        return;
+    }
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        lsp_respond(id, "[]");
+        return;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser) || ast == NULL || ast->type != AST_PROGRAM) {
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        lsp_respond(id, "[]");
+        return;
+    }
+
+    symbols[off++] = '[';
+    for (size_t i = 0; i < ast->data.program.count; i++) {
+        ASTNode *stmt = ast->data.program.statements[i];
+        int line;
+        if (stmt == NULL)
+            continue;
+        line = stmt->line > 0 ? (int)stmt->line - 1 : 0;
+        switch (stmt->type) {
+        case AST_FUNC_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.func_decl.name, 12, line);
+            break;
+        case AST_CLASS_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.class_decl.name, 5, line);
+            break;
+        case AST_ABILITY_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.ability_decl.name, 11, line);
+            break;
+        case AST_ROLE_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.role_decl.name, 11, line);
+            break;
+        case AST_PARTY_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.party_decl.name, 5, line);
+            break;
+        case AST_ROSTER_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.roster_decl.name, 5, line);
+            break;
+        case AST_WORLD_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.world_decl.name, 5, line);
+            break;
+        case AST_RELATION_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.relation_decl.name, 5, line);
+            break;
+        case AST_EFFECT_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.effect_decl.name, 5, line);
+            break;
+        case AST_ZONE_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.zone_decl.name, 5, line);
+            break;
+        case AST_ENUM_DECL:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.enum_decl.name, 10, line);
+            break;
+        case AST_TYPE_ALIAS:
+            append_document_symbol(symbols, sizeof(symbols), &off,
+                stmt->data.type_alias.name, 13, line);
+            break;
+        default:
+            break;
+        }
+    }
+    if (off < sizeof(symbols) - 1)
+        symbols[off++] = ']';
+    symbols[off] = '\0';
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    lsp_respond(id, symbols);
+}
+
+static bool
+extract_word_at_position(const char *source_text, int line, int character,
+                         char *out_word, size_t out_word_size)
+{
+    const char *p;
+    const char *line_start;
+    const char *ws;
+    const char *we;
+    size_t wlen;
+    int cur_line = 0;
+
+    if (source_text == NULL || out_word == NULL || out_word_size == 0
+        || line < 0 || character < 0) {
+        return false;
+    }
+
+    p = source_text;
+    while (cur_line < line && *p) {
+        if (*p == '\n')
+            cur_line++;
+        p++;
+    }
+    line_start = p;
+    p += character;
+    ws = p;
+    while (ws > line_start && ((*(ws - 1) >= 'a' && *(ws - 1) <= 'z')
+        || (*(ws - 1) >= 'A' && *(ws - 1) <= 'Z')
+        || (*(ws - 1) >= '0' && *(ws - 1) <= '9')
+        || *(ws - 1) == '_')) {
+        ws--;
+    }
+    we = p;
+    while ((*we >= 'a' && *we <= 'z')
+        || (*we >= 'A' && *we <= 'Z')
+        || (*we >= '0' && *we <= '9')
+        || *we == '_') {
+        we++;
+    }
+
+    wlen = (size_t)(we - ws);
+    if (wlen == 0 || wlen >= out_word_size)
+        return false;
+    memcpy(out_word, ws, wlen);
+    out_word[wlen] = '\0';
+    return true;
+}
+
+static bool
+ast_decl_name_and_line(ASTNode *stmt, const char **name_out, int *line_out)
+{
+    if (name_out == NULL || line_out == NULL || stmt == NULL)
+        return false;
+
+    *name_out = NULL;
+    *line_out = stmt->line > 0 ? (int)stmt->line - 1 : 0;
+
+    switch (stmt->type) {
+    case AST_FUNC_DECL:
+        *name_out = stmt->data.func_decl.name;
+        return *name_out != NULL;
+    case AST_CLASS_DECL:
+        *name_out = stmt->data.class_decl.name;
+        return *name_out != NULL;
+    case AST_ABILITY_DECL:
+        *name_out = stmt->data.ability_decl.name;
+        return *name_out != NULL;
+    case AST_ROLE_DECL:
+        *name_out = stmt->data.role_decl.name;
+        return *name_out != NULL;
+    case AST_PARTY_DECL:
+        *name_out = stmt->data.party_decl.name;
+        return *name_out != NULL;
+    case AST_ROSTER_DECL:
+        *name_out = stmt->data.roster_decl.name;
+        return *name_out != NULL;
+    case AST_WORLD_DECL:
+        *name_out = stmt->data.world_decl.name;
+        return *name_out != NULL;
+    case AST_RELATION_DECL:
+        *name_out = stmt->data.relation_decl.name;
+        return *name_out != NULL;
+    case AST_EFFECT_DECL:
+        *name_out = stmt->data.effect_decl.name;
+        return *name_out != NULL;
+    case AST_ZONE_DECL:
+        *name_out = stmt->data.zone_decl.name;
+        return *name_out != NULL;
+    case AST_ENUM_DECL:
+        *name_out = stmt->data.enum_decl.name;
+        return *name_out != NULL;
+    case AST_TYPE_ALIAS:
+        *name_out = stmt->data.type_alias.name;
+        return *name_out != NULL;
+    default:
+        return false;
+    }
+}
+
+static void
+respond_definition(int id, const char *uri, const char *source_text,
+                   int line, int character)
+{
+    Lexer *lexer;
+    Parser *parser;
+    ASTNode *ast;
+    char word[128];
+
+    if (uri == NULL || source_text == NULL
+        || !extract_word_at_position(source_text, line, character,
+                                     word, sizeof(word))) {
+        lsp_respond(id, "null");
+        return;
+    }
+
+    lexer = lexer_create(source_text);
+    if (lexer == NULL) {
+        lsp_respond(id, "null");
+        return;
+    }
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        lexer_destroy(lexer);
+        lsp_respond(id, "null");
+        return;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser) || ast == NULL || ast->type != AST_PROGRAM) {
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        lsp_respond(id, "null");
+        return;
+    }
+
+    for (size_t i = 0; i < ast->data.program.count; i++) {
+        const char *decl_name = NULL;
+        int decl_line = 0;
+        char escaped_uri[2048];
+
+        if (!ast_decl_name_and_line(ast->data.program.statements[i], &decl_name, &decl_line))
+            continue;
+        if (strcmp(decl_name, word) != 0)
+            continue;
+
+        json_escape_copy(escaped_uri, sizeof(escaped_uri), uri);
+        snprintf(response_buf, sizeof(response_buf),
+            "{\"jsonrpc\":\"2.0\",\"id\":%d,\"result\":"
+            "{\"uri\":\"%s\",\"range\":{\"start\":{\"line\":%d,\"character\":0},"
+            "\"end\":{\"line\":%d,\"character\":0}}}}",
+            id, escaped_uri, decl_line, decl_line);
+        ast_destroy(ast);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        lsp_send(response_buf);
+        return;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    lsp_respond(id, "null");
 }
 
 /* ================================================================= */
@@ -270,7 +593,10 @@ main(void)
                 "{"
                 "\"capabilities\":{"
                     "\"textDocumentSync\":1,"
-                    "\"hoverProvider\":true"
+                    "\"hoverProvider\":true,"
+                    "\"completionProvider\":{\"resolveProvider\":false},"
+                    "\"documentSymbolProvider\":true,"
+                    "\"definitionProvider\":true"
                 "},"
                 "\"serverInfo\":{\"name\":\"pgy-lsp\",\"version\":\"0.1\"}"
                 "}");
@@ -395,6 +721,24 @@ main(void)
             } else {
                 lsp_respond(id, "null");
             }
+        }
+        else if (strcmp(method, "textDocument/completion") == 0) {
+            lsp_respond(id, lsp_completion_items);
+        }
+        else if (strcmp(method, "textDocument/documentSymbol") == 0) {
+            if (doc_content != NULL)
+                respond_document_symbols(id, doc_content);
+            else
+                lsp_respond(id, "[]");
+        }
+        else if (strcmp(method, "textDocument/definition") == 0) {
+            int line = -1, character = -1;
+            const char *pos = strstr(msg, "\"position\"");
+            if (pos) {
+                line = json_find_int(pos, "line");
+                character = json_find_int(pos, "character");
+            }
+            respond_definition(id, doc_uri, doc_content, line, character);
         }
         else {
             /* Unknown method — respond with null for requests */

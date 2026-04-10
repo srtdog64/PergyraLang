@@ -8,8 +8,9 @@
  *   n / next     — step to next statement
  *   c / continue — run to next breakpoint or end
  *   b <line>     — set breakpoint at line
- *   p <expr>     — print expression value
- *   bt           — show call stack (backtrace)
+ *   cl <line>    — clear breakpoint at line
+ *   info break   — list breakpoints
+ *   bt           — show current backtrace frame
  *   q / quit     — exit debugger
  *   l / list     — show current source context
  */

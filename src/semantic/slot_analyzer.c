@@ -107,6 +107,12 @@ typedef struct
     unsigned    mask;
 } SlotAccessEntry;
 
+typedef struct
+{
+    const char *name;
+    unsigned    mask;
+} SlotEscapeEntry;
+
 static void
 slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
                    const char *name, unsigned mask)
@@ -125,6 +131,35 @@ slot_access_record(SlotAccessEntry **entries, size_t *count, size_t *capacity,
         size_t new_cap = *capacity == 0 ? 8 : (*capacity * 2);
         SlotAccessEntry *new_entries = realloc(*entries,
             new_cap * sizeof(SlotAccessEntry));
+        if (new_entries == NULL)
+            return;
+        *entries = new_entries;
+        *capacity = new_cap;
+    }
+
+    (*entries)[*count].name = name;
+    (*entries)[*count].mask = mask;
+    (*count)++;
+}
+
+static void
+slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
+                   const char *name, unsigned mask)
+{
+    if (name == NULL || entries == NULL || count == NULL || capacity == NULL)
+        return;
+
+    for (size_t i = 0; i < *count; i++) {
+        if (strcmp((*entries)[i].name, name) == 0) {
+            (*entries)[i].mask |= mask;
+            return;
+        }
+    }
+
+    if (*count >= *capacity) {
+        size_t new_cap = *capacity == 0 ? 8 : (*capacity * 2);
+        SlotEscapeEntry *new_entries = realloc(*entries,
+            new_cap * sizeof(SlotEscapeEntry));
         if (new_entries == NULL)
             return;
         *entries = new_entries;
@@ -216,6 +251,85 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
             slot_access_record(entries, count, capacity,
                 arg->data.identifier.name, SLOT_ACCESS_RELEASE);
         }
+    }
+}
+
+static void
+collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
+                     size_t *count, size_t *capacity)
+{
+    if (node == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++)
+            collect_slot_escapes(node->data.block.statements[i], entries, count, capacity);
+        break;
+    case AST_IF_STMT:
+        collect_slot_escapes(node->data.if_stmt.condition, entries, count, capacity);
+        collect_slot_escapes(node->data.if_stmt.then_branch, entries, count, capacity);
+        collect_slot_escapes(node->data.if_stmt.else_branch, entries, count, capacity);
+        break;
+    case AST_WITH_STMT:
+        collect_slot_escapes(node->data.with_stmt.body, entries, count, capacity);
+        break;
+    case AST_FOR_LOOP:
+        collect_slot_escapes(node->data.for_loop.range_start, entries, count, capacity);
+        collect_slot_escapes(node->data.for_loop.range_end, entries, count, capacity);
+        collect_slot_escapes(node->data.for_loop.iterable, entries, count, capacity);
+        collect_slot_escapes(node->data.for_loop.body, entries, count, capacity);
+        break;
+    case AST_WHILE_LOOP:
+        collect_slot_escapes(node->data.while_loop.condition, entries, count, capacity);
+        collect_slot_escapes(node->data.while_loop.body, entries, count, capacity);
+        break;
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+            collect_slot_escapes(node->data.parallel.tasks[i], entries, count, capacity);
+        break;
+    case AST_LET_DECL:
+        collect_slot_escapes(node->data.let_decl.initializer, entries, count, capacity);
+        break;
+    case AST_ASSIGNMENT:
+        collect_slot_escapes(node->data.assignment.target, entries, count, capacity);
+        collect_slot_escapes(node->data.assignment.value, entries, count, capacity);
+        break;
+    case AST_CALL:
+        collect_slot_escapes(node->data.call.callee, entries, count, capacity);
+        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+            ASTNode *arg = node->data.call.arguments[i];
+            if (arg != NULL && arg->type == AST_IDENTIFIER
+                && arg->data.identifier.name != NULL) {
+                slot_escape_record(entries, count, capacity,
+                    arg->data.identifier.name, SLOT_ESCAPE_CALL);
+            }
+            collect_slot_escapes(arg, entries, count, capacity);
+        }
+        break;
+    case AST_CHANNEL_SEND:
+        collect_slot_escapes(node->data.channel_send.channel, entries, count, capacity);
+        if (node->data.channel_send.value != NULL
+            && node->data.channel_send.value->type == AST_IDENTIFIER
+            && node->data.channel_send.value->data.identifier.name != NULL) {
+            slot_escape_record(entries, count, capacity,
+                node->data.channel_send.value->data.identifier.name,
+                SLOT_ESCAPE_CHANNEL);
+        }
+        collect_slot_escapes(node->data.channel_send.value, entries, count, capacity);
+        break;
+    case AST_RETURN:
+        if (node->data.return_stmt.value != NULL
+            && node->data.return_stmt.value->type == AST_IDENTIFIER
+            && node->data.return_stmt.value->data.identifier.name != NULL) {
+            slot_escape_record(entries, count, capacity,
+                node->data.return_stmt.value->data.identifier.name,
+                SLOT_ESCAPE_RETURN);
+        }
+        collect_slot_escapes(node->data.return_stmt.value, entries, count, capacity);
+        break;
+    default:
+        break;
     }
 }
 
@@ -648,6 +762,11 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     /* L4: warn about slots that were claimed but not released */
     size_t   after_count  = 0;
     Symbol **live_after   = collect_live_slots(sa->ctx->scope, &after_count);
+    SlotEscapeEntry *escapes = NULL;
+    size_t escape_count = 0;
+    size_t escape_capacity = 0;
+
+    collect_slot_escapes(body, &escapes, &escape_count, &escape_capacity);
 
     for (size_t i = 0; i < after_count; i++) {
         Symbol *sym = live_after[i];
@@ -670,8 +789,33 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
         }
     }
 
+    for (size_t i = 0; i < escape_count; i++) {
+        Symbol *sym = scope_lookup(sa->ctx->scope, escapes[i].name);
+        ASTNode dummy = {0};
+        if (sym == NULL || sym->kind != SYMBOL_SLOT)
+            continue;
+        dummy.line = sym->decl_line;
+        dummy.column = sym->decl_col;
+        if ((escapes[i].mask & SLOT_ESCAPE_RETURN) != 0) {
+            semantic_warning(sa->ctx, &dummy,
+                "Slot '%s' escapes via return; non-escaping stack/local optimization is disabled",
+                sym->name);
+        }
+        if ((escapes[i].mask & SLOT_ESCAPE_CALL) != 0) {
+            semantic_warning(sa->ctx, &dummy,
+                "Slot '%s' may escape through helper/function call; escape analysis stays conservative",
+                sym->name);
+        }
+        if ((escapes[i].mask & SLOT_ESCAPE_CHANNEL) != 0) {
+            semantic_warning(sa->ctx, &dummy,
+                "Slot '%s' escapes through channel send; stack/local sinking is disabled",
+                sym->name);
+        }
+    }
+
     free(live_before);
     free(live_after);
+    free(escapes);
     return true;
 }
 
@@ -848,4 +992,26 @@ slot_analyze_program(ASTNode *program, SlotAnalyzer *sa)
     }
 
     return !sa->ctx->has_error;
+}
+
+unsigned
+slot_analyze_escape_flags(ASTNode *node, const char *slot_name)
+{
+    SlotEscapeEntry *entries = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+    unsigned mask = SLOT_ESCAPE_NONE;
+
+    if (node == NULL || slot_name == NULL)
+        return SLOT_ESCAPE_NONE;
+
+    collect_slot_escapes(node, &entries, &count, &capacity);
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(entries[i].name, slot_name) == 0) {
+            mask = entries[i].mask;
+            break;
+        }
+    }
+    free(entries);
+    return mask;
 }
