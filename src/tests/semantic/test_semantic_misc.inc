@@ -3023,6 +3023,66 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("intent step move shorthand accepts unique target zone type");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    action Promote(self) -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "zone CartZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+            "    step Promote {\n"
+            "        move cart to PaymentZone;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Promote();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.transfer_to_alias != NULL
+            && strcmp(step->data.intent_step.transfer_to_alias, "payment") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.using_expr != NULL
+            && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+            && strcmp(step->data.intent_step.using_expr->data.identifier.name, "payment") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE
+            && strcmp(step->data.intent_step.where_type->data.type.name, "PaymentZone") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent step may orchestrate a subintent without local where/who");
     {
         const char *source =

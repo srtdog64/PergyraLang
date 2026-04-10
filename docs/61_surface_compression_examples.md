@@ -82,6 +82,7 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 - [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)
 - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
+- [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)
 - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
 - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
 
@@ -93,6 +94,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
   action contract 기반 추론을 보여준다
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)는
   `move <from> to <to>;`와 transfer inference를 함께 보여준다
+- [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)는
+  `move <from> to <ZoneType>;` target-zone 추론을 보여준다
 - 즉 지금 smoke에 박힌 것은 `transfer -> using/where` 추론이다
 
 ### 1.2 clause 순서 자유화
@@ -216,14 +219,16 @@ move loading to delivery;
 - `move <from-alias> to <to-alias>;`는
   `transfer: <from-alias> -> <to-alias>;`로 낮아진다
 - 기존 `transfer target -> using/where inference`도 그대로 적용된다
+- `move <from-alias> to <ZoneType>;`는
+  intent participant 중 해당 zone type이 유일하면 그 binding alias로 정규화된다
 
 실제 예제 파일:
 
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
+- [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)
 
 아직 설계 단계:
 
-- `move cargo to DeliveryZone;`
 - `let delivered = cargo.transfer(to: DeliveryZone, as: DeliveredCargo);`
 
 ## 3. 가장 큰 보일러플레이트 묶음

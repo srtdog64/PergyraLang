@@ -283,6 +283,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/intent_inference_minimal.pgy" "intent inference minimal"
     run_expect_lines "transfer_move_minimal" "$backend" \
         "$ROOT_DIR/examples/transfer_move_minimal.pgy" "transfer move minimal"
+    run_expect_lines "transfer_move_typed_minimal" "$backend" \
+        "$ROOT_DIR/examples/transfer_move_typed_minimal.pgy" "transfer move typed minimal"
     run_expect_lines "zone_context_minimal" "$backend" \
         "$ROOT_DIR/examples/zone_context_minimal.pgy" "zone context minimal"
     run_expect_file_lines "battle_simulator" \

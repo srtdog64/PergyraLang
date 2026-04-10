@@ -428,6 +428,75 @@ find_intent_involves_local(ASTNode *intent, const char *alias)
     return NULL;
 }
 
+static const char *
+intent_involves_type_name(ASTNode *involves);
+
+static ASTNode *
+find_unique_intent_involves_by_type_name(ASTNode *intent,
+                                         const char *type_name,
+                                         const char **alias_out)
+{
+    ASTNode *matched = NULL;
+
+    if (alias_out != NULL)
+        *alias_out = NULL;
+    if (intent == NULL || intent->type != AST_INTENT_DECL || type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        const char *participant_type_name = intent_involves_type_name(involves);
+
+        if (participant_type_name == NULL
+            || strcmp(participant_type_name, type_name) != 0) {
+            continue;
+        }
+
+        if (matched != NULL)
+            return NULL;
+        matched = involves;
+    }
+
+    if (matched != NULL && alias_out != NULL)
+        *alias_out = matched->data.intent_involves.alias;
+    return matched;
+}
+
+static ASTNode *
+intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
+                                             ASTNode *step,
+                                             const char **resolved_alias_out)
+{
+    const char *to_name;
+    ASTNode *to_involves;
+    const char *resolved_alias = NULL;
+
+    if (resolved_alias_out != NULL)
+        *resolved_alias_out = NULL;
+    if (intent_decl == NULL || step == NULL || step->type != AST_INTENT_STEP)
+        return NULL;
+
+    to_name = step->data.intent_step.transfer_to_alias;
+    if (to_name == NULL)
+        return NULL;
+
+    to_involves = find_intent_involves_local(intent_decl, to_name);
+    if (to_involves == NULL) {
+        to_involves = find_unique_intent_involves_by_type_name(
+            intent_decl, to_name, &resolved_alias);
+        if (to_involves != NULL && resolved_alias != NULL) {
+            free(step->data.intent_step.transfer_to_alias);
+            step->data.intent_step.transfer_to_alias = pergyra_strdup(resolved_alias);
+        }
+    } else {
+        resolved_alias = to_name;
+    }
+
+    if (resolved_alias_out != NULL)
+        *resolved_alias_out = resolved_alias;
+    return to_involves;
+}
+
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
                          ASTNode *ability_ref);
@@ -821,7 +890,7 @@ static void
 intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
                                    SemanticContext *ctx)
 {
-    const char *to_alias;
+    const char *to_alias = NULL;
     ASTNode *to_involves;
     Type *to_type;
 
@@ -829,11 +898,8 @@ intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
         || step->type != AST_INTENT_STEP)
         return;
 
-    to_alias = step->data.intent_step.transfer_to_alias;
-    if (to_alias == NULL)
-        return;
-
-    to_involves = find_intent_involves_local(intent_decl, to_alias);
+    to_involves = intent_step_resolve_transfer_target_involves(
+        intent_decl, step, &to_alias);
     if (to_involves == NULL || to_involves->type != AST_INTENT_INVOLVES)
         return;
 
@@ -963,9 +1029,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (step->data.intent_step.transfer_from_alias != NULL
             || step->data.intent_step.transfer_to_alias != NULL) {
             const char *from_alias = step->data.intent_step.transfer_from_alias;
-            const char *to_alias = step->data.intent_step.transfer_to_alias;
+            const char *to_alias = NULL;
             ASTNode *from_involves = find_intent_involves_local(node, from_alias);
-            ASTNode *to_involves = find_intent_involves_local(node, to_alias);
+            ASTNode *to_involves = intent_step_resolve_transfer_target_involves(
+                node, step, &to_alias);
             Type *from_type = from_involves != NULL
                 ? resolve_type_node(from_involves->data.intent_involves.subject_type, ctx) : NULL;
             Type *to_type = to_involves != NULL
@@ -990,7 +1057,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
             if (to_alias != NULL && to_involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' transfer target '%s' is not a declared intent binding",
+                    "Intent step '%s' transfer target '%s' is not a declared intent binding or a unique zone type in this intent",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     to_alias);
             }

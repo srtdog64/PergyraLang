@@ -1,0 +1,34 @@
+// transfer_move_typed_minimal.pgy
+//
+// 현재 구현된 type-directed transfer target 예제:
+// - move <from-alias> to <ZoneType>;
+// - target zone type가 intent에서 유일하면 해당 binding alias로 정규화
+
+subject Buyer {
+    let hp: Int;
+
+    action Promote(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        move cart to PaymentZone;
+        who: buyer;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("transfer move typed minimal");
+}
