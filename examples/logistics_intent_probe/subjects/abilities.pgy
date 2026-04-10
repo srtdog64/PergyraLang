@@ -1,9 +1,9 @@
-export ability Routable
+ability Routable
 {
     func RouteMark() -> String;
 }
 
-export ability Approvable
+ability Approvable
 {
     func ApprovalMark() -> String;
 }

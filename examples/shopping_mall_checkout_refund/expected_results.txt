@@ -6,9 +6,9 @@ route=/account/profile flow=account
 pages project surfaces; zones enforce execution; intents move the customer.
 
 [Scene] storefront opens with a JS cart page over a Pergyra backend.
-[Page] mount /cart title=Cart
+[Page] mounted: Cart (/cart)
 [Action] checkout -> /api/intents/CheckoutPurchase
-[PageMessage] info cart page is a projection over CartZone.
+[info] cart page is a projection over CartZone.
 [Page /cart] Hana sees Ember Lantern qty=2 subtotal=$84 coupon=$7 total=$77 status=browsing
   [CartZone] /cart total=77 coupon=7 buyer=Hana
 
@@ -33,7 +33,7 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] merchant: CartZone.merchant -> PaymentZone.merchant
 [step] ok MoveToPayment
 
-[Page] navigate /checkout title=Checkout
+[Page] navigate: Checkout (/checkout)
 [Action] refund -> /api/intents/RefundPurchase
 [API /checkout] Hana payment=VISA ****-1024 order=4101 amount=$83 state=paid
   [PaymentZone] /checkout order=4101 captured=83 shipped=1 state=captured
@@ -57,7 +57,7 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] merchant: PaymentZone.merchant -> RefundZone.merchant
 [step] ok MoveToRefund
 
-[Page] navigate /refund title=Refund
+[Page] navigate: Refund (/refund)
 [Action] sync-profile -> /api/intents/SyncAccountProfile
 [Page /refund] Hana ticket=RF-8831 amount=$83 status=approved merchant=Northwind Store
   [RefundZone] /refund requested=83 approved=83 state=approved
@@ -78,8 +78,8 @@ pages project surfaces; zones enforce execution; intents move the customer.
 [transfer] buyer: RefundZone.buyer -> AccountZone.buyer
 [step] ok MoveToAccount
 
-[Page] navigate /account/profile title=Account
-[PageMessage] success profile sync completed through AccountZone.
+[Page] navigate: Account (/account/profile)
+[success] profile sync completed through AccountZone.
 [API /account/profile] Hana email=hana@pergyra.shop privacy=1 marketing=1 lastPage=/account/profile refunded=$83
   [AccountZone] /account/profile privacy=1 marketing=1 last=profile-updated
 

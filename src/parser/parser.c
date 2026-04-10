@@ -725,6 +725,41 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_parse_export_declaration(parser);
     }
 
+    // top-level access modifier for ability declarations
+    if (parser_check(parser, TOKEN_PUBLIC)
+        || parser_check(parser, TOKEN_PRIVATE)) {
+        AccessModifier access = ACCESS_PUBLIC;
+        bool explicit_access = true;
+        PgyTokenType access_tok = parser->current_token.type;
+        ASTNode *node = NULL;
+
+        parser_advance(parser);
+        if (access_tok == TOKEN_PRIVATE)
+            access = ACCESS_PRIVATE;
+
+        if (parser_match(parser, TOKEN_INNATE)) {
+            parser_consume(parser, TOKEN_ABILITY,
+                "Expected 'ability' after 'innate'");
+            node = parse_ability_declaration(parser, true);
+        } else if (parser_match(parser, TOKEN_ABILITY)) {
+            node = parse_ability_declaration(parser, false);
+        } else {
+            parser_error(parser,
+                "Top-level access modifiers currently apply only to ability declarations");
+            return NULL;
+        }
+
+        if (node != NULL && node->type == AST_ABILITY_DECL) {
+            node->data.ability_decl.access = access;
+            node->data.ability_decl.has_explicit_access = explicit_access;
+            if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
+                node->is_exported = false;
+            else
+                node->is_exported = true;
+        }
+        return parser_finalize_statement(parser, node);
+    }
+
     // 함수 선언
     if (parser_match(parser, TOKEN_FUNC)) {
         return parser_finalize_statement(parser, parse_function_declaration(parser));

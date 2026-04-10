@@ -332,12 +332,17 @@ module B
 // 해결: 인터페이스 분리
 module AInterface
 {
-    export ability IA
+    ability IA
     {
         func FuncA()
     }
 }
 ```
+
+메모:
+- `ability`는 기본적으로 module-exported contract다.
+- 숨기고 싶은 ability만 `private ability`로 선언한다.
+- 따라서 예제에서 `export ability`를 반복하지 않는다. 그 표기는 ability가 기본 비공개처럼 읽히는 pain point를 만든다.
 
 ## 11. 모듈 문서화
 

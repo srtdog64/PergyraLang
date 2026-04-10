@@ -16,7 +16,6 @@ merge.false=18
 [materialize] courier => LoadingZone.courier
 [transfer] courier: LoadingZone.courier -> DeliveryZone.courier
 [step] ok handoff
-
   [HistoryCount] 2
 
 audit loading=5 lane=city-gate seal=8 bias=2

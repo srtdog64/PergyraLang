@@ -51,17 +51,20 @@ role Hacker for Player impl Combatable {  // 컴파일 에러
 }
 ```
 
-### public vs private vs innate
+### ability visibility 규칙
 
 ```
-public ability   -> 보임 + impl 가능  (기본값)
+ability          -> 보임 + impl 가능  (기본값)
 innate ability   -> 보임 + impl 불가  (같은 모듈만)
 private ability  -> 안 보임           (같은 모듈만)
 ```
 
-`innate`는 `public`과 `private`의 중간이 아니라, **직교하는 축**이다:
-- `public`/`private`는 **가시성**(visibility)
+`innate`는 `ability`와 `private ability`의 중간이 아니라, **직교하는 축**이다:
+- `private`는 **가시성**(visibility)
 - `innate`는 **이행 제한**(implementation restriction)
+
+`public ability`는 문법상 쓸 수 있어도 권장 표면이 아니다.
+능력 계약은 기본 공개이므로 예제와 문서에서는 그냥 `ability Foo { ... }`를 기본 표기로 쓴다.
 
 ## 왜 sealed가 아닌가
 

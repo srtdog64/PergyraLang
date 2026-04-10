@@ -20,4 +20,3 @@ ability Warding
 
     func WardMark() -> String;
 }
-

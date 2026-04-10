@@ -178,6 +178,8 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         FlowFlags body_flags = FLOW_NONE;
+        uint32_t previous_merged_effect_delta = merged_effect_delta;
+        uint32_t iter_effect_delta = EFFECT_NONE;
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
@@ -185,10 +187,12 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(node->data.for_loop.body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        iter_effect_delta =
+            effect_delta_from_baseline(effect_base, ctx->current_function_effects);
         flow_merge_effect_delta(ctx, node,
             &merged_effect_delta, &previous_iter_delta,
             &have_previous_iter_delta,
-            effect_delta_from_baseline(effect_base, ctx->current_function_effects));
+            iter_effect_delta);
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
             merge_resource_states_or(&merged, &body_snap);
@@ -209,7 +213,9 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
-        if (resource_snapshots_equal(&entry, &backedge)) {
+        if (resource_snapshots_equal(&entry, &backedge)
+            && type_effect_mask_compare(previous_merged_effect_delta,
+                                        merged_effect_delta) == 0) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;
@@ -253,6 +259,8 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot backedge = {0};
         bool has_backedge = false;
         FlowFlags body_flags = FLOW_NONE;
+        uint32_t previous_merged_effect_delta = merged_effect_delta;
+        uint32_t iter_effect_delta = EFFECT_NONE;
 
         loop_flow.loop_scope = ctx->scope;
         restore_resource_states(&entry);
@@ -266,10 +274,12 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(node->data.while_loop.body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        iter_effect_delta =
+            effect_delta_from_baseline(effect_base, ctx->current_function_effects);
         flow_merge_effect_delta(ctx, node,
             &merged_effect_delta, &previous_iter_delta,
             &have_previous_iter_delta,
-            effect_delta_from_baseline(effect_base, ctx->current_function_effects));
+            iter_effect_delta);
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
             merge_resource_states_or(&merged, &body_snap);
@@ -290,7 +300,9 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
             break;
         }
 
-        if (resource_snapshots_equal(&entry, &backedge)) {
+        if (resource_snapshots_equal(&entry, &backedge)
+            && type_effect_mask_compare(previous_merged_effect_delta,
+                                        merged_effect_delta) == 0) {
             destroy_resource_snapshot(&entry);
             entry = backedge;
             break;

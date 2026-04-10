@@ -380,6 +380,13 @@ static ASTNode *
 find_roster_decl(TranspilerCtx *ctx, const char *roster_name);
 
 static ASTNode *
+find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name);
+
+static ASTNode *
+find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
+                              const char *method_name);
+
+static ASTNode *
 find_class_decl(TranspilerCtx *ctx, const char *class_name)
 {
     if (ctx == NULL || ctx->hir == NULL || class_name == NULL)
@@ -1201,16 +1208,126 @@ assignment_target_root_slot_name(ASTNode *target)
     return NULL;
 }
 
+static const char *
+assignment_target_root_subfield_name(ASTNode *target)
+{
+    if (target == NULL || target->type != AST_MEMBER_ACCESS)
+        return NULL;
+
+    if (target->data.member.object != NULL
+        && target->data.member.object->type == AST_MEMBER_ACCESS) {
+        ASTNode *inner = target->data.member.object;
+        if (inner->data.member.object != NULL
+            && inner->data.member.object->type == AST_IDENTIFIER
+            && inner->data.member.object->data.identifier.name != NULL
+            && strcmp(inner->data.member.object->data.identifier.name, "self") == 0) {
+            return target->data.member.name;
+        }
+        return assignment_target_root_subfield_name(inner);
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || slot_name == NULL)
+        return NULL;
+
+    if (ctx->current_relation_name != NULL) {
+        decl = find_relation_decl(ctx, ctx->current_relation_name);
+        if (decl != NULL && decl->type == AST_RELATION_DECL) {
+            for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
+                ASTNode *slot = decl->data.relation_decl.slots[i];
+                if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                    && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+                    return slot;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_effect_name != NULL) {
+        decl = find_effect_decl(ctx, ctx->current_effect_name);
+        if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+            for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
+                ASTNode *slot = decl->data.effect_decl.slots[i];
+                if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                    && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+                    return slot;
+                }
+            }
+        }
+    }
+
+    if (ctx->current_zone_name != NULL) {
+        decl = find_zone_decl(ctx, ctx->current_zone_name);
+        if (decl != NULL && decl->type == AST_ZONE_DECL)
+            return find_zone_domain_slot(decl, slot_name);
+    }
+
+    return NULL;
+}
+
+static bool
+projection_target_mentions_source_field(TranspilerCtx *ctx,
+                                        const char *target_slot_name,
+                                        const char *source_field_name)
+{
+    ASTNode *slot_decl;
+    ASTNode *target_decl;
+    const char *target_type_name;
+
+    if (ctx == NULL || target_slot_name == NULL)
+        return false;
+    if (source_field_name == NULL)
+        return true;
+
+    slot_decl = current_overlay_domain_slot_decl(ctx, target_slot_name);
+    if (slot_decl == NULL
+        || slot_decl->data.domain_slot.type == NULL
+        || slot_decl->data.domain_slot.type->type != AST_TYPE
+        || slot_decl->data.domain_slot.type->data.type.name == NULL) {
+        return true;
+    }
+
+    target_type_name = slot_decl->data.domain_slot.type->data.type.name;
+    target_decl = find_class_decl(ctx, target_type_name);
+    if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
+        return true;
+
+    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
+        ClassField *field = target_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, source_field_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static char *
 emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
-                                            const char *source_slot_name)
+                                            const char *source_slot_name,
+                                            const char *source_field_name)
 {
     ASTNode **refreshes;
     size_t refresh_count = 0;
     CodeBuf *buf;
+    const char *receiver_expr;
 
     if (ctx == NULL || source_slot_name == NULL)
         return NULL;
+
+    receiver_expr = ctx->current_overlay_receiver_expr != NULL
+        ? ctx->current_overlay_receiver_expr
+        : "self";
 
     refreshes = current_overlay_refresh_list(ctx, &refresh_count);
     if (refreshes == NULL || refresh_count == 0)
@@ -1230,11 +1347,249 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
             || strcmp(refresh_source_name, source_slot_name) != 0) {
             continue;
         }
+        if (!projection_target_mentions_source_field(ctx, target_name, source_field_name))
+            continue;
         codebuf_write(buf,
-            "self->__projection_dirty_%s = true; "
-            "self->__projection_ready_%s = false; ",
-            target_name, target_name);
+            "%s->__projection_dirty_%s = true; "
+            "%s->__projection_ready_%s = false; ",
+            receiver_expr,
+            target_name,
+            receiver_expr,
+            target_name);
     }
+
+    if (buf->len == 0) {
+        codebuf_destroy(buf);
+        return NULL;
+    }
+
+    {
+        char *result = pergyra_strdup(buf->data);
+        codebuf_destroy(buf);
+        return result;
+    }
+}
+
+static bool
+host_projection_relevant_field_exists(TranspilerCtx *ctx,
+                                      const char *host_type_name,
+                                      const char *field_name)
+{
+    ASTNode *host_decl;
+
+    if (ctx == NULL || host_type_name == NULL || field_name == NULL)
+        return false;
+
+    host_decl = find_class_decl(ctx, host_type_name);
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
+        return false;
+
+    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
+        ClassField *field = host_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return !field->is_vessel_field;
+        }
+    }
+
+    return false;
+}
+
+static ClassField *
+find_host_field_by_name_local(ASTNode *host_decl, const char *field_name)
+{
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL
+        || field_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
+        ClassField *field = host_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return field;
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+method_assignment_projection_field_name(TranspilerCtx *ctx,
+                                        const char *host_type_name,
+                                        ASTNode *target)
+{
+    ASTNode *cursor = target;
+    ASTNode *host_decl;
+
+    if (ctx == NULL || host_type_name == NULL || target == NULL)
+        return NULL;
+
+    host_decl = find_class_decl(ctx, host_type_name);
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
+        return NULL;
+
+    if (target->type == AST_IDENTIFIER
+        && host_projection_relevant_field_exists(ctx, host_type_name,
+            target->data.identifier.name)) {
+        return target->data.identifier.name;
+    }
+
+    while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
+        ASTNode *obj = cursor->data.member.object;
+        if (obj != NULL && obj->type == AST_IDENTIFIER
+            && obj->data.identifier.name != NULL) {
+            ClassField *field = find_host_field_by_name_local(
+                host_decl, obj->data.identifier.name);
+            if (field != NULL) {
+                if (field->is_vessel_field)
+                    return cursor->data.member.name;
+                return obj->data.identifier.name;
+            }
+        }
+        cursor = obj;
+    }
+
+    return NULL;
+}
+
+static void
+append_overlay_method_projection_invalidations(CodeBuf *buf,
+                                               TranspilerCtx *ctx,
+                                               const char *source_slot_name,
+                                               const char *host_type_name,
+                                               ASTNode *node,
+                                               int depth)
+{
+    if (buf == NULL || ctx == NULL || source_slot_name == NULL
+        || host_type_name == NULL || node == NULL || depth > 8) {
+        return;
+    }
+
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            append_overlay_method_projection_invalidations(
+                buf, ctx, source_slot_name, host_type_name,
+                node->data.block.statements[i], depth + 1);
+        }
+        break;
+    case AST_IF_STMT:
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.if_stmt.then_branch, depth + 1);
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.if_stmt.else_branch, depth + 1);
+        break;
+    case AST_FOR_LOOP:
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.for_loop.body, depth + 1);
+        break;
+    case AST_WHILE_LOOP:
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.while_loop.body, depth + 1);
+        break;
+    case AST_MATCH_STMT:
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+            append_overlay_method_projection_invalidations(
+                buf, ctx, source_slot_name, host_type_name,
+                node->data.match_stmt.cases[i], depth + 1);
+        }
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.match_stmt.default_body, depth + 1);
+        break;
+    case AST_MATCH_CASE:
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.match_case.body, depth + 1);
+        break;
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+            append_overlay_method_projection_invalidations(
+                buf, ctx, source_slot_name, host_type_name,
+                node->data.select_stmt.cases[i], depth + 1);
+        }
+        append_overlay_method_projection_invalidations(
+            buf, ctx, source_slot_name, host_type_name,
+            node->data.select_stmt.default_case, depth + 1);
+        break;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+            append_overlay_method_projection_invalidations(
+                buf, ctx, source_slot_name, host_type_name,
+                node->data.async_block.statements[i], depth + 1);
+        }
+        break;
+    case AST_ASSIGNMENT: {
+        const char *field_name = method_assignment_projection_field_name(
+            ctx, host_type_name, node->data.assignment.target);
+        if (field_name != NULL) {
+            char *invalidation = emit_current_overlay_projection_invalidation(
+                ctx, source_slot_name, field_name);
+            if (invalidation != NULL) {
+                codebuf_write(buf, "%s", invalidation);
+                free(invalidation);
+            }
+        }
+        break;
+    }
+    case AST_CALL:
+        if (node->data.call.callee != NULL
+            && node->data.call.callee->type == AST_MEMBER_ACCESS
+            && node->data.call.callee->data.member.object != NULL
+            && node->data.call.callee->data.member.object->type == AST_IDENTIFIER
+            && node->data.call.callee->data.member.object->data.identifier.name != NULL
+            && node->data.call.callee->data.member.name != NULL) {
+            ASTNode *host_decl = find_class_decl(ctx, host_type_name);
+            ClassField *field = NULL;
+
+            if (host_decl != NULL && host_decl->type == AST_CLASS_DECL) {
+                field = find_host_field_by_name_local(host_decl,
+                    node->data.call.callee->data.member.object->data.identifier.name);
+            }
+            if (field != NULL && field->is_vessel_field
+                && field->type != NULL
+                && field->type->type == AST_TYPE
+                && field->type->data.type.name != NULL) {
+                ASTNode *method_decl = find_nominal_host_method_decl(
+                    ctx, field->type->data.type.name,
+                    node->data.call.callee->data.member.name);
+                if (method_decl != NULL) {
+                    append_overlay_method_projection_invalidations(
+                        buf, ctx, source_slot_name,
+                        field->type->data.type.name,
+                        method_decl->data.func_decl.body, depth + 1);
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+static char *
+emit_current_overlay_method_projection_invalidation(TranspilerCtx *ctx,
+                                                    const char *source_slot_name,
+                                                    const char *host_type_name,
+                                                    ASTNode *method_decl)
+{
+    CodeBuf *buf;
+
+    if (ctx == NULL || source_slot_name == NULL || host_type_name == NULL
+        || method_decl == NULL || method_decl->type != AST_FUNC_DECL
+        || method_decl->data.func_decl.body == NULL) {
+        return NULL;
+    }
+
+    buf = codebuf_create();
+    append_overlay_method_projection_invalidations(
+        buf, ctx, source_slot_name, host_type_name,
+        method_decl->data.func_decl.body, 0);
 
     if (buf->len == 0) {
         codebuf_destroy(buf);
@@ -1336,6 +1691,9 @@ find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
     return NULL;
 }
 
+static ASTNode *
+resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl, const char *slot_name);
+
 static const char *
 zone_subject_slot_type_name(ASTNode *zone_decl, const char *slot_name)
 {
@@ -1415,6 +1773,77 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     if (slot_name == NULL || type_name == NULL)
         return false;
 
+    if (slot_name_out != NULL)
+        *slot_name_out = slot_name;
+    if (type_name_out != NULL)
+        *type_name_out = type_name;
+    return true;
+}
+
+static bool
+resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
+                                    const char **zone_slot_name_out,
+                                    const char **zone_type_name_out,
+                                    const char **slot_name_out,
+                                    const char **type_name_out)
+{
+    ASTNode *world_decl;
+    ASTNode *zone_decl;
+    ASTNode *zone_expr;
+    const char *zone_slot_name = NULL;
+    const char *zone_type_name = NULL;
+    const char *slot_name = NULL;
+    const char *type_name = NULL;
+
+    if (zone_slot_name_out != NULL)
+        *zone_slot_name_out = NULL;
+    if (zone_type_name_out != NULL)
+        *zone_type_name_out = NULL;
+    if (slot_name_out != NULL)
+        *slot_name_out = NULL;
+    if (type_name_out != NULL)
+        *type_name_out = NULL;
+
+    if (ctx == NULL || ctx->current_world_name == NULL
+        || receiver == NULL || receiver->type != AST_MEMBER_ACCESS) {
+        return false;
+    }
+
+    zone_expr = receiver->data.member.object;
+    slot_name = receiver->data.member.name;
+    if (zone_expr == NULL || slot_name == NULL)
+        return false;
+
+    if (zone_expr->type == AST_IDENTIFIER && zone_expr->data.identifier.name != NULL) {
+        zone_slot_name = zone_expr->data.identifier.name;
+    } else if (zone_expr->type == AST_MEMBER_ACCESS
+               && zone_expr->data.member.object != NULL
+               && zone_expr->data.member.object->type == AST_IDENTIFIER
+               && zone_expr->data.member.object->data.identifier.name != NULL
+               && strcmp(zone_expr->data.member.object->data.identifier.name, "self") == 0
+               && zone_expr->data.member.name != NULL) {
+        zone_slot_name = zone_expr->data.member.name;
+    } else {
+        return false;
+    }
+
+    world_decl = find_world_decl(ctx, ctx->current_world_name);
+    if (world_decl == NULL)
+        return false;
+
+    zone_decl = resolve_world_zone_decl(ctx, world_decl, zone_slot_name);
+    if (zone_decl == NULL)
+        return false;
+
+    zone_type_name = zone_decl->data.zone_decl.name;
+    type_name = zone_subject_slot_type_name(zone_decl, slot_name);
+    if (zone_type_name == NULL || type_name == NULL)
+        return false;
+
+    if (zone_slot_name_out != NULL)
+        *zone_slot_name_out = zone_slot_name;
+    if (zone_type_name_out != NULL)
+        *zone_type_name_out = zone_type_name;
     if (slot_name_out != NULL)
         *slot_name_out = slot_name;
     if (type_name_out != NULL)

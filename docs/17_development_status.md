@@ -130,7 +130,7 @@
 - effect contract는 이제 최소 closure/subsumption과 join API를 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급되며, disjoint branch effect도 계약으로 합쳐진다.
 - `use module;` duplicate import는 semantic warning으로 보고하며, `use datetime;` exported stdlib surface 회귀가 존재한다.
 - ability `require` 필드는 이제 선언 검증만이 아니라 role impl 시 bound subject host가 실제로 요구 필드를 만족하는지도 검사한다.
-- foreign non-exported ability는 이제 cross-module `role impl ability ...`와 `action ... requires Ability` 양쪽에서 semantic error로 차단된다.
+- `ability`는 이제 기본 공개 계약이다. cross-module에서 숨겨진 ability는 explicit `private ability`일 때만 `role impl ability ...`와 `action ... requires Ability` 양쪽에서 semantic error로 차단된다. `export ability`는 허용되더라도 권장 표기는 아니다.
 - `secure` capability는 이제 `SecureSlot`뿐 아니라 `Token<T>` 시그니처도 secure effect를 유발하며, paired token 이름/타입 정합성까지 정적으로 검사한다.
 - `Token<T>`와 secure capability는 이제 channel transport도 금지되어 capability-bearing 값이 병렬/원격 payload로 새는 경로를 semantic에서 차단한다.
 - authority가 선언된 `zone`에서 boundary projection(`publish` / tobject-target `bind`)은 이제 explicit `by <subjectSlot>` 없이 허용되지 않는다.

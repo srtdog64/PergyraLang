@@ -27,4 +27,3 @@ ability Guarding
     require guard: Int;
     func GuardMark() -> String;
 }
-

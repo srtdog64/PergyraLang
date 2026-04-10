@@ -20,6 +20,54 @@ find_nominal_field_by_name(ASTNode *decl, const char *field_name)
     return NULL;
 }
 
+static ClassField *
+find_subject_surface_field_by_name(ASTNode *program_root,
+                                   ASTNode *subject_decl,
+                                   const char *field_name,
+                                   const char **container_field_name_out)
+{
+    if (container_field_name_out != NULL)
+        *container_field_name_out = NULL;
+
+    if (program_root == NULL || subject_decl == NULL
+        || subject_decl->type != AST_CLASS_DECL || field_name == NULL) {
+        return NULL;
+    }
+
+    {
+        ClassField *direct = find_nominal_field_by_name(subject_decl, field_name);
+        if (direct != NULL)
+            return direct;
+    }
+
+    for (size_t i = 0; i < subject_decl->data.class_decl.field_count; i++) {
+        ClassField *field = subject_decl->data.class_decl.fields[i];
+        ASTNode *vessel_decl;
+        ClassField *nested;
+
+        if (field == NULL || !field->is_vessel_field || field->type == NULL
+            || field->type->type != AST_TYPE
+            || field->type->data.type.name == NULL) {
+            continue;
+        }
+
+        vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
+        if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
+            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            continue;
+        }
+
+        nested = find_nominal_field_by_name(vessel_decl, field_name);
+        if (nested != NULL) {
+            if (container_field_name_out != NULL)
+                *container_field_name_out = field->name;
+            return nested;
+        }
+    }
+
+    return NULL;
+}
+
 static void
 validate_ability_require_fields_for_role(ASTNode *role_decl,
                                          ASTNode *ability_decl,
@@ -44,6 +92,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     for (size_t i = 0; i < ability_decl->data.ability_decl.require_count; i++) {
         ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
         ClassField *field;
+        const char *container_field_name = NULL;
         Type *required_type;
         Type *field_type;
 
@@ -53,7 +102,9 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
             continue;
         }
 
-        field = find_nominal_field_by_name(bound_decl, req->data.require_field.name);
+        field = find_subject_surface_field_by_name(
+            ctx->program_root, bound_decl, req->data.require_field.name,
+            &container_field_name);
         if (field == NULL) {
             semantic_error(ctx, role_decl,
                 "Role '%s' implements ability '%s', but subject '%s' is missing required field '%s'",
@@ -69,10 +120,12 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         if (required_type != NULL && field_type != NULL
             && !type_is_assignable(field_type, required_type)) {
             semantic_error(ctx, role_decl,
-                "Role '%s' implements ability '%s', but subject '%s.%s' has type '%s' and ability requires '%s'",
+                "Role '%s' implements ability '%s', but subject '%s.%s%s%s' has type '%s' and ability requires '%s'",
                 role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
                 ability_decl->data.ability_decl.name != NULL ? ability_decl->data.ability_decl.name : "<ability>",
                 bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                container_field_name != NULL ? container_field_name : "",
+                container_field_name != NULL ? "." : "",
                 req->data.require_field.name,
                 field_type->name != NULL ? field_type->name : "<type>",
                 required_type->name != NULL ? required_type->name : "<type>");

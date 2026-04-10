@@ -1582,6 +1582,81 @@ emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
         free(operand);
         return expr;
     }
+    if (node->type == AST_CALL
+        && node->data.call.callee != NULL
+        && node->data.call.callee->type == AST_IDENTIFIER
+        && node->data.call.callee->data.identifier.name != NULL) {
+        CodeBuf *args_buf = codebuf_create();
+        const char *callee_name = node->data.call.callee->data.identifier.name;
+        char *expr;
+
+        if ((strcmp(callee_name, "Min") == 0 || strcmp(callee_name, "Max") == 0)
+            && node->data.call.arg_count == 2) {
+            char *left = emit_expression_with_ssa_map(
+                node->data.call.arguments[0], ctx, ssa_map);
+            char *right = emit_expression_with_ssa_map(
+                node->data.call.arguments[1], ctx, ssa_map);
+            if (left == NULL || right == NULL) {
+                free(left);
+                free(right);
+                codebuf_destroy(args_buf);
+                return NULL;
+            }
+            expr = strdup_fmt("((%s) %s (%s) ? (%s) : (%s))",
+                left,
+                strcmp(callee_name, "Min") == 0 ? "<" : ">",
+                right,
+                left,
+                right);
+            free(left);
+            free(right);
+            codebuf_destroy(args_buf);
+            return expr;
+        }
+
+        if (strcmp(callee_name, "ToString") == 0
+            && node->data.call.arg_count == 1) {
+            char *arg = emit_expression_with_ssa_map(
+                node->data.call.arguments[0], ctx, ssa_map);
+            const char *arg_type = infer_expression_type_name(
+                ctx, node->data.call.arguments[0]);
+            if (arg == NULL) {
+                codebuf_destroy(args_buf);
+                return NULL;
+            }
+            if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
+                expr = pergyra_strdup(arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Bool") == 0) {
+                expr = strdup_fmt("((%s) ? \"true\" : \"false\")", arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Long") == 0) {
+                expr = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
+            } else {
+                expr = strdup_fmt("pgy_int_to_string(%s)", arg);
+            }
+            free(arg);
+            codebuf_destroy(args_buf);
+            return expr;
+        }
+
+        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+            char *arg = emit_expression_with_ssa_map(
+                node->data.call.arguments[i], ctx, ssa_map);
+            if (arg == NULL) {
+                codebuf_destroy(args_buf);
+                return NULL;
+            }
+            if (i > 0)
+                codebuf_write(args_buf, ", ");
+            codebuf_write(args_buf, "%s", arg);
+            free(arg);
+        }
+
+        expr = strdup_fmt("%s(%s)",
+            callee_name,
+            args_buf->data);
+        codebuf_destroy(args_buf);
+        return expr;
+    }
     return emit_expression(node, ctx);
 }
 
@@ -4840,9 +4915,22 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
+        const char *saved_zone_name = ctx->current_zone_name;
+        const char *saved_overlay_receiver = ctx->current_overlay_receiver_expr;
+        const char *step_zone_name = NULL;
+        const char *step_zone_alias = NULL;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
+        if (step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE) {
+            step_zone_name = step->data.intent_step.where_type->data.type.name;
+        }
+        step_zone_alias = intent_step_effective_zone_alias(step);
+        if (step_zone_name != NULL)
+            ctx->current_zone_name = step_zone_name;
+        if (step_zone_alias != NULL)
+            ctx->current_overlay_receiver_expr = step_zone_alias;
 
         write_indent(ctx);
         codebuf_write(ctx->out, "/* intent step: %s */\n",
@@ -4950,6 +5038,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
         if (rebound_aliases)
             emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
+        ctx->current_zone_name = saved_zone_name;
+        ctx->current_overlay_receiver_expr = saved_overlay_receiver;
 
         if (has_compensate_steps) {
             write_indent(ctx);

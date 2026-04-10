@@ -361,9 +361,11 @@ namespace Math {
 
 가시성과 `shared`의 차이:
 
+- `export`는 **모듈 밖으로 무엇을 내보내는가**를 정하는 module-boundary 축이다.
 - `public/private`는 **누가 볼 수 있는가**를 나타내는 visibility 축이다.
 - `shared`는 **누가 함께 들고 갱신하는가**를 나타내는 contextual-state 축이다.
 - 그래서 `shared`는 `public field`와 같지 않다. `shared round: Int`는 "공개 필드"보다 "`zone` 자체가 유지하는 공용 상태"에 더 가깝다.
+- `ability`는 기본 공개 계약이므로 보통 `ability Foo { ... }`로 쓴다. 숨기고 싶은 ability만 `private ability Foo { ... }`로 선언한다.
 
 ## 3. 타입 계열
 

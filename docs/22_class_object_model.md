@@ -62,6 +62,7 @@ Pergyra는 도메인 파편화를 줄이기 위해
 - `entity`는 이 둘을 묶는 넓은 프레임워크 용어가 될 수는 있지만, Pergyra 코어 존재론에는 넣지 않는다
 - projection의 중심은 `tobject` 본체가 아니라 `relation/effect/zone/world` 문맥과 그 안의 projection sync 흐름이다
 - 즉 현재 구현에서 `object`는 단순 projection 결과물이 아니라 passive state host이면서 layer target/source가 될 수 있고, `tobject`는 여전히 더 좁은 외부 경계 projection 형식으로 남는다
+- `tobject`는 zero-copy telemetry borrow를 뜻하지 않는다. 큰 관측 데이터의 generation/lease/snapshot ticket 정책은 별도 계층으로 다뤄야 한다
 
 ## 3. 최종 정의
 
@@ -195,6 +196,9 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 
 즉 실전 authoring과 scaffold의 첫 질문은 보통 "이것이 `subject`인가 `class`인가 `object`인가"여야 한다.
 
+여기서 `class`는 코어 존재론의 중심이 아니라 보조 nominal/value surface다.
+중심 축은 `subject / object / tobject / vessel / intent`이고, `class`는 그 사이에서 도구/사물/value host를 담당한다.
+
 ### 현재 단계의 권장 해석
 
 - 지역 `subject` 바인딩은 “현재 스코프에 놓인 identity-bearing self cell”로 본다
@@ -218,6 +222,16 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 - intent를 시작하지 않는 피동 상태 대상
 - 상태를 가질 수 있고 helper `func`로 시간에 따라 반응할 수 있다
 - effect를 받을 수 있고 relation의 대상이 될 수 있다
+
+### tobject
+
+- 경계를 넘기기 위한 immutable transfer contract
+- 기본 정책은 materialized transfer다
+- method/authority/slot ownership을 싣지 않는다
+- local borrow나 telemetry read-lock 모델이 아니다
+
+`tobject`를 zero-copy 관측이나 shared borrow와 같은 층으로 해석하면 시간적 결합이 생긴다.
+그런 정책은 `telemetry snapshot`, `generation`, `lease` 같은 별도 계층으로 분리해야 한다.
 - 현재 구현에서는 `struct` 호환 nominal declaration alias로 시작하지만, 장기 의미론은 단순 projection 결과물보다 넓다
 
 ```pergyra

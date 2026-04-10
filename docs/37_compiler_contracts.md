@@ -748,6 +748,12 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `channel` | `TOKEN_CHANNEL` | type/declaration surface | 중간 | `HIR -> RIR -> MIR` | channel resource surface |
 | `select` | `TOKEN_SELECT` | statement | 중간 | `HIR -> MIR` | readiness arbitration surface |
 | `case` | `TOKEN_CASE` | statement | 낮음 | `HIR -> MIR` | match/select arm |
+
+메모:
+
+- `export`는 module-boundary modifier다.
+- `public/private`는 nominal/member visibility modifier다.
+- `ability`는 기본 공개 계약이므로 `export ability`는 중복 표기이며, 숨김은 `private ability`로 표현한다.
 | `default` | `TOKEN_DEFAULT` | statement | 낮음 | `HIR -> MIR` | fallback arm |
 | `spawn` | `TOKEN_SPAWN` | expression | 중간 | `HIR -> MIR` | task-producing surface |
 | `match` | `TOKEN_MATCH` | statement / expression | 중간 | `HIR -> MIR` | pattern dispatch |

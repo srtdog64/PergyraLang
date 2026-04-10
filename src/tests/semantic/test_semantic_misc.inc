@@ -2829,7 +2829,7 @@ test_misc_grammar_edges(void)
         const char *module_path = "test_role_impl_hidden_ability_module_a.pgy";
         const char *main_path = "test_role_impl_hidden_ability_module_main_a.pgy";
         const char *module_source =
-            "ability HiddenAbility {\n"
+            "private ability HiddenAbility {\n"
             "    func Ping() -> Void;\n"
             "}\n";
         const char *main_source =
@@ -2877,7 +2877,7 @@ test_misc_grammar_edges(void)
         const char *module_path = "test_action_requires_hidden_ability_module_a.pgy";
         const char *main_path = "test_action_requires_hidden_ability_module_main_a.pgy";
         const char *module_source =
-            "ability HiddenAbility {\n"
+            "private ability HiddenAbility {\n"
             "    func Ping() -> Void;\n"
             "}\n";
         const char *main_source =
@@ -2912,6 +2912,52 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot require non-exported ability 'HiddenAbility'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("foreign ability is visible by default without explicit export");
+    {
+        const char *module_path = "test_default_export_ability_module_a.pgy";
+        const char *main_path = "test_default_export_ability_module_main_a.pgy";
+        const char *module_source =
+            "ability SharedAbility {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_default_export_ability_module_a.pgy\";\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability SharedAbility {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
 
         free(error_message);
         semantic_result_destroy(result);

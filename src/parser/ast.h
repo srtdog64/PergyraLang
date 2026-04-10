@@ -567,6 +567,8 @@ struct ASTNode
             size_t require_count;
             ASTNode** methods;
             size_t method_count;
+            AccessModifier access;
+            bool has_explicit_access;
             bool is_innate;
             StructuredComment* doc_comment;
         } ability_decl;

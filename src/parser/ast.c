@@ -312,8 +312,11 @@ ASTNode* ast_create_ability_declaration(const char* name) {
     node->data.ability_decl.require_count = 0;
     node->data.ability_decl.methods = NULL;
     node->data.ability_decl.method_count = 0;
+    node->data.ability_decl.access = ACCESS_PUBLIC;
+    node->data.ability_decl.has_explicit_access = false;
     node->data.ability_decl.is_innate = false;
     node->data.ability_decl.doc_comment = NULL;
+    node->is_exported = true;
     return node;
 }
 

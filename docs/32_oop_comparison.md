@@ -177,7 +177,7 @@ Pergyra는 **키워드가 곧 관심사 경계**.
 
 ```java
 // Java -- class 하나로 전부
-class Player { }      // 엔티티? 값? 서비스? transfer object? → 읽어봐야 안다
+class Player { }      // 도구/사물/value host인가, 주체인가가 이름만으로는 덜 드러남
 class Vec2 { }        // 위와 문법적으로 동일
 class PlayerView { }  // 위와 문법적으로 동일
 ```
@@ -188,7 +188,7 @@ subject Player { }    // 참조 타입, action 가능, zone 통합
 class Item { }        // 값 타입, func만, 도구/사물
 struct Vec2 { }       // 순수 데이터, 최소 타입
 vessel HP { }         // 피동 수용체, subject 내부
-object PlayerView { } // 읽기 전용 스냅샷
+object PlayerView { } // 내부 관찰/조회용
 tobject PlayerPacket { }  // 경계 밖 전송용
 ```
 
@@ -200,6 +200,12 @@ tobject PlayerPacket { }  // 경계 밖 전송용
 | vessel | value | 복사 | X | X | 내부 수용체 |
 | object | value | 복사 | X | X | 읽기 스냅샷 |
 | tobject | value | 복사 | X | X | 경계 전송 |
+
+메모:
+
+- `object`는 내부 관찰 모델이다.
+- `tobject`는 boundary transfer 모델이다.
+- 큰 telemetry를 zero-copy로 넘기는 정책은 여기 포함되지 않는다. 그건 snapshot/generation/lease 계층의 일이다.
 
 ### 5. 세계 모델이 언어에 내장되어 있다
 

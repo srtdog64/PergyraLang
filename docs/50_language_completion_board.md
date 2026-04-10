@@ -8,6 +8,7 @@
 
 - 정책: [53_parallel_core_policy.md](/mnt/e/PergyraLang/docs/53_parallel_core_policy.md)
 - 보드: [54_parallel_execution_relayout_board.md](/mnt/e/PergyraLang/docs/54_parallel_execution_relayout_board.md)
+- 경계/스냅샷 정책: [56_tobject_boundary_snapshot_policy.md](/mnt/e/PergyraLang/docs/56_tobject_boundary_snapshot_policy.md)
 
 이번 라운드에서 착수한 범위:
 

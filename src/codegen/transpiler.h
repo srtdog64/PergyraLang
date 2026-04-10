@@ -172,6 +172,7 @@ typedef struct
     const char *current_effect_name;
     const char *current_zone_name;
     const char *current_world_name;
+    const char *current_overlay_receiver_expr;
     bool uses_intent_observability;
 } TranspilerCtx;
 

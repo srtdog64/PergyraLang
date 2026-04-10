@@ -2775,7 +2775,68 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 {
                     char *result = strdup_fmt("%s_%s(%s)",
                         type_name, method, args_buf->data);
+                    const char *source_slot_name =
+                        assignment_target_root_slot_name(obj);
+                    char *invalidation = NULL;
+                    const char *saved_zone_name = ctx->current_zone_name;
+                    const char *saved_receiver_expr = ctx->current_overlay_receiver_expr;
+
+                    if (ctx->current_world_name != NULL) {
+                        const char *zone_slot_name = NULL;
+                        const char *zone_type_name = NULL;
+                        const char *zone_subject_slot_name = NULL;
+                        const char *zone_subject_type_name = NULL;
+
+                        if (resolve_world_zone_subject_receiver(ctx, obj,
+                                &zone_slot_name, &zone_type_name,
+                                &zone_subject_slot_name, &zone_subject_type_name)
+                            && zone_slot_name != NULL
+                            && zone_type_name != NULL
+                            && zone_subject_slot_name != NULL
+                            && zone_subject_type_name != NULL
+                            && strcmp(zone_subject_type_name, type_name) == 0) {
+                            ctx->current_zone_name = zone_type_name;
+                            ctx->current_overlay_receiver_expr =
+                                strdup_fmt("(&self->%s)", zone_slot_name);
+                            source_slot_name = zone_subject_slot_name;
+                        }
+                    }
+
+                    invalidation =
+                        emit_current_overlay_method_projection_invalidation(
+                            ctx, source_slot_name, type_name, method_decl);
+                    if (ctx->current_overlay_receiver_expr != NULL
+                        && ctx->current_overlay_receiver_expr != saved_receiver_expr) {
+                        free((char *)ctx->current_overlay_receiver_expr);
+                    }
+                    ctx->current_overlay_receiver_expr = saved_receiver_expr;
+                    ctx->current_zone_name = saved_zone_name;
                     codebuf_destroy(args_buf);
+                    if (invalidation != NULL) {
+                        char *ret_type_name = NULL;
+                        char *wrapped = NULL;
+
+                        if (method_decl->data.func_decl.return_type != NULL)
+                            ret_type_name = render_type_name(
+                                method_decl->data.func_decl.return_type);
+
+                        if (ret_type_name != NULL
+                            && strcmp(ret_type_name, "Void") != 0) {
+                            int tmp_id = ++ctx->tmp_counter;
+                            wrapped = strdup_fmt(
+                                "({ %s _pgy_call_%d = %s; %s_pgy_call_%d; })",
+                                pergyra_type_to_c(ret_type_name), tmp_id,
+                                result, invalidation, tmp_id);
+                        } else {
+                            wrapped = strdup_fmt("({ %s; %s})",
+                                result, invalidation);
+                        }
+
+                        free(ret_type_name);
+                        free(invalidation);
+                        free(result);
+                        return wrapped;
+                    }
                     return result;
                 }
             }
@@ -3410,8 +3471,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         char *value  = emit_expression(node->data.assignment.value,  ctx);
         const char *root_slot_name = assignment_target_root_slot_name(
             node->data.assignment.target);
+        const char *root_subfield_name = assignment_target_root_subfield_name(
+            node->data.assignment.target);
         char *invalidation = emit_current_overlay_projection_invalidation(
-            ctx, root_slot_name);
+            ctx, root_slot_name, root_subfield_name);
         char *result;
         if (invalidation != NULL)
             result = strdup_fmt("({ %s%s = %s; })", invalidation, target, value);
