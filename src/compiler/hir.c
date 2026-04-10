@@ -1355,7 +1355,11 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
     if (!append_decl(&hir->decls, &hir->decl_count, decl))
         goto oom;
 
-    if (item.kind == HIR_TOPLEVEL_FUNCTION || item.kind == HIR_TOPLEVEL_INTENT) {
+    if (item.kind == HIR_TOPLEVEL_FUNCTION
+        || item.kind == HIR_TOPLEVEL_INTENT
+        || (item.kind == HIR_TOPLEVEL_EXECUTABLE
+            && item.ast != NULL
+            && item.ast->type == AST_FUNC_DECL)) {
         HIRRoutine routine;
         memset(&routine, 0, sizeof(routine));
         routine.decl_id = decl.id;
@@ -1761,6 +1765,64 @@ oom:
     return false;
 }
 
+static bool
+hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
+{
+    ASTNode *func;
+    ASTNode *body;
+    HIRTopLevelItem item;
+
+    if (hir == NULL || hir->executable_count == 0 || hir->synthetic_executable_func != NULL)
+        return true;
+
+    func = ast_create_function("__pgy_top_level_exec");
+    body = ast_create_block();
+    if (func == NULL || body == NULL) {
+        ast_destroy(func);
+        ast_destroy(body);
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Out of memory");
+        return false;
+    }
+
+    for (size_t i = 0; i < hir->executable_count; i++)
+        ast_add_statement(body, hir->executables[i]);
+    func->data.func_decl.body = body;
+    hir->synthetic_executable_func = func;
+
+    memset(&item, 0, sizeof(item));
+    item.kind = HIR_TOPLEVEL_EXECUTABLE;
+    item.ast = func;
+    item.name = func->data.func_decl.name;
+
+    if (!append_item(&hir->items, &hir->item_count, item)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Out of memory");
+        return false;
+    }
+    if (!hir_append_decl_and_routine(hir, item, error_message))
+        return false;
+
+    return true;
+}
+
+static void
+hir_destroy_synthetic_executable_func(ASTNode *func)
+{
+    ASTNode *body;
+
+    if (func == NULL || func->type != AST_FUNC_DECL)
+        return;
+
+    body = func->data.func_decl.body;
+    free(func->data.func_decl.name);
+    if (body != NULL && body->type == AST_BLOCK) {
+        free(body->data.block.statements);
+        free(body);
+    }
+    free(func);
+}
+
 HIRProgram *
 hir_lower(ASTNode *annotated_ast, char **error_message)
 {
@@ -1794,6 +1856,11 @@ hir_lower(ASTNode *annotated_ast, char **error_message)
         }
     }
 
+    if (!hir_append_synthetic_executable_routine(hir, error_message)) {
+        hir_destroy(hir);
+        return NULL;
+    }
+
     for (size_t i = 0; i < hir->routine_count; i++) {
         HIRRoutine *routine = &hir->routines[i];
         for (size_t j = 0; j < routine->direct_call_count; j++) {
@@ -1816,6 +1883,7 @@ hir_lower(ASTNode *annotated_ast, char **error_message)
         for (size_t i = 0; i < hir->routine_count; i++) {
             HIRRoutine *routine = &hir->routines[i];
             bool is_root = (routine->kind == HIR_TOPLEVEL_INTENT)
+                           || (routine->kind == HIR_TOPLEVEL_EXECUTABLE)
                            || routine->is_exported
                            || (routine->name != NULL
                                && strcmp(routine->name, "Main") == 0);
@@ -1885,6 +1953,7 @@ hir_destroy(HIRProgram *hir)
     free(hir->intents);
     free(hir->functions);
     free(hir->executables);
+    hir_destroy_synthetic_executable_func(hir->synthetic_executable_func);
     free(hir);
 }
 

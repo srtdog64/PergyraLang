@@ -5,7 +5,7 @@
 ## 요약
 
 - 컴파일러의 실제 driver 경로는 이제 `Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend dispatch`로 고정되며, `driver_run_pipeline()`은 backend 진입 전에 `DIR/RIR/MIR` lowering과 structural validation을 항상 수행한다.
-- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. LLVM ordinary/async function과 subject/class method는 MIR direct path를 우선 사용하고, 남은 HIR-assisted debt는 domain/intent/main-wrapper 쪽에 집중되어 있다.
+- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. LLVM ordinary/async function과 subject/class method는 MIR direct path를 우선 사용하고, top-level executable main-wrapper도 synthetic executable MIR routine을 통해 직접 AST loop를 줄였다. intent step의 `check/eval/meta` carrier 역시 MIR-only로 강제된다. 남은 HIR-assisted debt는 domain/intent 쪽에 집중되어 있다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.

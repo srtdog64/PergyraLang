@@ -234,6 +234,7 @@ struct HIRProgram
     size_t            function_count;
     ASTNode         **executables;
     size_t            executable_count;
+    ASTNode          *synthetic_executable_func;
 
     bool              has_main_function;
 };

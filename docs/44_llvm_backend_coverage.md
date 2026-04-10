@@ -11,7 +11,7 @@
 - LLVM backend는 `누락돼서 전반적으로 동작 안 하는 상태`가 아니다.
 - 실제 경로는 `MIR-led / HIR-assisted hybrid`다.
 - ordinary/async function과 subject/class method의 주 경로는 MIR emission을 탄다.
-- 일부 표면은 여전히 HIR fallback debt를 가진다.
+- 일부 표면은 여전히 HIR-assisted debt를 가진다.
 
 ## 직접 검증된 범위
 
@@ -73,8 +73,9 @@
 
 ### 1. MIR-only 미완료
 
-- intent/domain/main-wrapper 일부는 여전히 HIR-assisted path를 쓴다
+- intent/domain 일부는 여전히 HIR-assisted path를 쓴다
 - MIR routine/step sequence가 비어 있으면 LLVM은 hard error로 실패한다
+- intent step의 check/eval/meta carrier는 이제 MIR-only로 검증된다
 
 관련 파일:
 
@@ -84,8 +85,8 @@
 
 ### 2. expression-level type exactness debt
 
-- 일부 method-call lowering은 arg type을 아직 exact resolve하지 못하고 fallback type을 쓴다
-- `llvm_expr_call_methods.inc`에 남은 `TODO: resolve arg types`가 그 신호다
+- party/vtable dispatch의 hardcoded arg type debt는 제거됐다
+- 남은 debt는 domain declaration emission과 intent/domain 내부의 일부 AST-assisted 경로 쪽이다
 
 관련 파일:
 
@@ -121,6 +122,6 @@
   - intent trace
   - subject/class dispatch
 - remaining debt:
-  - domain/intent/main-wrapper HIR-assisted paths
-  - some expression type exactness
+  - domain/intent HIR-assisted paths
+  - remaining AST-assisted expression lowering inside domain/intent
   - MIR-only completion

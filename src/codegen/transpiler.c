@@ -5524,6 +5524,10 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         if (transpiler_can_forward_declare_func_early(ctx, hir->functions[i]))
             emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
     }
+    if (hir->synthetic_executable_func != NULL
+        && transpiler_can_forward_declare_func_early(ctx, hir->synthetic_executable_func)) {
+        emit_func_forward_decl(hir->synthetic_executable_func, ctx->out, ctx);
+    }
     for (size_t i = 0; i < hir->intent_count; i++) {
         if (transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
             emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
@@ -5563,6 +5567,11 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
             emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
         }
     }
+    if (hir->synthetic_executable_func != NULL
+        && !transpiler_can_forward_declare_func_early(ctx, hir->synthetic_executable_func)
+        && transpiler_can_forward_declare_func_after_zones(ctx, hir->synthetic_executable_func)) {
+        emit_func_forward_decl(hir->synthetic_executable_func, ctx->out, ctx);
+    }
 
     /* Pass 3.9: worlds (struct + methods) */
     for (size_t i = 0; i < hir->world_count; i++)
@@ -5573,6 +5582,8 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < hir->function_count; i++)
         emit_func_forward_decl(hir->functions[i], ctx->decls, ctx);
+    if (hir->synthetic_executable_func != NULL)
+        emit_func_forward_decl(hir->synthetic_executable_func, ctx->decls, ctx);
     for (size_t i = 0; i < hir->intent_count; i++)
         emit_intent_forward_decl(hir->intents[i], ctx->decls, ctx);
 
@@ -5586,6 +5597,8 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         ctx->out = func_buf;
         for (size_t i = 0; i < hir->function_count; i++)
             emit_func_decl(hir->functions[i], ctx);
+        if (hir->synthetic_executable_func != NULL)
+            emit_func_decl(hir->synthetic_executable_func, ctx);
         for (size_t i = 0; i < hir->intent_count; i++)
             emit_intent_decl(hir->intents[i], func_buf, ctx);
         ctx->out = saved_out;
@@ -5624,8 +5637,13 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         }
 
         /* Emit top-level statements inside main() */
-        for (size_t i = 0; i < hir->executable_count; i++)
-            emit_statement(hir->executables[i], ctx);
+        if (hir->synthetic_executable_func != NULL) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__pgy_top_level_exec();\n");
+        } else {
+            for (size_t i = 0; i < hir->executable_count; i++)
+                emit_statement(hir->executables[i], ctx);
+        }
 
         /* If Main() exists and no top-level statements, call it */
         if (hir->has_main_function) {

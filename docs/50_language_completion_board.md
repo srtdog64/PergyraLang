@@ -25,7 +25,7 @@
 |------|-----------|----------------|----------------|
 | Effect lattice | 부분 구현 | `effect_mask` closure, join/meet/compare/conflict API, 함수-level conflict warning, if/match branch-local effect join/conflict 경고, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
 | Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
-| MIR -> LLVM | 진행 중 | ordinary/async function MIR 경로 고정, intent/class/subject MIR carrier 확장, 남은 HIR fallback 범주 정리 | domain/intent/main-wrapper fallback 제거 |
+| MIR -> LLVM | 진행 중 | ordinary/async function MIR 경로 고정, intent/class/subject MIR carrier 확장, main-wrapper top-level executable synthetic MIR routine 추가, intent step check/eval/meta MIR-only 강제 | domain/intent HIR-assisted path 축소 |
 | Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard+idempotent roundtrip guard, LSP completion/documentSymbol/definition/references/rename 추가 | formatter AST-aware layout, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 진행 중 | return/call/channel-send 기반 slot escape 분류/경고 추가, LLVM AST path에서 non-escaping local slot을 entry-hoist 대신 current-block alloca로 sink | backend local sinking/elision 연결 확대 |
 | Generic `where` validation | 진행 중 | func/class/role bound validation, function call-site check, class specialization enforcement 추가 | generic instantiation 전반과 richer diagnostics 확장 |
@@ -100,11 +100,12 @@
 - async function도 MIR routine가 있으면 같은 경로로 직접 emit한다
 - class method는 MIR routine가 있으면 MIR emission을 우선 사용한다
 - subject method도 MIR direct path를 우선 사용한다
+- top-level executable main-wrapper는 synthetic executable MIR routine을 통해 wrapper의 직접 AST loop를 줄였다
 - intent는 cleanup/rollback/invalidation topology를 MIR에서 읽고, run-body step sequence도 MIR `STMT(intent step)` carrier를 읽는다
-- 하지만 다음 범주에 HIR fallback이 남음
-  - `intent` step 내부 표현식/행동의 직접 AST 해석
+- intent step의 `pre/guard/post/expect/invariant/on/subintent/compensate` 및 `zone/who/transfer` metadata는 LLVM에서 MIR carrier를 필수로 요구한다
+- 하지만 다음 범주에 HIR-assisted debt가 남음
   - domain/world/zone/relation/effect declaration emission
-  - main-wrapper / top-level executable orchestration
+  - intent/domain 내부의 일부 보조 AST-assisted 해석
 
 부족한 것:
 

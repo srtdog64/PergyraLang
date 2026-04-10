@@ -996,6 +996,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     size_t subject_count = 0;
     size_t step_count = 0;
     bool has_compensate_steps = false;
+    bool mir_only_intent = false;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
@@ -1025,6 +1026,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             free(mir_steps);
             return;
         }
+        mir_only_intent = true;
     }
     if (step_count > 0) {
         step_nodes = mir_steps;
@@ -1259,32 +1261,58 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             dispatch_alias_count = llvm_collect_mir_intent_dispatch_aliases(
                 mir_routine, step_name, &dispatch_aliases);
         }
-        if (pre_expr == NULL)
-            pre_expr = step->data.intent_step.pre_expr;
-        if (guard_expr == NULL)
-            guard_expr = step->data.intent_step.guard_expr;
-        if (post_expr == NULL)
-            post_expr = step->data.intent_step.post_expr;
-        if (expect_expr == NULL)
-            expect_expr = step->data.intent_step.expect_expr;
-        if (invariant_pre_expr == NULL)
-            invariant_pre_expr = step->data.intent_step.invariant_expr;
-        if (invariant_post_expr == NULL)
-            invariant_post_expr = step->data.intent_step.invariant_expr;
-        if (subintent_expr == NULL)
-            subintent_expr = step->data.intent_step.intent_expr;
-        if (zone_type_name == NULL
-            && step->data.intent_step.where_type != NULL
-            && step->data.intent_step.where_type->type == AST_TYPE) {
-            zone_type_name = step->data.intent_step.where_type->data.type.name;
-        }
-        if (zone_alias == NULL)
-            zone_alias = llvm_intent_step_effective_zone_alias(step);
-        if (from_alias == NULL)
-            from_alias = step->data.intent_step.transfer_from_alias;
-        if (who_alias_count == 0) {
-            who_alias_count = step->data.intent_step.who_count;
-            who_aliases = (const char **)step->data.intent_step.who_names;
+        if (mir_only_intent) {
+            if (step->data.intent_step.pre_expr != NULL && pre_expr == NULL)
+                goto mir_step_missing_pre;
+            if (step->data.intent_step.guard_expr != NULL && guard_expr == NULL)
+                goto mir_step_missing_guard;
+            if (step->data.intent_step.post_expr != NULL && post_expr == NULL)
+                goto mir_step_missing_post;
+            if (step->data.intent_step.expect_expr != NULL && expect_expr == NULL)
+                goto mir_step_missing_expect;
+            if (step->data.intent_step.invariant_expr != NULL
+                && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
+                goto mir_step_missing_invariant;
+            if (step->data.intent_step.intent_expr != NULL && subintent_expr == NULL)
+                goto mir_step_missing_subintent;
+            if (step->data.intent_step.on_expr_count > 0 && on_expr_count == 0)
+                goto mir_step_missing_on;
+            if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+                goto mir_step_missing_zone_where;
+            if (llvm_intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+                goto mir_step_missing_zone_alias;
+            if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+                goto mir_step_missing_zone_from;
+            if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                goto mir_step_missing_who;
+        } else {
+            if (pre_expr == NULL)
+                pre_expr = step->data.intent_step.pre_expr;
+            if (guard_expr == NULL)
+                guard_expr = step->data.intent_step.guard_expr;
+            if (post_expr == NULL)
+                post_expr = step->data.intent_step.post_expr;
+            if (expect_expr == NULL)
+                expect_expr = step->data.intent_step.expect_expr;
+            if (invariant_pre_expr == NULL)
+                invariant_pre_expr = step->data.intent_step.invariant_expr;
+            if (invariant_post_expr == NULL)
+                invariant_post_expr = step->data.intent_step.invariant_expr;
+            if (subintent_expr == NULL)
+                subintent_expr = step->data.intent_step.intent_expr;
+            if (zone_type_name == NULL
+                && step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE) {
+                zone_type_name = step->data.intent_step.where_type->data.type.name;
+            }
+            if (zone_alias == NULL)
+                zone_alias = llvm_intent_step_effective_zone_alias(step);
+            if (from_alias == NULL)
+                from_alias = step->data.intent_step.transfer_from_alias;
+            if (who_alias_count == 0) {
+                who_alias_count = step->data.intent_step.who_count;
+                who_aliases = (const char **)step->data.intent_step.who_names;
+            }
         }
 
         {
@@ -1376,8 +1404,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         } else if (on_expr_count == 0) {
             size_t alias_count = dispatch_alias_count;
-            if (alias_count == 0)
+            if (!mir_only_intent && alias_count == 0)
                 alias_count = step->data.intent_step.who_count;
+            else if (mir_only_intent && alias_count == 0 && step->data.intent_step.who_count > 0)
+                goto mir_step_missing_dispatch;
             for (size_t j = 0; j < alias_count; j++) {
                 const char *alias = dispatch_alias_count > 0
                     ? dispatch_aliases[j]
@@ -1574,22 +1604,36 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 who_alias_count = llvm_collect_mir_intent_who_aliases(
                     mir_routine, step->data.intent_step.name, &who_aliases);
             }
-            if (compensate_expr_count == 0) {
+            if (mir_only_intent && step->data.intent_step.compensate_expr_count > 0
+                && compensate_expr_count == 0)
+                goto mir_step_missing_compensate;
+            if (!mir_only_intent && compensate_expr_count == 0) {
                 compensate_expr_count = step->data.intent_step.compensate_expr_count;
                 compensate_exprs = step->data.intent_step.compensate_exprs;
             }
-            if (zone_type_name == NULL
-                && step->data.intent_step.where_type != NULL
-                && step->data.intent_step.where_type->type == AST_TYPE) {
-                zone_type_name = step->data.intent_step.where_type->data.type.name;
-            }
-            if (zone_alias == NULL)
-                zone_alias = llvm_intent_step_effective_zone_alias(step);
-            if (from_alias == NULL)
-                from_alias = step->data.intent_step.transfer_from_alias;
-            if (who_alias_count == 0) {
-                who_alias_count = step->data.intent_step.who_count;
-                who_aliases = (const char **)step->data.intent_step.who_names;
+            if (mir_only_intent) {
+                if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+                    goto mir_step_missing_zone_where;
+                if (llvm_intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+                    goto mir_step_missing_zone_alias;
+                if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+                    goto mir_step_missing_zone_from;
+                if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                    goto mir_step_missing_who;
+            } else {
+                if (zone_type_name == NULL
+                    && step->data.intent_step.where_type != NULL
+                    && step->data.intent_step.where_type->type == AST_TYPE) {
+                    zone_type_name = step->data.intent_step.where_type->data.type.name;
+                }
+                if (zone_alias == NULL)
+                    zone_alias = llvm_intent_step_effective_zone_alias(step);
+                if (from_alias == NULL)
+                    from_alias = step->data.intent_step.transfer_from_alias;
+                if (who_alias_count == 0) {
+                    who_alias_count = step->data.intent_step.who_count;
+                    who_aliases = (const char **)step->data.intent_step.who_names;
+                }
             }
             {
                 LLVMBasicBlockRef do_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.comp.do");
@@ -1663,6 +1707,60 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
 
+    if (saved_fn != NULL) {
+        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
+        if (last != NULL)
+            LLVMPositionBuilderAtEnd(ctx->builder, last);
+    }
+    return;
+
+mir_step_missing_pre:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent pre check carrier");
+    goto intent_emit_fail;
+mir_step_missing_guard:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent guard check carrier");
+    goto intent_emit_fail;
+mir_step_missing_post:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent post check carrier");
+    goto intent_emit_fail;
+mir_step_missing_expect:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent expect check carrier");
+    goto intent_emit_fail;
+mir_step_missing_invariant:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent invariant check carrier");
+    goto intent_emit_fail;
+mir_step_missing_subintent:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent subintent eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_on:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent on-eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_zone_where:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent zone where metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_alias:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent zone alias metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_from:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent transfer-from metadata");
+    goto intent_emit_fail;
+mir_step_missing_who:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent who metadata");
+    goto intent_emit_fail;
+mir_step_missing_dispatch:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent dispatch carrier");
+    goto intent_emit_fail;
+mir_step_missing_compensate:
+    llvm_set_error(ctx, "MIR-only LLVM path missing intent compensate eval carrier");
+    goto intent_emit_fail;
+
+intent_emit_fail:
+    free(completed_allocas);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
+    free(mir_steps);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret_type;
     if (saved_fn != NULL) {
         LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
         if (last != NULL)

@@ -54,8 +54,10 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 
 ### 3.1 MIR-only completion debt
 
-- domain / intent / main-wrapper 일부는 HIR-assisted
+- domain / intent 일부는 HIR-assisted
 - MIR routine/sequence가 없으면 LLVM은 hard error
+- intent step의 `pre/guard/post/expect/invariant/on/subintent/compensate`
+  및 `zone/who/transfer` metadata carrier는 이제 MIR-only로 강제된다
 
 근거:
 
@@ -65,7 +67,8 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 
 ### 3.2 expression type exactness debt
 
-- 일부 method-call lowering은 argument type을 exact resolve하지 못한다
+- party/vtable dispatch의 hardcoded arg type debt는 제거됐다
+- 남은 debt는 domain declaration emission과 intent/domain 내부의 일부 AST-assisted 해석 쪽이다
 
 근거:
 
@@ -93,6 +96,7 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 | subject method / dispatch | `llvm-smoke`에서 직접 PASS |
 | nested call | `llvm-smoke`에서 직접 PASS |
 | world/zone runtime | `llvm-smoke`에서 직접 PASS |
+| top-level executable main-wrapper | synthetic executable MIR routine + `llvm-smoke` / `test-abi` 통과 |
 
 결론:
 

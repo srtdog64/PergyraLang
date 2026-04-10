@@ -238,13 +238,19 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
                        main_user->fn, NULL, 0, "");
 
     if (hir->executable_count > 0) {
-        for (size_t i = 0; i < hir->executable_count; i++) {
-            ASTNode *stmt = hir->executables[i];
-            if (stmt != NULL) {
-                llvm_emit_statement(stmt, ctx);
-                if (LLVMGetBasicBlockTerminator(
-                        LLVMGetInsertBlock(ctx->builder)) != NULL)
-                    break;
+        LLVMFuncEntry *top_level_entry = llvm_lookup_function(ctx, "__pgy_top_level_exec");
+        if (top_level_entry != NULL) {
+            LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
+                           top_level_entry->fn, NULL, 0, "");
+        } else {
+            for (size_t i = 0; i < hir->executable_count; i++) {
+                ASTNode *stmt = hir->executables[i];
+                if (stmt != NULL) {
+                    llvm_emit_statement(stmt, ctx);
+                    if (LLVMGetBasicBlockTerminator(
+                            LLVMGetInsertBlock(ctx->builder)) != NULL)
+                        break;
+                }
             }
         }
     }
