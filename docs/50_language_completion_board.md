@@ -177,6 +177,29 @@
 - [type_checker_helpers.inc](/mnt/e/PergyraLang/src/semantic/type_checker_helpers.inc)
 - [test_semantic_misc.inc](/mnt/e/PergyraLang/src/tests/semantic/test_semantic_misc.inc)
 
+### 2.7 `requires` generic ability reference
+
+현재:
+
+- `ability { require field: Type; }`는 일반 type parser를 타므로 `List<Int>` 같은 generic field type 자체는 받을 수 있다
+- `action requires Ability` / intent step `requires:` / zone authority `requires`는 이제 type-reference AST를 저장한다
+- 즉 `requires SomeAbility<T>` 같은 generic ability reference를 parser/AST/semantic/DIR 경로에서 표현할 수 있게 구조를 올렸다
+- 현재 semantic은 `requires SomeAbility<T>`를 명시적으로 거부한다. 이유는 ability 자체가 아직 non-generic이라서 type argument를 받을 계약이 없기 때문이다
+
+부족한 것:
+
+- generic ability declaration 자체
+- generic ability reference에 대한 richer semantic validation
+- parser/semantic/DIR lowering을 generic ability reference 전반으로 더 확장
+- foreign hidden ability / default-export ability 정책과 generic 인자 해석을 함께 정렬
+
+현재 진입점:
+
+- [parser_decl.c](/mnt/e/PergyraLang/src/parser/parser_decl.c)
+- [parser_intent.c](/mnt/e/PergyraLang/src/parser/parser_intent.c)
+- [parser_domain.c](/mnt/e/PergyraLang/src/parser/parser_domain.c)
+- [ast.h](/mnt/e/PergyraLang/src/parser/ast.h)
+
 ## 3. 이번 라운드에서 실제 시작한 것
 
 ### 3.1 `where` 제약 검증

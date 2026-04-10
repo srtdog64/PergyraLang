@@ -186,10 +186,15 @@ parse_intent_step(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "requires")) {
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'requires'");
-            parse_intent_name_list(parser,
-                &step->data.intent_step.required_abilities,
-                &step->data.intent_step.required_ability_count,
-                "Expected ability name after 'requires:'");
+            do {
+                ASTNode *ability = parse_type(parser);
+                size_t next = step->data.intent_step.required_ability_count + 1;
+                step->data.intent_step.required_abilities = realloc(
+                    step->data.intent_step.required_abilities,
+                    next * sizeof(ASTNode *));
+                step->data.intent_step.required_abilities[next - 1] = ability;
+                step->data.intent_step.required_ability_count = next;
+            } while (parser_match(parser, TOKEN_COMMA));
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step requires clause");
             continue;
         }

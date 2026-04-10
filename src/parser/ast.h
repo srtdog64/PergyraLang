@@ -296,7 +296,7 @@ struct ASTNode
             AccessModifier access;
             bool           has_explicit_access;
             bool           is_action;
-            char**         required_abilities;
+            ASTNode**      required_abilities;
             size_t         required_ability_count;
             char*          within_zone;
             char*          causes_effect;
@@ -364,6 +364,7 @@ struct ASTNode
         
         /* For loop */
         struct {
+            char*    label;
             char*    variable;
             ASTNode* range_start;
             ASTNode* range_end;
@@ -373,6 +374,7 @@ struct ASTNode
 
         /* While loop */
         struct {
+            char*    label;
             ASTNode* condition;
             ASTNode* body;
         } while_loop;
@@ -388,6 +390,14 @@ struct ASTNode
         struct {
             ASTNode* value;
         } return_stmt;
+
+        struct {
+            char* label;
+        } break_stmt;
+
+        struct {
+            char* label;
+        } continue_stmt;
         
         /* Block */
         struct {
@@ -441,6 +451,8 @@ struct ASTNode
             ASTNode*** variant_params;  /* variant_params[i] = param type nodes (NULL if no data) */
             size_t*    variant_param_counts; /* param count per variant (0 if no data) */
             size_t     variant_count;
+            ASTNode**  methods;
+            size_t     method_count;
         } enum_decl;
 
         /* Assignment */
@@ -787,7 +799,7 @@ struct ASTNode
             ASTNode* guard_expr;
             ASTNode* post_expr;
             ASTNode* invariant_expr;
-            char** required_abilities;
+            ASTNode** required_abilities;
             size_t required_ability_count;
             char* causes_effect;
             char** authorized_by;
@@ -949,7 +961,7 @@ struct ASTNode
         /* Zone authority declaration */
         struct {
             char* subject_slot_name;
-            char** required_abilities;
+            ASTNode** required_abilities;
             size_t ability_count;
         } zone_authority;
 

@@ -2966,8 +2966,8 @@ test_stdlib_and_enum_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PgyList_Event events = pgy_list_new_Event();");
         EXPECT_STR_CONTAINS(ctx->out->data, "for (size_t _pgy_idx_");
-        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_idx_1 < events.count");
-        EXPECT_STR_CONTAINS(ctx->out->data, "Event event = events.data[_pgy_idx_1];");
+        EXPECT_STR_CONTAINS(ctx->out->data, "< events.count");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Event event = events.data[_pgy_idx_");
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

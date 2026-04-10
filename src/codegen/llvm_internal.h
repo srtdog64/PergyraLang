@@ -458,6 +458,7 @@ typedef struct LLVMGenCtx
     LLVMBasicBlockRef loop_continue_blocks[MAX_SCOPE_DEPTH];
     LLVMBasicBlockRef loop_break_blocks[MAX_SCOPE_DEPTH];
     int              loop_defer_base_depth[MAX_SCOPE_DEPTH];
+    const char      *loop_labels[MAX_SCOPE_DEPTH];
     int              loop_depth;
 
     ASTNode         *defer_bodies[MAX_SCOPE_DEPTH][MAX_DEFER_PER_SCOPE];
@@ -672,6 +673,7 @@ void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_func_requires_hir_fallback(ASTNode *func_decl);
 void llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
+ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx);
 void llvm_register_hir_extern_prototypes(const HIRProgram *hir, LLVMGenCtx *ctx);
 

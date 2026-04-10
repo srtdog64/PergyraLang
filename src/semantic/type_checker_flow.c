@@ -785,6 +785,21 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
             semantic_error(ctx, node, "'break' used outside of loop");
             return FLOW_NONE;
         }
+        if (node->data.break_stmt.label != NULL) {
+            bool found = false;
+            for (int i = ctx->loop_depth - 1; i >= 0; i--) {
+                if (ctx->loop_labels[i] != NULL
+                    && strcmp(ctx->loop_labels[i], node->data.break_stmt.label) == 0) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                semantic_error(ctx, node, "Unknown loop label '%s' in break",
+                    node->data.break_stmt.label);
+                return FLOW_NONE;
+            }
+        }
         {
             ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(
                 loop_flow != NULL && loop_flow->loop_scope != NULL
@@ -798,6 +813,21 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         if (ctx->loop_depth <= 0) {
             semantic_error(ctx, node, "'continue' used outside of loop");
             return FLOW_NONE;
+        }
+        if (node->data.continue_stmt.label != NULL) {
+            bool found = false;
+            for (int i = ctx->loop_depth - 1; i >= 0; i--) {
+                if (ctx->loop_labels[i] != NULL
+                    && strcmp(ctx->loop_labels[i], node->data.continue_stmt.label) == 0) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                semantic_error(ctx, node, "Unknown loop label '%s' in continue",
+                    node->data.continue_stmt.label);
+                return FLOW_NONE;
+            }
         }
         {
             ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(

@@ -17,6 +17,8 @@
 typedef struct SemanticContext SemanticContext;
 typedef struct Diagnostic      Diagnostic;
 
+#define SEMANTIC_MAX_LOOP_DEPTH 64
+
 /*
  * Diagnostic severity
  */
@@ -56,6 +58,7 @@ struct SemanticContext
     bool         in_async_func;  /* Inside async func              */
     bool         in_parallel;    /* Inside parallel block          */
     int          loop_depth;     /* Inside loop nesting            */
+    const char  *loop_labels[SEMANTIC_MAX_LOOP_DEPTH];
     int32_t      next_entangle_pool; /* Compile-time entangle pool counter */
 
     Diagnostic** diagnostics;

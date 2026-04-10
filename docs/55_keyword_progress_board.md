@@ -39,7 +39,7 @@
 | `as` | 75% | alias/type helper 표면 안정 |
 | `impl` | 85% | role/ability 구현 핵심 표면 |
 | `include` | 75% | role composition helper 수준 |
-| `require` | 87% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 |
+| `require` | 86% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal require type/ability 차단 + action requires의 foreign hidden ability 차단까지는 있음. `requires SomeAbility<T>` 경로는 이제 type-reference AST를 타지만 richer semantic/generalization은 더 남음 |
 | `override` | 55% | role/party 보조 modifier는 있으나 inheritance override는 코어 대상 아님 |
 | `extends` | 30% | party 보조 관계 표면은 있으나 inheritance 코어 축은 아님 |
 | `if` | 100% | 안정 |

@@ -1166,6 +1166,10 @@ current_host_method_decl(SemanticContext *ctx, const char *method_name)
         methods = decl->data.class_decl.methods;
         method_count = decl->data.class_decl.method_count;
         break;
+    case AST_ENUM_DECL:
+        methods = decl->data.enum_decl.methods;
+        method_count = decl->data.enum_decl.method_count;
+        break;
     case AST_RELATION_DECL:
         methods = decl->data.relation_decl.methods;
         method_count = decl->data.relation_decl.method_count;
@@ -1308,12 +1312,15 @@ type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
 {
     ASTNode *decl;
 
-    if (type == NULL || type->kind != TYPE_KIND_CLASS
+    if (type == NULL
+        || (type->kind != TYPE_KIND_CLASS && type->kind != TYPE_KIND_ENUM)
         || type->name == NULL || ctx == NULL)
         return false;
 
     decl = find_type_decl_by_name(ctx->program_root, type->name);
-    if (decl != NULL)
+    if (decl != NULL && decl->type == AST_ENUM_DECL)
+        return true;
+    if (decl != NULL && decl->type == AST_CLASS_DECL)
         return !decl->data.class_decl.is_struct
             || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
             || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;

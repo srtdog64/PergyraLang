@@ -722,7 +722,11 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 auth->data.zone_authority.subject_slot_name))
             return false;
         for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
-            const char *ability_name = auth->data.zone_authority.required_abilities[j];
+            ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
+            const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
+                ? ability_ref->data.type.name : NULL;
+            if (ability_name == NULL)
+                continue;
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
             if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_AUTHORITY_ABILITY, from_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
@@ -907,18 +911,23 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                 goto oom;
         }
         for (size_t j = 0; j < step_node->data.intent_step.required_ability_count; j++) {
+            ASTNode *ability_ref = step_node->data.intent_step.required_abilities[j];
+            const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
+                ? ability_ref->data.type.name : NULL;
+            if (ability_name == NULL)
+                continue;
             if (!append_name(&step.required_abilities,
                              &step.required_ability_count,
-                             step_node->data.intent_step.required_abilities[j]))
+                             ability_name))
                 goto oom;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_INTENT_STEP_REQUIRES,
                                     from_id,
-                                    dir_find_ability_node_by_name(dir, step_node->data.intent_step.required_abilities[j]) >= 0
-                                        ? (size_t)dir_find_ability_node_by_name(dir, step_node->data.intent_step.required_abilities[j])
+                                    dir_find_ability_node_by_name(dir, ability_name) >= 0
+                                        ? (size_t)dir_find_ability_node_by_name(dir, ability_name)
                                         : SIZE_MAX,
                                     step.name,
-                                    step_node->data.intent_step.required_abilities[j]))
+                                    ability_name))
                 goto oom;
         }
         for (size_t j = 0; j < step_node->data.intent_step.authorized_by_count; j++) {

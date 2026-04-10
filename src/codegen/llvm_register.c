@@ -33,7 +33,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     }
 
     if (!has_data || llvm_lookup_class(ctx, enum_name) != NULL)
-        return;
+        goto register_methods;
 
     size_t variant_count = stmt->data.enum_decl.variant_count;
     LLVMTypeRef *enum_fields = calloc((variant_count + 1), sizeof(LLVMTypeRef));
@@ -87,6 +87,49 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     LLVMStructSetBody(enum_ty, enum_fields, (unsigned)(variant_count + 1), 0);
     free(enum_fields);
+
+register_methods:
+    for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
+        ASTNode *method = stmt->data.enum_decl.methods[j];
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+
+        const char *method_name = method->data.func_decl.name;
+        size_t pc = method->data.func_decl.param_count;
+        LLVMTypeRef ret_type = ctx->type_void;
+        if (method->data.func_decl.return_type != NULL)
+            ret_type = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+
+        size_t user_pc = 0;
+        for (size_t k = 0; k < pc; k++) {
+            FuncParam *p = method->data.func_decl.params[k];
+            if (p->type == NULL && strcmp(p->name, "self") == 0)
+                continue;
+            user_pc++;
+        }
+
+        LLVMTypeRef self_type = ctx->type_i32;
+        LLVMClassTypeEntry *enum_entry = llvm_lookup_class(ctx, enum_name);
+        if (enum_entry != NULL)
+            self_type = enum_entry->struct_type;
+        LLVMTypeRef *param_types = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+        param_types[0] = self_type;
+        size_t pidx = 1;
+        for (size_t k = 0; k < pc; k++) {
+            FuncParam *p = method->data.func_decl.params[k];
+            if (p->type == NULL && strcmp(p->name, "self") == 0)
+                continue;
+            param_types[pidx++] = (p->type != NULL) ? ast_type_to_llvm(ctx, p->type)
+                                                    : ctx->type_i32;
+        }
+
+        LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
+        char full_name[256];
+        snprintf(full_name, sizeof(full_name), "%s_%s", enum_name, method_name);
+        LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
+        llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
+        free(param_types);
+    }
 }
 
 static void

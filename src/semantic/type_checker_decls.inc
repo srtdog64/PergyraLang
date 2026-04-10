@@ -201,7 +201,12 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         "Ability '%s' not found in current scope",
                         impl->data.impl_ability.ability_name);
                 } else if (ability_decl != NULL
-                           && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
+                           && ability_decl->type == AST_ABILITY_DECL
+                           && ability_decl->origin_path != NULL
+                           && node->origin_path != NULL
+                           && strcmp(ability_decl->origin_path, node->origin_path) != 0
+                           && ability_decl->data.ability_decl.has_explicit_access
+                           && ability_decl->data.ability_decl.access != ACCESS_PUBLIC) {
                     semantic_error(ctx, impl,
                         "Role '%s' cannot implement non-exported ability '%s' from another module",
                         name != NULL ? name : "<role>",
@@ -930,12 +935,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
-            const char *ability = step->data.intent_step.required_abilities[j];
-            if (find_ability_decl_by_name(ctx->program_root, ability) == NULL) {
-                semantic_error(ctx, step,
-                    "Intent step '%s' requires unknown ability '%s'",
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    ability != NULL ? ability : "<ability>");
+            ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
+            const char *ability = ability_ref_name(ability_ref);
+            if (resolve_required_ability_decl(
+                    ability_ref, step, ctx, "Intent step",
+                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>") == NULL) {
                 continue;
             }
 
@@ -2900,15 +2904,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         slot_type = slot != NULL ? resolve_type_node(slot->data.domain_slot.type, ctx) : NULL;
         for (size_t j = 0; j < authority->data.zone_authority.ability_count; j++) {
-            const char *ability_name = authority->data.zone_authority.required_abilities[j];
-            Symbol *ab = ability_name != NULL ? scope_lookup(ctx->scope, ability_name) : NULL;
-            if (ability_name == NULL)
-                continue;
-            if (ab == NULL || ab->kind != SYMBOL_ABILITY) {
-                semantic_error(ctx, authority,
-                    "Zone authority '%s' requires unknown ability '%s'",
-                    authority->data.zone_authority.subject_slot_name,
-                    ability_name);
+            ASTNode *ability_ref = authority->data.zone_authority.required_abilities[j];
+            const char *ability_name = ability_ref_name(ability_ref);
+            if (resolve_required_ability_decl(
+                    ability_ref, authority, ctx, "Zone authority",
+                    authority->data.zone_authority.subject_slot_name) == NULL) {
                 continue;
             }
             if (slot_type == NULL || slot_type == TYPE_UNKNOWN

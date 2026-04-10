@@ -387,6 +387,33 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                               const char *method_name);
 
 static ASTNode *
+find_enum_decl(TranspilerCtx *ctx, const char *enum_name)
+{
+    if (ctx == NULL || ctx->hir == NULL || enum_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt != NULL && stmt->type == AST_ENUM_DECL
+            && stmt->data.enum_decl.name != NULL
+            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
+            return stmt;
+        }
+    }
+
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt != NULL && stmt->type == AST_ENUM_DECL
+            && stmt->data.enum_decl.name != NULL
+            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+static ASTNode *
 find_class_decl(TranspilerCtx *ctx, const char *class_name)
 {
     if (ctx == NULL || ctx->hir == NULL || class_name == NULL)
@@ -688,6 +715,8 @@ is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 static bool
 is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
+    if (find_enum_decl(ctx, type_name) != NULL)
+        return true;
     ASTNode *decl = find_class_decl(ctx, type_name);
     if (decl != NULL && (!decl->data.class_decl.is_struct
         || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
@@ -2148,10 +2177,16 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                     methods = decl->data.world_decl.methods;
                     method_count = decl->data.world_decl.method_count;
                 } else {
-                    decl = find_class_decl(ctx, host_type_name);
-                    if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                        methods = decl->data.class_decl.methods;
-                        method_count = decl->data.class_decl.method_count;
+                    decl = find_enum_decl(ctx, host_type_name);
+                    if (decl != NULL && decl->type == AST_ENUM_DECL) {
+                        methods = decl->data.enum_decl.methods;
+                        method_count = decl->data.enum_decl.method_count;
+                    } else {
+                        decl = find_class_decl(ctx, host_type_name);
+                        if (decl != NULL && decl->type == AST_CLASS_DECL) {
+                            methods = decl->data.class_decl.methods;
+                            method_count = decl->data.class_decl.method_count;
+                        }
                     }
                 }
             }

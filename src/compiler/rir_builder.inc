@@ -304,9 +304,14 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             if (!add_authority_fact(&scope, auth->data.zone_authority.subject_slot_name, NULL, auth))
                 goto oom;
             for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
+                ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
+                const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
+                    ? ability_ref->data.type.name : NULL;
+                if (ability_name == NULL)
+                    continue;
                 if (!add_authority_fact(&scope,
                                         auth->data.zone_authority.subject_slot_name,
-                                        auth->data.zone_authority.required_abilities[j],
+                                        ability_name,
                                         auth))
                     goto oom;
             }
@@ -497,8 +502,13 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
                 goto oom;
         }
         for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
+            ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
+            const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
+                ? ability_ref->data.type.name : NULL;
+            if (ability_name == NULL)
+                continue;
             if (!add_authority_fact(&scope, step->data.intent_step.name,
-                                    step->data.intent_step.required_abilities[j],
+                                    ability_name,
                                     step))
                 goto oom;
         }

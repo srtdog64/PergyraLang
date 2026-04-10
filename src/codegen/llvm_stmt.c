@@ -146,6 +146,22 @@ llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
         == SLOT_ESCAPE_NONE;
 }
 
+static int
+llvm_stmt_find_labeled_loop_depth(LLVMGenCtx *ctx, const char *label)
+{
+    if (ctx == NULL || label == NULL)
+        return -1;
+
+    for (int i = ctx->loop_depth - 1; i >= 0; i--) {
+        if (ctx->loop_labels[i] != NULL
+            && strcmp(ctx->loop_labels[i], label) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 static LLVMValueRef
 llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
 {
@@ -1830,6 +1846,7 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+        ctx->loop_labels[ctx->loop_depth] = node->data.while_loop.label;
         ctx->loop_continue_blocks[ctx->loop_depth] = cond_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
@@ -1837,8 +1854,10 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (node->data.while_loop.body != NULL)
         llvm_emit_statement(node->data.while_loop.body, ctx);
-    if (ctx->loop_depth > 0)
+    if (ctx->loop_depth > 0) {
         ctx->loop_depth--;
+        ctx->loop_labels[ctx->loop_depth] = NULL;
+    }
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, cond_bb);
 
@@ -1915,6 +1934,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
                 if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+                    ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
                     ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
                     ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
                     ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
@@ -1922,8 +1942,10 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 }
                 if (node->data.for_loop.body != NULL)
                     llvm_emit_statement(node->data.for_loop.body, ctx);
-                if (ctx->loop_depth > 0)
+                if (ctx->loop_depth > 0) {
                     ctx->loop_depth--;
+                    ctx->loop_labels[ctx->loop_depth] = NULL;
+                }
                 if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
                     LLVMBuildBr(ctx->builder, incr_bb);
 
@@ -2006,6 +2028,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildStore(ctx->builder, item, loop_var->alloca);
         }
         if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+            ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
             ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
             ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
             ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
@@ -2013,8 +2036,10 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
         }
         if (node->data.for_loop.body != NULL)
             llvm_emit_statement(node->data.for_loop.body, ctx);
-        if (ctx->loop_depth > 0)
+        if (ctx->loop_depth > 0) {
             ctx->loop_depth--;
+            ctx->loop_labels[ctx->loop_depth] = NULL;
+        }
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, incr_bb);
 
@@ -2070,6 +2095,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
+        ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
         ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
@@ -2077,8 +2103,10 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (node->data.for_loop.body != NULL)
         llvm_emit_statement(node->data.for_loop.body, ctx);
-    if (ctx->loop_depth > 0)
+    if (ctx->loop_depth > 0) {
         ctx->loop_depth--;
+        ctx->loop_labels[ctx->loop_depth] = NULL;
+    }
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, incr_bb);
 
@@ -2864,10 +2892,17 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_BREAK:
         if (ctx->loop_depth > 0) {
+            int target_depth = ctx->loop_depth - 1;
+            if (node->data.break_stmt.label != NULL) {
+                int found = llvm_stmt_find_labeled_loop_depth(
+                    ctx, node->data.break_stmt.label);
+                if (found >= 0)
+                    target_depth = found;
+            }
             llvm_emit_defers_from(ctx,
-                ctx->loop_defer_base_depth[ctx->loop_depth - 1]);
+                ctx->loop_defer_base_depth[target_depth]);
             LLVMBuildBr(ctx->builder,
-                ctx->loop_break_blocks[ctx->loop_depth - 1]);
+                ctx->loop_break_blocks[target_depth]);
         }
         break;
     case AST_ENUM_DECL:
@@ -2875,10 +2910,17 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
     case AST_CONTINUE:
         if (ctx->loop_depth > 0) {
+            int target_depth = ctx->loop_depth - 1;
+            if (node->data.continue_stmt.label != NULL) {
+                int found = llvm_stmt_find_labeled_loop_depth(
+                    ctx, node->data.continue_stmt.label);
+                if (found >= 0)
+                    target_depth = found;
+            }
             llvm_emit_defers_from(ctx,
-                ctx->loop_defer_base_depth[ctx->loop_depth - 1]);
+                ctx->loop_defer_base_depth[target_depth]);
             LLVMBuildBr(ctx->builder,
-                ctx->loop_continue_blocks[ctx->loop_depth - 1]);
+                ctx->loop_continue_blocks[target_depth]);
         }
         break;
 

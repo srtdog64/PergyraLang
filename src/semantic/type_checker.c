@@ -139,6 +139,22 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
                          const char *ability_name);
 
 static int
+semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
+{
+    if (ctx == NULL || label == NULL)
+        return -1;
+
+    for (int i = ctx->loop_depth - 1; i >= 0; i--) {
+        if (ctx->loop_labels[i] != NULL
+            && strcmp(ctx->loop_labels[i], label) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+static int
 find_generic_param_index(GenericParams *gp, const char *param_name)
 {
     if (gp == NULL || param_name == NULL)
@@ -485,10 +501,18 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         || strcmp(name, "Token") == 0
         || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0
         || strcmp(name, "Option") == 0) {
+        size_t expected_min = strcmp(name, "Result") == 0 ? 1 : 1;
+        size_t expected_max = strcmp(name, "Result") == 0 ? 2 : 1;
+        size_t provided = node->data.type.generic_args != NULL
+            ? node->data.type.generic_args->count : 0;
         if (node->data.type.generic_args == NULL
-            || node->data.type.generic_args->count != 1) {
+            || provided < expected_min
+            || provided > expected_max) {
             semantic_error(ctx, node,
-                "%s requires exactly one type argument", name);
+                strcmp(name, "Result") == 0
+                    ? "Result requires one or two type arguments"
+                    : "%s requires exactly one type argument",
+                name);
             return TYPE_UNKNOWN;
         }
 
@@ -509,6 +533,12 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "DeviceSlot") == 0) constructor = TYPE_DEVICE_SLOT;
         else if (strcmp(name, "Result") == 0) constructor = TYPE_RESULT;
         else if (strcmp(name, "Option") == 0) constructor = TYPE_OPTION;
+        if (strcmp(name, "Result") == 0 && provided == 2) {
+            Type *err = resolve_generic_type_arg(
+                node->data.type.generic_args->params[1], ctx, node);
+            Type *args[2] = { inner, err };
+            return type_create_constructed(constructor, args, 2);
+        }
         Type *args[1] = { inner };
         return type_create_constructed(constructor, args, 1);
     }
@@ -825,11 +855,11 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     if (op == TOKEN_QUESTION) {
         if (!type_is_constructed_named(operand, "Result")) {
             semantic_error(ctx, expr,
-                "'?' operator requires Result<T>, got '%s'",
+                "'?' operator requires Result<T> or Result<T, E>, got '%s'",
                 operand->name);
             return TYPE_UNKNOWN;
         }
-        /* Return the inner T of Result<T> */
+        /* Return the inner T of Result<T> / Result<T, E> */
         return type_get_constructed_arg(operand, 0);
     }
 
@@ -1077,8 +1107,17 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 class_decl = find_type_decl_by_name(ctx->program_root,
                     object_type->name);
                 if (class_decl != NULL) {
-                    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
-                        ASTNode *method = class_decl->data.class_decl.methods[i];
+                    ASTNode **methods = NULL;
+                    size_t method_count = 0;
+                    if (class_decl->type == AST_CLASS_DECL) {
+                        methods = class_decl->data.class_decl.methods;
+                        method_count = class_decl->data.class_decl.method_count;
+                    } else if (class_decl->type == AST_ENUM_DECL) {
+                        methods = class_decl->data.enum_decl.methods;
+                        method_count = class_decl->data.enum_decl.method_count;
+                    }
+                    for (size_t i = 0; i < method_count; i++) {
+                        ASTNode *method = methods[i];
                         if (method == NULL || method->type != AST_FUNC_DECL
                             || method->data.func_decl.name == NULL)
                             continue;
@@ -1825,15 +1864,67 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             semantic_error(ctx, node, "'break' used outside of loop");
             return false;
         }
+        if (node->data.break_stmt.label != NULL
+            && semantic_find_labeled_loop_depth(ctx,
+                node->data.break_stmt.label) < 0) {
+            semantic_error(ctx, node,
+                "Unknown loop label '%s' in break",
+                node->data.break_stmt.label);
+            return false;
+        }
         return true;
     case AST_CONTINUE:
         if (ctx->loop_depth <= 0) {
             semantic_error(ctx, node, "'continue' used outside of loop");
             return false;
         }
+        if (node->data.continue_stmt.label != NULL
+            && semantic_find_labeled_loop_depth(ctx,
+                node->data.continue_stmt.label) < 0) {
+            semantic_error(ctx, node,
+                "Unknown loop label '%s' in continue",
+                node->data.continue_stmt.label);
+            return false;
+        }
         return true;
     case AST_ENUM_DECL:
-        return true;
+        {
+            const char *name = node->data.enum_decl.name;
+            ASTNode *saved_nominal = ctx->current_nominal_decl;
+
+            scope_enter(&ctx->scope, SCOPE_CLASS);
+            ctx->current_nominal_decl = node;
+
+            for (size_t i = 0; i < node->data.enum_decl.method_count; i++)
+                type_check_func_decl(node->data.enum_decl.methods[i], ctx);
+
+            for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
+                ASTNode *method = node->data.enum_decl.methods[i];
+                if (method == NULL || method->type != AST_FUNC_DECL
+                    || method->data.func_decl.name == NULL || name == NULL)
+                    continue;
+                Symbol *msym = scope_lookup_current(ctx->scope, method->data.func_decl.name);
+                if (msym == NULL || msym->kind != SYMBOL_FUNCTION)
+                    continue;
+                size_t len = strlen(name) + 1 + strlen(method->data.func_decl.name) + 1;
+                char *mangled = malloc(len);
+                if (mangled == NULL)
+                    continue;
+                snprintf(mangled, len, "%s_%s", name, method->data.func_decl.name);
+                Symbol *mangled_sym = symbol_create_function(
+                    mangled, msym->type, method->line, method->column);
+                Scope *enum_scope = ctx->scope;
+                ctx->scope = enum_scope->parent;
+                if (!scope_declare(ctx->scope, mangled_sym))
+                    symbol_destroy(mangled_sym);
+                ctx->scope = enum_scope;
+                free(mangled);
+            }
+
+            scope_exit(&ctx->scope);
+            ctx->current_nominal_decl = saved_nominal;
+            return !ctx->has_error;
+        }
     case AST_WITH_STMT:
         return type_check_with_stmt(node, ctx);
     case AST_PARALLEL_BLOCK:
@@ -1866,8 +1957,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         /* Already resolved by driver — skip */
         return true;
     case AST_USE_DECL:
-        /* Standard library module activation — resolved at codegen */
-        return true;
+        validate_stdlib_use_decl(node, ctx);
+        return !ctx->has_error;
     case AST_UNSAFE_BLOCK:
         /* Type-check body normally; safety constraints relaxed at codegen */
         if (node->data.unsafe_block.body != NULL)
@@ -2729,8 +2820,6 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
-    validate_program_stdlib_use_decls(program, ctx);
-
     for (size_t i = 0; i < program->data.program.count; i++)
         type_check_statement(program->data.program.statements[i], ctx);
 

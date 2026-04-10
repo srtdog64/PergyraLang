@@ -133,6 +133,8 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     uint32_t previous_iter_delta = EFFECT_NONE;
     bool have_previous_iter_delta = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+        ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
     ctx->loop_depth++;
 
     Type *var_type = TYPE_INT;
@@ -226,6 +228,8 @@ type_check_for_loop(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->loop_depth--;
+    if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+        ctx->loop_labels[ctx->loop_depth] = NULL;
     scope_exit(&ctx->scope);
     ctx->current_function_effects =
         type_effect_mask_join(effect_base, merged_effect_delta);
@@ -245,6 +249,8 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
     uint32_t previous_iter_delta = EFFECT_NONE;
     bool have_previous_iter_delta = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
+    if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+        ctx->loop_labels[ctx->loop_depth] = node->data.while_loop.label;
     ctx->loop_depth++;
 
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
@@ -313,6 +319,8 @@ type_check_while_loop(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->loop_depth--;
+    if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+        ctx->loop_labels[ctx->loop_depth] = NULL;
     scope_exit(&ctx->scope);
     ctx->current_function_effects =
         type_effect_mask_join(effect_base, merged_effect_delta);

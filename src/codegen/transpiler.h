@@ -54,6 +54,7 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 #define MAX_GENERIC_BINDINGS 32
 #define MAX_GENERIC_SPECIALIZATIONS 128
 #define MAX_COLLECTION_SPECIALIZATIONS 128
+#define TRANSPILE_MAX_LOOP_DEPTH 64
 
 typedef struct
 {
@@ -146,6 +147,14 @@ typedef struct
     /* Defer counter for unique defer IDs */
     int   defer_counter;
 
+    /* Loop label tracking for labeled break/continue. */
+    const char *loop_labels[TRANSPILE_MAX_LOOP_DEPTH];
+    char        loop_break_labels[TRANSPILE_MAX_LOOP_DEPTH][64];
+    char        loop_continue_labels[TRANSPILE_MAX_LOOP_DEPTH][64];
+    bool        loop_break_label_used[TRANSPILE_MAX_LOOP_DEPTH];
+    bool        loop_continue_label_used[TRANSPILE_MAX_LOOP_DEPTH];
+    int         loop_depth;
+
     /* Memory arena for expression string allocation.
      * Strings allocated here are freed in bulk at context destruction. */
     PgyArena arena;
@@ -174,6 +183,8 @@ typedef struct
     const char *current_world_name;
     const char *current_overlay_receiver_expr;
     bool uses_intent_observability;
+    const void *active_ssa_map;
+    const char *active_type_hint;
 } TranspilerCtx;
 
 TranspilerCtx *transpiler_ctx_create(void);

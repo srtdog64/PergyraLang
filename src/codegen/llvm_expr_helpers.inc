@@ -574,11 +574,13 @@ llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
 
     decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, host_type_name);
     if (decl == NULL)
-        decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, host_type_name);
+    decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, host_type_name);
     if (decl == NULL)
         decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, host_type_name);
     if (decl == NULL)
         decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, host_type_name);
+    if (decl == NULL)
+        decl = llvm_find_enum_decl(ctx, host_type_name);
     if (decl == NULL)
         decl = llvm_find_projection_nominal_decl(ctx, host_type_name);
 
@@ -589,6 +591,10 @@ llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
     case AST_CLASS_DECL:
         methods = decl->data.class_decl.methods;
         method_count = decl->data.class_decl.method_count;
+        break;
+    case AST_ENUM_DECL:
+        methods = decl->data.enum_decl.methods;
+        method_count = decl->data.enum_decl.method_count;
         break;
     case AST_RELATION_DECL:
         methods = decl->data.relation_decl.methods;
@@ -858,7 +864,7 @@ llvm_current_self_base_ptr(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls)
     if (self_var == NULL)
         return NULL;
 
-    if (llvm_nominal_uses_pointer_self(ctx, cls->class_name))
+    if (self_var->type == LLVMPointerType(cls->struct_type, 0))
         return LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
             llvm_tmp_name(ctx));
     return self_var->alloca;
@@ -968,6 +974,14 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
                 decl = stmt;
                 methods = stmt->data.class_decl.methods;
                 method_count = stmt->data.class_decl.method_count;
+            }
+            break;
+        case AST_ENUM_DECL:
+            if (stmt->data.enum_decl.name != NULL
+                && strcmp(stmt->data.enum_decl.name, ctx->current_class_name) == 0) {
+                decl = stmt;
+                methods = stmt->data.enum_decl.methods;
+                method_count = stmt->data.enum_decl.method_count;
             }
             break;
         case AST_RELATION_DECL:
@@ -1524,7 +1538,7 @@ llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
     return NULL;
 }
 
-static ASTNode *
+ASTNode *
 llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 {
     if (ctx == NULL || ctx->hir == NULL || enum_name == NULL)

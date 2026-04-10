@@ -16,8 +16,6 @@
 #include "../common/string_compat.h"
 #include "../semantic/type_checker.h"
 
-#include "transpiler_helpers.inc"
-
 /* Forward declarations for emitters defined later */
 void emit_ability_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_role_decl(ASTNode *node, TranspilerCtx *ctx);
@@ -216,9 +214,12 @@ static bool transpiler_parse_versioned_name(const char *versioned,
                                             size_t base_size,
                                             size_t *version_out);
 static char *transpiler_make_c_ssa_name(const char *versioned_name);
-static const char *transpiler_find_local_type_name(const ASTNode *func_decl,
+static bool transpiler_c_type_uses_scalar_zero(const char *c_type);
+static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
+                                                   const ASTNode *func_decl,
                                                    const char *base_name);
-static const char *transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl,
+static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
+                                                              const ASTNode *func_decl,
                                                               ASTNode *expr);
 static bool transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
                                                   const MIRBasicBlock *block);
@@ -244,6 +245,8 @@ static bool transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
                                       size_t map_count);
 static const char *transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
                                               const char *base_name);
+static const char *transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
+                                                      const char *base_name);
 static bool transpiler_ssa_name_map_set(TranspilerSSANameMap *ssa_map,
                                         const char *base_name,
                                         const char *versioned_name);
@@ -258,6 +261,10 @@ static bool transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *rout
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
+
+#include "transpiler_helpers.inc"
+static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
+                                            const char *label);
 static bool transpiler_expr_identifiers_mapped(const ASTNode *expr,
                                               const TranspilerSSANameMap *ssa_map,
                                               const char *routine_name,
@@ -1348,6 +1355,17 @@ transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
     return NULL;
 }
 
+static const char *
+transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
+                                   const char *base_name)
+{
+    if (ctx == NULL || ctx->active_ssa_map == NULL || base_name == NULL)
+        return NULL;
+    return transpiler_resolve_ssa_name(
+        (const TranspilerSSANameMap *)ctx->active_ssa_map,
+        base_name);
+}
+
 static bool
 transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
                                        const MIRBasicBlock *block)
@@ -1384,9 +1402,30 @@ transpiler_make_c_ssa_name(const char *versioned_name)
     return strdup_fmt("_pgy_ssa_%s_%zu", base, version);
 }
 
-static const char *
-transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl, ASTNode *expr)
+static bool
+transpiler_c_type_uses_scalar_zero(const char *c_type)
 {
+    if (c_type == NULL)
+        return true;
+    if (strchr(c_type, '*') != NULL)
+        return true;
+    return strcmp(c_type, "int") == 0
+           || strcmp(c_type, "int32_t") == 0
+           || strcmp(c_type, "int64_t") == 0
+           || strcmp(c_type, "size_t") == 0
+           || strcmp(c_type, "bool") == 0
+           || strcmp(c_type, "float") == 0
+           || strcmp(c_type, "double") == 0;
+}
+
+static const char *
+transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
+                                           const ASTNode *func_decl,
+                                           ASTNode *expr)
+{
+    const char *semantic_type = infer_expression_type_name(ctx, expr);
+    if (semantic_type != NULL && semantic_type[0] != '\0')
+        return semantic_type;
     if (expr == NULL)
         return NULL;
     switch (expr->type) {
@@ -1397,7 +1436,7 @@ transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl, ASTNode *ex
         case AST_BOOLEAN:
             return "Bool";
         case AST_IDENTIFIER:
-            return transpiler_find_local_type_name(func_decl, expr->data.identifier.name);
+            return transpiler_find_local_type_name(ctx, func_decl, expr->data.identifier.name);
         case AST_BINARY:
             switch (expr->data.binary.op.type) {
                 case TOKEN_EQUAL:
@@ -1410,25 +1449,29 @@ transpiler_infer_local_type_name_from_expr(const ASTNode *func_decl, ASTNode *ex
                 case TOKEN_OR:
                     return "Bool";
                 default:
-                    return transpiler_infer_local_type_name_from_expr(func_decl, expr->data.binary.left);
+                    return transpiler_infer_local_type_name_from_expr(ctx, func_decl, expr->data.binary.left);
             }
         case AST_UNARY:
             if (expr->data.unary.op.type == TOKEN_NOT)
                 return "Bool";
-            return transpiler_infer_local_type_name_from_expr(func_decl, expr->data.unary.operand);
+            return transpiler_infer_local_type_name_from_expr(ctx, func_decl, expr->data.unary.operand);
         default:
             return NULL;
     }
 }
 
 static const char *
-transpiler_find_local_type_name_in_block(const ASTNode *func_decl, ASTNode *body, const char *base_name)
+transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
+                                         const ASTNode *func_decl,
+                                         ASTNode *body,
+                                         const char *base_name)
 {
     if (body == NULL || base_name == NULL)
         return NULL;
     if (body->type == AST_BLOCK) {
         for (size_t i = 0; i < body->data.block.count; i++) {
             const char *found = transpiler_find_local_type_name_in_block(
+                ctx,
                 func_decl, body->data.block.statements[i], base_name);
             if (found != NULL)
                 return found;
@@ -1444,21 +1487,23 @@ transpiler_find_local_type_name_in_block(const ASTNode *func_decl, ASTNode *body
             rendered = render_type_name(body->data.let_decl.type);
             return rendered;
         }
-        return transpiler_infer_local_type_name_from_expr(func_decl, body->data.let_decl.initializer);
+        return transpiler_infer_local_type_name_from_expr(ctx, func_decl, body->data.let_decl.initializer);
     }
     if (body->type == AST_IF_STMT) {
-        const char *found = transpiler_find_local_type_name_in_block(func_decl, body->data.if_stmt.then_branch, base_name);
+        const char *found = transpiler_find_local_type_name_in_block(ctx, func_decl, body->data.if_stmt.then_branch, base_name);
         if (found != NULL)
             return found;
-        return transpiler_find_local_type_name_in_block(func_decl, body->data.if_stmt.else_branch, base_name);
+        return transpiler_find_local_type_name_in_block(ctx, func_decl, body->data.if_stmt.else_branch, base_name);
     }
     if (body->type == AST_WHILE_LOOP)
-        return transpiler_find_local_type_name_in_block(func_decl, body->data.while_loop.body, base_name);
+        return transpiler_find_local_type_name_in_block(ctx, func_decl, body->data.while_loop.body, base_name);
     return NULL;
 }
 
 static const char *
-transpiler_find_local_type_name(const ASTNode *func_decl, const char *base_name)
+transpiler_find_local_type_name(TranspilerCtx *ctx,
+                                const ASTNode *func_decl,
+                                const char *base_name)
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
         return NULL;
@@ -1471,7 +1516,7 @@ transpiler_find_local_type_name(const ASTNode *func_decl, const char *base_name)
             return rendered_param;
         }
     }
-    return transpiler_find_local_type_name_in_block(func_decl, func_decl->data.func_decl.body, base_name);
+    return transpiler_find_local_type_name_in_block(ctx, func_decl, func_decl->data.func_decl.body, base_name);
 }
 
 static bool
@@ -1523,141 +1568,19 @@ static char *
 emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
                              const TranspilerSSANameMap *ssa_map)
 {
+    const void *saved_active_ssa_map;
+    char *result;
+
     if (node == NULL)
         return pergyra_strdup("0");
-    if (node->type == AST_IDENTIFIER && node->data.identifier.name != NULL) {
-        const char *versioned_name = transpiler_resolve_ssa_name(ssa_map,
-                                                                node->data.identifier.name);
-        if (versioned_name != NULL) {
-            return transpiler_make_c_ssa_name(versioned_name);
-        }
+    if (ctx == NULL)
         return emit_expression(node, ctx);
-    }
-    if (node->type == AST_NUMBER || node->type == AST_STRING || node->type == AST_BOOLEAN)
-        return emit_expression(node, ctx);
-    if (node->type == AST_BINARY) {
-        char *left = emit_expression_with_ssa_map(node->data.binary.left, ctx,
-                                                  ssa_map);
-        char *right = emit_expression_with_ssa_map(node->data.binary.right, ctx,
-                                                  ssa_map);
-        const char *lt = infer_expression_type_name(ctx, node->data.binary.left);
-        const char *rt = infer_expression_type_name(ctx, node->data.binary.right);
-        bool string_concat =
-            node->data.binary.op.type == TOKEN_PLUS
-            && (((lt != NULL && strcmp(lt, "String") == 0)
-                 || (rt != NULL && strcmp(rt, "String") == 0))
-                || (node->data.binary.left != NULL
-                    && node->data.binary.left->type == AST_STRING)
-                || (node->data.binary.right != NULL
-                    && node->data.binary.right->type == AST_STRING));
-        bool string_eq =
-            (node->data.binary.op.type == TOKEN_EQUAL
-             || node->data.binary.op.type == TOKEN_NOT_EQUAL)
-            && (((lt != NULL && strcmp(lt, "String") == 0)
-                 || (rt != NULL && strcmp(rt, "String") == 0))
-                || (node->data.binary.left != NULL
-                    && node->data.binary.left->type == AST_STRING)
-                || (node->data.binary.right != NULL
-                    && node->data.binary.right->type == AST_STRING));
-        char *expr;
-        if (string_concat) {
-            expr = strdup_fmt("StringConcat(%s, %s)", left, right);
-        } else if (string_eq) {
-            if (node->data.binary.op.type == TOKEN_EQUAL)
-                expr = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
-            else
-                expr = strdup_fmt("(!pgy_string_equals(%s, %s))", left, right);
-        } else {
-            expr = strdup_fmt("(%s %s %s)", left,
-                binary_op_to_c(node->data.binary.op.type), right);
-        }
-        free(left);
-        free(right);
-        return expr;
-    }
-    if (node->type == AST_UNARY) {
-        char *operand = emit_expression_with_ssa_map(node->data.unary.operand, ctx,
-                                                    ssa_map);
-        char *expr = strdup_fmt("(%s%s)", token_type_to_string(node->data.unary.op.type), operand);
-        free(operand);
-        return expr;
-    }
-    if (node->type == AST_CALL
-        && node->data.call.callee != NULL
-        && node->data.call.callee->type == AST_IDENTIFIER
-        && node->data.call.callee->data.identifier.name != NULL) {
-        CodeBuf *args_buf = codebuf_create();
-        const char *callee_name = node->data.call.callee->data.identifier.name;
-        char *expr;
 
-        if ((strcmp(callee_name, "Min") == 0 || strcmp(callee_name, "Max") == 0)
-            && node->data.call.arg_count == 2) {
-            char *left = emit_expression_with_ssa_map(
-                node->data.call.arguments[0], ctx, ssa_map);
-            char *right = emit_expression_with_ssa_map(
-                node->data.call.arguments[1], ctx, ssa_map);
-            if (left == NULL || right == NULL) {
-                free(left);
-                free(right);
-                codebuf_destroy(args_buf);
-                return NULL;
-            }
-            expr = strdup_fmt("((%s) %s (%s) ? (%s) : (%s))",
-                left,
-                strcmp(callee_name, "Min") == 0 ? "<" : ">",
-                right,
-                left,
-                right);
-            free(left);
-            free(right);
-            codebuf_destroy(args_buf);
-            return expr;
-        }
-
-        if (strcmp(callee_name, "ToString") == 0
-            && node->data.call.arg_count == 1) {
-            char *arg = emit_expression_with_ssa_map(
-                node->data.call.arguments[0], ctx, ssa_map);
-            const char *arg_type = infer_expression_type_name(
-                ctx, node->data.call.arguments[0]);
-            if (arg == NULL) {
-                codebuf_destroy(args_buf);
-                return NULL;
-            }
-            if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
-                expr = pergyra_strdup(arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Bool") == 0) {
-                expr = strdup_fmt("((%s) ? \"true\" : \"false\")", arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Long") == 0) {
-                expr = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
-            } else {
-                expr = strdup_fmt("pgy_int_to_string(%s)", arg);
-            }
-            free(arg);
-            codebuf_destroy(args_buf);
-            return expr;
-        }
-
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            char *arg = emit_expression_with_ssa_map(
-                node->data.call.arguments[i], ctx, ssa_map);
-            if (arg == NULL) {
-                codebuf_destroy(args_buf);
-                return NULL;
-            }
-            if (i > 0)
-                codebuf_write(args_buf, ", ");
-            codebuf_write(args_buf, "%s", arg);
-            free(arg);
-        }
-
-        expr = strdup_fmt("%s(%s)",
-            callee_name,
-            args_buf->data);
-        codebuf_destroy(args_buf);
-        return expr;
-    }
-    return emit_expression(node, ctx);
+    saved_active_ssa_map = ctx->active_ssa_map;
+    ctx->active_ssa_map = ssa_map;
+    result = emit_expression(node, ctx);
+    ctx->active_ssa_map = saved_active_ssa_map;
+    return result;
 }
 
 static bool
@@ -1699,6 +1622,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     const HIRBasicBlock *hir_block = transpiler_find_hir_block_for_mir(mir_routine, block->id);
     TranspilerSSANameMap ssa_map = {0};
     TranspilerSSANameMap *ssa_map_out = &ssa_map;
+    const void *saved_active_ssa_map;
 
     if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
         return false;
@@ -1728,6 +1652,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             return false;
     }
 
+    saved_active_ssa_map = ctx->active_ssa_map;
+    ctx->active_ssa_map = ssa_map_out;
+
     if (hir_block != NULL) {
         size_t def_index = 0;
         for (size_t i = 0; i < hir_block->statement_count; i++) {
@@ -1738,8 +1665,11 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 || stmt->type == AST_RETURN)
                 continue;
             if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
+                const char *saved_type_hint;
+                char *rendered_type_hint = NULL;
+                char *local_type_name_owned = NULL;
                 while (def_index < block->instruction_count
-                       && block->instructions[def_index].kind == MIR_INST_PHI)
+                       && block->instructions[def_index].kind != MIR_INST_DEF)
                     def_index++;
                 const MIRInstruction *def_inst =
                     (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
@@ -1752,9 +1682,24 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     continue;
                 }
                 char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
+                saved_type_hint = ctx->active_type_hint;
+                if (stmt->data.let_decl.type != NULL) {
+                    rendered_type_hint = render_type_name(stmt->data.let_decl.type);
+                    ctx->active_type_hint = rendered_type_hint;
+                }
+                if (rendered_type_hint != NULL)
+                    local_type_name_owned = pergyra_strdup(rendered_type_hint);
+                else {
+                    const char *inferred = infer_expression_type_name(ctx, stmt->data.let_decl.initializer);
+                    if (inferred != NULL)
+                        local_type_name_owned = pergyra_strdup(inferred);
+                }
                 char *rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx,
                                                         ssa_map_out);
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
                 if (rhs == NULL) {
+                    free(local_type_name_owned);
                     if (reason != NULL && reason_cap > 0)
                         snprintf(reason, reason_cap,
                                  "MIR block %zu emission failed: unable to render initializer for '%s'",
@@ -1767,8 +1712,12 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(rhs);
                 if (!transpiler_ssa_name_map_set(ssa_map_out, stmt->data.let_decl.name,
                                                 def_inst->result_name)) {
+                    free(local_type_name_owned);
                     return false;
                 }
+                if (local_type_name_owned != NULL)
+                    register_typed_var(ctx, stmt->data.let_decl.name, local_type_name_owned);
+                free(local_type_name_owned);
                 def_index++;
                 continue;
             }
@@ -1776,7 +1725,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 && stmt->data.assignment.target != NULL
                 && stmt->data.assignment.target->type == AST_IDENTIFIER) {
                 while (def_index < block->instruction_count
-                       && block->instructions[def_index].kind == MIR_INST_PHI)
+                       && block->instructions[def_index].kind != MIR_INST_DEF)
                     def_index++;
                 const MIRInstruction *def_inst =
                     (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
@@ -1814,6 +1763,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
     }
+    ctx->active_ssa_map = saved_active_ssa_map;
     return true;
 }
 
@@ -2536,13 +2486,16 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 (inst->kind == MIR_INST_PHI)
                     ? inst->name
                     : (inst->arg0 != NULL ? inst->arg0 : inst->name);
-            type_name = transpiler_find_local_type_name(node,
+            type_name = transpiler_find_local_type_name(ctx, node,
                 lookup_name);
             if (type_name != NULL)
                 c_type = pergyra_type_to_c(type_name);
             c_name = transpiler_make_c_ssa_name(inst->result_name);
             write_indent(ctx);
-            codebuf_write(ctx->out, "%s %s = 0;\n", c_type, c_name);
+            if (transpiler_c_type_uses_scalar_zero(c_type))
+                codebuf_write(ctx->out, "%s %s = 0;\n", c_type, c_name);
+            else
+                codebuf_write(ctx->out, "%s %s = (%s){0};\n", c_type, c_name, c_type);
             free(c_name);
         }
     }
@@ -3500,10 +3453,41 @@ emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
     }
 }
 
+static int
+transpiler_find_loop_label_depth(const TranspilerCtx *ctx, const char *label)
+{
+    if (ctx == NULL || label == NULL)
+        return -1;
+
+    for (int i = ctx->loop_depth - 1; i >= 0; i--) {
+        if (ctx->loop_labels[i] != NULL
+            && strcmp(ctx->loop_labels[i], label) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 void
 emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *var = node->data.for_loop.variable;
+    int loop_slot = ctx->loop_depth;
+    int loop_id = ++ctx->tmp_counter;
+
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+        ctx->loop_labels[loop_slot] = node->data.for_loop.label;
+        snprintf(ctx->loop_break_labels[loop_slot],
+                 sizeof(ctx->loop_break_labels[loop_slot]),
+                 "_pgy_loop_break_%d", loop_id);
+        snprintf(ctx->loop_continue_labels[loop_slot],
+                 sizeof(ctx->loop_continue_labels[loop_slot]),
+                 "_pgy_loop_continue_%d", loop_id);
+        ctx->loop_break_label_used[loop_slot] = false;
+        ctx->loop_continue_label_used[loop_slot] = false;
+        ctx->loop_depth++;
+    }
 
     /* for-in collection loop: for item in array { } */
     if (node->data.for_loop.iterable != NULL) {
@@ -3534,9 +3518,25 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         register_typed_var(ctx, var, slot_inner_type_name(coll_type));
         if (node->data.for_loop.body != NULL)
             emit_block(node->data.for_loop.body, ctx);
+        if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+            && ctx->loop_continue_label_used[loop_slot]) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s: ;\n",
+                ctx->loop_continue_labels[loop_slot]);
+        }
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
+        if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+            && ctx->loop_break_label_used[loop_slot]) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s: ;\n",
+                ctx->loop_break_labels[loop_slot]);
+        }
+        if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+            ctx->loop_depth--;
+            ctx->loop_labels[loop_slot] = NULL;
+        }
         free(coll);
         return;
     }
@@ -3557,15 +3557,45 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     if (node->data.for_loop.body != NULL)
         emit_block(node->data.for_loop.body, ctx);
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+        && ctx->loop_continue_label_used[loop_slot]) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s: ;\n",
+            ctx->loop_continue_labels[loop_slot]);
+    }
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+        && ctx->loop_break_label_used[loop_slot]) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s: ;\n",
+            ctx->loop_break_labels[loop_slot]);
+    }
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+        ctx->loop_depth--;
+        ctx->loop_labels[loop_slot] = NULL;
+    }
 }
 
 void
 emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
 {
     char *cond = emit_expression(node->data.while_loop.condition, ctx);
+    int loop_slot = ctx->loop_depth;
+    int loop_id = ++ctx->tmp_counter;
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+        ctx->loop_labels[loop_slot] = node->data.while_loop.label;
+        snprintf(ctx->loop_break_labels[loop_slot],
+                 sizeof(ctx->loop_break_labels[loop_slot]),
+                 "_pgy_loop_break_%d", loop_id);
+        snprintf(ctx->loop_continue_labels[loop_slot],
+                 sizeof(ctx->loop_continue_labels[loop_slot]),
+                 "_pgy_loop_continue_%d", loop_id);
+        ctx->loop_break_label_used[loop_slot] = false;
+        ctx->loop_continue_label_used[loop_slot] = false;
+        ctx->loop_depth++;
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "while (%s)\n", cond);
     free(cond);
@@ -3575,9 +3605,25 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     if (node->data.while_loop.body != NULL)
         emit_block(node->data.while_loop.body, ctx);
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+        && ctx->loop_continue_label_used[loop_slot]) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s: ;\n",
+            ctx->loop_continue_labels[loop_slot]);
+    }
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
+        && ctx->loop_break_label_used[loop_slot]) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "%s: ;\n",
+            ctx->loop_break_labels[loop_slot]);
+    }
+    if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+        ctx->loop_depth--;
+        ctx->loop_labels[loop_slot] = NULL;
+    }
 }
 
 /* Check if a match-case pattern is a destructor like Ok(x), Err(x),
@@ -4146,7 +4192,18 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     case AST_BREAK:
         write_indent(ctx);
-        codebuf_write(ctx->out, "break;\n");
+        if (node->data.break_stmt.label != NULL) {
+            int target = transpiler_find_loop_label_depth(
+                ctx, node->data.break_stmt.label);
+            if (target >= 0) {
+                ctx->loop_break_label_used[target] = true;
+                codebuf_write(ctx->out, "goto %s;\n",
+                    ctx->loop_break_labels[target]);
+            } else
+                codebuf_write(ctx->out, "break;\n");
+        } else {
+            codebuf_write(ctx->out, "break;\n");
+        }
         break;
     case AST_ENUM_DECL: {
         const char *ename = node->data.enum_decl.name;
@@ -4255,11 +4312,82 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
             codebuf_write(ctx->out, "\n");
         }
+
+        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
+            ASTNode *method = node->data.enum_decl.methods[i];
+            if (method == NULL || method->type != AST_FUNC_DECL)
+                continue;
+            emit_hosted_method_forward_decl_named(ename, method, false,
+                                                  ctx->out, ctx);
+        }
+
+        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
+            ASTNode *method = node->data.enum_decl.methods[i];
+            if (method == NULL || method->type != AST_FUNC_DECL)
+                continue;
+
+            const char *method_name = method->data.func_decl.name;
+            const char *ret_type = "void";
+            if (method->data.func_decl.return_type != NULL)
+                ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+
+            codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
+                          ret_type, ename, method_name, ename);
+            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                FuncParam *p = method->data.func_decl.params[j];
+                if (p == NULL || p->name == NULL || strcmp(p->name, "self") == 0)
+                    continue;
+                const char *pt = "int32_t";
+                if (p->type != NULL)
+                    pt = pergyra_ast_type_to_c(p->type);
+                codebuf_write(ctx->out, ", %s %s", pt, p->name);
+            }
+            codebuf_write(ctx->out, ")\n{\n");
+            {
+                int saved_slot_count = ctx->slot_var_count;
+                int saved_typed_count = ctx->typed_var_count;
+                const char *saved_class_name = ctx->current_class_name;
+
+                ctx->current_class_name = ename;
+                register_typed_var(ctx, "self", ename);
+                for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
+                    FuncParam *p = method->data.func_decl.params[j];
+                    char *tn;
+                    if (p == NULL || p->name == NULL
+                        || strcmp(p->name, "self") == 0 || p->type == NULL)
+                        continue;
+                    tn = render_type_name(p->type);
+                    if (tn != NULL) {
+                        register_typed_var(ctx, p->name, tn);
+                        free(tn);
+                    }
+                }
+                ctx->indent++;
+                if (method->data.func_decl.body != NULL)
+                    emit_block(method->data.func_decl.body, ctx);
+                ctx->indent--;
+                ctx->slot_var_count = saved_slot_count;
+                ctx->typed_var_count = saved_typed_count;
+                ctx->current_class_name = saved_class_name;
+            }
+            codebuf_write(ctx->out, "}\n");
+        }
         break;
     }
     case AST_CONTINUE:
         write_indent(ctx);
-        codebuf_write(ctx->out, "continue;\n");
+        if (node->data.continue_stmt.label != NULL) {
+            int target = transpiler_find_loop_label_depth(
+                ctx, node->data.continue_stmt.label);
+            if (target >= 0) {
+                ctx->loop_continue_label_used[target] = true;
+                codebuf_write(ctx->out, "goto %s;\n",
+                    ctx->loop_continue_labels[target]);
+            } else
+                codebuf_write(ctx->out, "continue;\n");
+        } else {
+            codebuf_write(ctx->out, "continue;\n");
+        }
         break;
     case AST_WITH_STMT:
         emit_with_stmt(node, ctx);

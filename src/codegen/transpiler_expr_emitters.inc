@@ -2278,7 +2278,15 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         }
         /* HashMap builtins */
         if (strcmp(fn, "MapNew") == 0) {
-            return pergyra_strdup("pgy_map_new_int()");
+            const char *hint = ctx->active_type_hint;
+            const char *value = "Int";
+            if (hint != NULL && strncmp(hint, "HashMap<", 8) == 0) {
+                const char *hint_value = constructed_arg_name_at(hint, 1);
+                if (hint_value != NULL)
+                    value = hint_value;
+            }
+            ensure_collection_specialization(ctx, "Map", value);
+            return strdup_fmt("pgy_map_new_%s()", collection_runtime_suffix(value));
         }
         if (strcmp(fn, "MapSet") == 0 && call->data.call.arg_count == 3) {
             char *m = emit_expression(call->data.call.arguments[0], ctx);
@@ -2347,7 +2355,14 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         }
         /* List builtins */
         if (strcmp(fn, "ListNew") == 0)
-            return pergyra_strdup("pgy_list_new_int()");
+        {
+            const char *hint = ctx->active_type_hint;
+            const char *inner = (hint != NULL && strncmp(hint, "List<", 5) == 0)
+                ? slot_inner_type_name(hint)
+                : "Int";
+            ensure_collection_specialization(ctx, "List", inner);
+            return strdup_fmt("pgy_list_new_%s()", collection_runtime_suffix(inner));
+        }
         if (strcmp(fn, "ListPush") == 0 && call->data.call.arg_count == 2) {
             char *l = emit_expression(call->data.call.arguments[0], ctx);
             char *v = emit_expression(call->data.call.arguments[1], ctx);
@@ -2416,9 +2431,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         } while (0)
 
         if (strcmp(fn, "SetNew") == 0) {
-            /* SetNew() → pgy_set_new_SUFFIX() — inner type comes from
-             * the let-binding annotation (e.g., let s: Set<Int> = SetNew()) */
-            return pergyra_strdup("pgy_set_new_string()"); /* default; overridden by let emission below */
+            const char *hint = ctx->active_type_hint;
+            const char *set_inner = (hint != NULL && strncmp(hint, "Set<", 4) == 0)
+                ? slot_inner_type_name(hint)
+                : "String";
+            ensure_collection_specialization(ctx, "Set", set_inner);
+            return strdup_fmt("pgy_set_new_%s()", collection_runtime_suffix(set_inner));
         }
         if (strcmp(fn, "SetAdd") == 0 && call->data.call.arg_count == 2) {
             const char *set_inner = "String";
@@ -2462,7 +2480,14 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         #undef SET_INFER_INNER
         /* Queue builtins */
         if (strcmp(fn, "QueueNew") == 0)
-            return pergyra_strdup("pgy_queue_new_int()");
+        {
+            const char *hint = ctx->active_type_hint;
+            const char *inner = (hint != NULL && strncmp(hint, "Queue<", 6) == 0)
+                ? slot_inner_type_name(hint)
+                : "Int";
+            ensure_collection_specialization(ctx, "Queue", inner);
+            return strdup_fmt("pgy_queue_new_%s()", collection_runtime_suffix(inner));
+        }
         if (strcmp(fn, "QueuePush") == 0 && call->data.call.arg_count == 2) {
             char *q = emit_expression(call->data.call.arguments[0], ctx);
             char *v = emit_expression(call->data.call.arguments[1], ctx);
@@ -3254,6 +3279,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = node->data.identifier.name;
+        const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
+        if (ssa_name != NULL)
+            return transpiler_make_c_ssa_name(ssa_name);
         TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         /* Inside parallel wrapper: captured outer variables are accessed
          * through the context struct pointer.  (*_pctx->x) yields the

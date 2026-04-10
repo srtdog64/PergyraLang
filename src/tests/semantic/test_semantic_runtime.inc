@@ -2213,9 +2213,7 @@ test_effect_inference(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
+        SemanticResult *result = semantic_analyze(program);        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
@@ -2246,9 +2244,7 @@ test_effect_inference(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
+        SemanticResult *result = semantic_analyze(program);        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
@@ -2273,9 +2269,7 @@ test_effect_inference(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
+        SemanticResult *result = semantic_analyze(program);        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
@@ -3145,9 +3139,7 @@ test_misc_grammar_edges(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
+        SemanticResult *result = semantic_analyze(program);        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);

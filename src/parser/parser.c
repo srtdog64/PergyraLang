@@ -584,9 +584,21 @@ parser_parse_export_declaration(Parser *parser)
         node->data.enum_decl.variant_params = NULL;
         node->data.enum_decl.variant_param_counts = NULL;
         node->data.enum_decl.variant_count = 0;
+        node->data.enum_decl.methods = NULL;
+        node->data.enum_decl.method_count = 0;
         size_t cap = 0;
 
         while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            if (parser_match(parser, TOKEN_FUNC)) {
+                ASTNode *method = parser_finalize_statement(parser,
+                    parse_function_declaration(parser));
+                node->data.enum_decl.method_count++;
+                node->data.enum_decl.methods = realloc(
+                    node->data.enum_decl.methods,
+                    node->data.enum_decl.method_count * sizeof(ASTNode *));
+                node->data.enum_decl.methods[node->data.enum_decl.method_count - 1] = method;
+                continue;
+            }
             Token var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
             size_t idx = node->data.enum_decl.variant_count;
             if (idx >= cap) {
@@ -884,6 +896,39 @@ ASTNode* parser_parse_statement(Parser* parser) {
         parser->lexer->column = lx_col;
     }
 
+    /* labeled loop: label: while ... / label: for ... */
+    if (parser_check(parser, TOKEN_IDENTIFIER)) {
+        Token saved = parser->current_token;
+        Token saved_prev = parser->previous_token;
+        const char *lx_saved = parser->lexer->current;
+        size_t lx_pos = parser->lexer->position;
+        uint32_t lx_line = parser->lexer->line;
+        uint32_t lx_col = parser->lexer->column;
+        Token next = parser_peek_next(parser);
+
+        if (next.type == TOKEN_COLON) {
+            parser_advance(parser);
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after loop label");
+            if (parser_match(parser, TOKEN_FOR)) {
+                ASTNode *loop = parse_for_loop(parser);
+                loop->data.for_loop.label = pergyra_strdup(saved.text);
+                return parser_finalize_statement(parser, loop);
+            }
+            if (parser_match(parser, TOKEN_WHILE)) {
+                ASTNode *loop = parse_while_statement(parser);
+                loop->data.while_loop.label = pergyra_strdup(saved.text);
+                return parser_finalize_statement(parser, loop);
+            }
+
+            parser->current_token = saved;
+            parser->previous_token = saved_prev;
+            parser->lexer->current = lx_saved;
+            parser->lexer->position = lx_pos;
+            parser->lexer->line = lx_line;
+            parser->lexer->column = lx_col;
+        }
+    }
+
     // with 문
     if (parser_match(parser, TOKEN_WITH)) {
         return parser_finalize_statement(parser, parser_parse_with_statement(parser));
@@ -921,19 +966,31 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     // break
     if (parser_match(parser, TOKEN_BREAK)) {
+        char *label = NULL;
+        if (parser_check(parser, TOKEN_IDENTIFIER)) {
+            Token label_tok = parser_advance(parser);
+            label = pergyra_strndup(label_tok.text, label_tok.length);
+        }
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after break");
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_BREAK;
         node->line = parser->previous_token.line;
+        node->data.break_stmt.label = label;
         return parser_finalize_statement(parser, node);
     }
 
     // continue
     if (parser_match(parser, TOKEN_CONTINUE)) {
+        char *label = NULL;
+        if (parser_check(parser, TOKEN_IDENTIFIER)) {
+            Token label_tok = parser_advance(parser);
+            label = pergyra_strndup(label_tok.text, label_tok.length);
+        }
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after continue");
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_CONTINUE;
         node->line = parser->previous_token.line;
+        node->data.continue_stmt.label = label;
         return parser_finalize_statement(parser, node);
     }
 
@@ -950,9 +1007,21 @@ ASTNode* parser_parse_statement(Parser* parser) {
         node->data.enum_decl.variant_params = NULL;
         node->data.enum_decl.variant_param_counts = NULL;
         node->data.enum_decl.variant_count = 0;
+        node->data.enum_decl.methods = NULL;
+        node->data.enum_decl.method_count = 0;
         size_t cap = 0;
 
         while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+            if (parser_match(parser, TOKEN_FUNC)) {
+                ASTNode *method = parser_finalize_statement(parser,
+                    parse_function_declaration(parser));
+                node->data.enum_decl.method_count++;
+                node->data.enum_decl.methods = realloc(
+                    node->data.enum_decl.methods,
+                    node->data.enum_decl.method_count * sizeof(ASTNode *));
+                node->data.enum_decl.methods[node->data.enum_decl.method_count - 1] = method;
+                continue;
+            }
             Token var_tok = parser_consume(parser, TOKEN_IDENTIFIER, "Expected variant name");
             size_t idx = node->data.enum_decl.variant_count;
             if (idx >= cap) {

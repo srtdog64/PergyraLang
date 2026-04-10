@@ -5,9 +5,17 @@ examples such as the battle simulator and biome simulator.
 
 ## Current
 
+- `ability`가 기본 공개 계약인데 예제나 문서가 `export ability`를 반복하면
+  사용자가 "ability는 기본 비공개인가?"로 읽게 된다. 이건 semantic보다
+  authoring UX pain point다. 현재 정책은 `ability Foo { ... }`가 기본이고,
+  숨기고 싶은 경우만 `private ability Foo { ... }`다.
 - Projection sync is lighter now, but larger framework work still wants a
   richer declarative surface beyond one-slot-at-a-time `bind`. Grouped
   bindings and deeper auto-propagation are the next pressure point.
+- `requires`는 이제 type-reference AST를 타므로 `requires SomeAbility<T>` 같은
+  표면을 구조적으로 표현할 수 있다. 다만 현재 ability 자체는 non-generic이므로,
+  generic type arguments를 붙이면 semantic error로 명시적으로 거부된다.
+  즉 parser debt는 줄었지만, generic ability declaration은 아직 남아 있다.
 - Large story scenarios now support scripted, seeded-random, and player-input
   modes, but the encounter engine is still world-hosted orchestration rather
   than a first-class encounter/turn DSL with richer AI policy authoring and

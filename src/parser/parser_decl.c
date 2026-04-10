@@ -417,14 +417,13 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
         }
         if (is_action && parser_decl_match_contextual_keyword(parser, "requires")) {
             do {
-                Token ability = parser_consume(parser, TOKEN_IDENTIFIER,
-                    "Expected ability name after 'requires'");
+                ASTNode *ability = parse_type(parser);
                 size_t next = func->data.func_decl.required_ability_count + 1;
                 func->data.func_decl.required_abilities = realloc(
                     func->data.func_decl.required_abilities,
-                    next * sizeof(char *));
+                    next * sizeof(ASTNode *));
                 func->data.func_decl.required_abilities[next - 1] =
-                    pergyra_strdup(ability.text);
+                    ability;
                 func->data.func_decl.required_ability_count = next;
             } while (parser_match(parser, TOKEN_COMMA));
             continue;

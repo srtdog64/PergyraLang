@@ -267,6 +267,7 @@ ASTNode* ast_create_block(void) {
 // for 루프
 ASTNode* ast_create_for_loop(void) {
     ASTNode* node = ast_create_node(AST_FOR_LOOP);
+    node->data.for_loop.label = NULL;
     node->data.for_loop.variable = NULL;
     node->data.for_loop.range_start = NULL;
     node->data.for_loop.range_end = NULL;
@@ -278,6 +279,7 @@ ASTNode* ast_create_for_loop(void) {
 // while 루프
 ASTNode* ast_create_while_loop(void) {
     ASTNode* node = ast_create_node(AST_WHILE_LOOP);
+    node->data.while_loop.label = NULL;
     node->data.while_loop.condition = NULL;
     node->data.while_loop.body = NULL;
     return node;
@@ -1321,7 +1323,7 @@ void ast_destroy(ASTNode* node) {
             ast_destroy_generic_params(node->data.func_decl.generic_params);
             ast_destroy_where_clause(node->data.func_decl.where_clause);
             for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++)
-                free(node->data.func_decl.required_abilities[i]);
+                ast_destroy(node->data.func_decl.required_abilities[i]);
             free(node->data.func_decl.required_abilities);
             free(node->data.func_decl.within_zone);
             free(node->data.func_decl.causes_effect);
@@ -1346,6 +1348,26 @@ void ast_destroy(ASTNode* node) {
             ast_destroy_generic_params(node->data.class_decl.generic_params);
             ast_destroy_where_clause(node->data.class_decl.where_clause);
             ast_destroy_structured_comment(node->data.class_decl.doc_comment);
+            break;
+
+        case AST_ENUM_DECL:
+            free(node->data.enum_decl.name);
+            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+                free(node->data.enum_decl.variants[i]);
+                if (node->data.enum_decl.variant_params != NULL) {
+                    size_t pc = node->data.enum_decl.variant_param_counts != NULL
+                        ? node->data.enum_decl.variant_param_counts[i] : 0;
+                    for (size_t p = 0; p < pc; p++)
+                        ast_destroy(node->data.enum_decl.variant_params[i][p]);
+                    free(node->data.enum_decl.variant_params[i]);
+                }
+            }
+            free(node->data.enum_decl.variants);
+            free(node->data.enum_decl.variant_params);
+            free(node->data.enum_decl.variant_param_counts);
+            for (size_t i = 0; i < node->data.enum_decl.method_count; i++)
+                ast_destroy(node->data.enum_decl.methods[i]);
+            free(node->data.enum_decl.methods);
             break;
 
         case AST_EXTERN_BLOCK:
@@ -1395,6 +1417,7 @@ void ast_destroy(ASTNode* node) {
             break;
             
         case AST_FOR_LOOP:
+            free(node->data.for_loop.label);
             free(node->data.for_loop.variable);
             ast_destroy(node->data.for_loop.range_start);
             ast_destroy(node->data.for_loop.range_end);
@@ -1403,8 +1426,17 @@ void ast_destroy(ASTNode* node) {
             break;
             
         case AST_WHILE_LOOP:
+            free(node->data.while_loop.label);
             ast_destroy(node->data.while_loop.condition);
             ast_destroy(node->data.while_loop.body);
+            break;
+
+        case AST_BREAK:
+            free(node->data.break_stmt.label);
+            break;
+
+        case AST_CONTINUE:
+            free(node->data.continue_stmt.label);
             break;
 
         case AST_MATCH_STMT:
@@ -1665,7 +1697,7 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.intent_step.post_expr);
             ast_destroy(node->data.intent_step.invariant_expr);
             for (size_t i = 0; i < node->data.intent_step.required_ability_count; i++)
-                free(node->data.intent_step.required_abilities[i]);
+                ast_destroy(node->data.intent_step.required_abilities[i]);
             free(node->data.intent_step.required_abilities);
             free(node->data.intent_step.causes_effect);
             for (size_t i = 0; i < node->data.intent_step.authorized_by_count; i++)
@@ -1825,7 +1857,7 @@ void ast_destroy(ASTNode* node) {
         case AST_ZONE_AUTHORITY:
             free(node->data.zone_authority.subject_slot_name);
             for (size_t i = 0; i < node->data.zone_authority.ability_count; i++)
-                free(node->data.zone_authority.required_abilities[i]);
+                ast_destroy(node->data.zone_authority.required_abilities[i]);
             free(node->data.zone_authority.required_abilities);
             break;
 

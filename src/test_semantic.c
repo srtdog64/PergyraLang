@@ -899,6 +899,99 @@ test_while_loop(void)
         free(wh);
     }
 
+    TEST("labeled break to outer loop → no error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *outer = calloc(1, sizeof(ASTNode));
+        outer->type = AST_WHILE_LOOP;
+        outer->line = 1;
+        outer->data.while_loop.label = pergyra_strdup("outer");
+        outer->data.while_loop.condition = make_boolean(true, 1);
+
+        ASTNode *inner = calloc(1, sizeof(ASTNode));
+        inner->type = AST_WHILE_LOOP;
+        inner->line = 2;
+        inner->data.while_loop.condition = make_boolean(true, 2);
+
+        ASTNode *break_stmt = calloc(1, sizeof(ASTNode));
+        break_stmt->type = AST_BREAK;
+        break_stmt->line = 3;
+        break_stmt->data.break_stmt.label = pergyra_strdup("outer");
+
+        ASTNode *inner_body = ast_create_block();
+        ast_add_statement(inner_body, break_stmt);
+        inner->data.while_loop.body = inner_body;
+
+        ASTNode *outer_body = ast_create_block();
+        ast_add_statement(outer_body, inner);
+        outer->data.while_loop.body = outer_body;
+
+        type_check_while_loop(outer, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(outer);
+    }
+
+    TEST("unknown labeled break → error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *outer = calloc(1, sizeof(ASTNode));
+        outer->type = AST_WHILE_LOOP;
+        outer->line = 1;
+        outer->data.while_loop.label = pergyra_strdup("outer");
+        outer->data.while_loop.condition = make_boolean(true, 1);
+
+        ASTNode *break_stmt = calloc(1, sizeof(ASTNode));
+        break_stmt->type = AST_BREAK;
+        break_stmt->line = 2;
+        break_stmt->data.break_stmt.label = pergyra_strdup("missing");
+
+        ASTNode *body = ast_create_block();
+        ast_add_statement(body, break_stmt);
+        outer->data.while_loop.body = body;
+
+        type_check_while_loop(outer, ctx);
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(outer);
+    }
+
+    TEST("labeled continue to outer loop → no error");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *outer = calloc(1, sizeof(ASTNode));
+        outer->type = AST_WHILE_LOOP;
+        outer->line = 1;
+        outer->data.while_loop.label = pergyra_strdup("outer");
+        outer->data.while_loop.condition = make_boolean(true, 1);
+
+        ASTNode *inner = calloc(1, sizeof(ASTNode));
+        inner->type = AST_WHILE_LOOP;
+        inner->line = 2;
+        inner->data.while_loop.condition = make_boolean(true, 2);
+
+        ASTNode *continue_stmt = calloc(1, sizeof(ASTNode));
+        continue_stmt->type = AST_CONTINUE;
+        continue_stmt->line = 3;
+        continue_stmt->data.continue_stmt.label = pergyra_strdup("outer");
+
+        ASTNode *inner_body = ast_create_block();
+        ast_add_statement(inner_body, continue_stmt);
+        inner->data.while_loop.body = inner_body;
+
+        ASTNode *outer_body = ast_create_block();
+        ast_add_statement(outer_body, inner);
+        outer->data.while_loop.body = outer_body;
+
+        type_check_while_loop(outer, ctx);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(outer);
+    }
+
     TEST("break skips unreachable QubitSlot move in while loop");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2059,6 +2152,92 @@ test_match_stmt(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(match);
+    }
+
+    TEST("Result<T, E> annotation resolves to constructed type");
+    {
+        const char *source =
+            "func Echo(result: Result<Int, String>) -> Void { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("enum method call resolves return type");
+    {
+        const char *source =
+            "enum Status {\n"
+            "    Idle,\n"
+            "    Busy,\n"
+            "    func Code(self) -> Int { return 7; }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Status = Idle;\n"
+            "    let n: Int = s.Code();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("custom error type is accepted as Result<T, E> error payload");
+    {
+        const char *source =
+            "enum CheckoutError {\n"
+            "    EmptyCart,\n"
+            "    PaymentDeclined,\n"
+            "}\n"
+            "func Handle(result: Result<Int, CheckoutError>) -> Void { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("'?' unwraps Result<T, E> to T");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *args[2] = { TYPE_INT, TYPE_STRING };
+        Type *res_type = type_create_constructed(TYPE_RESULT, args, 2);
+        scope_declare(ctx->scope, symbol_create_variable("result", res_type, 1, 1));
+
+        ASTNode *question = calloc(1, sizeof(ASTNode));
+        question->type = AST_UNARY;
+        question->data.unary.op.type = TOKEN_QUESTION;
+        question->data.unary.operand = ast_create_identifier("result");
+
+        Type *t = type_check_expression(question, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(type_equals(t, TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(question);
     }
 
     TEST("enum payload match destructuring binds case variables");

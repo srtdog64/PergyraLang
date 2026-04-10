@@ -481,6 +481,23 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
                         LLVMPositionBuilderAtEnd(ctx->builder, last);
                 }
             }
+        } else if (stmt != NULL && stmt->type == AST_ENUM_DECL) {
+            const char *enum_name = stmt->data.enum_decl.name;
+            for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
+                ASTNode *method = stmt->data.enum_decl.methods[j];
+                if (method == NULL || method->type != AST_FUNC_DECL)
+                    continue;
+                {
+                    char *orig_name = method->data.func_decl.name;
+                    char prefixed[256];
+                    snprintf(prefixed, sizeof(prefixed), "%s_%s", enum_name, orig_name);
+                    method->data.func_decl.name = prefixed;
+                    ctx->current_class_name = enum_name;
+                    llvm_emit_func_decl(method, ctx);
+                    ctx->current_class_name = NULL;
+                    method->data.func_decl.name = orig_name;
+                }
+            }
         }
     }
 
@@ -531,8 +548,10 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     llvm_nominal_uses_immutable_projection_storage(nominal_kind);
                 bool is_boundary_transfer =
                     llvm_nominal_is_boundary_transfer_contract(nominal_kind);
+                bool is_pointer_self_host = is_subject
+                    || nominal_kind == NOMINAL_DECL_VESSEL;
                 LLVMClassTypeEntry *entry = llvm_register_class(
-                    ctx, cls_name, struct_ty, is_subject, is_subject);
+                    ctx, cls_name, struct_ty, is_subject, is_pointer_self_host);
                 if (entry != NULL) {
                     entry->is_immutable = is_immutable;
                     entry->is_boundary_transfer_contract = is_boundary_transfer;
@@ -558,7 +577,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                         user_pc++;
                     }
                     LLVMTypeRef *mpt = calloc(user_pc + 1, sizeof(LLVMTypeRef));
-                    mpt[0] = is_subject ? LLVMPointerType(struct_ty, 0) : struct_ty;
+                    mpt[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
                     size_t pidx = 1;
                     for (size_t k = 0; k < mpc; k++) {
                         FuncParam *p = method->data.func_decl.params[k];

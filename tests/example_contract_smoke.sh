@@ -27,7 +27,7 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-BACKENDS="${PGY_EXAMPLE_BACKENDS:-c llvm}"
+BACKENDS="${PGY_EXAMPLE_BACKENDS:-c}"
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then

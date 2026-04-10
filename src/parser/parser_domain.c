@@ -1111,15 +1111,13 @@ ASTNode* parse_zone_declaration(Parser* parser) {
             ASTNode *authority = ast_create_zone_authority(subject_slot.text);
             if (parser_match_identifier_keyword(parser, "requires")) {
                 do {
-                    Token ability_name = parser_consume(parser, TOKEN_IDENTIFIER,
-                        "Expected ability name after 'requires'");
+                    ASTNode *ability_name = parse_type(parser);
                     authority->data.zone_authority.ability_count++;
                     authority->data.zone_authority.required_abilities = realloc(
                         authority->data.zone_authority.required_abilities,
-                        authority->data.zone_authority.ability_count * sizeof(char *));
+                        authority->data.zone_authority.ability_count * sizeof(ASTNode *));
                     authority->data.zone_authority.required_abilities[
-                        authority->data.zone_authority.ability_count - 1] =
-                        pergyra_strdup(ability_name.text);
+                        authority->data.zone_authority.ability_count - 1] = ability_name;
                 } while (parser_match(parser, TOKEN_COMMA));
             }
             authority->line = subject_slot.line;

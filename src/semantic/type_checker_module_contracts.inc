@@ -1,3 +1,52 @@
+static const char *
+ability_ref_name(ASTNode *ability_ref)
+{
+    if (ability_ref == NULL || ability_ref->type != AST_TYPE)
+        return NULL;
+    return ability_ref->data.type.name;
+}
+
+static ASTNode *
+resolve_required_ability_decl(ASTNode *ability_ref,
+                              const ASTNode *site,
+                              SemanticContext *ctx,
+                              const char *owner_label,
+                              const char *owner_name)
+{
+    const char *ability = ability_ref_name(ability_ref);
+    ASTNode *ability_decl;
+
+    resolve_type_node(ability_ref, ctx);
+    if (ability == NULL) {
+        semantic_error(ctx, site,
+            "%s '%s' requires a valid ability type reference",
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>");
+        return NULL;
+    }
+
+    ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
+    if (ability_decl == NULL) {
+        semantic_error(ctx, site,
+            "%s '%s' requires unknown ability '%s'",
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
+            ability);
+        return NULL;
+    }
+
+    if (ability_ref->type == AST_TYPE
+        && ability_ref->data.type.generic_args != NULL
+        && ability_ref->data.type.generic_args->count > 0) {
+        semantic_error(ctx, site,
+            "Ability '%s' does not accept generic type arguments in requires clauses",
+            ability);
+        return NULL;
+    }
+
+    return ability_decl;
+}
+
 static void
 validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
 {
@@ -71,16 +120,18 @@ validate_action_required_abilities(ASTNode *node,
     }
 
     for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
-        const char *ability = node->data.func_decl.required_abilities[i];
-        ASTNode *ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
-        if (ability_decl == NULL) {
-            semantic_error(ctx, node,
-                "action '%s' requires unknown ability '%s'",
-                name != NULL ? name : "<anonymous>",
-                ability != NULL ? ability : "<ability>");
+        ASTNode *ability_ref = node->data.func_decl.required_abilities[i];
+        const char *ability = ability_ref_name(ability_ref);
+        ASTNode *ability_decl = resolve_required_ability_decl(
+            ability_ref, node, ctx, "action", name);
+        if (ability_decl == NULL)
             continue;
-        }
-        if (!explicit_type_reference_allowed(ability_decl, node, ctx)) {
+        if (ability_decl->type == AST_ABILITY_DECL
+            && ability_decl->origin_path != NULL
+            && node->origin_path != NULL
+            && strcmp(ability_decl->origin_path, node->origin_path) != 0
+            && ability_decl->data.ability_decl.has_explicit_access
+            && ability_decl->data.ability_decl.access != ACCESS_PUBLIC) {
             semantic_error(ctx, node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
@@ -99,34 +150,35 @@ validate_action_required_abilities(ASTNode *node,
 }
 
 static void
-validate_program_stdlib_use_decls(ASTNode *program, SemanticContext *ctx)
+validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
 {
-    if (program == NULL || program->type != AST_PROGRAM || ctx == NULL)
+    if (stmt == NULL || stmt->type != AST_USE_DECL || ctx == NULL
+        || stmt->data.use_decl.module_name == NULL) {
+        return;
+    }
+
+    if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
+        semantic_error(ctx, stmt,
+            "Unknown stdlib use '%s'; expected one of datetime, http, page, spray, storage",
+            stmt->data.use_decl.module_name);
+        return;
+    }
+
+    if (ctx->program_root == NULL || ctx->program_root->type != AST_PROGRAM)
         return;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_USE_DECL
-            || stmt->data.use_decl.module_name == NULL) {
-            continue;
-        }
-        if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
-            semantic_error(ctx, stmt,
-                "Unknown stdlib use '%s'; expected one of datetime, http, page, spray, storage",
+    for (size_t i = 0; i < ctx->program_root->data.program.count; i++) {
+        ASTNode *prev = ctx->program_root->data.program.statements[i];
+        if (prev == stmt)
+            break;
+        if (prev != NULL && prev->type == AST_USE_DECL
+            && prev->data.use_decl.module_name != NULL
+            && strcmp(prev->data.use_decl.module_name,
+                      stmt->data.use_decl.module_name) == 0) {
+            semantic_warning(ctx, stmt,
+                "Duplicate stdlib use '%s'; resolver will merge it once",
                 stmt->data.use_decl.module_name);
-            continue;
-        }
-        for (size_t j = 0; j < i; j++) {
-            ASTNode *prev = program->data.program.statements[j];
-            if (prev != NULL && prev->type == AST_USE_DECL
-                && prev->data.use_decl.module_name != NULL
-                && strcmp(prev->data.use_decl.module_name,
-                          stmt->data.use_decl.module_name) == 0) {
-                semantic_warning(ctx, stmt,
-                    "Duplicate stdlib use '%s'; resolver will merge it once",
-                    stmt->data.use_decl.module_name);
-                break;
-            }
+            break;
         }
     }
 }

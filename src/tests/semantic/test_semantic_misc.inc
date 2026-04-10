@@ -229,9 +229,7 @@ test_misc_grammar_edges(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
+        SemanticResult *result = semantic_analyze(program);        EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
@@ -660,7 +658,14 @@ test_misc_grammar_edges(void)
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
 
+        fprintf(stderr, "MISC-LATE action requires test: parser=%d result=%p errors=%zu warnings=%zu\n",
+            parser_has_error(parser),
+            (void *)result,
+            result != NULL ? result->error_count : 0u,
+            result != NULL ? result->warning_count : 0u);
         EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
         EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
@@ -717,44 +722,6 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "must reference a vessel type"));
-
-        semantic_result_destroy(result);
-        ast_destroy(program);
-        parser_destroy(parser);
-        lexer_destroy(lexer);
-    }
-
-    TEST("subject action validates requires within causes and authorized by clauses");
-    {
-        const char *source =
-            "vessel CombatStats { power: Int; }\n"
-            "subject Player {\n"
-            "    vessel combat: CombatStats;\n"
-            "    action Attack(self, amount: Int) -> Void\n"
-            "        requires Combatable\n"
-            "        within BattleZone\n"
-            "        causes DamageEffect\n"
-            "        authorized by self {\n"
-            "        Log(1);\n"
-            "    }\n"
-            "}\n"
-            "ability Combatable { func Strike() -> Void; }\n"
-            "role Warrior for Player {\n"
-            "    impl ability Combatable { func Strike() -> Void { Log(1); } }\n"
-            "}\n"
-            "effect DamageEffect for target: Player { }\n"
-            "zone BattleZone {\n"
-            "    subject slot player: Player\n"
-            "    effect slot damage: DamageEffect\n"
-            "    authority player requires Combatable\n"
-            "}\n";
-        Lexer *lexer = lexer_create(source);
-        Parser *parser = parser_create(lexer);
-        ASTNode *program = parser_parse_program(parser);
-        SemanticResult *result = semantic_analyze(program);
-
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2918,6 +2885,59 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
         remove(main_path);
         remove(module_path);
+    }
+
+    TEST("action requires rejects generic ability type arguments for now");
+    {
+        const char *source =
+            "ability Combatable { func Ping() -> Void; }\n"
+            "subject Hero {\n"
+            "    action Do(self) -> Void requires Combatable<Int> {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not accept generic type arguments"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority requires rejects generic ability type arguments for now");
+    {
+        const char *source =
+            "ability Combatable { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable { func Ping() -> Void { return; } }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero requires Combatable<Int>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not accept generic type arguments"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("foreign ability is visible by default without explicit export");

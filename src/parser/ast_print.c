@@ -339,6 +339,8 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_FOR_LOOP:
+            if (node->data.for_loop.label != NULL)
+                printf("%s: ", node->data.for_loop.label);
             printf("for %s in ", node->data.for_loop.variable);
             ast_print_compact(node->data.for_loop.range_start);
             printf("..");
@@ -346,6 +348,8 @@ ast_print_compact(ASTNode* node)
             break;
 
         case AST_WHILE_LOOP:
+            if (node->data.while_loop.label != NULL)
+                printf("%s: ", node->data.while_loop.label);
             printf("while ");
             ast_print_compact(node->data.while_loop.condition);
             break;
@@ -357,10 +361,14 @@ ast_print_compact(ASTNode* node)
 
         case AST_BREAK:
             printf("break");
+            if (node->data.break_stmt.label != NULL)
+                printf(" %s", node->data.break_stmt.label);
             break;
 
         case AST_CONTINUE:
             printf("continue");
+            if (node->data.continue_stmt.label != NULL)
+                printf(" %s", node->data.continue_stmt.label);
             break;
 
         case AST_PARTY_INSTANCE:
@@ -560,8 +568,8 @@ void ast_print(ASTNode* node, int indent) {
                 print_indent(indent + 1);
                 printf("Requires:");
                 for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
-                    printf("%s%s", i == 0 ? " " : ", ",
-                           node->data.func_decl.required_abilities[i]);
+                    printf("%s", i == 0 ? " " : ", ");
+                    ast_print_inline(node->data.func_decl.required_abilities[i]);
                 }
                 printf("\n");
             }
@@ -1277,7 +1285,7 @@ void ast_print(ASTNode* node, int indent) {
                 printf("Requires: ");
                 for (size_t i = 0; i < node->data.intent_step.required_ability_count; i++) {
                     if (i > 0) printf(", ");
-                    printf("%s", node->data.intent_step.required_abilities[i]);
+                    ast_print_inline(node->data.intent_step.required_abilities[i]);
                 }
                 printf("\n");
             }
@@ -1516,9 +1524,8 @@ void ast_print(ASTNode* node, int indent) {
                 print_indent(indent + 1);
                 printf("Requires:");
                 for (size_t i = 0; i < node->data.zone_authority.ability_count; i++) {
-                    printf("%s%s",
-                           i == 0 ? " " : ", ",
-                           node->data.zone_authority.required_abilities[i]);
+                    printf("%s", i == 0 ? " " : ", ");
+                    ast_print_inline(node->data.zone_authority.required_abilities[i]);
                 }
                 printf("\n");
             }
@@ -1641,6 +1648,8 @@ void ast_print(ASTNode* node, int indent) {
                 printf(" }");
             }
             printf("\n");
+            for (size_t i = 0; i < node->data.enum_decl.method_count; i++)
+                ast_print(node->data.enum_decl.methods[i], indent + 1);
             break;
 
         case AST_NAMESPACE_DECL:
@@ -1674,11 +1683,17 @@ void ast_print(ASTNode* node, int indent) {
             break;
 
         case AST_BREAK:
-            printf("Break\n");
+            printf("Break");
+            if (node->data.break_stmt.label != NULL)
+                printf(": %s", node->data.break_stmt.label);
+            printf("\n");
             break;
 
         case AST_CONTINUE:
-            printf("Continue\n");
+            printf("Continue");
+            if (node->data.continue_stmt.label != NULL)
+                printf(": %s", node->data.continue_stmt.label);
+            printf("\n");
             break;
 
         case AST_PARTY_METHOD:

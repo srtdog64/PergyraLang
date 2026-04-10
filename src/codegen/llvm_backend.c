@@ -516,7 +516,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (llvm_lookup_class(ctx, type_name) != NULL)
+    if (llvm_lookup_class(ctx, type_name) != NULL
+        || llvm_find_enum_decl(ctx, type_name) != NULL)
         llvm_register_var_class(ctx, var_name, type_name);
 }
 

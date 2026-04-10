@@ -125,7 +125,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 if (val == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 base_ptr = self_var->alloca;
-                if (llvm_nominal_uses_pointer_self(ctx, cls->class_name))
+                if (self_var->type == LLVMPointerType(cls->struct_type, 0))
                     base_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
                         self_var->alloca, llvm_tmp_name(ctx));
                 gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
