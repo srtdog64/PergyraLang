@@ -240,6 +240,76 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("explicit cross-module private field access is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        ASTNode *vault = ast_create_subject("Vault");
+        ASTNode *access = ast_create_member_access(make_identifier("v", 2), "code");
+        ClassField *field = calloc(1, sizeof(ClassField));
+        Symbol *vsym;
+
+        vault->origin_path = pergyra_strdup("vault_module.pgy");
+        field->name = pergyra_strdup("code");
+        field->type = ast_create_type("Int");
+        field->access = ACCESS_PRIVATE;
+        field->has_explicit_access = true;
+        vault->data.class_decl.fields = calloc(1, sizeof(ClassField *));
+        vault->data.class_decl.fields[0] = field;
+        vault->data.class_decl.field_count = 1;
+        ast_add_statement(program, vault);
+        ctx->program_root = program;
+
+        type_check_class_decl(vault, ctx);
+        ctx->current_module_path = "consumer_module.pgy";
+        vsym = symbol_create_variable("v",
+            scope_lookup(ctx->scope, "Vault")->type, 2, 1);
+        scope_declare(ctx->scope, vsym);
+
+        type_check_expression(access, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "not accessible across the current visibility boundary"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(access);
+        ast_destroy(program);
+    }
+
+    TEST("explicit cross-module public field access remains allowed");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        ASTNode *vault = ast_create_subject("Vault");
+        ASTNode *access = ast_create_member_access(make_identifier("v", 2), "code");
+        ClassField *field = calloc(1, sizeof(ClassField));
+        Symbol *vsym;
+
+        vault->origin_path = pergyra_strdup("vault_module.pgy");
+        field->name = pergyra_strdup("code");
+        field->type = ast_create_type("Int");
+        field->access = ACCESS_PUBLIC;
+        field->has_explicit_access = true;
+        vault->data.class_decl.fields = calloc(1, sizeof(ClassField *));
+        vault->data.class_decl.fields[0] = field;
+        vault->data.class_decl.field_count = 1;
+        ast_add_statement(program, vault);
+        ctx->program_root = program;
+
+        type_check_class_decl(vault, ctx);
+        ctx->current_module_path = "consumer_module.pgy";
+        vsym = symbol_create_variable("v",
+            scope_lookup(ctx->scope, "Vault")->type, 2, 1);
+        scope_declare(ctx->scope, vsym);
+
+        EXPECT(type_check_expression(access, ctx) == TYPE_INT);
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(access);
+        ast_destroy(program);
+    }
+
     TEST("for-in over List<subject> type-checks");
     {
         const char *source =
@@ -487,6 +557,68 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("private nominal member access is allowed inside the same host");
+    {
+        const char *source =
+            "class Vault {\n"
+            "    private let secret: Int;\n"
+            "    private func Hidden(self) -> Int {\n"
+            "        return self.secret;\n"
+            "    }\n"
+            "    public func Reveal(self) -> Int {\n"
+            "        return self.Hidden();\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vault = Vault(7);\n"
+            "    Log(v.Reveal());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("private nominal member access is rejected outside the host");
+    {
+        const char *source =
+            "class Vault {\n"
+            "    private let secret: Int;\n"
+            "    private func Hidden(self) -> Int {\n"
+            "        return self.secret;\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vault = Vault(7);\n"
+            "    Log(v.secret);\n"
+            "    Log(v.Hidden());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Member 'Vault.secret' is not accessible across the current visibility boundary"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Member 'Vault.Hidden' is not accessible across the current visibility boundary"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("subject vessel fields reject non-vessel target types");
     {
         const char *source =
@@ -603,6 +735,63 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->warning_count >= 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(
             result, "has no matching effect slot"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("secure subject action within zone requires explicit authorized by");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    action TouchVault(self) -> Void\n"
+            "        within BattleZone {\n"
+            "        let stash: SecureSlot<Player> = self;\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(
+            result, "must declare 'authorized by'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("secure subject action within zone passes with explicit authorized by");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    action TouchVault(self) -> Void\n"
+            "        within BattleZone\n"
+            "        authorized by self {\n"
+            "        let stash: SecureSlot<Player> = self;\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    authority player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1714,7 +1903,7 @@ test_misc_grammar_edges(void)
         const char *ability_path = "test_innate_ability_module_a.pgy";
         const char *main_path = "test_innate_ability_module_b.pgy";
         const char *ability_source =
-            "innate ability Combatable {\n"
+            "export innate ability Combatable {\n"
             "    func Attack() -> Int;\n"
             "}\n";
         const char *main_source =
@@ -1759,6 +1948,217 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
         remove(main_path);
         remove(ability_path);
+    }
+
+    TEST("explicit export hides non-exported imported declarations");
+    {
+        const char *module_path = "test_export_visibility_module_a.pgy";
+        const char *main_path = "test_export_visibility_module_main_a.pgy";
+        const char *module_source =
+            "func Hidden() -> Int { return 1; }\n"
+            "export func Visible() -> Int { return 2; }\n";
+        const char *main_source =
+            "import \"test_export_visibility_module_a.pgy\";\n"
+            "func Main() -> Void {\n"
+            "    Log(Visible());\n"
+            "    Log(Hidden());\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(result,
+            "Undefined function 'Hidden'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("explicit export keeps exported imported declarations visible");
+    {
+        const char *module_path = "test_export_visibility_module_b.pgy";
+        const char *main_path = "test_export_visibility_module_main_b.pgy";
+        const char *module_source =
+            "func Hidden() -> Int { return 1; }\n"
+            "export func Visible() -> Int { return 2; }\n";
+        const char *main_source =
+            "import \"test_export_visibility_module_b.pgy\";\n"
+            "func Main() -> Void {\n"
+            "    Log(Visible());\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("explicit export hides non-exported imported nominal constructors");
+    {
+        const char *source =
+            "class HiddenBox {\n"
+            "    let value: Int;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *box = NULL;
+        ASTNode *call = NULL;
+        Type *resolved = NULL;
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(ctx != NULL && program != NULL);
+        box = program != NULL ? program->data.program.statements[0] : NULL;
+        EXPECT(box != NULL);
+        box->origin_path = pergyra_strdup("hidden_box_module.pgy");
+        ctx->program_root = program;
+
+        type_check_class_decl(box, ctx);
+        ctx->current_module_path = "consumer_module.pgy";
+
+        call = make_call("HiddenBox", (ASTNode *[]){ make_number(1, 1) }, 1, 1);
+        call->origin_path = pergyra_strdup("consumer_module.pgy");
+        resolved = type_check_expression(call, ctx);
+
+        EXPECT(resolved == TYPE_UNKNOWN);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Constructor 'HiddenBox' is not accessible across the current visibility boundary"));
+
+        ast_destroy(call);
+        ast_destroy(program);
+        semantic_context_destroy(ctx);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("explicit export keeps exported imported nominal constructors visible");
+    {
+        const char *module_path = "test_export_visibility_module_d.pgy";
+        const char *main_path = "test_export_visibility_module_main_d.pgy";
+        const char *module_source =
+            "export class PublicBox {\n"
+            "    let value: Int;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_export_visibility_module_d.pgy\";\n"
+            "func Main() -> Void {\n"
+            "    let h: PublicBox = PublicBox(1);\n"
+            "    Log(h.value);\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("unknown stdlib use is rejected");
+    {
+        const char *source =
+            "use missingmod;\n"
+            "func Main() -> Void { return; }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(
+            result, "Unknown stdlib use 'missingmod'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("known stdlib use remains accepted");
+    {
+        const char *source =
+            "use datetime;\n"
+            "func Main() -> Void { Log(Now()); }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("intent declaration binds subjects and validates step contracts");
@@ -1923,6 +2323,90 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authority-bearing zone rejects secure helper call without authorized by");
+    {
+        const char *source =
+            "/// @effects secure\n"
+            "func Gate() -> Bool { return true; }\n"
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void { self.started = true; }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        on: Gate();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "invokes authority-sensitive helpers"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authority-bearing zone rejects zone-action helper call without authorized by");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void within CockpitZone causes Started {\n"
+            "        self.started = true;\n"
+            "    }\n"
+            "}\n"
+            "effect Started for bearer: Driver {\n"
+            "    subject slot bearer: Driver\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    effect slot started: Started\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        on: driver.Ignite();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "invokes authority-sensitive helpers"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2229,6 +2713,129 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
+    }
+
+    TEST("ability require cannot reference non-exported foreign type");
+    {
+        const char *source =
+            "subject Hidden { let hp: Int; }\n"
+            "ability NeedsHidden {\n"
+            "    require h: Hidden\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result;
+
+        EXPECT(!parser_has_error(parser));
+        program->data.program.statements[0]->origin_path = pergyra_strdup("hidden_module.pgy");
+        program->data.program.statements[1]->origin_path = pergyra_strdup("ability_module.pgy");
+
+        result = semantic_analyze(program);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot require field 'h' with non-exported type 'Hidden'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("role impl cannot reference non-exported foreign ability");
+    {
+        const char *module_path = "test_role_impl_hidden_ability_module_a.pgy";
+        const char *main_path = "test_role_impl_hidden_ability_module_main_a.pgy";
+        const char *module_source =
+            "ability HiddenAbility {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_role_impl_hidden_ability_module_a.pgy\";\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability HiddenAbility {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot implement non-exported ability 'HiddenAbility'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("action requires cannot reference non-exported foreign ability");
+    {
+        const char *module_path = "test_action_requires_hidden_ability_module_a.pgy";
+        const char *main_path = "test_action_requires_hidden_ability_module_main_a.pgy";
+        const char *module_source =
+            "ability HiddenAbility {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_action_requires_hidden_ability_module_a.pgy\";\n"
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Do(self) -> Void requires HiddenAbility {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot require non-exported ability 'HiddenAbility'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
     }
 }
 

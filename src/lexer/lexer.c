@@ -531,7 +531,7 @@ Token lexer_next_token(Lexer* lexer) {
                 advance(lexer);
                 return make_token(lexer, TOKEN_PIPE_ARROW, start, 2);
             }
-            break;
+            return make_token(lexer, TOKEN_PATTERN_OR, start, 1);
 
     }
 
@@ -621,6 +621,7 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_GREATER_EQUAL: return ">=";
         case TOKEN_AND: return "&&";
         case TOKEN_OR: return "||";
+        case TOKEN_PATTERN_OR: return "|";
         case TOKEN_NOT: return "!";
         case TOKEN_ARROW: return "->";
         case TOKEN_CHANNEL_OP: return "<-";

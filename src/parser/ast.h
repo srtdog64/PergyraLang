@@ -255,6 +255,7 @@ struct ClassField {
     char*          name;
     ASTNode*       type;
     AccessModifier access;
+    bool           has_explicit_access;
     bool           is_mutable;
     bool           is_vessel_field;
 };
@@ -293,6 +294,7 @@ struct ASTNode
             bool           has_effects_clause;
             uint32_t       declared_effects;
             AccessModifier access;
+            bool           has_explicit_access;
             bool           is_action;
             char**         required_abilities;
             size_t         required_ability_count;
@@ -520,6 +522,8 @@ struct ASTNode
         /* Match case */
         struct {
             ASTNode* pattern;           /* literal value or identifier */
+            ASTNode** patterns;         /* OR patterns; pattern aliases patterns[0] */
+            size_t pattern_count;
             ASTNode* guard;             /* optional if guard */
             ASTNode* body;              /* case body block */
         } match_case;

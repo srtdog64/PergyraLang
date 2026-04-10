@@ -509,6 +509,32 @@ test_parallel_execution_semantics(void)
         ast_destroy(send);
     }
 
+    TEST("channel send rejects capability token payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *token_args[1] = { TYPE_INT };
+        Type *token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+        Type *channel_args[1] = { token_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_variable("tok", token_type, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_identifier("tok", 1));
+        send->line = 1; send->column = 1;
+
+        type_check_expression(send, ctx);
+        EXPECT(ctx->has_error
+            && ctx_has_diagnostic_substring(ctx, "capability-bearing values"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+    }
+
     TEST("channel send moves QubitSlot from named binding");
     {
         SemanticContext *ctx = semantic_context_create();

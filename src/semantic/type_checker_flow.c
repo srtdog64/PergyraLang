@@ -271,6 +271,77 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
 }
 
 static bool
+match_case_has_or_patterns(ASTNode *mc)
+{
+    return mc != NULL && mc->type == AST_MATCH_CASE
+        && mc->data.match_case.patterns != NULL
+        && mc->data.match_case.pattern_count > 1;
+}
+
+static bool
+match_case_uses_named_variant_pattern(ASTNode *mc)
+{
+    size_t count;
+    ASTNode **patterns;
+
+    if (!match_case_has_or_patterns(mc))
+        return false;
+
+    patterns = mc->data.match_case.patterns;
+    count = mc->data.match_case.pattern_count;
+    for (size_t i = 0; i < count; i++) {
+        const char *name = NULL;
+        ASTNode **args = NULL;
+        size_t arg_count = 0;
+        if (match_pattern_is_named_variant(patterns[i], &name, &args, &arg_count))
+            return true;
+    }
+    return false;
+}
+
+static bool
+type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
+                               SemanticContext *ctx)
+{
+    size_t count = 1;
+    ASTNode **patterns = &mc->data.match_case.pattern;
+
+    if (mc == NULL || mc->type != AST_MATCH_CASE)
+        return true;
+
+    if (mc->data.match_case.patterns != NULL
+        && mc->data.match_case.pattern_count > 0) {
+        patterns = mc->data.match_case.patterns;
+        count = mc->data.match_case.pattern_count;
+    }
+
+    if (match_case_uses_named_variant_pattern(mc)) {
+        semantic_error(ctx, mc,
+            "OR patterns currently support only literal/simple expression cases; split variant destructuring into separate cases");
+        return false;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *pat = patterns[i];
+        bool handled = false;
+        if (pat == NULL)
+            continue;
+        if (!type_check_special_match_pattern(pat, subj_type, ctx, &handled))
+            continue;
+        if (!handled) {
+            Type *pat_type = type_check_expression(pat, ctx);
+            if (!type_is_assignable(pat_type, subj_type) &&
+                !type_is_assignable(subj_type, pat_type)) {
+                semantic_error(ctx, pat,
+                    "Case pattern type '%s' incompatible with match subject '%s'",
+                    pat_type->name, subj_type->name);
+            }
+        }
+    }
+    return true;
+}
+
+static bool
 pattern_covers_variant(ASTNode *pat, const Type *subj_type,
                        const char *variant_name)
 {
@@ -315,7 +386,8 @@ case_list_covers_variant(ASTNode *node, const Type *subj_type,
             continue;
         if (mc->data.match_case.guard != NULL)
             continue;
-        if (pattern_covers_variant(mc->data.match_case.pattern, subj_type, variant_name))
+        if (!match_case_has_or_patterns(mc)
+            && pattern_covers_variant(mc->data.match_case.pattern, subj_type, variant_name))
             return true;
     }
 
@@ -391,7 +463,8 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
             const char *variant = variants[v];
             if (variant == NULL)
                 continue;
-            if (!pattern_covers_variant(mc->data.match_case.pattern, subj_type, variant))
+            if (match_case_has_or_patterns(mc)
+                || !pattern_covers_variant(mc->data.match_case.pattern, subj_type, variant))
                 continue;
 
             if (seen[v]) {
@@ -671,24 +744,11 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
 
     for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
         ASTNode *mc = node->data.match_stmt.cases[i];
-        bool handled = false;
-
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
 
         if (mc->data.match_case.pattern != NULL) {
-            if (!type_check_special_match_pattern(
-                    mc->data.match_case.pattern, subj_type, ctx, &handled)) {
-                /* error already emitted */
-            } else if (!handled) {
-                Type *pat_type = type_check_expression(mc->data.match_case.pattern, ctx);
-                if (!type_is_assignable(pat_type, subj_type) &&
-                    !type_is_assignable(subj_type, pat_type)) {
-                    semantic_error(ctx, mc->data.match_case.pattern,
-                        "Case pattern type '%s' incompatible with match subject '%s'",
-                        pat_type->name, subj_type->name);
-                }
-            }
+            type_check_match_case_patterns(mc, subj_type, ctx);
         }
 
         if (mc->data.match_case.guard != NULL) {

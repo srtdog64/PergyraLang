@@ -2098,7 +2098,24 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         const char *option_binding = NULL;
         LLVMValueRef cmp = NULL;
 
-        if (llvm_is_option_destructor(mc->data.match_case.pattern,
+        if (mc->data.match_case.patterns != NULL
+            && mc->data.match_case.pattern_count > 1) {
+            for (size_t p = 0; p < mc->data.match_case.pattern_count; p++) {
+                LLVMValueRef pattern = llvm_emit_expression(
+                    mc->data.match_case.patterns[p], ctx);
+                LLVMValueRef alt_cmp;
+                if (pattern == NULL)
+                    continue;
+                alt_cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+                                        subject, pattern,
+                                        llvm_tmp_name(ctx));
+                cmp = (cmp == NULL)
+                    ? alt_cmp
+                    : LLVMBuildOr(ctx->builder, cmp, alt_cmp, llvm_tmp_name(ctx));
+            }
+            if (cmp == NULL)
+                continue;
+        } else if (llvm_is_option_destructor(mc->data.match_case.pattern,
                                       &option_kind, &option_binding)) {
             LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
                 llvm_tmp_name(ctx));

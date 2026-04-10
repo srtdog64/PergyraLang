@@ -36,6 +36,7 @@ Type *TYPE_WEAK   = NULL;
 Type *TYPE_CHANNEL = NULL;
 Type *TYPE_FUTURE = NULL;
 Type *TYPE_REMOTE_FUTURE = NULL;
+Type *TYPE_TOKEN = NULL;
 Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
 Type *TYPE_RESULT = NULL;
@@ -68,6 +69,7 @@ type_system_init(void)
     TYPE_CHANNEL = type_create_primitive("Channel", 0, false);
     TYPE_FUTURE = type_create_primitive("Future", 0, false);
     TYPE_REMOTE_FUTURE = type_create_primitive("RemoteFuture", 0, false);
+    TYPE_TOKEN = type_create_primitive("Token", 0, false);
     TYPE_DEVICE_SLOT = type_create_primitive("DeviceSlot", 0, false);
     TYPE_ALLOCATOR = type_create_primitive("Allocator", 0, false);
     TYPE_RESULT = type_create_primitive("Result", 0, false);
@@ -98,6 +100,7 @@ type_system_cleanup(void)
     free(TYPE_CHANNEL->name); free(TYPE_CHANNEL);
     free(TYPE_FUTURE->name); free(TYPE_FUTURE);
     free(TYPE_REMOTE_FUTURE->name); free(TYPE_REMOTE_FUTURE);
+    free(TYPE_TOKEN->name); free(TYPE_TOKEN);
     free(TYPE_DEVICE_SLOT->name); free(TYPE_DEVICE_SLOT);
     free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
     free(TYPE_RESULT->name); free(TYPE_RESULT);
@@ -107,7 +110,7 @@ type_system_cleanup(void)
     TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
     TYPE_ARRAY = TYPE_SLICE = TYPE_LIST = TYPE_QUEUE = TYPE_HASHMAP = TYPE_SET = TYPE_BOX = TYPE_RC =
         TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
-    TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = TYPE_OPTION = NULL;
+        TYPE_TOKEN = TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = TYPE_OPTION = NULL;
 }
 
 /* -----------------------------------------------------------------
@@ -276,6 +279,26 @@ type_effect_mask_closure(uint32_t mask)
     return mask;
 }
 
+uint32_t
+type_effect_mask_join(uint32_t left, uint32_t right)
+{
+    return type_effect_mask_closure(left) | type_effect_mask_closure(right);
+}
+
+bool
+type_effect_mask_requires_authority(uint32_t mask)
+{
+    uint32_t closed = type_effect_mask_closure(mask);
+    return (closed & EFFECT_SECURE) != 0;
+}
+
+bool
+type_effect_mask_touches_resource_boundary(uint32_t mask)
+{
+    uint32_t closed = type_effect_mask_closure(mask);
+    return (closed & (EFFECT_SECURE | EFFECT_REMOTE | EFFECT_COLLAPSE)) != 0;
+}
+
 bool
 type_effect_mask_has(uint32_t mask, uint32_t effect)
 {
@@ -290,6 +313,23 @@ type_effect_mask_subsumes(uint32_t available, uint32_t required)
     uint32_t closed_available = type_effect_mask_closure(available);
     uint32_t closed_required = type_effect_mask_closure(required);
     return (closed_available & closed_required) == closed_required;
+}
+
+EffectMaskRelation
+type_effect_mask_compare(uint32_t left, uint32_t right)
+{
+    uint32_t closed_left = type_effect_mask_closure(left);
+    uint32_t closed_right = type_effect_mask_closure(right);
+    bool left_has_right = (closed_left & closed_right) == closed_right;
+    bool right_has_left = (closed_right & closed_left) == closed_left;
+
+    if (left_has_right && right_has_left)
+        return EFFECT_REL_EQUAL;
+    if (left_has_right)
+        return EFFECT_REL_SUPERSET;
+    if (right_has_left)
+        return EFFECT_REL_SUBSET;
+    return EFFECT_REL_INCOMPARABLE;
 }
 
 Type *

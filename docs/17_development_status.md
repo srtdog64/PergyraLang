@@ -1,6 +1,6 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-10
 
 ## 요약
 
@@ -127,8 +127,15 @@
 - `match` 시맨틱: `Option/Result/tagged enum` destructuring 바인딩과 제한된 exhaustiveness check가 동작함
 - `match` 품질 진단: duplicate variant case와 redundant default를 warning으로 보고함
 - `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
-- effect contract는 이제 최소 closure/subsumption을 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급된다.
-- `use module;` duplicate import는 semantic warning으로 보고한다.
+- effect contract는 이제 최소 closure/subsumption과 join API를 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급되며, disjoint branch effect도 계약으로 합쳐진다.
+- `use module;` duplicate import는 semantic warning으로 보고하며, `use datetime;` exported stdlib surface 회귀가 존재한다.
+- ability `require` 필드는 이제 선언 검증만이 아니라 role impl 시 bound subject host가 실제로 요구 필드를 만족하는지도 검사한다.
+- foreign non-exported ability는 이제 cross-module `role impl ability ...`와 `action ... requires Ability` 양쪽에서 semantic error로 차단된다.
+- `secure` capability는 이제 `SecureSlot`뿐 아니라 `Token<T>` 시그니처도 secure effect를 유발하며, paired token 이름/타입 정합성까지 정적으로 검사한다.
+- `Token<T>`와 secure capability는 이제 channel transport도 금지되어 capability-bearing 값이 병렬/원격 payload로 새는 경로를 semantic에서 차단한다.
+- authority가 선언된 `zone`에서 boundary projection(`publish` / tobject-target `bind`)은 이제 explicit `by <subjectSlot>` 없이 허용되지 않는다.
+- explicit `private` nominal member는 same host 내부에서만 허용되고, explicit visibility가 붙은 nominal field/method/constructor는 cross-module 경계에서 실제로 검사된다.
+- foreign non-exported nominal constructor는 이제 cross-module 호출이 차단되며, exported nominal constructor만 외부 모듈에서 생성할 수 있다.
 - ability `require` field는 duplicate declaration을 semantic error로 보고한다.
 - `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
@@ -179,20 +186,23 @@
 
 ## 테스트 현황
 
-2026-04-04 현재 직접 확인한 기준:
+2026-04-10 현재 직접 확인한 기준:
 
 | 스위트 | 결과 |
 |---|---|
-| concurrency | 5 passed |
-| semantic | 486 passed |
-| transpile | 406 passed |
-| llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure` 포함) |
+| security | 52 passed |
+| semantic | 679 passed |
+| transpile | 461 passed |
+| llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure`, `string_io` 포함) |
+| abi | 56 passed |
 
 추가 회귀:
 - `make test-semantic` 통과
 - `make test-parser` 통과
 - `make test-transpile` 통과
 - `make llvm-test-smoke` 통과 (async, select, tagged-union, RemoteFuture, device slot, generics, channel pressure 등)
+- `make test-security` 통과
+- `make test-abi` 통과
 - zone method 안의 subject `action` call은 현재 C/LLVM 모두에서 matching `effect slot` runtime activation과 embedded layer sync까지 연결됨
 - `self.player.Attack()` 같은 nested nominal host method call도 이제 C/LLVM 모두에서 실제 method dispatch로 lowering됨
 

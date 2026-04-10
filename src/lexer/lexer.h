@@ -137,6 +137,7 @@ typedef enum
     TOKEN_GREATER_EQUAL,/* >= */
     TOKEN_AND,          /* && */
     TOKEN_OR,           /* || */
+    TOKEN_PATTERN_OR,   /* | */
     TOKEN_NOT,          /* ! */
     TOKEN_ARROW,        /* -> */
     TOKEN_CHANNEL_OP,   /* <- */

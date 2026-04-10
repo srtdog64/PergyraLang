@@ -394,6 +394,15 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
         }
     }
 
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt != NULL && stmt->type == AST_CLASS_DECL
+            && stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, class_name) == 0) {
+            return stmt;
+        }
+    }
+
     return NULL;
 }
 
@@ -602,7 +611,7 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
         char *prefixed_path;
         int nested_status;
 
-        if (field == NULL || !field->is_vessel_field
+        if (field == NULL
             || field->type == NULL || field->type->type != AST_TYPE
             || field->type->data.type.name == NULL) {
             continue;

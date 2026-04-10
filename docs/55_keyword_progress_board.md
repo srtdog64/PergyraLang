@@ -1,6 +1,6 @@
 # Keyword Progress Board
 
-마지막 업데이트: 2026-04-09
+마지막 업데이트: 2026-04-10
 
 이 문서는 현재 언어 키워드 전체에 대해 구현/문서/테스트 기준 진행률을 기록한다.
 
@@ -30,17 +30,17 @@
 | `party` | 80% | domain 축은 살아 있으나 코어성은 재평가 여지 |
 | `channel` | 90% | runtime/select/backpressure surface 연결 |
 | `import` | 90% | 모듈 표면 안정 |
-| `use` | 78% | stdlib merge는 동작, duplicate use warning까지 추가됨 |
-| `export` | 85% | module/export 경로 안정 |
+| `use` | 88% | stdlib merge, duplicate use warning, known stdlib module contract, `use datetime;` exported surface 회귀, imported ability/module visibility 계약 일부 반영 |
+| `export` | 90% | explicit export가 imported module 경계에서 실제로 비-export 심볼을 숨기고 회귀 테스트도 존재, exported nominal constructor surface까지 반영됨 |
 | `namespace` | 80% | 표면 안정, tooling 보강 여지 |
 | `extern` | 80% | C/LLVM 경로 연결 |
-| `public` | 58% | 키워드/파서 표면은 있으나 nominal member visibility는 아직 partial이며 기본 차단은 보류 |
-| `private` | 58% | 키워드/파서 표면은 있으나 nominal member visibility는 아직 partial이며 기본 차단은 보류 |
+| `public` | 76% | explicit nominal member visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 exported nominal constructor surface까지 연결됨 |
+| `private` | 76% | explicit nominal member visibility가 same-host/private 규칙에 더해 explicit cross-module visibility 경계와 non-exported nominal constructor 차단까지 연결됨 |
 | `where` | 80% | generic/intention clause 공용 reserved token으로 정리, richer constraint는 남음 |
 | `as` | 75% | alias/type helper 표면 안정 |
 | `impl` | 85% | role/ability 구현 핵심 표면 |
 | `include` | 75% | role composition helper 수준 |
-| `require` | 75% | ability require field 타입/중복 진단까지 반영됨 |
+| `require` | 87% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 non-exported nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 |
 | `override` | 55% | role/party 보조 modifier는 있으나 inheritance override는 코어 대상 아님 |
 | `super` | 10% | 문법/문서 잔재 수준, 코어 언어 채택 대상 아님 |
 | `extends` | 30% | party 보조 관계 표면은 있으나 inheritance 코어 축은 아님 |
@@ -64,8 +64,8 @@
 | `defer` | 75% | 표면 안정, deeper cleanup/debugger 연동은 남음 |
 | `unsafe` | 60% | 표면 위주 |
 | `bind` | 85% | object/tobject projection contract 핵심 |
-| `secure` | 75% | SecureSlot 중심 capability 첫 단계 |
-| `slot` | 95% | universal resource anchor로 매우 중요 |
+| `secure` | 95% | SecureSlot 중심 capability 첫 단계 + runtime file I/O/root policy/fingerprint hardening + parallel context에서 secure-effect helper/메서드 호출 차단 + SecureSlot/Token<T> 파라미터 기반 secure effect 추론 + named paired token/정적 타입 pairing 검사 + channel transport 차단 + zone authority가 있는 boundary publish/bind는 explicit `by`를 강제 + authority-bearing intent/effect/helper/action flow는 explicit `authorized by`를 요구 |
+| `slot` | 96% | universal resource anchor로 매우 중요, secure/runtime policy와도 정렬됨 |
 | `shared` | 80% | host-local contextual state 표면 안정 |
 | `dyn` | 45% | dyn role slot과 runtime vtable swap 표면은 존재, 일반 dynamic dispatch 축은 아님 |
 | `own` | 85% | boundary/resource mode로 실사용 가능 |
@@ -80,7 +80,7 @@
 | `object` | 95% | local projection contract로 정리 완료 |
 | `vessel` | 85% | subject 내부 수용체 모델 안정 |
 | `relation` | 80% | domain/runtime projection sync 경로 존재 |
-| `effect` | 89% | closure 기반 최소 lattice, contract check, branch/match join 회귀까지 반영, richer partial order는 남음 |
+| `effect` | 94% | closure + join API + partial-order compare API, authority/resource helper, contract check, branch/match/disjoint-branch join 회귀까지 반영, richer authority/resource 통합 partial order는 일부 남음 |
 | `zone` | 85% | core execution/authority boundary |
 | `roster` | 90% | `systemic` 제거 후 일관화 완료 |
 | `world` | 85% | cross-zone orchestration 경계 |
@@ -118,12 +118,11 @@
 ## D. 현재 가장 부족한 키워드 축
 
 1. `trait`
-2. `effect`의 lattice 측면
+2. `public` / `private`의 module/export boundary 확장
 3. `async` family의 문서/테스트 재정렬 잔여분
-4. `public` / `private`의 richer visibility rule
-5. `override`
-6. `use`
-7. `require`
+4. `override`
+5. `effect`의 authority/resource 통합 partial order
+6. `secure`의 zone/authority declaration 일반화 잔여분
 
 ## E. 현재 가장 잘 닫힌 키워드 축
 

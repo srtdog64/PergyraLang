@@ -75,6 +75,34 @@ test_effect_inference(void)
         ast_destroy(wrapper);
     }
 
+    TEST("effect-partial-order: collapse is a superset of nondeterministic by closure");
+    {
+        EXPECT(type_effect_mask_compare(EFFECT_COLLAPSE, EFFECT_NONDETERMINISTIC)
+            == EFFECT_REL_SUPERSET);
+        EXPECT(type_effect_mask_compare(EFFECT_NONDETERMINISTIC, EFFECT_COLLAPSE)
+            == EFFECT_REL_SUBSET);
+    }
+
+    TEST("effect-partial-order: secure and remote are incomparable");
+    {
+        EXPECT(type_effect_mask_compare(EFFECT_SECURE, EFFECT_REMOTE)
+            == EFFECT_REL_INCOMPARABLE);
+        EXPECT(type_effect_mask_compare(EFFECT_REMOTE, EFFECT_SECURE)
+            == EFFECT_REL_INCOMPARABLE);
+    }
+
+    TEST("effect-partial-order: joined secure|remote is a superset of each side");
+    {
+        uint32_t joined = type_effect_mask_join(EFFECT_SECURE, EFFECT_REMOTE);
+        EXPECT(type_effect_mask_compare(joined, EFFECT_SECURE)
+            == EFFECT_REL_SUPERSET);
+        EXPECT(type_effect_mask_compare(joined, EFFECT_REMOTE)
+            == EFFECT_REL_SUPERSET);
+        EXPECT(type_effect_mask_requires_authority(EFFECT_SECURE));
+        EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_SECURE));
+        EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_REMOTE));
+    }
+
     TEST("SecureSlot declarations infer secure effect on function");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -102,6 +130,179 @@ test_effect_inference(void)
 
         semantic_context_destroy(ctx);
         ast_destroy(func);
+    }
+
+    TEST("SecureSlot parameters infer secure effect on function signature");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *bot = ast_create_subject("Bot");
+        ASTNode *func = ast_create_function("TouchSecureParam");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        func->data.func_decl.params[0] = make_func_param(
+            "secret", make_generic_type("SecureSlot", "Bot"));
+        func->data.func_decl.params[0]->mode = PARAM_MODE_OWN;
+
+        type_check_class_decl(bot, ctx);
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "TouchSecureParam");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(bot);
+        ast_destroy(func);
+    }
+
+    TEST("Token<T> parameter type resolves as capability type");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("TouchToken");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        func->data.func_decl.params[0] = make_func_param(
+            "tok", make_generic_type("Token", "Int"));
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "TouchToken");
+        Type *param_type = (sym != NULL && sym->type != NULL
+            && sym->type->kind == TYPE_KIND_FUNCTION
+            && sym->type->data.function.param_count == 1)
+            ? sym->type->data.function.param_types[0]
+            : TYPE_UNKNOWN;
+
+        EXPECT(!ctx->has_error
+            && param_type != NULL
+            && param_type->kind == TYPE_KIND_CONSTRUCTED
+            && type_equals(param_type->data.constructed.constructor, TYPE_TOKEN)
+            && param_type->data.constructed.arg_count == 1
+            && type_equals(param_type->data.constructed.args[0], TYPE_INT));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("Token<T> parameters infer secure effect on function signature");
+    {
+        SemanticContext *ctx = semantic_context_create();
+
+        ASTNode *func = ast_create_function("TouchTokenSecure");
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+        func->data.func_decl.param_count = 1;
+        func->data.func_decl.params = calloc(1, sizeof(FuncParam *));
+        func->data.func_decl.params[0] = make_func_param(
+            "tok", make_generic_type("Token", "Int"));
+
+        type_check_func_decl(func, ctx);
+
+        Symbol *sym = scope_lookup(ctx->scope, "TouchTokenSecure");
+        uint32_t effects = sym != NULL && sym->type != NULL
+            ? type_function_effects(sym->type) : EFFECT_NONE;
+        EXPECT(!ctx->has_error
+            && type_effect_mask_has(effects, EFFECT_SECURE));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("intent step effect in authority-bearing zone requires authorized by");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "effect Marked for bearer: Player {\n"
+            "    subject slot bearer: Player\n"
+            "}\n"
+            "zone Arena {\n"
+            "    subject slot player: Player\n"
+            "    effect slot marked: Marked\n"
+            "    authority player\n"
+            "}\n"
+            "intent Charge {\n"
+            "    involves player: Player;\n"
+            "    involves arena: Arena;\n"
+            "    step Verify {\n"
+            "        where: Arena;\n"
+            "        using: arena;\n"
+            "        who: player;\n"
+            "        causes: Marked;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "must declare 'authorized by'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SecureSlot builtins require named paired token identifiers");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Int> = 7;\n"
+            "    Write(s, 1, 0);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "requires a named paired token identifier"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Capability token types participate in static function-call checking");
+    {
+        const char *source =
+            "subject Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func NeedIntToken(tok: Token<Int>) -> Void {\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Bot> = Bot(1);\n"
+            "    NeedIntToken(s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot assign 'Token<Bot>' to 'Token<Int>'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("DeviceSlot parameter types are rejected as anchored handles");
@@ -955,6 +1156,34 @@ test_effect_inference(void)
             "        default:\n"
             "            return 2;\n"
             "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-partial-order: disjoint branch effects join into combined contract");
+    {
+        const char *source =
+            "subject Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func Dispatch(flag: Bool) -> Int with effects remote, secure {\n"
+            "    if flag {\n"
+            "        let s: SecureSlot<Bot> = Bot(1);\n"
+            "    } else {\n"
+            "        let pending = spawn 42;\n"
+            "    }\n"
+            "    return 1;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

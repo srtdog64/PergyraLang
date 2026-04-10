@@ -316,7 +316,16 @@ ast_print_compact(ASTNode* node)
 
         case AST_MATCH_CASE:
             printf("case ");
-            ast_print_compact(node->data.match_case.pattern);
+            if (node->data.match_case.patterns != NULL
+                && node->data.match_case.pattern_count > 0) {
+                for (size_t i = 0; i < node->data.match_case.pattern_count; i++) {
+                    if (i > 0)
+                        printf(" | ");
+                    ast_print_compact(node->data.match_case.patterns[i]);
+                }
+            } else {
+                ast_print_compact(node->data.match_case.pattern);
+            }
             if (node->data.match_case.guard != NULL) {
                 printf(" if ");
                 ast_print_compact(node->data.match_case.guard);
@@ -820,7 +829,16 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_MATCH_CASE:
             printf("Case: ");
-            ast_print_inline(node->data.match_case.pattern);
+            if (node->data.match_case.patterns != NULL
+                && node->data.match_case.pattern_count > 0) {
+                for (size_t i = 0; i < node->data.match_case.pattern_count; i++) {
+                    if (i > 0)
+                        printf(" | ");
+                    ast_print_inline(node->data.match_case.patterns[i]);
+                }
+            } else {
+                ast_print_inline(node->data.match_case.pattern);
+            }
             if (node->data.match_case.guard != NULL) {
                 printf(" if ");
                 ast_print_inline(node->data.match_case.guard);

@@ -1,5 +1,84 @@
 static bool
 any_subject_role_has_ability(ASTNode *program, const char *ability_name);
+static bool
+intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
+
+static ClassField *
+find_nominal_field_by_name(ASTNode *decl, const char *field_name)
+{
+    if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
+        ClassField *field = decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return field;
+        }
+    }
+
+    return NULL;
+}
+
+static void
+validate_ability_require_fields_for_role(ASTNode *role_decl,
+                                         ASTNode *ability_decl,
+                                         SemanticContext *ctx)
+{
+    ASTNode *bound_decl;
+
+    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL
+        || ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
+        || ctx == NULL
+        || role_decl->data.role_decl.for_type == NULL
+        || role_decl->data.role_decl.for_type->type != AST_TYPE
+        || role_decl->data.role_decl.for_type->data.type.name == NULL) {
+        return;
+    }
+
+    bound_decl = find_type_decl_by_name(
+        ctx->program_root, role_decl->data.role_decl.for_type->data.type.name);
+    if (bound_decl == NULL || !decl_is_subject_host(bound_decl))
+        return;
+
+    for (size_t i = 0; i < ability_decl->data.ability_decl.require_count; i++) {
+        ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
+        ClassField *field;
+        Type *required_type;
+        Type *field_type;
+
+        if (req == NULL || req->type != AST_REQUIRE_FIELD
+            || req->data.require_field.name == NULL
+            || req->data.require_field.type == NULL) {
+            continue;
+        }
+
+        field = find_nominal_field_by_name(bound_decl, req->data.require_field.name);
+        if (field == NULL) {
+            semantic_error(ctx, role_decl,
+                "Role '%s' implements ability '%s', but subject '%s' is missing required field '%s'",
+                role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
+                ability_decl->data.ability_decl.name != NULL ? ability_decl->data.ability_decl.name : "<ability>",
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                req->data.require_field.name);
+            continue;
+        }
+
+        required_type = resolve_type_node(req->data.require_field.type, ctx);
+        field_type = resolve_type_node(field->type, ctx);
+        if (required_type != NULL && field_type != NULL
+            && !type_is_assignable(field_type, required_type)) {
+            semantic_error(ctx, role_decl,
+                "Role '%s' implements ability '%s', but subject '%s.%s' has type '%s' and ability requires '%s'",
+                role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
+                ability_decl->data.ability_decl.name != NULL ? ability_decl->data.ability_decl.name : "<ability>",
+                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                req->data.require_field.name,
+                field_type->name != NULL ? field_type->name : "<type>",
+                required_type->name != NULL ? required_type->name : "<type>");
+        }
+    }
+}
 
 bool
 type_check_role_decl(ASTNode *node, SemanticContext *ctx)
@@ -69,6 +148,12 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         "Ability '%s' not found in current scope",
                         impl->data.impl_ability.ability_name);
                 } else if (ability_decl != NULL
+                           && !explicit_type_reference_allowed(ability_decl, node, ctx)) {
+                    semantic_error(ctx, impl,
+                        "Role '%s' cannot implement non-exported ability '%s' from another module",
+                        name != NULL ? name : "<role>",
+                        impl->data.impl_ability.ability_name);
+                } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
                            && ability_decl->data.ability_decl.is_innate
                            && ability_decl->origin_path != NULL
@@ -78,6 +163,9 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                     semantic_error(ctx, impl,
                         "innate ability '%s' cannot be implemented outside its declaring module",
                         impl->data.impl_ability.ability_name);
+                } else if (ability_decl != NULL
+                           && ability_decl->type == AST_ABILITY_DECL) {
+                    validate_ability_require_fields_for_role(node, ability_decl, ctx);
                 }
             }
 
@@ -508,6 +596,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         bool matched_action = false;
         ASTNode *zone_decl = NULL;
         bool has_subintent = false;
+        bool step_requires_authority_flow = false;
 
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
@@ -678,6 +767,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 intent_clause_rejects_control_transfer(step->data.intent_step.on_exprs[j], ctx,
                     step->data.intent_step.name, "on");
                 type_check_expression(step->data.intent_step.on_exprs[j], ctx);
+                if (intent_clause_invokes_authority_sensitive_call(
+                        step->data.intent_step.on_exprs[j], ctx))
+                    step_requires_authority_flow = true;
             }
         }
         for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
@@ -686,27 +778,42 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step->data.intent_step.compensate_exprs[j], ctx,
                     step->data.intent_step.name, "compensate");
                 type_check_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                if (intent_clause_invokes_authority_sensitive_call(
+                        step->data.intent_step.compensate_exprs[j], ctx))
+                    step_requires_authority_flow = true;
             }
         }
         if (step->data.intent_step.pre_expr != NULL) {
             intent_clause_rejects_control_transfer(step->data.intent_step.pre_expr, ctx,
                 step->data.intent_step.name, "pre");
             intent_condition_is_bool(step->data.intent_step.pre_expr, ctx, "pre");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    step->data.intent_step.pre_expr, ctx))
+                step_requires_authority_flow = true;
         }
         if (step->data.intent_step.guard_expr != NULL) {
             intent_clause_rejects_control_transfer(step->data.intent_step.guard_expr, ctx,
                 step->data.intent_step.name, "guard");
             intent_condition_is_bool(step->data.intent_step.guard_expr, ctx, "guard");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    step->data.intent_step.guard_expr, ctx))
+                step_requires_authority_flow = true;
         }
         if (step->data.intent_step.post_expr != NULL) {
             intent_clause_rejects_control_transfer(step->data.intent_step.post_expr, ctx,
                 step->data.intent_step.name, "post");
             intent_condition_is_bool(step->data.intent_step.post_expr, ctx, "post");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    step->data.intent_step.post_expr, ctx))
+                step_requires_authority_flow = true;
         }
         if (step->data.intent_step.invariant_expr != NULL) {
             intent_clause_rejects_control_transfer(step->data.intent_step.invariant_expr, ctx,
                 step->data.intent_step.name, "invariant");
             intent_condition_is_bool(step->data.intent_step.invariant_expr, ctx, "invariant");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    step->data.intent_step.invariant_expr, ctx))
+                step_requires_authority_flow = true;
         }
 
         for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
@@ -814,6 +921,19 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
         }
 
+        if (zone_decl != NULL
+            && zone_decl->data.zone_decl.authority_count > 0
+            && step->data.intent_step.authorized_by_count == 0
+            && (step->data.intent_step.causes_effect != NULL
+                || step->data.intent_step.transfer_from_alias != NULL
+                || step->data.intent_step.transfer_to_alias != NULL
+                || step_requires_authority_flow)) {
+            semantic_error(ctx, step,
+                "Intent step '%s' in authority-bearing zone '%s' must declare 'authorized by' when it causes effects, transfers zone state, or invokes authority-sensitive helpers",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+        }
+
         for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
             const char *alias = step->data.intent_step.authorized_by[j];
             ASTNode *involves = find_intent_involves_local(node, alias);
@@ -858,6 +978,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             intent_clause_rejects_control_transfer(step->data.intent_step.expect_expr, ctx,
                 step->data.intent_step.name, "expect");
             intent_condition_is_bool(step->data.intent_step.expect_expr, ctx, "expect");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    step->data.intent_step.expect_expr, ctx))
+                step_requires_authority_flow = true;
         }
 
         if (!matched_action && step->data.intent_step.on_expr_count == 0
@@ -1974,6 +2097,63 @@ find_named_class_decl_local(ASTNode *program, const char *name)
 }
 
 static bool
+intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *callee;
+
+    if (expr == NULL || ctx == NULL || expr->type != AST_CALL)
+        return false;
+
+    callee = expr->data.call.callee;
+    if (callee == NULL)
+        return false;
+
+    if (callee->type == AST_IDENTIFIER && callee->data.identifier.name != NULL) {
+        Symbol *sym = scope_lookup(ctx->scope, callee->data.identifier.name);
+        return sym != NULL
+            && sym->type != NULL
+            && sym->type->kind == TYPE_KIND_FUNCTION
+            && type_effect_mask_requires_authority(type_function_effects(sym->type));
+    }
+
+    if (callee->type == AST_MEMBER_ACCESS
+        && callee->data.member.object != NULL
+        && callee->data.member.name != NULL) {
+        Type *object_type = type_check_expression(callee->data.member.object, ctx);
+        ASTNode *class_decl;
+
+        if (object_type == NULL || object_type->name == NULL)
+            return false;
+
+        class_decl = find_type_decl_by_name(ctx->program_root, object_type->name);
+        if (class_decl == NULL || class_decl->type != AST_CLASS_DECL)
+            return false;
+
+        for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
+            ASTNode *method = class_decl->data.class_decl.methods[i];
+            if (method == NULL || method->type != AST_FUNC_DECL
+                || method->data.func_decl.name == NULL) {
+                continue;
+            }
+            if (strcmp(method->data.func_decl.name, callee->data.member.name) == 0) {
+                uint32_t method_effects =
+                    declared_effects_from_function_node(method, ctx, NULL);
+                if (type_effect_mask_requires_authority(method_effects))
+                    return true;
+                if (method->data.func_decl.is_action
+                    && (method->data.func_decl.within_zone != NULL
+                        || method->data.func_decl.causes_effect != NULL)) {
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+static bool
 type_check_projection_contract(ASTNode **slots,
                                size_t slot_count,
                                const char *owner_label,
@@ -2891,6 +3071,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
         const char *participant_slot_name = refresh->data.zone_refresh.participant_slot_name;
+        ASTNode *target_slot = NULL;
+        bool boundary_projection = false;
         const char *action_name =
             refresh->data.zone_refresh.infer_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
@@ -2906,12 +3088,23 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 action_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>");
         }
+        target_slot = find_zone_domain_slot(node, object_slot_name);
+        boundary_projection = target_slot != NULL
+            && target_slot->type == AST_DOMAIN_SLOT
+            && target_slot->data.domain_slot.is_tobject;
         type_check_zone_projection_contract(node, refresh,
             object_slot_name, source_slot_name, ctx, action_name);
         if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
-            semantic_warning(ctx, refresh,
-                "Zone %s should specify 'by <subjectSlot>' when authority is declared",
-                action_name);
+            if (boundary_projection) {
+                semantic_error(ctx, refresh,
+                    "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared",
+                    action_name,
+                    object_slot_name != NULL ? object_slot_name : "<unknown>");
+            } else {
+                semantic_warning(ctx, refresh,
+                    "Zone %s should specify 'by <subjectSlot>' when authority is declared",
+                    action_name);
+            }
         }
         type_check_zone_participant_authority(node, refresh, participant_slot_name, ctx, action_name);
     }

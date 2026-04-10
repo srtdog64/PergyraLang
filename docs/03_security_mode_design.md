@@ -10,6 +10,20 @@ Status note (2026-04-03):
 - Current implementation uses `Slot<T>`, `SecureSlot<T>`, `ClaimSlot`, `ClaimSecureSlot`, token-checked read/write, and runtime-backed secure slot semantics
 - The generic `Slot<T, S: SecurityModel>` model below is a future unification direction, not current syntax
 
+Current stable contract note (2026-04-09):
+
+- `SecureSlot<T>` + token validation is the current capability-security anchor.
+- Runtime file I/O is now part of the practical security contract:
+  - `ReadFile/WriteFile` allow relative paths by default
+  - parent traversal (`..`) is rejected
+  - absolute paths are denied unless `PGY_IO_ALLOW_ABSOLUTE=1`
+  - `PGY_IO_ROOT` roots runtime file I/O under an allowed directory
+  - non-Windows enforces canonical root containment
+  - Windows now normalizes full paths and rejects reparse-point escape under `PGY_IO_ROOT`
+- Hardware-bound secure slot fallback identity is now stable rather than zeroed on probe failure.
+
+This means the current security story is not only `SecureSlot` token discipline, but also runtime path policy and stable hardware binding behavior.
+
 ## Core Design: Security as a Type Parameter
 
 ### 1. Security Level Types

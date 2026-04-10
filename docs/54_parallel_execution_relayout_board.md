@@ -1,6 +1,6 @@
 # Parallel Execution Relayout Board
 
-마지막 업데이트: 2026-04-09
+마지막 업데이트: 2026-04-10
 
 이 문서는 현재 `spawn/select/async` surface를 `parallel` 아래 실행 계약으로 재정렬하는 작업 보드다.
 
@@ -84,15 +84,17 @@
 ### 3.2 다음 문서 정리 대상
 
 1. [05_async_concurrency.md](/mnt/e/PergyraLang/docs/05_async_concurrency.md)
-   - 현재는 `async / await`부터 시작함
-   - 이후에는 `parallel`을 최상위 섹션으로 올리는 쪽이 더 맞다
+   - `parallel -> spawn -> async/await -> select/channel -> cancellation` 순서로 이미 재배열됨
+   - 남은 것은 주변 문서와 용어를 같은 계층으로 맞추는 작업
 
 2. [34_intent_oriented_paradigm.md](/mnt/e/PergyraLang/docs/34_intent_oriented_paradigm.md)
    - intent clause가 execution primitive를 직접 담지 않는다는 점을 유지
-   - `parallel`을 intent 바깥의 core execution layer로 더 명확히 적어야 함
+   - `parallel`을 intent 바깥의 core execution layer로 명시하는 정리는 반영됨
+   - 남은 것은 주변 문서와 테스트 이름의 추가 정렬
 
 3. [37_compiler_contracts.md](/mnt/e/PergyraLang/docs/37_compiler_contracts.md)
-   - 키워드 taxonomy에서 `parallel`을 semantic-contract keyword이자 execution-core keyword로 명시할 가치가 있음
+   - 실행 계약 표에 `parallel / spawn / async / await / select / channel / cancel`을 반영 완료
+   - 남은 것은 backend/runtime 설명과 세부 진단 정렬
 
 ## 4. 구현 정렬 작업
 
@@ -172,6 +174,11 @@
 - structured cancellation scope/lattice
 - `parallel` 중심 문서 재배열
 - backend/perf 설명의 family-level 정리
+
+추가 메모:
+
+- semantic 쪽은 이제 `parallel context` 용어, slot conflict 진단, secure/token 직렬화 거부까지 정렬됨
+- canonical 테스트는 `parallel_family_semantics`, `parallel_context_semantics`, `parallel_family_emit` 기준으로 분리됐다
 
 ## 7. 한 줄 요약
 

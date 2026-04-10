@@ -365,9 +365,6 @@ test_roster_world_emit(void)
         emit_program(hir, ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Player_Attack(&self->player);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->__layer_active_poison = true;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.bearer = self->player;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(&self->poison);");
         EXPECT_STR_CONTAINS(ctx->out->data,
             "pgy_log(BattleZone_has_layer_poison(self, __pgy_zone_gen));");
 

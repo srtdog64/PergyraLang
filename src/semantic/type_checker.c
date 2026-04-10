@@ -15,6 +15,9 @@
 
 #define INITIAL_DIAG_CAPACITY 16
 
+static bool
+explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
+
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
 
@@ -125,6 +128,87 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
             }
         }
     }
+}
+
+static bool
+nominal_decl_matches_runtime_type(ASTNode *decl, Type *object_type)
+{
+    return decl != NULL
+        && decl->type == AST_CLASS_DECL
+        && object_type != NULL
+        && object_type->kind == TYPE_KIND_CLASS
+        && decl->data.class_decl.name != NULL
+        && object_type->name != NULL
+        && strcmp(decl->data.class_decl.name, object_type->name) == 0;
+}
+
+static bool
+private_member_access_allowed(ASTNode *decl, Type *object_type, SemanticContext *ctx)
+{
+    ASTNode *host;
+
+    if (!nominal_decl_matches_runtime_type(decl, object_type) || ctx == NULL)
+        return false;
+
+    host = current_host_decl(ctx);
+    if (host == NULL || host->type != AST_CLASS_DECL)
+        return false;
+
+    if (host == decl)
+        return true;
+
+    return host->data.class_decl.name != NULL
+        && decl->data.class_decl.name != NULL
+        && strcmp(host->data.class_decl.name, decl->data.class_decl.name) == 0;
+}
+
+static bool
+same_module_origin(const char *left, const char *right)
+{
+    return left != NULL && right != NULL && strcmp(left, right) == 0;
+}
+
+static bool
+cross_module_member_access(ASTNode *decl, SemanticContext *ctx)
+{
+    if (decl == NULL || ctx == NULL)
+        return false;
+    if (ctx->current_module_path == NULL || decl->origin_path == NULL)
+        return false;
+    return !same_module_origin(ctx->current_module_path, decl->origin_path);
+}
+
+static bool
+explicit_member_access_allowed(ASTNode *decl,
+                               Type *object_type,
+                               AccessModifier access,
+                               bool has_explicit_access,
+                               SemanticContext *ctx)
+{
+    if (!has_explicit_access)
+        return true;
+    if (access == ACCESS_PUBLIC)
+        return true;
+    if (access == ACCESS_PRIVATE)
+        return private_member_access_allowed(decl, object_type, ctx);
+    if (access == ACCESS_PROTECTED) {
+        if (private_member_access_allowed(decl, object_type, ctx))
+            return true;
+        return !cross_module_member_access(decl, ctx);
+    }
+    return true;
+}
+
+static bool
+explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx)
+{
+    if (decl == NULL || site == NULL || ctx == NULL)
+        return true;
+    if (site->origin_path == NULL || decl->origin_path == NULL)
+        return true;
+    if (same_module_origin(site->origin_path, decl->origin_path))
+        return true;
+    return decl->is_exported;
 }
 
 static bool
@@ -475,6 +559,7 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0
         || strcmp(name, "Weak") == 0 || strcmp(name, "Channel") == 0
         || strcmp(name, "Future") == 0 || strcmp(name, "RemoteFuture") == 0
+        || strcmp(name, "Token") == 0
         || strcmp(name, "DeviceSlot") == 0 || strcmp(name, "Result") == 0
         || strcmp(name, "Option") == 0) {
         if (node->data.type.generic_args == NULL
@@ -497,6 +582,7 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         else if (strcmp(name, "Channel") == 0) constructor = TYPE_CHANNEL;
         else if (strcmp(name, "Future") == 0) constructor = TYPE_FUTURE;
         else if (strcmp(name, "RemoteFuture") == 0) constructor = TYPE_REMOTE_FUTURE;
+        else if (strcmp(name, "Token") == 0) constructor = TYPE_TOKEN;
         else if (strcmp(name, "DeviceSlot") == 0) constructor = TYPE_DEVICE_SLOT;
         else if (strcmp(name, "Result") == 0) constructor = TYPE_RESULT;
         else if (strcmp(name, "Option") == 0) constructor = TYPE_OPTION;
@@ -1074,6 +1160,28 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             || method->data.func_decl.name == NULL)
                             continue;
                         if (strcmp(method->data.func_decl.name, method_name) == 0) {
+                            uint32_t method_effects =
+                                declared_effects_from_function_node(method, ctx, NULL);
+                            if (!explicit_member_access_allowed(class_decl,
+                                    object_type,
+                                    method->data.func_decl.access,
+                                    method->data.func_decl.has_explicit_access,
+                                    ctx)) {
+                                semantic_error(ctx, expr,
+                                    "Member '%s.%s' is not accessible across the current visibility boundary",
+                                    object_type->name,
+                                    method_name);
+                                return TYPE_UNKNOWN;
+                            }
+                            semantic_record_effect(ctx, method_effects);
+                            if (ctx->in_parallel
+                                && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
+                                semantic_error(ctx, expr,
+                                    "Parallel context does not permit calling secure-effect method '%s.%s'; serialize capability-bearing operations outside the parallel block",
+                                    object_type->name,
+                                    method_name);
+                                return TYPE_UNKNOWN;
+                            }
                             if (method->data.func_decl.return_type != NULL)
                                 return resolve_type_node(
                                     method->data.func_decl.return_type, ctx);
@@ -1138,6 +1246,17 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                 if (cf == NULL || cf->name == NULL)
                     continue;
                 if (strcmp(cf->name, field_name) == 0) {
+                    if (!explicit_member_access_allowed(stmt,
+                            object_type,
+                            cf->access,
+                            cf->has_explicit_access,
+                            ctx)) {
+                        semantic_error(ctx, expr,
+                            "Member '%s.%s' is not accessible across the current visibility boundary",
+                            object_type->name,
+                            field_name);
+                        return TYPE_UNKNOWN;
+                    }
                     return resolve_type_node(cf->type, ctx);
                 }
             }
@@ -1305,6 +1424,10 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             if (is_secure) {
                 Symbol *tok = symbol_create_token(paired_token, name,
                                                   node->line, node->column);
+                if (tok != NULL && slot_type != NULL && slot_type->kind == TYPE_KIND_SLOT) {
+                    Type *token_args[1] = { slot_type->data.slot.inner_type };
+                    tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+                }
                 if (!scope_declare(ctx->scope, tok))
                     symbol_destroy(tok);
             }
@@ -1467,6 +1590,10 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         if (decl_type->data.slot.is_secure) {
             Symbol *tok = symbol_create_token(paired_token, name,
                                               node->line, node->column);
+            if (tok != NULL) {
+                Type *token_args[1] = { decl_type->data.slot.inner_type };
+                tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+            }
             if (!scope_declare(ctx->scope, tok))
                 symbol_destroy(tok);
         }
@@ -1557,6 +1684,28 @@ type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
     return !ctx->has_error;
 }
 
+static bool
+semantic_is_known_stdlib_use_module(const char *module_name)
+{
+    static const char *const modules[] = {
+        "datetime",
+        "http",
+        "page",
+        "spray",
+        "storage"
+    };
+
+    if (module_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < sizeof(modules) / sizeof(modules[0]); i++) {
+        if (strcmp(module_name, modules[i]) == 0)
+            return true;
+    }
+
+    return false;
+}
+
 bool
 type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -1601,6 +1750,20 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
             }
         }
         resolve_type_node(req->data.require_field.type, ctx);
+        if (req->data.require_field.type != NULL
+            && req->data.require_field.type->type == AST_TYPE
+            && req->data.require_field.type->data.type.name != NULL) {
+            ASTNode *type_decl = find_type_decl_by_name(
+                ctx->program_root, req->data.require_field.type->data.type.name);
+            if (type_decl != NULL
+                && !explicit_type_reference_allowed(type_decl, node, ctx)) {
+                semantic_error(ctx, req,
+                    "Ability '%s' cannot require field '%s' with non-exported type '%s' from another module",
+                    name != NULL ? name : "<ability>",
+                    req->data.require_field.name,
+                    req->data.require_field.type->data.type.name);
+            }
+        }
     }
 
     /* Check method signatures */
@@ -1663,6 +1826,13 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         return TYPE_VOID;
     }
 
+    if (type_is_capability_bearing(element_type)
+        || type_is_capability_bearing(value_type)) {
+        semantic_error(ctx, expr->data.channel_send.value,
+            "Channels cannot transport capability-bearing values (SecureSlot/Token) yet; keep capability-bearing state local to the authorized flow");
+        return TYPE_VOID;
+    }
+
     if (type_is_movable_resource_handle(element_type)
         || type_is_movable_resource_handle(value_type)) {
         if (!type_is_movable_resource_handle(element_type)
@@ -1704,6 +1874,12 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
     if (type_is_anchored_resource_handle(channel_type->data.constructed.args[0])) {
         semantic_error(ctx, expr->data.channel_recv.channel,
             "Channels cannot yield anchored resource handles (Slot/SecureSlot/DeviceSlot) yet; receive a plain value instead");
+        return TYPE_UNKNOWN;
+    }
+
+    if (type_is_capability_bearing(channel_type->data.constructed.args[0])) {
+        semantic_error(ctx, expr->data.channel_recv.channel,
+            "Channels cannot yield capability-bearing values (SecureSlot/Token) yet; receive a plain value instead");
         return TYPE_UNKNOWN;
     }
 
@@ -1835,6 +2011,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     uint32_t prev_effects = ctx->current_function_effects;
     bool prev_tracking = ctx->tracking_function_effects;
     bool prev_async = ctx->in_async_func;
+    const char *prev_module_path = ctx->current_module_path;
     bool has_effect_contract = false;
     uint32_t declared_effects =
         declared_effects_from_function_node(node, ctx, &has_effect_contract);
@@ -1854,9 +2031,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
         for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
             const char *ability = node->data.func_decl.required_abilities[i];
-            if (find_ability_decl_by_name(ctx->program_root, ability) == NULL) {
+            ASTNode *ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
+            if (ability_decl == NULL) {
                 semantic_error(ctx, node,
                     "action '%s' requires unknown ability '%s'",
+                    name != NULL ? name : "<anonymous>",
+                    ability != NULL ? ability : "<ability>");
+                continue;
+            }
+            if (!explicit_type_reference_allowed(ability_decl, node, ctx)) {
+                semantic_error(ctx, node,
+                    "action '%s' cannot require non-exported ability '%s' from another module",
                     name != NULL ? name : "<anonymous>",
                     ability != NULL ? ability : "<ability>");
                 continue;
@@ -2148,6 +2333,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check body in new function scope */
     scope_enter(&ctx->scope, SCOPE_FUNCTION);
+    if (node->origin_path != NULL)
+        ctx->current_module_path = node->origin_path;
 
     /* Re-register generic type params inside the function scope */
     if (has_generics) {
@@ -2179,6 +2366,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < param_count; i++) {
         Type *pt = func_type->data.function.param_types[i];
         const char *param_name = node->data.func_decl.params[i]->name;
+        if (pt != NULL && pt->kind == TYPE_KIND_SLOT && pt->data.slot.is_secure)
+            semantic_record_effect(ctx, EFFECT_SECURE);
+        if (type_is_constructed_named(pt, "Token"))
+            semantic_record_effect(ctx, EFFECT_SECURE);
         if (type_is_subject_host_slot_handle(pt, ctx) && param_name != NULL) {
             char token_name[256];
             const char *paired_token = NULL;
@@ -2198,6 +2389,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (pt->data.slot.is_secure) {
                 Symbol *tok = symbol_create_token(token_name, param_name,
                     node->line, node->column);
+                if (tok != NULL) {
+                    Type *token_args[1] = { pt->data.slot.inner_type };
+                    tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+                }
                 scope_declare(ctx->scope, tok);
             }
             continue;
@@ -2231,13 +2426,34 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         func_type->data.function.effect_mask =
-            type_effect_mask_closure(declared_effects | inferred_effects);
+            type_effect_mask_join(declared_effects, inferred_effects);
+
+        if (is_action
+            && node->data.func_decl.within_zone != NULL
+            && type_effect_mask_requires_authority(func_type->data.function.effect_mask)
+            && node->data.func_decl.authorized_by_count == 0) {
+            semantic_error(ctx, node,
+                "secure action '%s' within zone '%s' must declare 'authorized by' so capability-bearing work stays inside an explicit authority flow",
+                name != NULL ? name : "<anonymous>",
+                node->data.func_decl.within_zone);
+        }
+        if (is_action
+            && node->data.func_decl.within_zone != NULL
+            && node->data.func_decl.causes_effect != NULL
+            && node->data.func_decl.authorized_by_count == 0) {
+            semantic_error(ctx, node,
+                "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by' so authority-sensitive state changes stay explicit",
+                name != NULL ? name : "<anonymous>",
+                node->data.func_decl.causes_effect,
+                node->data.func_decl.within_zone);
+        }
     }
 
     ctx->current_return = prev_return;
     ctx->current_function_effects = prev_effects;
     ctx->tracking_function_effects = prev_tracking;
     ctx->in_async_func = prev_async;
+    ctx->current_module_path = prev_module_path;
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }
@@ -2651,6 +2867,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_USE_DECL
             || stmt->data.use_decl.module_name == NULL) {
+            continue;
+        }
+        if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
+            semantic_error(ctx, stmt,
+                "Unknown stdlib use '%s'; expected one of datetime, http, page, spray, storage",
+                stmt->data.use_decl.module_name);
             continue;
         }
         for (size_t j = 0; j < i; j++) {

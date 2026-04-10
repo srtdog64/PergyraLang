@@ -603,7 +603,8 @@ semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask)
 {
     if (ctx == NULL || !ctx->tracking_function_effects)
         return;
-    ctx->current_function_effects |= type_effect_mask_closure(effect_mask);
+    ctx->current_function_effects =
+        type_effect_mask_join(ctx->current_function_effects, effect_mask);
 }
 
 bool
@@ -678,6 +679,13 @@ bool
 type_is_movable_resource_handle(const Type *type)
 {
     return type_is_qubit(type);
+}
+
+bool
+type_is_capability_bearing(const Type *type)
+{
+    return (type_is_owned_slot_handle(type) && type->data.slot.is_secure)
+        || type_is_constructed_named(type, "Token");
 }
 
 static const char *
@@ -1196,9 +1204,21 @@ type_check_host_method_call(ASTNode *expr, ASTNode *method, SemanticContext *ctx
     size_t implicit_self = 0;
     size_t expected;
     size_t provided;
+    uint32_t declared_effects;
 
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
+
+    declared_effects = declared_effects_from_function_node(method, ctx, NULL);
+    semantic_record_effect(ctx, declared_effects);
+    if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
+        semantic_error(ctx, expr,
+            "Parallel context does not permit calling secure-effect method '%s'; serialize capability-bearing operations outside the parallel block",
+            method->data.func_decl.name != NULL ? method->data.func_decl.name : "<method>");
+        if (method->data.func_decl.return_type != NULL)
+            return resolve_type_node(method->data.func_decl.return_type, ctx);
+        return TYPE_VOID;
+    }
 
     if (method->data.func_decl.param_count > 0
         && method->data.func_decl.params[0] != NULL
@@ -1563,6 +1583,10 @@ flatten_static_member_access(const ASTNode *expr, char separator)
     return result;
 }
 
+static uint32_t
+declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
+                                    bool *has_contract_out);
+
 static Type *
 type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 const char *display_name,
@@ -1592,6 +1616,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 sym->kind, display_name);
             size_t field_count = 0;
             bool decl_is_generic = false;
+            if (decl != NULL
+                && !explicit_type_reference_allowed(decl, expr, ctx)) {
+                semantic_error(ctx, expr,
+                    "Constructor '%s' is not accessible across the current visibility boundary",
+                    display_name);
+                return TYPE_UNKNOWN;
+            }
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
                 field_count = decl->data.class_decl.field_count;
                 decl_is_generic =
@@ -1706,6 +1737,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
     sym->is_used = true;
     semantic_record_effect(ctx, type_function_effects(sym->type));
+    if (ctx->in_parallel
+        && type_effect_mask_has(type_function_effects(sym->type), EFFECT_SECURE)) {
+        semantic_error(ctx, expr,
+            "Parallel context does not permit calling secure-effect function '%s'; serialize capability-bearing operations outside the parallel block",
+            display_name);
+        return sym->type->data.function.return_type;
+    }
 
     size_t expected = sym->type->data.function.param_count;
     size_t provided = expr->data.call.arg_count;

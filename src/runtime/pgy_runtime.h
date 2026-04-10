@@ -147,6 +147,20 @@ pgy_runtime_path_join_dup(const char *dir, const char *path)
     return result;
 }
 
+#ifdef _WIN32
+static inline void
+pgy_runtime_normalize_path_separators(char *path)
+{
+    if (path == NULL)
+        return;
+    while (*path != '\0') {
+        if (*path == '\\')
+            *path = '/';
+        path++;
+    }
+}
+#endif
+
 static inline char *
 pgy_runtime_path_dirname_dup(const char *path)
 {
@@ -178,17 +192,96 @@ pgy_runtime_path_dirname_dup(const char *path)
 static inline bool
 pgy_runtime_prefix_match_path(const char *root, const char *path)
 {
-    size_t root_len;
-
     if (root == NULL || path == NULL)
         return false;
-    root_len = strlen(root);
-    if (strncmp(root, path, root_len) != 0)
-        return false;
-    return path[root_len] == '\0'
-        || path[root_len] == '/'
-        || path[root_len] == '\\';
+    {
+        size_t i = 0;
+        while (root[i] != '\0') {
+            char a = root[i];
+            char b = path[i];
+#ifdef _WIN32
+            if (a == '\\')
+                a = '/';
+            if (b == '\\')
+                b = '/';
+            if (tolower((unsigned char)a) != tolower((unsigned char)b))
+                return false;
+#else
+            if (a != b)
+                return false;
+#endif
+            i++;
+        }
+        return path[i] == '\0'
+            || path[i] == '/'
+            || path[i] == '\\';
+    }
 }
+
+static inline char *
+pgy_runtime_normalize_full_path_dup(const char *path)
+{
+    if (path == NULL || path[0] == '\0')
+        return NULL;
+#ifdef _WIN32
+    DWORD needed = GetFullPathNameA(path, 0, NULL, NULL);
+    char *buf;
+
+    if (needed == 0)
+        return NULL;
+    buf = (char *)malloc((size_t)needed + 2);
+    if (buf == NULL)
+        return NULL;
+    if (GetFullPathNameA(path, needed + 1, buf, NULL) == 0) {
+        free(buf);
+        return NULL;
+    }
+    pgy_runtime_normalize_path_separators(buf);
+    return buf;
+#else
+    char resolved[PATH_MAX];
+    if (realpath(path, resolved) == NULL)
+        return NULL;
+    return pgy_runtime_strdup(resolved);
+#endif
+}
+
+#ifdef _WIN32
+static inline bool
+pgy_runtime_path_has_reparse_component(const char *path)
+{
+    char *full;
+    size_t len;
+    size_t i;
+
+    full = pgy_runtime_normalize_full_path_dup(path);
+    if (full == NULL)
+        return true;
+
+    len = strlen(full);
+    for (i = 0; i <= len; ++i) {
+        char saved = full[i];
+        DWORD attrs;
+
+        if (saved != '/' && saved != '\0')
+            continue;
+        full[i] = '\0';
+        if (full[0] != '\0'
+            && !(isalpha((unsigned char)full[0]) && full[1] == ':' && full[2] == '\0')) {
+            attrs = GetFileAttributesA(full);
+            if (attrs != INVALID_FILE_ATTRIBUTES
+                && (attrs & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+                free(full);
+                return true;
+            }
+        }
+        full[i] = saved;
+    }
+
+    free(full);
+    return false;
+}
+#endif
 
 static inline char *
 pgy_runtime_resolve_file_path(const char *path, bool for_write)
@@ -216,11 +309,12 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
 
 #ifndef _WIN32
     if (candidate != NULL && root != NULL && root[0] != '\0') {
-        char root_real[PATH_MAX];
-        char check_real[PATH_MAX];
+        char *root_real;
+        char *check_real;
         char *check_path = NULL;
 
-        if (realpath(root, root_real) == NULL) {
+        root_real = pgy_runtime_normalize_full_path_dup(root);
+        if (root_real == NULL) {
             free(candidate);
             return NULL;
         }
@@ -230,14 +324,70 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
         else
             check_path = pgy_runtime_strdup(candidate);
 
-        if (check_path == NULL || realpath(check_path, check_real) == NULL
+        check_real = check_path != NULL
+            ? pgy_runtime_normalize_full_path_dup(check_path)
+            : NULL;
+
+        if (check_real == NULL
             || !pgy_runtime_prefix_match_path(root_real, check_real)) {
             free(check_path);
+            free(check_real);
+            free(root_real);
             free(candidate);
             return NULL;
         }
 
         free(check_path);
+        free(check_real);
+        free(root_real);
+    }
+#else
+    if (candidate != NULL && root != NULL && root[0] != '\0') {
+        char *root_real = pgy_runtime_normalize_full_path_dup(root);
+        char *check_path = NULL;
+        char *check_real = NULL;
+        char *candidate_real = NULL;
+
+        if (root_real == NULL) {
+            free(candidate);
+            return NULL;
+        }
+
+        if (for_write)
+            check_path = pgy_runtime_path_dirname_dup(candidate);
+        else
+            check_path = pgy_runtime_strdup(candidate);
+
+        check_real = check_path != NULL
+            ? pgy_runtime_normalize_full_path_dup(check_path)
+            : NULL;
+        candidate_real = pgy_runtime_normalize_full_path_dup(candidate);
+
+        if (check_real == NULL
+            || candidate_real == NULL
+            || !pgy_runtime_prefix_match_path(root_real, check_real)
+            || pgy_runtime_path_has_reparse_component(check_path)) {
+            free(candidate_real);
+            free(check_real);
+            free(check_path);
+            free(root_real);
+            free(candidate);
+            return NULL;
+        }
+
+        free(candidate);
+        candidate = candidate_real;
+        free(check_path);
+        free(check_real);
+        free(root_real);
+    } else if (candidate != NULL && pgy_runtime_path_is_absolute(candidate)) {
+        char *normalized = pgy_runtime_normalize_full_path_dup(candidate);
+        if (normalized == NULL) {
+            free(candidate);
+            return NULL;
+        }
+        free(candidate);
+        candidate = normalized;
     }
 #endif
 

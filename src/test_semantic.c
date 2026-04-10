@@ -757,8 +757,8 @@ test_undefined_symbol(void)
     TEST("duplicate stdlib use emits warning");
     {
         const char *source =
-            "use pool;\n"
-            "use pool;\n"
+            "use storage;\n"
+            "use storage;\n"
             "func Main() -> Void { return; }\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -774,6 +774,39 @@ test_undefined_symbol(void)
         ast_destroy(program);
         parser_destroy(parser);
         lexer_destroy(lexer);
+    }
+
+    TEST("use stdlib module exposes exported datetime symbols");
+    {
+        const char *main_path = "test_use_datetime_module_main.pgy";
+        const char *main_source =
+            "use datetime;\n"
+            "func Main() -> Void {\n"
+            "    let d: LocalDate = LocalDate(2026, 4, 10);\n"
+            "    Log(FormatDate(d));\n"
+            "}\n";
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(main_file != NULL);
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
     }
 }
 
@@ -2149,6 +2182,58 @@ test_match_stmt(void)
         lexer_destroy(lexer);
     }
 
+    TEST("literal OR patterns are accepted in match cases");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let x: Int = 2;\n"
+            "    match x {\n"
+            "        case 1 | 2 | 3:\n"
+            "            Log(1);\n"
+            "        default:\n"
+            "            Log(0);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("OR patterns reject variant destructuring for now");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let opt: Option<Int> = Some(1);\n"
+            "    match opt {\n"
+            "        case .Some(v) | .None:\n"
+            "            Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "OR patterns currently support only literal/simple expression cases"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("redundant default after full variant coverage produces warning");
     {
         const char *source =
@@ -2291,6 +2376,62 @@ test_role_decl(void)
         semantic_context_destroy(ctx);
         ast_destroy(ability);
         ast_destroy(role);
+    }
+
+    TEST("role ability require fields must exist on bound subject host");
+    {
+        const char *source =
+            "ability Combatable {\n"
+            "    require hp: Int;\n"
+            "}\n"
+            "subject Bot {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "role Fighter for Bot {\n"
+            "    impl ability Combatable {\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("role ability require fields reject missing bound subject field");
+    {
+        const char *source =
+            "ability Combatable {\n"
+            "    require hp: Int;\n"
+            "}\n"
+            "subject Bot {\n"
+            "    let mp: Int;\n"
+            "}\n"
+            "role Fighter for Bot {\n"
+            "    impl ability Combatable {\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "is missing required field 'hp'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("role with unknown ability produces warning");

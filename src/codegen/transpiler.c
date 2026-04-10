@@ -3680,7 +3680,20 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 
         write_indent(ctx);
 
-        if (option_case) {
+        if (mc->data.match_case.patterns != NULL
+            && mc->data.match_case.pattern_count > 1) {
+            if (i == 0)
+                codebuf_write(ctx->out, "if (");
+            else
+                codebuf_write(ctx->out, "else if (");
+            for (size_t p = 0; p < mc->data.match_case.pattern_count; p++) {
+                char *pat = emit_expression(mc->data.match_case.patterns[p], ctx);
+                if (p > 0)
+                    codebuf_write(ctx->out, " || ");
+                codebuf_write(ctx->out, "__match_%d == %s", tmp_id, pat);
+                free(pat);
+            }
+        } else if (option_case) {
             const char *tag_val = (strcmp(kind, "Some") == 0)
                 ? "PgyOptionSome" : "PgyOptionNone";
             if (i == 0)

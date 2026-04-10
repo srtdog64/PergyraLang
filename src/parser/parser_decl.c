@@ -582,10 +582,13 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
 
         // 접근 제어자
         AccessModifier access = is_struct ? ACCESS_PUBLIC : ACCESS_PRIVATE;
+        bool explicit_access = false;
         if (parser_match(parser, TOKEN_PUBLIC)) {
             access = ACCESS_PUBLIC;
+            explicit_access = true;
         } else if (parser_match(parser, TOKEN_PRIVATE)) {
             access = ACCESS_PRIVATE;
+            explicit_access = true;
         }
 
         // 클래스 필드 또는 구조체 bare field / let field
@@ -623,6 +626,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             field->name = pergyra_strdup(field_name.text);
             field->type = field_type;
             field->access = access;
+            field->has_explicit_access = explicit_access;
             field->is_vessel_field = is_vessel_field;
 
             // 필드 추가
@@ -639,6 +643,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             // 메서드
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
             method->data.func_decl.access = access;
+            method->data.func_decl.has_explicit_access = explicit_access;
 
             // 메서드 추가
             class_decl->data.class_decl.method_count++;
@@ -651,6 +656,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             && parser_decl_match_contextual_keyword(parser, "action")) {
             ASTNode* method = parser_finalize_statement(parser, parse_action_declaration(parser));
             method->data.func_decl.access = access;
+            method->data.func_decl.has_explicit_access = explicit_access;
 
             class_decl->data.class_decl.method_count++;
             class_decl->data.class_decl.methods = realloc(

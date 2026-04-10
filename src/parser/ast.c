@@ -140,6 +140,7 @@ ASTNode* ast_create_function(const char* name) {
     node->data.func_decl.has_effects_clause = false;
     node->data.func_decl.declared_effects = 0;
     node->data.func_decl.access = ACCESS_PUBLIC;
+    node->data.func_decl.has_explicit_access = false;
     node->data.func_decl.is_action = false;
     node->data.func_decl.required_abilities = NULL;
     node->data.func_decl.required_ability_count = 0;
@@ -296,6 +297,8 @@ ASTNode* ast_create_match_statement(void) {
 ASTNode* ast_create_match_case(void) {
     ASTNode* node = ast_create_node(AST_MATCH_CASE);
     node->data.match_case.pattern = NULL;
+    node->data.match_case.patterns = NULL;
+    node->data.match_case.pattern_count = 0;
     node->data.match_case.guard = NULL;
     node->data.match_case.body = NULL;
     return node;
@@ -1410,7 +1413,13 @@ void ast_destroy(ASTNode* node) {
             break;
 
         case AST_MATCH_CASE:
-            ast_destroy(node->data.match_case.pattern);
+            if (node->data.match_case.patterns != NULL) {
+                for (size_t i = 0; i < node->data.match_case.pattern_count; i++)
+                    ast_destroy(node->data.match_case.patterns[i]);
+                free(node->data.match_case.patterns);
+            } else {
+                ast_destroy(node->data.match_case.pattern);
+            }
             ast_destroy(node->data.match_case.guard);
             ast_destroy(node->data.match_case.body);
             break;

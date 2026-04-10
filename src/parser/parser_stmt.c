@@ -71,8 +71,25 @@ ASTNode* parse_match_statement(Parser* parser) {
             mc->line = parser->previous_token.line;
             mc->column = parser->previous_token.column;
 
-            // 패턴: 리터럴 또는 식별자
+            // 패턴: 리터럴/식별자/variant 및 OR-pattern
             mc->data.match_case.pattern = parser_parse_expression(parser);
+            mc->data.match_case.patterns = calloc(1, sizeof(ASTNode *));
+            if (mc->data.match_case.patterns != NULL) {
+                mc->data.match_case.patterns[0] = mc->data.match_case.pattern;
+                mc->data.match_case.pattern_count = 1;
+            }
+            while (parser_match(parser, TOKEN_PATTERN_OR)) {
+                ASTNode *alt = parser_parse_expression(parser);
+                ASTNode **grown = realloc(
+                    mc->data.match_case.patterns,
+                    sizeof(ASTNode *) * (mc->data.match_case.pattern_count + 1));
+                if (grown == NULL) {
+                    parser_error(parser, "Out of memory while parsing OR pattern");
+                    break;
+                }
+                mc->data.match_case.patterns = grown;
+                mc->data.match_case.patterns[mc->data.match_case.pattern_count++] = alt;
+            }
 
             // guard (선택적)
             if (parser_match(parser, TOKEN_IF)) {

@@ -2145,6 +2145,85 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone publish to tobject target requires explicit by subject alias when authority is declared");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "tobject PlayerPacket { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    tobject slot packet: PlayerPacket\n"
+            "    authority player\n"
+            "    publish packet from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "must specify 'by <subjectSlot>'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("authority-bearing zone publish requires explicit by authority");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "tobject PlayerPacket { hp: Int; }\n"
+            "zone Arena {\n"
+            "    subject slot player: Player\n"
+            "    tobject slot packet: PlayerPacket\n"
+            "    authority player\n"
+            "    publish packet from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "must specify 'by <subjectSlot>'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone publish to tobject target passes with explicit by subject alias");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "tobject PlayerPacket { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    tobject slot packet: PlayerPacket\n"
+            "    authority player\n"
+            "    publish packet from player by player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("nested vessel-backed projection resolves through subject fields");
     {
         const char *source =

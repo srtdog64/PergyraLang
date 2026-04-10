@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-09 (intent forward-declare MIR seed, hidden method HIR/MIR routine 생성, subject method MIR direct path, domain sync registry metadata 반영, world zone lookup registry화, lld 기본화 반영)
+마지막 업데이트: 2026-04-10 (effect partial-order compare/join/authority-resource helper, secure token pairing/channel transport/zone-intent authority 규칙, foreign hidden ability contract, constructor visibility boundary, subject/class method MIR path 기반 반영)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -22,8 +22,8 @@
 
 | 항목 | 현재 상태 | 이번 착수 내용 | 다음 구현 단위 |
 |------|-----------|----------------|----------------|
-| Effect lattice | 부분 구현 | `effect_mask` closure, 최소 subsumption, mismatch 진입점 정리 | effect partial order와 join/check 모델 도입 |
-| Capability security | 부분 구현 | `SecureSlot`이 capability의 첫 anchored family라는 점을 보드에 고정, runtime file I/O path policy와 fingerprint fallback 강화 | 토큰/권한/호출 계약을 type rule로 확장 |
+| Effect lattice | 부분 구현 | `effect_mask` closure, join API, 최소 subsumption, partial-order compare, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
+| Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
 | MIR -> LLVM | 진행 중 | 남은 HIR fallback 범주를 명시 | domain/intent/main-wrapper fallback 제거 |
 | Debugger / Formatter / LSP | 초기 상태 | 현재 범위를 명시 | formatter AST roundtrip, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 미구현 | 후보 위치를 고정 | alloca escape 분류 + non-escaping local sinking |
@@ -40,6 +40,9 @@
 - `with effects ...` 계약
 - `collapse -> nondeterministic` closure
 - 최소 subeffect/subsumption check
+- explicit partial-order compare API
+- disjoint branch effect join 회귀
+- authority/resource helper (`requires_authority`, `touches_resource_boundary`)
 
 부족한 것:
 
@@ -59,6 +62,11 @@
 
 - `SecureSlot<T>` + token 기반 최소 capability
 - secure read/write/release builtin 규칙
+- named paired token identifier와 `Token<T>` 타입 pairing 정적 검사
+- `Token<T>` 시그니처 기반 secure effect 추론
+- capability-bearing 값(`SecureSlot` / `Token<T>`)의 channel transport 차단
+- authority가 선언된 zone의 boundary publish/bind에 explicit `by` 강제
+- authority-bearing intent step의 `causes` / `transfer` / secure-effect helper call에 `authorized by` 강제
 - runtime secure storage policy 일부
 - runtime file I/O는 기본적으로 상대경로만 허용하고 `..` traversal을 금지한다
 - `PGY_IO_ROOT`가 있으면 runtime file I/O는 root 아래로 고정되고, non-Windows에서는 canonical path로 symlink escape를 차단한다
@@ -69,7 +77,6 @@
 - capability를 `SecureSlot` 밖으로 일반화한 타입 규칙
 - authority / token / effect declaration 간 정적 연결
 - zone/intent/domain 호출 규약과의 일관된 보안 계약
-- Windows 쪽 runtime file I/O canonical enforcement 강화
 - capability 문서와 runtime policy를 하나의 계약으로 더 통합
 
 현재 진입점:
@@ -87,6 +94,7 @@
 - LLVM backend는 MIR function emission을 이미 사용
 - ordinary non-async function은 MIR routine가 없으면 hard error로 실패한다
 - class method는 MIR routine가 있으면 MIR emission을 우선 사용한다
+- subject method도 MIR direct path를 우선 사용한다
 - intent는 cleanup/rollback/invalidation topology를 MIR에서 읽고, run-body step sequence도 MIR `STMT(intent step)` carrier를 읽는다
 - 하지만 다음 범주에 HIR fallback이 남음
   - `async func`
@@ -148,6 +156,7 @@
 - class/role where-clause도 unknown bound를 semantic error로 보고한다
 - generic class specialization annotation(`Box<Int>`)에서 class-level where constraint를 실제로 강제한다
 - 첫 ability-style constraint(`where T: Comparable`)는 subject-bound role의 `impl ability`를 통해 일부 만족 판정을 한다
+- foreign non-exported ability는 cross-module `role impl ability` / `action requires`에서 거부된다
 
 아직 부족한 것:
 
@@ -188,9 +197,9 @@
 다음 구현 우선순위:
 
 1. MIR -> LLVM fallback 제거
-2. escape analysis / stack slot 분류
-3. capability security 계약 일반화
-4. effect lattice 기본 join/check
+2. capability security 계약 일반화
+3. effect lattice richer partial order
+4. escape analysis / stack slot 분류
 5. formatter/LSP/debugger 기능 확장
 
 ## 4. MIR -> LLVM fallback inventory

@@ -146,8 +146,18 @@ Type* type_create_read_view(Type* inner_type);
 Type* type_create_write_view(Type* inner_type);
 uint32_t type_function_effects(const Type* type);
 uint32_t type_effect_mask_closure(uint32_t mask);
+uint32_t type_effect_mask_join(uint32_t left, uint32_t right);
+bool type_effect_mask_requires_authority(uint32_t mask);
+bool type_effect_mask_touches_resource_boundary(uint32_t mask);
 bool type_effect_mask_has(uint32_t mask, uint32_t effect);
 bool type_effect_mask_subsumes(uint32_t available, uint32_t required);
+typedef enum {
+    EFFECT_REL_EQUAL = 0,
+    EFFECT_REL_SUPERSET,
+    EFFECT_REL_SUBSET,
+    EFFECT_REL_INCOMPARABLE
+} EffectMaskRelation;
+EffectMaskRelation type_effect_mask_compare(uint32_t left, uint32_t right);
 
 /* Type checking */
 bool type_equals(const Type* a, const Type* b);
@@ -191,6 +201,7 @@ extern Type* TYPE_WEAK;
 extern Type* TYPE_CHANNEL;
 extern Type* TYPE_FUTURE;
 extern Type* TYPE_REMOTE_FUTURE;
+extern Type* TYPE_TOKEN;
 extern Type* TYPE_DEVICE_SLOT;
 extern Type* TYPE_ALLOCATOR;
 extern Type* TYPE_RESULT;

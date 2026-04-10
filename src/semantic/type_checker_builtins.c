@@ -21,6 +21,57 @@ check_call_arity(ASTNode *expr, size_t expected, const char *name,
     return true;
 }
 
+static bool
+validate_secure_token_arg(ASTNode *token_arg, Symbol *slot_sym, Type *slot_type,
+                          SemanticContext *ctx)
+{
+    Symbol *token_sym;
+    Type *expected_token_type;
+    Type *token_args[1];
+    const char *token_name;
+
+    if (token_arg == NULL || slot_sym == NULL || slot_type == NULL
+        || slot_type->kind != TYPE_KIND_SLOT || !slot_type->data.slot.is_secure) {
+        return false;
+    }
+
+    if (token_arg->type != AST_IDENTIFIER || token_arg->data.identifier.name == NULL) {
+        semantic_error(ctx, token_arg,
+            "SecureSlot '%s' requires a named paired token identifier",
+            slot_sym->name != NULL ? slot_sym->name : "<slot>");
+        return false;
+    }
+
+    token_name = token_arg->data.identifier.name;
+    token_sym = scope_lookup(ctx->scope, token_name);
+    if (token_sym == NULL || token_sym->kind != SYMBOL_TOKEN) {
+        semantic_error(ctx, token_arg,
+            "'%s' is not a capability token for slot '%s'",
+            token_name, slot_sym->name != NULL ? slot_sym->name : "<slot>");
+        return false;
+    }
+
+    if (slot_sym->slot_info.paired_token_name == NULL
+        || strcmp(slot_sym->slot_info.paired_token_name, token_name) != 0) {
+        semantic_error(ctx, token_arg,
+            "Token '%s' is not paired with slot '%s'",
+            token_name, slot_sym->name);
+        return false;
+    }
+
+    token_args[0] = slot_type->data.slot.inner_type;
+    expected_token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
+    if (token_sym->type != NULL && expected_token_type != NULL
+        && !type_equals(token_sym->type, expected_token_type)) {
+        semantic_error(ctx, token_arg,
+            "Token '%s' does not match SecureSlot '%s' capability type",
+            token_name, slot_sym->name);
+        return false;
+    }
+
+    return true;
+}
+
 static Type *
 channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
                              const char *name, SemanticContext *ctx)
@@ -443,6 +494,15 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
                                : TYPE_BOOL;
     }
 
+    if (type_is_capability_bearing(element_type)
+        || type_is_capability_bearing(value_type)) {
+        semantic_error(ctx, expr->data.call.arguments[1],
+            "%s cannot transport capability-bearing values (SecureSlot/Token) yet; keep capability-bearing state local to the authorized flow",
+            name);
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
+
     if (type_is_movable_resource_handle(element_type)
         || type_is_movable_resource_handle(value_type)) {
         semantic_error(ctx, expr->data.call.arguments[1],
@@ -469,6 +529,12 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
     if (has_timeout) {
         require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
             TYPE_INT, expr->data.call.arguments[1], ctx);
+    }
+    if (type_is_capability_bearing(element_type)) {
+        semantic_error(ctx, expr->data.call.arguments[0],
+            "%s cannot yield capability-bearing values (SecureSlot/Token) yet; receive a plain value instead",
+            name);
+        return TYPE_UNKNOWN;
     }
     return channel_builtin_recv_result(
         element_type, name, expr->data.call.arguments[0], ctx);
@@ -1150,17 +1216,8 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                 }
 
                 ASTNode *token_arg = call->data.call.arguments[2];
-                if (token_arg->type == AST_IDENTIFIER) {
-                    const char *token_name = token_arg->data.identifier.name;
-                    if (sym->slot_info.paired_token_name == NULL
-                        || strcmp(sym->slot_info.paired_token_name,
-                                  token_name) != 0) {
-                        semantic_error(ctx, token_arg,
-                            "Token '%s' is not paired with slot '%s'",
-                            token_name, sym->name);
-                        return false;
-                    }
-                }
+                if (!validate_secure_token_arg(token_arg, sym, slot_type, ctx))
+                    return false;
             } else if (arg_count > 2) {
                 semantic_warning(ctx, call,
                     "Write to plain Slot '%s' ignores extra token argument",
@@ -1258,17 +1315,8 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                     return TYPE_UNKNOWN;
                 }
                 ASTNode *token_arg = call->data.call.arguments[1];
-                if (token_arg->type == AST_IDENTIFIER) {
-                    const char *token_name = token_arg->data.identifier.name;
-                    if (sym->slot_info.paired_token_name == NULL
-                        || strcmp(sym->slot_info.paired_token_name,
-                                  token_name) != 0) {
-                        semantic_error(ctx, token_arg,
-                            "Token '%s' is not paired with slot '%s'",
-                            token_name, sym->name);
-                        return TYPE_UNKNOWN;
-                    }
-                }
+                if (!validate_secure_token_arg(token_arg, sym, slot_type, ctx))
+                    return TYPE_UNKNOWN;
             }
         } else if (sym != NULL && type_is_read_view(sym->type)
                    && sym->slot_info.paired_slot_name != NULL) {
@@ -1349,6 +1397,10 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         semantic_error(ctx, call,
             "Release of SecureSlot '%s' requires a token argument",
             slot_name);
+        return false;
+    }
+    if (sym->slot_info.is_secure
+        && !validate_secure_token_arg(call->data.call.arguments[1], sym, sym->type, ctx)) {
         return false;
     }
 

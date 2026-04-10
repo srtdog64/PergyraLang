@@ -104,14 +104,13 @@ func Main() -> Void {
 EOF
 run_case "set_ops" "$TMPDIR/set_ops.pgy" "true" "false" "1"
 
-DATA_FILE="$TMPDIR/io.txt"
 cat > "$TMPDIR/string_io.pgy" <<EOF
 func Main() -> Void {
     let s: String = Concat(Upper(Trim("  hi")), Lower(" THERE"));
     Log(StringLength(s));
     Log(Contains(s, "HI"));
-    WriteFile("$DATA_FILE", Replace(s, "HI", "BYE"));
-    let out: String = ReadFile("$DATA_FILE");
+    WriteFile("io.txt", Replace(s, "HI", "BYE"));
+    let out: String = ReadFile("io.txt");
     Log(out);
 }
 EOF
