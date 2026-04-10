@@ -6,6 +6,83 @@
 #include "parser_internal.h"
 #include <ctype.h>
 
+static bool
+parser_check_contextual_keyword_local(Parser *parser, const char *keyword)
+{
+    return parser != NULL && keyword != NULL
+        && parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, keyword) == 0;
+}
+
+static void
+parser_apply_lexical_zone_context(ASTNode *node, const char *zone_name)
+{
+    if (node == NULL || zone_name == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        if (node->data.func_decl.within_zone == NULL)
+            node->data.func_decl.within_zone = pergyra_strdup(zone_name);
+        break;
+    case AST_CLASS_DECL:
+        for (size_t i = 0; i < node->data.class_decl.method_count; i++)
+            parser_apply_lexical_zone_context(
+                node->data.class_decl.methods[i], zone_name);
+        break;
+    case AST_NAMESPACE_DECL:
+        for (size_t i = 0; i < node->data.namespace_decl.count; i++)
+            parser_apply_lexical_zone_context(
+                node->data.namespace_decl.statements[i], zone_name);
+        break;
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++)
+            parser_apply_lexical_zone_context(
+                node->data.block.statements[i], zone_name);
+        break;
+    default:
+        break;
+    }
+}
+
+static ASTNode *
+parser_parse_within_context_block(Parser *parser)
+{
+    Token zone_name;
+    ASTNode *block;
+
+    parser_advance(parser); /* consume contextual 'within' */
+    zone_name = parser_consume(parser, TOKEN_IDENTIFIER,
+        "Expected zone name after 'within'");
+    parser_consume(parser, TOKEN_LBRACE,
+        "Expected '{' after lexical zone context");
+
+    block = ast_create_block();
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        ASTNode *stmt;
+
+        if (parser_check_contextual_keyword_local(parser, "within")) {
+            parser_error(parser,
+                "Nested lexical zone context is not supported in this surface");
+            break;
+        }
+
+        stmt = parser_parse_statement(parser);
+        if (stmt != NULL) {
+            parser_apply_lexical_zone_context(stmt, zone_name.text);
+            ast_add_statement(block, stmt);
+        }
+
+        if (parser->has_error)
+            parser_synchronize(parser);
+    }
+
+    parser_consume(parser, TOKEN_RBRACE,
+        "Expected '}' after lexical zone context");
+    return block;
+}
+
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
     Parser* parser = calloc(1, sizeof(Parser));
@@ -675,7 +752,17 @@ ASTNode* parser_parse_program(Parser* parser) {
     while (!parser_is_at_end(parser)) {
         ASTNode* stmt = parser_parse_statement(parser);
         if (stmt) {
-            ast_add_statement(program, stmt);
+            if (stmt->type == AST_BLOCK) {
+                for (size_t i = 0; i < stmt->data.block.count; i++) {
+                    ASTNode *child = stmt->data.block.statements[i];
+                    if (child != NULL)
+                        ast_add_statement(program, child);
+                    stmt->data.block.statements[i] = NULL;
+                }
+                ast_destroy(stmt);
+            } else {
+                ast_add_statement(program, stmt);
+            }
         }
 
         if (parser->has_error) {
@@ -717,6 +804,11 @@ parser_starts_named_declaration(Parser *parser, PgyTokenType keyword)
 // 문장 파싱
 ASTNode* parser_parse_statement(Parser* parser) {
     parser_collect_doc_comments(parser);
+
+    if (parser_check_contextual_keyword_local(parser, "within")) {
+        return parser_finalize_statement(parser,
+            parser_parse_within_context_block(parser));
+    }
 
     // async 함수 선언
     if (parser_match(parser, TOKEN_ASYNC)) {
@@ -930,6 +1022,26 @@ ASTNode* parser_parse_statement(Parser* parser) {
             parser->lexer->line = lx_line;
             parser->lexer->column = lx_col;
         }
+    }
+
+    // using <expr> as <alias>;
+    // Surface-compression alias statement. Lower directly to immutable let.
+    if (parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "using") == 0) {
+        parser_advance(parser);  // consume contextual 'using'
+        ASTNode *aliased_expr = parser_parse_expression(parser);
+        parser_consume(parser, TOKEN_AS, "Expected 'as' after aliased expression");
+        Token alias_name = consume_binding_name_token(parser,
+            "Expected alias name after 'as'");
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after using alias");
+
+        ASTNode *alias_decl = ast_create_let_declaration(alias_name.text);
+        alias_decl->line = alias_name.line;
+        alias_decl->column = alias_name.column;
+        alias_decl->data.let_decl.initializer = aliased_expr;
+        alias_decl->data.let_decl.is_alias = true;
+        return parser_finalize_statement(parser, alias_decl);
     }
 
     // with 문
@@ -1167,7 +1279,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         node->data.let_destructure.initializer = NULL;
 
         while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-            Token var = consume_name_token(parser, "Expected variable name in destructuring");
+            Token var = consume_binding_name_token(parser, "Expected variable name in destructuring");
             size_t n = ++node->data.let_destructure.name_count;
             node->data.let_destructure.names = realloc(
                 node->data.let_destructure.names, n * sizeof(char *));
@@ -1183,7 +1295,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
     }
 
     // 변수 이름
-    Token name = consume_name_token(parser, "Expected variable name");
+    Token name = consume_binding_name_token(parser, "Expected variable name");
 
     ASTNode* let_decl = ast_create_let_declaration(name.text);
 
@@ -1236,7 +1348,7 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
 
     // as 변수명
     parser_consume(parser, TOKEN_AS, "Expected 'as' in with statement");
-    Token alias = consume_name_token(parser, "Expected variable name after 'as'");
+    Token alias = consume_binding_name_token(parser, "Expected variable name after 'as'");
     with_stmt->data.with_stmt.alias = pergyra_strdup(alias.text);
 
     // 블록

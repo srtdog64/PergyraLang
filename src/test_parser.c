@@ -510,6 +510,82 @@ cleanup:
 }
 
 static int
+run_lexical_zone_context_test(void)
+{
+    const char *code =
+        "within BattleZone {\n"
+        "    subject Hero {\n"
+        "        let hp: Int;\n"
+        "        action Guard(self) authorized by self {\n"
+        "            return;\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot hero: Hero\n"
+        "    authority hero\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    ASTNode *subject_decl = NULL;
+    ASTNode *method = NULL;
+
+    printf("\n=== Test: Lexical Zone Context ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (parser_has_error(parser)) {
+        printf("[FAIL] Parse error: %s\n", parser_get_error(parser));
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (ast == NULL || ast->type != AST_PROGRAM || ast->data.program.count < 2) {
+        printf("[FAIL] Expected flattened program statements after lexical zone context\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    subject_decl = ast->data.program.statements[0];
+    if (subject_decl == NULL || subject_decl->type != AST_CLASS_DECL
+        || subject_decl->data.class_decl.method_count != 1) {
+        printf("[FAIL] Expected subject declaration with one action method\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    method = subject_decl->data.class_decl.methods[0];
+    if (method == NULL || method->type != AST_FUNC_DECL
+        || method->data.func_decl.within_zone == NULL
+        || strcmp(method->data.func_decl.within_zone, "BattleZone") != 0) {
+        printf("[FAIL] Expected lexical zone context to inject within BattleZone\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Lexical zone context injected default within-clause successfully!\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_tobject_keyword_test(void)
 {
     const char *code =
@@ -867,7 +943,15 @@ main(void)
         },
         {
             "Method Chaining",
-            "let result = object.Method1().Method2(42).Property;",
+            "let result = entity.Method1().Method2(42).Property;",
+            1
+        },
+        {
+            "Using Alias Statement",
+            "func Main() -> Void {\n"
+            "    using entity.Route() as route;\n"
+            "    Log(route);\n"
+            "}",
             1
         },
         {
@@ -1098,23 +1182,34 @@ main(void)
             1
         },
         {
-            "Domain Keywords As Local Variables",
+            "Limited Domain Keywords As Local Variables",
             "func Main() -> Void {\n"
             "    let zone = 1;\n"
-            "    let effect = zone;\n"
-            "    let relation = effect;\n"
-            "    let roster = relation;\n"
-            "    let world = roster;\n"
+            "    let world = zone;\n"
             "    Log(world);\n"
             "}",
             1
         },
         {
-            "Domain Keywords As Parameters",
-            "func Main(world: Int, participant: Int, subject: Int) -> Void {\n"
-            "    Log(world + participant + subject);\n"
+            "Limited Domain Keywords As Parameters",
+            "func Main(world: Int, zone: Int, participant: Int) -> Void {\n"
+            "    Log(world + zone + participant);\n"
             "}",
             1
+        },
+        {
+            "Reserved Domain Keyword As Local Variable Is Rejected",
+            "func Main() -> Void {\n"
+            "    let object = 1;\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Domain Keyword As Parameter Is Rejected",
+            "func Main(subject: Int) -> Void {\n"
+            "    Log(subject);\n"
+            "}",
+            0
         },
         {
             "Relation Declaration",
@@ -1390,6 +1485,8 @@ main(void)
     failures += run_object_keyword_alias_test();
     printf("\n");
     failures += run_vessel_keyword_alias_test();
+    printf("\n");
+    failures += run_lexical_zone_context_test();
     printf("\n");
 
     printf("\n=== All tests completed ===\n");

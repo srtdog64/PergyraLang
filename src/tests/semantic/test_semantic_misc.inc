@@ -238,6 +238,43 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("lexical zone context injects within zone for enclosed subject actions");
+    {
+        const char *source =
+            "within BattleZone {\n"
+            "    subject Hero {\n"
+            "        let hp: Int;\n"
+            "        action Guard(self) authorized by self {\n"
+            "            return;\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *subject_decl = program != NULL && program->type == AST_PROGRAM
+            && program->data.program.count > 0 ? program->data.program.statements[0] : NULL;
+        ASTNode *method = subject_decl != NULL && subject_decl->type == AST_CLASS_DECL
+            && subject_decl->data.class_decl.method_count > 0
+            ? subject_decl->data.class_decl.methods[0] : NULL;
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(method != NULL
+            && method->data.func_decl.within_zone != NULL
+            && strcmp(method->data.func_decl.within_zone, "BattleZone") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("explicit cross-module private field access is rejected");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -1808,6 +1845,71 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("generic function where clause accepts multiple ability-style bounds");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "subject Player { let hp: Int; }\n"
+            "role PlayerCapabilities for Player {\n"
+            "    impl ability Comparable { }\n"
+            "    impl ability Cloneable { }\n"
+            "}\n"
+            "func Keep<T>(value: T) -> T where T: Comparable + Cloneable {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let p: Player = Player(3);\n"
+            "    let q: Player = Keep(p);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        if (result != NULL && result->error_count > 0)
+            semantic_result_print(result);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function where clause rejects missing one of multiple ability-style bounds");
+    {
+        const char *source =
+            "ability Comparable { }\n"
+            "ability Cloneable { }\n"
+            "subject Player { let hp: Int; }\n"
+            "role PlayerComparable for Player {\n"
+            "    impl ability Comparable { }\n"
+            "}\n"
+            "func Keep<T>(value: T) -> T where T: Comparable + Cloneable {\n"
+            "    return value;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let p: Player = Player(3);\n"
+            "    let q: Player = Keep(p);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy constraint 'Cloneable'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("generic class instantiation enforces exact where constraint");
     {
         const char *source =
@@ -2530,6 +2632,10 @@ test_misc_grammar_edges(void)
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "using binding does not match the transfer target"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "transfer target inference would choose using 'deliver'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "transfer target inference would choose zone 'DeliveryZone'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2764,6 +2870,159 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("intent step infers using and where from transfer target");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    action Promote(self) -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "zone CartZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+            "    step Promote {\n"
+            "        transfer: cart -> payment;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Promote();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step move shorthand infers using and where from transfer target");
+    {
+        const char *source =
+            "subject Buyer {\n"
+            "    let hp: Int;\n"
+            "    action Promote(self) -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "zone CartZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+            "    step Promote {\n"
+            "        move cart to payment;\n"
+            "        who: buyer;\n"
+            "        on: buyer.Promote();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step inherits action where requires causes and authorized by");
+    {
+        const char *source =
+            "ability Prepared {\n"
+            "    func Ready() -> Bool;\n"
+            "}\n"
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Guard(self) -> Void\n"
+            "        requires Prepared\n"
+            "        within BattleZone\n"
+            "        authorized by self\n"
+            "        causes Guarded {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "role HeroPrepared for Hero {\n"
+            "    impl ability Prepared {\n"
+            "        func Ready() -> Bool { return true; }\n"
+            "    }\n"
+            "}\n"
+            "effect Guarded for bearer: Hero { }\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    effect slot guarded: Guarded\n"
+            "    authority hero requires Prepared\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    step Guard {\n"
+            "        using: battle;\n"
+            "        who: hero;\n"
+            "        on: hero.Guard();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL);
+        EXPECT(step != NULL && step->data.intent_step.inherited_where_from_action);
+        EXPECT(step != NULL && step->data.intent_step.inherited_requires_from_action);
+        EXPECT(step != NULL && step->data.intent_step.inherited_causes_from_action);
+        EXPECT(step != NULL && step->data.intent_step.inherited_authorized_by_from_action);
+        EXPECT(step != NULL
+            && step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE
+            && strcmp(step->data.intent_step.where_type->data.type.name, "BattleZone") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.required_ability_count == 1
+            && step->data.intent_step.required_abilities[0] != NULL
+            && step->data.intent_step.required_abilities[0]->type == AST_TYPE
+            && strcmp(step->data.intent_step.required_abilities[0]->data.type.name, "Prepared") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.causes_effect != NULL
+            && strcmp(step->data.intent_step.causes_effect, "Guarded") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.authorized_by_count == 1
+            && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent step may orchestrate a subintent without local where/who");
     {
         const char *source =
@@ -2791,6 +3050,30 @@ test_misc_grammar_edges(void)
             "    }\n"
             "    success: true;\n"
             "    failure: false;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("using alias statement lowers to local binding");
+    {
+        const char *source =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    func ReadHP(self) -> Int {\n"
+            "        using self.hp as hp;\n"
+            "        return hp;\n"
+            "    }\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3246,6 +3529,72 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic function declaration rejects default type argument for now");
+    {
+        const char *source =
+            "func Identity<T = Int>(value: T) -> T {\n"
+            "    return value;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type arguments are not supported yet in function declarations"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic class declaration rejects default type argument for now");
+    {
+        const char *source =
+            "class Box<T = Int> {\n"
+            "    let value: T;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type arguments are not supported yet in class declarations"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration rejects default type argument for now");
+    {
+        const char *source =
+            "ability Bufferable<T = Int> {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type arguments are not supported yet in ability declarations"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

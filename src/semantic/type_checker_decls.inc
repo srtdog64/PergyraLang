@@ -154,6 +154,12 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_declare(ctx->scope, sym);
 
+    if (node->data.role_decl.generic_params != NULL
+        && node->data.role_decl.generic_params->count > 0) {
+        validate_generic_param_defaults(node->data.role_decl.generic_params,
+            ctx, node, "role");
+    }
+
     /* Check for_type exists */
     if (node->data.role_decl.for_type != NULL) {
         Type *bound_type = resolve_type_node(node->data.role_decl.for_type, ctx);
@@ -811,6 +817,41 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
+static void
+intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
+                                   SemanticContext *ctx)
+{
+    const char *to_alias;
+    ASTNode *to_involves;
+    Type *to_type;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP)
+        return;
+
+    to_alias = step->data.intent_step.transfer_to_alias;
+    if (to_alias == NULL)
+        return;
+
+    to_involves = find_intent_involves_local(intent_decl, to_alias);
+    if (to_involves == NULL || to_involves->type != AST_INTENT_INVOLVES)
+        return;
+
+    to_type = resolve_type_node(to_involves->data.intent_involves.subject_type, ctx);
+
+    if (step->data.intent_step.using_expr == NULL) {
+        step->data.intent_step.using_expr = ast_create_identifier(to_alias);
+        step->data.intent_step.inferred_using_from_transfer = true;
+    }
+
+    if (step->data.intent_step.where_type == NULL
+        && to_type != NULL
+        && to_type->name != NULL) {
+        step->data.intent_step.where_type = ast_create_type(to_type->name);
+        step->data.intent_step.inferred_where_from_transfer = true;
+    }
+}
+
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -875,6 +916,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
         has_subintent = (step->data.intent_step.intent_expr != NULL);
         intent_step_inherit_action_contract(node, step, ctx);
+        intent_step_infer_transfer_context(node, step, ctx);
 
         if (step->data.intent_step.where_type == NULL && !has_subintent) {
             semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
@@ -970,6 +1012,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "- transfer target '%s' has zone type '%s'\n"
                     "- current step zone is '%s'\n"
+                    "- transfer target inference would choose zone '%s'\n"
                     "Fix:\n"
                     "- change the transfer target to a '%s' binding\n"
                     "- or override the step zone to '%s'",
@@ -978,6 +1021,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_alias != NULL ? to_alias : "<target>",
                     to_type->name != NULL ? to_type->name : "<zone>",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
+                    to_type->name != NULL ? to_type->name : "<zone>",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
                     to_type->name != NULL ? to_type->name : "<zone>");
             }
@@ -990,12 +1034,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "Reason:\n"
                     "- current using binding is '%s'\n"
                     "- transfer target binding is '%s'\n"
+                    "- transfer target inference would choose using '%s'\n"
                     "Fix:\n"
                     "- change 'using' to '%s'\n"
                     "- or change the transfer target to '%s'",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
+                    to_alias,
                     to_alias,
                     to_alias,
                     step->data.intent_step.using_expr->data.identifier.name != NULL

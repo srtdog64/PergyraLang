@@ -273,6 +273,18 @@ run_stable_examples() {
         "$ROOT_DIR/examples/adapter_policy_stack/main.pgy" "=== ADAPTER POLICY STACK ===" "[Route] checkout -> /api/checkout" "[API] /api/checkout ok=true handle=4101" "[API] /api/refund#8831:true"
     run_expect_lines "pattern_library_basics" "$backend" \
         "$ROOT_DIR/examples/pattern_library_basics" "PERGYRA PATTERN LIBRARY BASICS" "CONTEXTUAL SINGLETON" "FACTORY / SPEC BUILDER" "STRATEGY CARD + RESOLVER" "EXPLICIT RELAY / OBSERVER"
+    run_expect_lines "function_clause_order_minimal" "$backend" \
+        "$ROOT_DIR/examples/function_clause_order_minimal.pgy" "clause-order-minimal"
+    run_expect_lines "generic_ability_requires_minimal" "$backend" \
+        "$ROOT_DIR/examples/generic_ability_requires_minimal.pgy" "generic-ability-requires-minimal"
+    run_expect_lines "action_contract_inference_minimal" "$backend" \
+        "$ROOT_DIR/examples/action_contract_inference_minimal.pgy" "action contract inference minimal"
+    run_expect_lines "intent_inference_minimal" "$backend" \
+        "$ROOT_DIR/examples/intent_inference_minimal.pgy" "intent inference minimal"
+    run_expect_lines "transfer_move_minimal" "$backend" \
+        "$ROOT_DIR/examples/transfer_move_minimal.pgy" "transfer move minimal"
+    run_expect_lines "zone_context_minimal" "$backend" \
+        "$ROOT_DIR/examples/zone_context_minimal.pgy" "zone context minimal"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \

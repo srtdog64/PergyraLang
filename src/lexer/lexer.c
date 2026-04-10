@@ -69,6 +69,10 @@ static const KeywordEntry keywords[] = {
     {"require",  TOKEN_REQUIRE},
     {"override", TOKEN_OVERRIDE},
     {"secure",   TOKEN_SECURE},
+    {"remote",   TOKEN_REMOTE},
+    {"nondeterministic", TOKEN_NONDETERMINISTIC},
+    {"collapse", TOKEN_COLLAPSE},
+    {"local",    TOKEN_LOCAL},
     {"party",    TOKEN_PARTY},
     {"roster",   TOKEN_ROSTER},
     {"world",    TOKEN_WORLD},
@@ -615,6 +619,10 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_REQUIRE: return "REQUIRE";
         case TOKEN_OVERRIDE: return "OVERRIDE";
         case TOKEN_SECURE: return "SECURE";
+        case TOKEN_REMOTE: return "REMOTE";
+        case TOKEN_NONDETERMINISTIC: return "NONDETERMINISTIC";
+        case TOKEN_COLLAPSE: return "COLLAPSE";
+        case TOKEN_LOCAL: return "LOCAL";
         case TOKEN_MATCH: return "MATCH";
         case TOKEN_DYN: return "DYN";
         case TOKEN_SUBSCRIBE: return "+=";

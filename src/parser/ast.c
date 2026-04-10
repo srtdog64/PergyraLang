@@ -226,6 +226,7 @@ ASTNode* ast_create_let_declaration(const char* name) {
     node->data.let_decl.type = NULL;
     node->data.let_decl.initializer = NULL;
     node->data.let_decl.is_mutable = false;
+    node->data.let_decl.is_alias = false;
     return node;
 }
 
@@ -555,6 +556,8 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.inherited_requires_from_action = false;
     node->data.intent_step.inherited_causes_from_action = false;
     node->data.intent_step.inherited_authorized_by_from_action = false;
+    node->data.intent_step.inferred_where_from_transfer = false;
+    node->data.intent_step.inferred_using_from_transfer = false;
     return node;
 }
 

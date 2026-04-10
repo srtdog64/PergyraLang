@@ -134,6 +134,24 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
     }
 }
 
+static void
+validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
+                                ASTNode *owner, const char *kind_name)
+{
+    if (gp == NULL || ctx == NULL)
+        return;
+
+    for (size_t i = 0; i < gp->count; i++) {
+        GenericParam *param = gp->params[i];
+        if (param == NULL || param->default_type == NULL)
+            continue;
+        semantic_error(ctx, owner,
+            "Default generic type arguments are not supported yet in %s declarations (parameter '%s')",
+            kind_name != NULL ? kind_name : "generic",
+            param->name != NULL ? param->name : "<type-param>");
+    }
+}
+
 static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
                          ASTNode *ability_ref);
@@ -1695,6 +1713,8 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     scope_declare(ctx->scope, sym);
 
     if (has_generics) {
+        validate_generic_param_defaults(node->data.ability_decl.generic_params,
+            ctx, node, "ability");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         GenericParams *gp = node->data.ability_decl.generic_params;
         for (size_t gi = 0; gi < gp->count; gi++) {
@@ -2198,6 +2218,8 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     bool has_generics = (node->data.func_decl.generic_params != NULL
                          && node->data.func_decl.generic_params->count > 0);
     if (has_generics) {
+        validate_generic_param_defaults(node->data.func_decl.generic_params,
+            ctx, node, "function");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         GenericParams *gp = node->data.func_decl.generic_params;
         for (size_t gi = 0; gi < gp->count; gi++) {
@@ -2462,6 +2484,8 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     bool has_generics = (node->data.class_decl.generic_params != NULL
                          && node->data.class_decl.generic_params->count > 0);
     if (has_generics) {
+        validate_generic_param_defaults(node->data.class_decl.generic_params,
+            ctx, node, "class");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         GenericParams *gp = node->data.class_decl.generic_params;
         for (size_t gi = 0; gi < gp->count; gi++) {

@@ -1,0 +1,59 @@
+// function_clause_order_minimal.pgy
+//
+// 현재 구현된 parser 개선 예제:
+// - action/function clause 순서 자유화
+// - requires / within / causes / authorized by / with effects 조합
+
+ability Combatable {
+    func Ping() -> Int;
+}
+
+ability Movable {
+    func Move() -> Void;
+}
+
+subject Hero {
+    let hp: Int;
+
+    action Attack(self, target: Hero) -> Void
+        authorized by self, target
+        causes Damage
+        within BattleZone
+        requires Combatable, Movable
+        with effects secure, remote
+        where T: Combatable {
+        return;
+    }
+}
+
+role HeroCombat for Hero
+{
+    impl ability Combatable
+    {
+        func Ping() -> Int
+        {
+            return 1;
+        }
+    }
+
+    impl ability Movable
+    {
+        func Move() -> Void
+        {
+            return;
+        }
+    }
+}
+
+effect Damage for bearer: Hero {
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    effect slot damage: Damage
+    authority hero requires Combatable, Movable
+}
+
+func Main() -> Void {
+    Log("clause-order-minimal");
+}

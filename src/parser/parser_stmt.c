@@ -8,7 +8,7 @@ ASTNode* parse_for_loop(Parser* parser) {
     ASTNode* for_loop = ast_create_for_loop();
 
     // 루프 변수
-    Token var = consume_name_token(parser, "Expected loop variable");
+    Token var = consume_binding_name_token(parser, "Expected loop variable");
     for_loop->data.for_loop.variable = pergyra_strdup(var.text);
 
     parser_consume(parser, TOKEN_IN, "Expected 'in' in for loop");

@@ -13,7 +13,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
     parser_consume(parser, TOKEN_FUNC, "Expected 'func' after 'async'");
     
     // Function name
-    Token name = consume_name_token(parser, "Expected function name");
+    Token name = consume_decl_name_token(parser, "Expected function name");
     
     // Create async function node
     ASTNode* func = ast_create_async_function(name.text, true);
@@ -37,7 +37,7 @@ ASTNode* parser_parse_async_function(Parser* parser)
         else if (parser_match(parser, TOKEN_REF))
             mode = PARAM_MODE_REF;
 
-        Token param_name = consume_name_token(parser, "Expected parameter name");
+        Token param_name = consume_binding_name_token(parser, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);
@@ -228,7 +228,7 @@ ASTNode* parser_parse_select_statement(Parser* parser)
                 case_node = ast_create_channel_recv(channel);
             } else {
                 // Receive with assignment: case val = <-channel:
-                Token var_name = consume_name_token(parser, "Expected variable name");
+                Token var_name = consume_binding_name_token(parser, "Expected variable name");
 
                 if (parser_match(parser, TOKEN_ASSIGN)) {
                     parser_consume(parser, TOKEN_CHANNEL_OP, "Expected '<-' in select case");

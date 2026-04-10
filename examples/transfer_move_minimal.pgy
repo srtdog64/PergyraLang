@@ -1,0 +1,34 @@
+// transfer_move_minimal.pgy
+//
+// 현재 구현된 transfer short surface 예제:
+// 1. move <from> to <to>; -> transfer: <from> -> <to>;
+// 2. transfer target -> using/where inference
+
+subject Buyer {
+    let hp: Int;
+
+    action Promote(self) -> Void {
+        self.hp = self.hp + 1;
+    }
+}
+
+zone CartZone {
+    subject slot buyer: Buyer
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+}
+
+intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        move cart to payment;
+        who: buyer;
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("transfer move minimal");
+}

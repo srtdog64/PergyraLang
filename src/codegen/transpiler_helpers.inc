@@ -237,6 +237,33 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
     e->type_name[sizeof(e->type_name) - 1] = '\0';
 }
 
+static void
+register_alias_var(TranspilerCtx *ctx, const char *name, ASTNode *target_expr)
+{
+    if (ctx == NULL || name == NULL || target_expr == NULL
+        || ctx->alias_var_count >= MAX_ALIAS_VARS)
+        return;
+
+    AliasVarEntry *e = &ctx->alias_vars[ctx->alias_var_count++];
+    memset(e, 0, sizeof(*e));
+    strncpy(e->name, name, sizeof(e->name) - 1);
+    e->name[sizeof(e->name) - 1] = '\0';
+    e->target_expr = target_expr;
+}
+
+static ASTNode *
+lookup_alias_expr(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+
+    for (int i = ctx->alias_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->alias_vars[i].name, var_name) == 0)
+            return ctx->alias_vars[i].target_expr;
+    }
+    return NULL;
+}
+
 static TypedVarEntry *
 lookup_typed_entry(TranspilerCtx *ctx, const char *var_name)
 {
@@ -2360,6 +2387,9 @@ resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return NULL;
 
     if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
+        ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
+        if (alias_expr != NULL)
+            return resolve_nominal_host_expr_type_name(ctx, alias_expr);
         const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
         if (type_name != NULL)
             return type_name;
@@ -3411,6 +3441,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Int";
     }
     case AST_IDENTIFIER: {
+        ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
+        if (alias_expr != NULL)
+            return infer_expression_type_name(ctx, alias_expr);
         const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
         if (type_name != NULL)
             return type_name;

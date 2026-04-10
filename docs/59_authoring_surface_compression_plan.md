@@ -1,6 +1,6 @@
 # Authoring Surface Compression Plan
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-04-11
 
 이 문서는 Pergyra의 강한 의미론을 줄이지 않고, 작성 경로를 압축해
 authoring pain point를 줄이기 위한 표면 설계 방향을 고정한다.
@@ -34,6 +34,28 @@ projection과 transfer는 언어의 강점이지만, 지금 표면은 wiring-hea
 `subject` vs `class`, `stable surface` vs `design target`이 문서마다 섞이면
 사용자는 현재 무엇이 권장되는지 헷갈리게 된다.
 
+### 1.5 실제 구현에서 가장 자주 반복되는 cluster
+
+현재 코드/예제 기준으로는 아래 다섯 묶음이 가장 손이 아프다.
+
+1. action clause cluster
+   - `requires / within / authorized by / causes`
+2. intent step boundary cluster
+   - `who / where / using / transfer / requires / authorized by / causes`
+3. authority / ability cluster
+   - `authority ... requires ...`
+   - `action ... requires ...`
+   - `step requires: ...`
+4. projection / domain wiring cluster
+   - `refresh / publish / bind / HasProjection / HasLayer / HasState / HasZone*`
+5. built-in capability strictness cluster
+   - named binding
+   - exact slot kind
+   - token pairing
+
+즉 지금 가장 시급한 것은 "새 개념 추가"가 아니라,
+"이미 있는 개념 묶음의 반복 서술"을 압축하는 것이다.
+
 ## 2. 제안된 surface 압축 방향
 
 ### 2.1 intent profile
@@ -61,7 +83,7 @@ intent DeleteEvent uses OwnerWriteIntent {
 ### 2.2 action 계약의 step 기본 추론
 
 `action`에 이미 `requires`, `within`, `authorized by`가 있으면
-`intent step`은 기본적으로 그 계약을 상속하고, 필요할 때만 override한다.
+`intent step`은 기본적으로 그 계약을 추론해 채우고, 필요할 때만 override한다.
 
 ```pgy
 action DeleteEvent(self, event_id: Int)
@@ -79,7 +101,14 @@ intent ManageEvent {
 
 필수 조건:
 
-- diagnostics는 반드시 "이 값은 action 선언에서 상속됨"을 보여줘야 한다.
+- diagnostics는 반드시 "이 값은 action 선언에서 추론됨"을 보여줘야 한다.
+- `transfer target -> using/where`처럼 자동 추론된 값도
+  diagnostics에서 추론 출처를 직접 보여줘야 한다.
+
+용어:
+
+- 이것은 inheritance가 아니다.
+- nominal/object hierarchy가 아니라, 이미 선언된 계약에서 기본값을 채우는 inference다.
 
 ### 2.3 lexical default zone
 
@@ -104,6 +133,19 @@ within CalendarZone {
 원칙:
 
 - nested zone context는 금지하거나 1단계로 제한한다.
+
+상세 설계:
+
+- [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+
+현재 상태:
+
+- top-level `within Zone { ... }` block 1차 구현 완료
+- nested lexical zone context는 아직 금지
+- file-global `zone context`는 아직 설계 단계
+- 현재 구현된 것은
+  - `transfer target -> using/where inference`
+  - `within Zone { ... }` lexical zone context 1차
 
 ### 2.4 relation/effect alias 또는 implicit member resolution
 
@@ -134,19 +176,25 @@ using self.seal as seal;
 강한 이동 의미론은 유지하되, 흔한 이동 케이스는 짧은 표면을 제공한다.
 
 ```pgy
-let delivered = cargo.transfer(to: DeliveryZone, as: DeliveredCargo);
-```
-
-또는:
-
-```pgy
-move cargo to DeliveryZone;
+move loading to delivery;
 ```
 
 원칙:
 
 - 축약 표면은 가장 보수적인 의미만 가져야 한다.
 - 고급 옵션은 기존 선언형 `transfer:`가 담당한다.
+
+상세 설계:
+
+- [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+
+현재 상태:
+
+- 1차 구현 완료
+- `using self.route as route;` 형태를 statement-start alias surface로 지원
+- `move <from-alias> to <to-alias>;`를 `transfer: <from-alias> -> <to-alias>;`로 낮춘다
+- `transfer target -> using/where inference`도 이미 구현됐다
+- type-directed `move <value> to <ZoneType>;`는 아직 설계 단계다
 
 ### 2.6 group bind / projection scaffold
 
@@ -290,6 +338,7 @@ Fix:
 - relation/effect 접근 완화
 - transfer 축약 표면
 - domain-first diagnostics 개선
+- action/authority contract 중복 축약
 
 ### P1
 
@@ -311,3 +360,8 @@ Fix:
 - authoring pressure는 surface compression으로 줄인다.
 - 반복 선언은 추론과 preset으로 줄인다.
 - diagnostics 품질을 제품 기능으로 끌어올린다.
+
+추가 결정:
+
+- `상속`이라는 표현은 여기서 쓰지 않는다.
+- `zone/world/action/authority`에서 step/body로 내려오는 기본값은 모두 `추론`으로 부른다.

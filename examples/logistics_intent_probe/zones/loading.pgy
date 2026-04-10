@@ -25,10 +25,12 @@ zone LoadingZone
 
     func Stage(self, qty: Int) -> Int
     {
+        using self.seal as seal;
+        using self.route as route;
         let prepared = courier.Prepare(qty);
         dispatcher.ApproveDispatch(prepared);
-        self.seal.qty = prepared;
-        self.route.lane = "loading-bay";
+        seal.qty = prepared;
+        route.lane = "loading-bay";
         staged = prepared;
         routeScore = MergeRouteScore(true, qty);
         stage = "staged";
@@ -37,9 +39,10 @@ zone LoadingZone
 
     func Snapshot(self) -> String
     {
+        using self.seal as seal;
         return stage
             + " staged=" + ToString(staged)
             + " score=" + ToString(routeScore)
-            + " sealed=" + ToString(self.seal.qty);
+            + " sealed=" + ToString(seal.qty);
     }
 }

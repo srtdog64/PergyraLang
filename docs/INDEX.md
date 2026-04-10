@@ -24,6 +24,8 @@
 | **소유권** | [`docs/56_tobject_boundary_snapshot_policy.md`](docs/56_tobject_boundary_snapshot_policy.md) | `tobject` 전송 계약과 telemetry snapshot 분리 정책 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
+| **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |
+| **사용성** | [`docs/61_surface_compression_examples.md`](docs/61_surface_compression_examples.md) | surface compression의 구현 예제와 목표 예제 |
 | **리뷰** | [`review/abi_unification_log.md`](review/abi_unification_log.md) | ABI 통일 실행 로그 |
 | **리뷰** | [`review/channel_ownership_tier.md`](review/channel_ownership_tier.md) | Channel Zone/World 이중 소유 모델 |
 | **리뷰** | [`review/object_vs_tobject_semantics.md`](review/object_vs_tobject_semantics.md) | object vs tobject 의미론 |

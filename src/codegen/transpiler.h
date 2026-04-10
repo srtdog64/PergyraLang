@@ -51,6 +51,7 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
  * ----------------------------------------------------------------- */
 
 #define MAX_SLOT_VARS 256
+#define MAX_ALIAS_VARS 128
 #define MAX_GENERIC_BINDINGS 32
 #define MAX_GENERIC_SPECIALIZATIONS 128
 #define MAX_COLLECTION_SPECIALIZATIONS 128
@@ -76,6 +77,12 @@ typedef struct
     bool is_subject_ref;  /* subject parameter — pointer, use -> for member access */
     bool is_projection_borrow; /* object projection borrowed from a local source */
 } TypedVarEntry;
+
+typedef struct
+{
+    char name[64];
+    ASTNode *target_expr;
+} AliasVarEntry;
 
 typedef struct
 {
@@ -135,6 +142,8 @@ typedef struct
     int          slot_var_count;
     TypedVarEntry typed_vars[MAX_SLOT_VARS];
     int           typed_var_count;
+    AliasVarEntry alias_vars[MAX_ALIAS_VARS];
+    int           alias_var_count;
 
     /* Counter for unique parallel wrapper function names */
     unsigned int  parallel_id;

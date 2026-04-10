@@ -57,7 +57,7 @@ parse_intent_name_list(Parser *parser, char ***items, size_t *count,
                        const char *message)
 {
     do {
-        Token name = consume_name_token(parser, message);
+        Token name = consume_binding_name_token(parser, message);
         intent_append_name(items, count, name.text);
     } while (parser_match(parser, TOKEN_COMMA));
 }
@@ -67,7 +67,7 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
 {
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' after intent name");
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
-        Token alias = consume_name_token(parser, "Expected intent participant name");
+        Token alias = consume_binding_name_token(parser, "Expected intent participant name");
         ASTNode *involves = ast_create_intent_involves(alias.text);
         parser_consume(parser, TOKEN_COLON, "Expected ':' after intent participant name");
         involves->data.intent_involves.subject_type = parse_type(parser);
@@ -79,10 +79,52 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after intent parameter list");
 }
 
+static void
+parse_intent_step_transfer_clause(Parser *parser, ASTNode *step, bool shorthand_move)
+{
+    Token from_alias;
+    Token to_alias;
+
+    if (!shorthand_move) {
+        parser_consume(parser, TOKEN_COLON, "Expected ':' after 'transfer'");
+    }
+
+    from_alias = consume_binding_name_token(
+        parser,
+        shorthand_move
+            ? "Expected source zone alias after 'move'"
+            : "Expected source zone alias after 'transfer:'");
+
+    if (shorthand_move) {
+        if (!parser_intent_match_keyword(parser, "to")) {
+            parser_error(parser, "Expected 'to' after transfer source in move clause");
+            return;
+        }
+    } else if (!parser_match(parser, TOKEN_ARROW)) {
+        parser_consume(parser, TOKEN_MINUS, "Expected '->' in transfer clause");
+        parser_consume(parser, TOKEN_GREATER, "Expected '->' in transfer clause");
+    }
+
+    to_alias = consume_binding_name_token(
+        parser,
+        shorthand_move
+            ? "Expected target zone alias after 'to'"
+            : "Expected target zone alias after '->'");
+    free(step->data.intent_step.transfer_from_alias);
+    free(step->data.intent_step.transfer_to_alias);
+    step->data.intent_step.transfer_from_alias = pergyra_strdup(from_alias.text);
+    step->data.intent_step.transfer_to_alias = pergyra_strdup(to_alias.text);
+    parser_consume(
+        parser, TOKEN_SEMICOLON,
+        shorthand_move
+            ? "Expected ';' after move clause"
+            : "Expected ';' after step transfer clause");
+}
+
 static ASTNode *
 parse_intent_step(Parser *parser)
 {
-    Token name_tok = consume_name_token(parser, "Expected step name");
+    Token name_tok = consume_decl_name_token(parser, "Expected step name");
     ASTNode *step = ast_create_intent_step(name_tok.text);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after step name");
@@ -122,21 +164,12 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "transfer")) {
-            Token from_alias;
-            Token to_alias;
+            parse_intent_step_transfer_clause(parser, step, false);
+            continue;
+        }
 
-            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'transfer'");
-            from_alias = consume_name_token(parser, "Expected source zone alias after 'transfer:'");
-            if (!parser_match(parser, TOKEN_ARROW)) {
-                parser_consume(parser, TOKEN_MINUS, "Expected '->' in transfer clause");
-                parser_consume(parser, TOKEN_GREATER, "Expected '->' in transfer clause");
-            }
-            to_alias = consume_name_token(parser, "Expected target zone alias after '->'");
-            free(step->data.intent_step.transfer_from_alias);
-            free(step->data.intent_step.transfer_to_alias);
-            step->data.intent_step.transfer_from_alias = pergyra_strdup(from_alias.text);
-            step->data.intent_step.transfer_to_alias = pergyra_strdup(to_alias.text);
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after step transfer clause");
+        if (parser_intent_match_keyword(parser, "move")) {
+            parse_intent_step_transfer_clause(parser, step, true);
             continue;
         }
 
@@ -253,7 +286,7 @@ parse_intent_step(Parser *parser)
 ASTNode *
 parse_intent_declaration(Parser *parser)
 {
-    Token name_tok = consume_name_token(parser, "Expected intent name");
+    Token name_tok = consume_decl_name_token(parser, "Expected intent name");
     ASTNode *intent = ast_create_intent_declaration(name_tok.text);
 
     if (parser_check(parser, TOKEN_LPAREN))
@@ -320,7 +353,7 @@ parse_intent_declaration(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "involves")) {
-            Token alias = consume_name_token(parser, "Expected involves alias");
+            Token alias = consume_binding_name_token(parser, "Expected involves alias");
             ASTNode *involves = ast_create_intent_involves(alias.text);
             parser_consume(parser, TOKEN_COLON, "Expected ':' after involves alias");
             involves->data.intent_involves.subject_type = parse_type(parser);

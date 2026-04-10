@@ -34,9 +34,29 @@ parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
         *mask_out = EFFECT_SECURE;
         return true;
     }
+    if (tok.type == TOKEN_REMOTE) {
+        *mask_out = EFFECT_REMOTE;
+        return true;
+    }
+    if (tok.type == TOKEN_NONDETERMINISTIC) {
+        *mask_out = EFFECT_NONDETERMINISTIC;
+        return true;
+    }
+    if (tok.type == TOKEN_COLLAPSE) {
+        *mask_out = EFFECT_COLLAPSE;
+        return true;
+    }
+    if (tok.type == TOKEN_LOCAL) {
+        *mask_out = EFFECT_NONE;
+        return true;
+    }
 
     if (tok.text == NULL)
         return false;
+    if (strcmp(tok.text, "secure") == 0) {
+        *mask_out = EFFECT_SECURE;
+        return true;
+    }
     if (strcmp(tok.text, "remote") == 0) {
         *mask_out = EFFECT_REMOTE;
         return true;
@@ -80,7 +100,12 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
         uint32_t effect = EFFECT_NONE;
         Token tok;
 
-        if (parser_check(parser, TOKEN_IDENTIFIER) || parser_check(parser, TOKEN_SECURE))
+        if (parser_check(parser, TOKEN_IDENTIFIER)
+            || parser_check(parser, TOKEN_SECURE)
+            || parser_check(parser, TOKEN_REMOTE)
+            || parser_check(parser, TOKEN_NONDETERMINISTIC)
+            || parser_check(parser, TOKEN_COLLAPSE)
+            || parser_check(parser, TOKEN_LOCAL))
             tok = parser_advance(parser);
         else {
             parser_error(parser, "Expected effect name after 'with effects'");
@@ -232,8 +257,30 @@ consume_name_token(Parser* parser, const char* message)
     return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 
+Token
+consume_decl_name_token(Parser* parser, const char* message)
+{
+    if (parser_check_decl_name_token(parser))
+        return parser_advance(parser);
+    return parser_consume(parser, TOKEN_IDENTIFIER, message);
+}
+
+Token
+consume_binding_name_token(Parser* parser, const char* message)
+{
+    if (parser_check_binding_name_token(parser))
+        return parser_advance(parser);
+    return parser_consume(parser, TOKEN_IDENTIFIER, message);
+}
+
 bool
 parser_check_name_token(Parser *parser)
+{
+    return parser_check_decl_name_token(parser);
+}
+
+bool
+parser_check_decl_name_token(Parser *parser)
 {
     if (parser == NULL)
         return false;
@@ -261,12 +308,53 @@ parser_check_name_token(Parser *parser)
 }
 
 bool
+parser_check_binding_name_token(Parser *parser)
+{
+    if (parser == NULL)
+        return false;
+
+    switch (parser->current_token.type) {
+    case TOKEN_IDENTIFIER:
+    case TOKEN_SLOT:
+    case TOKEN_EVENT:
+    case TOKEN_WORLD:
+    case TOKEN_ZONE:
+    case TOKEN_ROSTER:
+    case TOKEN_RELATION:
+    case TOKEN_EFFECT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool
 parser_match_name_token(Parser *parser)
 {
-    if (!parser_check_name_token(parser))
+    return parser_match_expr_name_token(parser);
+}
+
+bool
+parser_check_expr_name_token(Parser *parser)
+{
+    return parser_check_binding_name_token(parser);
+}
+
+bool
+parser_match_expr_name_token(Parser *parser)
+{
+    if (!parser_check_expr_name_token(parser))
         return false;
     parser_advance(parser);
     return true;
+}
+
+Token
+consume_member_name_token(Parser* parser, const char* message)
+{
+    if (parser_check_expr_name_token(parser))
+        return parser_advance(parser);
+    return parser_consume(parser, TOKEN_IDENTIFIER, message);
 }
 
 // ============= 제네릭 파싱 =============

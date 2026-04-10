@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-10 (effect branch-local join/conflict 경고, debugger breakpoint/backtrace 명령, formatter check/parse guard + idempotent roundtrip guard, LSP completion/documentSymbol/definition/references/rename, slot escape 분류 경고 + LLVM AST path local slot sinking 추가)
+마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -207,6 +207,33 @@
 
 ## 3. 이번 라운드에서 실제 시작한 것
 
+### 3.1 Authoring surface compression
+
+현재:
+
+- function/action clause parser는 이미 table-driven이고 clause 순서는 고정이 아니다
+- `transfer target -> using` inference 구현됨
+- `transfer target -> where` inference 구현됨
+- intent transfer mismatch diagnostics는 이제 추론된 `using/where`를 직접 보여준다
+- example smoke에 아래 예제가 올라가 있다
+  - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
+  - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
+  - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
+  - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
+  - [zone_context_minimal.pgy](/mnt/e/PergyraLang/examples/zone_context_minimal.pgy)
+
+현재 구현됨:
+
+- top-level `within Zone { ... }` lexical zone context 1차
+- `using self.route as route;` / `using self.seal as seal;` explicit alias
+- `move <from-alias> to <to-alias>;` transfer short surface 1차
+
+아직 설계 단계:
+
+- nested lexical zone context
+- file-global `zone context`
+- type-directed `move <value> to <ZoneType>;`
+
 ### 3.0 token split debt
 
 실제 코드/문서 관찰:
@@ -240,15 +267,19 @@
   - clause 순서는 현재 고정이 아니고, duplicate clause는 명시적으로 진단한다
 - 남은 부채는 parser ordering보다 authoring compression 쪽이다
   - intent 계약 추론
-  - lexical zone context
-  - relation/effect 접근 완화
-  - transfer 축약 표면
+  - nested/file-global lexical zone context
+  - type-directed transfer 축약 표면
   - domain-first diagnostics
+  - action/authority contract 중복 축약
   - domain-first diagnostics는
     - `subject` by-value return
     - authority-bearing intent step
     - transfer target / `using` mismatch
     부터 `Reason` / `Fix` 형식으로 올리는 중이다
+  - 여기서 `action -> step`은 inheritance가 아니라 contract inference로 다룬다
+  - lexical zone context / using-transfer 정렬 규칙은
+    [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+    에 별도 설계로 분리했다
 
 - [58_keyword_authorship_pain_points.md](/mnt/e/PergyraLang/docs/58_keyword_authorship_pain_points.md)
 - [59_authoring_surface_compression_plan.md](/mnt/e/PergyraLang/docs/59_authoring_surface_compression_plan.md)

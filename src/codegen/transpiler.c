@@ -339,6 +339,20 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
      * monomorphize the class and replace ann_type_name with the
      * specialized name (e.g. Node_Int). */
     const char *generic_class_spec_name = NULL;
+
+    if (node->data.let_decl.is_alias) {
+        register_alias_var(ctx, name, init);
+        if (ann_type_name != NULL) {
+            register_typed_var(ctx, name, ann_type_name);
+        } else if (init != NULL) {
+            const char *inferred = infer_expression_type_name(ctx, init);
+            if (inferred != NULL)
+                register_typed_var(ctx, name, inferred);
+        }
+        free(ann_type_name);
+        return;
+    }
+
     if (ann != NULL && ann->type == AST_TYPE
         && ann->data.type.generic_args != NULL
         && ann->data.type.generic_args->count > 0
@@ -4442,6 +4456,7 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
     if (node->type == AST_BLOCK) {
         int saved_slot_count = ctx->slot_var_count;
         int saved_typed_count = ctx->typed_var_count;
+        int saved_alias_count = ctx->alias_var_count;
         for (size_t i = 0; i < node->data.block.count; i++)
             emit_statement(node->data.block.statements[i], ctx);
 
@@ -4464,6 +4479,7 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
 
         ctx->slot_var_count = saved_slot_count;
         ctx->typed_var_count = saved_typed_count;
+        ctx->alias_var_count = saved_alias_count;
     } else {
         emit_statement(node, ctx);
     }

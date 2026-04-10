@@ -340,6 +340,7 @@ struct ASTNode
             ASTNode* type;        /* Optional type annotation */
             ASTNode* initializer;
             bool     is_mutable;
+            bool     is_alias;
         } let_decl;
 
         /* type UserId = Int; */
@@ -819,6 +820,8 @@ struct ASTNode
             bool inherited_requires_from_action;
             bool inherited_causes_from_action;
             bool inherited_authorized_by_from_action;
+            bool inferred_where_from_transfer;
+            bool inferred_using_from_transfer;
         } intent_step;
 
         /* Relation declaration */

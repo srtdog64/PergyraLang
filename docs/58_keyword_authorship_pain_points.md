@@ -1,6 +1,6 @@
 # Keyword Authorship Pain Points
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-04-11
 
 이 문서는 "기능이 없는가"가 아니라 "기능은 있는데 작성 피로를 만드는가"를 기준으로
 Pergyra의 현재 pain point를 정리한다.
@@ -105,7 +105,7 @@ Pergyra의 현재 pain point를 정리한다.
 필요한 방향:
 
 - `intent` 작성 시 반복되는 `who/where/requires` 추론
-- zone authority 자동 승계
+- zone/world/context 기반 기본값 추론
 - action/ability에 이미 박힌 계약의 재기술 최소화
 
 현재 완화된 부분:
@@ -205,6 +205,45 @@ Pergyra의 현재 pain point를 정리한다.
 - 시작점이 무겁다
 - 작은 문제에도 존재론 선택 비용이 들어간다
 
+## 3. 외부 리뷰 기준 현재 상태
+
+최근 받은 리뷰 중, 현재 코드와 대조했을 때 상태는 이렇게 정리된다.
+
+### 3.1 이미 상당 부분 해결된 항목
+
+1. 함수 declaration clause가 고정 순서라서 고통스럽다는 지적
+- 현재 parser는 table-driven으로 처리한다
+- `where / with effects / requires / within / causes / authorized by`
+  순서는 고정이 아니다
+- duplicate clause는 명시적으로 진단한다
+
+2. `subject`와 `class`, `tobject`와 `struct`의 lexer token aliasing
+- 이건 과거엔 맞는 지적이었다
+- 현재는 `TOKEN_SUBJECT`, `TOKEN_CLASS`, `TOKEN_STRUCT`,
+  `TOKEN_OBJECT`, `TOKEN_TOBJECT`로 분리됐다
+
+### 3.2 아직도 유효한 항목
+
+1. effect clause token 처리 일관성 부족
+- 이건 과거엔 맞는 지적이었다
+- 현재는 `secure`, `remote`, `nondeterministic`, `collapse`, `local`
+  전부 real token으로 정리됐다
+
+2. `parser_check_name_token()`의 광범위한 허용
+- declaration ergonomics를 위해 많은 declaration-grade token을 이름으로 허용한다
+- 다만 현재는
+  - declaration name
+  - binding/local/param name
+  - expression/member name
+  으로 1차 분해가 들어갔다
+- 남은 pain point는 declaration 경계와 일부 alias surface 쪽이다
+
+3. generic parser는 구조가 semantic보다 앞서 있는 부분이 있다
+- 지금은 `ability<T>`, `requires Ability<T>`, generic-aware satisfaction,
+  multiple ability-style bounds까지 올라왔다
+- `default type arg`는 더 이상 묵인되지 않고 명시적으로 semantic reject된다
+- 남은 것은 richer constraint semantics 쪽이다
+
 ### 2.2 boundary clause family
 
 - `where`
@@ -250,6 +289,166 @@ Pergyra의 현재 pain point를 정리한다.
 
 - 개념 자체는 정리되고 있지만, 아직 "정석 작성 경로"가 약하다
 - 특히 일반 앱/게임/장치형 패턴별 입문 경로가 더 강해야 한다
+
+## 2.5 실제로 가장 많이 반복되는 서술 패턴
+
+추상적인 pain point보다 더 중요한 것은, 실제 코드/예제에서 어디가 반복되는가다.
+
+### A. action clause cluster
+
+가장 대표적인 반복 서술이다.
+
+반복 키워드:
+
+- `requires`
+- `within`
+- `authorized by`
+- `causes`
+
+실제 예제:
+
+- `examples/vessel_action_design.pgy`
+- `examples/biome_simulator/creatures.pgy`
+- `examples/space_station/crew.pgy`
+- `docs/26_vessel_action_model.md`
+
+특징:
+
+- 같은 zone 안 action은 `within`이 반복된다
+- self-authorized action은 `authorized by self`가 반복된다
+- action이 이미 domain-local인데도 계약을 전부 다시 서술하게 된다
+
+핵심 압축 방향:
+
+- zone 내부 action은 `within` 기본 추론
+- self-authorized 기본형은 더 짧은 surface 제공
+- `causes`는 effect slot 연결이 자명한 경우 축약 여지 검토
+
+### B. intent step boundary cluster
+
+가장 강한 authoring 압박이다.
+
+반복 키워드:
+
+- `who:`
+- `where:`
+- `using:`
+- `transfer:`
+- `requires:`
+- `authorized by:`
+- `causes:`
+
+실제 예제:
+
+- `examples/etl_workflow.pgy`
+- `examples/eda_workflow.pgy`
+- `docs/34_intent_oriented_paradigm.md`
+- `docs/testdoc/logistics_intent_probe.md`
+
+특징:
+
+- 같은 intent 안에서 `who` / `where`가 step마다 반복된다
+- action 계약과 step 계약이 겹치면 중복 서술이 커진다
+- `using` / `transfer`는 의미는 강하지만 표면이 rigid하다
+
+핵심 압축 방향:
+
+- intent-level default `who` / `where` 강화
+- action 계약의 step 기본 추론 강화
+- `transfer` 축약 표면
+- `using`과 transfer target의 자동 정렬
+
+### C. authority / ability declaration cluster
+
+반복 키워드:
+
+- `authority ... requires ...`
+- `action ... requires ...`
+- `step requires: ...`
+
+실제 예제:
+
+- `examples/logistics_intent_probe/zones/loading.pgy`
+- `examples/logistics_intent_probe/zones/delivery.pgy`
+- `examples/dnd_tavern_campaign/zones/journey.pgy`
+- `examples/vessel_action_design.pgy`
+
+특징:
+
+- 같은 ability 계약이 zone authority, action, intent step에 중복 기술된다
+- 의미론은 맞지만 작성자는 같은 제약을 세 번 쓴다고 느낄 수 있다
+
+핵심 압축 방향:
+
+- authority contract 기본 추론
+- action `requires`의 intent step 기본 추론
+- diagnostics에서 “어디서 추론됐는가”를 명확히 표시
+
+## 2.6 용어 고정
+
+이 문서에서는 다음 용어를 고정한다.
+
+- `inheritance`
+  - nominal/object hierarchy 의미로만 쓴다
+- `inference`
+  - 이미 선언된 zone/world/action/authority 계약에서 기본값을 추론해 채우는 것
+- `preset/profile`
+  - 반복되는 clause 묶음을 미리 정의한 authoring shortcut
+
+즉 `intent step`이 action의 `within/requires/authorized by/causes`를 가져오는 것은
+`상속`이 아니라 `계약 추론`이다.
+
+### D. projection / domain wiring cluster
+
+반복 키워드:
+
+- `refresh`
+- `publish`
+- `bind`
+- `HasProjection`
+- `HasLayer`
+- `HasState`
+- `HasZone*`
+
+실제 문서:
+
+- `docs/13_world_roster_architecture.md`
+- `docs/18_language_status.md`
+- `docs/20_compiler_pipeline_guide.md`
+
+특징:
+
+- 언어 강점이지만, 큰 시나리오에서 wiring-heavy하다
+- relation/effect/zone/world 계층을 다 쓰는 순간 선언 밀도가 급격히 올라간다
+
+핵심 압축 방향:
+
+- group bind
+- projection scaffold
+- relation/effect alias 또는 implicit member resolution
+
+### E. built-in capability / slot strictness cluster
+
+반복 규칙:
+
+- named binding 요구
+- exact slot kind 요구
+- token pairing 요구
+
+실제 코드:
+
+- `src/semantic/type_checker_builtins.c`
+
+특징:
+
+- 언어 안전성에는 필요하지만, 표면상 “이 형식 아니면 전부 실패”로 느껴지기 쉽다
+- 특히 `Move/Read/Write/Release`, `HasProjection/HasLayer/HasState/HasZone` family는
+  입력 shape가 엄격하다
+
+핵심 압축 방향:
+
+- diagnostics를 domain-first 형식으로 개선
+- common safe patterns를 scaffold/intrinsic surface로 올리기
 
 ## 3. 이 pain point를 이기는 조건
 

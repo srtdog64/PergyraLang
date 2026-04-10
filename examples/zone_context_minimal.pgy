@@ -1,0 +1,23 @@
+// zone_context_minimal.pgy
+//
+// 현재 구현된 lexical zone context 예제:
+// - within Zone { ... } block이 내부 subject action에 기본 within을 주입
+
+within BattleZone {
+    subject Hero {
+        let hp: Int;
+
+        action Guard(self) authorized by self {
+            self.hp = self.hp + 1;
+        }
+    }
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    authority hero
+}
+
+func Main() -> Void {
+    Log("zone context minimal");
+}

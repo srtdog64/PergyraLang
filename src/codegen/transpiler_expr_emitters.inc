@@ -3289,6 +3289,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL)
             return transpiler_make_c_ssa_name(ssa_name);
+        {
+            ASTNode *alias_expr = lookup_alias_expr(ctx, id_name);
+            if (alias_expr != NULL)
+                return emit_expression(alias_expr, ctx);
+        }
         TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         /* Inside parallel wrapper: captured outer variables are accessed
          * through the context struct pointer.  (*_pctx->x) yields the

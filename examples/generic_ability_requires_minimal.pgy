@@ -1,0 +1,43 @@
+// generic_ability_requires_minimal.pgy
+//
+// 현재 구현된 generic ability 예제:
+// - ability<T> 선언
+// - impl ability Ability<T>
+// - action requires Ability<T>
+// - zone authority requires Ability<T>
+
+ability BatchReady<T> {
+    func BatchMark(value: T) -> String;
+}
+
+subject Courier {
+    let staged: Int;
+
+    action Stage(self, qty: Int) -> Void
+        requires BatchReady<Int>
+        within LoadingZone
+        authorized by self
+    {
+        self.staged = self.staged + qty;
+    }
+}
+
+role CourierBatchReady for Courier
+{
+    impl ability BatchReady<Int>
+    {
+        func BatchMark(value: Int) -> String
+        {
+            return "batch-" + ToString(value);
+        }
+    }
+}
+
+zone LoadingZone {
+    subject slot courier: Courier
+    authority courier requires BatchReady<Int>
+}
+
+func Main() -> Void {
+    Log("generic-ability-requires-minimal");
+}

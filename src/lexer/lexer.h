@@ -88,6 +88,10 @@ typedef enum
     TOKEN_REQUIRE,
     TOKEN_OVERRIDE,
     TOKEN_SECURE,
+    TOKEN_REMOTE,
+    TOKEN_NONDETERMINISTIC,
+    TOKEN_COLLAPSE,
+    TOKEN_LOCAL,
 
     /* Party keywords */
     TOKEN_PARTY,
