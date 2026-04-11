@@ -92,5 +92,7 @@ bool slot_analyze_if_stmt(ASTNode* ifstmt, SlotAnalyzer* sa);
  */
 bool slot_analyze_parallel_block(ASTNode* parallel, SlotAnalyzer* sa);
 unsigned slot_analyze_escape_flags(ASTNode* node, const char* slot_name);
+unsigned slot_analyze_escape_flags_in_program(ASTNode* node, const char* slot_name,
+                                              ASTNode* program_root);
 
 #endif /* PERGYRA_SLOT_ANALYZER_H */

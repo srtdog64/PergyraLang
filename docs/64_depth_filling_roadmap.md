@@ -78,6 +78,84 @@
 - `refresh/publish/bind ... map { ... }`
 - explicit `Clone(...)` for world embedding
 
+### 원칙 4. TODO는 resolved/open을 섞지 않는다
+
+이미 닫힌 문제를 TODO에 계속 남겨두면 surface trust를 해친다.
+
+2026-04-11 기준 이 문서에서 분리해야 할 항목:
+- `HashMap<Int, V>`: resolved
+- `intent with value: Type;` 값 파라미터: resolved
+- `ToString(Float)` LLVM parity: resolved
+- lambda / function value baseline: resolved
+
+반대로 아직 open인 항목:
+- collection key 지원 범위는 아직 `String` / `Int`까지만 닫힘
+- collection combinator ergonomics (`.map/.filter` style stdlib surface)는 미완
+- intent step 반복 선언/authoring friction은 여전히 남음
+- `own/ref`는 일반 규칙이 아니라 anchored slot handle에 한정된 partial rule
+
+---
+
+## 1.5 현실 TODO 정리
+
+이 문단은 "표현력이 부족하다"는 막연한 평가를 TODO로 바꾸기 위한 고정판이다.
+
+### A. 범용 프로그래밍 기본기
+
+resolved:
+- `HashMap<Int, V>`
+- `intent with price: Int;`
+- lambda / function value baseline
+- `ToString(Float)` parity
+
+open:
+- `HashMap<K, V>`의 key 범위는 현재 `String` / `Int`로 제한
+- stdlib-level collection combinator (`Map/Filter/Fold`)은 아직 부족
+- author-facing iterator / callable ergonomics는 더 다듬어야 함
+
+### B. 쓰기 피로
+
+문제:
+- 같은 `where/using/who`를 step마다 반복 서술하는 friction이 남아 있다.
+
+현재 이미 있는 압축 수단:
+- intent-level `who:`
+- intent-level `where:`
+- `using <-> where` step inference
+
+open:
+- step profile/preset 없이 큰 intent에서 반복 선언이 여전히 크다
+- projection/binding 쪽도 large scenario에서는 wiring-heavy 하다
+
+### C. 표면 신뢰도
+
+원칙:
+- "컴파일되지만 실제로는 안 됨" surface를 허용하지 않는다.
+
+resolved:
+- `HashMap<Int, V>`는 이제 실제로 C/LLVM 경로가 있다
+
+open:
+- unsupported 조합은 parser acceptance가 아니라 explicit semantic error로 고정해야 한다
+- depth matrix / roadmap / hands-on assessment가 구현 상태를 즉시 반영해야 한다
+
+### D. `own/ref` 규칙 closure
+
+resolved:
+- 일반 타입에 붙는 `own/ref`는 명시 오류
+- `ref -> ref` helper forwarding 중 callee가 borrow를 다시 escape하지 않으면 허용
+- borrowed `ref` slot의 `return` escape 금지
+- borrowed `ref` slot의 `channel send` escape 금지
+- borrowed `ref` slot의 alias/new-binding 패턴 금지
+- borrowed `ref` slot의 `=` rebinding 금지
+- borrowed `ref` slot의 `Move(...)` helper forwarding은 현재 보수적 helper-call escape 규칙으로 차단
+- `own SecureSlot<subject-host>`도 새 binding alias는 금지
+- local slot의 borrow-after-own-move는 금지
+
+open:
+- helper/function call 경유 escape를 다단계 alias/summary 수준까지 더 정교하게 판정
+- move-after-borrow를 지역/다단계 ownership 규칙으로 더 정교하게 정리
+
 ---
 
 ## 2. Phase 1 — 위험한 빈 칸 제거

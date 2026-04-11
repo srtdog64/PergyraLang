@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
+#include "slot_analyzer.h"
 
 #define INITIAL_DIAG_CAPACITY 16
 
@@ -2632,7 +2633,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     Type *func_type = type_create_function(param_types, param_count,
                                             return_type);
-    free(param_types);
 
     Symbol *func_sym = symbol_create_function(name, func_type,
                                                node->line, node->column);
@@ -2732,6 +2732,56 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL)
         type_check_block(node->data.func_decl.body, ctx);
 
+    if (node->data.func_decl.body != NULL) {
+        for (size_t i = 0; i < param_count; i++) {
+            FuncParam *param = node->data.func_decl.params[i];
+            unsigned escape_mask;
+
+            if (param == NULL || param->name == NULL || param->type == NULL)
+                continue;
+            if (param->mode != PARAM_MODE_REF)
+                continue;
+            if (!type_is_anchored_resource_handle(param_types[i]))
+                continue;
+
+            escape_mask = slot_analyze_escape_flags_in_program(
+                node->data.func_decl.body, param->name, ctx->program_root);
+            if ((escape_mask & SLOT_ESCAPE_RETURN) != 0) {
+                semantic_error(ctx, node,
+                    "Borrowed ref slot '%s' cannot escape via return.\n"
+                    "Reason:\n"
+                    "- 'ref' is a non-owning borrow tied to the caller scope\n"
+                    "- returning it would let the borrow outlive the call boundary\n"
+                    "Fix:\n"
+                    "- return a projection/object/tobject/value instead\n"
+                    "- or change the parameter to 'own' if transfer is intended",
+                    param->name);
+            }
+            if ((escape_mask & SLOT_ESCAPE_CHANNEL) != 0) {
+                semantic_error(ctx, node,
+                    "Borrowed ref slot '%s' cannot escape through channel send.\n"
+                    "Reason:\n"
+                    "- 'ref' is a non-owning borrow tied to the current call\n"
+                    "- channel send would transfer the borrow beyond that boundary\n"
+                    "Fix:\n"
+                    "- send a projection/object/tobject/value snapshot instead\n"
+                    "- or take ownership with 'own' before transfer",
+                    param->name);
+            }
+            if ((escape_mask & SLOT_ESCAPE_CALL) != 0) {
+                semantic_error(ctx, node,
+                    "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
+                    "Reason:\n"
+                    "- 'ref' is a non-owning borrow tied to the current call boundary\n"
+                    "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
+                    "Fix:\n"
+                    "- perform the slot operation locally in this function\n"
+                    "- or change the parameter to 'own' if transfer/forwarding is intended",
+                    param->name);
+            }
+        }
+    }
+
     {
         uint32_t inferred_effects = type_effect_mask_closure(ctx->current_function_effects);
         uint32_t missing_effects =
@@ -2789,6 +2839,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     ctx->tracking_function_effects = prev_tracking;
     ctx->in_async_func = prev_async;
     ctx->current_module_path = prev_module_path;
+    free(param_types);
     scope_exit(&ctx->scope);
     return !ctx->has_error;
 }

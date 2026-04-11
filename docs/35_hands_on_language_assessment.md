@@ -117,20 +117,23 @@ backend parity를 계속 맞추는 과정에서
 
 ## 약점
 
-### 1. 일반 프로그래밍 인프라 — 대부분 해결됨 (2026-04-06 재평가)
+### 1. 일반 프로그래밍 인프라 — 대부분 해결됨 (2026-04-11 재평가)
 
 이전에는 "일반 언어 인프라가 부족하다"고 판단했으나, 실제 검증 결과:
 
 - `for-in` 루프: **동작** (Array, Slice, List 순회)
-- 제네릭 컬렉션: **동작** (`List<Event>`, `HashMap<String, Subject>` 등)
+- 제네릭 컬렉션: **동작** (`List<Event>`, `HashMap<String, Subject>`, `HashMap<Int, Int>` 등)
 - 문자열 보간: **동작** (`"${expr}"`)
 - 고차함수/함수값: **동작** (function-typed local, return)
 - nested generic: **동작** (`HashMap<String, List<String>>`)
+- `intent with price: Int;` 값 파라미터: **동작**
+- `ToString(Float)`: **동작** (C/LLVM parity)
 - datetime: **동작** (`use datetime;`)
 
 **남은 약점:**
 - `Optional<T>` / nullable 패턴이 아직 없음
 - iterator protocol이 사용자 정의 타입으로 확장되지 않음 (built-in만)
+- collection combinator ergonomics (`.map/.filter`)는 stdlib/product surface로 아직 약함
 
 ### 2. projection/binding은 여전히 wiring-heavy하다
 

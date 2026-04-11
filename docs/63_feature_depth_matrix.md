@@ -58,7 +58,7 @@
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입에는 명시 오류 |
+| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, safe `ref -> ref` forwarding만 허용, `ref` return/channel escape 및 alias/rebind 금지 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -310,7 +310,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 | Intent 값 파라미터 | subject/zone만 | `with price: Int` 지원 |
 | refresh map {} | 필드명 정확 일치 | 매핑 문법 |
 | Zone→World ownership | 암묵 복사 | move/clone 명시 |
-| own/ref 강제 | 파싱만 | 시맨틱 검증 |
+| own/ref 강제 | anchored slot handle 한정 강제 | 시맨틱 검증 |
 
 ### P1 — 깊이 보강
 
@@ -348,7 +348,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Set/Map/List`: C+LLVM raw_export 전부 동작 확인 → LLVM ◐→✅ 상향
 - `Async/spawn`: pthread 스케줄러+fiber 실구현 확인 → 행 추가, 깊음 판정
 - `Math/String stdlib`: 빌트인 30+개 존재 확인 → 행 추가, 중상 판정
-- `own/ref`: 파싱만 되고 강제 없음 확인 → 행 추가, 얕음 판정
+- `own/ref`: anchored slot handle 한정으로는 강제되며, 일반 타입은 오류·`ref` escape/alias/rebind는 차단됨 → 여전히 전역 소유권 규칙으로는 얕음
 - `vessel`: 동작 확인 → 존재론 축에 포함
 
 키워드 감사 (72개):
@@ -358,5 +358,5 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - 미구현: embed (토큰 자체 없음)
 
 P0 재정의:
-- Map Int 키, Intent 값 파라미터, refresh map, Zone ownership, own/ref 강제
+- refresh map, Zone ownership, own/ref 전역 규칙
 - P2는 `tooling`과 `authoring shorthand`

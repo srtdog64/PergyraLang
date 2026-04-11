@@ -66,6 +66,19 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
             llvm_tmp_name(ctx));
     }
 
+    if (value_type == ctx->type_f32 || value_type == ctx->type_f64) {
+        if (value_type == ctx->type_f64) {
+            value = LLVMBuildFPTrunc(ctx->builder, value, ctx->type_f32,
+                llvm_tmp_name(ctx));
+        }
+        fn = llvm_lookup_function(ctx, "pgy_float_to_string");
+        if (fn == NULL)
+            return NULL;
+        args[0] = value;
+        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
+            llvm_tmp_name(ctx));
+    }
+
     return NULL;
 }
 

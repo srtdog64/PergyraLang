@@ -74,6 +74,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i32 }, 1 },
             { "pgy_int_to_string", ctx->type_i8ptr,
               { ctx->type_i32 }, 1 },
+            { "pgy_float_to_string", ctx->type_i8ptr,
+              { ctx->type_f32 }, 1 },
             { "pgy_intent_enter_export", ctx->type_i32,
               { ctx->type_i8ptr, LLVMPointerType(ctx->type_i8ptr, 0), ctx->type_i32, ctx->type_i1, ctx->type_i32 }, 5 },
             { "pgy_intent_exit_export", ctx->type_void,

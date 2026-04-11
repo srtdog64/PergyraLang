@@ -1876,6 +1876,15 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     continue;
                 } else if (pmode == PARAM_MODE_REF) {
                     /* ref: borrow — source remains valid */
+                    if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                        const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                        Symbol *src_sym = scope_lookup(ctx->scope, src);
+                        if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT
+                            && src_sym->slot_info.state == SLOT_STATE_RELEASED) {
+                            semantic_error(ctx, expr->data.call.arguments[i],
+                                "Cannot borrow released slot '%s'", src);
+                        }
+                    }
                     continue;
                 }
             }
