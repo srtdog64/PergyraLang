@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### LLVM ABI Mapping Fixes (2026-04-11)
+- **codegen/llvm**: Fix MIR method parameter binding so explicit parameters no
+  longer shift by one after hidden `self` handling. This closes the backend
+  compare regression in `host_method_class_return`.
+- **codegen/llvm**: Fix pointer-self host parameter ABI alignment for MIR
+  lowering so function signatures and local parameter binding agree for host
+  types such as `zone`. This closes the backend compare regression in
+  `zone_param_mutation`.
+- **tests/backend_compare**: Add `zone_host_method_abi_combo` to lock the
+  combined regression surface: zone parameter mutation through a pointer-self
+  host plus chained class-method return dispatch in the same execution path.
+
 ### LLVM Backend MIR Transition (2026-04-09)
 - **codegen/llvm**: LLVM backend fully transitioned from HIR-based to MIR-based
   code generation. `src/codegen/llvm_pipeline.c` and `src/codegen/llvm_mir_emit.c`

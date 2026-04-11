@@ -1,6 +1,6 @@
 # ABI Alignment Audit
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-11
 
 이 문서는 현재 구현이 ABI 계약, backend 계약, 상태 문서와 얼마나 정렬되어 있는지 점검한 결과를 기록한다.
 목적은 두 가지다.
@@ -12,6 +12,7 @@
 
 - ABI spec 단일 문서는 [`src/runtime/pgy_abi_spec.h`](../src/runtime/pgy_abi_spec.h)에 있고, [`src/test_abi_spec.c`](../src/test_abi_spec.c)와 [`src/test_abi_pipeline.c`](../src/test_abi_pipeline.c)로 회귀된다.
 - `make test-abi`는 spec-level check와 end-to-end pipeline/binary check를 함께 돈다.
+- `tests/compare_backends.sh`는 LLVM MIR ABI 매핑 회귀를 실제 실행 결과 비교로 잡는다. 현재 `host_method_class_return`, `zone_param_mutation`, `zone_host_method_abi_combo`가 메서드 인자 바인딩/zone pointer-self host ABI 정렬을 고정한다.
 - `make test-abi-perf`는 같은 pipeline 위에서 phase timing과 medium workload benchmark를 돈다.
 - driver는 `driver_run_pipeline_timed(...)`를 통해 `module_load`, `semantic`, `HIR/DIR/RIR/MIR`, `backend`, `total` timing을 직접 제공한다.
 - `object` lowering은 이제 C/LLVM 양쪽에서 borrow-first다. non-escaping `ToObject(...)` local binding은 source subject를 직접 읽는 projection alias로 다뤄진다.
@@ -31,6 +32,13 @@
   - class method fallback
   - main wrapper / top-level executable fallback
 - 따라서 “backend는 MIR만 읽는다”는 최종 계약은 아직 완료되지 않았다.
+
+### 2.1.1 최근 닫힌 LLVM ABI 매핑 결함
+
+- 2026-04-11 기준으로 LLVM MIR 경로의 두 가지 실제 오동작은 닫혔다.
+  - 메서드 lowering에서 hidden `self` 처리 뒤에 일반 파라미터 인덱스가 한 칸 더 밀리던 문제
+  - `zone` 같은 pointer-self host 타입이 함수 선언 시그니처와 MIR local alloca binding에서 다르게 잡히던 문제
+- 이 결함은 한쪽 backend만 잘못된 값을 내는 형태로 드러났고, 현재는 backend compare 회귀로 고정됐다.
 
 ### 2.2 transpiler의 ABI metadata 실사용은 아직 약하다
 

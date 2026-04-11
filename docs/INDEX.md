@@ -34,7 +34,7 @@
 | **레퍼런스** | [`README.md`](README.md) | 언어 소개, 시작 가이드 |
 | **레퍼런스** | [`TODO.md`](TODO.md) | 상세 TODO |
 
-## 최신 변경 사항 (2026-04-10)
+## 최신 변경 사항 (2026-04-11)
 
 ### 컴파일러 아키텍처
 
@@ -56,6 +56,11 @@
 3. **키워드 분류 명확화**
    - `where`: 예약 키워드(TOKEN_WHERE), intent 절에서 재사용
    - `object` vs `tobject`: 별개 nominal kind, 경계 통과 여부로 구분
+
+4. **LLVM ABI 정렬 회귀 수정**
+   - `src/codegen/llvm_mir_emit.c` — 메서드 파라미터 인덱스 매핑을 hidden `self`와 정확히 정렬
+   - `src/codegen/llvm_mir_locals.inc` — pointer-self host 타입(`zone` 등)의 MIR param binding을 함수 시그니처와 동일하게 정렬
+   - `tests/cases/backend_compare/host_method_class_return` / `zone_param_mutation` / `zone_host_method_abi_combo`로 LLVM/C 실행 결과 회귀 고정
 
 ### 양자 표면 / v2 경계
 

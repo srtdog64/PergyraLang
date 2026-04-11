@@ -136,6 +136,7 @@ main() {
         "tests/cases/backend_compare/intent_cross_world_transfer"
         "tests/cases/backend_compare/intent_rich_history_identity"
         "tests/cases/backend_compare/zone_param_mutation"
+        "tests/cases/backend_compare/zone_host_method_abi_combo"
     )
 
     if [[ "$#" -gt 0 ]]; then
