@@ -97,7 +97,7 @@
 대표 pain point:
 - `subject`와 `class`가 lexer 단계에서 완전히 분리되지 않았던 흔적
 - `object/tobject` surface와 token 정책의 일관성 문제
-- `ability` 기본 export 정책 같은 surface ergonomics 정리 필요
+- nominal family별 진단 문구와 문서 설명의 밀도를 계속 맞춰야 함
 
 판정:
 - "구현 depth" 자체는 나쁘지 않다.
@@ -108,11 +108,15 @@
 언어 철학상 핵심인데, 실제 depth는 "중간"이다.
 기본 계약 검증과 코드젠은 있으나, richer contract system은 아직 partially closed 상태다.
 
+최근 닫힌 점:
+- `ability<T>` 선언과 참조 baseline은 parser/semantic/DIR 경로까지 연결됐다
+- hidden/default-export 규칙과 generic ability 해석의 첫 정렬이 끝났다
+- mixed `ability + zone` module에서 explicit export 판정 충돌도 정리됐다
+
 남은 gap:
-- `ability<T>` 선언과 참조 전체 체인
-- `requires Ability<T>`의 풍부한 mismatch 진단
+- `requires Ability<T>`의 더 풍부한 mismatch 진단
 - `use/require`를 module contract까지 일관되게 올리는 작업
-- hidden/default-export 규칙과 generic 해석의 일관화
+- richer contract summary를 diagnostics/tooling까지 노출하는 작업
 
 판정:
 - 방향은 맞다.
@@ -140,6 +144,7 @@
 현재 강한 점:
 - orchestration surface 존재
 - rollback/cleanup 경로 실구현
+- MIR cleanup/rollback/invalidation exceptional topology와 회귀 테스트가 다시 정렬됨
 - C/LLVM 양쪽 경로 존재
 - 예제와 smoke 범위가 실제로 있다
 - `transfer -> using/where`, `using -> where`, `where -> using` 추론이 이미 연결돼 있다

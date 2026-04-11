@@ -1,7 +1,13 @@
 // Pergyra Party System Example
-// Demonstrates the revolutionary party concept for role collaboration
 // Status: design sketch / not compile-smoke covered.
-// Uses aspirational collection-combinator surface such as Map/Filter/MaxBy/MapValues.
+// This file is a future-surface sketch, not a stable syntax reference.
+// Do not treat it as "currently supported Pergyra" without checking smoke tests.
+// Uses aspirational surface that is intentionally ahead of the current implementation:
+// - Rust-like receiver syntax such as `&self` / `&mut self`
+// - collection combinators such as `Map` / `Filter` / `MaxBy` / `MapValues`
+// - scheduler-flavored `parallel on (...)` and `every (...)`
+// - richer typed `context.GetRole<T>(...)` lookup patterns
+// - wider role/party collaboration syntax than the current smoke-covered subset
 
 // ============= Basic Abilities =============
 

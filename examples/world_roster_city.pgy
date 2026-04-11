@@ -1,7 +1,12 @@
 // Pergyra World-Roster Example
-// Complete hierarchy from World to Ability
 // Status: design sketch / not compile-smoke covered.
-// Uses aspirational collection-combinator surface such as Filter.
+// This file is a world/roster design sketch, not a stable syntax reference.
+// Do not treat it as "currently supported Pergyra" without checking smoke tests.
+// Uses aspirational surface that is intentionally ahead of the current implementation:
+// - Rust-like receiver syntax such as `&self` / `&mut self`
+// - collection combinators such as `Filter`
+// - typed `context.GetRole<T>(...)` lookup and richer party-slot polymorphism
+// - broader world/roster/party orchestration than the current smoke-covered subset
 
 // ============= ABILITY Level =============
 // 기본 능력 정의

@@ -34,6 +34,36 @@ projection과 transfer는 언어의 강점이지만, 지금 표면은 wiring-hea
 `subject` vs `class`, `stable surface` vs `design target`이 문서마다 섞이면
 사용자는 현재 무엇이 권장되는지 헷갈리게 된다.
 
+### 1.5 surface trust 부채
+
+반복 선언 자체만큼 아픈 축이다.
+
+사용자는 다음 셋을 즉시 구분할 수 있어야 한다.
+
+- 지금 바로 믿고 써도 되는 stable surface
+- smoke-covered subset이지만 범위가 제한된 surface
+- design sketch / aspirational demo
+
+이 구분이 흐려지면 문법 pain point보다 더 큰 trust pain point가 생긴다.
+
+대표 사례:
+
+- `HashMap<Int, V>`는 이제 정렬됐지만, 이런 종류의 mismatch는 한 번만 나와도 체감 신뢰도를 크게 깎는다
+- `party_system_demo`, `world_roster_city` 같은 예제는 현재도 design sketch인데 stable syntax reference처럼 읽히기 쉽다
+- compile-smoke covered example과 sketch example을 문서/헤더에서 같은 톤으로 다루면 사용자가 잘못 배운다
+
+### 1.6 `own/ref`의 과잉 일반화
+
+`own` / `ref`는 이름만 보면 전면 ownership system처럼 읽힌다.
+
+하지만 현재 실제로 닫힌 구현은 더 좁다.
+
+- `ref Slot<subject-host>`
+- `own SecureSlot<subject-host>`
+
+즉 현재 단계에서 필요한 것은 "더 큰 ownership vocabulary"보다
+"이 vocabulary가 어디까지 닫혀 있는지 더 정확히 보여 주는 것"이다.
+
 ### 1.5 실제 구현에서 가장 자주 반복되는 cluster
 
 현재 코드/예제 기준으로는 아래 다섯 묶음이 가장 손이 아프다.
@@ -52,6 +82,10 @@ projection과 transfer는 언어의 강점이지만, 지금 표면은 wiring-hea
    - named binding
    - exact slot kind
    - token pairing
+6. trust-signaling cluster
+   - compile-smoke covered example vs design sketch
+   - stable surface vs future surface
+   - currently closed subset vs long-term model
 
 즉 지금 가장 시급한 것은 "새 개념 추가"가 아니라,
 "이미 있는 개념 묶음의 반복 서술"을 압축하는 것이다.
@@ -330,6 +364,23 @@ Fix:
 - authority-bearing `intent step`의 missing `authorized by`는 inherited action zone 여부를 같이 보여준다.
 - transfer target / `using` mismatch도 같은 형식으로 올리는 중이다.
 
+### 2.11 trust-signaling compression
+
+이건 새 문법 추가가 아니라 사용자의 판단 비용을 줄이는 압축이다.
+
+원칙:
+
+- 모든 예제는 `compile-smoke covered` 또는 `design sketch`를 명시한다
+- README와 핵심 모델 문서는 "현재 닫힌 subset"을 먼저 말한다
+- long-term surface는 현재 surface와 같은 톤으로 서술하지 않는다
+
+실천 항목:
+
+- sketch example header 표준화
+- stable example 목록 고정
+- `own/ref`처럼 이름이 큰 축은 "현재 닫힌 구현 범위"를 먼저 설명
+- token split / nominal family도 "현재 stable interpretation"을 문서 첫머리에 명시
+
 ## 3. 우선순위
 
 ### P0
@@ -339,6 +390,10 @@ Fix:
 - transfer 축약 표면
 - domain-first diagnostics 개선
 - action/authority contract 중복 축약
+- surface trust 정리
+  - stable example vs sketch example 라벨 고정
+  - README / 핵심 모델 문서의 "현재 닫힌 subset" 우선 설명
+  - `own/ref` 기대 범위 축소 및 경계 명시
 
 ### P1
 
@@ -346,6 +401,9 @@ Fix:
 - lexical zone context
 - subject factory 표준화
 - scaffold/template 자동 생성
+- nominal family trust-signaling 정리
+  - `subject/class`
+  - `object/tobject/struct`
 
 ### P2
 
@@ -360,6 +418,7 @@ Fix:
 - authoring pressure는 surface compression으로 줄인다.
 - 반복 선언은 추론과 preset으로 줄인다.
 - diagnostics 품질을 제품 기능으로 끌어올린다.
+- surface trust는 기능 completeness와 별도 축으로 계속 관리한다.
 
 추가 결정:
 

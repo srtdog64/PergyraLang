@@ -134,6 +134,8 @@ open:
 
 resolved:
 - `HashMap<Int, V>`는 이제 실제로 C/LLVM 경로가 있다
+- mixed `ability + zone` module의 explicit export 판정은 실제 import/module smoke까지 닫혔다
+- `order_analytics`는 이제 compile-smoke covered example로 승격되었다
 
 open:
 - unsupported 조합은 parser acceptance가 아니라 explicit semantic error로 고정해야 한다

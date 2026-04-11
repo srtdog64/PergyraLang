@@ -183,6 +183,55 @@ Pergyra의 현재 pain point를 정리한다.
 - 예제는 항상 현재 권장 표면만 사용
 - obsolete 또는 transition surface는 문서 본문이 아니라 migration note로 격리
 
+### 1.5 surface trust 부채
+
+최근 가장 직접적으로 드러난 pain point다.
+
+사용자는 다음 셋을 구분할 수 있어야 한다.
+
+- 지금 바로 믿고 써도 되는 stable surface
+- smoke-covered subset이지만 범위가 제한된 surface
+- design sketch / aspirational demo
+
+이 구분이 흐려지면 "컴파일될 것처럼 보이지만 실제로는 안 되는" 좌절이 생긴다.
+
+대표 사례:
+
+- `HashMap<Int, V>`는 예전에는 문서/표면에 비해 실제 지원이 약했지만 지금은 정렬됐다
+- `party_system_demo`, `world_roster_city` 같은 예제는 여전히 설계 스케치인데 stable syntax reference처럼 읽히기 쉽다
+- `own/ref`는 단어만 보면 전체 ownership 시스템처럼 보이지만, 현재 닫힌 구현은 anchored subject-slot boundary subset이다
+
+필요한 방향:
+
+- 모든 예제에 `compile-smoke covered` / `design sketch` 라벨을 명시
+- README/문서가 "현재 닫힌 subset"을 먼저 말하게 하기
+- unsupported 조합은 조용한 acceptance가 아니라 explicit semantic error로 고정
+
+### 1.6 `own/ref`의 과잉 일반화 위험
+
+이건 문서와 사용자 기대 사이의 pain point다.
+
+`own` / `ref`라는 이름만 보면 사용자는 자연스럽게:
+
+- 일반 ownership/borrowing 모델
+- 모든 anchored handle에 열린 함수 경계 규칙
+- Rust류의 전면 소유권 규칙
+
+을 기대하게 된다.
+
+하지만 현재 실제 구현은 더 좁다.
+
+- `ref Slot<subject-host>`
+- `own SecureSlot<subject-host>`
+
+이 두 축이 semantic + backend + tests까지 닫힌 핵심 subset이다.
+
+필요한 방향:
+
+- `own/ref` 문서는 장기 비전보다 현재 닫힌 subset을 먼저 설명
+- diagnostics도 "일반 ownership이 아직 아니다"를 더 직접적으로 드러내기
+- `DeviceSlot<T>`, 일반 `Slot<T>`, `QubitSlot`까지 같은 경계 규칙이 열린 것처럼 보이는 예제 금지
+
 ## 2. 지금 가장 아픈 keyword family
 
 ### 2.1 declaration family
@@ -205,6 +254,43 @@ Pergyra의 현재 pain point를 정리한다.
 - 시작점이 무겁다
 - 작은 문제에도 존재론 선택 비용이 들어간다
 
+### 2.2 boundary clause family
+
+- `step`
+- `who`
+- `using`
+- `transfer`
+- `requires`
+- `authorized`
+- `by`
+- `within`
+- `causes`
+- `where`
+
+문제:
+
+- 이미 action/zone/authority에 있는 정보를 intent step에서 다시 쓰게 된다
+- 추론이 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
+- 진단이 inheritance/inference provenance를 더 직접적으로 보여주지 않으면 부담이 줄지 않는다
+
+### 2.3 trust-signaling family
+
+- `subject`
+- `class`
+- `object`
+- `tobject`
+- `ability`
+- `export`
+- `public`
+- `private`
+- `party`
+- `world`
+
+문제:
+
+- 문서, 예제, 구현이 같은 말을 하지 않으면 키워드 자체보다 "무엇을 믿어야 하는가"가 pain point가 된다
+- 이 가족은 의미론보다 trust-signaling 품질이 중요하다
+
 ## 3. 외부 리뷰 기준 현재 상태
 
 최근 받은 리뷰 중, 현재 코드와 대조했을 때 상태는 이렇게 정리된다.
@@ -222,14 +308,16 @@ Pergyra의 현재 pain point를 정리한다.
 - 현재는 `TOKEN_SUBJECT`, `TOKEN_CLASS`, `TOKEN_STRUCT`,
   `TOKEN_OBJECT`, `TOKEN_TOBJECT`로 분리됐다
 
-### 3.2 아직도 유효한 항목
+### 3.2 이미 해결된 항목
 
 1. effect clause token 처리 일관성 부족
 - 이건 과거엔 맞는 지적이었다
 - 현재는 `secure`, `remote`, `nondeterministic`, `collapse`, `local`
   전부 real token으로 정리됐다
 
-2. `parser_check_name_token()`의 광범위한 허용
+### 3.3 아직도 유효한 항목
+
+1. `parser_check_name_token()`의 광범위한 허용
 - declaration ergonomics를 위해 많은 declaration-grade token을 이름으로 허용한다
 - 다만 현재는
   - declaration name
@@ -237,6 +325,14 @@ Pergyra의 현재 pain point를 정리한다.
   - expression/member name
   으로 1차 분해가 들어갔다
 - 남은 pain point는 declaration 경계와 일부 alias surface 쪽이다
+
+2. sketch example과 stable example의 혼재
+- 일부 예제는 여전히 미래 표면을 보여 주는 design sketch다
+- 이 경계가 약하면 문법 pain point가 아니라 trust pain point가 된다
+
+3. `own/ref`의 기대 범위
+- 이름은 크지만 현재 닫힌 규칙은 anchored subject-slot boundary subset이다
+- 이 차이를 문서/진단/예제가 계속 드러내야 한다
 
 3. generic parser는 구조가 semantic보다 앞서 있는 부분이 있다
 - 지금은 `ability<T>`, `requires Ability<T>`, generic-aware satisfaction,

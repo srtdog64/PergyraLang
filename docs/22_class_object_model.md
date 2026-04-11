@@ -297,9 +297,8 @@ object Door {
 - participant는 subject와 병렬인 존재론적 계층이 아니다
 - participant는 simulation loop, mailbox, scheduler semantics가 붙은 subject의 실행 프로파일이다
 - 현재 semantic은 participant를 subject host로 취급하며, role binding, subject slot, `ToObject` / `ToTObject`, subject copy restriction에 participant를 포함한다
-- 현재 parser surface는 standalone `subject Counter { ... }`와 subject-first `subject Counter { ... }`를 모두 받는다
-- standalone `subject Counter { ... }`는 semantic warning과 함께 transitional syntax로 남아 있고, 권장 표면은 `subject Counter { ... }`다
-- 즉 장기 모델에서도 구현 상태에서도 `subject`보다 `subject`가 먼저다
+- 현재 parser/semantic의 권장 표면은 `subject Counter { ... }`다
+- 즉 장기 모델에서도 구현 상태에서도 `subject`가 코어 host surface다
 
 ### roster / world
 

@@ -24,6 +24,7 @@
 | **소유권** | [`docs/56_tobject_boundary_snapshot_policy.md`](docs/56_tobject_boundary_snapshot_policy.md) | `tobject` 전송 계약과 telemetry snapshot 분리 정책 |
 | **현황** | [`docs/63_feature_depth_matrix.md`](docs/63_feature_depth_matrix.md) | 기능별 depth 매트릭스와 상태 변경 기록 (파싱/시맨틱/MIR/C/LLVM/런타임/테스트) |
 | **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | empty cell 제거 중심의 depth filling 로드맵과 진행 기록 |
+| **현황** | [`docs/65_stable_example_surface_board.md`](docs/65_stable_example_surface_board.md) | stable example / design sketch 예제 경계와 source of truth |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |

@@ -1,6 +1,6 @@
 # Keyword Family Migration Board
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-11
 
 이 문서는 [`37_compiler_contracts.md`](./37_compiler_contracts.md)의 키워드 taxonomy와 매트릭스를 실제 구현 작업으로 연결하는 보드다.
 
@@ -53,14 +53,23 @@
 
 ## 4. Current Focus
 
-현재 착수 가족:
+현재 착수 주제:
 
-- `object / tobject / struct`
+- `surface trust / declaration-implementation alignment`
 
 이유:
 
-- 문서상 의미 구분은 중요하지만 구현상 struct-style 경로 공유가 아직 많다
-- projection contract, publish/refresh, backend migration, ABI discussion이 모두 이 축과 직접 연결된다
+- 최근 실제 회귀는 "새 키워드 추가"보다 "이미 된다고 말한 표면을 끝까지 믿을 수 있게 만드는가"에서 더 자주 발생했다
+- mixed `ability + zone` module export, `HashMap<Int, V>`, MIR cleanup topology, host method receiver typing처럼 구현 depth보다 표면 신뢰도가 더 중요한 항목이 드러났다
+- 키워드 가족 작업도 이제는 개별 기능 확장보다 "문서/semantic/backend/examples가 같은 말을 하게 만드는 것"이 우선이다
+
+이번 주기에서 닫힌 대표 항목:
+
+- `HashMap<Int, V>` 표면을 semantic/runtime/test로 정렬
+- default-export `ability`와 explicit export module 정책 충돌 제거
+- MIR cleanup/rollback/invalidation topology 회귀 복구
+- nominal host receiver type 오염으로 인한 C backend 오발행 복구
+- `order_analytics`를 sketch가 아니라 compile-smoke covered example로 승격
 
 ## 5. `object / tobject / struct` 상세 비대칭 표
 

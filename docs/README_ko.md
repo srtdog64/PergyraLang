@@ -163,6 +163,10 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 | `DeviceSlot<T>` | 디바이스/가속기 자원 | anchored handle: device read/write/submit/release |
 | `QubitSlot` | 양자 큐비트 | movable handle: 복사 금지, partial quantum surface 위에서 move/measure/entangle 표면 제공 |
 
+현재 `own/ref` 함수 경계 규칙은 일반 자원 전체에 열린 것이 아닙니다.
+직접 확인 가능한 안정 범위는 `ref Slot<subject-host>` / `own SecureSlot<subject-host>` 입니다.
+즉 `own/ref`는 현재 "전체 ownership 시스템"이라기보다 anchored subject-slot boundary subset입니다.
+
 | 연산 | 설명 |
 |------|------|
 | `ClaimSlot<T>()` | 자원 점유 |

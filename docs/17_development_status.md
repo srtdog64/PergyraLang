@@ -234,8 +234,7 @@
 - partial 완료: `Box<class>` explicit handle surface (`BoxGet/BoxSet/BoxDrop/BoxIsValid`)
 - partial 완료: `subject` vs `class` lowering/runtime split의 첫 단계 (`subject=self-cell`, `class=value self`)
 - partial 완료: `subject`를 코어 host로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
-- partial 완료: `subject Name { ... }` subject-first surface
-- partial 완료: standalone `subject Name { ... }`를 transitional syntax로 경고
+- partial 완료: `subject Name { ... }`를 코어 host surface로 고정
 - partial 완료: plain `Slot<subject-host>` / secure `SecureSlot<subject-host>` local object-cell anchor
 - partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)

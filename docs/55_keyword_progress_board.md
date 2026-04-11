@@ -26,7 +26,7 @@
 | `type` | 85% | alias 표면 안정, richer tooling은 남음 |
 | `ability` | 95% | 기본 공개 계약으로 정렬됨, `private ability`는 숨김 surface로 동작, generic declaration + `where` surface + generic impl/requires satisfaction 지원, `export ability`는 중복 표기 |
 | `role` | 85% | ability 구현과 where 일부 연결 |
-| `party` | 80% | domain 축은 살아 있으나 코어성은 재평가 여지 |
+| `party` | 80% | core subset은 있으나 advanced collaboration demos는 아직 sketch 성격이 남음 |
 | `channel` | 90% | runtime/select/backpressure surface 연결 |
 | `import` | 90% | 모듈 표면 안정 |
 | `use` | 88% | stdlib merge, duplicate use warning, known stdlib module contract, `use datetime;` exported surface 회귀, imported ability/module visibility 계약 일부 반영 |
@@ -81,7 +81,7 @@
 | `effect` | 95% | closure + join/meet API + partial-order compare/conflict API, authority/resource helper, contract check, branch/match/disjoint-branch join 회귀까지 반영, richer authority/resource 통합 partial order는 일부 남음 |
 | `zone` | 85% | core execution/authority boundary |
 | `roster` | 90% | `systemic` 제거 후 일관화 완료 |
-| `world` | 85% | cross-zone orchestration 경계 |
+| `world` | 85% | cross-zone orchestration 경계는 실구현, 일부 fuller hierarchy demos는 아직 sketch |
 | `event` | 80% | surface와 codegen 연결 |
 | `action` | 90% | subject 공적 동사로 정렬 |
 | `intent` | 90% | 1급 orchestration core |

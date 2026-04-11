@@ -1,6 +1,6 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-11
 
 ## 완료 (최근)
 
@@ -8,6 +8,11 @@
 - [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
 - [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
 - [x] **Documentation Index** — `docs/INDEX.md` 생성, 전체 문서 체계화
+- [x] **`HashMap<Int, V>` surface trust 정렬** — semantic annotation/builtins/runtime comment/test를 `String | Int` key 지원으로 일치시킴
+- [x] **mixed `ability + zone` module export 충돌 수정** — default-export `ability`가 sibling zone visibility를 깨뜨리던 정규화 버그 제거, module smoke 회귀 추가
+- [x] **nominal host receiver type 오염 수정** — C backend member-call emit 중 static type-name overwrite를 제거해 `Int_Advance`류 오발행 복구
+- [x] **MIR cleanup exceptional topology 회귀 복구** — cleanup/rollback/invalidation block edge materialization과 test expectation 정렬
+- [x] **`order_analytics` example 실전화** — sketch 수준 surface를 정리하고 compile-smoke covered example로 승격
 
 ## 완료 (P0 — 즉시 수정)
 

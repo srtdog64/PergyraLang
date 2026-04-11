@@ -16,6 +16,19 @@ Pergyra는 이종 자원(메모리, GPU, 네트워크, 양자)을 같은 Slot �
 
 ---
 
+## 현재 구현에서 먼저 믿어도 되는 규칙
+
+`own/ref`는 장기적으로는 더 넓은 ownership vocabulary를 지향하지만,
+**현재 컴파일러에서 실사용 가능하게 닫힌 범위는 더 좁다.**
+
+오늘 기준으로 안정적으로 믿어도 되는 표면은 다음이다.
+
+- `ref Slot<subject-host>`
+- `own SecureSlot<subject-host>`
+- 이 둘의 helper forwarding / return-escape / channel-send escape 차단 규칙
+
+즉 이 문서는 "장기 ownership 비전"보다 **현재 닫힌 boundary subset**을 우선 설명한다.
+
 ## 기본 규칙
 
 ### 1. 대입은 move
@@ -35,22 +48,28 @@ let a: Slot<Int> = 42;
 let b: Slot<Int> = Clone(a);  // 새 Slot에 값 복사, a 여전히 유효
 ```
 
-### 3. 함수 인수: own / ref
+### 3. 함수 인수: `own / ref`는 현재 anchored subject-slot boundary에 한정
+
+다음 예시는 **현재 바로 믿어도 되는 구현 범위**로 바꿔 읽어야 한다.
 
 ```pergyra
-func Upload(own tex: Slot<Texture>) -> Void {
-    // tex의 소유권을 가져옴 — 호출자의 원본 무효
+subject Session {
+    let id: Int;
 }
 
-func Render(ref tex: Slot<Texture>) -> Void {
-    // tex를 빌려봄 — 호출자의 원본 유효
+func Inspect(ref s: Slot<Session>) -> Void {
+    Log(Read(s).id);
 }
 
-let t: Slot<Texture> = ClaimSlot<Texture>();
+func Revoke(own s: SecureSlot<Session>) -> Void {
+    Release(s);
+}
 
-Render(t);      // ref — t 여전히 유효
-Upload(t);      // own — t 이후 무효
-Log(Read(t));   // 컴파일 에러
+let live: Slot<Session> = ClaimSlot<Session>();
+let secured: SecureSlot<Session> = ClaimSecureSlot<Session>();
+
+Inspect(live);       // ref boundary
+Revoke(secured);     // own boundary
 ```
 
 현재 구현 상태는 이 규칙의 전체 일반화가 아니라 일부 닫힌 상태다.
@@ -60,6 +79,7 @@ Log(Read(t));   // 컴파일 에러
 - 여기서 `subject-host`는 `subject`를 뜻한다
 - `Slot<Int>`, `SecureSlot<String>`, `DeviceSlot<T>` 같은 다른 anchored handle은 아직 local-only다
 - 경계 전달 구현은 semantic + C backend + LLVM 경로까지 닫혔다
+- 일반 anchored handle에 `own/ref`를 붙이면 컴파일러는 명시 오류를 낸다
 
 ### 4. Release는 항상 명시적
 
@@ -73,31 +93,18 @@ Release(s);     // 자원 반환 — 항상 소유자가 직접 호출
 
 | 수식자 | 의미 | 호출 후 원본 |
 |--------|------|-------------|
-| `own` | 소유권 이전 (move) | **무효** |
-| `ref` | 빌려봄 (borrow) | 유효 |
-| (없음) | 값 타입은 복사, Slot 타입은 move | 타입에 따라 |
+| `own` | 현재는 `SecureSlot<subject-host>` 경계 이전에 대해 닫힘 | **무효** |
+| `ref` | 현재는 `Slot<subject-host>` 경계 borrow에 대해 닫힘 | 유효 |
+| (없음) | 일반 값/로컬 anchored handle 규칙 | 타입에 따라 |
 
 ```pergyra
-// GPU 텍스처
-func Upload(own tex: Slot<Texture>) -> Void { ... }   // GPU로 이전
-func Render(ref tex: Slot<Texture>) -> Void { ... }   // 읽기만
-
-// 네트워크 세션
-func Send(ref session: Slot<Session>, data: String) -> Void { ... }
-func Close(own session: Slot<Session>) -> Void { ... }  // 세션 종료
-
-// 양자 큐비트
-func Measure(own q: QubitSlot) -> Int { ... }           // 측정 후 소멸
-func Inspect(ref q: QubitSlot) -> Int { ... }           // 상태 확인만
-
-// 보안 토큰
-func Validate(ref key: SecureSlot<Key>) -> Bool { ... }
-func Revoke(own key: SecureSlot<Key>) -> Void { ... }   // 토큰 폐기
+// 현재 닫힌 boundary subset
+func Borrow(ref session: Slot<Session>) -> Void { ... }
+func Forward(own session: SecureSlot<Session>) -> Void { ... }
 ```
 
-GPU 개발자든 네트워크 개발자든 함수 시그니처만 보면
-**"이 자원이 어떻게 되는가"**를 알 수 있다.
-숨겨진 복사도, 모르는 사이의 이동도 없다.
+장기적으로는 더 넓은 자원 축으로 확장할 수 있지만,
+**현재 문서/테스트/코드젠이 함께 닫힌 범위는 subject-host anchored slot boundary다.**
 
 ---
 
@@ -113,9 +120,13 @@ GPU 개발자든 네트워크 개발자든 함수 시그니처만 보면
 | **`ref` 파라미터** | 함수 경계에서의 borrow |
 | **`Clone()`** | 명시적 값 복사 |
 
-`own`/`ref`는 View 시스템의 함수 경계 확장이다.
-`ref`로 받으면 내부적으로 ReadView처럼 동작하고,
-`own`으로 받으면 MoveToken처럼 소유권이 이전된다.
+`own`/`ref`는 현재 View 시스템의 함수 경계 확장 중에서도
+**subject-host anchored slot boundary에 대해 닫힌 subset**이다.
+
+- `ref Slot<subject-host>`는 borrowed anchored handle처럼 동작한다
+- `own SecureSlot<subject-host>`는 moved secure anchored handle처럼 동작한다
+- return escape / channel send / rebinding / aliasing은 모두 보수적으로 차단된다
+- 일반 `Slot<T>` 전반이나 `DeviceSlot<T>` / `QubitSlot` 전체에 대해 같은 규칙이 열린 것은 아니다
 
 ---
 
@@ -161,6 +172,10 @@ C++에서는 `&&`, `const&`, `*`, `unique_ptr`, `shared_ptr`이 난립하고,
 Go에서는 값 전달인지 포인터 전달인지 암묵적이고,
 Python에서는 모든 게 참조인데 뭐가 공유되는지 안 보인다.
 
-Pergyra는 **두 단어로 끝낸다: `own`과 `ref`.**
+현재 구현 기준으로는 아직 그렇게 말하면 과장이다.
 
-모든 도메인의 모든 자원에 대해, 이 두 단어가 전달 규칙을 완전히 설명한다.
+더 정확한 표현은 이렇다:
+
+- Pergyra는 `own` / `ref`를 boundary vocabulary로 채택했다
+- 하지만 현재 완전히 닫힌 규칙은 `Slot<subject-host>` / `SecureSlot<subject-host>` 경계 subset이다
+- 나머지 자원 축은 동일 vocabulary로 넓혀 가는 중이다
