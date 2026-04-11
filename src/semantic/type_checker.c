@@ -514,6 +514,15 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
         return type_create_constructed(TYPE_HASHMAP, args, 2);
     }
 
+    if (strcmp(name, "Set") == 0
+        && node->data.type.generic_args != NULL
+        && node->data.type.generic_args->count == 1) {
+        Type *inner = resolve_generic_type_arg(
+            node->data.type.generic_args->params[0], ctx, node);
+        Type *args[1] = { inner };
+        return type_create_constructed(TYPE_SET, args, 1);
+    }
+
     if (strcmp(name, "Array") == 0 || strcmp(name, "Slice") == 0
         || strcmp(name, "List") == 0 || strcmp(name, "Queue") == 0
         || strcmp(name, "Box") == 0 || strcmp(name, "Rc") == 0

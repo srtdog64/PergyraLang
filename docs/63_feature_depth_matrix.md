@@ -25,7 +25,7 @@
 - 기존 "넓지만 얕다" 초안을 실제 코드 기준 depth matrix로 재작성
 - `파싱/시맨틱/C/LLVM`만 보던 표를 `MIR/하강`, `런타임`, `테스트`까지 확장
 - `Intent`, `Zone`, `Channel`, `Slot`은 최근 구현 상태를 반영해 상향 판정
-- `Event semantic`, `Set/Map/List`, `World LLVM`, `relation/effect/projection`을 핵심 depth gap으로 재고정
+- `Event semantic`, `Set/Map/List`, `runtime observability`, `relation/effect/projection`을 핵심 depth gap으로 재고정
 - tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
 
 이번 문서의 의도:
@@ -45,7 +45,7 @@
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
 | `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션은 강함, 런타임 기록계층은 얇음 |
 | `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 컴파일 타임 계약은 강함, 런타임 world/transaction 계층은 얇음 |
-| `World` | ✅ | ✅ | ✅ | ✅ | ◐ | ◐ | ◐ | 중간 | C 경로는 괜찮고 LLVM 쪽 debt가 남음 |
+| `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM smoke는 검증됨, 남은 것은 구조 debt와 observability |
 | `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ◐ | 중간 | surface와 핵심 연결은 있으나 lattice/authority 통합은 미완 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
 | `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
@@ -168,12 +168,12 @@ World는 "없다"라고 말할 정도는 아니지만, 가장 자신 있게 완�
 
 현재 상태:
 - parser/semantic/C 쪽은 존재
-- LLVM 쪽은 동작 경로가 있으나 debt가 남는다
+- LLVM 쪽도 world 전용 smoke 범위에서 검증됐다
 - runtime은 zone 메커니즘에 많이 기대고 있다
 
 판정:
-- world는 `C에서는 중상`, `LLVM에서는 중간` 정도로 보는 것이 맞다.
-- "완전 미구현"이라고 말하면 틀리고, "분리와 검증이 덜 닫힌 상태"라고 보는 게 정확하다.
+- world는 `C/LLVM 모두 중상` 정도로 보는 것이 맞다.
+- 실제 debt는 "동작 안 함"이 아니라 "MIR-led 구조 정리와 observability가 덜 닫힘" 쪽이다.
 
 ### 2.9 relation / effect / projection
 
@@ -217,7 +217,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 실제 gap:
 - semantic validation이 약했고, 이번에 1차 closure를 시작했다.
 - runtime이 별도 독립 subsystem이라기보다 generated helper 중심이라 설명력이 약했다.
-- parser가 직접 만드는 invoke surface와 direct `AST_EVENT_INVOKE` 경로의 정합성은 더 점검이 필요하다.
+- parser surface는 `OnEvent(x)`를 일반 `AST_CALL`로 파싱하고, `AST_EVENT_INVOKE`는 내부 carrier 성격이 더 강하다.
 
 판정:
 - event는 더 이상 "surface만 있다" 수준은 아니다.
@@ -255,11 +255,11 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 한 줄 요약:
 
 > PergyraLang은 더 이상 단순 parser project는 아니다.
-> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List semantic`, `World LLVM`, `effect/projection` 쪽에 빈 칸이 남아 있다.
+> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List semantic`, `runtime observability`, `effect/projection` 쪽에 빈 칸이 남아 있다.
 
 조금 더 정확히 말하면:
 - 코어 언어, slot, channel, intent/zone 일부는 이미 "깊은 축"이다.
-- world, relation/effect, generic contract, event는 "중간 축"이다.
+- world, relation/effect, generic contract, event는 "중간 이상 축"이다.
 - collections는 "중간 축", debugger는 "얕은 축" 또는 "부재 축"이다.
 
 ---
@@ -271,7 +271,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 지금 즉시 depth를 채워야 하는 축:
 - `Event semantic`
 - `Set/Map/List`
-- `World`의 LLVM closure
+- `runtime silent fallback / observability`
  
 이 중 `Set/Map/List`는 이제 "LLVM 자체 부재"보다 "semantic/coverage 부족" 쪽이 더 정확한 평가다.
 
@@ -318,11 +318,11 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Channel/select`: `중상`에서 `깊음` 쪽으로 정리
 - `Intent`: 단순 thin 기능이 아니라 `compile path 강함 + runtime thin`으로 정정
 - `Zone`: debug-only placeholder 평가를 제거하고 `runtime contract 일부 실체화`로 정정
-- `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM debt 잔존`으로 정정
+- `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM smoke 검증 + 구조 debt 잔존`으로 정정
 - `Event`: `LLVM/runtime 부재` 평가를 제거하고 `semantic closure 부족` 중심으로 정정
 - `Set/Map/List`: `LLVM 부재` 평가를 제거하고 `semantic/coverage 부족` 중심으로 정정
 
 새 기준선:
-- P0는 `Event semantic`, `Set/Map/List semantic`, `World LLVM`
+- P0는 `Event semantic`, `Set/Map/List semantic`, `runtime fallback/observability`
 - P1은 `ability/require/use`, `relation/effect/projection`, `observability`
 - P2는 `tooling`과 `authoring shorthand`

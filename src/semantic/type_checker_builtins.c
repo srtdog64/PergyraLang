@@ -1092,9 +1092,17 @@ builtin_resolve(const char *name)
     if (strcmp(name, "IntentActiveCount") == 0) return BUILTIN_INTENT_ACTIVE_COUNT;
     if (strcmp(name, "IntentActiveName") == 0) return BUILTIN_INTENT_ACTIVE_NAME;
     if (strcmp(name, "IntentActiveHandle") == 0) return BUILTIN_INTENT_ACTIVE_HANDLE;
+    if (strcmp(name, "IntentActiveParentHandle") == 0)
+        return BUILTIN_INTENT_ACTIVE_PARENT_HANDLE;
     if (strcmp(name, "IntentActiveTraceId") == 0) return BUILTIN_INTENT_ACTIVE_TRACE_ID;
     if (strcmp(name, "IntentActivePriority") == 0) return BUILTIN_INTENT_ACTIVE_PRIORITY;
+    if (strcmp(name, "IntentActiveSubjectCount") == 0)
+        return BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT;
+    if (strcmp(name, "IntentActiveStepCount") == 0)
+        return BUILTIN_INTENT_ACTIVE_STEP_COUNT;
     if (strcmp(name, "IntentActiveConcurrent") == 0) return BUILTIN_INTENT_ACTIVE_CONCURRENT;
+    if (strcmp(name, "IntentActiveFailed") == 0) return BUILTIN_INTENT_ACTIVE_FAILED;
+    if (strcmp(name, "IntentActiveFailure") == 0) return BUILTIN_INTENT_ACTIVE_FAILURE;
     if (strcmp(name, "IntentActiveTrace") == 0) return BUILTIN_INTENT_ACTIVE_TRACE;
     return BUILTIN_NOT_BUILTIN;
 }
@@ -3131,6 +3139,11 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_PARENT_HANDLE:
+        check_call_arity(call, 1, "IntentActiveParentHandle", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
     case BUILTIN_INTENT_ACTIVE_TRACE_ID:
         check_call_arity(call, 1, "IntentActiveTraceId", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
@@ -3141,11 +3154,31 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT:
+        check_call_arity(call, 1, "IntentActiveSubjectCount", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_ACTIVE_STEP_COUNT:
+        check_call_arity(call, 1, "IntentActiveStepCount", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
     case BUILTIN_INTENT_ACTIVE_CONCURRENT:
         check_call_arity(call, 1, "IntentActiveConcurrent", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_BOOL;
+    case BUILTIN_INTENT_ACTIVE_FAILED:
+        check_call_arity(call, 1, "IntentActiveFailed", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
+    case BUILTIN_INTENT_ACTIVE_FAILURE:
+        check_call_arity(call, 1, "IntentActiveFailure", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
     case BUILTIN_INTENT_ACTIVE_TRACE:
         check_call_arity(call, 1, "IntentActiveTrace", ctx);
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),

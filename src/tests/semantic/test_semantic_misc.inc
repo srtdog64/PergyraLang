@@ -2860,9 +2860,14 @@ test_misc_grammar_edges(void)
             "    Log(ToString(IntentActiveCount()));\n"
             "    Log(IntentActiveName(0));\n"
             "    Log(ToString(IntentActiveHandle(0)));\n"
+            "    Log(ToString(IntentActiveParentHandle(0)));\n"
             "    Log(ToString(IntentActiveTraceId(0)));\n"
             "    Log(ToString(IntentActivePriority(0)));\n"
+            "    Log(ToString(IntentActiveSubjectCount(0)));\n"
+            "    Log(ToString(IntentActiveStepCount(0)));\n"
             "    Log(ToString(IntentActiveConcurrent(0)));\n"
+            "    Log(ToString(IntentActiveFailed(0)));\n"
+            "    Log(IntentActiveFailure(0));\n"
             "    Log(IntentActiveTrace(0));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

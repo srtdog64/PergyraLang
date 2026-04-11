@@ -1134,6 +1134,71 @@ pgy_intent_active_trace_export(int32_t index)
     return result;
 }
 
+static inline int32_t
+pgy_intent_active_parent_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->parent_handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_subject_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->subject_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_active_step_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->step_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline bool
+pgy_intent_active_failed_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->failed;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_active_failure_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->failure_reason != NULL)
+        result = entry->failure_reason;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
 static inline void
 pgy_intent_exit_export(int32_t handle)
 {

@@ -24,6 +24,8 @@
 - subject/class dispatch
 - projection / relation / effect sync
 - zone/world runtime mutation
+- world cross-query / derived state / composed state
+- generic collection runtime path (`List/Set/Queue/HashMap`)
 - select / cancel / async block
 
 즉 다음 주장은 현재 로컬 상태와 맞지 않는다.
@@ -69,6 +71,7 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 
 - party/vtable dispatch의 hardcoded arg type debt는 제거됐다
 - 남은 debt는 domain declaration emission과 intent/domain 내부의 일부 AST-assisted 해석 쪽이다
+- collections도 LLVM 경로 자체는 있으나, semantic/type exactness와 coverage 균형이 아직 완전히 닫히지 않았다
 
 근거:
 
@@ -96,6 +99,8 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 | subject method / dispatch | `llvm-smoke`에서 직접 PASS |
 | nested call | `llvm-smoke`에서 직접 PASS |
 | world/zone runtime | `llvm-smoke`에서 직접 PASS |
+| world cross-query / derived / composed state | `llvm-smoke`에서 직접 PASS |
+| generic collections (`List/Set/Queue/HashMap`) | `llvm-smoke` 경로 존재, semantic/coverage debt 잔존 |
 | top-level executable main-wrapper | synthetic executable MIR routine + `llvm-smoke` / `test-abi` 통과 |
 
 결론:

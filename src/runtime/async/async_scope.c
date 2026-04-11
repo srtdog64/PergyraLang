@@ -9,16 +9,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 #include "async_scope.h"
 #include "scheduler.h"
 
 /* Initial capacity for fiber list */
 #define INITIAL_FIBER_CAPACITY 16
 
+static void
+async_scope_warn(const char* op, const char* reason, AsyncScope* scope)
+{
+    fprintf(stderr,
+        "[pgy][async_scope] %s failed: %s (scope=%p)\n",
+        op != NULL ? op : "operation",
+        reason != NULL ? reason : "unknown",
+        (void*)scope);
+}
+
 AsyncScope* AsyncScopeCreate(AsyncScope* parent)
 {
     AsyncScope* scope = (AsyncScope*)calloc(1, sizeof(AsyncScope));
     if (scope == NULL) {
+        async_scope_warn("create", "scope allocation failed", parent);
         return NULL;
     }
     
@@ -26,6 +38,7 @@ AsyncScope* AsyncScopeCreate(AsyncScope* parent)
     scope->fiberCapacity = INITIAL_FIBER_CAPACITY;
     scope->fibers = (Fiber**)calloc(scope->fiberCapacity, sizeof(Fiber*));
     if (scope->fibers == NULL) {
+        async_scope_warn("create", "fiber list allocation failed", parent);
         free(scope);
         return NULL;
     }
@@ -92,6 +105,8 @@ static void AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
         if (newFibers != NULL) {
             scope->fibers = newFibers;
             scope->fiberCapacity = newCapacity;
+        } else {
+            async_scope_warn("add_fiber", "fiber list growth failed", scope);
         }
     }
     
@@ -173,17 +188,26 @@ Fiber* AsyncScopeSpawn(AsyncScope* scope, FiberStartRoutine work, void* arg)
 Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, void* arg, uint32_t priority)
 {
     if (scope == NULL || work == NULL || scope->isDisposed) {
+        if (scope == NULL) {
+            async_scope_warn("spawn", "scope is null", scope);
+        } else if (work == NULL) {
+            async_scope_warn("spawn", "work routine is null", scope);
+        } else {
+            async_scope_warn("spawn", "scope is disposed", scope);
+        }
         return NULL;
     }
     
     /* Check if already cancelled */
     if (AsyncScopeIsCancelled(scope)) {
+        async_scope_warn("spawn", "scope is cancelled", scope);
         return NULL;
     }
     
     /* Create wrapper data */
     ScopedFiberData* data = (ScopedFiberData*)malloc(sizeof(ScopedFiberData));
     if (data == NULL) {
+        async_scope_warn("spawn", "wrapper allocation failed", scope);
         return NULL;
     }
     
@@ -194,6 +218,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     /* Get current scheduler */
     Scheduler* scheduler = SchedulerGetCurrent();
     if (scheduler == NULL) {
+        async_scope_warn("spawn", "no current scheduler", scope);
         free(data);
         return NULL;
     }
@@ -201,6 +226,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     /* Create fiber through scheduler */
     Fiber* fiber = FiberCreate(ScopedFiberWrapper, data);
     if (fiber == NULL) {
+        async_scope_warn("spawn", "fiber creation failed", scope);
         free(data);
         return NULL;
     }
@@ -291,6 +317,9 @@ bool AsyncScopeWaitAllWithTimeout(AsyncScope* scope, uint64_t timeoutNs)
     if (scope == NULL) {
         return true;
     }
+    if (timeoutNs == 0) {
+        async_scope_warn("wait_timeout", "timeout is zero", scope);
+    }
     
     struct timespec start, now;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -310,6 +339,8 @@ bool AsyncScopeWaitAllWithTimeout(AsyncScope* scope, uint64_t timeoutNs)
                             (now.tv_nsec - start.tv_nsec);
         
         if (elapsedNs >= timeoutNs) {
+            async_scope_warn("wait_timeout", "deadline reached before all fibers completed",
+                scope);
             return false; /* Timeout */
         }
         

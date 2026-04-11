@@ -22,6 +22,16 @@ static struct {
 
 static size_t g_schedulerCount = 0;
 
+static void
+party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* name)
+{
+    fprintf(stderr,
+        "[pgy][party] scheduler registration failed: %s (tag=%d, name=%s)\n",
+        reason != NULL ? reason : "unknown",
+        (int)tag,
+        name != NULL ? name : "<null>");
+}
+
 /* Fiber map cache */
 FiberMapCache* g_fiberMapCache = NULL;
 
@@ -433,13 +443,41 @@ DispatchResult DispatchParallel(
 
 bool RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
 {
-    if (g_schedulerCount >= 16) return false;
-    
+    if (name == NULL || name[0] == '\0') {
+        party_runtime_warn_scheduler("name is null or empty", tag, name);
+        return false;
+    }
+    if (scheduler == NULL) {
+        party_runtime_warn_scheduler("scheduler pointer is null", tag, name);
+        return false;
+    }
+    for (size_t i = 0; i < g_schedulerCount; i++) {
+        if (g_schedulerRegistry[i].tag == tag) {
+            party_runtime_warn_scheduler("duplicate scheduler tag", tag, name);
+            return false;
+        }
+        if (g_schedulerRegistry[i].name != NULL
+            && strcmp(g_schedulerRegistry[i].name, name) == 0) {
+            party_runtime_warn_scheduler("duplicate scheduler name", tag, name);
+            return false;
+        }
+    }
+    if (g_schedulerCount >= 16) {
+        party_runtime_warn_scheduler("registry is full", tag, name);
+        return false;
+    }
+
+    char* owned_name = strdup(name);
+    if (owned_name == NULL) {
+        party_runtime_warn_scheduler("name allocation failed", tag, name);
+        return false;
+    }
+
     g_schedulerRegistry[g_schedulerCount].tag = tag;
-    g_schedulerRegistry[g_schedulerCount].name = strdup(name);
+    g_schedulerRegistry[g_schedulerCount].name = owned_name;
     g_schedulerRegistry[g_schedulerCount].scheduler = scheduler;
     g_schedulerCount++;
-    
+
     return true;
 }
 

@@ -61,6 +61,14 @@ pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t cou
             op != NULL ? op : "<op>", (int)index, (int)count);
 }
 
+static void
+pgy_runtime_warn_invalid_collection(const char *op, const char *reason)
+{
+    fprintf(stderr, "[pgy][collection] %s: %s\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "invalid collection operation");
+}
+
 static bool
 pgy_runtime_path_is_absolute(const char *path)
 {
@@ -553,8 +561,14 @@ void
 pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
-    if (list == NULL || elem_size <= 0)
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_new", "null list");
         return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("list_new", "non-positive element size");
+        return;
+    }
     list->capacity = 16;
     list->count = 0;
     list->data = calloc((size_t)list->capacity, (size_t)elem_size);
@@ -565,13 +579,25 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     char *dst;
-    if (list == NULL || value_ptr == NULL || elem_size <= 0)
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_push", "null list");
         return;
+    }
+    if (value_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("list_push", "null value");
+        return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("list_push", "non-positive element size");
+        return;
+    }
     if (list->count >= list->capacity) {
         size_t new_capacity = list->capacity == 0 ? 16 : list->capacity * 2;
         void *grown = realloc(list->data, new_capacity * (size_t)elem_size);
-        if (grown == NULL)
+        if (grown == NULL) {
+            pgy_runtime_warn_invalid_collection("list_push", "realloc failed");
             return;
+        }
         list->data = grown;
         list->capacity = new_capacity;
     }
@@ -584,10 +610,23 @@ void
 pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
-    if (out_ptr == NULL || elem_size <= 0) return;
-    memset(out_ptr, 0, (size_t)elem_size);
-    if (list == NULL || index < 0 || (size_t)index >= list->count)
+    if (out_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("list_get", "null output");
         return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("list_get", "non-positive element size");
+        return;
+    }
+    memset(out_ptr, 0, (size_t)elem_size);
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_get", "null list");
+        return;
+    }
+    if (index < 0 || (size_t)index >= list->count) {
+        pgy_runtime_warn_invalid_collection("list_get", "index out of bounds");
+        return;
+    }
     memcpy(out_ptr,
            (char *)list->data + ((size_t)index * (size_t)elem_size),
            (size_t)elem_size);
@@ -597,10 +636,22 @@ void
 pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
-    if (list == NULL || value_ptr == NULL || elem_size <= 0)
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_set", "null list");
         return;
-    if (index < 0 || (size_t)index >= list->count)
+    }
+    if (value_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("list_set", "null value");
         return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("list_set", "non-positive element size");
+        return;
+    }
+    if (index < 0 || (size_t)index >= list->count) {
+        pgy_runtime_warn_invalid_collection("list_set", "index out of bounds");
+        return;
+    }
     memcpy((char *)list->data + ((size_t)index * (size_t)elem_size),
            value_ptr, (size_t)elem_size);
 }
@@ -609,8 +660,10 @@ int32_t
 pgy_list_size_raw_export(void *list_ptr)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
-    if (list == NULL)
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_size", "null list");
         return 0;
+    }
     return (int32_t)list->count;
 }
 
@@ -619,10 +672,18 @@ pgy_list_remove_raw_export(void *list_ptr, int32_t index, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
     size_t tail_count;
-    if (list == NULL || elem_size <= 0)
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_remove", "null list");
         return;
-    if (index < 0 || (size_t)index >= list->count)
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("list_remove", "non-positive element size");
         return;
+    }
+    if (index < 0 || (size_t)index >= list->count) {
+        pgy_runtime_warn_invalid_collection("list_remove", "index out of bounds");
+        return;
+    }
     tail_count = list->count - (size_t)index - 1;
     if (tail_count > 0) {
         memmove((char *)list->data + ((size_t)index * (size_t)elem_size),
@@ -636,8 +697,14 @@ void
 pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
-    if (queue == NULL || elem_size <= 0)
+    if (queue == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_new", "null queue");
         return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("queue_new", "non-positive element size");
+        return;
+    }
     queue->capacity = 16;
     queue->head = 0;
     queue->tail = 0;
@@ -649,13 +716,25 @@ void
 pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
-    if (queue == NULL || value_ptr == NULL || elem_size <= 0)
+    if (queue == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_push", "null queue");
         return;
+    }
+    if (value_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_push", "null value");
+        return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("queue_push", "non-positive element size");
+        return;
+    }
     if (queue->count >= queue->capacity) {
         size_t new_capacity = queue->capacity == 0 ? 16 : queue->capacity * 2;
         void *new_data = calloc(new_capacity, (size_t)elem_size);
-        if (new_data == NULL)
+        if (new_data == NULL) {
+            pgy_runtime_warn_invalid_collection("queue_push", "allocation failed");
             return;
+        }
         for (size_t i = 0; i < queue->count; i++) {
             memcpy((char *)new_data + (i * (size_t)elem_size),
                    (char *)queue->data + (((queue->head + i) % queue->capacity) * (size_t)elem_size),
@@ -677,10 +756,23 @@ void
 pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
-    if (out_ptr == NULL || elem_size <= 0) return;
-    memset(out_ptr, 0, (size_t)elem_size);
-    if (queue == NULL || queue->count == 0)
+    if (out_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_pop", "null output");
         return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("queue_pop", "non-positive element size");
+        return;
+    }
+    memset(out_ptr, 0, (size_t)elem_size);
+    if (queue == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_pop", "null queue");
+        return;
+    }
+    if (queue->count == 0) {
+        pgy_runtime_warn_invalid_collection("queue_pop", "empty queue");
+        return;
+    }
     memcpy(out_ptr,
            (char *)queue->data + (queue->head * (size_t)elem_size),
            (size_t)elem_size);
@@ -692,8 +784,10 @@ int32_t
 pgy_queue_size_raw_export(void *queue_ptr)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
-    if (queue == NULL)
+    if (queue == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_size", "null queue");
         return 0;
+    }
     return (int32_t)queue->count;
 }
 
@@ -701,6 +795,8 @@ bool
 pgy_queue_empty_raw_export(void *queue_ptr)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    if (queue == NULL)
+        pgy_runtime_warn_invalid_collection("queue_empty", "null queue");
     return queue == NULL || queue->count == 0;
 }
 
@@ -708,8 +804,14 @@ void
 pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
 {
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
-    if (map == NULL || value_size <= 0)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_new", "null map");
         return;
+    }
+    if (value_size <= 0) {
+        pgy_runtime_warn_invalid_collection("map_new", "non-positive value size");
+        return;
+    }
     map->capacity = 16;
     map->count = 0;
     map->keys = (char **)calloc(map->capacity, sizeof(char *));
@@ -757,8 +859,22 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
 {
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
     uint32_t h;
-    if (map == NULL || key == NULL || value_ptr == NULL || value_size <= 0)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "null map");
         return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "null key");
+        return;
+    }
+    if (value_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "null value");
+        return;
+    }
+    if (value_size <= 0) {
+        pgy_runtime_warn_invalid_collection("map_set", "non-positive value size");
+        return;
+    }
     if ((double)map->count / (double)map->capacity > 0.75)
         pgy_map_grow_raw_export(map, value_size);
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
@@ -783,9 +899,24 @@ pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t va
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
     uint32_t h;
     size_t probes = 0;
-    if (out_ptr == NULL || value_size <= 0) return;
+    if (out_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get", "null output");
+        return;
+    }
+    if (value_size <= 0) {
+        pgy_runtime_warn_invalid_collection("map_get", "non-positive value size");
+        return;
+    }
     memset(out_ptr, 0, (size_t)value_size);
-    if (map == NULL || key == NULL || map->count == 0)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get", "null map");
+        return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get", "null key");
+        return;
+    }
+    if (map->count == 0)
         return;
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
@@ -806,7 +937,15 @@ pgy_map_has_raw_export(void *map_ptr, const char *key)
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
     uint32_t h;
     size_t probes = 0;
-    if (map == NULL || key == NULL || map->count == 0)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_has", "null map");
+        return false;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_has", "null key");
+        return false;
+    }
+    if (map->count == 0)
         return false;
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
@@ -824,7 +963,19 @@ pgy_map_remove_raw_export(void *map_ptr, const char *key, int64_t value_size)
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
     uint32_t h;
     size_t probes = 0;
-    if (map == NULL || key == NULL || map->count == 0 || value_size <= 0)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove", "null map");
+        return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove", "null key");
+        return;
+    }
+    if (value_size <= 0) {
+        pgy_runtime_warn_invalid_collection("map_remove", "non-positive value size");
+        return;
+    }
+    if (map->count == 0)
         return;
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
@@ -845,8 +996,10 @@ int32_t
 pgy_map_size_raw_export(void *map_ptr)
 {
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
-    if (map == NULL)
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_size", "null map");
         return 0;
+    }
     return (int32_t)map->count;
 }
 
@@ -914,7 +1067,14 @@ void
 pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
-    if (set == NULL || elem_size <= 0) return;
+    if (set == NULL) {
+        pgy_runtime_warn_invalid_collection("set_new", "null set");
+        return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("set_new", "non-positive element size");
+        return;
+    }
     set->capacity = 16;
     set->count = 0;
     set->data = calloc(set->capacity, (size_t)elem_size);
@@ -949,7 +1109,18 @@ void
 pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
-    if (set == NULL || elem_ptr == NULL || elem_size <= 0) return;
+    if (set == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add", "null set");
+        return;
+    }
+    if (elem_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add", "null element");
+        return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("set_add", "non-positive element size");
+        return;
+    }
     /* Check if already present */
     uint32_t h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
     size_t p = 0;
@@ -973,7 +1144,19 @@ bool
 pgy_set_has_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
-    if (set == NULL || elem_ptr == NULL || set->count == 0 || elem_size <= 0)
+    if (set == NULL) {
+        pgy_runtime_warn_invalid_collection("set_has", "null set");
+        return false;
+    }
+    if (elem_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("set_has", "null element");
+        return false;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("set_has", "non-positive element size");
+        return false;
+    }
+    if (set->count == 0)
         return false;
     uint32_t h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
     size_t p = 0;
@@ -989,7 +1172,19 @@ void
 pgy_set_remove_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
-    if (set == NULL || elem_ptr == NULL || set->count == 0 || elem_size <= 0)
+    if (set == NULL) {
+        pgy_runtime_warn_invalid_collection("set_remove", "null set");
+        return;
+    }
+    if (elem_ptr == NULL) {
+        pgy_runtime_warn_invalid_collection("set_remove", "null element");
+        return;
+    }
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("set_remove", "non-positive element size");
+        return;
+    }
+    if (set->count == 0)
         return;
     uint32_t h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
     size_t p = 0;
@@ -1008,7 +1203,10 @@ int32_t
 pgy_set_size_raw_export(void *set_ptr)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
-    if (set == NULL) return 0;
+    if (set == NULL) {
+        pgy_runtime_warn_invalid_collection("set_size", "null set");
+        return 0;
+    }
     return (int32_t)set->count;
 }
 
@@ -1780,6 +1978,71 @@ pgy_intent_active_trace_export(int32_t index)
     PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
     if (entry != NULL && entry->trace != NULL)
         result = entry->trace;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_parent_handle_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->parent_handle;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_subject_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->subject_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+int32_t
+pgy_intent_active_step_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->step_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+bool
+pgy_intent_active_failed_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->failed;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+char *
+pgy_intent_active_failure_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_index_export(index);
+    if (entry != NULL && entry->failure_reason != NULL)
+        result = entry->failure_reason;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return result;
 }

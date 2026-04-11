@@ -215,9 +215,11 @@ priority        → Int여야 함
 `IntentHistoryStepOk(i)` / `IntentHistoryStepFailure(i)`로 step-level typed
 history를 읽을 수 있다.
 또 `IntentActiveCount()` / `IntentActiveName(i)` /
-`IntentActiveHandle(i)` / `IntentActiveTraceId(i)` /
-`IntentActivePriority(i)` /
-`IntentActiveConcurrent(i)` / `IntentActiveTrace(i)`로 현재 active intent
+`IntentActiveHandle(i)` / `IntentActiveParentHandle(i)` /
+`IntentActiveTraceId(i)` / `IntentActivePriority(i)` /
+`IntentActiveSubjectCount(i)` / `IntentActiveStepCount(i)` /
+`IntentActiveConcurrent(i)` / `IntentActiveFailed(i)` /
+`IntentActiveFailure(i)` / `IntentActiveTrace(i)`로 현재 active intent
 registry를 직접 읽을 수 있다.
 `using:` bound zone이 있으면 현재 `who` participant를 matching subject slot에
 실제로 materialize한 뒤 sync를 돈다. `transfer: source -> target;`가 붙으면

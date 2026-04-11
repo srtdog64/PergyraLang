@@ -1304,6 +1304,13 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_INTENT_ACTIVE_PARENT_HANDLE: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_parent_handle_export(%s)", index);
+        free(index);
+        return result;
+    }
     case BUILTIN_INTENT_ACTIVE_TRACE_ID: {
         ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
@@ -1318,10 +1325,38 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_subject_count_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_STEP_COUNT: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_step_count_export(%s)", index);
+        free(index);
+        return result;
+    }
     case BUILTIN_INTENT_ACTIVE_CONCURRENT: {
         ctx->uses_intent_observability = true;
         char *index = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_intent_active_concurrent_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_FAILED: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_failed_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_ACTIVE_FAILURE: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_active_failure_export(%s)", index);
         free(index);
         return result;
     }

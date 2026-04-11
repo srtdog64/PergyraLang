@@ -3005,7 +3005,7 @@ test_engine_collections(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL
             && result->error_count > 0
-            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+            && ctx_has_diagnostic_substring_from_result(result, "cannot assign"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3028,7 +3028,7 @@ test_engine_collections(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL
             && result->error_count > 0
-            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+            && ctx_has_diagnostic_substring_from_result(result, "cannot assign"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3052,7 +3052,7 @@ test_engine_collections(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL
             && result->error_count > 0
-            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+            && ctx_has_diagnostic_substring_from_result(result, "cannot assign"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

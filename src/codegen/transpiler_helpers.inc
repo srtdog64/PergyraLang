@@ -3607,6 +3607,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "IntentHistoryStepToZone") == 0
                 || strcmp(name, "IntentHistoryStepToSlot") == 0
                 || strcmp(name, "IntentActiveName") == 0
+                || strcmp(name, "IntentActiveFailure") == 0
                 || strcmp(name, "IntentActiveTrace") == 0)
                 return "String";
             if (strcmp(name, "IntentLastHandle") == 0
@@ -3615,8 +3616,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "IntentHistoryCount") == 0
                 || strcmp(name, "IntentActiveCount") == 0
                 || strcmp(name, "IntentActiveHandle") == 0
+                || strcmp(name, "IntentActiveParentHandle") == 0
                 || strcmp(name, "IntentActiveTraceId") == 0
-                || strcmp(name, "IntentActivePriority") == 0)
+                || strcmp(name, "IntentActivePriority") == 0
+                || strcmp(name, "IntentActiveSubjectCount") == 0
+                || strcmp(name, "IntentActiveStepCount") == 0)
                 return "Int";
             if (strcmp(name, "ListNew") == 0)
                 return "List";
@@ -3733,6 +3737,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "IntentLastFailed") == 0
                 || strcmp(name, "IntentHistoryStepOk") == 0
                 || strcmp(name, "IntentActiveConcurrent") == 0
+                || strcmp(name, "IntentActiveFailed") == 0
                 || strcmp(name, "MapHas") == 0
                 || strcmp(name, "HasProjection") == 0
                 || strcmp(name, "HasLayer") == 0

@@ -11,6 +11,7 @@
 #include <time.h>
 #include <errno.h>
 #include <assert.h>
+#include <stdio.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -25,6 +26,16 @@
 
 /* Thread-local current scheduler */
 static __thread Scheduler* tlsCurrentScheduler = NULL;
+
+static void
+scheduler_warn(const char* op, const char* reason, Scheduler* scheduler)
+{
+    fprintf(stderr,
+        "[pgy][scheduler] %s failed: %s (scheduler=%p)\n",
+        op != NULL ? op : "operation",
+        reason != NULL ? reason : "unknown",
+        (void*)scheduler);
+}
 
 /* Worker thread main function */
 static void* WorkerThreadMain(void* arg)
@@ -144,6 +155,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
 {
     Scheduler* scheduler = (Scheduler*)calloc(1, sizeof(Scheduler));
     if (scheduler == NULL) {
+        scheduler_warn("create", "scheduler allocation failed", NULL);
         return NULL;
     }
     
@@ -176,6 +188,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     /* Initialize global queue */
     scheduler->globalRunQueue = ConcurrentQueueCreate();
     if (scheduler->globalRunQueue == NULL) {
+        scheduler_warn("create", "global run queue allocation failed", scheduler);
         free(scheduler);
         return NULL;
     }
@@ -184,6 +197,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     /* Initialize epoll for I/O (Linux only) */
     scheduler->epollFd = epoll_create1(EPOLL_CLOEXEC);
     if (scheduler->epollFd < 0) {
+        scheduler_warn("create", "epoll initialization failed", scheduler);
         ConcurrentQueueDestroy(scheduler->globalRunQueue);
         free(scheduler);
         return NULL;
@@ -197,6 +211,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     /* Allocate workers */
     scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread));
     if (scheduler->workers == NULL) {
+        scheduler_warn("create", "worker array allocation failed", scheduler);
 #ifndef _WIN32
         close(scheduler->epollFd);
 #endif
@@ -215,6 +230,7 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
         worker->localRunQueue = ConcurrentQueueCreate();
         
         if (worker->localRunQueue == NULL) {
+            scheduler_warn("create", "worker local queue allocation failed", scheduler);
             /* Clean up and fail */
             for (uint32_t j = 0; j < i; j++) {
                 ConcurrentQueueDestroy(scheduler->workers[j].localRunQueue);
@@ -266,7 +282,12 @@ void SchedulerDestroy(Scheduler* scheduler)
 
 void SchedulerStart(Scheduler* scheduler)
 {
-    if (scheduler == NULL || atomic_load(&scheduler->isRunning)) {
+    if (scheduler == NULL) {
+        scheduler_warn("start", "scheduler is null", scheduler);
+        return;
+    }
+    if (atomic_load(&scheduler->isRunning)) {
+        scheduler_warn("start", "scheduler is already running", scheduler);
         return;
     }
     
@@ -275,16 +296,25 @@ void SchedulerStart(Scheduler* scheduler)
     /* Start worker threads */
     for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
         WorkerThread* worker = &scheduler->workers[i];
-        pthread_create(&worker->osThread, NULL, WorkerThreadMain, worker);
+        if (pthread_create(&worker->osThread, NULL, WorkerThreadMain, worker) != 0) {
+            scheduler_warn("start", "worker thread creation failed", scheduler);
+        }
     }
     
     /* Start I/O worker */
-    pthread_create(&scheduler->ioWorker, NULL, IoWorkerMain, scheduler);
+    if (pthread_create(&scheduler->ioWorker, NULL, IoWorkerMain, scheduler) != 0) {
+        scheduler_warn("start", "io worker creation failed", scheduler);
+    }
 }
 
 void SchedulerStop(Scheduler* scheduler)
 {
-    if (scheduler == NULL || !atomic_load(&scheduler->isRunning)) {
+    if (scheduler == NULL) {
+        scheduler_warn("stop", "scheduler is null", scheduler);
+        return;
+    }
+    if (!atomic_load(&scheduler->isRunning)) {
+        scheduler_warn("stop", "scheduler is not running", scheduler);
         return;
     }
     
@@ -302,11 +332,15 @@ void SchedulerStop(Scheduler* scheduler)
     
     /* Wait for workers to finish */
     for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
-        pthread_join(scheduler->workers[i].osThread, NULL);
+        if (pthread_join(scheduler->workers[i].osThread, NULL) != 0) {
+            scheduler_warn("stop", "worker thread join failed", scheduler);
+        }
     }
     
     /* Stop I/O worker */
-    pthread_join(scheduler->ioWorker, NULL);
+    if (pthread_join(scheduler->ioWorker, NULL) != 0) {
+        scheduler_warn("stop", "io worker join failed", scheduler);
+    }
 }
 
 void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg)
@@ -316,12 +350,18 @@ void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg)
 
 void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine, void* arg, uint32_t priority)
 {
-    if (scheduler == NULL || routine == NULL) {
+    if (scheduler == NULL) {
+        scheduler_warn("spawn", "scheduler is null", scheduler);
+        return;
+    }
+    if (routine == NULL) {
+        scheduler_warn("spawn", "routine is null", scheduler);
         return;
     }
     
     Fiber* fiber = FiberCreate(routine, arg);
     if (fiber == NULL) {
+        scheduler_warn("spawn", "fiber creation failed", scheduler);
         return;
     }
     

@@ -1914,6 +1914,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentActiveParentHandle") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_parent_handle_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
     if (strcmp(callee_name, "IntentActiveTraceId") == 0
         && node->data.call.arg_count == 1) {
         ctx->uses_intent_observability = true;
@@ -1930,10 +1938,42 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentActiveSubjectCount") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_subject_count_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveStepCount") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_step_count_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
     if (strcmp(callee_name, "IntentActiveConcurrent") == 0
         && node->data.call.arg_count == 1) {
         ctx->uses_intent_observability = true;
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_concurrent_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveFailed") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_failed_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentActiveFailure") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_active_failure_export");
         if (fn != NULL)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
