@@ -1488,6 +1488,19 @@ main(void)
             1
         },
         {
+            "Reserved declaration name after subject is rejected",
+            "subject class {\n"
+            "    let hp: Int;\n"
+            "}\n",
+            0
+        },
+        {
+            "Reserved declaration name after zone is rejected",
+            "zone effect {\n"
+            "}\n",
+            0
+        },
+        {
             "Multiline multiline-string literal",
             "func Main() -> Void {\n"
             "    Log(\"\"\"\n"

@@ -80,6 +80,17 @@ make ir-pipeline-test-smoke
 make fmt-test-smoke
 ```
 
+안정 예제 가이드:
+
+- smoke-covered 예제 목록은 [docs/65_stable_example_surface_board.md](65_stable_example_surface_board.md)를 기준으로 본다
+- 현재 바로 따라 써도 되는 대표 예제:
+  - `examples/logistics_intent_probe/`
+  - `examples/resource_scheduler_async_probe/`
+  - `examples/order_analytics/`
+  - `examples/battle_simulator/`
+  - `examples/biome_simulator/`
+- `examples/party_system_demo.pgy`, `examples/world_roster_city.pgy` 같은 예제는 design sketch이며 stable syntax reference가 아니다
+
 ## 문법 예제
 
 ```pergyra
@@ -143,7 +154,7 @@ make test-memory    # 메모리 레이아웃
 
 현재 직접 확인한 범위는 다음과 같습니다.
 
-- `make test-transpile` 통과 (`464 passed`)
+- `make test-transpile` 통과 (`470 passed`)
 - `make test-abi` 통과 (`56 passed`)
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
@@ -151,6 +162,30 @@ make test-memory    # 메모리 레이아웃
 - `make fmt-test-smoke` 통과
 
 `make llvm-test-backend-compare`는 대표 예제 코퍼스에 대해 C/LLVM 결과를 비교하지만, 이것만으로 전체 기능 parity를 선언하는 문서는 아닙니다.
+
+## 예제 신뢰도
+
+모든 예제를 같은 강도로 믿으면 안 됩니다.
+
+- `compile-smoke covered`: 현재 회귀 smoke가 직접 밟는 예제, stable reference로 우선 추천
+- `design sketch`: 미래 표면이나 aspirational syntax를 보여 주는 예제, stable reference로 사용 금지
+
+source of truth:
+
+- [Stable Example Surface Board](65_stable_example_surface_board.md)
+
+추천 stable 예제:
+
+- `examples/logistics_intent_probe/`
+- `examples/resource_scheduler_async_probe/`
+- `examples/order_analytics/`
+- `examples/subject_object_tobject/`
+- `examples/ownership_forwarding_probe/`
+
+design sketch 예제:
+
+- `examples/party_system_demo.pgy`
+- `examples/world_roster_city.pgy`
 
 ## Slot 시스템
 

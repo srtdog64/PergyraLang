@@ -72,6 +72,18 @@ make ir-pipeline-test-smoke
 make fmt-test-smoke
 ```
 
+Stable example guidance:
+
+- smoke-covered examples: see [docs/65_stable_example_surface_board.md](docs/65_stable_example_surface_board.md)
+- current stable entry examples include:
+  - `examples/logistics_intent_probe/`
+  - `examples/resource_scheduler_async_probe/`
+  - `examples/order_analytics/`
+  - `examples/battle_simulator/`
+  - `examples/biome_simulator/`
+- design-sketch examples such as `examples/party_system_demo.pgy` and
+  `examples/world_roster_city.pgy` are not stable syntax references
+
 ## Basics
 
 ### Variables
@@ -390,6 +402,30 @@ PergyraLang/
   assets/branding/  # Gyri the Nautilus
 ```
 
+## Example Trust Levels
+
+Not every example has the same contract strength.
+
+- `compile-smoke covered`: the example is exercised by current regression smoke and is the recommended reference surface
+- `design sketch`: the example may intentionally show future or aspirational syntax and should not be used as a stable reference
+
+Source of truth:
+
+- [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
+
+Recommended stable examples to start from:
+
+- `examples/logistics_intent_probe/` — IR/domain pipeline probe
+- `examples/resource_scheduler_async_probe/` — async/parallel/resource probe
+- `examples/order_analytics/` — larger compile-smoke covered application example
+- `examples/subject_object_tobject/` — nominal/projection baseline
+- `examples/ownership_forwarding_probe/` — current `own/ref` anchored-slot boundary subset
+
+Design-sketch examples:
+
+- `examples/party_system_demo.pgy`
+- `examples/world_roster_city.pgy`
+
 ## Testing
 
 ```bash
@@ -406,6 +442,7 @@ make llvm-test-backend-compare # C/LLVM parity
 - [Naming Convention](docs/grammar/03_naming.md)
 - [Compiler Pipeline](docs/20_compiler_pipeline_guide.md)
 - [Language Status](docs/18_language_status.md)
+- [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
 - [Design Vision](docs/00_vision.md)
 - [한국어 README](docs/README_ko.md)
 

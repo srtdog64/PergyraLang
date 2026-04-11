@@ -2612,18 +2612,20 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
             semantic_error(ctx, node,
-                "'%s' parameter mode is currently only supported for Slot<subject-host>/SecureSlot<subject-host> parameters; "
-                "remove the qualifier or switch to an anchored slot handle",
+                "'%s' parameter mode is currently a closed subset: only ref Slot<subject-host> / "
+                "own SecureSlot<subject-host> are supported at function boundaries",
                 param->mode == PARAM_MODE_OWN ? "own" : "ref");
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
             bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
             if (!allowed_subject_slot) {
                 semantic_error(ctx, node,
-                    "Anchored resource handle parameters are only supported for Slot<subject-host>/SecureSlot<subject-host> with explicit own/ref; other anchored handles remain local-only");
+                    "Anchored handle parameters are currently closed to ref Slot<subject-host> / "
+                    "own SecureSlot<subject-host>; other anchored handles remain local-only");
             } else if (param->mode == PARAM_MODE_DEFAULT) {
                 semantic_error(ctx, node,
-                    "Slot<subject-host> parameters require 'own' or 'ref'; use 'func F(own s: Slot<T>)' or 'func F(ref s: Slot<T>)'");
+                    "Slot<subject-host>/SecureSlot<subject-host> parameters are part of the anchored "
+                    "subject-slot boundary and require explicit 'own' or 'ref'");
             }
         }
         /* Subject parameters are passed by reference (pointer) internally.

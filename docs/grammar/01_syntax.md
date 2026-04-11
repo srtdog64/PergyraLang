@@ -29,34 +29,35 @@
 - 구조화된 주석 `/// @effects ...` 같은 doc comment를 파서가 읽는다
 - identity-bearing 타입 (`subject`, `relation`, `effect`, `zone`, `world`)은 함수 파라미터로 **자동 참조 전달** (포인터 은닉)
 - value 타입 (`struct`, `vessel`, `class`, `object`, `tobject`)은 복사 전달
+- nominal family는 lexer 단계에서 이미 분리된다:
+  `subject` / `class`, `struct` / `object` / `tobject`, `vessel`, `intent`, `event`,
+  `roster` / `world` / `relation` / `effect` / `zone`은 각각 **별도 토큰**이다
+- 즉 현재 구현은 예전처럼 `subject -> class`, `tobject -> struct` 같은 lexer alias 모델이 아니다
 
 ### 예약 키워드 (reserved — 식별자로 사용 불가)
 
 | 분류 | 키워드 |
 |------|--------|
-| 선언 | `let`, `func`, `class`, `struct`, `subject`, `enum`, `subject`, `ability`, `role`, `party` |
+| 선언 | `let`, `func`, `subject`, `class`, `struct`, `object`, `tobject`, `vessel`, `enum`, `intent`, `event`, `ability`, `role`, `party`, `roster`, `world`, `relation`, `effect`, `zone` |
 | 제어 | `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue` |
 | 비동기 | `async`, `await`, `spawn`, `select`, `channel` |
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
 | 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
-| 안전 | `unsafe`, `defer`, `secure` |
+| 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local` |
 | 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override` |
 | 블록 | `with`, `parallel`, `private`, `public` |
 | 리터럴 | `true`, `false` |
-| 값 타입 | `tobject`, `object` |
 
 ### 컨텍스트 키워드 (contextual — 선언 위치에서만 키워드, 그 외에는 식별자)
 
 | 키워드 | 용도 |
 |--------|------|
-| `world`, `roster`, `zone`, `relation`, `effect`, `intent` | 도메인/intent 선언 |
-| `vessel` | 피동 수용체 선언 |
-| `event` | 이벤트 선언 |
 | `action` | subject 전용 플롯 행위 |
 | `requires`, `within`, `causes`, `authorized`, `by` | action / intent step clause |
 | `involves`, `step`, `who`, `expect`, `success`, `failure` | intent body clause |
 
 주의:
+- declaration 이름은 현재 **일반 식별자만** 허용한다. 예약 키워드를 선언 이름으로 재사용하는 surface는 더 이상 권장/지원하지 않는다.
 - `context`는 현재 전역 예약어가 아니다. 일반 로컬 변수, 파라미터, 필드 이름으로 사용할 수 있다.
 - `HasProjection(slotName)`는 현재 relation/effect/zone 문맥에서만 유효한 projection sync-ready query다.
 - `world state`의 `projection` / `layer` / `state` suffix는 같은 줄에서만 해석된다. 다음 줄의 `state` 선언 시작을 suffix로 삼키지 않는다.
