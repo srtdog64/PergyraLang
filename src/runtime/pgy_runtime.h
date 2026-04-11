@@ -2858,8 +2858,11 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
 static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
 { \
     if (l->count >= l->capacity) { \
-        l->capacity *= 2; \
-        l->data = (CType *)realloc(l->data, l->capacity * sizeof(CType)); \
+        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2; \
+        CType *grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
+        if (grown == NULL) return; \
+        l->data = grown; \
+        l->capacity = new_capacity; \
     } \
     l->data[l->count++] = val; \
 } \
@@ -2906,8 +2909,11 @@ static inline PgyList_Int pgy_list_new_int(void)
 static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
 {
     if (l->count >= l->capacity) {
-        l->capacity *= 2;
-        l->data = (int32_t *)realloc(l->data, l->capacity * sizeof(int32_t));
+        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
+        int32_t *grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
+        if (grown == NULL) return;
+        l->data = grown;
+        l->capacity = new_capacity;
     }
     l->data[l->count++] = val;
 }
@@ -2953,8 +2959,11 @@ static inline PgyList_String pgy_list_new_string(void)
 static inline void pgy_list_push_string(PgyList_String *l, const char *val)
 {
     if (l->count >= l->capacity) {
-        l->capacity *= 2;
-        l->data = (char **)realloc(l->data, l->capacity * sizeof(char *));
+        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
+        char **grown = (char **)realloc(l->data, new_capacity * sizeof(char *));
+        if (grown == NULL) return;
+        l->data = grown;
+        l->capacity = new_capacity;
     }
     l->data[l->count++] = pgy_runtime_strdup(val ? val : "");
 }
