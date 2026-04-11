@@ -46,6 +46,21 @@
 
 static char *pgy_runtime_lib_strdup(const char *src);
 
+static void
+pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
+{
+    fprintf(stderr, "[pgy][channel] %s: %s\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "invalid channel operation");
+}
+
+static void
+pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t count)
+{
+    fprintf(stderr, "[pgy][intent] %s: invalid index %d (count=%d)\n",
+            op != NULL ? op : "<op>", (int)index, (int)count);
+}
+
 static bool
 pgy_runtime_path_is_absolute(const char *path)
 {
@@ -60,6 +75,29 @@ pgy_runtime_path_is_absolute(const char *path)
         return true;
 #endif
     return false;
+}
+
+void
+pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
+                                const char *zone_name,
+                                const char *participant_name)
+{
+    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
+    const char *resolved_participant =
+        participant_name != NULL ? participant_name : "<participant>";
+
+    if (zone_ptr == NULL) {
+        fprintf(stderr,
+            "[pgy][authority] zone '%s' entered with null self while validating '%s'\n",
+            resolved_zone, resolved_participant);
+        abort();
+    }
+    if (participant_ptr == NULL) {
+        fprintf(stderr,
+            "[pgy][authority] zone '%s' has null authority participant '%s'\n",
+            resolved_zone, resolved_participant);
+        abort();
+    }
 }
 
 static bool
@@ -1515,8 +1553,10 @@ pgy_intent_active_entry_by_index_export(int32_t index)
 {
     int32_t seen = 0;
 
-    if (index < 0)
+    if (index < 0) {
+        pgy_runtime_warn_invalid_intent_index("active_entry_by_index", index, -1);
         return NULL;
+    }
 
     for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
         if (!pgy_intent_active_registry[i].active)
@@ -1526,94 +1566,128 @@ pgy_intent_active_entry_by_index_export(int32_t index)
         seen++;
     }
 
+    pgy_runtime_warn_invalid_intent_index("active_entry_by_index", index, seen);
     return NULL;
 }
 
 char *
 pgy_intent_history_step_name_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_name", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].name != NULL ? pgy_intent_last_steps[index].name : "";
 }
 
 char *
 pgy_intent_history_step_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].zone != NULL ? pgy_intent_last_steps[index].zone : "";
 }
 
 char *
 pgy_intent_history_step_phase_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_phase", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].phase != NULL ? pgy_intent_last_steps[index].phase : "";
 }
 
 char *
 pgy_intent_history_step_participant_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_participant", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].participant != NULL ? pgy_intent_last_steps[index].participant : "";
 }
 
 char *
 pgy_intent_history_step_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].slot != NULL ? pgy_intent_last_steps[index].slot : "";
 }
 
 char *
 pgy_intent_history_step_from_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_from_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].from_zone != NULL ? pgy_intent_last_steps[index].from_zone : "";
 }
 
 char *
 pgy_intent_history_step_from_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_from_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].from_slot != NULL ? pgy_intent_last_steps[index].from_slot : "";
 }
 
 char *
 pgy_intent_history_step_to_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_to_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].to_zone != NULL ? pgy_intent_last_steps[index].to_zone : "";
 }
 
 char *
 pgy_intent_history_step_to_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_to_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].to_slot != NULL ? pgy_intent_last_steps[index].to_slot : "";
 }
 
 bool
 pgy_intent_history_step_ok_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_ok", index,
+                                              pgy_intent_last_history_count);
         return false;
+    }
     return pgy_intent_last_steps[index].ok;
 }
 
 char *
 pgy_intent_history_step_failure_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_failure", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].failure_reason != NULL
         ? pgy_intent_last_steps[index].failure_reason : "";
 }
@@ -2703,7 +2777,10 @@ void pgy_channel_close_Int(PgyChannel_Int_RT *ch)
 
 bool pgy_channel_send_Int(PgyChannel_Int_RT *ch, int32_t v)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("send_Int", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed)
         pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
@@ -2721,7 +2798,10 @@ bool pgy_channel_send_Int(PgyChannel_Int_RT *ch, int32_t v)
 
 bool pgy_channel_try_send_Int(PgyChannel_Int_RT *ch, int32_t v)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("try_send_Int", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->closed || ch->count >= ch->capacity) {
         pthread_mutex_unlock(&ch->mutex);
@@ -2738,7 +2818,10 @@ bool pgy_channel_try_send_Int(PgyChannel_Int_RT *ch, int32_t v)
 bool pgy_channel_send_timeout_Int(PgyChannel_Int_RT *ch, int32_t v,
                                   uint64_t timeout_ns)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("send_timeout_Int", "null channel");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
@@ -2762,7 +2845,11 @@ bool pgy_channel_send_timeout_Int(PgyChannel_Int_RT *ch, int32_t v,
 
 bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("recv_Int",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed)
         pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
@@ -2780,7 +2867,10 @@ bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 
 bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("ready_Int", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool ready = ch->count > 0;
     pthread_mutex_unlock(&ch->mutex);
@@ -2789,7 +2879,10 @@ bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
 
 int32_t pgy_channel_length_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("length_Int", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t len = (int32_t)ch->count;
     pthread_mutex_unlock(&ch->mutex);
@@ -2798,7 +2891,10 @@ int32_t pgy_channel_length_Int(PgyChannel_Int_RT *ch)
 
 int32_t pgy_channel_capacity_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("capacity_Int", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t cap = (int32_t)ch->capacity;
     pthread_mutex_unlock(&ch->mutex);
@@ -2807,7 +2903,10 @@ int32_t pgy_channel_capacity_Int(PgyChannel_Int_RT *ch)
 
 bool pgy_channel_full_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("full_Int", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool full = ch->count >= ch->capacity;
     pthread_mutex_unlock(&ch->mutex);
@@ -2816,7 +2915,10 @@ bool pgy_channel_full_Int(PgyChannel_Int_RT *ch)
 
 int32_t pgy_channel_space_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("space_Int", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t space = (int32_t)(ch->capacity - ch->count);
     pthread_mutex_unlock(&ch->mutex);
@@ -2825,7 +2927,10 @@ int32_t pgy_channel_space_Int(PgyChannel_Int_RT *ch)
 
 bool pgy_channel_closed_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return true;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("closed_Int", "null channel");
+        return true;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool closed = ch->closed;
     pthread_mutex_unlock(&ch->mutex);
@@ -2834,7 +2939,11 @@ bool pgy_channel_closed_Int(PgyChannel_Int_RT *ch)
 
 bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("try_recv_Int",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
         pthread_mutex_unlock(&ch->mutex);
@@ -2851,7 +2960,11 @@ bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 bool pgy_channel_recv_timeout_Int(PgyChannel_Int_RT *ch, int32_t *out,
                                   uint64_t timeout_ns)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_Int",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
@@ -2928,7 +3041,10 @@ void pgy_channel_close_String(PgyChannel_String_RT *ch)
 
 bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("send_String", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed)
         pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
@@ -2946,7 +3062,10 @@ bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
 
 bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("try_send_String", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->closed || ch->count >= ch->capacity) {
         pthread_mutex_unlock(&ch->mutex);
@@ -2963,7 +3082,10 @@ bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
 bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
                                      uint64_t timeout_ns)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("send_timeout_String", "null channel");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
@@ -2987,7 +3109,11 @@ bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
 
 bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("recv_String",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed)
         pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
@@ -3006,7 +3132,11 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
 bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
                                      uint64_t timeout_ns)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_String",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
@@ -3030,7 +3160,11 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
 
 bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
 {
-    if (ch == NULL || out == NULL) return false;
+    if (ch == NULL || out == NULL) {
+        pgy_runtime_warn_invalid_channel("try_recv_String",
+            ch == NULL ? "null channel" : "null output pointer");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
         pthread_mutex_unlock(&ch->mutex);
@@ -3046,7 +3180,10 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
 
 bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("ready_String", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool ready = ch->count > 0;
     pthread_mutex_unlock(&ch->mutex);
@@ -3055,7 +3192,10 @@ bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
 
 int32_t pgy_channel_length_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("length_String", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t len = (int32_t)ch->count;
     pthread_mutex_unlock(&ch->mutex);
@@ -3064,7 +3204,10 @@ int32_t pgy_channel_length_String(PgyChannel_String_RT *ch)
 
 int32_t pgy_channel_capacity_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("capacity_String", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t cap = (int32_t)ch->capacity;
     pthread_mutex_unlock(&ch->mutex);
@@ -3073,7 +3216,10 @@ int32_t pgy_channel_capacity_String(PgyChannel_String_RT *ch)
 
 bool pgy_channel_full_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return false;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("full_String", "null channel");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool full = ch->count >= ch->capacity;
     pthread_mutex_unlock(&ch->mutex);
@@ -3082,7 +3228,10 @@ bool pgy_channel_full_String(PgyChannel_String_RT *ch)
 
 int32_t pgy_channel_space_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return 0;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("space_String", "null channel");
+        return 0;
+    }
     pthread_mutex_lock(&ch->mutex);
     int32_t space = (int32_t)(ch->capacity - ch->count);
     pthread_mutex_unlock(&ch->mutex);
@@ -3091,7 +3240,10 @@ int32_t pgy_channel_space_String(PgyChannel_String_RT *ch)
 
 bool pgy_channel_closed_String(PgyChannel_String_RT *ch)
 {
-    if (ch == NULL) return true;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("closed_String", "null channel");
+        return true;
+    }
     pthread_mutex_lock(&ch->mutex);
     bool closed = ch->closed;
     pthread_mutex_unlock(&ch->mutex);

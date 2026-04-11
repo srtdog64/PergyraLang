@@ -146,6 +146,8 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
               { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
             { "pgy_mir_cleanup_op_export", ctx->type_void,
               { ctx->type_i32, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
+            { "pgy_zone_authority_check_export", ctx->type_void,
+              { ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr, ctx->type_i8ptr }, 4 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
             { "pgy_write_file", ctx->type_void,

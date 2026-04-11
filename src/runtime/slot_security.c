@@ -588,7 +588,7 @@ SecureMemoryLock(void *addr, size_t size)
     return (mlock(addr, size) == 0) ? SECURITY_SUCCESS : 
                                     SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
 #else
-    return SECURITY_SUCCESS; /* No-op on unsupported platforms */
+    return SECURITY_ERROR_UNSUPPORTED_PLATFORM;
 #endif
 }
 
@@ -605,7 +605,7 @@ SecureMemoryUnlock(void *addr, size_t size)
     return (munlock(addr, size) == 0) ? SECURITY_SUCCESS : 
                                       SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
 #else
-    return SECURITY_SUCCESS; /* No-op on unsupported platforms */
+    return SECURITY_ERROR_UNSUPPORTED_PLATFORM;
 #endif
 }
 

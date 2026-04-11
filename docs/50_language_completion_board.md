@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현)
+마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -72,9 +72,11 @@
 - authority가 선언된 zone의 boundary publish/bind에 explicit `by` 강제
 - authority-bearing intent step의 `causes` / `transfer` / secure-effect helper call에 `authorized by` 강제
 - runtime secure storage policy 일부
+- zone authority runtime validation은 더 이상 stub이 아니라 실제 runtime check다. generated C는 inline validator를, LLVM은 exported runtime symbol을 호출한다
 - runtime file I/O는 기본적으로 상대경로만 허용하고 `..` traversal을 금지한다
 - `PGY_IO_ROOT`가 있으면 runtime file I/O는 root 아래로 고정되고, non-Windows에서는 canonical path로 symlink escape를 차단한다
 - hardware fingerprint는 stable fallback identity를 채워 zeroed fingerprint 붕괴를 막는다
+- `SecureMemoryLock/Unlock`는 unsupported platform에서 더 이상 조용히 성공하지 않고 explicit `SECURITY_ERROR_UNSUPPORTED_PLATFORM`를 반환한다
 
 부족한 것:
 

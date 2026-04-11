@@ -123,6 +123,91 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     return false;
 }
 
+static ASTNode *
+llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL || ctx->hir == NULL || ctx->current_class_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->hir->item_count; i++) {
+        ASTNode *stmt = ctx->hir->items[i].ast;
+        if (stmt != NULL
+            && stmt->type == AST_ZONE_DECL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, ctx->current_class_name) == 0) {
+            return stmt;
+        }
+    }
+    return NULL;
+}
+
+static void
+llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
+{
+    ASTNode *zone_decl;
+    ASTNode *authority;
+    LLVMClassTypeEntry *zone_cls;
+    LLVMVarEntry *self_var;
+    LLVMFuncEntry *check_fn;
+    LLVMValueRef self_value;
+    LLVMValueRef field_ptr;
+    LLVMValueRef participant_value;
+    LLVMTypeRef field_type;
+    LLVMValueRef args[4];
+    int field_index;
+
+    if (ctx == NULL || ctx->current_class_name == NULL)
+        return;
+
+    zone_decl = llvm_decl_find_current_zone_decl(ctx);
+    if (zone_decl == NULL
+        || zone_decl->data.zone_decl.authority_count == 0
+        || zone_decl->data.zone_decl.authorities == NULL
+        || zone_decl->data.zone_decl.authorities[0] == NULL) {
+        return;
+    }
+
+    authority = zone_decl->data.zone_decl.authorities[0];
+    if (authority->type != AST_ZONE_AUTHORITY
+        || authority->data.zone_authority.subject_slot_name == NULL) {
+        return;
+    }
+
+    zone_cls = llvm_lookup_class(ctx, ctx->current_class_name);
+    self_var = llvm_scope_lookup(ctx, "self");
+    check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
+    if (zone_cls == NULL || self_var == NULL || check_fn == NULL)
+        return;
+
+    field_index = llvm_class_field_index(zone_cls,
+        authority->data.zone_authority.subject_slot_name);
+    if (field_index < 0)
+        return;
+
+    self_value = LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
+        llvm_tmp_name(ctx));
+    field_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
+        self_value, (unsigned)field_index, llvm_tmp_name(ctx));
+    field_type = LLVMStructGetTypeAtIndex(zone_cls->struct_type, (unsigned)field_index);
+    participant_value = LLVMBuildLoad2(ctx->builder, field_type, field_ptr,
+        llvm_tmp_name(ctx));
+
+    args[0] = LLVMBuildBitCast(ctx->builder, self_value, ctx->type_i8ptr,
+        llvm_tmp_name(ctx));
+    if (LLVMGetTypeKind(field_type) == LLVMPointerTypeKind) {
+        args[1] = LLVMBuildBitCast(ctx->builder, participant_value, ctx->type_i8ptr,
+            llvm_tmp_name(ctx));
+    } else {
+        args[1] = LLVMBuildBitCast(ctx->builder, field_ptr, ctx->type_i8ptr,
+            llvm_tmp_name(ctx));
+    }
+    args[2] = LLVMBuildGlobalStringPtr(ctx->builder, ctx->current_class_name,
+        llvm_tmp_name(ctx));
+    args[3] = LLVMBuildGlobalStringPtr(ctx->builder,
+        authority->data.zone_authority.subject_slot_name, llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, check_fn->fn_type, check_fn->fn, args, 4, "");
+}
+
 /* =================================================================
  * Function declaration emission
  * ================================================================= */
@@ -264,6 +349,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         llvm_scope_declare(ctx, p->name, alloca, pt);
         llvm_register_typed_var(ctx, p->name, p->type);
     }
+
+    llvm_decl_emit_zone_authority_check(ctx);
 
     /* Emit body */
     if (node->data.func_decl.body != NULL)

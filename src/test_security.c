@@ -554,6 +554,24 @@ void test_runtime_file_io_policy()
     rmdir(outside_dir);
 }
 
+void test_runtime_zone_authority_validation()
+{
+    int zone = 1;
+    int participant = 7;
+
+    printf("\n=== Test 11: Runtime Zone Authority Validation ===\n");
+
+    TEST_ASSERT(pgy_zone_authority_validate(&zone, &participant,
+                                            "BattleZone", "owner"),
+                "Zone authority validation accepts non-null zone and participant");
+    TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate(NULL, &participant,
+                                                         "BattleZone", "owner"),
+                            "Zone authority validation rejects null zone");
+    TEST_SECURITY_VIOLATION(!pgy_zone_authority_validate(&zone, NULL,
+                                                         "BattleZone", "owner"),
+                            "Zone authority validation rejects null participant");
+}
+
 /*
  * Main test runner
  */
@@ -578,6 +596,7 @@ int main(int argc, char *argv[])
     test_performance();
     test_sealed_storage_and_shadow_recovery();
     test_runtime_file_io_policy();
+    test_runtime_zone_authority_validation();
     
     /* Print final results */
     print_test_results();

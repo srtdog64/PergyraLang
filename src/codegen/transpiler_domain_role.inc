@@ -1500,10 +1500,12 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *auth_slot = node->data.zone_decl.authorities[0]
                                         ->data.zone_authority.subject_slot_name;
             if (auth_slot != NULL) {
+                char *participant_expr = strdup_fmt("&self->%s", auth_slot);
                 write_indent(ctx);
                 codebuf_write(ctx->out,
-                    "PGY_ZONE_AUTHORITY_CHECK(self, &self->%s, \"%s\", \"%s\");\n",
-                    auth_slot, name, auth_slot);
+                    "PGY_ZONE_AUTHORITY_CHECK(self, %s, \"%s\", \"%s\");\n",
+                    participant_expr, name, auth_slot);
+                free(participant_expr);
             }
         }
         {

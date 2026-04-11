@@ -22,8 +22,8 @@
 | **소유권** | [`docs/21_slot_relation_model.md`](docs/21_slot_relation_model.md) | Slot 관계 모델 |
 | **소유권** | [`docs/22_ownership_model.md`](docs/22_ownership_model.md) | own/ref 소유권 모델 |
 | **소유권** | [`docs/56_tobject_boundary_snapshot_policy.md`](docs/56_tobject_boundary_snapshot_policy.md) | `tobject` 전송 계약과 telemetry snapshot 분리 정책 |
-| **현황** | [`docs/63_feature_depth_matrix.md`](docs/63_feature_depth_matrix.md) | 기능별 파이프라인 깊이 매트릭스 ("넓지만 얕다" 현황판) |
-| **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | 빈 칸 채우기 로드맵 (Phase 1-3) |
+| **현황** | [`docs/63_feature_depth_matrix.md`](docs/63_feature_depth_matrix.md) | 기능별 depth 매트릭스와 상태 변경 기록 (파싱/시맨틱/MIR/C/LLVM/런타임/테스트) |
+| **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | empty cell 제거 중심의 depth filling 로드맵과 진행 기록 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |

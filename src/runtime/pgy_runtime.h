@@ -3397,23 +3397,46 @@ typedef pthread_rwlock_t PgyZoneLock;
 } while (0)
 
 /* =================================================================
- * Zone Authority — runtime validation stub
+ * Zone Authority — runtime validation
  *
- * Authority is primarily enforced at compile time (semantic analysis).
- * This macro provides a runtime debug check for defense-in-depth.
- * In release builds (PGY_DEBUG not defined), it compiles to nothing.
+ * Compile time remains the primary line of defense, but zone-entry
+ * code now performs a real runtime contract check instead of a debug
+ * placeholder. Generated C uses the inline validator below; LLVM code
+ * calls the exported twin in pgy_runtime_lib.c.
  * ================================================================= */
-#ifdef PGY_DEBUG
+static inline bool
+pgy_zone_authority_validate(void *zone_ptr, void *participant_ptr,
+                            const char *zone_name, const char *participant_name)
+{
+    const char *resolved_zone = zone_name != NULL ? zone_name : "<zone>";
+    const char *resolved_participant =
+        participant_name != NULL ? participant_name : "<participant>";
+
+    if (zone_ptr == NULL) {
+        fprintf(stderr,
+            "[pgy][authority] zone '%s' entered with null self while validating '%s'\n",
+            resolved_zone, resolved_participant);
+        return false;
+    }
+    if (participant_ptr == NULL) {
+        fprintf(stderr,
+            "[pgy][authority] zone '%s' has null authority participant '%s'\n",
+            resolved_zone, resolved_participant);
+        return false;
+    }
+    return true;
+}
+
+void pgy_zone_authority_check_export(void *zone_ptr, void *participant_ptr,
+                                     const char *zone_name,
+                                     const char *participant_name);
+
 #define PGY_ZONE_AUTHORITY_CHECK(zone_ptr, participant_ptr, zone_name, participant_name) do { \
-    if ((void *)(participant_ptr) == NULL) {                                            \
-        fprintf(stderr, "[pgy][authority] %s: null participant '%s'\n",                \
-                (zone_name), (participant_name));                                       \
-    }                                                                             \
+    if (!pgy_zone_authority_validate((void *)(zone_ptr), (void *)(participant_ptr),           \
+                                     (zone_name), (participant_name))) {                      \
+        PGY_PANIC("zone authority validation failed");                                         \
+    }                                                                                          \
 } while (0)
-#else
-#define PGY_ZONE_AUTHORITY_CHECK(zone_ptr, participant_ptr, zone_name, participant_name) \
-    ((void)0)
-#endif
 
 /* =================================================================
  * Effect Pool — multiple instances of the same effect type

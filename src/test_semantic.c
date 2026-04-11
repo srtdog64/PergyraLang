@@ -2961,6 +2961,104 @@ test_engine_collections(void)
         semantic_context_destroy(ctx);
         ast_destroy(access);
     }
+
+    TEST("List/Map/Set builtins accept matching generic element types");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    ListPush(items, 1);\n"
+            "    let first: Int = ListGet(items, 0);\n"
+            "    let seen: Set<Int> = SetNew();\n"
+            "    SetAdd(seen, first);\n"
+            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    MapSet(table, \"hp\", first);\n"
+            "    let hp: Int = MapGet(table, \"hp\");\n"
+            "    Log(first + hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ListPush rejects wrong element type");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    ListPush(items, \"oops\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("MapSet rejects wrong key type");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<String, Int> = MapNew();\n"
+            "    MapSet(table, 1, 7);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ListGet rejects non-Int index");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: List<Int> = ListNew();\n"
+            "    let first: Int = ListGet(items, \"0\");\n"
+            "    Log(first);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "Cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 static void
@@ -3013,6 +3111,87 @@ test_subject_class_ownership(void)
     }
 }
 
+static void
+test_event_semantics(void)
+{
+    printf("\n[event_semantics]\n");
+
+    TEST("event subscribe/unsubscribe accepts matching handler");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func HandleDamage(amount: Int) -> Void {\n"
+            "    Log(amount);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    OnDamage += HandleDamage;\n"
+            "    OnDamage -= HandleDamage;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event subscribe rejects handler arity mismatch");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func BadHandler() -> Void {\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    OnDamage += BadHandler;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "parameter count mismatch"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event subscribe rejects lambda parameter type mismatch");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnDamage += (amount: String) => { Log(amount); };\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "parameter 1 mismatch"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+}
+
 #include "tests/semantic/test_semantic_shared_domain.inc"
 #include "tests/semantic/test_semantic_parallel_family.inc"
 #include "tests/semantic/test_semantic_parallel_context.inc"
@@ -3041,6 +3220,7 @@ main(void)
     test_qubit_slot_semantics();
     test_quantum_extensions();
     test_match_stmt();
+    test_event_semantics();
     test_ability_decl();
     test_role_decl();
     test_party_decl();

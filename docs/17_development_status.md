@@ -1,6 +1,6 @@
 # Pergyra 개발 현황
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-04-11
 
 ## 요약
 
@@ -18,7 +18,9 @@
 - runtime 파일 I/O 보안 정책은 이제 기본적으로 `상대경로만 허용 + parent traversal 금지 + 절대경로 기본 거부`로 잠겨 있다. `PGY_IO_ROOT`가 있으면 runtime `ReadFile/WriteFile`는 해당 root 아래로 고정되고, non-Windows에서는 canonical path 검사로 symlink escape도 차단한다. `PGY_IO_ALLOW_ABSOLUTE=1`일 때만 절대경로를 허용한다.
 - whole-file read 경로는 compiler/runtime 공통으로 `64 MiB` 상한, `fseek/ftell/fread` 실패 방어, short read 거부를 가진다.
 - hardware fingerprint는 이제 probe 실패 시 즉시 붕괴하지 않고 stable fallback identity를 채운다. Linux는 `machine-id/hostname/uname/non-loopback MAC`, Windows는 `computer name` 기반 fallback을 사용한다.
-- 보안 회귀는 `make test-security`에서 runtime file I/O policy, fingerprint consistency, secure slot/token 경로를 함께 검증한다.
+- 보안 회귀는 `make test-security`에서 runtime file I/O policy, fingerprint consistency, secure slot/token 경로와 runtime zone authority validation을 함께 검증한다.
+- zone authority runtime validation은 더 이상 debug placeholder가 아니라 실제 runtime contract check다. generated C는 inline validator를, LLVM은 exported runtime symbol을 호출한다.
+- secure memory lock/unlock는 unsupported platform에서 더 이상 성공으로 조용히 통과하지 않고 explicit `SECURITY_ERROR_UNSUPPORTED_PLATFORM`를 반환한다.
 - `examples/logistics_intent_probe/`는 현재 가장 직접적인 4-layer probe 예제로, `DIR` role/ability edge, `RIR` handle/flow fact, `MIR` phi/cleanup graph, runtime intent history를 한 번에 밟고 `tests/ir_pipeline_probe.sh`로 회귀시킴.
 - `examples/resource_scheduler_async_probe/`는 현재 가장 직접적인 async/parallel resource probe 예제로, `Channel<Int>`, `parallel`, `Slot<subject>`, helper-based `ref Slot<subject>` mutation, `DeviceSlot<Int>`, `RemoteFuture<Int>`를 한 시나리오에서 동시에 밟고 exact stdout/results + module smoke로 회귀시킴.
 - HIR는 아직 expression-level deep IR은 아니지만, 더 이상 순수 top-level bucket classifier만은 아니며 `decl index` / `routine summary` / `signature_type_refs` / direct-call snapshot / routine call-edge / conservative entry reachability / `hir_run_routine_pass(...)` / `hir_run_block_pass(...)`와 function CFG v0(predecessor/reachability/dead-block-count/immediate-dominator/dominance-frontier/dominator-tree/natural-loop-depth/local-def/phi-candidate/phi-node-skeleton 포함)를 가진 indexed backend/pass view로 올라와 있음
@@ -193,8 +195,8 @@
 
 | 스위트 | 결과 |
 |---|---|
-| security | 52 passed |
-| semantic | 695 passed |
+| security | 55 passed |
+| semantic | 836 passed |
 | transpile | 461 passed |
 | llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure`, `string_io` 포함) |
 | abi | 56 passed |

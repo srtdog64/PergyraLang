@@ -1,249 +1,325 @@
-# Feature Depth Matrix — "넓지만 얕다" 현황판
+# Feature Depth Matrix
 
 마지막 업데이트: 2026-04-11
 
-이 문서는 Pergyra의 각 도메인 기능이 파이프라인 어느 단계까지 **실제로** 구현되어 있는지를
-코드 기준으로 추적한다. 문서에 적힌 설계가 아니라, 코드에 존재하는 구현만 기록한다.
+이 문서는 PergyraLang의 기능별 구현 깊이를 코드 기준으로 기록한다.
+설계 문서상 존재하는 개념이 아니라, 현재 저장소에서 실제로 확인된 depth만 적는다.
 
-핵심 원칙:
-- 파싱만 되고 시맨틱이 없으면 **안전하지 않은 컴파일**이다.
-- 코드젠이 있어도 런타임이 없으면 **링크 실패**다.
-- 모든 칸이 채워져야 "기능이 있다"고 말할 수 있다.
+판정 원칙:
+- `파싱`만 있으면 surface만 있는 것이다.
+- `시맨틱`이 비면 안전하지 않은 컴파일이다.
+- `C`와 `LLVM`이 모두 안 맞으면 백엔드 debt다.
+- `런타임`이 비면 도메인 키워드는 형식만 있고 실행 의미가 얇다.
+- `테스트`가 약하면 구현이 아니라 우연히 돌아가는 상태다.
 
----
-
-## 1. 전체 매트릭스
-
-| 영역 | 파싱 | 시맨틱 검증 | C 코드젠 | LLVM 코드젠 | 런타임 | 판정 |
-|------|:----:|:----------:|:-------:|:----------:|:-----:|------|
-| **기본** (let/func/class/if/for/while/match) | ✅ | ✅ | ✅ | ✅ | — | **완성** |
-| **Intent** | ✅ | ✅ 실질적 | ✅ | ✅ | 스텁 | 동작하나 런타임 thin |
-| **Zone** | ✅ | ✅ 실질적 | ✅ | ✅ | 스텁 | 동작하나 런타임 thin |
-| **World** | ✅ | ✅ | ✅ | ⚠️ 부분 | 스텁 | LLVM 분리 필요 |
-| **Event** | ✅ | ❌ 최소 | ✅ | ⚠️ 등록만 | ❌ 없음 | **위험** |
-| **Channel** | ✅ | ✅ | ✅ | ✅ | ✅ 매크로 | 런타임 존재, 검증 보강 필요 |
-| **Set/Map/List** | ✅ | ❌ 깨짐 | ⚠️ 부분 | ❌ 없음 | ✅ 매크로 | **LLVM 불가, 시맨틱 부재** |
-| **Slot** | ✅ | ✅ | ✅ | ✅ | ✅ | **완성** |
-
-범례: ✅ 동작 / ⚠️ 부분 구현 / ❌ 부재 또는 깨짐
+상태 범례:
+- `✅` 실사용 가능
+- `◐` 부분 구현 또는 thin
+- `❌` 사실상 비어 있음
 
 ---
 
-## 2. 영역별 상세
+## 0. 최근 수정 사항
 
-### 2.1 기본 (let / func / class / if / for / while / match)
+2026-04-11 기준 이번 정리에서 반영한 변경:
+- 기존 "넓지만 얕다" 초안을 실제 코드 기준 depth matrix로 재작성
+- `파싱/시맨틱/C/LLVM`만 보던 표를 `MIR/하강`, `런타임`, `테스트`까지 확장
+- `Intent`, `Zone`, `Channel`, `Slot`은 최근 구현 상태를 반영해 상향 판정
+- `Event semantic`, `Set/Map/List`, `World LLVM`, `relation/effect/projection`을 핵심 depth gap으로 재고정
+- tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
 
-**판정: 완성**
-
-모든 파이프라인 단계에서 동작. C/LLVM 출력 일치 확인됨.
-enum, struct, object, tobject, subject 선언 + 메서드 디스패치 포함.
-
-| 항목 | 상태 | 위치 |
-|------|------|------|
-| 파싱 | ✅ | `parser.c`, `parser_decl.c` |
-| 시맨틱 | ✅ | `type_checker.c` 전체 |
-| C 코드젠 | ✅ | `transpiler.c` |
-| LLVM 코드젠 | ✅ | `llvm_stmt.c`, `llvm_expr.c`, `llvm_decl.c` |
-| 런타임 | — | 런타임 불필요 (언어 코어) |
+이번 문서의 의도:
+- "무슨 기능이 있나"를 보여주기보다
+- "어디가 실제로 닫혀 있고 어디가 비어 있는가"를 보여주는 것
 
 ---
 
-### 2.2 Intent
+## 1. 요약 매트릭스
 
-**판정: 동작하나 런타임이 thin**
-
-step/guard/post/compensate/rollback 전체 흐름 동작.
-3가지 rollback 정책(full/current/none) 정확 구현.
-C/LLVM 출력 일치 확인됨.
-
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser_intent.c` | step, guard, post, compensate, on, who, where, using, transfer |
-| 시맨틱 | ✅ | `type_checker_decls.inc:960-1200+` | involves 해석, step zone/authority 검증, 계약 추론(who/where/transfer) |
-| C 코드젠 | ✅ | `transpiler_domain_role.inc` | 전체 intent 흐름 생성 |
-| LLVM 코드젠 | ✅ | `llvm_intent.c` (1673줄) | MIR topology 기반, cleanup/rollback/invalidation 블록 |
-| 런타임 | 스텁 | `pgy_runtime_lib.c` | `IntentHistoryCount`, `IntentLastName`, `IntentLastFailed` → 최소 구현, 실제 히스토리 저장소 없음 |
-
-**빈 칸:**
-- 런타임 인텐트 히스토리 저장소 (현재 전역 카운터만)
-- 인텐트 값 파라미터 (`with price: Int` 문법) 미지원
-- 분산 인텐트 실행 (단일 프로세스 전용)
-
----
-
-### 2.3 Zone
-
-**판정: 동작하나 런타임이 thin**
-
-zone slot, layer, state, projection, authority 전체 구조 동작.
-refresh/publish/apply/link/detach/unlink 파서+시맨틱+코드젠 연결됨.
-
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser_domain.c` | subject/object/effect/relation slot, state, authority, apply/link/detach/refresh/publish |
-| 시맨틱 | ✅ | `type_checker_decls.inc:3331-3750+` | slot 타입 매칭, authority requires 검증, 중복 authority 감지, apply/link/refresh 대상 유효성 |
-| C 코드젠 | ✅ | `transpiler_domain_role.inc` | struct 생성, sync 함수, projection, layer/state 플래그 |
-| LLVM 코드젠 | ✅ | `llvm_domain.c` | struct 타입 + zone_sync 함수 생성 |
-| 런타임 | 스텁 | `pgy_runtime.h` | `PGY_ZONE_AUTHORITY_CHECK` 매크로 (PGY_DEBUG only), HasLayer/HasState/HasProjection 플래그 |
-
-**빈 칸:**
-- 런타임 authority 검증이 `PGY_DEBUG` 전용 (릴리스에서 무시됨)
-- zone 간 projection 경로 검증 없음
-- zone 트랜잭션 시맨틱 (multi-slot 원자 업데이트) 없음
+| 영역 | 파싱 | 시맨틱 | MIR/하강 | C | LLVM | 런타임 | 테스트 | 깊이 판정 | 핵심 메모 |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|---|
+| 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
+| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | surface는 넓지만 generic contract는 아직 얕음 |
+| `subject/class/object/tobject/enum` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 존재론 surface는 동작하나 일부 명명/표면 정책 정리 중 |
+| `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중간 | generic ability ref, richer contract validation은 남음 |
+| `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
+| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션은 강함, 런타임 기록계층은 얇음 |
+| `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 컴파일 타임 계약은 강함, 런타임 world/transaction 계층은 얇음 |
+| `World` | ✅ | ✅ | ✅ | ✅ | ◐ | ◐ | ◐ | 중간 | C 경로는 괜찮고 LLVM 쪽 debt가 남음 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ◐ | 중간 | surface와 핵심 연결은 있으나 lattice/authority 통합은 미완 |
+| `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
+| `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
+| `Set/Map/List` | ✅ | ❌ | ❌ | ◐ | ❌ | ◐ | ◐ | 얕음 | surface만 넓고 타입/LLVM 쪽이 비어 있음 |
+| 디버거 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 부재 | 스텁 단계 |
+| 포매터 | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | basic formatter만 있음 |
+| LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | partial 상태 |
 
 ---
 
-### 2.4 World
+## 2. 행별 해설
 
-**판정: LLVM 분리 필요**
+### 2.1 기본 코어
 
-C 백엔드에서는 전체 동작. LLVM에서는 `llvm_domain.c`에 임베디드되어 있으나 분리/검증 불충분.
+현재 Pergyra의 실질적 기반이다.
+제어 흐름, 함수, 기본 타입, 패턴 매칭, 메서드 호출, enum 경로는 C/LLVM 양쪽에서 실제로 버틴다.
 
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser_domain.c` | zone slot, roster, state, activate/deactivate/maintain |
-| 시맨틱 | ✅ | `type_checker_decls.inc:1660-1850+` | roster/zone 참조 검증, composed state (ALL/ANY) 검증 |
-| C 코드젠 | ✅ | `transpiler_domain_role.inc:1554-1900+` | struct + World_sync() + activation/zone sync/derived state |
-| LLVM 코드젠 | ⚠️ | `llvm_domain.c:790-1368` | struct 타입 생성 + world_sync 존재하나 `llvm_domain.c`에 임베디드, 별도 파일 없음 |
-| 런타임 | 스텁 | — | World 전용 런타임 함수 없음 (zone 런타임에 의존) |
+판정:
+- 컴파일러의 "알파 코어"는 이미 존재한다.
+- 새 문법을 더 늘리기보다 이 축과 같은 깊이로 다른 도메인 기능을 끌어올리는 쪽이 맞다.
 
-**빈 칸:**
-- LLVM world 코드젠을 `llvm_domain.c`에서 분리 또는 검증 강화
-- World derived state projection 캐싱 미구현
-- World 전용 런타임 함수 (현재 zone 런타임 재사용)
-- LLVM 경로 world 초기화 함수 미정형
+### 2.2 타입/제네릭 surface
+
+파서는 많이 받아들이지만, 시맨틱과 lower 단계가 아직 surface를 다 따라가지 못한다.
+
+대표 gap:
+- default type arg는 surface 대비 시맨틱 뒷받침이 약하다.
+- `where T: A + B` 같은 richer bound는 parser가 받을 수 있어도 검증과 활용이 얕다.
+- generic ability reference는 구조는 올라왔지만 완전한 declaration/validation 체인은 닫히지 않았다.
+
+판정:
+- "쓸 수 있는 것처럼 보이는 generic surface"가 남아 있다.
+- 이 영역은 새 문법 추가보다, 닫지 못한 surface를 줄이거나 완성하는 쪽이 먼저다.
+
+### 2.3 존재론 축 (`subject/class/object/tobject/enum`)
+
+파서, 시맨틱, C/LLVM 코드젠까지는 강하다.
+다만 표면 설계에서 pain point가 남아 있다.
+
+대표 pain point:
+- `subject`와 `class`가 lexer 단계에서 완전히 분리되지 않았던 흔적
+- `object/tobject` surface와 token 정책의 일관성 문제
+- `ability` 기본 export 정책 같은 surface ergonomics 정리 필요
+
+판정:
+- "구현 depth" 자체는 나쁘지 않다.
+- 문제는 correctness보다 surface consistency 쪽이다.
+
+### 2.4 `ability/role/require/use` 계약 축
+
+언어 철학상 핵심인데, 실제 depth는 "중간"이다.
+기본 계약 검증과 코드젠은 있으나, richer contract system은 아직 partially closed 상태다.
+
+남은 gap:
+- `ability<T>` 선언과 참조 전체 체인
+- `requires Ability<T>`의 풍부한 mismatch 진단
+- `use/require`를 module contract까지 일관되게 올리는 작업
+- hidden/default-export 규칙과 generic 해석의 일관화
+
+판정:
+- 방향은 맞다.
+- 아직 "컴파일러가 완전히 설명 가능한 계약 시스템" 단계는 아니다.
+
+### 2.5 Slot 축
+
+현재 저장소에서 가장 잘 닫힌 도메인 기능이다.
+특히 secure 쪽은 단순 키워드가 아니라 실제 runtime rule로 이어진다.
+
+현재 강한 점:
+- claim/write/read/release lifecycle
+- secure pairing/token 검증
+- unsupported platform을 조용히 성공 처리하지 않고 명시 오류로 돌림
+- C/LLVM 모두 같은 런타임 계약에 연결
+
+판정:
+- depth를 채우는 기준선으로 삼아야 할 축이다.
+
+### 2.6 Intent
+
+최근 기준으로 intent는 "문법만 있는 기능"이 아니다.
+실제로 semantic inference와 codegen이 붙어 있다.
+
+현재 강한 점:
+- orchestration surface 존재
+- rollback/cleanup 경로 실구현
+- C/LLVM 양쪽 경로 존재
+- 예제와 smoke 범위가 실제로 있다
+
+남은 gap:
+- intent history/storage는 여전히 thin
+- runtime inspection은 최소 정보 중심
+- distributed/multi-process intent runtime은 아직 범위 밖
+
+판정:
+- core compile path는 강하다.
+- runtime observability가 아직 얕다.
+
+### 2.7 Zone
+
+Zone은 현재 "시맨틱 없는 장식" 단계는 벗어났다.
+권한/authority/slot/state/projection 구조가 컴파일러 경로에 걸쳐 연결되어 있다.
+
+최근 보강된 점:
+- zone authority runtime validation이 더 이상 debug-only placeholder가 아니다
+- C와 LLVM 모두 실제 runtime contract 호출로 연결됨
+- silent no-op 대신 진단이 남는다
+
+남은 gap:
+- multi-slot transaction semantics
+- richer projection path validation
+- world와 묶인 higher-order runtime policy
+
+판정:
+- compile-time depth는 꽤 올라왔다.
+- runtime coordination depth가 남아 있다.
+
+### 2.8 World
+
+World는 "없다"라고 말할 정도는 아니지만, 가장 자신 있게 완료 판정을 내릴 수준도 아니다.
+
+현재 상태:
+- parser/semantic/C 쪽은 존재
+- LLVM 쪽은 동작 경로가 있으나 debt가 남는다
+- runtime은 zone 메커니즘에 많이 기대고 있다
+
+판정:
+- world는 `C에서는 중상`, `LLVM에서는 중간` 정도로 보는 것이 맞다.
+- "완전 미구현"이라고 말하면 틀리고, "분리와 검증이 덜 닫힌 상태"라고 보는 게 정확하다.
+
+### 2.9 relation / effect / projection
+
+언어 차별점이지만 아직 가장 위험한 오해 지점이기도 하다.
+surface는 풍부한데, writer ergonomics와 semantic closure가 완전히 일치하지 않는다.
+
+남은 gap:
+- effect lattice 완전판
+- authority/resource partial order와의 통합
+- projection wiring 축약과 진단 개선
+- relation/effect 접근 ergonomics
+
+판정:
+- 설계는 강하다.
+- 구현 깊이는 아직 중간이다.
+
+### 2.10 Channel / select
+
+실제 runtime이 있는 몇 안 되는 강한 축이다.
+bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 사용에 대한 진단도 보강됐다.
+
+남은 gap:
+- constructed type로서의 더 정교한 semantic model
+- select case 진단 강화
+- author-facing cancellation story와의 통합
+
+판정:
+- runtime depth는 높다.
+- type-system integration은 아직 더 다듬을 여지가 있다.
+
+### 2.11 Event
+
+기존 문서에서 가장 과소평가된 축 중 하나다.
+
+현재 확인된 점:
+- parser surface는 있다.
+- C 코드젠은 event helper를 생성한다.
+- LLVM 코드젠도 `INIT/SUBSCRIBE/UNSUBSCRIBE/INVOKE` helper와 global event storage를 만든다.
+- smoke surface가 이미 존재한다.
+
+실제 gap:
+- semantic validation이 약했고, 이번에 1차 closure를 시작했다.
+- runtime이 별도 독립 subsystem이라기보다 generated helper 중심이라 설명력이 약했다.
+- parser가 직접 만드는 invoke surface와 direct `AST_EVENT_INVOKE` 경로의 정합성은 더 점검이 필요하다.
+
+판정:
+- event는 더 이상 "surface만 있다" 수준은 아니다.
+- 정확한 평가는 "코드젠은 존재하지만 semantic closure와 runtime 설명이 덜 닫힌 중간 축"이다.
+
+### 2.12 Set / Map / List
+
+컬렉션은 넓지만 얕다의 대표 사례다.
+
+핵심 문제:
+- 타입 시스템과 generic validation이 약하다
+- C 경로는 부분 동작하지만 제한이 많다
+- LLVM 경로가 닫히지 않았다
+- runtime helper는 있어도 컴파일러 depth가 못 따라간다
+
+판정:
+- 새 컬렉션 surface를 더 추가할 때가 아니다.
+- 이미 있는 `Set/List/Map`을 먼저 제대로 닫아야 한다.
+
+### 2.13 Tooling
+
+디버거, formatter, LSP는 "있다"와 "완성됐다"를 구분해야 한다.
+
+판정:
+- debugger: 스텁
+- formatter: basic
+- LSP: partial
+
+이 셋은 언어 코어 depth gap을 막은 뒤 productization 단계에서 닫는 편이 맞다.
 
 ---
 
-### 2.5 Event (**위험**)
+## 3. 현재 전체 판정
 
-**판정: 파이프라인 전반에 구멍**
+한 줄 요약:
 
-파싱은 되지만 시맨틱 검증이 거의 없고, 런타임이 존재하지 않음.
-핸들러 시그니처 불일치를 잡지 못하고 컴파일됨.
+> PergyraLang은 더 이상 단순 parser project는 아니다.
+> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List`, `World LLVM`, `effect/projection` 쪽에 빈 칸이 남아 있다.
 
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser_domain.c` | event 선언, subscribe(+=), unsubscribe(-=), invoke |
-| 시맨틱 | ❌ 최소 | `type_checker.c:2748-2765` | 심볼 테이블 등록만. **핸들러 시그니처 검증 없음, subscribe/unsubscribe/invoke 미처리** |
-| C 코드젠 | ✅ | `transpiler_domain_role.inc:2016-2125` | struct + INIT/SUBSCRIBE/UNSUBSCRIBE/INVOKE 인라인 함수 생성 |
-| LLVM 코드젠 | ⚠️ | `llvm_domain.c:1841-1867` | struct 타입 등록만. **invoke/subscribe/unsubscribe 코드젠 불완전** |
-| 런타임 | ❌ | — | **이벤트 전용 런타임 없음. 동기 직접호출만.** 큐/비동기 디스패치 없음 |
-
-**빈 칸 (전부 채워야 함):**
-- 시맨틱: `type_check_event_decl()` 구현 — 파라미터 타입 검증, 핸들러 시그니처 호환성
-- 시맨틱: `AST_EVENT_SUBSCRIBE/UNSUBSCRIBE` 타입 체커 switch 추가
-- 시맨틱: `AST_EVENT_INVOKE` 인자 타입 검증
-- LLVM: event invoke/subscribe/unsubscribe 코드젠
-- 런타임: 이벤트 핸들러 배열 + 동기 디스패치 (최소)
+조금 더 정확히 말하면:
+- 코어 언어, slot, channel, intent/zone 일부는 이미 "깊은 축"이다.
+- world, relation/effect, generic contract, event는 "중간 축"이다.
+- collections, debugger는 "얕은 축" 또는 "부재 축"이다.
 
 ---
 
-### 2.6 Channel
+## 4. 우선순위
 
-**판정: 런타임 존재, 시맨틱 보강 필요**
+### P0
 
-유일하게 런타임이 실제로 존재하는 도메인 기능 (pthread 기반 bounded buffer).
+지금 즉시 depth를 채워야 하는 축:
+- `Event semantic`
+- `Set/Map/List`
+- `World`의 LLVM closure
 
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser.c` | `Channel<T>`, `ch <- val`, `<-ch`, `select { case }` |
-| 시맨틱 | ✅ | `type_checker.c:1797-1880` | send/recv 타입 검증, anchored resource 거부, capability 전송 차단 |
-| C 코드젠 | ✅ | `transpiler.c:714+` | `pgy_channel_init_T`, send/recv 호출 |
-| LLVM 코드젠 | ✅ | `llvm_expr.c:188-235`, `llvm_stmt.c:2581-2790` | send/recv + select 문 |
-| 런타임 | ✅ | `pgy_runtime.h:3704-4155` | MPMC bounded ring buffer + SPSC lock-free variant |
+이 셋은 빈 칸이 실제 사용자를 속이는 영역이다.
+"문법이 있으니 된다"라고 느끼게 하지만, 실제로는 파이프라인이 끝까지 안 닫혀 있다.
 
-**빈 칸:**
-- 시맨틱: `TYPE_CHANNEL` 정식 타입 없음 (ad-hoc constructed)
-- 시맨틱: select 문 case 표현식 미검증
-- 시맨틱: 초기화 전 사용 감지 없음
-- SPSC variant가 언어 표면에 노출 안 됨
+### P1
 
----
+다음으로 닫아야 하는 축:
+- `ability/require/use` 계약의 richer semantic closure
+- `relation/effect/projection`의 lattice 및 authority 통합
+- intent/zone/world runtime observability
 
-### 2.7 Set / Map / List (**LLVM 불가, 시맨틱 부재**)
+### P2
 
-**판정: C 백엔드에서만 부분 동작, LLVM 전혀 안 됨**
+코어 depth 이후에 가야 하는 축:
+- formatter/LSP/debugger 완성
+- authoring shorthand와 scaffolding
+- 표면 ergonomics 고도화
 
-런타임 매크로(C 전처리기)는 존재하지만, 타입 시스템 통합이 깨져 있고
-LLVM 백엔드에 코드젠이 없음.
-
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser.c` | `Set<T>`, `List<T>`, `Map<K,V>`, 메서드 호출 |
-| 시맨틱 | ❌ | `type_system.c:29-65` | `TYPE_SET/LIST/HASHMAP` 선언은 있으나 **size=0**, 제네릭 인스턴스 검증 없음, 메서드 타입 체크 없음 |
-| C 코드젠 | ⚠️ | `transpiler.c:780-889`, `transpiler_expr_emitters.inc` | Set/List/Map 생성자 + 일부 메서드 (SetAdd/SetHas/ListPush/MapSet 등). **Set은 String만, Map은 String 키만** |
-| LLVM 코드젠 | ❌ | — | **전혀 없음.** LLVM 백엔드에서 Set/List/Map 사용 시 컴파일 실패 |
-| 런타임 | ✅ | `pgy_runtime.h:2422-3050`, `pgy_runtime_lib.c:515-980` | `PgyList_T`, `PgyHashMap_T`, `PgySet_T` 매크로 + raw export 함수 |
-
-**빈 칸 (심각):**
-- 시맨틱: 제네릭 컬렉션 타입 파라미터 검증
-- 시맨틱: 메서드 호출 (`.add()`, `.size()`, `.get()`) 타입 체크
-- LLVM: 컬렉션 생성자 + 메서드 코드젠 전체
-- C 코드젠: Map 키 타입 일반화 (현재 String만), Set 요소 타입 일반화
-- 런타임: 인덱스 범위 검사, iteration 지원
+핵심은 순서다.
+지금 필요한 것은 surface expansion이 아니라 empty cell removal이다.
 
 ---
 
-### 2.8 Slot
+## 5. 완료 기준
 
-**판정: 완성**
+이 문서는 아래 조건을 만족할 때 사실상 종료된다.
 
-lifecycle 강제 (claim→write→read→release), SecureSlot 토큰 검증,
-DeviceSlot, QubitSlot 전부 동작.
-
-| 항목 | 상태 | 위치 | 상세 |
-|------|------|------|------|
-| 파싱 | ✅ | `parser.c` | `Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`, `QubitSlot<T>` |
-| 시맨틱 | ✅ | `type_checker_builtins.c` | 빌트인 Read/Write/Release/Claim 검증, 토큰 페어링 |
-| C 코드젠 | ✅ | `transpiler.c` | 모든 slot 타입 코드젠 |
-| LLVM 코드젠 | ✅ | `llvm_runtime.c` | 런타임 바인딩 |
-| 런타임 | ✅ | `pgy_runtime.h`, `pgy_runtime_lib.c`, `slot_security.c` | 6타입 claimed 검사, SHA256 토큰, 하드웨어 핑거프린트 |
+- `Event`가 `파싱/시맨틱/MIR/C/LLVM/런타임/테스트`를 모두 채운다.
+- `Set/Map/List`가 LLVM까지 닫히고 generic validation이 들어간다.
+- `World`가 LLVM에서도 debt 항목이 아니라 정상 축으로 내려온다.
+- `relation/effect/projection`이 "설계는 강함"이 아니라 "구현도 강함"으로 바뀐다.
+- tooling 문서가 `stub/basic/partial`이 아니라 명확한 product-level 상태를 가진다.
 
 ---
 
-## 3. 우선순위 분류
+## 6. 상태 변경 기록
 
-### P0 — 즉시 (안전하지 않은 컴파일 방지)
+### 2026-04-11
 
-| # | 영역 | 빈 칸 | 이유 |
-|---|------|-------|------|
-| 1 | Event | 시맨틱 검증 전체 | 핸들러 시그니처 불일치가 컴파일 통과 → 런타임 크래시 |
-| 2 | Set/Map/List | 시맨틱 검증 | 타입 파라미터 무시 → 타입 안전성 없음 |
-| 3 | Set/Map/List | LLVM 코드젠 | LLVM 백엔드에서 컬렉션 사용 불가 |
+상태 조정:
+- `Slot`: `완성` 유지
+- `Channel/select`: `중상`에서 `깊음` 쪽으로 정리
+- `Intent`: 단순 thin 기능이 아니라 `compile path 강함 + runtime thin`으로 정정
+- `Zone`: debug-only placeholder 평가를 제거하고 `runtime contract 일부 실체화`로 정정
+- `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM debt 잔존`으로 정정
+- `Event`: `LLVM/runtime 부재` 평가를 제거하고 `semantic closure 부족` 중심으로 정정
 
-### P1 — 단기 (기능 완성)
-
-| # | 영역 | 빈 칸 | 이유 |
-|---|------|-------|------|
-| 4 | Event | LLVM 코드젠 | invoke/subscribe/unsubscribe LLVM 미구현 |
-| 5 | Event | 런타임 | 이벤트 디스패치 메커니즘 없음 |
-| 6 | World | LLVM 검증 강화 | 임베디드 코드 분리 + 테스트 |
-| 7 | Channel | 시맨틱 보강 | TYPE_CHANNEL 정식화, select 검증 |
-
-### P2 — 중기 (품질)
-
-| # | 영역 | 빈 칸 | 이유 |
-|---|------|-------|------|
-| 8 | Intent | 런타임 히스토리 | 인텐트 추적/디버깅 |
-| 9 | Zone | 런타임 authority | 릴리스 빌드에서도 authority 검증 |
-| 10 | Set/Map/List | 제네릭 일반화 | Map 키 타입, Set 요소 타입 |
-
----
-
-## 4. 달성 기준
-
-모든 칸이 ✅가 되면 이 문서의 목적이 달성된 것이다.
-
-```
-기본       ✅ ✅ ✅ ✅ —   ← 완성
-Intent    ✅ ✅ ✅ ✅ ✅
-Zone      ✅ ✅ ✅ ✅ ✅
-World     ✅ ✅ ✅ ✅ ✅
-Event     ✅ ✅ ✅ ✅ ✅
-Channel   ✅ ✅ ✅ ✅ ✅
-Set/Map/List ✅ ✅ ✅ ✅ ✅
-Slot      ✅ ✅ ✅ ✅ ✅   ← 완성
-```
-
-모든 ✅가 채워지면 Pergyra는 "넓고 깊다"고 말할 수 있다.
+새 기준선:
+- P0는 `Event semantic`, `Set/Map/List`, `World LLVM`
+- P1은 `ability/require/use`, `relation/effect/projection`, `observability`
+- P2는 `tooling`과 `authoring shorthand`
