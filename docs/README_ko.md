@@ -29,8 +29,9 @@ Pergyra는 포인터나 도메인별 핸들 API를 언어의 중심에 두기보
 LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 않은 경우 C 백엔드로 폴백합니다.
 
 ```
-.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  HIR  -->  LLVM Backend  -->  Object  -->  Binary
-                                                      \\-> C Backend     -->  C       -->  GCC --> Binary
+.pgy  -->  Lexer  -->  Parser  -->  Semantic  -->  HIR  -->  DIR  -->  RIR  -->  MIR  -->  Backend
+                                                                                           ├→ LLVM → Object → Binary
+                                                                                           └→ C    → C → GCC/Clang
 ```
 
 ### 핵심 특징
@@ -69,6 +70,14 @@ make all
 
 # 슬롯 데모 실행
 ./bin/pgy examples/slots.pgy --run -v
+
+# 직접 회귀 진입점
+make test-transpile
+make test-abi
+make llvm-test-backend-compare
+make example-test-smoke
+make ir-pipeline-test-smoke
+make fmt-test-smoke
 ```
 
 ## 문법 예제
@@ -121,12 +130,6 @@ PergyraLang/
 ## 테스트
 
 ```bash
-# 전체 테스트
-make test-all
-
-# LLVM 백엔드 빌드 + 테스트
-make llvm-test-all
-
 # C/LLVM 결과 비교 회귀 테스트
 make llvm-test-backend-compare
 
@@ -138,8 +141,16 @@ make test-transpile # C 백엔드
 make test-memory    # 메모리 레이아웃
 ```
 
-현재 `make test-semantic`, `make test-transpile` 기준 핵심 프론트엔드 테스트가 통과합니다.
-`make llvm-test-backend-compare`는 대표 예제 코퍼스에 대해 C/LLVM 결과를 비교하지만, 아직 전체 기능 parity를 보증하는 문서는 아닙니다.
+현재 직접 확인한 범위는 다음과 같습니다.
+
+- `make test-transpile` 통과 (`464 passed`)
+- `make test-abi` 통과 (`56 passed`)
+- `make llvm-test-backend-compare` 통과
+- `make example-test-smoke` 통과
+- `make ir-pipeline-test-smoke` 통과
+- `make fmt-test-smoke` 통과
+
+`make llvm-test-backend-compare`는 대표 예제 코퍼스에 대해 C/LLVM 결과를 비교하지만, 이것만으로 전체 기능 parity를 선언하는 문서는 아닙니다.
 
 ## Slot 시스템
 
@@ -180,7 +191,7 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 - [ ] 패키지 매니저
 - [ ] 모듈 시스템 안정화
 - [ ] WebAssembly 타겟
-- [ ] 디버거
+- [ ] product-grade debugger/runtime integration
 
 ## 문서
 

@@ -18,7 +18,7 @@
   <a href="docs/INDEX.md">All Documentation</a>
 </p>
 
-> **Current Status**: Executable experimental alpha. Core compiler pipeline works (`HIR -> DIR -> RIR -> MIR`) with C and LLVM backends, and the repository currently carries 1200+ direct regression checks across semantic/transpile/security/ABI/smoke suites.
+> **Current Status**: Executable experimental alpha. Core compiler pipeline works (`HIR -> DIR -> RIR -> MIR`) with C and LLVM backends, and current direct regression entrypoints include `test-transpile`, `test-abi`, `llvm-test-backend-compare`, `example-test-smoke`, `ir-pipeline-test-smoke`, and `fmt-test-smoke`.
 > Standard library, tooling, and ecosystem are still incomplete, but LSP/debugger/formatter are no longer stubs.
 > **Quantum surface exists in v1 as a partial runtime/semantic skeleton** (`QubitSlot`, `ClaimQubit`, `Measure`, `Entangle`), while the full quantum resource model remains a v2 target.
 
@@ -60,6 +60,17 @@ make LLVM_ENABLED=1 all
 ```
 
 Requires GCC (C11) and GNU Make. LLVM 14+ optional.
+
+Recent regression entrypoints:
+
+```bash
+make test-transpile
+make test-abi
+make llvm-test-backend-compare
+make example-test-smoke
+make ir-pipeline-test-smoke
+make fmt-test-smoke
+```
 
 ## Basics
 
@@ -117,9 +128,9 @@ Pergyra uses 6 keywords to declare types. Each keyword carries **intended** dist
 | `subject` | Active entity (protagonist) | Reference (ptr self) | action + func | ✅ Full |
 | `class` | Passive thing (tool) | Value | func only | ✅ Full |
 | `struct` | Pure data | Value | None | ✅ Full |
-| `vessel` | Internal state (inside subject) | Value | None | ⚠️ Parser only |
-| `object` | Internal projection/view contract | Value | func only | ⚠️ Shares struct-style syntax today |
-| `tobject` | Transfer/export boundary contract | Value | func only | ⚠️ Shares struct-style syntax today |
+| `vessel` | Internal state (inside subject) | Value | None | ✅ Semantic + codegen surface |
+| `object` | Internal projection/view contract | Value | func only | ✅ Distinct projection contract |
+| `tobject` | Transfer/export boundary contract | Value | func only | ✅ Distinct transfer contract |
 
 > **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리되어 있다. `object`와 `tobject`는 선언 키워드와 계약이 모두 distinct하며, `object`는 local/internal projection contract, `tobject`는 publish/transfer/export boundary contract로 고정되어 있다.
 
