@@ -8,14 +8,14 @@
 // ===== Ability Definitions =====
 
 ability Damageable {
-    require _health: Slot<Int>
+    fields _health: Slot<Int>
 
     func TakeDamage(amount: Int);
     func GetHealth() -> Int;
 }
 
 ability Attackable {
-    require _attackPower: Int
+    fields _attackPower: Int
 
     func GetAttackPower() -> Int;
 }

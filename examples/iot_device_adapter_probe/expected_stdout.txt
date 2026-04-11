@@ -1,0 +1,6 @@
+=== IOT DEVICE ADAPTER PROBE ===
+[timer] poll:temp due=2110836984 interval=1000 repeating=false
+expired=true
+[command] target=temp address=4096 value=77
+[device] source=temp address=4096 value=77 captured=2110836984
+topic=device/temp

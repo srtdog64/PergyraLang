@@ -1,0 +1,6 @@
+=== COMPLIANCE OBLIGATION PROBE ===
+[obligation] KYC_REVIEW owner=merchant:alpha due=2000030000 fulfilled=false
+before.violation=false
+after.violation=true
+[violation] KYC_REVIEW owner=merchant:alpha reason=deadline exceeded lateness=15000
+fulfilled=true

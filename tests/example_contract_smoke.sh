@@ -268,6 +268,12 @@ run_stable_examples() {
         "$ROOT_DIR/examples/spray_device_probe" "=== SPRAY DEVICE PROBE ===" "[spray] success=3 all=true" "[device] 910 911 912" "[capability] spray-batch=true device-readback=true real-gpu-backend=false"
     run_expect_lines "calendar_working" "$backend" \
         "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
+    run_expect_lines "finance_ledger_probe" "$backend" \
+        "$ROOT_DIR/examples/finance_ledger_probe/main.pgy" "=== FINANCE LEDGER PROBE ===" "[ledger]" "balanced=true" "version=wallet:min@1" "idempotency=payment:checkout-42#7"
+    run_expect_lines "compliance_obligation_probe" "$backend" \
+        "$ROOT_DIR/examples/compliance_obligation_probe/main.pgy" "=== COMPLIANCE OBLIGATION PROBE ===" "[obligation] KYC_REVIEW" "before.violation=false" "after.violation=true" "[violation] KYC_REVIEW"
+    run_expect_lines "iot_device_adapter_probe" "$backend" \
+        "$ROOT_DIR/examples/iot_device_adapter_probe/main.pgy" "=== IOT DEVICE ADAPTER PROBE ===" "[timer] poll:temp" "expired=true" "[command] target=temp" "[device] source=temp"
     run_expect_lines "subject_object_tobject" "$backend" \
         "$ROOT_DIR/examples/subject_object_tobject.pgy" "Alice" "100" "5"
     run_expect_lines "adapter_policy_stack" "$backend" \

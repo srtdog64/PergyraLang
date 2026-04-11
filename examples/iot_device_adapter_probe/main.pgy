@@ -4,7 +4,7 @@ use device_adapter;
 
 func Main() -> Void
 {
-    let started = InstantNow();
+    let started = Instant(2110835984);
     let poll = TimerAfter("poll:temp", started.milliseconds, 1000);
     let sensor = Register("temp", 4096);
     let command = WriteDevice(sensor, 77);

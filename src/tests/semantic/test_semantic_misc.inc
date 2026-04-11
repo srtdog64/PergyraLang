@@ -2360,6 +2360,62 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("layered stdlib and domain kit uses remain accepted");
+    {
+        const char *main_path = "test_layered_stdlib_domain_kits_use_main.pgy";
+        const char *main_source =
+            "use datetime;\n"
+            "use money;\n"
+            "use timer;\n"
+            "use versioning;\n"
+            "use ledger;\n"
+            "use obligation;\n"
+            "use device_adapter;\n"
+            "func Main() -> Void {\n"
+            "    let amount: Money = MoneyOf(100, \"KRW\");\n"
+            "    let version: VersionStamp = VersionInitial(\"wallet\");\n"
+            "    let key: IdempotencyKey = MakeIdempotencyKey(\"pay\", 1);\n"
+            "    let posting: LedgerPosting = BuildTransferPosting(\"cash\", \"sales\", amount, version, key, \"memo\");\n"
+            "    let started: Instant = InstantNow();\n"
+            "    let delay: Duration = DurationMs(50);\n"
+            "    let deadline: Instant = InstantAdd(started, delay);\n"
+            "    let schedule: TimerSpec = TimerAfter(\"tick\", started.milliseconds, delay.milliseconds);\n"
+            "    let due: Bool = TimerExpired(schedule, deadline.milliseconds);\n"
+            "    let rule: Obligation = OpenObligation(\"RULE\", \"merchant\", started.milliseconds, 1000);\n"
+            "    let review: ObligationCheck = EvaluateObligation(rule, deadline.milliseconds);\n"
+            "    let reg: DeviceRegister = Register(\"temp\", 4096);\n"
+            "    let sample: DeviceSample = SampleDevice(reg, 7, deadline.milliseconds);\n"
+            "    Log(RenderLedgerPosting(posting));\n"
+            "    Log(RenderObligation(rule));\n"
+            "    Log(RenderDeviceSample(sample));\n"
+            "    Log(ToString(due));\n"
+            "    Log(ToString(review.violated));\n"
+            "}\n";
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(main_file != NULL);
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        EXPECT(error_message == NULL);
+        if (program != NULL) {
+            result = semantic_analyze(program);
+        }
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+    }
+
     TEST("intent declaration binds subjects and validates step contracts");
     {
         const char *source =

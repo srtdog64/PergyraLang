@@ -13,7 +13,7 @@
 
 ability Damageable
 {
-    require _healthSlot: Slot<Int, any SecurityModel>
+    fields _healthSlot: Slot<Int, any SecurityModel>
     
     func TakeDamage(&mut self, amount: Int)
     func Heal(&mut self, amount: Int)
@@ -24,7 +24,7 @@ ability Damageable
 
 ability Taunting
 {
-    require _threatSlot: Slot<Map<EntityId, Int>>
+    fields _threatSlot: Slot<Map<EntityId, Int>>
     
     func Taunt(&mut self, target: EntityId)
     func GetThreatLevel(&self, from: EntityId) -> Int
@@ -33,8 +33,8 @@ ability Taunting
 
 ability Healing
 {
-    require _manaSlot: Slot<Int>
-    require _spellPower: Int
+    fields _manaSlot: Slot<Int>
+    fields _spellPower: Int
     
     func HealTarget(&mut self, amount: Int) -> Int
     func GetMana(&self) -> Int
@@ -43,8 +43,8 @@ ability Healing
 
 ability DamageDealing
 {
-    require _attackPower: Int
-    require _critChance: Float
+    fields _attackPower: Int
+    fields _critChance: Float
     
     func CalculateDamage(&self) -> Int
     func Attack(&self, target: &mut impl Damageable) -> Int

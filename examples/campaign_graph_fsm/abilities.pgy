@@ -2,21 +2,21 @@
 
 ability Scouting
 {
-    require intel: Int;
+    fields intel: Int;
 
     func ScoutMark() -> String;
 }
 
 ability Guarding
 {
-    require morale: Int;
+    fields morale: Int;
 
     func GuardMark() -> String;
 }
 
 ability Warding
 {
-    require salvage: Int;
+    fields salvage: Int;
 
     func WardMark() -> String;
 }

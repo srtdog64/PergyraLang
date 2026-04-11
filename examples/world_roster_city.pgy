@@ -12,15 +12,15 @@
 // 기본 능력 정의
 
 ability Living {
-    require _healthSlot: Slot<Int>
-    require _maxHealth: Int
+    fields _healthSlot: Slot<Int>
+    fields _maxHealth: Int
     
     func IsAlive(&self) -> Bool
     func GetHealthPercent(&self) -> Float
 }
 
 ability Economic {
-    require _goldSlot: Slot<Int>
+    fields _goldSlot: Slot<Int>
     
     func GetGold(&self) -> Int
     func SpendGold(&mut self, amount: Int) -> Bool
@@ -28,8 +28,8 @@ ability Economic {
 }
 
 ability Productive {
-    require _productionRate: Int
-    require _resourceType: ResourceType
+    fields _productionRate: Int
+    fields _resourceType: ResourceType
     
     func Produce(&mut self) -> Option<Resource>
     func GetProductionRate(&self) -> Int

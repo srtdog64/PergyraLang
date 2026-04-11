@@ -1,0 +1,5 @@
+=== FINANCE LEDGER PROBE ===
+[ledger] debit account=cash:buyer amount=KRW 12500 version=wallet:min@1 memo=checkout transfer | credit account=revenue:store amount=KRW 12500 version=wallet:min@1 memo=checkout transfer | key=payment:checkout-42#7 balanced=true
+balanced=true
+version=wallet:min@1
+idempotency=payment:checkout-42#7

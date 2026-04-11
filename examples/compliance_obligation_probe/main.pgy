@@ -3,7 +3,7 @@ use obligation;
 
 func Main() -> Void
 {
-    let opened = InstantNow();
+    let opened = Instant(2000000000);
     let window = DurationSeconds(30);
     let obligation = OpenObligation(
         "KYC_REVIEW",

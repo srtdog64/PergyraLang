@@ -99,7 +99,7 @@ subject Server {
 // --- Ability / Role ---
 
 ability Connectable {
-    require connected: Bool;
+    fields connected: Bool;
     func IsConnected() -> Bool;
 }
 

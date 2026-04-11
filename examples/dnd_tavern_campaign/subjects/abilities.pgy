@@ -1,29 +1,29 @@
 ability Striking
 {
-    require attack: Int;
+    fields attack: Int;
     func StrikeMark() -> String;
 }
 
 ability Healing
 {
-    require mana: Int;
+    fields mana: Int;
     func HealMark() -> String;
 }
 
 ability Scouting
 {
-    require focus: Int;
+    fields focus: Int;
     func ScoutMark() -> String;
 }
 
 ability Arcane
 {
-    require mana: Int;
+    fields mana: Int;
     func ArcaneMark() -> String;
 }
 
 ability Guarding
 {
-    require guard: Int;
+    fields guard: Int;
     func GuardMark() -> String;
 }
