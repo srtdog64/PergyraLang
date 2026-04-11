@@ -1630,6 +1630,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     }
     /* HashMap builtins */
     if (strcmp(name, "MapNew") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
         return TYPE_UNKNOWN; /* type resolved from let annotation */
     }
     if (strcmp(name, "MapSet") == 0) {
@@ -1729,7 +1731,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_INT;
     }
     /* List builtins */
-    if (strcmp(name, "ListNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "ListNew") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        return TYPE_UNKNOWN;
+    }
     if (strcmp(name, "ListPush") == 0) {
         Type *list_type;
         Type *value_type;
@@ -1820,7 +1826,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_INT;
     }
     /* Set builtins */
-    if (strcmp(name, "SetNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "SetNew") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        return TYPE_UNKNOWN;
+    }
     if (strcmp(name, "SetAdd") == 0 || strcmp(name, "SetRemove") == 0) {
         Type *set_type;
         Type *value_type;
@@ -1874,7 +1884,11 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_INT;
     }
     /* Queue builtins */
-    if (strcmp(name, "QueueNew") == 0) { return TYPE_UNKNOWN; }
+    if (strcmp(name, "QueueNew") == 0) {
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        return TYPE_UNKNOWN;
+    }
     if (strcmp(name, "QueuePush") == 0) {
         Type *queue_type;
         Type *value_type;

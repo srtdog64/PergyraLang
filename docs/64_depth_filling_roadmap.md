@@ -9,7 +9,8 @@
 - 새 키워드는 보류한다.
 - empty cell을 줄이는 작업만 우선한다.
 - 작업 단위는 기능명이 아니라 `파싱/시맨틱/MIR/C/LLVM/런타임/테스트` 칸이다.
-- authoring shorthand는 depth gap을 줄인 뒤에 간다.
+- authoring shorthand는 원칙적으로 후순위지만,
+  hidden semantics를 줄이거나 실제 depth gap을 닫는 경우에는 예외적으로 먼저 넣는다.
 
 ---
 
@@ -26,7 +27,11 @@
 이번 개정의 결정:
 - 지금은 기능 확장 중단
 - 지금은 empty cell 제거 우선
-- shorthand, scaffold, sugar는 마지막 단계
+- scaffold와 pure sugar는 마지막 단계
+- 다만 아래 항목은 이미 depth-closure 목적의 shorthand로 구현 반영됨
+  - `using <-> where` intent step 상호 추론
+  - `refresh/publish/bind ... map { target <- source; }`
+  - explicit `Clone(...)` world embedding surface
 
 ---
 
@@ -60,8 +65,18 @@
 - transfer 축약 surface
 - projection/group bind ergonomics
 
-이들은 depth가 닫힌 뒤에 올려야 한다.
-지금 먼저 넣으면 "쓰기 쉬운 얕은 기능"만 늘어난다.
+다만 예외가 있다.
+- hidden copy/reference 오해를 줄이는 표면
+- 이미 있는 semantic contract를 더 직접적으로 드러내는 표면
+- 반복 서술을 줄이면서도 새 의미론을 추가하지 않는 표면
+
+이 조건을 만족하는 shorthand는 depth closure의 일부로 본다.
+
+이미 반영된 예:
+- `move <from> to <to>;`
+- `using <-> where` intent step inference
+- `refresh/publish/bind ... map { ... }`
+- explicit `Clone(...)` for world embedding
 
 ---
 
@@ -76,6 +91,10 @@
 1. `Event` semantic closure
 2. `Set/Map/List` semantic closure
 3. silent fallback 전수 점검
+
+병행 반영 완료:
+- misleading surface를 줄이는 authoring fixes는 이미 일부 선반영했다.
+- 따라서 아래 phase는 "새 shorthand 추가"가 아니라 "남은 빈 칸 closure"에 집중한다.
 
 ### 2.1 Event semantic closure
 
@@ -186,6 +205,7 @@
 완료 기준:
 - "world LLVM 미구현" 같은 잘못된 문장이 더 이상 문서에 남지 않는다.
 - debt ledger가 기능 누락과 구조 debt를 구분한다.
+- world embedding copy semantics가 문서와 진단에서 같은 말로 설명된다
 
 체크리스트:
 - [ ] world smoke 근거를 depth 문서에 반영

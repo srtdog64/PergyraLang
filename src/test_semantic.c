@@ -3057,6 +3057,50 @@ test_engine_collections(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("ListNew without annotation is rejected");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items = ListNew();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "Cannot infer collection type"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("MapNew rejects unexpected constructor arguments");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<String, Int> = MapNew(1);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "'MapNew' expects 0 argument(s)"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 }
 
 static void
@@ -3139,6 +3183,33 @@ test_event_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("event declaration allows forward-declared parameter types");
+    {
+        const char *source =
+            "event OnSpawn(hero: Hero);\n"
+            "class Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "func HandleSpawn(hero: Hero) -> Void {\n"
+            "    Log(hero.hp);\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    OnSpawn += HandleSpawn;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("event subscribe rejects handler arity mismatch");
     {
         const char *source =
@@ -3158,6 +3229,33 @@ test_event_semantics(void)
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
                 result, "parameter count mismatch"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event subscribe rejects handler return type mismatch");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func BadHandler(amount: Int) -> Int {\n"
+            "    return amount;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    OnDamage += BadHandler;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "must return Void"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3227,6 +3325,30 @@ test_event_semantics(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event declaration rejects non-void return type");
+    {
+        const char *source =
+            "event OnScore(points: Int) -> Int;\n"
+            "func Main() -> Void {\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "must return Void"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

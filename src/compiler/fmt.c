@@ -18,6 +18,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <errno.h>
+
+static bool fmt_replace_file(const char *dst_path, const char *tmp_path);
 
 static bool format_source_to_stream(const char *source, FILE *out);
 
@@ -134,6 +137,21 @@ format_source_to_stream(const char *source, FILE *out)
     return true;
 }
 
+static bool
+fmt_replace_file(const char *dst_path, const char *tmp_path)
+{
+    if (dst_path == NULL || tmp_path == NULL)
+        return false;
+
+    if (remove(dst_path) != 0 && errno != ENOENT)
+        return false;
+
+    if (rename(tmp_path, dst_path) != 0)
+        return false;
+
+    return true;
+}
+
 int
 driver_run_fmt_command(int argc, char *argv[])
 {
@@ -234,8 +252,12 @@ driver_run_fmt_command(int argc, char *argv[])
         }
         free(source);
         free(formatted);
-        remove(path);
-        rename(tmppath, path);
+        if (!fmt_replace_file(path, tmppath)) {
+            remove(tmppath);
+            fprintf(stderr, "pgy fmt: failed to replace '%s' with formatted output\n",
+                    path);
+            return 1;
+        }
         printf("pgy fmt: formatted '%s'\n", path);
         return 0;
     }

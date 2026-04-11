@@ -7,6 +7,19 @@
 #include "slot_manager.h"
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
+
+static void
+security_types_warn(const char *op, const char *reason, uint32_t slot_id,
+                    SecurityModel security)
+{
+    fprintf(stderr,
+            "[pgy][security] %s: %s (slot=%u security=%d)\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "unknown",
+            slot_id,
+            (int)security);
+}
 
 /* Security trait implementations */
 
@@ -26,9 +39,17 @@ const SecurityModelTrait InsecureModel = {
 };
 
 static bool BasicValidateToken(void* token) {
-    if (!token) return false;
+    if (!token) {
+        security_types_warn("validate-token", "null token", 0, SECURITY_MODEL_BASIC);
+        return false;
+    }
     AdaptiveSecurityToken* ast = (AdaptiveSecurityToken*)token;
-    return ast->validationTag == EXPECTED_VALIDATION_TAG;
+    if (ast->validationTag != EXPECTED_VALIDATION_TAG) {
+        security_types_warn("validate-token", "validation tag mismatch", 0,
+                            SECURITY_MODEL_BASIC);
+        return false;
+    }
+    return true;
 }
 
 static bool BasicIsSecure(void) {
@@ -42,7 +63,10 @@ const SecurityModelTrait BasicSecureModel = {
 };
 
 static bool HardwareValidateToken(void* token) {
-    if (!token) return false;
+    if (!token) {
+        security_types_warn("validate-token", "null token", 0, SECURITY_MODEL_HARDWARE);
+        return false;
+    }
     /* Hardware-backed validation would go here */
     return BasicValidateToken(token);
 }
@@ -58,7 +82,10 @@ const SecurityModelTrait HardwareSecureModel = {
 };
 
 static bool EncryptedValidateToken(void* token) {
-    if (!token) return false;
+    if (!token) {
+        security_types_warn("validate-token", "null token", 0, SECURITY_MODEL_ENCRYPTED);
+        return false;
+    }
     /* Full encryption validation */
     return BasicValidateToken(token);
 }
@@ -85,6 +112,8 @@ const SecurityModelTrait* GetSecurityTrait(SecurityModel model) {
         case SECURITY_MODEL_ENCRYPTED:
             return &EncryptedSecureModel;
         default:
+            security_types_warn("security-trait", "unknown security model; using basic fallback",
+                                0, model);
             return &BasicSecureModel;
     }
 }
@@ -104,6 +133,10 @@ GenericSlot ClaimSlotWithSecurity(uint32_t typeHash, SecurityModel security) {
     slot.security = security;
     slot.typeHash = typeHash;
     slot.securityTrait = GetSecurityTrait(security);
+    if (slot.slotId == 0) {
+        security_types_warn("claim-slot", "slot claim returned invalid id",
+                            slot.slotId, security);
+    }
     
     return slot;
 }
@@ -240,13 +273,24 @@ UpgradeResult SecurityUpgrade(GenericSlot insecureSlot,
 /* Validate security context for functions */
 bool ValidateSecurityContext(FunctionSecurityContext* ctx, 
                             GenericSlot slot) {
+    if (ctx == NULL) {
+        security_types_warn("validate-context", "null function security context",
+                            slot.slotId, slot.security);
+        return false;
+    }
     /* Check if function has required effects */
     if (slot.security != SECURITY_MODEL_ZERO_COST) {
         if (!(ctx->requiredEffects & EFFECT_SECURITY)) {
+            security_types_warn("validate-context",
+                                "required security effect missing",
+                                slot.slotId, slot.security);
             return false;  /* Function needs security effect */
         }
         
         if (slot.security > ctx->minimumSecurity) {
+            security_types_warn("validate-context",
+                                "slot security exceeds function minimum security",
+                                slot.slotId, slot.security);
             return false;  /* Function can't handle this security level */
         }
     }

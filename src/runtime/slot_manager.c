@@ -48,6 +48,34 @@ slot_now_us(void)
     return SecureTimestamp();
 }
 
+static const char *
+slot_error_name(SlotError err)
+{
+    switch (err) {
+    case SLOT_SUCCESS: return "success";
+    case SLOT_ERROR_OUT_OF_MEMORY: return "out-of-memory";
+    case SLOT_ERROR_INVALID_HANDLE: return "invalid-handle";
+    case SLOT_ERROR_TYPE_MISMATCH: return "type-mismatch";
+    case SLOT_ERROR_SLOT_NOT_FOUND: return "slot-not-found";
+    case SLOT_ERROR_PERMISSION_DENIED: return "permission-denied";
+    case SLOT_ERROR_TTL_EXPIRED: return "ttl-expired";
+    case SLOT_ERROR_THREAD_VIOLATION: return "thread-violation";
+    default: return "unknown";
+    }
+}
+
+static void
+slot_manager_warn(const char *op, const SlotHandle *handle, SlotError err)
+{
+    fprintf(stderr,
+            "[pgy][slot] %s failed: %s (slot=%u type=%u gen=%u)\n",
+            op != NULL ? op : "<op>",
+            slot_error_name(err),
+            handle != NULL ? handle->slotId : 0u,
+            handle != NULL ? handle->typeTag : 0u,
+            handle != NULL ? handle->generation : 0u);
+}
+
 static uint32_t
 current_thread_id(void)
 {
@@ -198,16 +226,22 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
                   SlotHandle *handle)
 {
     SlotEntry *entry;
+    SlotError err;
 
-    if (manager == NULL || handle == NULL)
-        return SLOT_ERROR_INVALID_HANDLE;
+    if (manager == NULL || handle == NULL) {
+        err = SLOT_ERROR_INVALID_HANDLE;
+        slot_manager_warn("claim", handle, err);
+        return err;
+    }
 
     pthread_mutex_lock(manager_mutex(manager));
 
     entry = find_free_entry_locked(manager);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_OUT_OF_MEMORY;
+        err = SLOT_ERROR_OUT_OF_MEMORY;
+        slot_manager_warn("claim", handle, err);
+        return err;
     }
 
     memset(entry, 0, sizeof(*entry));
@@ -237,9 +271,13 @@ slot_write_common(SlotManager *manager, const SlotHandle *handle,
                   const void *data, size_t dataSize)
 {
     SlotEntry *entry;
+    SlotError err;
 
-    if (manager == NULL || handle == NULL || data == NULL)
-        return SLOT_ERROR_INVALID_HANDLE;
+    if (manager == NULL || handle == NULL || data == NULL) {
+        err = SLOT_ERROR_INVALID_HANDLE;
+        slot_manager_warn("write", handle, err);
+        return err;
+    }
 
     pthread_mutex_lock(manager_mutex(manager));
 
@@ -247,27 +285,37 @@ slot_write_common(SlotManager *manager, const SlotHandle *handle,
     if (entry == NULL) {
         manager->cacheMisses++;
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_SLOT_NOT_FOUND;
+        err = SLOT_ERROR_SLOT_NOT_FOUND;
+        slot_manager_warn("write", handle, err);
+        return err;
     }
 
     if (entry->typeTag != handle->typeTag) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_TYPE_MISMATCH;
+        err = SLOT_ERROR_TYPE_MISMATCH;
+        slot_manager_warn("write", handle, err);
+        return err;
     }
 
     if (entry->securityEnabled) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_PERMISSION_DENIED;
+        err = SLOT_ERROR_PERMISSION_DENIED;
+        slot_manager_warn("write", handle, err);
+        return err;
     }
 
     if (slot_is_expired_locked(entry)) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_TTL_EXPIRED;
+        err = SLOT_ERROR_TTL_EXPIRED;
+        slot_manager_warn("write", handle, err);
+        return err;
     }
 
     if (!slot_store_plain_payload(entry, data, dataSize)) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_OUT_OF_MEMORY;
+        err = SLOT_ERROR_OUT_OF_MEMORY;
+        slot_manager_warn("write", handle, err);
+        return err;
     }
 
     entry->lastAccessTime = slot_now_us();
@@ -284,8 +332,12 @@ slot_read_common(SlotManager *manager, const SlotHandle *handle, void *buffer,
 {
     SlotEntry *entry;
     size_t copySize;
-    if (manager == NULL || handle == NULL || buffer == NULL)
-        return SLOT_ERROR_INVALID_HANDLE;
+    SlotError err;
+    if (manager == NULL || handle == NULL || buffer == NULL) {
+        err = SLOT_ERROR_INVALID_HANDLE;
+        slot_manager_warn("read", handle, err);
+        return err;
+    }
 
     pthread_mutex_lock(manager_mutex(manager));
 
@@ -293,22 +345,30 @@ slot_read_common(SlotManager *manager, const SlotHandle *handle, void *buffer,
     if (entry == NULL) {
         manager->cacheMisses++;
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_SLOT_NOT_FOUND;
+        err = SLOT_ERROR_SLOT_NOT_FOUND;
+        slot_manager_warn("read", handle, err);
+        return err;
     }
 
     if (entry->typeTag != handle->typeTag) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_TYPE_MISMATCH;
+        err = SLOT_ERROR_TYPE_MISMATCH;
+        slot_manager_warn("read", handle, err);
+        return err;
     }
 
     if (entry->securityEnabled) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_PERMISSION_DENIED;
+        err = SLOT_ERROR_PERMISSION_DENIED;
+        slot_manager_warn("read", handle, err);
+        return err;
     }
 
     if (slot_is_expired_locked(entry)) {
         pthread_mutex_unlock(manager_mutex(manager));
-        return SLOT_ERROR_TTL_EXPIRED;
+        err = SLOT_ERROR_TTL_EXPIRED;
+        slot_manager_warn("read", handle, err);
+        return err;
     }
 
     if (entry->dataBlockRef == NULL || entry->dataSize == 0) {

@@ -28,6 +28,10 @@
 - `Event semantic`, `Set/Map/List`, `runtime observability`, `relation/effect/projection`을 핵심 depth gap으로 재고정
 - tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
 - `debugger`는 단순 스텁이 아니라 `AST-walking source debugger`로, `formatter`는 Windows LF 안정성까지 포함한 basic formatter로, `LSP`는 lightweight semantic tooling으로 재분류
+- authoring compression 중 일부는 더 이상 "나중 sugar"가 아니라 실제 depth-closure 수단으로 반영
+  - `using <-> where` intent step 상호 추론
+  - `refresh/publish/bind ... map { target <- source; }`
+  - explicit `Clone(...)` world embedding surface
 
 이번 문서의 의도:
 - "무슨 기능이 있나"를 보여주기보다
@@ -44,10 +48,10 @@
 | `subject/class/object/tobject/enum` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 존재론 surface는 동작하나 일부 명명/표면 정책 정리 중 |
 | `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중간 | generic ability ref, richer contract validation은 남음 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
-| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션은 강함, 런타임 기록계층은 얇음 |
-| `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 컴파일 타임 계약은 강함, 런타임 world/transaction 계층은 얇음 |
-| `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM smoke는 검증됨, 남은 것은 구조 debt와 observability |
-| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ◐ | 중간 | surface와 핵심 연결은 있으나 lattice/authority 통합은 미완 |
+| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션은 강하고 `who/where/using` 추론도 있음, 기록계층은 얇음 |
+| `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/runtime contract는 실제 연결, transaction/world policy는 더 얇음 |
+| `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM smoke는 검증됐고 direct zone embedding은 explicit-copy 경고로 정리됨 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | field-map/projection shorthand는 닫혔지만 lattice/authority 통합은 미완 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
 | `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
 | `Set/Map/List` | ✅ | ◐ | ◐ | ◐ | ✅ | ◐ | ◐ | 중간 | LLVM 경로는 존재, 핵심 gap은 semantic closure와 coverage |
@@ -134,6 +138,7 @@
 - rollback/cleanup 경로 실구현
 - C/LLVM 양쪽 경로 존재
 - 예제와 smoke 범위가 실제로 있다
+- `transfer -> using/where`, `using -> where`, `where -> using` 추론이 이미 연결돼 있다
 
 남은 gap:
 - intent history/storage는 여전히 thin
@@ -153,6 +158,7 @@ Zone은 현재 "시맨틱 없는 장식" 단계는 벗어났다.
 - zone authority runtime validation이 더 이상 debug-only placeholder가 아니다
 - C와 LLVM 모두 실제 runtime contract 호출로 연결됨
 - silent no-op 대신 진단이 남는다
+- top-level lexical `within Zone { ... }` context가 있어 반복 선언을 줄일 수 있다
 
 남은 gap:
 - multi-slot transaction semantics
@@ -171,6 +177,7 @@ World는 "없다"라고 말할 정도는 아니지만, 가장 자신 있게 완�
 - parser/semantic/C 쪽은 존재
 - LLVM 쪽도 world 전용 smoke 범위에서 검증됐다
 - runtime은 zone 메커니즘에 많이 기대고 있다
+- direct zone binding world-embedding은 warning 대상이고 `Clone(...)`이 권장 surface다
 
 판정:
 - world는 `C/LLVM 모두 중상` 정도로 보는 것이 맞다.
@@ -186,6 +193,7 @@ surface는 풍부한데, writer ergonomics와 semantic closure가 완전히 일�
 - authority/resource partial order와의 통합
 - projection wiring 축약과 진단 개선
 - relation/effect 접근 ergonomics
+- field-name mismatch를 위한 projection map은 구현됐지만 group-map/named multi-target surface는 아직 아니다
 
 판정:
 - 설계는 강하다.

@@ -253,6 +253,7 @@ int
 driver_run_debug_command(int argc, char *argv[])
 {
     const char *path = NULL;
+    SemanticResult *sem = NULL;
     for (int i = 0; i < argc; i++) {
         if (argv[i][0] != '-') { path = argv[i]; break; }
     }
@@ -285,6 +286,27 @@ driver_run_debug_command(int argc, char *argv[])
         return 1;
     }
 
+    sem = semantic_analyze(program);
+    if (sem == NULL) {
+        fprintf(stderr, "pgy debug: out of memory during semantic analysis\n");
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        free(source);
+        return 1;
+    }
+
+    semantic_result_print(sem);
+    if (!sem->success) {
+        fprintf(stderr, "pgy debug: semantic analysis failed for '%s'\n", path);
+        semantic_result_destroy(sem);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+        free(source);
+        return 1;
+    }
+
     /* Setup debug context */
     DebugCtx ctx = {0};
     ctx.step_mode = true;
@@ -304,6 +326,7 @@ driver_run_debug_command(int argc, char *argv[])
     for (int i = 0; i < ctx.line_count; i++)
         free(ctx.source_lines[i]);
     free(ctx.source_lines);
+    semantic_result_destroy(sem);
     ast_destroy(program);
     parser_destroy(parser);
     lexer_destroy(lexer);

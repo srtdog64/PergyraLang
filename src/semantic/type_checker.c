@@ -1487,6 +1487,27 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     } else if (init != NULL) {
         /* Infer type from initializer */
         decl_type = init_type;
+
+        if (init->type == AST_CALL
+            && init->data.call.callee != NULL
+            && init->data.call.callee->type == AST_IDENTIFIER
+            && init_type == TYPE_UNKNOWN) {
+            const char *callee_name = init->data.call.callee->data.identifier.name;
+            if (callee_name != NULL
+                && (strcmp(callee_name, "ListNew") == 0
+                    || strcmp(callee_name, "SetNew") == 0
+                    || strcmp(callee_name, "MapNew") == 0
+                    || strcmp(callee_name, "QueueNew") == 0)) {
+                semantic_error(ctx, init,
+                    "Cannot infer collection type from '%s()' without an explicit annotation; write 'let value: %s<...> = %s()'",
+                    callee_name,
+                    strcmp(callee_name, "MapNew") == 0 ? "HashMap" :
+                    (strcmp(callee_name, "QueueNew") == 0 ? "Queue" :
+                    (strcmp(callee_name, "SetNew") == 0 ? "Set" : "List")),
+                    callee_name);
+                decl_type = TYPE_UNKNOWN;
+            }
+        }
         
         /* For generic types like Box<T>, Array<T>, Result<T,E>, 
            ensure the inferred type is concrete */
@@ -2557,9 +2578,22 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (param->type == NULL && param->name != NULL
             && strcmp(param->name, "self") == 0
             && ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS) {
-            /* Walk parent scope to find the class symbol */
             Scope *parent = ctx->scope->parent;
-            if (parent != NULL) {
+            const char *nominal_name = NULL;
+
+            if (ctx->current_nominal_decl != NULL
+                && ctx->current_nominal_decl->type == AST_CLASS_DECL) {
+                nominal_name = ctx->current_nominal_decl->data.class_decl.name;
+            }
+
+            if (parent != NULL && nominal_name != NULL) {
+                Symbol *self_sym = scope_lookup(parent, nominal_name);
+                if (self_sym != NULL && self_sym->kind == SYMBOL_CLASS)
+                    param_types[i] = self_sym->type;
+            }
+
+            if (param_types[i] == NULL && parent != NULL) {
+                /* Fallback for older paths that do not set current_nominal_decl. */
                 for (size_t s = parent->symbol_count; s > 0; s--) {
                     Symbol *cs = parent->symbols[s - 1];
                     if (cs != NULL && cs->kind == SYMBOL_CLASS) {
@@ -2568,6 +2602,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     }
                 }
             }
+
             if (param_types[i] == NULL)
                 param_types[i] = TYPE_UNKNOWN;
         } else {
@@ -2797,12 +2832,21 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
                                                 node->line, node->column);
     class_sym->kind = SYMBOL_CLASS;
 
-    /* Declare in the outer scope (step out of temporary generic scope) */
+    /* Declare in the outer scope (step out of temporary generic scope).
+     * Pass 1 may already have registered a nominal placeholder so that
+     * forward references in earlier declarations can resolve. */
     {
         Scope *target = has_generics ? ctx->scope->parent : ctx->scope;
         Scope *saved = ctx->scope;
         ctx->scope = target;
-        if (!scope_declare(ctx->scope, class_sym)) {
+        Symbol *existing = scope_lookup_current(ctx->scope, name);
+        if (existing != NULL
+            && existing->kind == SYMBOL_CLASS
+            && existing->decl_line == (uint32_t)node->line
+            && existing->decl_col == (uint32_t)node->column) {
+            existing->type = class_type;
+            symbol_destroy(class_sym);
+        } else if (!scope_declare(ctx->scope, class_sym)) {
             semantic_error(ctx, node, "Redeclaration of class '%s'", name);
             symbol_destroy(class_sym);
             ctx->scope = saved;
@@ -2963,6 +3007,21 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
             }
+        } else if (stmt->type == AST_CLASS_DECL) {
+            const char *cname = stmt->data.class_decl.name;
+            if (cname != NULL && scope_lookup_current(ctx->scope, cname) == NULL) {
+                Type *t = calloc(1, sizeof(Type));
+                if (t != NULL) {
+                    t->kind = TYPE_KIND_CLASS;
+                    t->nominal_flavor = nominal_flavor_from_decl(stmt);
+                    t->name = pergyra_strdup(cname);
+                }
+                Symbol *s = symbol_create_function(cname,
+                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                if (s != NULL)
+                    s->kind = SYMBOL_CLASS;
+                scope_declare(ctx->scope, s);
+            }
         } else if (stmt->type == AST_FUNC_DECL) {
             const char *fname = stmt->data.func_decl.name;
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
@@ -3011,10 +3070,21 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 Type **eptypes = calloc(epc > 0 ? epc : 1, sizeof(Type *));
                 for (size_t j = 0; j < epc; j++) {
                     ASTNode *p = stmt->data.event_decl.params[j];
-                    if (p->data.let_decl.type != NULL)
+                    if (p != NULL
+                        && p->type == AST_LET_DECL
+                        && p->data.let_decl.type != NULL) {
+                        size_t saved_diag = ctx->diagnostic_count;
+                        bool saved_err = ctx->has_error;
                         eptypes[j] = resolve_type_node(p->data.let_decl.type, ctx);
-                    else
+                        if (ctx->diagnostic_count > saved_diag) {
+                            /* Roll back the diagnostic — Pass 2 will re-check. */
+                            ctx->diagnostic_count = saved_diag;
+                            ctx->has_error = saved_err;
+                            eptypes[j] = TYPE_UNKNOWN;
+                        }
+                    } else {
                         eptypes[j] = TYPE_UNKNOWN;
+                    }
                 }
                 Type *evt_ft = type_create_function(eptypes, epc, TYPE_VOID);
                 free(eptypes);

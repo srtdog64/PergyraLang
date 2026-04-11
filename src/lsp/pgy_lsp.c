@@ -609,7 +609,7 @@ publish_diagnostics(const char *uri, const char *source_text)
     } else if (ast != NULL) {
         /* Semantic analysis */
         SemanticResult *sem = semantic_analyze(ast);
-        if (sem != NULL && !sem->success) {
+        if (sem != NULL) {
             size_t off = 0;
             size_t emitted = 0;
             for (size_t i = 0; i < sem->diagnostic_count && emitted < 20; i++) {
@@ -820,8 +820,8 @@ main(void)
                         hover_text = "**tobject** — Transfer object. Boundary transfer data type";
                     else if (strcmp(word, "roster") == 0)
                         hover_text = "**roster** — Party container with capacity constraints. Groups multiple parties (e.g., 4-party dungeon raid)";
-                    else if (strcmp(word, "roster") == 0)
-                        hover_text = "**roster** — Legacy alias. Use **roster**.";
+                    else if (strcmp(word, "party") == 0)
+                        hover_text = "**party** — Authority-bearing participant declaration";
                     else if (strcmp(word, "class") == 0)
                         hover_text = "**class** — Subject declaration (compatibility keyword)";
                     else if (strcmp(word, "subject") == 0)

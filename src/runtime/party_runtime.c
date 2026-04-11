@@ -32,6 +32,15 @@ party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* n
         name != NULL ? name : "<null>");
 }
 
+static void
+party_runtime_warn(const char* op, const char* reason)
+{
+    fprintf(stderr,
+        "[pgy][party] %s failed: %s\n",
+        op != NULL ? op : "operation",
+        reason != NULL ? reason : "unknown");
+}
+
 /* Fiber map cache */
 FiberMapCache* g_fiberMapCache = NULL;
 
@@ -126,7 +135,10 @@ void* ContextGetRole(
     const char* slotName,
     const char* requiredAbility)
 {
-    if (!context || !slotName) return NULL;
+    if (!context || !slotName) {
+        party_runtime_warn("context.get_role", "context or slotName is null");
+        return NULL;
+    }
     
     /* Lock for thread safety */
     SpinLockAcquire(&context->contextLock);
@@ -148,6 +160,7 @@ void* ContextGetRole(
                 
                 if (!hasAbility) {
                     /* Role doesn't have required ability */
+                    party_runtime_warn("context.get_role", "required ability not present on role");
                     break;
                 }
             }
@@ -166,6 +179,9 @@ void* ContextGetRole(
     }
     
     SpinLockRelease(&context->contextLock);
+    if (result == NULL) {
+        party_runtime_warn("context.get_role", "role slot not found or instance unavailable");
+    }
     return result;
 }
 
@@ -174,7 +190,10 @@ RoleQueryResult ContextFindRoles(
     const char* requiredAbility)
 {
     RoleQueryResult result = {0};
-    if (!context || !requiredAbility) return result;
+    if (!context || !requiredAbility) {
+        party_runtime_warn("context.find_roles", "context or requiredAbility is null");
+        return result;
+    }
     
     SpinLockAcquire(&context->contextLock);
     
@@ -193,6 +212,16 @@ RoleQueryResult ContextFindRoles(
         /* Allocate result arrays */
         result.instances = (void**)calloc(matches, sizeof(void*));
         result.slotNames = (const char**)calloc(matches, sizeof(char*));
+        if (result.instances == NULL || result.slotNames == NULL) {
+            free(result.instances);
+            free((void*)result.slotNames);
+            result.instances = NULL;
+            result.slotNames = NULL;
+            result.count = 0;
+            SpinLockRelease(&context->contextLock);
+            party_runtime_warn("context.find_roles", "result allocation failed");
+            return result;
+        }
         result.count = matches;
         
         /* Fill results */
@@ -221,7 +250,10 @@ RoleQueryResult ContextFindRoles(
 
 void* ContextGetShared(PartyContext* context, const char* fieldName)
 {
-    if (!context || !fieldName) return NULL;
+    if (!context || !fieldName) {
+        party_runtime_warn("context.get_shared", "context or fieldName is null");
+        return NULL;
+    }
     
     SpinLockAcquire(&context->contextLock);
     
@@ -234,6 +266,9 @@ void* ContextGetShared(PartyContext* context, const char* fieldName)
     }
     
     SpinLockRelease(&context->contextLock);
+    if (result == NULL) {
+        party_runtime_warn("context.get_shared", "shared field not found");
+    }
     return result;
 }
 
@@ -296,6 +331,7 @@ DispatchResult DispatchParallel(
     DispatchResult result = {0};
     
     if (!map || !context || map->entryCount == 0) {
+        party_runtime_warn("dispatch_parallel", "map/context missing or entryCount is zero");
         return result;
     }
     
@@ -307,6 +343,16 @@ DispatchResult DispatchParallel(
     Fiber** fibers = (Fiber**)calloc(map->entryCount, sizeof(Fiber*));
     FiberWrapper* wrappers = (FiberWrapper*)calloc(map->entryCount, sizeof(FiberWrapper));
     volatile bool* stopFlags = (volatile bool*)calloc(map->entryCount, sizeof(bool));
+    if (result.results == NULL || fibers == NULL || wrappers == NULL || stopFlags == NULL) {
+        free(result.results);
+        free(fibers);
+        free(wrappers);
+        free((void*)stopFlags);
+        result.results = NULL;
+        result.resultCount = 0;
+        party_runtime_warn("dispatch_parallel", "dispatcher allocation failed");
+        return result;
+    }
     
     uint64_t dispatchStartTime = GetTimeNanos();
     
@@ -322,6 +368,7 @@ DispatchResult DispatchParallel(
         void* roleInstance = GetSlotPointer(entry->instanceSlotId);
         if (!roleInstance) {
             result.results[i].error = "Failed to load role instance";
+            party_runtime_warn("dispatch_parallel", "failed to load role instance");
             continue;
         }
         
@@ -336,6 +383,7 @@ DispatchResult DispatchParallel(
         FiberScheduler* scheduler = GetSchedulerForTag(entry->schedulerTag);
         if (!scheduler) {
             result.results[i].error = "Scheduler not found";
+            party_runtime_warn("dispatch_parallel", "scheduler not found");
             continue;
         }
         
@@ -348,6 +396,7 @@ DispatchResult DispatchParallel(
         
         if (!fibers[i]) {
             result.results[i].error = "Failed to create fiber";
+            party_runtime_warn("dispatch_parallel", "fiber creation failed");
             continue;
         }
         
@@ -503,6 +552,7 @@ FiberScheduler* GetSchedulerForTag(SchedulerTag tag)
         case SCHEDULER_BACKGROUND_THREAD:
             return GetBackgroundScheduler();
         default:
+            party_runtime_warn("scheduler.lookup", "unknown scheduler tag; using default");
             return GetDefaultScheduler();
     }
 }
@@ -528,7 +578,10 @@ static void UpdateFiberStats(const char* roleId, FiberResult* result)
             size_t newCapacity = g_fiberStats.capacity ? g_fiberStats.capacity * 2 : 16;
             FiberStats* newStats = (FiberStats*)realloc(g_fiberStats.stats, 
                 newCapacity * sizeof(FiberStats));
-            if (!newStats) return;
+            if (!newStats) {
+                party_runtime_warn("fiber_stats", "stats array growth failed");
+                return;
+            }
             
             g_fiberStats.stats = newStats;
             g_fiberStats.capacity = newCapacity;
@@ -537,6 +590,11 @@ static void UpdateFiberStats(const char* roleId, FiberResult* result)
         stats = &g_fiberStats.stats[g_fiberStats.count++];
         memset(stats, 0, sizeof(FiberStats));
         stats->roleId = strdup(roleId);
+        if (stats->roleId == NULL) {
+            g_fiberStats.count--;
+            party_runtime_warn("fiber_stats", "role id allocation failed");
+            return;
+        }
         stats->minTimeNs = UINT64_MAX;
     }
     

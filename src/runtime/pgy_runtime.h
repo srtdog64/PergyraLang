@@ -43,6 +43,24 @@
 
 static inline char *pgy_runtime_strdup(const char *src);
 
+static inline void
+pgy_runtime_warn_intent_enter_failure(const char *name, const char *reason,
+                                      int32_t priority, bool is_concurrent)
+{
+    fprintf(stderr, "[pgy][intent] enter %s failed: %s (priority=%d concurrent=%s)\n",
+            name != NULL ? name : "<intent>",
+            reason != NULL ? reason : "unknown reason",
+            (int)priority,
+            is_concurrent ? "true" : "false");
+}
+
+static inline void
+pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t count)
+{
+    fprintf(stderr, "[pgy][intent] %s: invalid index %d (count=%d)\n",
+            op != NULL ? op : "<op>", (int)index, (int)count);
+}
+
 static inline bool
 pgy_runtime_path_is_absolute(const char *path)
 {
@@ -641,6 +659,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
             continue;
         if (priority > entry->priority)
             continue;
+        pgy_runtime_warn_intent_enter_failure(name,
+            "same-subject conflict with active intent",
+            priority, is_concurrent);
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
@@ -653,6 +674,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     }
 
     if (free_index < 0) {
+        pgy_runtime_warn_intent_enter_failure(name,
+            "active registry capacity exhausted",
+            priority, is_concurrent);
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
@@ -663,6 +687,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         } else {
             subject_copy = (void **)malloc(sizeof(void *) * (size_t)subject_count);
             if (subject_copy == NULL) {
+                pgy_runtime_warn_intent_enter_failure(name,
+                    "subject registry allocation failed",
+                    priority, is_concurrent);
                 pthread_mutex_unlock(&pgy_intent_registry_mutex);
                 return 0;
             }
@@ -939,8 +966,10 @@ pgy_intent_active_entry_by_index_export(int32_t index)
 {
     int32_t seen = 0;
 
-    if (index < 0)
+    if (index < 0) {
+        pgy_runtime_warn_invalid_intent_index("active_entry_by_index", index, -1);
         return NULL;
+    }
 
     for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
         if (!pgy_intent_active_registry[i].active)
@@ -950,94 +979,128 @@ pgy_intent_active_entry_by_index_export(int32_t index)
         seen++;
     }
 
+    pgy_runtime_warn_invalid_intent_index("active_entry_by_index", index, seen);
     return NULL;
 }
 
 static inline char *
 pgy_intent_history_step_name_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_name", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].name != NULL ? pgy_intent_last_steps[index].name : "";
 }
 
 static inline char *
 pgy_intent_history_step_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].zone != NULL ? pgy_intent_last_steps[index].zone : "";
 }
 
 static inline char *
 pgy_intent_history_step_phase_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_phase", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].phase != NULL ? pgy_intent_last_steps[index].phase : "";
 }
 
 static inline char *
 pgy_intent_history_step_participant_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_participant", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].participant != NULL ? pgy_intent_last_steps[index].participant : "";
 }
 
 static inline char *
 pgy_intent_history_step_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].slot != NULL ? pgy_intent_last_steps[index].slot : "";
 }
 
 static inline char *
 pgy_intent_history_step_from_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_from_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].from_zone != NULL ? pgy_intent_last_steps[index].from_zone : "";
 }
 
 static inline char *
 pgy_intent_history_step_from_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_from_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].from_slot != NULL ? pgy_intent_last_steps[index].from_slot : "";
 }
 
 static inline char *
 pgy_intent_history_step_to_zone_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_to_zone", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].to_zone != NULL ? pgy_intent_last_steps[index].to_zone : "";
 }
 
 static inline char *
 pgy_intent_history_step_to_slot_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_to_slot", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].to_slot != NULL ? pgy_intent_last_steps[index].to_slot : "";
 }
 
 static inline bool
 pgy_intent_history_step_ok_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_ok", index,
+                                              pgy_intent_last_history_count);
         return false;
+    }
     return pgy_intent_last_steps[index].ok;
 }
 
 static inline char *
 pgy_intent_history_step_failure_export(int32_t index)
 {
-    if (index < 0 || index >= pgy_intent_last_history_count)
+    if (index < 0 || index >= pgy_intent_last_history_count) {
+        pgy_runtime_warn_invalid_intent_index("history_step_failure", index,
+                                              pgy_intent_last_history_count);
         return "";
+    }
     return pgy_intent_last_steps[index].failure_reason != NULL
         ? pgy_intent_last_steps[index].failure_reason : "";
 }

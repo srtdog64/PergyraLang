@@ -62,6 +62,17 @@ pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t cou
 }
 
 static void
+pgy_runtime_warn_intent_enter_failure(const char *name, const char *reason,
+                                      int32_t priority, bool is_concurrent)
+{
+    fprintf(stderr, "[pgy][intent] enter %s failed: %s (priority=%d concurrent=%s)\n",
+            name != NULL ? name : "<intent>",
+            reason != NULL ? reason : "unknown reason",
+            (int)priority,
+            is_concurrent ? "true" : "false");
+}
+
+static void
 pgy_runtime_warn_invalid_collection(const char *op, const char *reason)
 {
     fprintf(stderr, "[pgy][collection] %s: %s\n",
@@ -1433,8 +1444,11 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
             continue;
         if (entry->is_concurrent && is_concurrent)
             continue;
-        if (priority < entry->priority)
+        if (priority > entry->priority)
             continue;
+        pgy_runtime_warn_intent_enter_failure(name,
+            "same-subject conflict with active intent",
+            priority, is_concurrent);
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
@@ -1447,6 +1461,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     }
 
     if (free_index < 0) {
+        pgy_runtime_warn_intent_enter_failure(name,
+            "active registry capacity exhausted",
+            priority, is_concurrent);
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
@@ -1457,6 +1474,9 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         } else {
             subject_copy = (void **)malloc(sizeof(void *) * (size_t)subject_count);
             if (subject_copy == NULL) {
+                pgy_runtime_warn_intent_enter_failure(name,
+                    "subject registry allocation failed",
+                    priority, is_concurrent);
                 pthread_mutex_unlock(&pgy_intent_registry_mutex);
                 return 0;
             }

@@ -45,6 +45,18 @@
 #define CACHE_LINE_SIZE 64
 #endif
 
+static void
+slot_pool_warn(const char *op, const char *reason, size_t capacity,
+               PoolIndex index)
+{
+    fprintf(stderr,
+            "[pgy][slot-pool] %s failed: %s (capacity=%zu index=%u)\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "unknown",
+            capacity,
+            (unsigned)index);
+}
+
 /*
  * Create a new slot pool
  */
@@ -54,6 +66,12 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     SlotPool *pool;
     size_t    alignedElementSize;
     size_t    totalDataSize;
+
+    if (elementSize == 0 || capacity == 0) {
+        slot_pool_warn("create", "elementSize and capacity must be non-zero",
+                       capacity, NULL_INDEX);
+        return NULL;
+    }
     
     pool = malloc(sizeof(SlotPool));
     if (pool == NULL)
@@ -147,8 +165,14 @@ SlotPoolAlloc(SlotPool *pool)
 {
     PoolIndex index;
     
-    if (pool == NULL || pool->freeListTop == 0)
+    if (pool == NULL) {
+        slot_pool_warn("alloc", "pool is null", 0, NULL_INDEX);
         return NULL_INDEX;
+    }
+    if (pool->freeListTop == 0) {
+        slot_pool_warn("alloc", "pool exhausted", pool->capacity, NULL_INDEX);
+        return NULL_INDEX;
+    }
     
     /* Pop from free list */
     pool->freeListTop--;
@@ -172,8 +196,19 @@ SlotPoolAlloc(SlotPool *pool)
 bool
 SlotPoolFree(SlotPool *pool, PoolIndex index)
 {
-    if (pool == NULL || index >= pool->capacity || !pool->occupied[index])
+    if (pool == NULL) {
+        slot_pool_warn("free", "pool is null", 0, index);
         return false;
+    }
+    if (index >= pool->capacity) {
+        slot_pool_warn("free", "index out of range", pool->capacity, index);
+        return false;
+    }
+    if (!pool->occupied[index]) {
+        slot_pool_warn("free", "slot already free or never allocated",
+                       pool->capacity, index);
+        return false;
+    }
     
     /* Clear the slot data */
     void *slotData = (char *)pool->data + (index * pool->elementSize);
@@ -199,8 +234,18 @@ SlotPoolFree(SlotPool *pool, PoolIndex index)
 void *
 SlotPoolGet(SlotPool *pool, PoolIndex index)
 {
-    if (pool == NULL || index >= pool->capacity || !pool->occupied[index])
+    if (pool == NULL) {
+        slot_pool_warn("get", "pool is null", 0, index);
         return NULL;
+    }
+    if (index >= pool->capacity) {
+        slot_pool_warn("get", "index out of range", pool->capacity, index);
+        return NULL;
+    }
+    if (!pool->occupied[index]) {
+        slot_pool_warn("get", "slot is not occupied", pool->capacity, index);
+        return NULL;
+    }
     
     return (char *)pool->data + (index * pool->elementSize);
 }

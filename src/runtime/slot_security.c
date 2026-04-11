@@ -39,6 +39,16 @@ extern int gethostname(char *name, size_t len);
 #include <openssl/sha.h>
 #include <openssl/aes.h>
 
+static void
+slot_security_warn(const char *op, SecurityError err, const char *reason)
+{
+    fprintf(stderr,
+            "[pgy][slot-security] %s failed: %s (err=%d)\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "unknown",
+            (int)err);
+}
+
 static uint64_t
 SecurityHashBytes64(const void *data, size_t size)
 {
@@ -220,8 +230,11 @@ SecurityContextCreate(SecurityLevel defaultLevel)
     SecurityContext *context;
     
     context = malloc(sizeof(SecurityContext));
-    if (context == NULL)
+    if (context == NULL) {
+        slot_security_warn("context-create", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "security context allocation failed");
         return NULL;
+    }
     
     memset(context, 0, sizeof(SecurityContext));
     context->defaultLevel = defaultLevel;
@@ -229,6 +242,8 @@ SecurityContextCreate(SecurityLevel defaultLevel)
     
     /* Initialize hardware fingerprint */
     if (HardwareFingerprintGenerate(&context->hwFingerprint) != SECURITY_SUCCESS) {
+        slot_security_warn("context-create", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "hardware fingerprint generation failed");
         free(context);
         return NULL;
     }
@@ -237,6 +252,8 @@ SecurityContextCreate(SecurityLevel defaultLevel)
     context->keySize = 32; /* 256-bit key */
     context->masterKey = malloc(context->keySize);
     if (context->masterKey == NULL) {
+        slot_security_warn("context-create", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "master key allocation failed");
         free(context);
         return NULL;
     }
@@ -821,20 +838,29 @@ SecurityContextInitialize(SecurityContext *context)
 {
     uint8_t keyMaterial[64];
 
-    if (context == NULL)
+    if (context == NULL) {
+        slot_security_warn("context-initialize", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
+                           "context is null");
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
 
     if (context->initialized)
         return SECURITY_SUCCESS;
 
-    if (HardwareFingerprintGenerate(&context->hwFingerprint) != SECURITY_SUCCESS)
+    if (HardwareFingerprintGenerate(&context->hwFingerprint) != SECURITY_SUCCESS) {
+        slot_security_warn("context-initialize", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "hardware fingerprint generation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
     if (context->masterKey == NULL) {
         context->keySize = 32;
         context->masterKey = malloc(context->keySize);
-        if (context->masterKey == NULL)
+        if (context->masterKey == NULL) {
+            slot_security_warn("context-initialize", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                               "master key allocation failed");
             return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        }
     }
 
     memcpy(keyMaterial, &context->hwFingerprint, sizeof(HardwareFingerprint));
@@ -843,6 +869,8 @@ SecurityContextInitialize(SecurityContext *context)
     if (SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey) !=
         SECURITY_SUCCESS) {
         SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+        slot_security_warn("context-initialize", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "master key derivation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
 
