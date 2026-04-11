@@ -22,7 +22,7 @@ Current status is intentionally split:
 - `DeviceSlot` / `RemoteFuture`:
   device/GPU-like resource path
 - real GPU kernel backend:
-  not implemented yet
+  not wired yet; current probe reports `real-gpu-backend=false`
 
 So the expected conclusion of this probe is not "Pergyra already has a real GPU
 backend". The expected conclusion is:
@@ -30,7 +30,19 @@ backend". The expected conclusion is:
 - `spray` works as a stable library surface
 - device-slot readback works
 - the bridge from `spray` to a real Vulkan/CUDA/Metal backend is still future
-  work
+  integration work, and the probe says so explicitly in stdout/results
+
+## Current Output Contract
+
+The probe is expected to print:
+
+- three simulated spray dispatch lines
+- a success summary with `all=true`
+- device readback values `910 911 912`
+- capability summary with `real-gpu-backend=false`
+
+That means this probe is no longer a placeholder document. It is a regression
+description for the current simulated-dispatch plus device-readback contract.
 
 ## Regression Coverage
 

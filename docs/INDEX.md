@@ -62,6 +62,12 @@
    - `src/codegen/llvm_mir_locals.inc` — pointer-self host 타입(`zone` 등)의 MIR param binding을 함수 시그니처와 동일하게 정렬
    - `tests/cases/backend_compare/host_method_class_return` / `zone_param_mutation` / `zone_host_method_abi_combo`로 LLVM/C 실행 결과 회귀 고정
 
+5. **Windows CI 이식성/문서 정렬**
+   - `src/test_abi_pipeline.c` — CRLF stdout false negative 제거
+   - `src/compiler/fmt.c` — formatter temp output을 binary mode로 써 line-ending 차이 제거
+   - `src/runtime/pgy_runtime.h` — inline list push growth 경로를 안전화해 Windows GCC warning 오염 제거
+   - `docs/17_development_status.md`, `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `docs/testdoc/spray_device_probe.md` — 현재 tooling/depth/CI 상태로 문서 정렬
+
 ### 양자 표면 / v2 경계
 
 - **현 상태**: `QubitSlot`, `ClaimQubit`, `Measure`, `Entangle` 표면은 존재하지만 전체 quantum resource semantics는 아직 미완료
@@ -79,7 +85,7 @@
 
 ## TODO
 
-- [ ] Step 6: 전체 빌드 + 회귀 테스트 (Linux 환경)
+- [ ] 전체 빌드 + 회귀 테스트 baseline을 Linux/Windows 공통 문서로 재정리
 - [ ] stdlib 인프라 구현 (fsm, pool, timer, math, string utils)
 - [ ] LSP 고도화 (semantic symbols, richer diagnostics, references/rename 품질 개선)
 - [ ] 패키지 매니저 구현

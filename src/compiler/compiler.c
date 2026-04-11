@@ -99,6 +99,43 @@ compiler_now_seconds(void)
 #endif
 }
 
+static bool
+compiler_env_truthy(const char *name)
+{
+    const char *value = getenv(name);
+
+    if (value == NULL || value[0] == '\0')
+        return false;
+    if (strcmp(value, "0") == 0
+        || strcmp(value, "false") == 0
+        || strcmp(value, "FALSE") == 0
+        || strcmp(value, "off") == 0
+        || strcmp(value, "OFF") == 0
+        || strcmp(value, "no") == 0
+        || strcmp(value, "NO") == 0) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+compiler_should_use_lld(void)
+{
+    const char *value = getenv("PGY_USE_LLD");
+
+    if (value != NULL && value[0] != '\0')
+        return compiler_env_truthy("PGY_USE_LLD");
+#ifdef _WIN32
+    return false;
+#else
+    return access("/usr/bin/ld.lld", X_OK) == 0
+        || access("/usr/local/bin/ld.lld", X_OK) == 0
+        || access("/bin/ld.lld", X_OK) == 0;
+#endif
+}
+
+#ifdef PGY_LLVM_ENABLED
+
 static const char *
 compiler_temp_dir(void)
 {
@@ -151,6 +188,24 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
 }
 
 static char *
+compiler_runtime_prebuilt_object_path(PgyOptProfile opt_profile,
+                                      bool uses_intent_observability)
+{
+    char key[64];
+    const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "RELEASE" : "DEV";
+    const char *obs_name = uses_intent_observability ? "OBS1" : "OBS0";
+    const char *value;
+
+    snprintf(key, sizeof(key), "PGY_PREBUILT_RUNTIME_OBJ_%s_%s", opt_name, obs_name);
+    value = getenv(key);
+    if (value == NULL || value[0] == '\0')
+        value = getenv("PGY_PREBUILT_RUNTIME_OBJ");
+    if (value == NULL || value[0] == '\0')
+        return NULL;
+    return pergyra_strdup(value);
+}
+
+static char *
 compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
                                    bool uses_intent_observability)
 {
@@ -169,58 +224,7 @@ compiler_runtime_cache_object_path(PgyOptProfile opt_profile,
     return pergyra_strdup(buf);
 }
 
-static bool
-compiler_env_truthy(const char *name)
-{
-    const char *value = getenv(name);
-
-    if (value == NULL || value[0] == '\0')
-        return false;
-    if (strcmp(value, "0") == 0
-        || strcmp(value, "false") == 0
-        || strcmp(value, "FALSE") == 0
-        || strcmp(value, "off") == 0
-        || strcmp(value, "OFF") == 0
-        || strcmp(value, "no") == 0
-        || strcmp(value, "NO") == 0) {
-        return false;
-    }
-    return true;
-}
-
-static bool
-compiler_should_use_lld(void)
-{
-    const char *value = getenv("PGY_USE_LLD");
-
-    if (value != NULL && value[0] != '\0')
-        return compiler_env_truthy("PGY_USE_LLD");
-#ifdef _WIN32
-    return false;
-#else
-    return access("/usr/bin/ld.lld", X_OK) == 0
-        || access("/usr/local/bin/ld.lld", X_OK) == 0
-        || access("/bin/ld.lld", X_OK) == 0;
-#endif
-}
-
-static char *
-compiler_runtime_prebuilt_object_path(PgyOptProfile opt_profile,
-                                      bool uses_intent_observability)
-{
-    char key[64];
-    const char *opt_name = (opt_profile == PGY_OPT_RELEASE) ? "RELEASE" : "DEV";
-    const char *obs_name = uses_intent_observability ? "OBS1" : "OBS0";
-    const char *value;
-
-    snprintf(key, sizeof(key), "PGY_PREBUILT_RUNTIME_OBJ_%s_%s", opt_name, obs_name);
-    value = getenv(key);
-    if (value == NULL || value[0] == '\0')
-        value = getenv("PGY_PREBUILT_RUNTIME_OBJ");
-    if (value == NULL || value[0] == '\0')
-        return NULL;
-    return pergyra_strdup(value);
-}
+#endif /* PGY_LLVM_ENABLED */
 
 /* Validate a path contains no shell metacharacters */
 static bool

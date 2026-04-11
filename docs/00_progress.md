@@ -1,12 +1,13 @@
 # Pergyra — 현재 진행 상황
 
-마지막 업데이트: 2026-04-06
+마지막 업데이트: 2026-04-11
 
 ## 컴파일러 파이프라인
 
 ```text
-.pgy → Lexer → Parser → Semantic → HIR → LLVM Backend → Object → Binary
-                                     └→ C Backend     → C → GCC/Clang
+.pgy → Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend
+                                                        ├→ LLVM → Object → Binary
+                                                        └→ C    → C → GCC/Clang
 ```
 
 - LLVM이 기본 백엔드
@@ -30,17 +31,19 @@
 - Result/enum/array/string built-in 경로 동작
 
 ### 테스트
-`make test-all` 기준:
-- semantic 205, transpile 141, memory 54, concurrency 2, HIR 3
+최근 직접 확인 기준:
+- `make test-transpile` 통과 (`464 passed`)
+- `make test-abi` 통과 (`56 passed`)
 
 추가 회귀:
-- `llvm-test-smoke` 통과
 - `llvm-test-backend-compare` 통과
-- `stdlib-test-smoke`, `module-test-smoke`, `example-test-smoke` 통과
+- `example-test-smoke` 통과
+- `ir-pipeline-test-smoke` 통과
+- `fmt-test-smoke` 통과
 
 ## 미완성 / 다음 단계
 
 - orchestration 고도화 (select 공정성, timeout, cancellation)
 - effect system 2단계 (선언적 effect + mismatch 진단)
 - stable stdlib surface 고정
-- 패키지 매니저 / WebAssembly / 디버거
+- 패키지 매니저 / WebAssembly / product-grade debugger/LSP

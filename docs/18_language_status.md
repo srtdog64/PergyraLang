@@ -1,6 +1,6 @@
 # Pergyra 언어 상태 평가
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-04-11
 
 ## 요약
 
@@ -96,7 +96,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `Void`는 결과가 없음을 나타내는 반환 타입이고, `return`은 현재 실행을 종료하는 제어 문장으로 구분됨
 - `return;`은 `Void` 경로의 조기 종료이고, `return expr;`은 non-`Void` 경로의 값 반환임
 - example smoke는 backend-aware exact stdout goldens와 backend-aware exact `expected_results` goldens를 함께 지원함
-- 현재 직접 확인된 회귀 수치: `semantic 695 passed`, `transpile 461 passed`, `llvm-test-smoke` 통과
+- 현재 직접 확인된 회귀 범위: `test-transpile 464 passed`, `test-abi 56 passed`, `llvm-test-backend-compare` 통과, `example-test-smoke` 통과, `ir-pipeline-test-smoke` 통과, `fmt-test-smoke` 통과
 - `ToObject(TargetObject, subjectBinding)` built-in이 local passive object projection surface로 C/LLVM에 반영됨
 - `ToTObject(TargetDto, subjectBinding)` built-in이 동명 필드 projection 기준의 최소 tobject surface로 C/LLVM에 반영됨
 - relation/effect/zone/world 문맥 밖의 direct `ToObject` / `ToTObject`는 warning 대상이며, 권장되는 투영 흐름은 domain-local `object slot` / `tobject slot`과 projection sync(`refresh` / `publish` / `bind`)임
@@ -107,7 +107,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 
 ## 현재 한계
 
-- 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving”
+- 문서/설계가 많아 표면이 커 보이지만, 실제로는 일부 영역이 “supported but evolving” 상태다
 - `relation`, `effect`, `zone`은 declaration keyword와 lifecycle shorthand, C backend sync/codegen까지 올라왔지만 deeper runtime propagation semantics는 아직 얕음
 - `relation`, `effect`, `zone`의 플래그/constructor/sync는 C/LLVM parity를 가지고, world 쪽도 `all` / `any` 조합 state까지 올라왔지만, 더 깊은 propagation model은 아직 남아 있다
 - projection의 중심은 `tobject` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
@@ -123,22 +123,26 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - LLVM backend는 nested member assignment와 world-owned zone mutation propagation까지 runtime smoke로 검증된다
 - 남은 공백은 deeper handle/runtime propagation model이다
 - 클래식 OOP 계층(상속, 부모 호출)은 미지원
-- 패키지 매니저, WASM, 디버거 등 생태계 영역은 미완성
+- 패키지 매니저, WASM, product-grade debugger/LSP 같은 생태계 영역은 아직 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
 - cancellation은 cooperative + descendant propagation 수준, fairness는 round-robin 시작 인덱스 수준까지 올라온 상태
 
-## 2026-04-10 기준 확인된 상태
+## 2026-04-11 기준 확인된 상태
 
-- `make test-semantic` 통과 (`695 passed`)
-- `make test-transpile` 통과 (`461 passed`)
-- `make llvm-test-smoke` 통과
+- `make test-transpile` 통과 (`464 passed`)
+- `make test-abi` 통과 (`56 passed`)
+- `make llvm-test-backend-compare` 통과
+- `make example-test-smoke` 통과
+- `make ir-pipeline-test-smoke` 통과
+- `make fmt-test-smoke` 통과
+- Windows CI에서 드러난 path/newline/list-warning 이식성 문제를 이번 정리에서 닫음
 
 ## 다음 기준
 
 1. 문서와 구현 표면의 1:1 정렬
 2. orchestration/slot 의미론 고정
 3. stable stdlib surface 확정
-4. toolchain 품질 개선 (LSP/formatter/debugger)
+4. toolchain 품질 개선 (LSP 정밀도, formatter style depth, debugger runtime integration)
 
 ## 단계 결론
 

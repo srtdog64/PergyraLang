@@ -12,6 +12,7 @@
 직접 확인:
 
 - `make llvm-test-smoke` 통과
+- `make llvm-test-backend-compare` 통과
 - `make test-abi` 통과
 
 검증된 축:
@@ -22,6 +23,8 @@
 - defer
 - intent runtime trace
 - subject/class dispatch
+- host-method return parity
+- zone pointer-self host ABI parity
 - projection / relation / effect sync
 - zone/world runtime mutation
 - world cross-query / derived state / composed state

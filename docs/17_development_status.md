@@ -8,7 +8,7 @@
 - `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. LLVM ordinary/async function과 subject/class method는 MIR direct path를 우선 사용하고, top-level executable main-wrapper도 synthetic executable MIR routine을 통해 직접 AST loop를 줄였다. intent step의 `check/eval/meta` carrier 역시 MIR-only로 강제된다. 남은 HIR-assisted debt는 domain/intent 쪽에 집중되어 있다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
-- 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM, debugger/formatter/LSP, stack-slot escape analysis, generic where validation)은 `docs/50_language_completion_board.md`에서 추적한다.
+- 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM debt, stack-slot escape analysis, generic where validation, tooling 고도화)은 `docs/50_language_completion_board.md`에서 추적한다.
 - C backend의 공식 역할 재정의는 `docs/51_c_backend_reference_policy.md`에 정리한다.
 - LLVM/native-first 전환 단계는 `docs/52_llvm_native_first_roadmap.md`에서 추적한다.
 - LLVM backend의 현재 검증 범위와 실제 debt는 `docs/62_llvm_backend_debt_ledger.md`에 따로 정리한다.
@@ -145,7 +145,7 @@
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
 - plain `Slot<subject>`와 `Slot<subject>`는 이제 local object-cell anchor로 허용됨
-- 현재 회귀 수치: `make test-transpile` 통과, `make llvm-test-smoke` 통과, `make test-abi` 통과, `make test-abi-perf` 통과
+- 현재 회귀 범위: `make test-transpile` 통과, `make test-abi` 통과, `make llvm-test-backend-compare` 통과, `make example-test-smoke` 통과, `make ir-pipeline-test-smoke` 통과, `make fmt-test-smoke` 통과, `make test-abi-perf` 통과
 - `SecureSlot<subject>`와 `SecureSlot<subject>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
@@ -179,9 +179,9 @@
 - 현재 cancellation은 cooperative/best-effort이며, preemptive interruption은 아직 아님
 
 ### 도구
-- debugger는 breakpoint set/clear/list와 single-frame backtrace를 지원함
-- formatter는 `--write` 외에 `--check`, parse-guard, idempotent roundtrip guard를 가짐
-- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition/references/rename을 제공함
+- debugger는 breakpoint set/clear/list, source context 표시, single-frame backtrace를 지원하는 AST-walking source debugger다
+- formatter는 `--write` 외에 `--check`, parse-guard, idempotent roundtrip guard를 가지며 Windows line-ending 차이까지 현재 smoke에서 정리됐다
+- LSP는 diagnostics/hover에 더해 completion/documentSymbol/definition/references/rename을 제공하는 lightweight editor integration 경로다
 
 ### 구현 메모
 
@@ -191,23 +191,29 @@
 
 ## 테스트 현황
 
-2026-04-10 현재 직접 확인한 기준:
+2026-04-11 현재 직접 확인한 기준:
 
 | 스위트 | 결과 |
 |---|---|
-| security | 55 passed |
-| semantic | 836 passed |
-| transpile | 461 passed |
-| llvm smoke | 통과 (`zone_action_effect_runtime`, `cancel_propagation`, `channel_pressure`, `string_io` 포함) |
+| transpile | 464 passed |
 | abi | 56 passed |
+| llvm backend compare | 통과 |
+| example smoke | 통과 |
+| ir pipeline smoke | 통과 |
+| fmt smoke | 통과 |
 
 추가 회귀:
-- `make test-semantic` 통과
-- `make test-parser` 통과
 - `make test-transpile` 통과
-- `make llvm-test-smoke` 통과 (async, select, tagged-union, RemoteFuture, device slot, generics, channel pressure 등)
-- `make test-security` 통과
 - `make test-abi` 통과
+- `make llvm-test-backend-compare` 통과
+- `make example-test-smoke` 통과
+- `make ir-pipeline-test-smoke` 통과
+- `make fmt-test-smoke` 통과
+- Windows CI 이식성 수정:
+  - `/tmp` 하드코딩 제거
+  - ABI pipeline stdout 비교의 CRLF false negative 제거
+  - formatter temp output의 text-mode line ending 문제 제거
+  - inline list push 경고로 example smoke가 오염되던 경로 제거
 - zone method 안의 subject `action` call은 현재 C/LLVM 모두에서 matching `effect slot` runtime activation과 embedded layer sync까지 연결됨
 - `self.player.Attack()` 같은 nested nominal host method call도 이제 C/LLVM 모두에서 실제 method dispatch로 lowering됨
 - semantic `slot_analyzer`는 이제 `return/call/channel-send` 기반 slot escape를 분류하고 conservative warning을 낸다
@@ -242,7 +248,7 @@
 
 ### 중기
 - stable stdlib surface 고정
-- toolchain 강화 (formatter, LSP 진단 품질, debugger)
+- toolchain 강화 (formatter style depth, LSP 진단 품질, debugger runtime/binary integration)
 
 ### 장기
 - JavaScript backend policy 초안 정리 (`docs/23_js_backend_policy.md`)

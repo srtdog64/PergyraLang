@@ -1,0 +1,317 @@
+// ============================================================================
+// BSD Packet Server — Pergyra Domain Model Example
+//
+// 시나리오: BSD 소켓 기반 패킷 처리 서버
+// - Client가 패킷을 보내면 Server가 수신/파싱/라우팅/응답
+// - Zone으로 연결 경계 관리, Intent로 요청 처리 오케스트레이션
+// - Effect로 연결 상태 추적, Relation으로 클라이언트-세션 바인딩
+//
+// 이 예제는 실제 소켓 I/O 없이 도메인 모델만 검증합니다.
+// ============================================================================
+
+// --- 기본 타입 ---
+
+enum PacketType { Connect, Data, Disconnect, Heartbeat }
+
+enum SessionState { Idle, Active, Closing, Closed }
+
+struct PacketHeader {
+    let seqNo: Int;
+    let packetType: PacketType;
+    let payloadSize: Int;
+}
+
+// --- Projection 타입 ---
+// refresh는 source 필드명과 target 필드명이 일치해야 함
+// Client의 필드(id, name, connected, lastSeq) 중 투영할 것만 선택
+
+object ClientView {
+    let id: Int;
+    let connected: Bool;
+}
+
+tobject SessionRecord {
+    let id: Int;
+    let name: String;
+}
+
+// --- Subject: 능동적 엔터티 ---
+
+subject Client {
+    let id: Int;
+    let name: String;
+    let connected: Bool;
+    let lastSeq: Int;
+
+    action Send(self, ptype: PacketType, size: Int) -> Void {
+        lastSeq = lastSeq + 1;
+        Log("  [client:" + ToString(id) + "] send seq=" + ToString(lastSeq)
+            + " size=" + ToString(size));
+    }
+
+    func IsConnected(self) -> Bool {
+        return connected;
+    }
+}
+
+subject Server {
+    let name: String;
+    let port: Int;
+    let rxCount: Int;
+    let txCount: Int;
+    let maxClients: Int;
+    let activeClients: Int;
+
+    action Receive(self, clientId: Int, seq: Int, size: Int) -> Void {
+        rxCount = rxCount + 1;
+        Log("  [server:" + name + "] recv from client:" + ToString(clientId)
+            + " seq=" + ToString(seq) + " size=" + ToString(size));
+    }
+
+    action Respond(self, clientId: Int, seq: Int) -> Void {
+        txCount = txCount + 1;
+        Log("  [server:" + name + "] respond to client:" + ToString(clientId)
+            + " ack=" + ToString(seq));
+    }
+
+    action AcceptClient(self) -> Void {
+        activeClients = activeClients + 1;
+        Log("  [server:" + name + "] accept (active=" + ToString(activeClients) + ")");
+    }
+
+    action DisconnectClient(self) -> Void {
+        if activeClients > 0 {
+            activeClients = activeClients - 1;
+        }
+        Log("  [server:" + name + "] disconnect (active=" + ToString(activeClients) + ")");
+    }
+
+    func CanAccept(self) -> Bool {
+        return activeClients < maxClients;
+    }
+
+    func Stats(self) -> String {
+        return "rx=" + ToString(rxCount) + " tx=" + ToString(txCount)
+            + " active=" + ToString(activeClients);
+    }
+}
+
+// --- Ability / Role ---
+
+ability Connectable {
+    require connected: Bool;
+    func IsConnected() -> Bool;
+}
+
+role ClientConnection for Client {
+    impl ability Connectable {
+        func IsConnected() -> Bool {
+            return true;
+        }
+    }
+}
+
+// --- Effect / Relation ---
+// refresh target 필드는 source(bearer/source) 필드명과 일치해야 함
+
+effect Connected for bearer: Client {
+    object slot view: ClientView
+    refresh view from bearer
+}
+
+relation Session for source: Client, target: Server {
+    object slot snapshot: ClientView
+    refresh snapshot from source
+}
+
+// --- Zone: 연결 경계 ---
+
+zone ConnectionZone {
+    subject slot client: Client
+    subject slot server: Server
+    object slot clientView: ClientView
+    effect slot conn: Connected
+    relation slot session: Session
+    state connected: effect conn on client
+    state sessionActive: relation session between client, server
+    apply conn to client by client
+    link session between client, server by client
+    refresh clientView from client by client
+    maintain connected by client
+    maintain sessionActive by client
+    authority client
+
+    func ShowState(self) -> Void {
+        Log("  [zone] client.id=" + ToString(self.client.id)
+            + " server=" + self.server.name
+            + " connected=" + ToString(HasState(connected))
+            + " session=" + ToString(HasState(sessionActive))
+            + " view=" + ToString(HasProjection(clientView)));
+    }
+}
+
+// --- Intent: 패킷 처리 오케스트레이션 ---
+
+intent HandlePacket(zone: ConnectionZone, client: Client, server: Server) {
+    exclusive;
+    priority: 3;
+    rollback: full;
+
+    step Validate {
+        where: ConnectionZone;
+        using: zone;
+        who: client;
+        on: Log("  [intent] validate: client=" + ToString(client.id));
+        guard: client.connected;
+        post: true;
+    }
+
+    step Process {
+        where: ConnectionZone;
+        using: zone;
+        who: server;
+        on: server.Receive(client.id, client.lastSeq, 64);
+        post: server.rxCount > 0;
+    }
+
+    step Acknowledge {
+        where: ConnectionZone;
+        using: zone;
+        who: server;
+        on: server.Respond(client.id, client.lastSeq);
+        post: server.txCount > 0;
+    }
+
+    success: true;
+    failure: false;
+}
+
+intent ConnectClient(zone: ConnectionZone, client: Client, server: Server) {
+    exclusive;
+    priority: 5;
+    rollback: current;
+
+    step CheckCapacity {
+        where: ConnectionZone;
+        using: zone;
+        who: server;
+        on: Log("  [intent] check capacity: active=" + ToString(server.activeClients)
+                + " max=" + ToString(server.maxClients));
+        guard: server.activeClients < server.maxClients;
+        post: true;
+    }
+
+    step Accept {
+        where: ConnectionZone;
+        using: zone;
+        who: server;
+        on: server.AcceptClient();
+        post: server.activeClients > 0;
+    }
+
+    success: true;
+    failure: false;
+}
+
+// --- Utility ---
+
+func FormatPacketType(pt: PacketType) -> String {
+    match pt {
+        case Connect: return "CONNECT";
+        case Data: return "DATA";
+        case Disconnect: return "DISCONNECT";
+        case Heartbeat: return "HEARTBEAT";
+    }
+    return "UNKNOWN";
+}
+
+// --- Main ---
+
+func Main() -> Void {
+    Log("=== BSD Packet Server Example ===");
+    Log("");
+
+    // 1. 엔터티 생성
+    let client = Client(1, "alice", true, 0);
+    let server = Server("bsd-srv", 8080, 0, 0, 4, 0);
+    Log("[1] entities created");
+    Log("  client: id=" + ToString(client.id) + " name=" + client.name);
+    Log("  server: name=" + server.name + " port=" + ToString(server.port));
+    Log("");
+
+    // 2. Zone 구성
+    let connZone = ConnectionZone(
+        Client(1, "alice", true, 0),
+        Server("bsd-srv", 8080, 0, 0, 4, 0)
+    );
+    Log("[2] connection zone created");
+    connZone.ShowState();
+    Log("");
+
+    // 3. 클라이언트 연결 (Intent)
+    Log("[3] connecting client...");
+    let connectOk = ConnectClient(connZone, client, server);
+    Log("  connect result=" + ToString(connectOk));
+    Log("  server stats: " + server.Stats());
+    Log("");
+
+    // 4. 패킷 송수신 (Intent)
+    Log("[4] sending packets...");
+
+    // 패킷 1: DATA
+    client.Send(Data, 128);
+    let pkt1 = HandlePacket(connZone, client, server);
+    Log("  packet1 result=" + ToString(pkt1));
+
+    // 패킷 2: HEARTBEAT
+    client.Send(Heartbeat, 0);
+    let pkt2 = HandlePacket(connZone, client, server);
+    Log("  packet2 result=" + ToString(pkt2));
+
+    // 패킷 3: DATA
+    client.Send(Data, 256);
+    let pkt3 = HandlePacket(connZone, client, server);
+    Log("  packet3 result=" + ToString(pkt3));
+
+    Log("  server stats: " + server.Stats());
+    Log("");
+
+    // 5. 연결 종료
+    Log("[5] disconnecting...");
+    server.DisconnectClient();
+    Log("  server stats: " + server.Stats());
+    Log("");
+
+    // 6. 연결 끊긴 클라이언트로 패킷 시도 (guard 실패)
+    Log("[6] sending after disconnect (should fail)...");
+    let badClient = Client(2, "bob", false, 0);
+    let pktFail = HandlePacket(connZone, badClient, server);
+    Log("  packet result=" + ToString(pktFail) + " (expected: false)");
+    Log("");
+
+    // 7. Intent 히스토리
+    Log("[7] intent history");
+    Log("  total intents: " + ToString(IntentHistoryCount()));
+    Log("  last intent: " + IntentLastName());
+    Log("  last failed: " + ToString(IntentLastFailed()));
+    Log("");
+
+    // 8. 최종 상태
+    Log("[8] final state");
+    Log("  server: " + server.Stats());
+    connZone.ShowState();
+    Log("");
+
+    // 9. 패킷 타입 포맷
+    Log("[9] packet types");
+    Log("  " + FormatPacketType(Connect));
+    Log("  " + FormatPacketType(Data));
+    Log("  " + FormatPacketType(Disconnect));
+    Log("  " + FormatPacketType(Heartbeat));
+
+    // 정리
+    defer { Log("[cleanup] resources released"); };
+
+    Log("");
+    Log("=== BSD Packet Server Complete ===");
+}

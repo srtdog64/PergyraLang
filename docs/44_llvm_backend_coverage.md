@@ -18,6 +18,7 @@
 기준:
 
 - `make llvm-test-smoke`
+- `make llvm-test-backend-compare`
 - `make test-abi`
 
 ### llvm-smoke에서 직접 검증되는 축
@@ -60,6 +61,12 @@
 - `llvm/zone_projection_abi`
 - `llvm/intent_trace_abi`
 - `llvm/runtime_floor`
+
+### backend-compare에서 직접 검증되는 축
+
+- host method class return parity
+- zone pointer-self host parameter mutation parity
+- combined host-method + zone ABI path parity
 
 즉 다음 표현은 현재 기준으로 틀리다.
 

@@ -27,6 +27,7 @@
 - `Intent`, `Zone`, `Channel`, `Slot`은 최근 구현 상태를 반영해 상향 판정
 - `Event semantic`, `Set/Map/List`, `runtime observability`, `relation/effect/projection`을 핵심 depth gap으로 재고정
 - tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
+- `debugger`는 단순 스텁이 아니라 `AST-walking source debugger`로, `formatter`는 Windows LF 안정성까지 포함한 basic formatter로, `LSP`는 lightweight semantic tooling으로 재분류
 
 이번 문서의 의도:
 - "무슨 기능이 있나"를 보여주기보다
@@ -50,9 +51,9 @@
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
 | `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
 | `Set/Map/List` | ✅ | ◐ | ◐ | ◐ | ✅ | ◐ | ◐ | 중간 | LLVM 경로는 존재, 핵심 gap은 semantic closure와 coverage |
-| 디버거 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 부재 | 스텁 단계 |
-| 포매터 | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | basic formatter만 있음 |
-| LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | partial 상태 |
+| 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
+| 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
+| LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
 
 ---
 
@@ -241,12 +242,28 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 
 디버거, formatter, LSP는 "있다"와 "완성됐다"를 구분해야 한다.
 
-판정:
-- debugger: 스텁
-- formatter: basic
-- LSP: partial
+현재 더 정확한 상태는 다음과 같다.
 
-이 셋은 언어 코어 depth gap을 막은 뒤 productization 단계에서 닫는 편이 맞다.
+- debugger:
+  AST를 직접 걷는 source-level stepping debugger는 있다.
+  breakpoint/list/backtrace 같은 최소 인터랙션도 있다.
+  하지만 compiled binary, DWARF, runtime state inspection debugger는 아니다.
+- formatter:
+  token-stream 기반 formatter가 있고, parseable/stable/idempotent check와
+  smoke도 있다. 최근에는 Windows line-ending 차이도 정리됐다.
+  다만 style configurability나 product-grade formatting depth는 아직 얕다.
+- LSP:
+  diagnostics, hover, completion, document symbols, definition, references,
+  rename까지는 있다.
+  다만 깊은 semantic index, project-wide intelligence, 높은 정확도의 refactor
+  품질까지 닫힌 상태는 아니다.
+
+판정:
+- debugger: `스텁`보다는 `얕은 구현`
+- formatter: `초안`보다는 `basic product surface`
+- LSP: `partial`이지만 최소 editor integration은 이미 가능
+
+즉 tooling은 과장하면 안 되지만, 더 이상 "아무것도 없다"라고 쓰는 것도 틀리다.
 
 ---
 
@@ -260,7 +277,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 조금 더 정확히 말하면:
 - 코어 언어, slot, channel, intent/zone 일부는 이미 "깊은 축"이다.
 - world, relation/effect, generic contract, event는 "중간 이상 축"이다.
-- collections는 "중간 축", debugger는 "얕은 축" 또는 "부재 축"이다.
+- collections는 "중간 축", debugger는 "얕은 축", formatter/LSP는 "기본 구현 축"이다.
 
 ---
 
@@ -305,7 +322,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Set/Map/List`가 LLVM까지 닫히고 generic validation이 들어간다.
 - `World`가 LLVM에서도 debt 항목이 아니라 정상 축으로 내려온다.
 - `relation/effect/projection`이 "설계는 강함"이 아니라 "구현도 강함"으로 바뀐다.
-- tooling 문서가 `stub/basic/partial`이 아니라 명확한 product-level 상태를 가진다.
+- tooling 문서가 현재 구현 수준에 맞는 product-level 상태를 가진다.
 
 ---
 
@@ -321,6 +338,9 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM smoke 검증 + 구조 debt 잔존`으로 정정
 - `Event`: `LLVM/runtime 부재` 평가를 제거하고 `semantic closure 부족` 중심으로 정정
 - `Set/Map/List`: `LLVM 부재` 평가를 제거하고 `semantic/coverage 부족` 중심으로 정정
+- `debugger`: `부재/스텁` 평가를 제거하고 `AST-walking source debugger`로 정정
+- `formatter`: line-ending 안정성까지 반영해 `basic formatter`로 정정
+- `LSP`: lightweight language tooling 범위를 명시하고 `partial but usable`로 정정
 
 새 기준선:
 - P0는 `Event semantic`, `Set/Map/List semantic`, `runtime fallback/observability`
