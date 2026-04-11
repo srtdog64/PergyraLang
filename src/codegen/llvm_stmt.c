@@ -142,8 +142,12 @@ llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
     if (ctx->current_func_decl->type != AST_FUNC_DECL
         || ctx->current_func_decl->data.func_decl.body == NULL)
         return false;
-    return slot_analyze_escape_flags(ctx->current_func_decl->data.func_decl.body, name)
-        == SLOT_ESCAPE_NONE;
+    return (slot_analyze_param_summary_in_program(
+                ctx->current_func_decl->data.func_decl.body, name, NULL)
+            & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+               | SLOT_PARAM_SUMMARY_CALL_ESCAPE
+               | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE))
+        == 0;
 }
 
 static int

@@ -137,6 +137,7 @@ main() {
         "tests/cases/backend_compare/intent_rich_history_identity"
         "tests/cases/backend_compare/zone_param_mutation"
         "tests/cases/backend_compare/zone_host_method_abi_combo"
+        "tests/cases/backend_compare/ownership_forwarding"
     )
 
     if [[ "$#" -gt 0 ]]; then

@@ -506,9 +506,9 @@ resolve_type_node(ASTNode *node, SemanticContext *ctx)
             node->data.type.generic_args->params[0], ctx, node);
         Type *value = resolve_generic_type_arg(
             node->data.type.generic_args->params[1], ctx, node);
-        if (!type_equals(key, TYPE_STRING)) {
+        if (!type_equals(key, TYPE_STRING) && !type_equals(key, TYPE_INT)) {
             semantic_error(ctx, node,
-                "HashMap currently requires String keys");
+                "HashMap currently supports only String or Int keys");
             return TYPE_UNKNOWN;
         }
         Type *args[2] = { key, value };
@@ -2735,7 +2735,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (node->data.func_decl.body != NULL) {
         for (size_t i = 0; i < param_count; i++) {
             FuncParam *param = node->data.func_decl.params[i];
-            unsigned escape_mask;
+            unsigned summary_mask;
 
             if (param == NULL || param->name == NULL || param->type == NULL)
                 continue;
@@ -2744,9 +2744,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (!type_is_anchored_resource_handle(param_types[i]))
                 continue;
 
-            escape_mask = slot_analyze_escape_flags_in_program(
+            summary_mask = slot_analyze_param_summary_in_program(
                 node->data.func_decl.body, param->name, ctx->program_root);
-            if ((escape_mask & SLOT_ESCAPE_RETURN) != 0) {
+            if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape via return.\n"
                     "Reason:\n"
@@ -2757,7 +2757,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- or change the parameter to 'own' if transfer is intended",
                     param->name);
             }
-            if ((escape_mask & SLOT_ESCAPE_CHANNEL) != 0) {
+            if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through channel send.\n"
                     "Reason:\n"
@@ -2768,7 +2768,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "- or take ownership with 'own' before transfer",
                     param->name);
             }
-            if ((escape_mask & SLOT_ESCAPE_CALL) != 0) {
+            if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
                     "Reason:\n"

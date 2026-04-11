@@ -1,5 +1,7 @@
 // Pergyra Party System Example
 // Demonstrates the revolutionary party concept for role collaboration
+// Status: design sketch / not compile-smoke covered.
+// Uses aspirational collection-combinator surface such as Map/Filter/MaxBy/MapValues.
 
 // ============= Basic Abilities =============
 

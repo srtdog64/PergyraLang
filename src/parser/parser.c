@@ -721,6 +721,7 @@ parser_parse_export_declaration(Parser *parser)
     }
 
     node->is_exported = true;
+    node->has_explicit_export = true;
     return parser_finalize_statement(parser, node);
 }
 
@@ -730,6 +731,7 @@ parser_finalize_statement(Parser *parser, ASTNode *node)
     if (node != NULL && parser->next_decl_exported) {
         if (parser_is_exportable_decl(node)) {
             node->is_exported = true;
+            node->has_explicit_export = true;
         } else {
             parser_error(parser, "'export' can only apply to declarations");
         }

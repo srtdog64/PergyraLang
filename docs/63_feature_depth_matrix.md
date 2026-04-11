@@ -58,7 +58,7 @@
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, safe `ref -> ref` forwarding만 허용, `ref` return/channel escape 및 alias/rebind 금지 |
+| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, transitive safe `ref -> ref`와 transitive `own SecureSlot -> own` forwarding은 허용, `ref` return/channel escape 및 alias/rebind, borrow-after-move 금지 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |

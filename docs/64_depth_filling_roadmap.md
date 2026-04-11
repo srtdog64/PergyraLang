@@ -151,6 +151,7 @@ resolved:
 - borrowed `ref` slot의 `Move(...)` helper forwarding은 현재 보수적 helper-call escape 규칙으로 차단
 - `own SecureSlot<subject-host>`도 새 binding alias는 금지
 - local slot의 borrow-after-own-move는 금지
+- `own SecureSlot<subject-host>`의 transitive own-helper forwarding은 semantic/C/backend-compare까지 고정
 
 open:
 - helper/function call 경유 escape를 다단계 alias/summary 수준까지 더 정교하게 판정

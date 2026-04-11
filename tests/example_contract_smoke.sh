@@ -296,6 +296,23 @@ run_stable_examples() {
         "$ROOT_DIR/examples/projection_refresh_publish_group_minimal.pgy" "projection refresh publish group minimal"
     run_expect_lines "six_item_alignment_demo" "$backend" \
         "$ROOT_DIR/examples/six_item_alignment_demo.pgy" "six item alignment demo" "Mina" "1" "paid"
+    run_expect_lines "ownership_forwarding_probe" "$backend" \
+        "$ROOT_DIR/examples/ownership_forwarding_probe" "ownership forwarding probe" "inner-ref" "middle-ref" "plain-consumed" "secure-consumed" "secure-relay" "done"
+    run_expect_lines "order_analytics" "$backend" \
+        "$ROOT_DIR/examples/order_analytics" \
+        "=== Order Analytics ===" \
+        "batch: 2026-Q1-orders, size: 6" \
+        "eda intent ok=true" \
+        "total: 6" \
+        "valid: 4" \
+        "refunds: 2" \
+        "revenue: 72100" \
+        "avg: 18025" \
+        "[ETL] loaded 4 / skipped 2 → clean_orders" \
+        "etl intent ok=true" \
+        "loaded: 4" \
+        "skipped: 2" \
+        "target: clean_orders"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \

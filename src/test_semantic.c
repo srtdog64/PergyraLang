@@ -2035,6 +2035,138 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("ref Slot<subject> parameter allows transitive safe ref forwarding");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Inner(ref t: Slot<Vec2>) -> Void {\n"
+            "    Write(t, Vec2(2, 2));\n"
+            "}\n"
+            "func Middle(ref m: Slot<Vec2>) -> Void {\n"
+            "    Inner(m);\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Middle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Slot<subject> parameter rejects transitive forwarding into own helper");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own inner: Slot<Vec2>) -> Void {\n"
+            "    Release(inner);\n"
+            "}\n"
+            "func Middle(ref m: Slot<Vec2>) -> Void {\n"
+            "    Consume(m);\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Middle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Slot<subject> parameter rejects conditional transitive forwarding into own helper");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own inner: Slot<Vec2>) -> Void {\n"
+            "    Release(inner);\n"
+            "}\n"
+            "func Middle(ref m: Slot<Vec2>) -> Void {\n"
+            "    if true {\n"
+            "        Consume(m);\n"
+            "    } else {\n"
+            "        Write(m, Vec2(3, 3));\n"
+            "    }\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Middle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot escape through helper/function call"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Slot<subject> parameter keeps conditional safe ref forwarding");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Inner(ref t: Slot<Vec2>) -> Void {\n"
+            "    Write(t, Vec2(4, 4));\n"
+            "}\n"
+            "func Middle(ref m: Slot<Vec2>) -> Void {\n"
+            "    if true {\n"
+            "        Inner(m);\n"
+            "    } else {\n"
+            "        Write(m, Vec2(5, 5));\n"
+            "    }\n"
+            "}\n"
+            "func Touch(ref s: Slot<Vec2>) -> Void {\n"
+            "    Middle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ref Slot<subject> parameter rejects return escape");
     {
         const char *source =
@@ -2186,6 +2318,91 @@ test_qubit_slot_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot be copied into a new binding"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own SecureSlot<subject> parameter allows forwarding into own helper");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own inner: SecureSlot<Vec2>) -> Void {\n"
+            "}\n"
+            "func Relay(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Consume(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("local SecureSlot<subject> rejects use after own helper move");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own inner: SecureSlot<Vec2>) -> Void {\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: SecureSlot<Vec2> = Vec2(1, 2);\n"
+            "    Consume(s);\n"
+            "    Read(s, s_token);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "released slot"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own SecureSlot<subject> parameter allows transitive forwarding into own helper");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Consume(own inner: SecureSlot<Vec2>) -> Void {\n"
+            "}\n"
+            "func Middle(own m: SecureSlot<Vec2>) -> Void {\n"
+            "    Consume(m);\n"
+            "}\n"
+            "func Relay(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Middle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3253,6 +3470,29 @@ test_engine_collections(void)
             "    MapSet(table, \"hp\", first);\n"
             "    let hp: Int = MapGet(table, \"hp\");\n"
             "    Log(first + hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("HashMap<Int, Int> annotation resolves and builtins accept Int keys");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Int, Int> = MapNew();\n"
+            "    MapSet(table, 7, 42);\n"
+            "    let hp: Int = MapGet(table, 7);\n"
+            "    Log(hp);\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

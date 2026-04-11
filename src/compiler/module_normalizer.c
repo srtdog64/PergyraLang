@@ -209,7 +209,7 @@ module_has_explicit_exports_in_stmt(ASTNode *node)
 {
     if (node == NULL)
         return false;
-    if (node->is_exported)
+    if (node->has_explicit_export)
         return true;
     if (node->type == AST_NAMESPACE_DECL) {
         for (size_t i = 0; i < node->data.namespace_decl.count; i++) {

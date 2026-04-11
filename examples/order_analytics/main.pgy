@@ -5,16 +5,18 @@
 // ETL: 유효한 주문만 정제하여 목표 테이블에 적재
 //
 // 패턴 참조: docs/43_design_patterns.md (EDA, ETL)
+// Status: compile-smoke covered example.
 // ============================================================
 
 import "commons/types.pgy";
+import "abilities.pgy";
 import "subjects/order_batch.pgy";
 import "zones/analysis_zone.pgy";
 import "zones/etl_zone.pgy";
 import "intents/explore_orders.pgy";
 import "intents/load_clean_orders.pgy";
 
-role Analyst for OrderBatch
+role OrderBatchAnalyst for OrderBatch
 {
     impl ability Analyst
     {
@@ -22,7 +24,7 @@ role Analyst for OrderBatch
     }
 }
 
-role DataEngineer for OrderBatch
+role OrderBatchDataEngineer for OrderBatch
 {
     impl ability DataEngineer
     {

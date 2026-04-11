@@ -200,6 +200,10 @@ static unsigned
 slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
                                   ASTNode *program_root, int depth);
 
+static unsigned
+slot_param_summary_in_program(ASTNode *node, const char *slot_name,
+                              ASTNode *program_root, int depth);
+
 static void
 slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
                                     SlotAccessEntry **entries,
@@ -237,17 +241,17 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
         if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
             continue;
 
-        mask = slot_access_mask_for_named_symbol(
+        mask = slot_param_summary_in_program(
             body, param->name, program_root, depth + 1);
-        if ((mask & SLOT_ACCESS_READ) != 0) {
+        if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
             slot_access_record(entries, count, capacity,
                 arg->data.identifier.name, SLOT_ACCESS_READ);
         }
-        if ((mask & SLOT_ACCESS_WRITE) != 0) {
+        if ((mask & SLOT_PARAM_SUMMARY_WRITE) != 0) {
             slot_access_record(entries, count, capacity,
                 arg->data.identifier.name, SLOT_ACCESS_WRITE);
         }
-        if ((mask & SLOT_ACCESS_RELEASE) != 0) {
+        if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) {
             slot_access_record(entries, count, capacity,
                 arg->data.identifier.name, SLOT_ACCESS_RELEASE);
         }
@@ -397,11 +401,19 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                     FuncParam *param = params != NULL ? params[i] : NULL;
                     if (param != NULL && param->name != NULL) {
                         if (param->mode == PARAM_MODE_REF) {
-                            unsigned callee_mask = slot_escape_mask_in_program(
+                            unsigned callee_mask = slot_param_summary_in_program(
                                 body, param->name, program_root, depth + 1);
-                            if (callee_mask != SLOT_ESCAPE_NONE) {
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                 slot_escape_record(entries, count, capacity,
-                                    arg->data.identifier.name, callee_mask);
+                                    arg->data.identifier.name, SLOT_ESCAPE_RETURN);
+                            }
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
+                                slot_escape_record(entries, count, capacity,
+                                    arg->data.identifier.name, SLOT_ESCAPE_CHANNEL);
+                            }
+                            if ((callee_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
+                                slot_escape_record(entries, count, capacity,
+                                    arg->data.identifier.name, SLOT_ESCAPE_CALL);
                             }
                             handled = true;
                         } else if (param->mode == PARAM_MODE_OWN) {
@@ -1123,4 +1135,42 @@ slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
                                      ASTNode *program_root)
 {
     return slot_escape_mask_in_program(node, slot_name, program_root, 0);
+}
+
+static unsigned
+slot_param_summary_in_program(ASTNode *node, const char *slot_name,
+                              ASTNode *program_root, int depth)
+{
+    unsigned summary = SLOT_PARAM_SUMMARY_NONE;
+    unsigned access_mask = 0;
+    unsigned escape_mask = 0;
+
+    if (node == NULL || slot_name == NULL)
+        return SLOT_PARAM_SUMMARY_NONE;
+
+    access_mask = slot_access_mask_for_named_symbol(
+        node, slot_name, program_root, depth);
+    escape_mask = slot_escape_mask_in_program(
+        node, slot_name, program_root, depth);
+
+    if ((access_mask & SLOT_ACCESS_READ) != 0)
+        summary |= SLOT_PARAM_SUMMARY_READ;
+    if ((access_mask & SLOT_ACCESS_WRITE) != 0)
+        summary |= SLOT_PARAM_SUMMARY_WRITE;
+    if ((access_mask & SLOT_ACCESS_RELEASE) != 0)
+        summary |= SLOT_PARAM_SUMMARY_RELEASE;
+    if ((escape_mask & SLOT_ESCAPE_RETURN) != 0)
+        summary |= SLOT_PARAM_SUMMARY_RETURN_ESCAPE;
+    if ((escape_mask & SLOT_ESCAPE_CALL) != 0)
+        summary |= SLOT_PARAM_SUMMARY_CALL_ESCAPE;
+    if ((escape_mask & SLOT_ESCAPE_CHANNEL) != 0)
+        summary |= SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+    return summary;
+}
+
+unsigned
+slot_analyze_param_summary_in_program(ASTNode *node, const char *slot_name,
+                                      ASTNode *program_root)
+{
+    return slot_param_summary_in_program(node, slot_name, program_root, 0);
 }

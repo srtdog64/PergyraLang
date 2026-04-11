@@ -101,6 +101,25 @@ func Main() -> Void {
 EOF
 run_ok "implicit_export" "$WORK_DIR/implicit_export/main.pgy" "8"
 
+mkdir -p "$WORK_DIR/ability_zone_same_module"
+cat > "$WORK_DIR/ability_zone_same_module/mod.pgy" <<'EOF'
+ability Analyst {
+    func CanAnalyze(self) -> Bool;
+}
+
+zone AnalysisZone {
+    shared n: Int = 7
+}
+EOF
+cat > "$WORK_DIR/ability_zone_same_module/main.pgy" <<'EOF'
+import "mod.pgy";
+func Main() -> Void {
+    let zone = AnalysisZone(7);
+    Log(ToString(zone.n));
+}
+EOF
+run_ok "ability_zone_same_module" "$WORK_DIR/ability_zone_same_module/main.pgy" "7"
+
 mkdir -p "$WORK_DIR/circular"
 cat > "$WORK_DIR/circular/a.pgy" <<'EOF'
 import "b.pgy";

@@ -46,6 +46,17 @@ typedef enum
     SLOT_ESCAPE_CHANNEL = 1 << 2
 } SlotEscapeFlags;
 
+typedef enum
+{
+    SLOT_PARAM_SUMMARY_NONE           = 0,
+    SLOT_PARAM_SUMMARY_READ           = 1 << 0,
+    SLOT_PARAM_SUMMARY_WRITE          = 1 << 1,
+    SLOT_PARAM_SUMMARY_RELEASE        = 1 << 2,
+    SLOT_PARAM_SUMMARY_RETURN_ESCAPE  = 1 << 3,
+    SLOT_PARAM_SUMMARY_CALL_ESCAPE    = 1 << 4,
+    SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE = 1 << 5
+} SlotParamSummaryFlags;
+
 /* -----------------------------------------------------------------
  * Lifecycle
  * ----------------------------------------------------------------- */
@@ -94,5 +105,7 @@ bool slot_analyze_parallel_block(ASTNode* parallel, SlotAnalyzer* sa);
 unsigned slot_analyze_escape_flags(ASTNode* node, const char* slot_name);
 unsigned slot_analyze_escape_flags_in_program(ASTNode* node, const char* slot_name,
                                               ASTNode* program_root);
+unsigned slot_analyze_param_summary_in_program(ASTNode* node, const char* slot_name,
+                                               ASTNode* program_root);
 
 #endif /* PERGYRA_SLOT_ANALYZER_H */

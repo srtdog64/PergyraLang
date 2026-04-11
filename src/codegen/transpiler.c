@@ -3018,6 +3018,15 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
     const char *name = node->data.class_decl.name;
 
+    for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+        ClassField *f = node->data.class_decl.fields[i];
+        if (f != NULL)
+            ensure_type_specializations_from_ast_to(ctx, ctx->out, f->type);
+    }
+    for (size_t i = 0; i < node->data.class_decl.method_count; i++)
+        ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
+            node->data.class_decl.methods[i]);
+
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
 
     /* Fields */

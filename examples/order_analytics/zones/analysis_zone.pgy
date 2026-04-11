@@ -1,21 +1,15 @@
 // Zone: 분석 실행 경계
 
-ability Analyst
-{
-    func CanAnalyze(self) -> Bool;
-}
-
 zone AnalysisZone
 {
     subject slot batch: OrderBatch;
 
-    action ComputeStats(self) -> OrderStats
-        requires Analyst
+    func ComputeStats(self) -> OrderStats
     {
-        let total := ListSize(batch.orders);
-        let valid := 0;
-        let refunds := 0;
-        let revenue := 0;
+        let total = ListSize(batch.orders);
+        let valid = 0;
+        let refunds = 0;
+        let revenue = 0;
 
         for order in batch.orders
         {
@@ -30,7 +24,7 @@ zone AnalysisZone
             }
         }
 
-        let avg := 0;
+        let avg = 0;
         if valid > 0
         {
             avg = revenue / valid;

@@ -2287,6 +2287,43 @@ test_program_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("transitive secure boundary forwarding preserves paired token through helper chain");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func ConsumeInner(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    Write(s, Vec2(1, 2), s_token);\n"
+            "    Release(s, s_token);\n"
+            "}\n"
+            "func ConsumeMiddle(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    ConsumeInner(s);\n"
+            "}\n"
+            "func ConsumeOuter(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    ConsumeMiddle(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeOuter(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "void ConsumeMiddle(PgySecureSlot_Vec2 *s, PgyToken_Vec2 s_token)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeMiddle(s, s_token);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "ConsumeInner(s, s_token);");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("extern block emits C prototypes");
     {
         ASTNode ext; memset(&ext, 0, sizeof(ext));

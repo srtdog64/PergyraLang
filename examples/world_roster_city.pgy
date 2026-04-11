@@ -1,5 +1,7 @@
 // Pergyra World-Roster Example
 // Complete hierarchy from World to Ability
+// Status: design sketch / not compile-smoke covered.
+// Uses aspirational collection-combinator surface such as Filter.
 
 // ============= ABILITY Level =============
 // 기본 능력 정의

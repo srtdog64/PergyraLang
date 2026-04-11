@@ -6,7 +6,7 @@ intent ExploreOrders(zone: AnalysisZone, batch: OrderBatch)
     exclusive;
     who: batch;
 
-    step profile
+    step AnalyzeBatch
     {
         where: AnalysisZone;
         using: zone;

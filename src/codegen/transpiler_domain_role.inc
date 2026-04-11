@@ -1047,6 +1047,22 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.zone_decl.name;
 
+    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
+        ASTNode *slot = node->data.zone_decl.slots[i];
+        if (slot != NULL)
+            ensure_type_specializations_from_ast_to(ctx, ctx->out,
+                slot->data.domain_slot.type);
+    }
+    for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
+        ASTNode *shared = node->data.zone_decl.shared_fields[i];
+        if (shared != NULL)
+            ensure_type_specializations_from_ast_to(ctx, ctx->out,
+                shared->data.party_shared.type);
+    }
+    for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
+        ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
+            node->data.zone_decl.methods[i]);
+
     codebuf_write(ctx->out, "\n/* Zone: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 

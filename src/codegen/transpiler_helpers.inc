@@ -2010,6 +2010,23 @@ find_world_state_decl(ASTNode *world_decl, const char *state_name)
 }
 
 static const char *
+render_type_name_cached_local(ASTNode *type_node)
+{
+    static char rendered[256];
+    char *owned;
+
+    if (type_node == NULL)
+        return NULL;
+
+    owned = render_type_name(type_node);
+    if (owned == NULL)
+        return NULL;
+    snprintf(rendered, sizeof(rendered), "%s", owned);
+    free(owned);
+    return rendered;
+}
+
+static const char *
 current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
@@ -2025,7 +2042,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                 if (field != NULL && field->name != NULL
                     && strcmp(field->name, field_name) == 0
                     && field->type != NULL && field->type->type == AST_TYPE) {
-                    return field->type->data.type.name;
+                    return render_type_name_cached_local(field->type);
                 }
             }
         }
@@ -2037,7 +2054,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
             ASTNode *slot = find_zone_domain_slot(decl, field_name);
             if (slot != NULL && slot->data.domain_slot.type != NULL
                 && slot->data.domain_slot.type->type == AST_TYPE) {
-                return slot->data.domain_slot.type->data.type.name;
+                return render_type_name_cached_local(slot->data.domain_slot.type);
             }
             for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
                 ASTNode *layer = decl->data.zone_decl.layer_slots[i];
@@ -2053,7 +2070,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     && strcmp(shared->data.party_shared.name, field_name) == 0
                     && shared->data.party_shared.type != NULL
                     && shared->data.party_shared.type->type == AST_TYPE) {
-                    return shared->data.party_shared.type->data.type.name;
+                    return render_type_name_cached_local(shared->data.party_shared.type);
                 }
             }
         }
@@ -2068,7 +2085,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     && strcmp(slot->data.domain_slot.slot_name, field_name) == 0
                     && slot->data.domain_slot.type != NULL
                     && slot->data.domain_slot.type->type == AST_TYPE) {
-                    return slot->data.domain_slot.type->data.type.name;
+                    return render_type_name_cached_local(slot->data.domain_slot.type);
                 }
             }
         }
@@ -2083,7 +2100,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     && strcmp(slot->data.domain_slot.slot_name, field_name) == 0
                     && slot->data.domain_slot.type != NULL
                     && slot->data.domain_slot.type->type == AST_TYPE) {
-                    return slot->data.domain_slot.type->data.type.name;
+                    return render_type_name_cached_local(slot->data.domain_slot.type);
                 }
             }
         }
@@ -2112,7 +2129,7 @@ current_field_type_name(TranspilerCtx *ctx, const char *field_name)
                     && strcmp(shared->data.party_shared.name, field_name) == 0
                     && shared->data.party_shared.type != NULL
                     && shared->data.party_shared.type->type == AST_TYPE) {
-                    return shared->data.party_shared.type->data.type.name;
+                    return render_type_name_cached_local(shared->data.party_shared.type);
                 }
             }
         }
@@ -2296,7 +2313,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
             if (field != NULL && field->name != NULL
                 && strcmp(field->name, member_name) == 0
                 && field->type != NULL && field->type->type == AST_TYPE) {
-                return field->type->data.type.name;
+                return render_type_name_cached_local(field->type);
             }
         }
         break;
@@ -2304,7 +2321,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
         ASTNode *slot = find_zone_domain_slot(decl, member_name);
         if (slot != NULL && slot->data.domain_slot.type != NULL
             && slot->data.domain_slot.type->type == AST_TYPE) {
-            return slot->data.domain_slot.type->data.type.name;
+            return render_type_name_cached_local(slot->data.domain_slot.type);
         }
         for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
             ASTNode *layer = decl->data.zone_decl.layer_slots[i];
@@ -2320,7 +2337,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(shared->data.party_shared.name, member_name) == 0
                 && shared->data.party_shared.type != NULL
                 && shared->data.party_shared.type->type == AST_TYPE) {
-                return shared->data.party_shared.type->data.type.name;
+                return render_type_name_cached_local(shared->data.party_shared.type);
             }
         }
         break;
@@ -2332,7 +2349,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(slot->data.domain_slot.slot_name, member_name) == 0
                 && slot->data.domain_slot.type != NULL
                 && slot->data.domain_slot.type->type == AST_TYPE) {
-                return slot->data.domain_slot.type->data.type.name;
+                return render_type_name_cached_local(slot->data.domain_slot.type);
             }
         }
         for (size_t i = 0; i < decl->data.relation_decl.shared_count; i++) {
@@ -2341,7 +2358,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(shared->data.party_shared.name, member_name) == 0
                 && shared->data.party_shared.type != NULL
                 && shared->data.party_shared.type->type == AST_TYPE) {
-                return shared->data.party_shared.type->data.type.name;
+                return render_type_name_cached_local(shared->data.party_shared.type);
             }
         }
         break;
@@ -2352,7 +2369,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(slot->data.domain_slot.slot_name, member_name) == 0
                 && slot->data.domain_slot.type != NULL
                 && slot->data.domain_slot.type->type == AST_TYPE) {
-                return slot->data.domain_slot.type->data.type.name;
+                return render_type_name_cached_local(slot->data.domain_slot.type);
             }
         }
         for (size_t i = 0; i < decl->data.effect_decl.shared_count; i++) {
@@ -2361,7 +2378,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(shared->data.party_shared.name, member_name) == 0
                 && shared->data.party_shared.type != NULL
                 && shared->data.party_shared.type->type == AST_TYPE) {
-                return shared->data.party_shared.type->data.type.name;
+                return render_type_name_cached_local(shared->data.party_shared.type);
             }
         }
         break;
@@ -2386,7 +2403,7 @@ lookup_nominal_host_member_type_name(TranspilerCtx *ctx, const char *host_type_n
                 && strcmp(shared->data.party_shared.name, member_name) == 0
                 && shared->data.party_shared.type != NULL
                 && shared->data.party_shared.type->type == AST_TYPE) {
-                return shared->data.party_shared.type->data.type.name;
+                return render_type_name_cached_local(shared->data.party_shared.type);
             }
         }
         break;
@@ -3294,13 +3311,13 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
 }
 
 static void
-ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
-                                 const char *inner_type)
+ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
+                                    const char *kind, const char *inner_type)
 {
     char suffix[128];
     const char *ctype;
 
-    if (ctx == NULL || kind == NULL || inner_type == NULL)
+    if (ctx == NULL || dst == NULL || kind == NULL || inner_type == NULL)
         return;
 
     if ((strcmp(kind, "List") == 0 || strcmp(kind, "Queue") == 0)
@@ -3337,22 +3354,22 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
     ctx->collection_spec_count++;
 
     if (strcmp(kind, "List") == 0) {
-        codebuf_write(ctx->decls,
+        codebuf_write(dst,
             "\n/* PGY_COLLECTION_LIST_%s */\n"
             "PGY_LIST_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     } else if (strcmp(kind, "Queue") == 0) {
-        codebuf_write(ctx->decls,
+        codebuf_write(dst,
             "\n/* PGY_COLLECTION_QUEUE_%s */\n"
             "PGY_QUEUE_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     } else if (strcmp(kind, "Map") == 0) {
-        codebuf_write(ctx->decls,
+        codebuf_write(dst,
             "\n/* PGY_COLLECTION_MAP_%s */\n"
             "PGY_HASHMAP_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
     } else if (strcmp(kind, "Set") == 0) {
-        codebuf_write(ctx->decls,
+        codebuf_write(dst,
             "\n/* PGY_COLLECTION_SET_%s */\n"
             "PGY_SET_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
@@ -3360,17 +3377,24 @@ ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
 }
 
 static void
-ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
+ensure_collection_specialization(TranspilerCtx *ctx, const char *kind,
+                                 const char *inner_type)
+{
+    ensure_collection_specialization_to(ctx, ctx->decls, kind, inner_type);
+}
+
+static void
+ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *type_node)
 {
     if (ctx == NULL || type_node == NULL)
         return;
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
         if (type_node->data.event_handler_type.return_type != NULL)
-            ensure_type_specializations_from_ast(ctx,
+            ensure_type_specializations_from_ast_to(ctx, dst,
                 type_node->data.event_handler_type.return_type);
         for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
-            ensure_type_specializations_from_ast(ctx,
+            ensure_type_specializations_from_ast_to(ctx, dst,
                 type_node->data.event_handler_type.param_types[i]);
         }
         return;
@@ -3382,7 +3406,8 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
     {
         ASTNode *alias_decl = find_type_alias_decl(ctx, type_node->data.type.name);
         if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
-            ensure_type_specializations_from_ast(ctx, alias_decl->data.type_alias.target_type);
+            ensure_type_specializations_from_ast_to(ctx, dst,
+                alias_decl->data.type_alias.target_type);
             return;
         }
     }
@@ -3391,7 +3416,7 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
         for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
             GenericParam *arg = type_node->data.type.generic_args->params[i];
             if (arg != NULL && arg->constraint != NULL)
-                ensure_type_specializations_from_ast(ctx, arg->constraint);
+                ensure_type_specializations_from_ast_to(ctx, dst, arg->constraint);
         }
     }
 
@@ -3401,7 +3426,7 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
         && type_node->data.type.generic_args->params[0] != NULL
         && type_node->data.type.generic_args->params[0]->constraint != NULL) {
         char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
-        ensure_collection_specialization(ctx, "List", inner);
+        ensure_collection_specialization_to(ctx, dst, "List", inner);
         free(inner);
         return;
     }
@@ -3412,7 +3437,7 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
         && type_node->data.type.generic_args->params[0] != NULL
         && type_node->data.type.generic_args->params[0]->constraint != NULL) {
         char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
-        ensure_collection_specialization(ctx, "Queue", inner);
+        ensure_collection_specialization_to(ctx, dst, "Queue", inner);
         free(inner);
         return;
     }
@@ -3423,9 +3448,91 @@ ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
         && type_node->data.type.generic_args->params[1] != NULL
         && type_node->data.type.generic_args->params[1]->constraint != NULL) {
         char *value = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
-        ensure_collection_specialization(ctx, "Map", value);
+        ensure_collection_specialization_to(ctx, dst, "Map", value);
         free(value);
         return;
+    }
+}
+
+static void
+ensure_type_specializations_from_ast(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    ensure_type_specializations_from_ast_to(ctx, ctx->decls, type_node);
+}
+
+static void
+ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *node)
+{
+    if (ctx == NULL || dst == NULL || node == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        ensure_type_specializations_from_ast_to(ctx, dst, node->data.func_decl.return_type);
+        for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
+            FuncParam *p = node->data.func_decl.params[i];
+            if (p != NULL)
+                ensure_type_specializations_from_ast_to(ctx, dst, p->type);
+        }
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.func_decl.body);
+        break;
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++)
+            ensure_collection_specializations_from_stmt_to(ctx, dst,
+                node->data.block.statements[i]);
+        break;
+    case AST_LET_DECL:
+        ensure_type_specializations_from_ast_to(ctx, dst, node->data.let_decl.type);
+        ensure_collection_specializations_from_stmt_to(ctx, dst,
+            node->data.let_decl.initializer);
+        break;
+    case AST_LET_DESTRUCTURE:
+        ensure_collection_specializations_from_stmt_to(ctx, dst,
+            node->data.let_destructure.initializer);
+        break;
+    case AST_WITH_STMT:
+        ensure_type_specializations_from_ast_to(ctx, dst, node->data.with_stmt.slot_type);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.with_stmt.body);
+        break;
+    case AST_IF_STMT:
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.condition);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.then_branch);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.else_branch);
+        break;
+    case AST_WHILE_LOOP:
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.while_loop.condition);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.while_loop.body);
+        break;
+    case AST_FOR_LOOP:
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.range_start);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.range_end);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.iterable);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.body);
+        break;
+    case AST_MATCH_STMT:
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_stmt.subject);
+        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+            ensure_collection_specializations_from_stmt_to(ctx, dst,
+                node->data.match_stmt.cases[i]);
+        ensure_collection_specializations_from_stmt_to(ctx, dst,
+            node->data.match_stmt.default_body);
+        break;
+    case AST_MATCH_CASE:
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_case.guard);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_case.body);
+        break;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+            ensure_collection_specializations_from_stmt_to(ctx, dst,
+                node->data.async_block.statements[i]);
+        break;
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+            ensure_collection_specializations_from_stmt_to(ctx, dst,
+                node->data.parallel.tasks[i]);
+        break;
+    default:
+        break;
     }
 }
 
@@ -3512,12 +3619,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         const char *resolved = resolve_nominal_host_expr_type_name(ctx, expr);
         if (resolved != NULL)
             return resolved;
-        /* For member access on known-typed vars, try field lookup */
-        if (expr->data.member.object != NULL
-            && expr->data.member.object->type == AST_IDENTIFIER
-            && expr->data.member.name != NULL) {
-            const char *obj_type = lookup_typed_var(ctx,
-                expr->data.member.object->data.identifier.name);
+        if (expr->data.member.object != NULL && expr->data.member.name != NULL) {
+            const char *obj_type = infer_expression_type_name(ctx, expr->data.member.object);
             if (obj_type != NULL) {
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {

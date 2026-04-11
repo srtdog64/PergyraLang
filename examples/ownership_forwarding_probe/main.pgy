@@ -1,0 +1,41 @@
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Inner(ref s: Slot<Vec2>) -> Void {
+    Write(s, Vec2(2, 2));
+    Log("inner-ref");
+}
+
+func Middle(ref s: Slot<Vec2>) -> Void {
+    Inner(s);
+    Log("middle-ref");
+}
+
+func Consume(own s: Slot<Vec2>) -> Void {
+    Release(s);
+    Log("plain-consumed");
+}
+
+func ConsumeSecure(own s: SecureSlot<Vec2>) -> Void {
+    Log("secure-consumed");
+}
+
+func RelaySecure(own s: SecureSlot<Vec2>) -> Void {
+    ConsumeSecure(s);
+    Log("secure-relay");
+}
+
+func Main() -> Void {
+    Log("ownership forwarding probe");
+
+    let plain: Slot<Vec2> = Vec2(0, 0);
+    Middle(plain);
+    Consume(plain);
+
+    let guarded: SecureSlot<Vec2> = Vec2(5, 6);
+    RelaySecure(guarded);
+
+    Log("done");
+}

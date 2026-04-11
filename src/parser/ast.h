@@ -276,6 +276,7 @@ struct ASTNode
 {
     ASTNodeType type;
     bool        is_exported;
+    bool        has_explicit_export;
     bool        is_async_decl;
     
     /* Line and column information */

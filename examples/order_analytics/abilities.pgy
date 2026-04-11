@@ -1,0 +1,9 @@
+ability Analyst
+{
+    func CanAnalyze(self) -> Bool;
+}
+
+ability DataEngineer
+{
+    func CanLoad(self) -> Bool;
+}

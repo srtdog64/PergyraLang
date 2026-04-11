@@ -2581,7 +2581,7 @@ static inline char* pgy_bool_to_string(bool val) {
  * pgy_input() and pgy_print(). See type_checker_builtins.c for semantic. */
 
 /* =================================================================
- * HashMap<String, T> — open-addressing, string keys
+ * HashMap<String, T> / HashMap<Int, T> — open-addressing
  * ================================================================= */
 
 #define PGY_HASHMAP_INIT_CAP 16
