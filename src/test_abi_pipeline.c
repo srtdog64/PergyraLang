@@ -172,6 +172,36 @@ read_text_file(const char *path)
     return buf;
 }
 
+static char *
+normalize_newlines(const char *text)
+{
+    size_t len;
+    char *buf;
+    size_t read_i;
+    size_t write_i = 0;
+
+    if (text == NULL)
+        return NULL;
+
+    len = strlen(text);
+    buf = (char *)malloc(len + 1);
+    if (buf == NULL)
+        return NULL;
+
+    for (read_i = 0; read_i < len; read_i++) {
+        if (text[read_i] == '\r') {
+            if ((read_i + 1) < len && text[read_i + 1] == '\n')
+                continue;
+            buf[write_i++] = '\n';
+            continue;
+        }
+        buf[write_i++] = text[read_i];
+    }
+
+    buf[write_i] = '\0';
+    return buf;
+}
+
 static int
 capture_binary_output(const char *binary_path,
                       const char *capture_path,
@@ -338,6 +368,8 @@ run_pipeline_case(const char *case_name,
     int compile_rc;
     int run_rc = -1;
     char *captured = NULL;
+    char *normalized_captured = NULL;
+    char *normalized_expected = NULL;
     char *compile_captured = NULL;
     char msg[256];
 
@@ -407,7 +439,13 @@ run_pipeline_case(const char *case_name,
         snprintf(msg, sizeof(msg), "%s/%s: expected output appears",
                  backend_name(backend), case_name);
         {
-            bool output_ok = captured != NULL && strstr(captured, expected_output) != NULL;
+            bool output_ok;
+
+            normalized_captured = normalize_newlines(captured);
+            normalized_expected = normalize_newlines(expected_output);
+            output_ok = normalized_captured != NULL
+                && normalized_expected != NULL
+                && strstr(normalized_captured, normalized_expected) != NULL;
             abi_expect(msg, output_ok);
             if (!output_ok && captured != NULL) {
                 printf("    captured stdout:\n%s\n", captured);
@@ -419,6 +457,8 @@ run_pipeline_case(const char *case_name,
     print_phase_timings(&timings);
 
     free(compile_captured);
+    free(normalized_expected);
+    free(normalized_captured);
     free(captured);
     remove_if_exists(compile_capture_path);
     remove_if_exists(capture_path);
