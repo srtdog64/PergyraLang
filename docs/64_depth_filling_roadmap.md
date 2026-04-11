@@ -19,7 +19,7 @@
 
 이번 개정에서 바뀐 점:
 - 기존 포괄 TODO 문서를 `phase-based depth filling` 문서로 재작성
-- `P0`를 `Event semantic`, `Collections`, `World LLVM`, `silent fallback 제거`로 고정
+- `P0`를 `Event semantic`, `Collections semantic`, `World LLVM`, `silent fallback 제거`로 고정
 - ergonomics 개선은 depth closure 이후 단계로 명시
 - 각 phase의 완료 기준을 "문서상 존재"가 아니라 `negative semantic / C / LLVM / 문서` 4조건으로 재정의
 
@@ -41,7 +41,7 @@
 
 즉 현재 P0는 다음 셋이다.
 - `Event semantic`
-- `Set/Map/List`
+- `Set/Map/List semantic`
 - `World`의 LLVM closure
 
 ### 원칙 2. 완성 기준을 코드 기준으로 잡는다
@@ -75,9 +75,8 @@
 실행 순서:
 1. `Event` semantic closure
 2. `Set/Map/List` semantic closure
-3. `Set/Map/List` LLVM closure
-4. `World` LLVM closure
-5. silent fallback 전수 점검
+3. `World` LLVM closure
+4. silent fallback 전수 점검
 
 ### 2.1 Event semantic closure
 
@@ -117,26 +116,26 @@
 
 대상:
 - `Set/Map/List` 시맨틱
-- `Set/Map/List` LLVM
+- existing LLVM collection path의 coverage 정리
 
 작업:
 1. `TYPE_SET`, `TYPE_LIST`, `TYPE_HASHMAP`를 진짜 constructed type로 올린다.
 2. generic parameter validation을 넣는다.
 3. collection method call을 타입 시스템에 직접 연결한다.
-4. LLVM 생성자/메서드 lowering을 닫는다.
+4. existing LLVM 생성자/메서드 lowering의 coverage와 타입 coercion 불균형을 정리한다.
 5. C 경로의 현재 제한 사항을 문서상 명시하고, 실제로 지원 안 되는 조합은 조용히 통과시키지 않게 한다.
 
 완료 기준:
 - `Set<Int>`, `List<String>`, `Map<String, Int>` 수준의 정상 예제가 C/LLVM 모두 통과한다.
 - 잘못된 key/value/element 호출이 semantic error로 막힌다.
 - 현재 미지원 조합은 명시적 에러가 난다.
+- LLVM 컬렉션 경로가 "없음"이 아니라 "기존 경로 보강"이라는 사실이 문서에 반영된다.
 
 체크리스트:
 - [ ] collection type descriptor 정식화
 - [ ] generic parameter validation
 - [ ] `.add/.push/.get/.set/.has/.remove/.size` 타입 체크
-- [ ] LLVM collection constructor lowering
-- [ ] LLVM method-call lowering
+- [ ] LLVM collection coercion/coverage 정리
 - [ ] unsupported 조합 명시 오류
 - [ ] C/LLVM positive smoke 추가
 - [ ] negative semantic test 추가
@@ -316,14 +315,13 @@
 
 1. `Event` semantic closure
 2. `Set/Map/List` semantic closure
-3. `Set/Map/List` LLVM closure
-4. `World` LLVM closure
-5. silent runtime fallback 전수 정리
-6. generic contract / module contract 정리
-7. effect-resource-authority lattice 정리
-8. runtime observability 강화
-9. tooling 완성
-10. authoring shorthand
+3. `World` LLVM closure
+4. silent runtime fallback 전수 정리
+5. generic contract / module contract 정리
+6. effect-resource-authority lattice 정리
+7. runtime observability 강화
+8. tooling 완성
+9. authoring shorthand
 
 이 순서를 뒤집으면, 사용성은 잠깐 좋아 보여도 내부 부채가 더 커진다.
 
@@ -333,10 +331,11 @@
 
 ### 완료
 
-- [x] depth filling 우선순위를 `Event semantic → Collections → World LLVM → fallback 제거`로 고정
+- [x] depth filling 우선순위를 `Event semantic → Collections semantic → World LLVM → fallback 제거`로 고정
 - [x] ergonomics보다 depth closure 우선 원칙 명시
 - [x] phase별 완료 기준을 테스트 포함 기준으로 재정의
 - [x] `Event` LLVM/helper 경로 존재 확인 및 문서 기준 정정 필요성 반영
+- [x] `Collections` LLVM 경로 존재 확인 및 문서 기준 정정 필요성 반영
 
 ### 다음 실행
 
@@ -354,6 +353,9 @@
 - `Collections` semantic closure 1차 착수
 - 범위: `List/Map/Set/Queue` builtin의 arity, container kind, key/value/element/index 타입 검증 강화
 - 테스트 추가: positive generic collections flow, wrong list element, wrong map key, wrong list index
+- `Collections` LLVM 경로 재평가
+- 확인: `List/Set/Queue/HashMap`는 생성자와 주요 builtin 호출 lowering이 이미 존재함
+- 보강: `SetAdd/SetHas/SetRemove/QueuePush/MapSet`의 값 coercion 경로를 `ListPush/ListSet`과 맞춤
 
 ---
 
@@ -387,7 +389,7 @@ Phase 3 (P2) — 품질
 |---|------|-----------------|------|
 | 1.1 | Event 시맨틱 | Event 시맨틱 ◐→✅ | 진행 중 |
 | 1.2 | Collection 시맨틱 | Set/Map/List 시맨틱 ❌→✅ | 미착수 |
-| 1.3 | Collection LLVM | Set/Map/List LLVM ❌→✅ | 미착수 |
+| 1.3 | Collection LLVM/coverage | Set/Map/List LLVM ✅ 유지 + coverage 보강 | 진행 중 |
 | 2.1 | Event LLVM | Event LLVM ⚠️→✅ | 미착수 |
 | 2.2 | Event 런타임 | Event 런타임 ❌→✅ | 미착수 |
 | 2.3 | World LLVM | World LLVM ⚠️→✅ | 미착수 |

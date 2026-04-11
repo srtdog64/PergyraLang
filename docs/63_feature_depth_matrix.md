@@ -49,7 +49,7 @@
 | `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ◐ | 중간 | surface와 핵심 연결은 있으나 lattice/authority 통합은 미완 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
 | `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
-| `Set/Map/List` | ✅ | ❌ | ❌ | ◐ | ❌ | ◐ | ◐ | 얕음 | surface만 넓고 타입/LLVM 쪽이 비어 있음 |
+| `Set/Map/List` | ✅ | ◐ | ◐ | ◐ | ✅ | ◐ | ◐ | 중간 | LLVM 경로는 존재, 핵심 gap은 semantic closure와 coverage |
 | 디버거 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 부재 | 스텁 단계 |
 | 포매터 | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | basic formatter만 있음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 초안 | partial 상태 |
@@ -230,7 +230,7 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 핵심 문제:
 - 타입 시스템과 generic validation이 약하다
 - C 경로는 부분 동작하지만 제한이 많다
-- LLVM 경로가 닫히지 않았다
+- LLVM 경로는 실제로 존재하지만 coverage와 타입 coercion 정합성이 불균형했다
 - runtime helper는 있어도 컴파일러 depth가 못 따라간다
 
 판정:
@@ -255,12 +255,12 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 한 줄 요약:
 
 > PergyraLang은 더 이상 단순 parser project는 아니다.
-> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List`, `World LLVM`, `effect/projection` 쪽에 빈 칸이 남아 있다.
+> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List semantic`, `World LLVM`, `effect/projection` 쪽에 빈 칸이 남아 있다.
 
 조금 더 정확히 말하면:
 - 코어 언어, slot, channel, intent/zone 일부는 이미 "깊은 축"이다.
 - world, relation/effect, generic contract, event는 "중간 축"이다.
-- collections, debugger는 "얕은 축" 또는 "부재 축"이다.
+- collections는 "중간 축", debugger는 "얕은 축" 또는 "부재 축"이다.
 
 ---
 
@@ -272,6 +272,8 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Event semantic`
 - `Set/Map/List`
 - `World`의 LLVM closure
+ 
+이 중 `Set/Map/List`는 이제 "LLVM 자체 부재"보다 "semantic/coverage 부족" 쪽이 더 정확한 평가다.
 
 이 셋은 빈 칸이 실제 사용자를 속이는 영역이다.
 "문법이 있으니 된다"라고 느끼게 하지만, 실제로는 파이프라인이 끝까지 안 닫혀 있다.
@@ -318,8 +320,9 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 - `Zone`: debug-only placeholder 평가를 제거하고 `runtime contract 일부 실체화`로 정정
 - `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM debt 잔존`으로 정정
 - `Event`: `LLVM/runtime 부재` 평가를 제거하고 `semantic closure 부족` 중심으로 정정
+- `Set/Map/List`: `LLVM 부재` 평가를 제거하고 `semantic/coverage 부족` 중심으로 정정
 
 새 기준선:
-- P0는 `Event semantic`, `Set/Map/List`, `World LLVM`
+- P0는 `Event semantic`, `Set/Map/List semantic`, `World LLVM`
 - P1은 `ability/require/use`, `relation/effect/projection`, `observability`
 - P2는 `tooling`과 `authoring shorthand`
