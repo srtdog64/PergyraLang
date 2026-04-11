@@ -35,6 +35,10 @@ examples/**/expected_results.llvm.txt
 #   examples/**/expected_results.txt — canonical expected results
 #   examples/raid_graph_fsm/results.txt — representative generated report
 
+# Temporary compiler artifacts
+*.o.tmp
+*.tmp
+
 # Editor / OS
 *.backup
 *.swp

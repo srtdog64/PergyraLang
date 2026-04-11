@@ -112,27 +112,45 @@ pgy_exec_probe_argv(const char *const argv[])
 
 /* -----------------------------------------------------------------
  * C compiler detection: PGY_CC env → clang → gcc → cc
+ *
+ * On Windows, clang may default to MSVC target which lacks pthread.h.
+ * We detect this and store a --target flag for mingw if needed.
  * ----------------------------------------------------------------- */
+static const char *pgy_cc_cached = NULL;
+static const char *pgy_cc_target_flag = NULL; /* e.g. "--target=x86_64-w64-mingw32" */
+
 static const char *
 pgy_detect_c_compiler(void)
 {
-    static const char *cached = NULL;
     const char *env_cc;
-    if (cached != NULL)
-        return cached;
+    if (pgy_cc_cached != NULL)
+        return pgy_cc_cached;
     env_cc = getenv("PGY_CC");
     if (env_cc != NULL && env_cc[0] != '\0') {
-        cached = env_cc;
-        return cached;
+        pgy_cc_cached = env_cc;
+        return pgy_cc_cached;
     }
 #ifdef _WIN32
+    /* Try clang with mingw target first (MSVC-default clang lacks pthread.h,
+     * and gcc on Windows frequently crashes via cc1.exe) */
     {
-        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang", "--version", NULL);
-        if (rc == 0) { cached = "clang"; return cached; }
+        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang",
+            "--target=x86_64-w64-mingw32", "--version", NULL);
+        if (rc == 0) {
+            pgy_cc_cached = "clang";
+            pgy_cc_target_flag = "--target=x86_64-w64-mingw32";
+            return pgy_cc_cached;
+        }
     }
+    /* Try gcc (mingw gcc has pthread.h built-in, but cc1 may crash) */
     {
         intptr_t rc = _spawnlp(_P_WAIT, "gcc", "gcc", "--version", NULL);
-        if (rc == 0) { cached = "gcc"; return cached; }
+        if (rc == 0) { pgy_cc_cached = "gcc"; return pgy_cc_cached; }
+    }
+    /* Fallback: plain clang without mingw target */
+    {
+        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang", "--version", NULL);
+        if (rc == 0) { pgy_cc_cached = "clang"; return pgy_cc_cached; }
     }
 #else
     {
@@ -140,14 +158,23 @@ pgy_detect_c_compiler(void)
         for (int i = 0; candidates[i] != NULL; i++) {
             const char *test_argv[] = { candidates[i], "--version", NULL };
             if (pgy_exec_probe_argv(test_argv) == 0) {
-                cached = candidates[i];
-                return cached;
+                pgy_cc_cached = candidates[i];
+                return pgy_cc_cached;
             }
         }
     }
 #endif
-    cached = "gcc";
-    return cached;
+    pgy_cc_cached = "gcc";
+    return pgy_cc_cached;
+}
+
+/* Returns extra target flag for the detected compiler, or NULL */
+static const char *
+pgy_cc_extra_target_flag(void)
+{
+    if (pgy_cc_cached == NULL)
+        pgy_detect_c_compiler();
+    return pgy_cc_target_flag;
 }
 
 static double
@@ -440,35 +467,41 @@ compiler_build_native(const CompilerIRBundle *bundle,
             : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
     CompilerResult *result = NULL;
     const char *cc = pgy_detect_c_compiler();
-#ifdef _WIN32
-    const char *compile_argv[] = {
-        cc, "-std=c11", "-Wall", opt_flag,
-        intent_observability_flag,
-        "-I", PGY_SRC_DIR,
-        "-I", PGY_RUNTIME_DIR,
-        "-c", output_c_path,
-        "-o", output_obj_path,
-        NULL
-    };
-    const char *link_argv[] = {
-        cc, "-std=c11", "-Wall", opt_flag,
-        output_obj_path,
-        "-o", output_binary_path,
-        PGY_CFLAGS_THREAD_LIB,
-        "-lm",
-        NULL
-    };
-#else
-    const char *compile_argv[] = {
-        cc, "-std=c11", "-Wall", opt_flag, "-fopenmp",
-        intent_observability_flag,
-        "-I", PGY_SRC_DIR,
-        "-I", PGY_RUNTIME_DIR,
-        "-c", output_c_path,
-        "-o", output_obj_path,
-        NULL
-    };
+    const char *cc_target = pgy_cc_extra_target_flag();
+    {
+        const char *compile_argv[20];
+        const char *link_argv[20];
+        int ci = 0, li = 0;
+        compile_argv[ci++] = cc;
+        if (cc_target != NULL) compile_argv[ci++] = cc_target;
+        compile_argv[ci++] = "-std=c11";
+        compile_argv[ci++] = "-Wall";
+        compile_argv[ci++] = opt_flag;
+#ifndef _WIN32
+        compile_argv[ci++] = "-fopenmp";
 #endif
+        compile_argv[ci++] = intent_observability_flag;
+        compile_argv[ci++] = "-I";
+        compile_argv[ci++] = PGY_SRC_DIR;
+        compile_argv[ci++] = "-I";
+        compile_argv[ci++] = PGY_RUNTIME_DIR;
+        compile_argv[ci++] = "-c";
+        compile_argv[ci++] = output_c_path;
+        compile_argv[ci++] = "-o";
+        compile_argv[ci++] = output_obj_path;
+        compile_argv[ci] = NULL;
+
+        link_argv[li++] = cc;
+        if (cc_target != NULL) link_argv[li++] = cc_target;
+        link_argv[li++] = "-std=c11";
+        link_argv[li++] = "-Wall";
+        link_argv[li++] = opt_flag;
+        link_argv[li++] = output_obj_path;
+        link_argv[li++] = "-o";
+        link_argv[li++] = output_binary_path;
+        link_argv[li++] = PGY_CFLAGS_THREAD_LIB;
+        link_argv[li++] = "-lm";
+        link_argv[li] = NULL;
 
     result = compiler_success(output_c_path, output_binary_path);
     if (result == NULL) {
@@ -492,29 +525,32 @@ compiler_build_native(const CompilerIRBundle *bundle,
     result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
     phase_start = compiler_now_seconds();
-#ifdef _WIN32
-    rc = pgy_exec_argv(link_argv, verbose);
-#else
+#ifndef _WIN32
+    /* Linux: rebuild link_argv with extra flags (lld, build-id, fopenmp) */
     {
-        const char *link_argv[16];
-        int link_argc = 0;
-        link_argv[link_argc++] = pgy_detect_c_compiler();
-        link_argv[link_argc++] = "-std=c11";
-        link_argv[link_argc++] = "-Wall";
-        link_argv[link_argc++] = opt_flag;
-        link_argv[link_argc++] = "-fopenmp";
+        const char *lnk[20];
+        int lc = 0;
+        lnk[lc++] = cc;
+        if (cc_target != NULL) lnk[lc++] = cc_target;
+        lnk[lc++] = "-std=c11";
+        lnk[lc++] = "-Wall";
+        lnk[lc++] = opt_flag;
+        lnk[lc++] = "-fopenmp";
         if (compiler_should_use_lld())
-            link_argv[link_argc++] = "-fuse-ld=lld";
-        link_argv[link_argc++] = "-Wl,--build-id=none";
-        link_argv[link_argc++] = output_obj_path;
-        link_argv[link_argc++] = "-o";
-        link_argv[link_argc++] = output_binary_path;
-        link_argv[link_argc++] = PGY_CFLAGS_THREAD_LIB;
-        link_argv[link_argc++] = "-lm";
-        link_argv[link_argc] = NULL;
-        rc = pgy_exec_argv(link_argv, verbose);
+            lnk[lc++] = "-fuse-ld=lld";
+        lnk[lc++] = "-Wl,--build-id=none";
+        lnk[lc++] = output_obj_path;
+        lnk[lc++] = "-o";
+        lnk[lc++] = output_binary_path;
+        lnk[lc++] = PGY_CFLAGS_THREAD_LIB;
+        lnk[lc++] = "-lm";
+        lnk[lc] = NULL;
+        rc = pgy_exec_argv(lnk, verbose);
     }
+#else
+    rc = pgy_exec_argv(link_argv, verbose);
 #endif
+    } /* close compile/link argv scope */
     if (rc != 0) {
         result->success = false;
         result->exit_code = rc;
