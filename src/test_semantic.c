@@ -2474,7 +2474,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Slot return types are not supported yet"));
+            "Anchored resource handle return types (Slot/SecureSlot/DeviceSlot) are not supported yet"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
