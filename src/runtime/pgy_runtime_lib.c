@@ -54,6 +54,16 @@ pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
             reason != NULL ? reason : "invalid channel operation");
 }
 
+static size_t
+pgy_runtime_channel_capacity_or_default(const char *op, size_t cap)
+{
+    if (cap == 0) {
+        pgy_runtime_warn_invalid_channel(op, "zero capacity requested; using capacity=1");
+        return 1;
+    }
+    return cap;
+}
+
 static void
 pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t count)
 {
@@ -583,6 +593,10 @@ pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
     list->capacity = 16;
     list->count = 0;
     list->data = calloc((size_t)list->capacity, (size_t)elem_size);
+    if (list->data == NULL) {
+        list->capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new", "allocation failed");
+    }
 }
 
 void
@@ -600,6 +614,10 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
     }
     if (elem_size <= 0) {
         pgy_runtime_warn_invalid_collection("list_push", "non-positive element size");
+        return;
+    }
+    if (list->data == NULL && list->capacity == 0) {
+        pgy_runtime_warn_invalid_collection("list_push", "list is not initialized");
         return;
     }
     if (list->count >= list->capacity) {
@@ -721,6 +739,10 @@ pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
     queue->tail = 0;
     queue->count = 0;
     queue->data = calloc(queue->capacity, (size_t)elem_size);
+    if (queue->data == NULL) {
+        queue->capacity = 0;
+        pgy_runtime_warn_invalid_collection("queue_new", "allocation failed");
+    }
 }
 
 void
@@ -737,6 +759,10 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
     }
     if (elem_size <= 0) {
         pgy_runtime_warn_invalid_collection("queue_push", "non-positive element size");
+        return;
+    }
+    if (queue->data == NULL && queue->capacity == 0) {
+        pgy_runtime_warn_invalid_collection("queue_push", "queue is not initialized");
         return;
     }
     if (queue->count >= queue->capacity) {
@@ -828,6 +854,16 @@ pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
     map->keys = (char **)calloc(map->capacity, sizeof(char *));
     map->values = calloc(map->capacity, (size_t)value_size);
     map->occupied = (uint8_t *)calloc(map->capacity, sizeof(uint8_t));
+    if (map->keys == NULL || map->values == NULL || map->occupied == NULL) {
+        free(map->keys);
+        free(map->values);
+        free(map->occupied);
+        map->keys = NULL;
+        map->values = NULL;
+        map->occupied = NULL;
+        map->capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new", "allocation failed");
+    }
 }
 
 static void
@@ -838,10 +874,21 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
     void *old_values = map->values;
     uint8_t *old_occupied = map->occupied;
 
-    map->capacity *= 2;
-    map->keys = (char **)calloc(map->capacity, sizeof(char *));
-    map->values = calloc(map->capacity, (size_t)value_size);
-    map->occupied = (uint8_t *)calloc(map->capacity, sizeof(uint8_t));
+    size_t new_capacity = map->capacity == 0 ? 16 : map->capacity * 2;
+    char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
+    void *new_values = calloc(new_capacity, (size_t)value_size);
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+    if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
+        free(new_keys);
+        free(new_values);
+        free(new_occupied);
+        pgy_runtime_warn_invalid_collection("map_grow", "allocation failed");
+        return;
+    }
+    map->capacity = new_capacity;
+    map->keys = new_keys;
+    map->values = new_values;
+    map->occupied = new_occupied;
     map->count = 0;
 
     for (size_t i = 0; i < old_capacity; i++) {
@@ -886,8 +933,18 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
         pgy_runtime_warn_invalid_collection("map_set", "non-positive value size");
         return;
     }
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "map is not initialized");
+        return;
+    }
     if ((double)map->count / (double)map->capacity > 0.75)
         pgy_map_grow_raw_export(map, value_size);
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "map growth failed");
+        return;
+    }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h]) {
         if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
@@ -898,6 +955,10 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
         h = (h + 1) % (uint32_t)map->capacity;
     }
     map->keys[h] = pgy_runtime_strdup_export(key);
+    if (map->keys[h] == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set", "key duplication failed");
+        return;
+    }
     memcpy((char *)map->values + (h * (size_t)value_size),
            value_ptr, (size_t)value_size);
     map->occupied[h] = 1;
@@ -925,6 +986,11 @@ pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t va
     }
     if (key == NULL) {
         pgy_runtime_warn_invalid_collection("map_get", "null key");
+        return;
+    }
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get", "map is not initialized");
         return;
     }
     if (map->count == 0)
@@ -1090,6 +1156,14 @@ pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
     set->count = 0;
     set->data = calloc(set->capacity, (size_t)elem_size);
     set->occupied = (uint8_t *)calloc(set->capacity, sizeof(uint8_t));
+    if (set->data == NULL || set->occupied == NULL) {
+        free(set->data);
+        free(set->occupied);
+        set->data = NULL;
+        set->occupied = NULL;
+        set->capacity = 0;
+        pgy_runtime_warn_invalid_collection("set_new", "allocation failed");
+    }
 }
 
 static void
@@ -1098,9 +1172,18 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     size_t oc = set->capacity;
     void *od = set->data;
     uint8_t *oo = set->occupied;
-    set->capacity *= 2;
-    set->data = calloc(set->capacity, (size_t)elem_size);
-    set->occupied = (uint8_t *)calloc(set->capacity, sizeof(uint8_t));
+    size_t new_capacity = set->capacity == 0 ? 16 : set->capacity * 2;
+    void *new_data = calloc(new_capacity, (size_t)elem_size);
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+    if (new_data == NULL || new_occupied == NULL) {
+        free(new_data);
+        free(new_occupied);
+        pgy_runtime_warn_invalid_collection("set_rehash", "allocation failed");
+        return;
+    }
+    set->capacity = new_capacity;
+    set->data = new_data;
+    set->occupied = new_occupied;
     set->count = 0;
     for (size_t i = 0; i < oc; i++) {
         if (oo[i]) {
@@ -1132,6 +1215,10 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("set_add", "non-positive element size");
         return;
     }
+    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add", "set is not initialized");
+        return;
+    }
     /* Check if already present */
     uint32_t h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
     size_t p = 0;
@@ -1143,6 +1230,10 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
     /* Resize if needed */
     if ((double)set->count / (double)set->capacity > 0.75) {
         pgy_set_raw_rehash(set, elem_size);
+        if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+            pgy_runtime_warn_invalid_collection("set_add", "set rehash failed");
+            return;
+        }
         h = pgy_set_raw_hash(elem_ptr, elem_size) % (uint32_t)set->capacity;
         while (set->occupied[h]) h = (h + 1) % (uint32_t)set->capacity;
     }
@@ -1165,6 +1256,10 @@ pgy_set_has_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
     }
     if (elem_size <= 0) {
         pgy_runtime_warn_invalid_collection("set_has", "non-positive element size");
+        return false;
+    }
+    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("set_has", "set is not initialized");
         return false;
     }
     if (set->count == 0)
@@ -1193,6 +1288,10 @@ pgy_set_remove_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
     }
     if (elem_size <= 0) {
         pgy_runtime_warn_invalid_collection("set_remove", "non-positive element size");
+        return;
+    }
+    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("set_remove", "set is not initialized");
         return;
     }
     if (set->count == 0)
@@ -3026,8 +3125,17 @@ typedef struct {
 
 void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
 {
-    if (ch == NULL) return;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("init_Int", "null channel");
+        return;
+    }
+    cap = pgy_runtime_channel_capacity_or_default("init_Int", cap);
     ch->buffer   = (int32_t *)calloc(cap, sizeof(int32_t));
+    if (ch->buffer == NULL) {
+        pgy_runtime_warn_invalid_channel("init_Int", "buffer allocation failed");
+        ch->capacity = 0;
+        return;
+    }
     ch->capacity = cap;
     ch->head     = 0;
     ch->tail     = 0;
@@ -3064,10 +3172,15 @@ bool pgy_channel_send_Int(PgyChannel_Int_RT *ch, int32_t v)
         pgy_runtime_warn_invalid_channel("send_Int", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("send_Int", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed)
         pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
     if (ch->closed) {
+        pgy_runtime_warn_invalid_channel("send_Int", "channel is closed");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3085,8 +3198,14 @@ bool pgy_channel_try_send_Int(PgyChannel_Int_RT *ch, int32_t v)
         pgy_runtime_warn_invalid_channel("try_send_Int", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("try_send_Int", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->closed || ch->count >= ch->capacity) {
+        pgy_runtime_warn_invalid_channel("try_send_Int",
+            ch->closed ? "channel is closed" : "channel is full");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3105,16 +3224,22 @@ bool pgy_channel_send_timeout_Int(PgyChannel_Int_RT *ch, int32_t v,
         pgy_runtime_warn_invalid_channel("send_timeout_Int", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("send_timeout_Int", "channel is not initialized");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
         if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
             == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+            pgy_runtime_warn_invalid_channel("send_timeout_Int", "deadline reached while channel remained full");
             pthread_mutex_unlock(&ch->mutex);
             return false;
         }
     }
     if (ch->closed) {
+        pgy_runtime_warn_invalid_channel("send_timeout_Int", "channel is closed");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3133,10 +3258,15 @@ bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("recv_Int", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed)
         pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
     if (ch->count == 0 && ch->closed) {
+        pgy_runtime_warn_invalid_channel("recv_Int", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3227,8 +3357,13 @@ bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("try_recv_Int", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
+        pgy_runtime_warn_invalid_channel("try_recv_Int", "channel is empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3248,16 +3383,22 @@ bool pgy_channel_recv_timeout_Int(PgyChannel_Int_RT *ch, int32_t *out,
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_Int", "channel is not initialized");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
         if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
             == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+            pgy_runtime_warn_invalid_channel("recv_timeout_Int", "deadline reached while channel remained empty");
             pthread_mutex_unlock(&ch->mutex);
             return false;
         }
     }
     if (ch->count == 0 && ch->closed) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_Int", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3290,8 +3431,17 @@ typedef struct {
 
 void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
 {
-    if (ch == NULL) return;
+    if (ch == NULL) {
+        pgy_runtime_warn_invalid_channel("init_String", "null channel");
+        return;
+    }
+    cap = pgy_runtime_channel_capacity_or_default("init_String", cap);
     ch->buffer = (char **)calloc(cap, sizeof(char *));
+    if (ch->buffer == NULL) {
+        pgy_runtime_warn_invalid_channel("init_String", "buffer allocation failed");
+        ch->capacity = 0;
+        return;
+    }
     ch->capacity = cap;
     ch->head = 0;
     ch->tail = 0;
@@ -3328,10 +3478,15 @@ bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
         pgy_runtime_warn_invalid_channel("send_String", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("send_String", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed)
         pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
     if (ch->closed) {
+        pgy_runtime_warn_invalid_channel("send_String", "channel is closed");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3349,8 +3504,14 @@ bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
         pgy_runtime_warn_invalid_channel("try_send_String", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("try_send_String", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->closed || ch->count >= ch->capacity) {
+        pgy_runtime_warn_invalid_channel("try_send_String",
+            ch->closed ? "channel is closed" : "channel is full");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3369,16 +3530,22 @@ bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
         pgy_runtime_warn_invalid_channel("send_timeout_String", "null channel");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("send_timeout_String", "channel is not initialized");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
         if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
             == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+            pgy_runtime_warn_invalid_channel("send_timeout_String", "deadline reached while channel remained full");
             pthread_mutex_unlock(&ch->mutex);
             return false;
         }
     }
     if (ch->closed) {
+        pgy_runtime_warn_invalid_channel("send_timeout_String", "channel is closed");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3397,10 +3564,15 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("recv_String", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed)
         pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
     if (ch->count == 0 && ch->closed) {
+        pgy_runtime_warn_invalid_channel("recv_String", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3420,16 +3592,22 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_String", "channel is not initialized");
+        return false;
+    }
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
         if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
             == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+            pgy_runtime_warn_invalid_channel("recv_timeout_String", "deadline reached while channel remained empty");
             pthread_mutex_unlock(&ch->mutex);
             return false;
         }
     }
     if (ch->count == 0 && ch->closed) {
+        pgy_runtime_warn_invalid_channel("recv_timeout_String", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
@@ -3448,8 +3626,13 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        pgy_runtime_warn_invalid_channel("try_recv_String", "channel is not initialized");
+        return false;
+    }
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
+        pgy_runtime_warn_invalid_channel("try_recv_String", "channel is empty");
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }

@@ -61,6 +61,32 @@ pgy_runtime_warn_invalid_intent_index(const char *op, int32_t index, int32_t cou
             op != NULL ? op : "<op>", (int)index, (int)count);
 }
 
+static inline void
+pgy_runtime_warn_invalid_channel(const char *op, const char *reason)
+{
+    fprintf(stderr, "[pgy][channel] %s: %s\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "invalid channel operation");
+}
+
+static inline void
+pgy_runtime_warn_invalid_collection(const char *op, const char *reason)
+{
+    fprintf(stderr, "[pgy][collection] %s: %s\n",
+            op != NULL ? op : "<op>",
+            reason != NULL ? reason : "invalid collection operation");
+}
+
+static inline size_t
+pgy_runtime_channel_capacity_or_default(const char *op, size_t cap)
+{
+    if (cap == 0) {
+        pgy_runtime_warn_invalid_channel(op, "zero capacity requested; using capacity=1");
+        return 1;
+    }
+    return cap;
+}
+
 static inline bool
 pgy_runtime_path_is_absolute(const char *path)
 {
@@ -2555,6 +2581,12 @@ static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
     m.keys = (char **)calloc(m.capacity, sizeof(char *)); \
     m.values = (CType *)calloc(m.capacity, sizeof(CType)); \
     m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t)); \
+    if (m.keys == NULL || m.values == NULL || m.occupied == NULL) { \
+        free(m.keys); free(m.values); free(m.occupied); \
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; \
+        m.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation failed"); \
+    } \
     return m; \
 } \
 \
@@ -2564,10 +2596,19 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
     char **old_keys = m->keys; \
     CType *old_vals = m->values; \
     uint8_t *old_occ = m->occupied; \
-    m->capacity *= 2; \
-    m->keys = (char **)calloc(m->capacity, sizeof(char *)); \
-    m->values = (CType *)calloc(m->capacity, sizeof(CType)); \
-    m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t)); \
+    size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
+    char **new_keys = (char **)calloc(new_capacity, sizeof(char *)); \
+    CType *new_values = (CType *)calloc(new_capacity, sizeof(CType)); \
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t)); \
+    if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
+        free(new_keys); free(new_values); free(new_occupied); \
+        pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation failed"); \
+        return; \
+    } \
+    m->capacity = new_capacity; \
+    m->keys = new_keys; \
+    m->values = new_values; \
+    m->occupied = new_occupied; \
     m->count = 0; \
     for (size_t i = 0; i < old_cap; i++) { \
         if (old_occ[i]) { \
@@ -2584,8 +2625,16 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
 \
 static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
 { \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
+        return; \
+    } \
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) \
         pgy_map_grow_##SuffixName(m); \
+    if (m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map growth failed"); \
+        return; \
+    } \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     while (m->occupied[h]) { \
         if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
@@ -2595,6 +2644,10 @@ static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const ch
         h = (h + 1) % (uint32_t)m->capacity; \
     } \
     m->keys[h] = pgy_runtime_strdup(key); \
+    if (m->keys[h] == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "key duplication failed"); \
+        return; \
+    } \
     m->values[h] = val; \
     m->occupied[h] = 1; \
     m->count++; \
@@ -2604,6 +2657,7 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
 { \
     CType zero_value; \
     memset(&zero_value, 0, sizeof(CType)); \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return zero_value; \
     if (m->count == 0) return zero_value; \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
@@ -2618,6 +2672,7 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
 \
 static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false; \
     if (m->count == 0) return false; \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
@@ -2632,6 +2687,7 @@ static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const ch
 \
 static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return; \
     if (m->count == 0) return; \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
@@ -2662,6 +2718,11 @@ static inline PgyHashMap_Int pgy_map_new_int(void)
     m.keys     = (char **)calloc(m.capacity, sizeof(char *));
     m.values   = (int32_t *)calloc(m.capacity, sizeof(int32_t));
     m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
+    if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
+        free(m.keys); free(m.values); free(m.occupied);
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; m.capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new_int", "allocation failed");
+    }
     return m;
 }
 
@@ -2671,11 +2732,19 @@ static inline void pgy_map_grow_int(PgyHashMap_Int *m)
     char **old_keys = m->keys;
     int32_t *old_vals = m->values;
     uint8_t *old_occ = m->occupied;
-
-    m->capacity *= 2;
-    m->keys     = (char **)calloc(m->capacity, sizeof(char *));
-    m->values   = (int32_t *)calloc(m->capacity, sizeof(int32_t));
-    m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t));
+    size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
+    char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
+    int32_t *new_values = (int32_t *)calloc(new_capacity, sizeof(int32_t));
+    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+    if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
+        free(new_keys); free(new_values); free(new_occupied);
+        pgy_runtime_warn_invalid_collection("map_grow_int", "allocation failed");
+        return;
+    }
+    m->capacity = new_capacity;
+    m->keys     = new_keys;
+    m->values   = new_values;
+    m->occupied = new_occupied;
     m->count = 0;
 
     for (size_t i = 0; i < old_cap; i++) {
@@ -2693,8 +2762,16 @@ static inline void pgy_map_grow_int(PgyHashMap_Int *m)
 
 static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t val)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "map is not initialized");
+        return;
+    }
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR)
         pgy_map_grow_int(m);
+    if (m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "map growth failed");
+        return;
+    }
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     while (m->occupied[h]) {
         if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) {
@@ -2704,6 +2781,10 @@ static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t v
         h = (h + 1) % (uint32_t)m->capacity;
     }
     m->keys[h] = pgy_runtime_strdup(key);
+    if (m->keys[h] == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_int", "key duplication failed");
+        return;
+    }
     m->values[h] = val;
     m->occupied[h] = 1;
     m->count++;
@@ -2711,6 +2792,7 @@ static inline void pgy_map_set_int(PgyHashMap_Int *m, const char *key, int32_t v
 
 static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return 0;
     if (m->count == 0) return 0;
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t probes = 0;
@@ -2725,6 +2807,7 @@ static inline int32_t pgy_map_get_int(PgyHashMap_Int *m, const char *key)
 
 static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false;
     if (m->count == 0) return false;
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t probes = 0;
@@ -2739,6 +2822,7 @@ static inline bool pgy_map_has_int(PgyHashMap_Int *m, const char *key)
 
 static inline void pgy_map_remove_int(PgyHashMap_Int *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return;
     if (m->count == 0) return;
     uint32_t cap = (uint32_t)m->capacity;
     uint32_t h = pgy_hash_string(key) % cap;
@@ -2798,18 +2882,36 @@ static inline PgyHashMap_String pgy_map_new_string(void)
     m.keys     = (char **)calloc(m.capacity, sizeof(char *));
     m.values   = (char **)calloc(m.capacity, sizeof(char *));
     m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
+    if (m.keys == NULL || m.values == NULL || m.occupied == NULL) {
+        free(m.keys); free(m.values); free(m.occupied);
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; m.capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new_string", "allocation failed");
+    }
     return m;
 }
 
 static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, const char *val)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string", "map is not initialized");
+        return;
+    }
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) {
         size_t old_cap = m->capacity;
         char **ok = m->keys; char **ov = m->values; uint8_t *oo = m->occupied;
-        m->capacity *= 2;
-        m->keys = (char **)calloc(m->capacity, sizeof(char *));
-        m->values = (char **)calloc(m->capacity, sizeof(char *));
-        m->occupied = (uint8_t *)calloc(m->capacity, sizeof(uint8_t));
+        size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
+        char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
+        char **new_values = (char **)calloc(new_capacity, sizeof(char *));
+        uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+        if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
+            free(new_keys); free(new_values); free(new_occupied);
+            pgy_runtime_warn_invalid_collection("map_set_string", "map growth allocation failed");
+            return;
+        }
+        m->capacity = new_capacity;
+        m->keys = new_keys;
+        m->values = new_values;
+        m->occupied = new_occupied;
         m->count = 0;
         for (size_t i = 0; i < old_cap; i++) {
             if (oo[i]) {
@@ -2825,16 +2927,26 @@ static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, con
         if (m->keys[h] && strcmp(m->keys[h], key) == 0) {
             free(m->values[h]);
             m->values[h] = pgy_runtime_strdup(val);
+            if (m->values[h] == NULL) {
+                pgy_runtime_warn_invalid_collection("map_set_string", "value duplication failed");
+            }
             return;
         }
         h = (h + 1) % (uint32_t)m->capacity;
     }
     m->keys[h] = pgy_runtime_strdup(key); m->values[h] = pgy_runtime_strdup(val);
+    if (m->keys[h] == NULL || m->values[h] == NULL) {
+        free(m->keys[h]); free(m->values[h]);
+        m->keys[h] = NULL; m->values[h] = NULL;
+        pgy_runtime_warn_invalid_collection("map_set_string", "key/value duplication failed");
+        return;
+    }
     m->occupied[h] = 1; m->count++;
 }
 
 static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return "";
     if (m->count == 0) return "";
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t p = 0;
@@ -2848,6 +2960,7 @@ static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
 
 static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false;
     if (m->count == 0) return false;
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t p = 0;
@@ -2860,6 +2973,7 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
 
 static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
 {
+    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return;
     if (m->count == 0) return;
     uint32_t cap = (uint32_t)m->capacity;
     uint32_t h = pgy_hash_string(key) % cap;
@@ -2915,15 +3029,26 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
     l.capacity = 16; \
     l.count = 0; \
     l.data = (CType *)calloc(l.capacity, sizeof(CType)); \
+    if (l.data == NULL) { \
+        l.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation failed"); \
+    } \
     return l; \
 } \
 \
 static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
 { \
+    if (l == NULL || (l->data == NULL && l->capacity == 0)) { \
+        pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "list is not initialized"); \
+        return; \
+    } \
     if (l->count >= l->capacity) { \
         size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2; \
         CType *grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
-        if (grown == NULL) return; \
+        if (grown == NULL) { \
+            pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "realloc failed"); \
+            return; \
+        } \
         l->data = grown; \
         l->capacity = new_capacity; \
     } \
@@ -2966,15 +3091,26 @@ static inline PgyList_Int pgy_list_new_int(void)
     l.capacity = 16;
     l.count = 0;
     l.data = (int32_t *)calloc(l.capacity, sizeof(int32_t));
+    if (l.data == NULL) {
+        l.capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new_int", "allocation failed");
+    }
     return l;
 }
 
 static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
 {
+    if (l == NULL || (l->data == NULL && l->capacity == 0)) {
+        pgy_runtime_warn_invalid_collection("list_push_int", "list is not initialized");
+        return;
+    }
     if (l->count >= l->capacity) {
         size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
         int32_t *grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
-        if (grown == NULL) return;
+        if (grown == NULL) {
+            pgy_runtime_warn_invalid_collection("list_push_int", "realloc failed");
+            return;
+        }
         l->data = grown;
         l->capacity = new_capacity;
     }
@@ -3016,19 +3152,35 @@ static inline PgyList_String pgy_list_new_string(void)
     l.capacity = 16;
     l.count = 0;
     l.data = (char **)calloc(l.capacity, sizeof(char *));
+    if (l.data == NULL) {
+        l.capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new_string", "allocation failed");
+    }
     return l;
 }
 
 static inline void pgy_list_push_string(PgyList_String *l, const char *val)
 {
+    if (l == NULL || (l->data == NULL && l->capacity == 0)) {
+        pgy_runtime_warn_invalid_collection("list_push_string", "list is not initialized");
+        return;
+    }
     if (l->count >= l->capacity) {
         size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
         char **grown = (char **)realloc(l->data, new_capacity * sizeof(char *));
-        if (grown == NULL) return;
+        if (grown == NULL) {
+            pgy_runtime_warn_invalid_collection("list_push_string", "realloc failed");
+            return;
+        }
         l->data = grown;
         l->capacity = new_capacity;
     }
-    l->data[l->count++] = pgy_runtime_strdup(val ? val : "");
+    l->data[l->count] = pgy_runtime_strdup(val ? val : "");
+    if (l->data[l->count] == NULL) {
+        pgy_runtime_warn_invalid_collection("list_push_string", "string duplication failed");
+        return;
+    }
+    l->count++;
 }
 
 static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
@@ -3058,11 +3210,17 @@ static inline PgySet_String pgy_set_new_string(void)
     s.count = 0;
     s.keys = (char **)calloc(s.capacity, sizeof(char *));
     s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t));
+    if (s.keys == NULL || s.occupied == NULL) {
+        free(s.keys); free(s.occupied);
+        s.keys = NULL; s.occupied = NULL; s.capacity = 0;
+        pgy_runtime_warn_invalid_collection("set_new_string", "allocation failed");
+    }
     return s;
 }
 
 static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
 {
+    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) return false;
     if (s->count == 0 || key == NULL) return false;
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
@@ -3075,12 +3233,24 @@ static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
 
 static inline void pgy_set_add_string(PgySet_String *s, const char *key)
 {
+    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add_string", "set is not initialized");
+        return;
+    }
     if (pgy_set_has_string(s, key)) return;
     if ((double)s->count / (double)s->capacity > 0.75) {
         size_t oc = s->capacity; char **ok = s->keys; uint8_t *oo = s->occupied;
-        s->capacity *= 2;
-        s->keys = (char **)calloc(s->capacity, sizeof(char *));
-        s->occupied = (uint8_t *)calloc(s->capacity, sizeof(uint8_t));
+        size_t new_capacity = s->capacity == 0 ? 16 : s->capacity * 2;
+        char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
+        uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+        if (new_keys == NULL || new_occupied == NULL) {
+            free(new_keys); free(new_occupied);
+            pgy_runtime_warn_invalid_collection("set_add_string", "growth allocation failed");
+            return;
+        }
+        s->capacity = new_capacity;
+        s->keys = new_keys;
+        s->occupied = new_occupied;
         s->count = 0;
         for (size_t i = 0; i < oc; i++) {
             if (oo[i]) { pgy_set_add_string(s, ok[i]); free(ok[i]); }
@@ -3089,11 +3259,17 @@ static inline void pgy_set_add_string(PgySet_String *s, const char *key)
     }
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity;
-    s->keys[h] = pgy_runtime_strdup(key); s->occupied[h] = 1; s->count++;
+    s->keys[h] = pgy_runtime_strdup(key);
+    if (s->keys[h] == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add_string", "string duplication failed");
+        return;
+    }
+    s->occupied[h] = 1; s->count++;
 }
 
 static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
 {
+    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) return;
     if (s->count == 0 || key == NULL) return;
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
@@ -3138,11 +3314,17 @@ static inline PgySet_##SuffixName pgy_set_new_##SuffixName(void) \
     s.capacity = 16; s.count = 0; \
     s.data = (CType *)calloc(s.capacity, sizeof(CType)); \
     s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t)); \
+    if (s.data == NULL || s.occupied == NULL) { \
+        free(s.data); free(s.occupied); \
+        s.data = NULL; s.occupied = NULL; s.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("set_new_" #SuffixName, "allocation failed"); \
+    } \
     return s; \
 } \
 \
 static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
 { \
+    if (s == NULL || s->capacity == 0 || s->data == NULL || s->occupied == NULL) return false; \
     if (s->count == 0) return false; \
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
     size_t p = 0; \
@@ -3155,12 +3337,24 @@ static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
 \
 static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
 { \
+    if (s == NULL || s->capacity == 0 || s->data == NULL || s->occupied == NULL) { \
+        pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "set is not initialized"); \
+        return; \
+    } \
     if (pgy_set_has_##SuffixName(s, val)) return; \
     if ((double)s->count / (double)s->capacity > 0.75) { \
         size_t oc = s->capacity; CType *od = s->data; uint8_t *oo = s->occupied; \
-        s->capacity *= 2; \
-        s->data = (CType *)calloc(s->capacity, sizeof(CType)); \
-        s->occupied = (uint8_t *)calloc(s->capacity, sizeof(uint8_t)); \
+        size_t nc = s->capacity == 0 ? 16 : s->capacity * 2; \
+        CType *nd = (CType *)calloc(nc, sizeof(CType)); \
+        uint8_t *no = (uint8_t *)calloc(nc, sizeof(uint8_t)); \
+        if (nd == NULL || no == NULL) { \
+            free(nd); free(no); \
+            pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "rehash allocation failed"); \
+            return; \
+        } \
+        s->capacity = nc; \
+        s->data = nd; \
+        s->occupied = no; \
         s->count = 0; \
         for (size_t i = 0; i < oc; i++) { if (oo[i]) pgy_set_add_##SuffixName(s, od[i]); } \
         free(od); free(oo); \
@@ -3210,14 +3404,26 @@ static inline PgyQueue_##SuffixName pgy_queue_new_##SuffixName(void) \
     q.capacity = 16; \
     q.count = q.head = q.tail = 0; \
     q.data = (CType *)calloc(q.capacity, sizeof(CType)); \
+    if (q.data == NULL) { \
+        q.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("queue_new_" #SuffixName, "allocation failed"); \
+    } \
     return q; \
 } \
 \
 static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType val) \
 { \
+    if (q == NULL || (q->data == NULL && q->capacity == 0)) { \
+        pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "queue is not initialized"); \
+        return; \
+    } \
     if (q->count >= q->capacity) { \
-        size_t nc = q->capacity * 2; \
+        size_t nc = q->capacity == 0 ? 16 : q->capacity * 2; \
         CType *nd = (CType *)calloc(nc, sizeof(CType)); \
+        if (nd == NULL) { \
+            pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "growth allocation failed"); \
+            return; \
+        } \
         for (size_t i = 0; i < q->count; i++) \
             nd[i] = q->data[(q->head + i) % q->capacity]; \
         free(q->data); q->data = nd; \
@@ -3232,6 +3438,7 @@ static inline CType pgy_queue_pop_##SuffixName(PgyQueue_##SuffixName *q) \
 { \
     CType zero_value; \
     memset(&zero_value, 0, sizeof(CType)); \
+    if (q == NULL || q->data == NULL || q->capacity == 0) return zero_value; \
     if (q->count == 0) return zero_value; \
     CType val = q->data[q->head]; \
     q->head = (q->head + 1) % q->capacity; \
@@ -3257,14 +3464,26 @@ static inline PgyQueue_Int pgy_queue_new_int(void)
     q.capacity = 16;
     q.count = q.head = q.tail = 0;
     q.data = (int32_t *)calloc(q.capacity, sizeof(int32_t));
+    if (q.data == NULL) {
+        q.capacity = 0;
+        pgy_runtime_warn_invalid_collection("queue_new_int", "allocation failed");
+    }
     return q;
 }
 
 static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 {
+    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
+        pgy_runtime_warn_invalid_collection("queue_push_int", "queue is not initialized");
+        return;
+    }
     if (q->count >= q->capacity) {
-        size_t nc = q->capacity * 2;
+        size_t nc = q->capacity == 0 ? 16 : q->capacity * 2;
         int32_t *nd = (int32_t *)calloc(nc, sizeof(int32_t));
+        if (nd == NULL) {
+            pgy_runtime_warn_invalid_collection("queue_push_int", "growth allocation failed");
+            return;
+        }
         for (size_t i = 0; i < q->count; i++)
             nd[i] = q->data[(q->head + i) % q->capacity];
         free(q->data); q->data = nd;
@@ -3277,6 +3496,7 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 
 static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
 {
+    if (q == NULL || q->data == NULL || q->capacity == 0) return 0;
     if (q->count == 0) return 0;
     int32_t val = q->data[q->head];
     q->head = (q->head + 1) % q->capacity;
@@ -3892,7 +4112,17 @@ typedef struct \
 static inline void \
 pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
 { \
+    if (ch == NULL) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "null channel"); \
+        return; \
+    } \
+    capacity = pgy_runtime_channel_capacity_or_default("init_" #SuffixName, capacity); \
     ch->buf    = (CType *)calloc(capacity, sizeof(CType)); \
+    if (ch->buf == NULL) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "buffer allocation failed"); \
+        ch->cap = 0; \
+        return; \
+    } \
     ch->cap    = capacity; \
     ch->head   = 0; \
     ch->tail   = 0; \
@@ -3927,6 +4157,11 @@ pgy_channel_destroy_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline bool \
 pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
+            ch == NULL ? "null channel" : "channel is not initialized"); \
+        return false; \
+    } \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
         if (pgy_async_in_coroutine()) { \
@@ -3938,6 +4173,7 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
         } \
     } \
     if (ch->closed) { \
+        pgy_runtime_warn_invalid_channel("send_" #SuffixName, "channel is closed"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -3953,8 +4189,15 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 static inline bool \
 pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("try_send_" #SuffixName, \
+            ch == NULL ? "null channel" : "channel is not initialized"); \
+        return false; \
+    } \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->closed || ch->count >= ch->cap) { \
+        pgy_runtime_warn_invalid_channel("try_send_" #SuffixName, \
+            ch->closed ? "channel is closed" : "channel is full"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -3994,16 +4237,24 @@ static inline bool \
 pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType value, uint64_t timeout_ns) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, \
+            ch == NULL ? "null channel" : "channel is not initialized"); \
+        return false; \
+    } \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
         if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline) \
             == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
+            pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, \
+                "deadline reached while channel remained full"); \
             pthread_mutex_unlock(&ch->mutex); \
             return false; \
         } \
     } \
     if (ch->closed) { \
+        pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, "channel is closed"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -4047,6 +4298,11 @@ pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
 static inline bool \
 pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
+    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("recv_" #SuffixName, \
+            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
+        return false; \
+    } \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count == 0 && !ch->closed) { \
         if (pgy_async_in_coroutine()) { \
@@ -4058,6 +4314,7 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
         } \
     } \
     if (ch->count == 0 && ch->closed) { \
+        pgy_runtime_warn_invalid_channel("recv_" #SuffixName, "channel is closed and empty"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -4074,16 +4331,24 @@ static inline bool \
 pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
                                       CType *out, uint64_t timeout_ns) \
 { \
+    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
+            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
+        return false; \
+    } \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count == 0 && !ch->closed) { \
         if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline) \
             == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
+            pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
+                "deadline reached while channel remained empty"); \
             pthread_mutex_unlock(&ch->mutex); \
             return false; \
         } \
     } \
     if (ch->count == 0 && ch->closed) { \
+        pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, "channel is closed and empty"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -4099,10 +4364,16 @@ pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
 static inline bool \
 pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 { \
+    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("try_recv_" #SuffixName, \
+            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
+        return false; \
+    } \
     if (!pgy_async_in_coroutine()) \
         (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->count == 0) { \
+        pgy_runtime_warn_invalid_channel("try_recv_" #SuffixName, "channel is empty"); \
         pthread_mutex_unlock(&ch->mutex); \
         return false; \
     } \
@@ -4229,7 +4500,17 @@ typedef struct \
 static inline void \
 pgy_spsc_init_##SuffixName(PgyChannelSPSC_##SuffixName *ch, size_t capacity) \
 { \
+    if (ch == NULL) { \
+        pgy_runtime_warn_invalid_channel("spsc_init_" #SuffixName, "null channel"); \
+        return; \
+    } \
+    capacity = pgy_runtime_channel_capacity_or_default("spsc_init_" #SuffixName, capacity); \
     ch->buf = (CType *)calloc(capacity, sizeof(CType)); \
+    if (ch->buf == NULL) { \
+        pgy_runtime_warn_invalid_channel("spsc_init_" #SuffixName, "buffer allocation failed"); \
+        ch->cap = 0; \
+        return; \
+    } \
     ch->cap = capacity; \
     atomic_init(&ch->head, 0); \
     atomic_init(&ch->tail, 0); \
@@ -4253,6 +4534,11 @@ pgy_spsc_close_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 static inline bool \
 pgy_spsc_try_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("spsc_try_send_" #SuffixName, \
+            ch == NULL ? "null channel" : "channel is not initialized"); \
+        return false; \
+    } \
     if (atomic_load_explicit(&ch->closed, memory_order_acquire)) \
         return false; \
     size_t t = atomic_load_explicit(&ch->tail, memory_order_relaxed); \
@@ -4284,6 +4570,11 @@ pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 static inline bool \
 pgy_spsc_try_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
 { \
+    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) { \
+        pgy_runtime_warn_invalid_channel("spsc_try_recv_" #SuffixName, \
+            ch == NULL ? "null channel" : (out == NULL ? "null output pointer" : "channel is not initialized")); \
+        return false; \
+    } \
     size_t h = atomic_load_explicit(&ch->head, memory_order_relaxed); \
     size_t t = atomic_load_explicit(&ch->tail, memory_order_acquire); \
     if (h >= t) \

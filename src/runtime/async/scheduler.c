@@ -282,6 +282,9 @@ void SchedulerDestroy(Scheduler* scheduler)
 
 void SchedulerStart(Scheduler* scheduler)
 {
+    uint32_t startedWorkers = 0;
+    bool ioStarted = false;
+
     if (scheduler == NULL) {
         scheduler_warn("start", "scheduler is null", scheduler);
         return;
@@ -298,13 +301,36 @@ void SchedulerStart(Scheduler* scheduler)
         WorkerThread* worker = &scheduler->workers[i];
         if (pthread_create(&worker->osThread, NULL, WorkerThreadMain, worker) != 0) {
             scheduler_warn("start", "worker thread creation failed", scheduler);
+            goto startup_failed;
         }
+        startedWorkers++;
     }
     
     /* Start I/O worker */
     if (pthread_create(&scheduler->ioWorker, NULL, IoWorkerMain, scheduler) != 0) {
         scheduler_warn("start", "io worker creation failed", scheduler);
+        goto startup_failed;
     }
+    ioStarted = true;
+    return;
+
+startup_failed:
+    atomic_store(&scheduler->isRunning, false);
+    for (uint32_t i = 0; i < startedWorkers; i++) {
+        atomic_store(&scheduler->workers[i].shouldStop, true);
+    }
+    pthread_mutex_lock(&scheduler->parkMutex);
+    pthread_cond_broadcast(&scheduler->parkCondition);
+    pthread_mutex_unlock(&scheduler->parkMutex);
+    for (uint32_t i = 0; i < startedWorkers; i++) {
+        if (pthread_join(scheduler->workers[i].osThread, NULL) != 0) {
+            scheduler_warn("start", "worker thread rollback join failed", scheduler);
+        }
+    }
+    if (ioStarted && pthread_join(scheduler->ioWorker, NULL) != 0) {
+        scheduler_warn("start", "io worker rollback join failed", scheduler);
+    }
+    scheduler_warn("start", "scheduler startup aborted", scheduler);
 }
 
 void SchedulerStop(Scheduler* scheduler)

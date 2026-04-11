@@ -1295,16 +1295,23 @@ TokenEncrypt(SecurityContext *context, const SecureToken *plainToken,
 
     if (context == NULL || plainToken == NULL || encryptedToken == NULL ||
         context->masterKey == NULL) {
+        slot_security_warn("token-encrypt", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
+                           "context, token, output, or master key is null");
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
     }
 
-    if (SecureRandomGenerate(iv, SECURITY_IV_SIZE) != SECURITY_SUCCESS)
+    if (SecureRandomGenerate(iv, SECURITY_IV_SIZE) != SECURITY_SUCCESS) {
+        slot_security_warn("token-encrypt", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "iv generation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
     memcpy(encryptedToken->encryptedToken, iv, SECURITY_IV_SIZE);
     if (AES256Encrypt(context->masterKey, iv, (const uint8_t *)plainToken,
                       sizeof(*plainToken), encryptedToken->encryptedToken + SECURITY_IV_SIZE,
                       encryptedToken->authTag) != SECURITY_SUCCESS) {
+        slot_security_warn("token-encrypt", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "aes-256 encryption failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
 
@@ -1317,17 +1324,25 @@ TokenDecrypt(SecurityContext *context, const EncryptedToken *encryptedToken,
              SecureToken *plainToken)
 {
     uint8_t iv[16] = {0};
+    SecurityError result;
 
     if (context == NULL || encryptedToken == NULL || plainToken == NULL ||
         context->masterKey == NULL) {
+        slot_security_warn("token-decrypt", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
+                           "context, encrypted token, output, or master key is null");
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
     }
 
     memcpy(iv, encryptedToken->encryptedToken, SECURITY_IV_SIZE);
-    return AES256Decrypt(context->masterKey, iv,
-                         encryptedToken->encryptedToken + SECURITY_IV_SIZE,
-                         sizeof(*plainToken), encryptedToken->authTag,
-                         (uint8_t *)plainToken);
+    result = AES256Decrypt(context->masterKey, iv,
+                           encryptedToken->encryptedToken + SECURITY_IV_SIZE,
+                           sizeof(*plainToken), encryptedToken->authTag,
+                           (uint8_t *)plainToken);
+    if (result != SECURITY_SUCCESS) {
+        slot_security_warn("token-decrypt", result,
+                           "aes-256 decryption or auth verification failed");
+    }
+    return result;
 }
 
 void
@@ -1552,8 +1567,11 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
     const uint8_t *input = (const uint8_t *)data;
     SecurityError result;
 
-    if (context == NULL || data == NULL || payload == NULL)
+    if (context == NULL || data == NULL || payload == NULL) {
+        slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
+                           "context, input data, or payload is null");
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
 
     effectivePolicy = policy != NULL ? *policy : SecurityPolicyForLevel(context->defaultLevel);
 
@@ -1567,18 +1585,25 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
     }
 
     payload->primaryData = malloc(size);
-    if (payload->primaryData == NULL)
+    if (payload->primaryData == NULL) {
+        slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "primary payload allocation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
     if (effectivePolicy.shadowCopy) {
         payload->shadowData = malloc(size);
         if (payload->shadowData == NULL) {
+            slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                               "shadow payload allocation failed");
             SecureSealedPayloadDestroy(payload);
             return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
         }
     }
 
     if (SecureRandomGenerate(payload->nonce, sizeof(payload->nonce)) != SECURITY_SUCCESS) {
+        slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "nonce generation failed");
         SecureSealedPayloadDestroy(payload);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
@@ -1587,6 +1612,8 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
         result = SecureXorPayload(context, slotId, generation, payload->nonce,
                                   input, payload->primaryData, size);
         if (result != SECURITY_SUCCESS) {
+            slot_security_warn("sealed-payload-seal", result,
+                               "primary payload obfuscation failed");
             SecureSealedPayloadDestroy(payload);
             return result;
         }
@@ -1594,6 +1621,8 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
             result = SecureXorPayload(context, slotId, generation, payload->nonce,
                                       input, payload->shadowData, size);
             if (result != SECURITY_SUCCESS) {
+                slot_security_warn("sealed-payload-seal", result,
+                                   "shadow payload obfuscation failed");
                 SecureSealedPayloadDestroy(payload);
                 return result;
             }
@@ -1607,6 +1636,8 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
     if (SecureComputePayloadMac(context, slotId, generation, false, payload->nonce,
                                 payload->primaryData, size,
                                 payload->primaryMac) != SECURITY_SUCCESS) {
+        slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "primary payload mac computation failed");
         SecureSealedPayloadDestroy(payload);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
@@ -1615,6 +1646,8 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
         SecureComputePayloadMac(context, slotId, generation, true, payload->nonce,
                                 payload->shadowData, size,
                                 payload->shadowMac) != SECURITY_SUCCESS) {
+        slot_security_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "shadow payload mac computation failed");
         SecureSealedPayloadDestroy(payload);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
@@ -1640,8 +1673,11 @@ SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
     if (usedShadowRecovery != NULL)
         *usedShadowRecovery = false;
 
-    if (context == NULL || payload == NULL || buffer == NULL || !payload->initialized)
+    if (context == NULL || payload == NULL || buffer == NULL || !payload->initialized) {
+        slot_security_warn("sealed-payload-open", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
+                           "context, payload, buffer missing or payload not initialized");
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+    }
 
     result = SecureVerifyPayloadMac(context, slotId, generation, false,
                                     payload->nonce, payload->primaryData,
@@ -1653,25 +1689,37 @@ SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
                                         payload->nonce, payload->shadowData,
                                         payload->size, payload->shadowMac);
         verifiedShadow = (result == SECURITY_SUCCESS);
-        if (!verifiedShadow)
+        if (!verifiedShadow) {
+            slot_security_warn("sealed-payload-open", result,
+                               "primary and shadow payload mac verification failed");
             return result;
+        }
 
         memcpy(payload->primaryData, payload->shadowData, payload->size);
         memcpy(payload->primaryMac, payload->shadowMac, sizeof(payload->primaryMac));
         if (usedShadowRecovery != NULL)
             *usedShadowRecovery = true;
+        slot_security_warn("sealed-payload-open", SECURITY_SUCCESS,
+                           "primary payload recovered from verified shadow copy");
     } else if (!verifiedPrimary) {
+        slot_security_warn("sealed-payload-open", result,
+                           "primary payload mac verification failed");
         return result;
     }
 
     plain = malloc(payload->size);
-    if (plain == NULL)
+    if (plain == NULL) {
+        slot_security_warn("sealed-payload-open", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "plaintext buffer allocation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
     if (payload->policy.obfuscateInMemory) {
         result = SecureXorPayload(context, slotId, generation, payload->nonce,
                                   payload->primaryData, plain, payload->size);
         if (result != SECURITY_SUCCESS) {
+            slot_security_warn("sealed-payload-open", result,
+                               "payload deobfuscation failed");
             SecureMemoryWipe(plain, payload->size);
             free(plain);
             return result;

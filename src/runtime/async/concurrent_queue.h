@@ -19,7 +19,8 @@ typedef struct QueueNode {
     atomic_intptr_t next;
 } QueueNode;
 
-/* Lock-free concurrent queue using Michael & Scott algorithm */
+/* Concurrent FIFO queue abstraction used by the async scheduler.
+ * Current implementation is a mutex-backed FIFO queue. */
 typedef struct ConcurrentQueue {
     atomic_intptr_t head;
     atomic_intptr_t tail;

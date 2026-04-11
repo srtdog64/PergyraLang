@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdatomic.h>
 #include <pthread.h>
+#include <stdio.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -49,6 +50,15 @@ static inline PgyCancelNode *
 pgy_current_cancel_node(void);
 
 static inline void
+pgy_parallel_warn(const char *op, const char *reason)
+{
+    fprintf(stderr,
+            "[pgy][parallel] %s failed: %s\n",
+            op != NULL ? op : "operation",
+            reason != NULL ? reason : "unknown");
+}
+
+static inline void
 pgy_cancel_retain(PgyCancelNode *node)
 {
     if (node != NULL)
@@ -59,8 +69,10 @@ static inline PgyCancelNode *
 pgy_cancel_node_create(PgyCancelNode *parent)
 {
     PgyCancelNode *node = (PgyCancelNode *)calloc(1, sizeof(PgyCancelNode));
-    if (node == NULL)
+    if (node == NULL) {
+        pgy_parallel_warn("cancel-node", "allocation failed");
         return NULL;
+    }
     node->parent = parent;
     atomic_init(&node->refcount, 1);
     atomic_init(&node->cancelled, false);
@@ -203,9 +215,28 @@ pgy_pool_init(size_t worker_count)
     pthread_cond_init(&g_pgy_pool.queue_cond, NULL);
 
     g_pgy_pool.workers = (pthread_t *)calloc(worker_count, sizeof(pthread_t));
-    for (size_t i = 0; i < worker_count; i++)
-        pthread_create(&g_pgy_pool.workers[i], NULL,
-                       pgy_worker_loop, &g_pgy_pool);
+    if (g_pgy_pool.workers == NULL) {
+        pgy_parallel_warn("pool-init", "worker array allocation failed");
+        pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
+        pthread_cond_destroy(&g_pgy_pool.queue_cond);
+        memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+        return;
+    }
+    for (size_t i = 0; i < worker_count; i++) {
+        if (pthread_create(&g_pgy_pool.workers[i], NULL,
+                           pgy_worker_loop, &g_pgy_pool) != 0) {
+            pgy_parallel_warn("pool-init", "worker thread creation failed");
+            g_pgy_pool.shutdown = true;
+            pthread_cond_broadcast(&g_pgy_pool.queue_cond);
+            for (size_t j = 0; j < i; j++)
+                pthread_join(g_pgy_pool.workers[j], NULL);
+            free(g_pgy_pool.workers);
+            pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
+            pthread_cond_destroy(&g_pgy_pool.queue_cond);
+            memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+            return;
+        }
+    }
 
     g_pgy_pool_active = true;
 }
@@ -250,14 +281,23 @@ pgy_spawn(void *(*fn)(void *), void *arg)
 {
     PgyTaskHandle handle = {0};
 
+    if (fn == NULL) {
+        pgy_parallel_warn("spawn", "task function is null");
+        return handle;
+    }
+
     if (!g_pgy_pool_active) {
         PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-        if (task == NULL)
+        if (task == NULL) {
+            pgy_parallel_warn("spawn", "inline task allocation failed");
             return handle;
+        }
         task->model = PGY_TASK_MODEL_THREAD;
         task->fn = fn;
         task->arg = arg;
         task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
+        if (task->cancel_node == NULL)
+            pgy_parallel_warn("spawn", "cancellation disabled because cancel node allocation failed");
         task->result = pgy_cancel_is_requested(task->cancel_node)
             ? NULL
             : (fn != NULL ? fn(arg) : NULL);
@@ -269,14 +309,18 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-    if (task == NULL)
+    if (task == NULL) {
+        pgy_parallel_warn("spawn", "task allocation failed");
         return handle;
+    }
 
     task->model = PGY_TASK_MODEL_THREAD;
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
+    if (task->cancel_node == NULL)
+        pgy_parallel_warn("spawn", "cancellation disabled because cancel node allocation failed");
     pthread_mutex_init(&task->mutex, NULL);
     pthread_cond_init(&task->cond, NULL);
     handle.task = task;
@@ -321,9 +365,28 @@ pgy_blocking_pool_init(size_t worker_count)
 
     g_pgy_blocking_pool.workers =
         (pthread_t *)calloc(worker_count, sizeof(pthread_t));
-    for (size_t i = 0; i < worker_count; i++)
-        pthread_create(&g_pgy_blocking_pool.workers[i], NULL,
-                       pgy_worker_loop, &g_pgy_blocking_pool);
+    if (g_pgy_blocking_pool.workers == NULL) {
+        pgy_parallel_warn("blocking-pool-init", "worker array allocation failed");
+        pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
+        pthread_cond_destroy(&g_pgy_blocking_pool.queue_cond);
+        memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+        return;
+    }
+    for (size_t i = 0; i < worker_count; i++) {
+        if (pthread_create(&g_pgy_blocking_pool.workers[i], NULL,
+                           pgy_worker_loop, &g_pgy_blocking_pool) != 0) {
+            pgy_parallel_warn("blocking-pool-init", "worker thread creation failed");
+            g_pgy_blocking_pool.shutdown = true;
+            pthread_cond_broadcast(&g_pgy_blocking_pool.queue_cond);
+            for (size_t j = 0; j < i; j++)
+                pthread_join(g_pgy_blocking_pool.workers[j], NULL);
+            free(g_pgy_blocking_pool.workers);
+            pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
+            pthread_cond_destroy(&g_pgy_blocking_pool.queue_cond);
+            memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+            return;
+        }
+    }
 
     g_pgy_blocking_pool_active = true;
 }
@@ -368,19 +431,32 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
 {
     PgyTaskHandle handle = {0};
 
+    if (fn == NULL) {
+        pgy_parallel_warn("spawn-blocking", "task function is null");
+        return handle;
+    }
+
     /* Lazy-init blocking pool on first use */
     if (!g_pgy_blocking_pool_active)
         pgy_blocking_pool_init(0);
+    if (!g_pgy_blocking_pool_active) {
+        pgy_parallel_warn("spawn-blocking", "blocking pool initialization failed");
+        return handle;
+    }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
-    if (task == NULL)
+    if (task == NULL) {
+        pgy_parallel_warn("spawn-blocking", "task allocation failed");
         return handle;
+    }
 
     task->model = PGY_TASK_MODEL_THREAD;
     task->fn = fn;
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
+    if (task->cancel_node == NULL)
+        pgy_parallel_warn("spawn-blocking", "cancellation disabled because cancel node allocation failed");
     pthread_mutex_init(&task->mutex, NULL);
     pthread_cond_init(&task->cond, NULL);
     handle.task = task;

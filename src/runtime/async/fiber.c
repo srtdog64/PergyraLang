@@ -10,6 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdio.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -25,6 +26,16 @@ static __thread Fiber* tlsCurrentFiber = NULL;
 
 /* Fiber ID counter */
 static atomic_uint64_t fiberIdCounter = 0;
+
+static void
+fiber_warn(const char *op, const char *reason, Fiber *fiber)
+{
+    fprintf(stderr,
+            "[pgy][fiber] %s failed: %s (fiber=%p)\n",
+            op != NULL ? op : "operation",
+            reason != NULL ? reason : "unknown",
+            (void *)fiber);
+}
 
 /* Internal fiber entry point wrapper */
 static void FiberEntryPoint(Fiber* fiber)
@@ -54,11 +65,13 @@ static void FiberEntryPoint(Fiber* fiber)
 Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
 {
     if (startRoutine == NULL) {
+        fiber_warn("create", "start routine is null", NULL);
         return NULL;
     }
     
     Fiber* fiber = (Fiber*)calloc(1, sizeof(Fiber));
     if (fiber == NULL) {
+        fiber_warn("create", "fiber allocation failed", NULL);
         return NULL;
     }
     
@@ -77,6 +90,7 @@ Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
                                      MEM_COMMIT | MEM_RESERVE,
                                      PAGE_READWRITE);
     if (fiber->stackBase == NULL) {
+        fiber_warn("create", "stack allocation failed", fiber);
         free(fiber);
         return NULL;
     }
@@ -86,6 +100,7 @@ Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)
                            MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK,
                            -1, 0);
     if (fiber->stackBase == MAP_FAILED) {
+        fiber_warn("create", "stack allocation failed", fiber);
         free(fiber);
         return NULL;
     }
@@ -158,6 +173,7 @@ void FiberYield(void)
 {
     Fiber* current = FiberGetCurrent();
     if (current == NULL) {
+        fiber_warn("yield", "no current fiber", NULL);
         return;
     }
     
@@ -187,6 +203,7 @@ void FiberSuspend(Fiber* fiber)
 void FiberResume(Fiber* fiber)
 {
     if (fiber == NULL || fiber->state != FIBER_STATE_SUSPENDED) {
+        fiber_warn("resume", "fiber is null or not suspended", fiber);
         return;
     }
     
@@ -196,6 +213,8 @@ void FiberResume(Fiber* fiber)
     Scheduler* scheduler = fiber->scheduler;
     if (scheduler != NULL) {
         SchedulerUnblock(fiber);
+    } else {
+        fiber_warn("resume", "fiber has no scheduler", fiber);
     }
 }
 
