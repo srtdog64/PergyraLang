@@ -251,13 +251,14 @@
 
 ### 3.0 token split debt
 
-실제 코드/문서 관찰:
+이 debt는 현재 구현 기준으로 **닫혔다**.
+아래 항목은 과거 문제 정의였고, 이제는 historical note로만 남는다.
 
-- `subject -> TOKEN_CLASS`
-- `tobject -> TOKEN_STRUCT`
-- `object`는 contextual keyword
+- 과거에는 `subject -> TOKEN_CLASS`
+- 과거에는 `tobject -> TOKEN_STRUCT`
+- 과거에는 `object`가 contextual keyword였다
 
-이건 코어 존재론이 lexer/parser 단계에서 aliasing되는 부채다.
+즉 코어 존재론이 lexer/parser 단계에서 aliasing되던 부채가 있었다.
 
 현재:
 

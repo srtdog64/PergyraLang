@@ -551,8 +551,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 주의:
 
-- 현재 구현에서 `object`는 reserved token이 아니라 declaration-context keyword다
-- 반면 `tobject`는 declaration-context keyword가 아니라 reserved token이다
+- 현재 구현에서 `object`와 `tobject`는 모두 reserved token이며, 차이는 token이 아니라 projection contract다
 
 ### C. Clause Keyword
 
@@ -651,15 +650,15 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 ### 현재 주의 대상
 
 - `subject` / `class`
-  - 의미론은 다르지만 현재 lexer token은 `TOKEN_CLASS`로 묶여 있다
+  - lexer token split은 닫혔지만 semantic/runtime 계약과 진단 톤 차이는 계속 관리해야 한다
 - `tobject` / `struct`
-  - 의미론은 다르지만 현재 lexer token은 `TOKEN_STRUCT`로 묶여 있다
+  - lexer token split은 닫혔지만 projection/boundary contract 설명 밀도는 더 올려야 한다
 - `object`
-  - 의미론은 무겁지만 token은 reserved가 아니라 declaration-context keyword다
+  - reserved token으로 올라왔고, 이제 핵심은 token이 아니라 projection contract 설명 일관성이다
 - `where`
   - reserved token이면서 clause keyword다
 - `intent`
-  - declaration-context keyword이면서 semantic-contract keyword다
+  - reserved token이면서 semantic-contract keyword다
 
 한 줄 요약:
 
@@ -671,20 +670,20 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 
 | 키워드 | Token 분류 | Parser 분류 | 계약 무게 | 최종 고정 계층 | 메모 |
 | --- | --- | --- | --- | --- | --- |
-| `subject` | reserved (`TOKEN_CLASS`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host / participant type |
-| `class` | reserved (`TOKEN_CLASS`) | declaration | 중간 | `HIR` 중심 | 현재 subject와 token 공유 |
+| `subject` | reserved (`TOKEN_SUBJECT`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host / participant type |
+| `class` | reserved (`TOKEN_CLASS`) | declaration | 중간 | `HIR` 중심 | passive nominal host |
 | `struct` | reserved (`TOKEN_STRUCT`) | declaration | 낮음 | `HIR` 중심 | pure value type |
-| `object` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
-| `tobject` | reserved (`TOKEN_STRUCT`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | transfer/boundary projection contract |
-| `vessel` | identifier | declaration-context | 중간 | `HIR -> DIR -> RIR -> MIR` | subject 내부 상태 수용체 |
+| `object` | reserved (`TOKEN_OBJECT`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | local/internal projection contract |
+| `tobject` | reserved (`TOKEN_TOBJECT`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | transfer/boundary projection contract |
+| `vessel` | reserved (`TOKEN_VESSEL`) | declaration | 중간 | `HIR -> DIR -> RIR -> MIR` | subject 내부 상태 수용체 |
 | `ability` | reserved | declaration | 중간 | `HIR -> DIR` | capability contract surface |
 | `role` | reserved | declaration | 큼 | `HIR -> DIR -> RIR` | ability 구현과 binding |
 | `party` | reserved | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | collaboration slot contract |
-| `relation` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | shared relation/lifecycle |
-| `effect` | identifier | declaration-context | 큼 | `HIR -> DIR -> RIR -> MIR` | attached state/lifecycle |
-| `zone` | identifier | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
-| `world` | identifier | declaration-context | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
-| `intent` | identifier | declaration-context + clause host | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration contract root |
+| `relation` | reserved (`TOKEN_RELATION`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | shared relation/lifecycle |
+| `effect` | reserved (`TOKEN_EFFECT`) | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | attached state/lifecycle |
+| `zone` | reserved (`TOKEN_ZONE`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | execution / authority boundary |
+| `world` | reserved (`TOKEN_WORLD`) | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | top execution boundary |
+| `intent` | reserved (`TOKEN_INTENT`) | declaration + clause host | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | orchestration contract root |
 | `step` | identifier | clause keyword | 매우 큼 | `DIR -> RIR -> MIR` | intent execution unit |
 | `where` | reserved (`TOKEN_WHERE`) | clause keyword | 큼 | `HIR -> DIR -> MIR` | reserved token reused in generics and intent clauses |
 | `using` | identifier | clause keyword | 큼 | `HIR -> DIR -> RIR -> MIR` | live zone-instance binding |
@@ -717,9 +716,9 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `let` | `TOKEN_LET` | declaration / statement | 중간 | `HIR` | local binding |
 | `func` | `TOKEN_FUNC` | declaration | 큼 | `HIR -> MIR` | routine root |
 | `class` | `TOKEN_CLASS` | declaration | 중간 | `HIR` | passive nominal host |
-| `subject` | `TOKEN_CLASS` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host, `class`와 token 공유 |
+| `subject` | `TOKEN_SUBJECT` | declaration | 매우 큼 | `HIR -> DIR -> RIR -> MIR` | active host type |
 | `struct` | `TOKEN_STRUCT` | declaration | 낮음 | `HIR` | pure value type |
-| `tobject` | `TOKEN_STRUCT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | boundary projection, `struct`와 token 공유 |
+| `tobject` | `TOKEN_TOBJECT` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | boundary projection |
 | `extern` | `TOKEN_EXTERN` | declaration | 낮음 | `HIR` | foreign block surface |
 | `with` | `TOKEN_WITH` | statement / clause | 중간 | `HIR -> RIR -> MIR` | scoped resource binding |
 | `as` | `TOKEN_AS` | type / alias / clause | 낮음 | `HIR` | naming/typing helper |

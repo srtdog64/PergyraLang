@@ -1,6 +1,6 @@
 # Stable Example Surface Board
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 이 문서는 예제를 세 가지로 분리한다.
 
@@ -76,7 +76,24 @@
 즉 이 파일들은 "방향"을 보여 주는 문서형 예제이지,
 현재 문법/semantic/codegen 계약의 기준 예제가 아니다.
 
-## 3. 운영 규칙
+## 3. Reference examples (real surface, not smoke-covered yet)
+
+다음 예제는 현재 구현과 맞는 real surface를 설명하지만,
+아직 stable smoke source of truth에는 포함되지 않았다.
+
+| 예제 | 상태 | 주의 |
+| --- | --- | --- |
+| `examples/intent_contract_pair_minimal.pgy` | reference | same-semantics verbose/compressed pair, not smoke-covered yet |
+| `examples/authority_contract_pair_minimal.pgy` | reference | authority/ability duplication pair, not smoke-covered yet |
+| `examples/transfer_contract_pair_minimal.pgy` | reference | transfer where/using inference pair, not smoke-covered yet |
+
+이 예제의 역할:
+
+- 장문 계약 surface와 압축 surface를 나란히 보여 준다
+- stable syntax reference처럼 읽을 수는 있지만, 아직 smoke source of truth는 아니다
+- 따라서 stable board보다 약한 trust level로 다뤄야 한다
+
+## 4. 운영 규칙
 
 1. 새 stable 예제를 추가할 때
 - `tests/example_contract_smoke.sh` 또는 동급 smoke에서 직접 밟혀야 한다
@@ -90,7 +107,12 @@
 - stable surface 설명에는 stable example만 우선 링크한다
 - sketch example은 "future surface" 또는 "design sketch" 문맥에서만 링크한다
 
-## 4. 다음 정리 대상
+4. reference example을 추가할 때
+- 현재 구현과 맞는 real surface여야 한다
+- 파일 헤더에 `not compile-smoke covered yet`를 명시한다
+- stable source of truth와 혼동되지 않게 별도 레벨로 둔다
+
+## 5. 다음 정리 대상
 
 - 아직 self-label이 없는 예제를 stable/sketch/unclassified로 전수 분류
 - `README`와 핵심 모델 문서에서 stable example 우선 링크

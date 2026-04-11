@@ -91,7 +91,8 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
     if (!parser_check(parser, TOKEN_IDENTIFIER)
         || parser->current_token.text == NULL
         || strcmp(parser->current_token.text, "effects") != 0) {
-        parser_error(parser, "Expected 'effects' after 'with'");
+        parser_error(parser,
+                     "Expected 'effects' after 'with' in function/action clause; use 'with effects ...'");
         return;
     }
     parser_advance(parser);
@@ -108,12 +109,13 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
             || parser_check(parser, TOKEN_LOCAL))
             tok = parser_advance(parser);
         else {
-            parser_error(parser, "Expected effect name after 'with effects'");
+            parser_error(parser,
+                         "Expected effect name after 'with effects' in function/action clause");
             return;
         }
 
         if (!parser_effect_mask_from_token(tok, &effect)) {
-            parser_error(parser, "Unknown effect '%s' in effect clause",
+            parser_error(parser, "Unknown effect '%s' in 'with effects' clause",
                          tok.text != NULL ? tok.text : "<token>");
             return;
         }
@@ -232,7 +234,8 @@ parse_function_clause_authorized_by(Parser *parser, ASTNode *func,
         parser_error(parser, "Duplicate 'authorized by' clause");
     parser_advance(parser);
     if (!parser_decl_match_contextual_keyword(parser, "by")) {
-        parser_error(parser, "Expected 'by' after 'authorized'");
+        parser_error(parser,
+                     "Expected 'by' after 'authorized' in function/action clause; use 'authorized by <subject>'");
         return true;
     }
     do {
@@ -587,7 +590,7 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             mode = PARAM_MODE_REF;
 
         // 파라미터 이름
-        Token param_name = consume_name_token(parser, "Expected parameter name");
+        Token param_name = consume_binding_name_token(parser, "Expected parameter name");
 
         FuncParam* param = calloc(1, sizeof(FuncParam));
         param->name = pergyra_strdup(param_name.text);

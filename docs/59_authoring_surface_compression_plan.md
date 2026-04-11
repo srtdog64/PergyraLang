@@ -1,6 +1,6 @@
 # Authoring Surface Compression Plan
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 이 문서는 Pergyra의 강한 의미론을 줄이지 않고, 작성 경로를 압축해
 authoring pain point를 줄이기 위한 표면 설계 방향을 고정한다.
@@ -119,6 +119,48 @@ intent DeleteEvent uses OwnerWriteIntent {
 `action`에 이미 `requires`, `within`, `authorized by`가 있으면
 `intent step`은 기본적으로 그 계약을 추론해 채우고, 필요할 때만 override한다.
 
+현재 고정한 최소 surface는 `matching action contract pack`이다.
+
+- matching subject action이 있으면 `step`은 아래 계약을 한 묶음으로 상속할 수 있다
+- 현재 pack에 들어가는 항목:
+  - `who`
+  - `where/within`
+  - `requires`
+  - `authorized by`
+  - `causes`
+- 현재 pack에 **들어가지 않는** 항목:
+  - `with effects`
+- 이유:
+  - `with effects`는 declaration-local effect contract다
+  - step orchestration contract와는 결이 다르고, 현재 구현도 step-level effect clause를 따로 가지지 않는다
+  - 따라서 `with effects`까지 자동 상속시키면 contract source가 흐려진다
+- diagnostics와 AST print는 이 계약이 어디서 상속됐는지 직접 드러내야 한다
+
+즉 아래 압축 표면은:
+
+```pgy
+step Guard {
+    using: battle;
+    on: hero.Guard();
+    expect: true;
+}
+```
+
+실제로는 아래 장문 표면과 같은 계약을 담을 수 있다.
+
+```pgy
+step Guard {
+    who: hero;
+    where: BattleZone;
+    using: battle;
+    requires: Prepared;
+    authorized by: hero;
+    causes: Guarded;
+    on: hero.Guard();
+    expect: true;
+}
+```
+
 ```pgy
 action DeleteEvent(self, event_id: Int)
     requires CalendarOwner
@@ -138,6 +180,17 @@ intent ManageEvent {
 - diagnostics는 반드시 "이 값은 action 선언에서 추론됨"을 보여줘야 한다.
 - `transfer target -> using/where`처럼 자동 추론된 값도
   diagnostics에서 추론 출처를 직접 보여줘야 한다.
+
+현재 정책은 아래처럼 고정한다.
+
+1. `matching action contract pack`
+- `who / where / requires / authorized by / causes`
+
+2. `transfer inference pack`
+- `where / using`
+
+3. declaration-local only
+- `with effects`
 
 용어:
 
@@ -400,6 +453,26 @@ Fix:
 - group bind / projection 축약
 - lexical zone context
 - subject factory 표준화
+
+### 현재 압축 우선순위 재고정
+
+token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
+이제 surface compression의 우선순위는 다음 셋으로 재고정한다.
+
+1. clause density 압축
+- `where / with effects / requires / within / causes / authorized by`
+  family의 동시 서술량을 줄이는 방향
+
+2. contract duplication 제거
+- action 선언에 있는 계약을 intent/zone 쪽이 자연스럽게 상속/추론하게 만들고,
+  override가 있을 때만 더 쓰게 하는 방향
+
+3. inferred contract diagnostics 강화
+- 추론이 강할수록 "무엇이 어디서 상속되었는가"를
+  오류 메시지와 tooling이 먼저 설명하게 만드는 방향
+
+현재 기준으로는 새로운 키워드 추가보다
+**이미 있는 계약 surface를 더 적게 쓰고 더 잘 설명하게 만드는 것**이 우선이다.
 - scaffold/template 자동 생성
 - nominal family trust-signaling 정리
   - `subject/class`
@@ -424,3 +497,69 @@ Fix:
 
 - `상속`이라는 표현은 여기서 쓰지 않는다.
 - `zone/world/action/authority`에서 step/body로 내려오는 기본값은 모두 `추론`으로 부른다.
+
+## P0 execution order reset
+
+The remaining compression work should not branch out into new feature families. The current execution order is fixed below.
+
+### P0.1 Contract provenance everywhere inference exists
+
+Goal:
+Whenever the compiler inherits or infers a step contract, the provenance must be visible in diagnostics, debug output, and docs.
+
+Done means:
+- step diagnostics mention matching-action inheritance where relevant
+- transfer diagnostics mention transfer-target inference where relevant
+- AST/debug output shows contract-source markers
+
+### P0.2 Canonical short surface for the common contract path
+
+Goal:
+The common path should be: put the reusable contract on the action, keep the step orchestration-focused, spell overrides only when behavior diverges.
+
+Done means:
+- docs describe this as the preferred authoring path
+- paired examples show long vs compressed forms with equivalent meaning
+- hover text and examples use the same vocabulary
+
+### P0.3 Clause-family boundary cleanup
+
+Goal:
+Make the boundary between reusable contract clauses and declaration-local clauses impossible to miss.
+
+Done means:
+- `who / where / requires / authorized by / causes` are treated as the matching action contract pack
+- `where / using` are treated as the transfer inference pack
+- `with effects` is documented and surfaced as declaration-local only
+
+### P0.4 Stable-reference example split
+
+Goal:
+Users need to know which examples are smoke-covered and which are reference-only.
+
+Done means:
+- stable examples remain the copy-first surface
+- paired compression examples are listed as real surface but not yet smoke-covered when that is the current truth
+- docs do not blur the distinction
+
+### P0.5 Parser and diagnostic sharpness for dense signatures
+
+Goal:
+If the long form is used, failures should still be local and understandable.
+
+Done means:
+- dense clause ordering errors point to the actual clause-family problem
+- negative parser/semantic tests cover the common misuse patterns
+- the long form remains valid, but the short form remains the recommended route
+
+## What is explicitly out of scope for this pass
+
+The following are not part of the current compression pass unless they directly unblock one of the five items above:
+- new ontology keywords
+- profile/inheritance systems beyond today's simple inference rules
+- new transfer semantics
+- new runtime subsystems
+
+## Operating rule
+
+If a proposed change increases authoring power but also increases the number of equally-valid ways to spell the same contract, reject it for this pass. The current goal is fewer repeated words and fewer competing surfaces, not more expressive branching.

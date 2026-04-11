@@ -110,9 +110,20 @@ lsp_notify(const char *method, const char *params_json)
 static const char *lsp_completion_items =
     "["
     "{\"label\":\"subject\",\"kind\":14,\"detail\":\"Identity-bearing host type\"},"
+    "{\"label\":\"action\",\"kind\":14,\"detail\":\"Subject-host contract-bearing operation\"},"
     "{\"label\":\"object\",\"kind\":14,\"detail\":\"Passive local projection/state type\"},"
     "{\"label\":\"tobject\",\"kind\":14,\"detail\":\"Boundary transfer type\"},"
     "{\"label\":\"intent\",\"kind\":14,\"detail\":\"Orchestration core declaration\"},"
+    "{\"label\":\"where\",\"kind\":14,\"detail\":\"Type/step zone contract clause\"},"
+    "{\"label\":\"who\",\"kind\":14,\"detail\":\"Intent step participant clause\"},"
+    "{\"label\":\"using\",\"kind\":14,\"detail\":\"Intent step bound-zone alias clause\"},"
+    "{\"label\":\"transfer\",\"kind\":14,\"detail\":\"Cross-zone handoff clause with using/where inference\"},"
+    "{\"label\":\"authority\",\"kind\":14,\"detail\":\"Zone mutation authority declaration\"},"
+    "{\"label\":\"requires\",\"kind\":14,\"detail\":\"Ability contract clause\"},"
+    "{\"label\":\"within\",\"kind\":14,\"detail\":\"Action zone contract clause\"},"
+    "{\"label\":\"causes\",\"kind\":14,\"detail\":\"Effect contract clause\"},"
+    "{\"label\":\"authorized\",\"kind\":14,\"detail\":\"Authority contract clause head\"},"
+    "{\"label\":\"with\",\"kind\":14,\"detail\":\"Scoped binding or declaration-local effects clause head\"},"
     "{\"label\":\"parallel\",\"kind\":14,\"detail\":\"Core execution primitive\"},"
     "{\"label\":\"spawn\",\"kind\":14,\"detail\":\"Parallel task creation\"},"
     "{\"label\":\"async\",\"kind\":14,\"detail\":\"Suspension surface\"},"
@@ -823,15 +834,39 @@ main(void)
                     else if (strcmp(word, "party") == 0)
                         hover_text = "**party** — Authority-bearing participant declaration";
                     else if (strcmp(word, "class") == 0)
-                        hover_text = "**class** — Subject declaration (compatibility keyword)";
+                        hover_text = "**class** — Passive nominal host type (value semantics)";
                     else if (strcmp(word, "subject") == 0)
-                        hover_text = "**subject** — Identity-bearing host type";
+                        hover_text = "**subject** — Identity-bearing host type\n- subject values are anchored handles, not plain copied values\n- subject actions can carry contract clauses like `requires`, `within`, `authorized by`, `causes`";
+                    else if (strcmp(word, "action") == 0)
+                        hover_text = "**action** — Subject-host contract-bearing operation\n- carries an action contract pack: `within`, `requires`, `authorized by`, `causes`\n- matching intent steps may inherit this contract pack instead of repeating every clause";
+                    else if (strcmp(word, "where") == 0)
+                        hover_text = "**where** — Contract/location clause\n- in generics: type constraint surface\n- in intent steps: current zone contract surface";
+                    else if (strcmp(word, "who") == 0)
+                        hover_text = "**who** — Intent step participant clause\n- names which intent participant performs the step\n- may be inferred from a unique matching subject action";
+                    else if (strcmp(word, "using") == 0)
+                        hover_text = "**using** — Intent step bound-zone alias clause\n- binds the step to a specific zone participant alias\n- may be inferred from `transfer` target";
+                    else if (strcmp(word, "transfer") == 0)
+                        hover_text = "**transfer** — Cross-zone handoff clause\n- `transfer: from -> to` can infer the step `where` and `using` contract from the target zone\n- diagnostics should explain both current contract and inferred target contract";
+                    else if (strcmp(word, "authority") == 0)
+                        hover_text = "**authority** — Zone mutation authority declaration\n- `authority subjectSlot requires Ability` declares which participant may mutate authority-bearing zone state\n- this often overlaps with action/step `requires`, so diagnostics should explain when the requirement was inherited rather than written twice";
+                    else if (strcmp(word, "requires") == 0)
+                        hover_text = "**requires** — Ability contract clause\n- on `action`: part of the action contract pack\n- on `step`: explicit override or restatement of ability requirements";
+                    else if (strcmp(word, "within") == 0)
+                        hover_text = "**within** — Action zone contract clause\n- fixes which zone type the action runs inside\n- matching intent steps may inherit this zone contract";
+                    else if (strcmp(word, "causes") == 0)
+                        hover_text = "**causes** — Effect contract clause\n- declares which effect layer/state transition the action or step drives\n- matching intent steps may inherit this from the action contract";
+                    else if (strcmp(word, "authorized") == 0)
+                        hover_text = "**authorized by** — Authority contract clause\n- required when a step/action mutates authority-bearing zone state or runs secure/effectful work inside an authority boundary\n- matching intent steps may inherit this from the action contract";
+                    else if (strcmp(word, "by") == 0)
+                        hover_text = "**by** — Authority clause tail\n- used in `authorized by` and domain lifecycle commands to name the approving participant";
+                    else if (strcmp(word, "with") == 0)
+                        hover_text = "**with** — Two different surfaces share this word\n- `with slot ... as ...` is a scoped binding/resource surface\n- `with effects ...` is a declaration-local effect contract\n- `with effects` is not part of the action -> step contract pack";
+                    else if (strcmp(word, "effects") == 0)
+                        hover_text = "**effects** — Declaration-local effect contract tail\n- used in `with effects ...`\n- currently stays on the function/action declaration surface\n- not inherited as part of the intent step contract pack";
                     else if (strcmp(word, "match") == 0)
                         hover_text = "**match** — Pattern matching expression";
                     else if (strcmp(word, "parallel") == 0)
                         hover_text = "**parallel** — Parallel execution block";
-                    else if (strcmp(word, "with") == 0)
-                        hover_text = "**with** — Scoped slot declaration (auto-release)";
                     else if (strcmp(word, "import") == 0)
                         hover_text = "**import** — Import module";
                     else if (strcmp(word, "Log") == 0)

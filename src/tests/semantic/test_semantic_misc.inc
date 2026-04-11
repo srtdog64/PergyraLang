@@ -2610,6 +2610,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "inherited from the matching action contract"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "inherited zone from matching action: CockpitZone"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2684,6 +2686,10 @@ test_misc_grammar_edges(void)
             "transfer target inference would choose using 'deliver'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfer target inference would choose zone 'DeliveryZone'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "inferred using from transfer target: load"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "inferred zone from transfer target: LoadingZone"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

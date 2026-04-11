@@ -3,6 +3,85 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
 static bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
 
+static void
+intent_step_format_contract_source_summary(const ASTNode *step,
+                                           char *buffer,
+                                           size_t buffer_size)
+{
+    size_t used = 0;
+    bool has_any = false;
+
+    if (buffer == NULL || buffer_size == 0 || step == NULL
+        || step->type != AST_INTENT_STEP) {
+        return;
+    }
+
+    buffer[0] = '\0';
+
+    if (step->data.intent_step.inferred_who_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inferred who from matching action",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.inherited_where_from_action) {
+        const char *zone_name =
+            (step->data.intent_step.where_type != NULL
+             && step->data.intent_step.where_type->type == AST_TYPE
+             && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name
+                : "<zone>";
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited zone from matching action: %s",
+            has_any ? "\n" : "", zone_name);
+        has_any = true;
+    }
+    if (step->data.intent_step.inherited_requires_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited requires from matching action",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.inherited_causes_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited causes from matching action: %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.causes_effect != NULL
+                ? step->data.intent_step.causes_effect
+                : "<effect>");
+        has_any = true;
+    }
+    if (step->data.intent_step.inherited_authorized_by_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited authorized by from matching action",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.inferred_where_from_transfer) {
+        const char *zone_name =
+            (step->data.intent_step.where_type != NULL
+             && step->data.intent_step.where_type->type == AST_TYPE
+             && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name
+                : "<zone>";
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inferred zone from transfer target: %s",
+            has_any ? "\n" : "", zone_name);
+        has_any = true;
+    }
+    if (step->data.intent_step.inferred_using_from_transfer) {
+        const char *using_name =
+            (step->data.intent_step.using_expr != NULL
+             && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+             && step->data.intent_step.using_expr->data.identifier.name != NULL)
+                ? step->data.intent_step.using_expr->data.identifier.name
+                : "<binding>";
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inferred using from transfer target: %s",
+            has_any ? "\n" : "", using_name);
+    }
+}
+
 static ClassField *
 find_nominal_field_by_name(ASTNode *decl, const char *field_name)
 {
@@ -1241,12 +1320,16 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_alias != NULL ? to_alias : "<target>");
             }
             if (to_type != NULL && where_zone_type != NULL && !type_equals(to_type, where_zone_type)) {
+                char contract_summary[512];
+                intent_step_format_contract_source_summary(
+                    step, contract_summary, sizeof(contract_summary));
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer target '%s' does not match the current zone contract.\n"
                     "Reason:\n"
                     "- transfer target '%s' has zone type '%s'\n"
                     "- current step zone is '%s'\n"
                     "- transfer target inference would choose zone '%s'\n"
+                    "%s%s"
                     "Fix:\n"
                     "- change the transfer target to a '%s' binding\n"
                     "- or override the step zone to '%s'",
@@ -1256,6 +1339,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_type->name != NULL ? to_type->name : "<zone>",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
                     to_type->name != NULL ? to_type->name : "<zone>",
+                    contract_summary[0] != '\0' ? contract_summary : "",
+                    contract_summary[0] != '\0' ? "\n" : "",
                     where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
                     to_type->name != NULL ? to_type->name : "<zone>");
             }
@@ -1263,12 +1348,16 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 && step->data.intent_step.using_expr->type == AST_IDENTIFIER
                 && to_alias != NULL
                 && strcmp(step->data.intent_step.using_expr->data.identifier.name, to_alias) != 0) {
+                char contract_summary[512];
+                intent_step_format_contract_source_summary(
+                    step, contract_summary, sizeof(contract_summary));
                 semantic_error(ctx, step->data.intent_step.using_expr,
                     "Intent step '%s' using binding does not match the transfer target.\n"
                     "Reason:\n"
                     "- current using binding is '%s'\n"
                     "- transfer target binding is '%s'\n"
                     "- transfer target inference would choose using '%s'\n"
+                    "%s%s"
                     "Fix:\n"
                     "- change 'using' to '%s'\n"
                     "- or change the transfer target to '%s'",
@@ -1278,6 +1367,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     to_alias,
                     to_alias,
                     to_alias,
+                    contract_summary[0] != '\0' ? contract_summary : "",
+                    contract_summary[0] != '\0' ? "\n" : "",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
             }
@@ -1472,16 +1563,49 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     ASTNode *actual_impl = subject_type_find_base_ability_impl(
                         ctx->program_root, participant_type_name, ability);
                     char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
+                    char contract_summary[512];
+                    intent_step_format_contract_source_summary(
+                        step, contract_summary, sizeof(contract_summary));
                     semantic_error(ctx, step,
                         actual_impl != NULL
-                            ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead"
-                            : "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it",
+                            ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
+                              "Reason:\n"
+                              "- participant type '%s' does not satisfy required ability '%s'\n"
+                              "%s%s"
+                              "Fix:\n"
+                              "- implement '%s' for subject type '%s'\n"
+                              "- or choose a participant whose subject type satisfies the contract\n"
+                              "- or override/remove the inherited step requirement"
+                            : "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it.\n"
+                              "Reason:\n"
+                              "- participant type '%s' does not satisfy required ability '%s'\n"
+                              "%s%s"
+                              "Fix:\n"
+                              "- implement '%s' for subject type '%s'\n"
+                              "- or choose a participant whose subject type satisfies the contract\n"
+                              "- or override/remove the inherited step requirement",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         required_text != NULL ? required_text
                                               : (ability != NULL ? ability : "<ability>"),
                         alias != NULL ? alias : "<participant>",
                         participant_type_name,
-                        actual_text != NULL ? actual_text : NULL);
+                        actual_text != NULL ? actual_text : NULL,
+                        participant_type_name,
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
+                        contract_summary[0] != '\0' ? contract_summary : "",
+                        contract_summary[0] != '\0' ? "\n" : "",
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
+                        participant_type_name,
+                        participant_type_name,
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
+                        contract_summary[0] != '\0' ? contract_summary : "",
+                        contract_summary[0] != '\0' ? "\n" : "",
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
+                        participant_type_name);
                     free(actual_text);
                 }
             }
@@ -1512,12 +1636,16 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 || step->data.intent_step.transfer_from_alias != NULL
                 || step->data.intent_step.transfer_to_alias != NULL
                 || step_requires_authority_flow)) {
+            char inherited_summary[512];
+            intent_step_format_contract_source_summary(
+                step, inherited_summary, sizeof(inherited_summary));
             semantic_error(ctx, step,
                 step->data.intent_step.inherited_where_from_action
                     ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                       "Reason:\n"
                       "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
                       "- zone '%s' was inherited from the matching action contract\n"
+                      "%s%s"
                       "Fix:\n"
                       "- add 'authorized by <participant>' to the step\n"
                       "- or move the step to a non-authority zone\n"
@@ -1526,13 +1654,18 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "Reason:\n"
                       "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
                       "- zone '%s' declares authority, so explicit approval is required\n"
+                      "%s%s"
                       "Fix:\n"
                       "- add 'authorized by <participant>' to the step\n"
                       "- or move the step to a non-authority zone\n"
                       "- or remove the authority-sensitive operation from this step",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                inherited_summary[0] != '\0' ? inherited_summary : "",
+                inherited_summary[0] != '\0' ? "\n" : "",
+                inherited_summary[0] != '\0' ? inherited_summary : "",
+                inherited_summary[0] != '\0' ? "\n" : "");
         }
 
         for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {

@@ -319,7 +319,7 @@ test_effect_inference(void)
 
         type_check_func_decl(func, ctx);
         EXPECT(ctx->has_error
-            && ctx_has_diagnostic_substring(ctx, "Anchored resource handle parameters"));
+            && ctx_has_diagnostic_substring(ctx, "Anchored handle parameters are currently closed"));
 
         semantic_context_destroy(ctx);
         ast_destroy(func);

@@ -317,14 +317,13 @@ Pergyra의 현재 pain point를 정리한다.
 
 ### 3.3 아직도 유효한 항목
 
-1. `parser_check_name_token()`의 광범위한 허용
-- declaration ergonomics를 위해 많은 declaration-grade token을 이름으로 허용한다
-- 다만 현재는
-  - declaration name
-  - binding/local/param name
-  - expression/member name
-  으로 1차 분해가 들어갔다
-- 남은 pain point는 declaration 경계와 일부 alias surface 쪽이다
+1. 이름 토큰 허용 폭
+- declaration name은 이제 일반 식별자로 고정됐고, reserved keyword 재사용 surface는 닫혔다
+- 현재 남은 문제는 `parser_check_name_token()` 전체가 아니라
+  - binding/local/param name 허용 폭
+  - 일부 alias surface
+  - 문서와 진단이 이 분해를 충분히 설명하는가
+  쪽이다
 
 2. sketch example과 stable example의 혼재
 - 일부 예제는 여전히 미래 표면을 보여 주는 design sketch다
@@ -338,6 +337,48 @@ Pergyra의 현재 pain point를 정리한다.
 - 지금은 `ability<T>`, `requires Ability<T>`, generic-aware satisfaction,
   multiple ability-style bounds까지 올라왔다
 - `default type arg`는 더 이상 묵인되지 않고 명시적으로 semantic reject된다
+
+4. clause density 자체는 여전히 높다
+- token split과 declaration trust는 많이 정리됐지만
+  - `where`
+  - `with effects`
+  - `requires`
+  - `within`
+  - `causes`
+  - `authorized by`
+  같은 clause family는 여전히 쓰는 사람 입장에서 밀도가 높다
+- 즉 지금 남은 pain point는 "키워드가 모호해서 못 믿겠다"보다
+  "계약을 쓰려면 여전히 많이 적어야 한다" 쪽으로 이동했다
+
+5. action/intent/zone contract 중복 기술
+- action 선언에 이미 들어 있는 `requires/within/authorized by/causes`
+  정보가 intent step에서 반복되면 authoring friction이 커진다
+- 현재는 intent-side inference가 꽤 올라왔지만, 사용자는 여전히
+  "어디까지 생략해도 안전한가"를 한 번 더 생각해야 한다
+
+6. diagnostics는 좋아졌지만 "상속/추론된 계약" 설명은 더 필요하다
+- 최근 진단은 `Reason/Fix` 형태로 개선됐고 anchored boundary도 더 분명해졌다
+- 하지만 intent/action/zone 계약 추론에서는
+  - 무엇이 상속되었는지
+  - 무엇이 명시 override인지
+  - 왜 이 위치에서 실패했는지
+  를 더 직접 보여줄수록 authoring 피로가 줄어든다
+
+### 3.4 현재 기준 P0 폐인포인트
+
+지금 시점에서 가장 아픈 축은 아래 셋이다.
+
+1. clause density
+- 긴 declaration/contract surface가 여전히 밀집돼 있다
+
+2. contract duplication
+- action/intent/zone 사이에서 같은 의미를 두 번 적는 순간 피로가 크게 올라간다
+
+3. inferred contract diagnostics
+- 추론이 강해질수록 "무엇을 상속했는지"를 에러와 hover에서 더 잘 보여줘야 한다
+
+즉 현재 단계의 폐인포인트는 lexer/token 문제가 아니라
+**authoring density + duplicate description + inference explainability**다.
 - 남은 것은 richer constraint semantics 쪽이다
 
 ### 2.2 boundary clause family
@@ -602,3 +643,92 @@ Pergyra의 가장 큰 pain point는 "개념이 많다"가 아니라,
 
 이 언어는 개념을 줄이는 방향보다, 반복 선언과 authoring 경로를 압축하는 방향으로
 정리돼야 한다.
+
+## Remaining real pain points (P0 closure set)
+
+The token split and nominal keyword cleanup closed a structural confusion class, but they did not remove the main authoring friction. The remaining real P0 set is narrower and more operational.
+
+### 1. Clause density in action and step declarations
+
+Problem:
+The surface still becomes heavy when `where`, `with effects`, `requires`, `within`, `causes`, and `authorized by` appear together. Even when each clause is individually coherent, the combined reading and writing cost is too high for routine code.
+
+Closure target:
+- keep declaration order predictable
+- keep the short surface canonical
+- make the long surface explicit but secondary
+- document exactly which clauses belong to the reusable contract pack and which stay declaration-local
+
+Primary implementation fronts:
+- parser clause-order diagnostics
+- LSP hover/completion for the short surface
+- stable reference examples that show long vs compressed forms side by side
+
+### 2. Contract duplication between action and intent step
+
+Problem:
+Writers still feel duplication when the same zone, authority, ability, and cause information is spelled once on the action and again on the matching intent step.
+
+Closure target:
+- the matching action contract pack is the default source of truth
+- step-level spelling is override-only unless the step intentionally diverges
+- diagnostics must say when a step value came from the matching action contract instead of local spelling
+
+Primary implementation fronts:
+- semantic inheritance summaries on step diagnostics
+- AST/debug surfacing of contract-source flags
+- examples that show the verbose and compressed forms as equivalent
+
+### 3. Inferred-contract failure opacity
+
+Problem:
+Once inference removes boilerplate, failures become harder to interpret unless the compiler shows where the inherited contract came from.
+
+Closure target:
+- every boundary/authority/requires failure on an intent step should name the inferred source
+- error text should distinguish `locally declared`, `inherited from matching action`, and `inferred from transfer target`
+- the user should not need to reconstruct hidden inference by reading multiple declarations manually
+
+Primary implementation fronts:
+- semantic diagnostics
+- AST print/debug views
+- LSP hover wording for contract-pack behavior
+
+### 4. Clause-family boundaries are still easy to misread
+
+Problem:
+`with effects` lives near other action clauses, but it is not part of the matching action contract pack. This remains a subtle source of incorrect expectation.
+
+Closure target:
+- treat `with effects` as declaration-local only
+- state this rule consistently in docs, hover text, and reference examples
+- avoid implying that all post-signature clauses participate in step inference
+
+Primary implementation fronts:
+- docs and hover text
+- negative tests and diagnostic wording where needed
+
+### 5. Canonical short-surface trust is not yet obvious enough
+
+Problem:
+Even when the compressed form exists, users still need a stable answer to: which short form is the recommended one, and which examples are trustworthy enough to copy.
+
+Closure target:
+- define one canonical compressed path per common authoring pattern
+- separate smoke-covered stable examples from real-but-reference-only examples
+- keep the language surface honest about what is stable, what is real, and what is still sketch-only
+
+Primary implementation fronts:
+- stable example surface board
+- paired reference examples
+- roadmap sections that use the same terminology as diagnostics and hover text
+
+## Current prioritization rule
+
+For the next authoring-surface passes, prioritize in this order:
+1. reduce repeated writing
+2. explain inferred behavior where repetition was removed
+3. keep the short surface singular and documented
+4. only then widen syntax or add new abstraction layers
+
+This is the current working interpretation of Pergyra's authoring problem: the language is no longer primarily blocked on missing nouns; it is blocked on contract compression, contract provenance, and trustworthy short paths.

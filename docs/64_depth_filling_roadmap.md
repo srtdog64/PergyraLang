@@ -527,3 +527,45 @@ Phase 3 (P2) — 품질
 | 3.1 | Intent 런타임 | Intent 런타임 스텁→✅ | 미착수 |
 | 3.2 | Zone 런타임 | Zone 런타임 스텁→✅ | 미착수 |
 | 3.3 | Collection 일반화 | Set/Map/List C ⚠️→✅ | 미착수 |
+
+## Authoring-surface fill track (current)
+
+Depth filling is no longer only about backend/runtime gaps. A parallel fill track is now required for surface trust and authoring compression.
+
+### Track A. Contract compression
+
+Focus:
+- remove repeated contract spelling between actions and intent steps
+- keep the reusable contract anchored at the action declaration
+- limit step-local spelling to true overrides and orchestration-only data
+
+Immediate artifacts:
+- semantic inherited-contract diagnostics
+- AST/debug provenance markers
+- paired long-vs-compressed reference examples
+
+### Track B. Surface trust
+
+Focus:
+- keep docs aligned with what is implemented
+- separate smoke-covered stable examples from reference-only examples
+- close any gap where the short surface exists but is not clearly documented as the preferred path
+
+Immediate artifacts:
+- stable example surface board updates
+- pain-point and compression-plan updates that use the same clause-family vocabulary as the compiler
+
+### Track C. Dense-form sharpness
+
+Focus:
+- the language still permits dense explicit forms, so failures in those forms must stay precise
+- explicit declarations should fail locally instead of turning into vague downstream errors
+
+Immediate artifacts:
+- parser clause-family diagnostics
+- semantic tests for inherited-vs-local contract confusion
+- reference examples that show the exact crossover point between explicit and compressed forms
+
+## Current rule for roadmap ordering
+
+When choosing between a new feature and filling an authoring-surface trust gap, prefer the trust gap if the feature would create another surface the user can write but cannot confidently reason about.

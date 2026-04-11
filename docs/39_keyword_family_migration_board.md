@@ -1,6 +1,6 @@
 # Keyword Family Migration Board
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 이 문서는 [`37_compiler_contracts.md`](./37_compiler_contracts.md)의 키워드 taxonomy와 매트릭스를 실제 구현 작업으로 연결하는 보드다.
 
@@ -21,8 +21,8 @@
 
 | 가족 | Lexer/Parser | Semantic | DIR | RIR | MIR | Backend | 상태 | 다음 작업 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `subject / class` | partial | partial | partial | weak | weak | partial | `partial` | token 공유와 semantic/runtime contract 분리표 작성 |
-| `object / tobject / struct` | partial | partial | partial | partial | partial | partial | `partial` | alias처럼 보이는 경로 제거, projection contract 진단 강화 |
+| `subject / class` | done | partial | partial | weak | weak | partial | `partial` | token split 이후 semantic/runtime contract와 진단 톤 정렬 |
+| `object / tobject / struct` | done | partial | partial | partial | partial | partial | `partial` | nominal split 이후 projection/boundary contract 진단 강화 |
 | `vessel` | partial | weak | weak | weak | weak | weak | `weak` | subject 내부 상태 수용체 계약 고정 |
 | `ability / role` | done | partial | done | partial | n/a | partial | `partial` | role completion과 backend dispatch contract 정리 |
 | `party` | done | partial | done | partial | partial | weak | `partial` | collaboration contract와 runtime/backend usage 정리 |
@@ -70,6 +70,8 @@
 - MIR cleanup/rollback/invalidation topology 회귀 복구
 - nominal host receiver type 오염으로 인한 C backend 오발행 복구
 - `order_analytics`를 sketch가 아니라 compile-smoke covered example로 승격
+- declaration name을 reserved keyword 재사용 없이 일반 식별자로 고정
+- anchored-handle / `DeviceSlot` parameter diagnostic과 semantic test expectation 정렬
 
 ## 5. `object / tobject / struct` 상세 비대칭 표
 
@@ -77,8 +79,8 @@
 
 | 계층 | 현재 구현 | 비대칭 지점 | 위험 | 고정 방향 |
 | --- | --- | --- | --- | --- |
-| Lexer | `tobject`는 `TOKEN_STRUCT`, `object`는 예약 토큰이 아니라 식별자 기반 선언 진입 | `object`와 `tobject`가 같은 수준의 표면 개념인데 토큰 계층이 다르다 | 키워드 설명과 렉서 동작이 어긋나 보인다 | 문서에서는 `object`를 declaration-context keyword, `tobject`를 reserved token으로 고정하고 parser/semantic에서 의미 분리 강화 |
-| Parser | `object`는 `parse_object_declaration`, `tobject`는 `parse_tobject_declaration`, `struct`는 `parse_struct_declaration` | `tobject / struct`는 같은 token family를 타고, `object`만 별도 contextual declaration 경로를 탄다 | "struct alias"처럼 오해되기 쉽다 | parser 진입은 달라도 AST nominal kind는 명시적으로 분리된다는 점을 계약으로 고정 |
+| Lexer | `object`, `tobject`, `struct`가 모두 별도 reserved token으로 분리됨 | 예전 alias/token-share 설명이 남아 있으면 문서가 더 틀리게 보인다 | 구현은 닫혔는데 문서가 불신을 만든다 | 모든 핵심 문서에서 nominal token split을 현재 기준으로 고정 |
+| Parser | `object`는 `parse_object_declaration`, `tobject`는 `parse_tobject_declaration`, `struct`는 `parse_struct_declaration` | parser 진입은 분리됐지만 진단/설명에서 contract 차이가 약해질 수 있다 | "storage만 다르고 의미는 같다"는 오해 | parser split보다 semantic contract와 진단 차이를 계속 강조 |
 | AST | `NOMINAL_DECL_OBJECT`, `NOMINAL_DECL_TOBJECT`, `NOMINAL_DECL_STRUCT`로 분리 | 표면 문법 공유에 비해 이 차이가 문서/진단에서 충분히 드러나지 않는다 | 사용자와 backend가 같은 것으로 오해할 수 있다 | AST nominal kind를 단일 semantic truth로 삼는다 |
 | Semantic | `ToObject`/`ToTObject` builtin과 field mutability 규칙은 이미 분리됨 | 일부 진단은 아직 `class/object` 축 위주이며 `struct/tobject` 대비가 약하다 | projection/transfer contract가 흐려진다 | 모든 진단에서 `object=local projection`, `tobject=boundary transfer`, `struct=plain nominal data`를 명시 |
 | DIR | `refresh`와 `publish` 경로가 분리돼 있음 | 키워드 family 관점의 설명과 이름이 아직 약하다 | projection lowering 이유가 추적되지 않는다 | DIR에서 projection kind를 로그/덤프에 드러낸다 |
@@ -90,7 +92,7 @@
 
 | 지점 | 근거 | 의미 |
 | --- | --- | --- |
-| Parser statement dispatch | `src/parser/parser.c` | `object`는 declaration-context keyword, `tobject / struct`는 shared token family |
+| Parser statement dispatch | `src/parser/parser.c` | `object / tobject / struct`는 모두 별도 nominal declaration entry를 가진다 |
 | AST nominal split | `src/parser/ast.c` | `subject/class`, `object`, `tobject`, `struct`, `vessel`는 모두 별도 nominal kind로 내려간다 |
 | Semantic projection builtin | `src/semantic/type_checker_builtins.c` | `ToObject`와 `ToTObject`는 이미 별도 nominal contract를 기대한다 |
 | Semantic mutability | `src/semantic/type_checker.c` | `object`와 `tobject`는 둘 다 immutable 취급이지만 이유가 다르다 |
@@ -145,8 +147,8 @@
 
 | 계층 | 현재 구현 | 비대칭 지점 | 고정 방향 |
 | --- | --- | --- | --- |
-| Lexer | `subject`와 `class`는 모두 `TOKEN_CLASS` family | 표면 키워드는 다르지만 token은 같다 | shared token family임을 명시하고 semantic에서 nominal split를 단일 truth로 사용 |
-| Parser | `TOKEN_CLASS`를 본 뒤 token text가 `subject`인지 검사해 분기 | token family와 declaration kind가 분리돼 있다 | parser가 `subject`를 별도 nominal declaration으로 만든다는 점을 기준으로 문서화 |
+| Lexer | `subject`는 `TOKEN_SUBJECT`, `class`는 `TOKEN_CLASS`로 분리됨 | 오래된 shared-token 설명이 남아 있으면 문서가 더 틀려진다 | token split 완료를 active docs 기준으로 고정 |
+| Parser | `subject`와 `class`는 별도 declaration entry로 분기한다 | parser split은 닫혔고, 남은 건 semantic/runtime contract 차이 설명이다 | parser보다 semantic contract/diagnostic 차이를 계속 강화 |
 | AST | `ast_create_class` 이후 `ast_create_subject`는 `NOMINAL_DECL_SUBJECT`로 덮어쓴다 | token 단계 정보는 사라지고 nominal kind가 truth가 된다 | AST nominal kind를 backend까지 유지 |
 | Semantic | subject는 vessel field 제약과 authority/resource 흐름이 붙고, class는 일반 nominal type | 일부 진단은 여전히 `class` 중심 용어를 사용한다 | subject 전용 진단/규칙을 분리 |
 | Backend | 대부분 class-like storage/emission 경로를 공유 | subject만의 orchestration/resource semantics가 codegen에서 약하다 | storage는 공유 가능하되 runtime contract는 subject 전용 metadata로 분리 |
@@ -155,7 +157,7 @@
 
 | 지점 | 근거 | 의미 |
 | --- | --- | --- |
-| Parser dispatch | `src/parser/parser.c` | `TOKEN_CLASS` + text 검사로 `subject` 분기 |
+| Parser dispatch | `src/parser/parser.c` | `subject`와 `class`는 lexer token 단계부터 분리돼 진입한다 |
 | AST constructor | `src/parser/ast.c` | `subject`는 `NOMINAL_DECL_SUBJECT`를 가진 별도 declaration |
 | Semantic vessel check | `src/semantic/type_checker.c` | subject field에는 vessel 타입 제약이 붙는다 |
 | Backend naming/runtime | `src/codegen/llvm_backend.c`, `src/codegen/transpiler.c` | storage/emission은 class-like지만 semantic contract는 더 무겁다 |

@@ -441,6 +441,115 @@ cleanup:
 }
 
 static int
+run_malformed_effect_clause_diagnostic_test(void)
+{
+    const char *code =
+        "func RemoteOp() -> Void with remote {\n"
+        "    return;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    const char *error = NULL;
+
+    printf("\n=== Test: Malformed Effect Clause Diagnostic ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (!parser_has_error(parser)) {
+        printf("[FAIL] Expected malformed effect clause parse error\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    error = parser_get_error(parser);
+    if (error == NULL
+        || strstr(error, "Expected 'effects' after 'with' in function/action clause") == NULL
+        || strstr(error, "use 'with effects ...'") == NULL) {
+        printf("[FAIL] Expected helpful with-effects diagnostic, got: %s\n",
+               error != NULL ? error : "<null>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Malformed effect clause reports an explicit fix-oriented diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_authorized_clause_missing_by_test(void)
+{
+    const char *code =
+        "subject Player {\n"
+        "    action Guard(self) -> Void\n"
+        "        authorized self {\n"
+        "        return;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    const char *error = NULL;
+
+    printf("\n=== Test: Authorized Clause Missing 'by' Diagnostic ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (!parser_has_error(parser)) {
+        printf("[FAIL] Expected missing 'by' parse error\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    error = parser_get_error(parser);
+    if (error == NULL
+        || strstr(error, "Expected 'by' after 'authorized' in function/action clause") == NULL
+        || strstr(error, "use 'authorized by <subject>'") == NULL) {
+        printf("[FAIL] Expected helpful authorized-by diagnostic, got: %s\n",
+               error != NULL ? error : "<null>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Authorized clause missing 'by' reports an explicit fix-oriented diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_vessel_keyword_alias_test(void)
 {
     const char *code =
@@ -1538,6 +1647,10 @@ main(void)
     failures += run_action_clause_reordering_test();
     printf("\n");
     failures += run_duplicate_action_clause_diagnostic_test();
+    printf("\n");
+    failures += run_malformed_effect_clause_diagnostic_test();
+    printf("\n");
+    failures += run_authorized_clause_missing_by_test();
     printf("\n");
     failures += run_subject_keyword_alias_test();
     printf("\n");

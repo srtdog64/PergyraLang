@@ -1,12 +1,19 @@
 # Token Split Plan
 
-마지막 업데이트: 2026-04-10
+마지막 업데이트: 2026-04-12
 
-이 문서는 `subject/class/struct/object/tobject`의 lexer/parser/AST token aliasing을 제거하는 계획을 고정한다.
+이 문서는 `subject/class/struct/object/tobject`의 lexer/parser/AST token aliasing을 제거하던 **historical plan**이다.
+현재 구현에서는 이 계획의 핵심 단계가 이미 완료됐다.
+
+읽는 규칙:
+
+- 이 문서는 "현재 debt"가 아니라 "어떻게 닫았는가"를 설명하는 기록이다
+- 현재 surface truth는 `docs/grammar/01_syntax.md`, `docs/39_keyword_family_migration_board.md`,
+  `docs/63_feature_depth_matrix.md`를 우선한다
 
 ## 1. 문제 정의
 
-현재 상태:
+계획 작성 당시 상태:
 
 - `subject`와 `class`가 둘 다 `TOKEN_CLASS`로 lex된다
 - `struct`와 `tobject`가 둘 다 `TOKEN_STRUCT`로 lex된다

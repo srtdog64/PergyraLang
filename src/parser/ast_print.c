@@ -63,6 +63,56 @@ nominal_decl_kind_name(NominalDeclKind kind)
     }
 }
 
+static void
+print_intent_step_contract_sources(const ASTNode *node, int indent)
+{
+    bool printed = false;
+
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return;
+    if (!node->data.intent_step.inferred_who_from_action
+        && !node->data.intent_step.inherited_where_from_action
+        && !node->data.intent_step.inherited_requires_from_action
+        && !node->data.intent_step.inherited_causes_from_action
+        && !node->data.intent_step.inherited_authorized_by_from_action
+        && !node->data.intent_step.inferred_where_from_transfer
+        && !node->data.intent_step.inferred_using_from_transfer) {
+        return;
+    }
+
+    print_indent(indent);
+    printf("ContractSource: ");
+
+    if (node->data.intent_step.inferred_who_from_action) {
+        printf("who<-action");
+        printed = true;
+    }
+    if (node->data.intent_step.inherited_where_from_action) {
+        printf("%swhere<-action", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inherited_requires_from_action) {
+        printf("%srequires<-action", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inherited_causes_from_action) {
+        printf("%scauses<-action", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inherited_authorized_by_from_action) {
+        printf("%sauthorized-by<-action", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inferred_where_from_transfer) {
+        printf("%swhere<-transfer", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inferred_using_from_transfer) {
+        printf("%susing<-transfer", printed ? ", " : "");
+    }
+    printf("\n");
+}
+
 // ============= AST 출력 (디버깅용) =============
 
 static void print_indent(int level) {
@@ -1325,6 +1375,7 @@ void ast_print(ASTNode* node, int indent) {
                 ast_print_inline(node->data.intent_step.expect_expr);
                 printf("\n");
             }
+            print_intent_step_contract_sources(node, indent + 1);
             break;
 
         case AST_RELATION_DECL:

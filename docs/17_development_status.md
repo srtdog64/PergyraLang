@@ -144,9 +144,9 @@
 - `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함
 - C backend와 LLVM backend 모두에서 `subject` method는 `self` pointer, `class` method는 `self` value로 lowering됨
-- plain `Slot<subject>`와 `Slot<subject>`는 이제 local object-cell anchor로 허용됨
+- plain `Slot<subject>`는 이제 local object-cell anchor로 허용됨
 - 현재 회귀 범위: `make test-transpile` 통과, `make test-abi` 통과, `make llvm-test-backend-compare` 통과, `make example-test-smoke` 통과, `make ir-pipeline-test-smoke` 통과, `make fmt-test-smoke` 통과, `make test-abi-perf` 통과
-- `SecureSlot<subject>`와 `SecureSlot<subject>`도 이제 local secure object-cell anchor로 허용됨
+- `SecureSlot<subject>`도 이제 local secure object-cell anchor로 허용됨
 - `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
 - secure boundary slot은 helper를 한 번 더 거치는 forwarding call에서도 paired token이 함께 전달됨
@@ -236,7 +236,7 @@
 - partial 완료: `subject`를 코어 host로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
 - partial 완료: `subject Name { ... }`를 코어 host surface로 고정
 - partial 완료: plain `Slot<subject-host>` / secure `SecureSlot<subject-host>` local object-cell anchor
-- partial 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C backend)
+- 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C/LLVM backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화
 - 안정화 문서 갱신 및 표면 문법 정리

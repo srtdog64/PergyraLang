@@ -2233,7 +2233,7 @@ test_qubit_slot_semantics(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "closed subset"));
+            "currently closed to ref Slot<subject-host> / own SecureSlot<subject-host>"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

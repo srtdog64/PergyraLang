@@ -1,6 +1,6 @@
 # Feature Depth Matrix
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 이 문서는 PergyraLang의 기능별 구현 깊이를 코드 기준으로 기록한다.
 설계 문서상 존재하는 개념이 아니라, 현재 저장소에서 실제로 확인된 depth만 적는다.
@@ -58,7 +58,7 @@
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, transitive safe `ref -> ref`와 transitive `own SecureSlot -> own` forwarding은 허용, `ref` return/channel escape 및 alias/rebind, borrow-after-move 금지 |
+| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ✅ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, transitive safe `ref -> ref`와 transitive `own SecureSlot -> own` forwarding은 허용, `ref` return/channel escape 및 alias/rebind, borrow-after-move 금지 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -95,8 +95,8 @@
 다만 표면 설계에서 pain point가 남아 있다.
 
 대표 pain point:
-- `subject`와 `class`가 lexer 단계에서 완전히 분리되지 않았던 흔적
-- `object/tobject` surface와 token 정책의 일관성 문제
+- nominal family token split은 닫혔지만, 예전 alias/shared-token 설명이 문서에 남으면 surface trust를 다시 깎는다
+- `object/tobject` surface는 token 문제가 아니라 projection/boundary contract 설명 밀도의 문제다
 - nominal family별 진단 문구와 문서 설명의 밀도를 계속 맞춰야 함
 
 판정:

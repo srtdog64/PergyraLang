@@ -1,0 +1,60 @@
+// authority_contract_pair_minimal.pgy
+//
+// Reference example / not compile-smoke covered yet.
+//
+// Focus: zone authority + action/step requires duplication.
+// - PatrolVerbose repeats the ability contract at the step.
+// - PatrolCompressed relies on the matching action contract pack.
+
+ability Prepared {
+    func Ready() -> Bool;
+}
+
+subject Hero {
+    let hp: Int;
+
+    action Guard(self) -> Void
+        requires Prepared
+        within BattleZone
+        authorized by self
+    {
+        self.hp = self.hp + 1;
+    }
+}
+
+role HeroPrepared for Hero {
+    impl ability Prepared {
+        func Ready() -> Bool {
+            return true;
+        }
+    }
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    authority hero requires Prepared
+}
+
+intent PatrolVerbose(battle: BattleZone, hero: Hero) {
+    step Guard {
+        who: hero;
+        where: BattleZone;
+        using: battle;
+        requires: Prepared;
+        authorized by: hero;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+intent PatrolCompressed(battle: BattleZone, hero: Hero) {
+    step Guard {
+        using: battle;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("authority-contract-pair-minimal");
+}

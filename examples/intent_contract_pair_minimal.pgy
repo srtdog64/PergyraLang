@@ -1,0 +1,67 @@
+// intent_contract_pair_minimal.pgy
+//
+// Reference example / not compile-smoke covered yet.
+//
+// Same semantics, two authoring styles:
+// 1. PatrolVerbose repeats the full step contract.
+// 2. PatrolCompressed relies on the matching action contract pack:
+//    who / where / requires / authorized by / causes.
+
+ability Prepared {
+    func Ready() -> Bool;
+}
+
+subject Hero {
+    let hp: Int;
+
+    action Guard(self) -> Void
+        requires Prepared
+        within BattleZone
+        authorized by self
+        causes Guarded
+    {
+        self.hp = self.hp + 1;
+    }
+}
+
+role HeroPrepared for Hero {
+    impl ability Prepared {
+        func Ready() -> Bool {
+            return true;
+        }
+    }
+}
+
+effect Guarded for bearer: Hero {
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    effect slot guarded: Guarded
+    authority hero requires Prepared
+}
+
+intent PatrolVerbose(battle: BattleZone, hero: Hero) {
+    step Guard {
+        who: hero;
+        where: BattleZone;
+        using: battle;
+        requires: Prepared;
+        authorized by: hero;
+        causes: Guarded;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+intent PatrolCompressed(battle: BattleZone, hero: Hero) {
+    step Guard {
+        using: battle;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("intent-contract-pair-minimal");
+}
