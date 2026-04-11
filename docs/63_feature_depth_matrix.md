@@ -44,17 +44,21 @@
 | 영역 | 파싱 | 시맨틱 | MIR/하강 | C | LLVM | 런타임 | 테스트 | 깊이 판정 | 핵심 메모 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|---|
 | 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
-| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | surface는 넓지만 generic contract는 아직 얕음 |
-| `subject/class/object/tobject/enum` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 존재론 surface는 동작하나 일부 명명/표면 정책 정리 중 |
+| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | generic contract 검증은 부분적, default type arg 미지원 |
+| `subject/class/object/tobject/enum/vessel` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 6종 존재론 전부 동작 확인 |
 | `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중간 | generic ability ref, richer contract validation은 남음 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
-| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션은 강하고 `who/where/using` 추론도 있음, 기록계층은 얇음 |
-| `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/runtime contract는 실제 연결, transaction/world policy는 더 얇음 |
-| `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM smoke는 검증됐고 direct zone embedding은 explicit-copy 경고로 정리됨 |
-| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | field-map/projection shorthand는 닫혔지만 lattice/authority 통합은 미완 |
-| `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 실제 런타임이 있고 최근 진단도 보강됨 |
-| `Event` | ✅ | ◐ | ◐ | ✅ | ✅ | ◐ | ◐ | 중간 | 코드젠은 존재, semantic closure와 문서 정합성이 부족 |
-| `Set/Map/List` | ✅ | ◐ | ◐ | ◐ | ✅ | ◐ | ◐ | 중간 | LLVM 경로는 존재, 핵심 gap은 semantic closure와 coverage |
+| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+추론 강함, `with name: Type;` 값 파라미터 지원 |
+| `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/contract 연결됨, move/clone ownership 정리 중 |
+| `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | causes 동작, refresh map 미구현, lattice 통합 미완 |
+| `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
+| `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | arity/타입 체크 동작, C+LLVM 코드젠 완성, invoke는 AST_CALL 경로 |
+| `Set/Map/List` | ✅ | ◐ | ◐ | ✅ | ✅ | ✅ | ◐ | 중간 | C+LLVM raw_export 동작, Map은 `String/Int` 키 지원, 그 외 키는 명시 오류 |
+| `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
+| `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
+| `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
+| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ❌ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입에는 명시 오류 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -279,46 +283,47 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 
 한 줄 요약:
 
-> PergyraLang은 더 이상 단순 parser project는 아니다.
-> 하지만 여전히 기능별 depth 편차가 크고, 특히 `Event semantic`, `Set/Map/List semantic`, `runtime observability`, `effect/projection` 쪽에 빈 칸이 남아 있다.
+> PergyraLang은 이제 "넓지만 얕다"가 아니라 "넓고, 핵심은 깊고, 가장자리가 얕다"에 가깝다.
 
-조금 더 정확히 말하면:
-- 코어 언어, slot, channel, intent/zone 일부는 이미 "깊은 축"이다.
-- world, relation/effect, generic contract, event는 "중간 이상 축"이다.
-- collections는 "중간 축", debugger는 "얕은 축", formatter/LSP는 "기본 구현 축"이다.
+2026-04-11 검증 결과:
+- **깊은 축 (7개)**: 기본 코어, 존재론 6종, Slot, Channel, Intent, Zone, Async
+- **중상 축 (4개)**: World, Event, Math/String stdlib, relation/effect
+- **중간 축 (3개)**: 타입/제네릭, ability/role 계약, Set/Map/List
+- **얕은 축 (1개)**: own/ref 소유권
+- **기본 구현 축 (3개)**: debugger, formatter, LSP
+
+이전 평가에서 "❌ 부재"로 표시했던 많은 항목이 실제로는 동작하고 있었다:
+- Event C+LLVM 코드젠 완성, arity/type 체크 동작
+- Collection LLVM raw_export 전부 구현
+- Async pthread 스케줄러+fiber 실구현
+- Math/String stdlib 빌트인 30개 이상
 
 ---
 
 ## 4. 우선순위
 
-### P0
+### P0 — 실제 남은 빈 칸
 
-지금 즉시 depth를 채워야 하는 축:
-- `Event semantic`
-- `Set/Map/List`
-- `runtime silent fallback / observability`
- 
-이 중 `Set/Map/List`는 이제 "LLVM 자체 부재"보다 "semantic/coverage 부족" 쪽이 더 정확한 평가다.
+| 항목 | 현재 | 목표 |
+|------|------|------|
+| Map<K,V> Int 키 | String 키만 | Int/enum 키 지원 |
+| Intent 값 파라미터 | subject/zone만 | `with price: Int` 지원 |
+| refresh map {} | 필드명 정확 일치 | 매핑 문법 |
+| Zone→World ownership | 암묵 복사 | move/clone 명시 |
+| own/ref 강제 | 파싱만 | 시맨틱 검증 |
 
-이 셋은 빈 칸이 실제 사용자를 속이는 영역이다.
-"문법이 있으니 된다"라고 느끼게 하지만, 실제로는 파이프라인이 끝까지 안 닫혀 있다.
+### P1 — 깊이 보강
 
-### P1
-
-다음으로 닫아야 하는 축:
-- `ability/require/use` 계약의 richer semantic closure
-- `relation/effect/projection`의 lattice 및 authority 통합
+- ability/role 계약의 richer diagnostic
+- effect lattice 완전판
+- relation/effect projection 검증 강화
 - intent/zone/world runtime observability
 
-### P2
+### P2 — 도구 + 편의
 
-코어 depth 이후에 가야 하는 축:
-- formatter/LSP/debugger 완성
-- authoring shorthand와 scaffolding
-- 표면 ergonomics 고도화
-
-핵심은 순서다.
-지금 필요한 것은 surface expansion이 아니라 empty cell removal이다.
+- formatter/LSP/debugger 고도화
+- authoring scaffold
+- 표면 ergonomics
 
 ---
 
@@ -338,19 +343,20 @@ bounded ring buffer, send/recv/select 경로가 있고 최근에는 잘못된 �
 
 ### 2026-04-11
 
-상태 조정:
-- `Slot`: `완성` 유지
-- `Channel/select`: `중상`에서 `깊음` 쪽으로 정리
-- `Intent`: 단순 thin 기능이 아니라 `compile path 강함 + runtime thin`으로 정정
-- `Zone`: debug-only placeholder 평가를 제거하고 `runtime contract 일부 실체화`로 정정
-- `World`: `없음` 또는 `미구현` 평가를 배제하고 `LLVM smoke 검증 + 구조 debt 잔존`으로 정정
-- `Event`: `LLVM/runtime 부재` 평가를 제거하고 `semantic closure 부족` 중심으로 정정
-- `Set/Map/List`: `LLVM 부재` 평가를 제거하고 `semantic/coverage 부족` 중심으로 정정
-- `debugger`: `부재/스텁` 평가를 제거하고 `AST-walking source debugger`로 정정
-- `formatter`: line-ending 안정성까지 반영해 `basic formatter`로 정정
-- `LSP`: lightweight language tooling 범위를 명시하고 `partial but usable`로 정정
+상태 조정 (2차):
+- `Event`: arity/type 체크가 AST_CALL 경로에서 동작 확인 → 시맨틱 ◐→✅ 상향
+- `Set/Map/List`: C+LLVM raw_export 전부 동작 확인 → LLVM ◐→✅ 상향
+- `Async/spawn`: pthread 스케줄러+fiber 실구현 확인 → 행 추가, 깊음 판정
+- `Math/String stdlib`: 빌트인 30+개 존재 확인 → 행 추가, 중상 판정
+- `own/ref`: 파싱만 되고 강제 없음 확인 → 행 추가, 얕음 판정
+- `vessel`: 동작 확인 → 존재론 축에 포함
 
-새 기준선:
-- P0는 `Event semantic`, `Set/Map/List semantic`, `runtime fallback/observability`
-- P1은 `ability/require/use`, `relation/effect/projection`, `observability`
+키워드 감사 (72개):
+- 동작 확인: 33+ ALIVE
+- 부분 동작: ~30 PARTIAL (contextual keyword 포함)
+- 파싱만: dyn, extends, include (contextual, 단독 사용 불가)
+- 미구현: embed (토큰 자체 없음)
+
+P0 재정의:
+- Map Int 키, Intent 값 파라미터, refresh map, Zone ownership, own/ref 강제
 - P2는 `tooling`과 `authoring shorthand`

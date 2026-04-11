@@ -2512,6 +2512,25 @@ static inline float  Sqrt(float x)            { return sqrtf(x); }
 static inline float  Pow(float x, float y)    { return powf(x, y); }
 static inline float  Floor(float x)           { return floorf(x); }
 static inline float  Ceil(float x)            { return ceilf(x); }
+static inline float  Round(float x)           { return roundf(x); }
+static inline float  Sin(float x)             { return sinf(x); }
+static inline float  Cos(float x)             { return cosf(x); }
+static inline float  Tan(float x)             { return tanf(x); }
+static inline float  Asin(float x)            { return asinf(x); }
+static inline float  Acos(float x)            { return acosf(x); }
+static inline float  Atan(float x)            { return atanf(x); }
+static inline float  Atan2(float y, float x)  { return atan2f(y, x); }
+static inline float  Exp(float x)             { return expf(x); }
+static inline float  MathLog(float x)          { return logf(x); }
+static inline float  Log10(float x)            { return log10f(x); }
+static inline float  Log2(float x)             { return log2f(x); }
+#define PGY_PI 3.14159265358979323846f
+#define PGY_E  2.71828182845904523536f
+
+static inline int32_t Clamp(int32_t v, int32_t lo, int32_t hi) {
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+
 static inline int32_t Random(int32_t max)     { return max <= 0 ? 0 : (int32_t)(rand() % max); }
 static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
 
@@ -2533,6 +2552,28 @@ static inline char* pgy_int_to_string(int32_t val) {
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) return NULL;
     memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_float_to_string(float val) {
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%g", (double)val);
+    if (len < 0) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
+        return fallback;
+    }
+    char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+static inline char* pgy_bool_to_string(bool val) {
+    const char *s = val ? "true" : "false";
+    size_t len = strlen(s);
+    char *buf = (char *)malloc(len + 1);
+    if (buf != NULL) memcpy(buf, s, len + 1);
     return buf;
 }
 
@@ -2561,6 +2602,11 @@ static inline uint32_t pgy_hash_string(const char *s)
     if (s == NULL) return h;
     while (*s) { h = ((h << 5) + h) ^ (uint32_t)*s++; }
     return h;
+}
+
+static inline char *pgy_map_format_i32_key(int32_t key)
+{
+    return pgy_int_to_string(key);
 }
 
 #define PGY_HASHMAP_DEFINE(SuffixName, CType) \
@@ -2708,6 +2754,55 @@ static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const
 static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
 { \
     return (int32_t)m->count; \
+} \
+\
+static inline void pgy_map_set_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key, CType val) \
+{ \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_i32_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_set_##SuffixName(m, key_str, val); \
+    free(key_str); \
+} \
+\
+static inline CType pgy_map_get_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    CType value; \
+    char *key_str = pgy_map_format_i32_key(key); \
+    memset(&value, 0, sizeof(CType)); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_get_i32_" #SuffixName, "key formatting failed"); \
+        return value; \
+    } \
+    value = pgy_map_get_##SuffixName(m, key_str); \
+    free(key_str); \
+    return value; \
+} \
+\
+static inline bool pgy_map_has_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    bool result; \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_has_i32_" #SuffixName, "key formatting failed"); \
+        return false; \
+    } \
+    result = pgy_map_has_##SuffixName(m, key_str); \
+    free(key_str); \
+    return result; \
+} \
+\
+static inline void pgy_map_remove_i32_##SuffixName(PgyHashMap_##SuffixName *m, int32_t key) \
+{ \
+    char *key_str = pgy_map_format_i32_key(key); \
+    if (key_str == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_remove_i32_" #SuffixName, "key formatting failed"); \
+        return; \
+    } \
+    pgy_map_remove_##SuffixName(m, key_str); \
+    free(key_str); \
 }
 
 static inline PgyHashMap_Int pgy_map_new_int(void)

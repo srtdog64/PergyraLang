@@ -285,6 +285,34 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
                 return false;
         }
 
+        for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
+            if (step->data.intent_step.authorized_by[j] == NULL)
+                continue;
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentAuthorizedBy";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = step->data.intent_step.authorized_by[j];
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+
+        if (step->data.intent_step.causes_effect != NULL) {
+            memset(&inst, 0, sizeof(inst));
+            inst.id = routine->instruction_count++;
+            inst.kind = MIR_INST_STMT;
+            inst.name = "IntentCauses";
+            inst.slot_anchor = step->data.intent_step.name;
+            inst.arg0 = step->data.intent_step.causes_effect;
+            inst.arg1 = step->data.intent_step.name;
+            inst.ast = step;
+            if (!append_instruction(block, inst))
+                return false;
+        }
+
         if (step->data.intent_step.pre_expr != NULL) {
             memset(&inst, 0, sizeof(inst));
             inst.id = routine->instruction_count++;

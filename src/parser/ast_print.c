@@ -1176,6 +1176,9 @@ void ast_print(ASTNode* node, int indent) {
             for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
                 ast_print(node->data.intent_decl.involves[i], indent + 1);
             }
+            for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+                ast_print(node->data.intent_decl.values[i], indent + 1);
+            }
             for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
                 ast_print(node->data.intent_decl.steps[i], indent + 1);
             }
@@ -1196,6 +1199,12 @@ void ast_print(ASTNode* node, int indent) {
         case AST_INTENT_INVOLVES:
             printf("IntentInvolves: %s: ", node->data.intent_involves.alias);
             ast_print_inline(node->data.intent_involves.subject_type);
+            printf("\n");
+            break;
+
+        case AST_INTENT_VALUE:
+            printf("IntentValue: %s: ", node->data.intent_value.alias);
+            ast_print_inline(node->data.intent_value.value_type);
             printf("\n");
             break;
 

@@ -239,7 +239,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "authorized")) {
-            parser_intent_match_keyword(parser, "by");
+            if (!parser_intent_match_keyword(parser, "by")) {
+                parser_error(parser, "Expected 'by' after 'authorized'");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'authorized by'");
             parse_intent_name_list(parser,
                 &step->data.intent_step.authorized_by,
@@ -360,6 +363,18 @@ parse_intent_declaration(Parser *parser)
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after involves clause");
             intent_append_node(&intent->data.intent_decl.involves,
                 &intent->data.intent_decl.involve_count, involves);
+            continue;
+        }
+
+        if (parser_match(parser, TOKEN_WITH)) {
+            Token alias = consume_binding_name_token(
+                parser, "Expected intent value binding after 'with'");
+            ASTNode *value = ast_create_intent_value(alias.text);
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after intent value binding");
+            value->data.intent_value.value_type = parse_type(parser);
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent value clause");
+            intent_append_node(&intent->data.intent_decl.values,
+                &intent->data.intent_decl.value_count, value);
             continue;
         }
 

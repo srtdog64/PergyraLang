@@ -134,7 +134,9 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_pool.c \
-                   $(RUNTIME_DIR)/slot_security.c
+                   $(RUNTIME_DIR)/slot_security.c \
+                   $(RUNTIME_DIR)/party_runtime.c \
+                   $(RUNTIME_DIR)/world_roster.c
 ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
                    $(ASYNC_DIR)/async_scope.c \
                    $(ASYNC_DIR)/fiber.c \

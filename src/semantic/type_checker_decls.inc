@@ -1062,10 +1062,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
     if (existing != NULL && existing->kind == SYMBOL_INTENT) {
-        size_t ipc = node->data.intent_decl.involve_count;
+        size_t ipc = node->data.intent_decl.involve_count
+            + node->data.intent_decl.value_count;
         Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
         Type *ft;
-        for (size_t i = 0; i < ipc; i++) {
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
             ASTNode *involves = node->data.intent_decl.involves[i];
             if (involves != NULL && involves->type == AST_INTENT_INVOLVES
                 && involves->data.intent_involves.subject_type != NULL) {
@@ -1073,6 +1074,17 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     involves->data.intent_involves.subject_type, ctx);
             } else {
                 ptypes[i] = TYPE_UNKNOWN;
+            }
+        }
+        for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+            ASTNode *value = node->data.intent_decl.values[i];
+            size_t param_index = node->data.intent_decl.involve_count + i;
+            if (value != NULL && value->type == AST_INTENT_VALUE
+                && value->data.intent_value.value_type != NULL) {
+                ptypes[param_index] = resolve_type_node(
+                    value->data.intent_value.value_type, ctx);
+            } else {
+                ptypes[param_index] = TYPE_UNKNOWN;
             }
         }
         ft = type_create_function(ptypes, ipc, TYPE_BOOL);
@@ -1088,6 +1100,12 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         (void)resolve_type_node(involves->data.intent_involves.subject_type, ctx);
     }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        if (value == NULL || value->type != AST_INTENT_VALUE)
+            continue;
+        (void)resolve_type_node(value->data.intent_value.value_type, ctx);
+    }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -1102,6 +1120,19 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         participant_sym = symbol_create_variable(involves->data.intent_involves.alias,
             subject_type, involves->line, involves->column);
         scope_declare(ctx->scope, participant_sym);
+    }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        Type *value_type;
+        Symbol *value_sym;
+
+        if (value == NULL || value->type != AST_INTENT_VALUE)
+            continue;
+
+        value_type = resolve_type_node(value->data.intent_value.value_type, ctx);
+        value_sym = symbol_create_variable(value->data.intent_value.alias,
+            value_type, value->line, value->column);
+        scope_declare(ctx->scope, value_sym);
     }
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {

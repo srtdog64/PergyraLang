@@ -2608,6 +2608,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         } else {
             param_types[i] = resolve_type_node(param->type, ctx);
         }
+        if (param->mode != PARAM_MODE_DEFAULT
+            && !type_is_anchored_resource_handle(param_types[i])) {
+            semantic_error(ctx, node,
+                "'%s' parameter mode is currently only supported for Slot<subject-host>/SecureSlot<subject-host> parameters; "
+                "remove the qualifier or switch to an anchored slot handle",
+                param->mode == PARAM_MODE_OWN ? "own" : "ref");
+        }
         if (type_is_anchored_resource_handle(param_types[i])) {
             bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
             if (!allowed_subject_slot) {
@@ -3152,9 +3159,10 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         } else if (stmt->type == AST_INTENT_DECL) {
             const char *iname = stmt->data.intent_decl.name;
             if (iname != NULL && scope_lookup_current(ctx->scope, iname) == NULL) {
-                size_t ipc = stmt->data.intent_decl.involve_count;
+                size_t ipc = stmt->data.intent_decl.involve_count
+                    + stmt->data.intent_decl.value_count;
                 Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
-                for (size_t j = 0; j < ipc; j++) {
+                for (size_t j = 0; j < stmt->data.intent_decl.involve_count; j++) {
                     ASTNode *involves = stmt->data.intent_decl.involves[j];
                     if (involves != NULL && involves->type == AST_INTENT_INVOLVES
                         && involves->data.intent_involves.subject_type != NULL) {
@@ -3169,6 +3177,24 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         }
                     } else {
                         ptypes[j] = TYPE_UNKNOWN;
+                    }
+                }
+                for (size_t j = 0; j < stmt->data.intent_decl.value_count; j++) {
+                    ASTNode *value = stmt->data.intent_decl.values[j];
+                    size_t param_index = stmt->data.intent_decl.involve_count + j;
+                    if (value != NULL && value->type == AST_INTENT_VALUE
+                        && value->data.intent_value.value_type != NULL) {
+                        size_t saved_diag = ctx->diagnostic_count;
+                        bool saved_err = ctx->has_error;
+                        ptypes[param_index] = resolve_type_node(
+                            value->data.intent_value.value_type, ctx);
+                        if (ctx->diagnostic_count > saved_diag) {
+                            ctx->diagnostic_count = saved_diag;
+                            ctx->has_error = saved_err;
+                            ptypes[param_index] = TYPE_UNKNOWN;
+                        }
+                    } else {
+                        ptypes[param_index] = TYPE_UNKNOWN;
                     }
                 }
                 Type *ft = type_create_function(ptypes, ipc, TYPE_BOOL);

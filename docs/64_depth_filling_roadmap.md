@@ -144,7 +144,7 @@
 5. C 경로의 현재 제한 사항을 문서상 명시하고, 실제로 지원 안 되는 조합은 조용히 통과시키지 않게 한다.
 
 완료 기준:
-- `Set<Int>`, `List<String>`, `Map<String, Int>` 수준의 정상 예제가 C/LLVM 모두 통과한다.
+- `Set<Int>`, `List<String>`, `Map<String, Int>`, `Map<Int, Int>` 수준의 정상 예제가 C/LLVM 모두 통과한다.
 - 잘못된 key/value/element 호출이 semantic error로 막힌다.
 - 현재 미지원 조합은 명시적 에러가 난다.
 - LLVM 컬렉션 경로가 "없음"이 아니라 "기존 경로 보강"이라는 사실이 문서에 반영된다.
@@ -154,7 +154,7 @@
 - [ ] generic parameter validation
 - [ ] `.add/.push/.get/.set/.has/.remove/.size` 타입 체크
 - [ ] LLVM collection coercion/coverage 정리
-- [ ] unsupported 조합 명시 오류
+- [x] `HashMap<String, T>` / `HashMap<Int, T>` 외 key 조합은 명시 오류
 - [ ] C/LLVM positive smoke 추가
 - [ ] negative semantic test 추가
 

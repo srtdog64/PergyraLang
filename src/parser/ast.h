@@ -174,6 +174,7 @@ typedef enum
     AST_WORLD_STATE,
     AST_INTENT_DECL,
     AST_INTENT_INVOLVES,
+    AST_INTENT_VALUE,
     AST_INTENT_STEP,
     AST_RELATION_DECL,
     AST_EFFECT_DECL,
@@ -772,6 +773,8 @@ struct ASTNode
             char* name;
             ASTNode** involves;
             size_t involve_count;
+            ASTNode** values;
+            size_t value_count;
             ASTNode** steps;
             size_t step_count;
             bool is_concurrent;
@@ -791,6 +794,12 @@ struct ASTNode
             char* alias;
             ASTNode* subject_type;
         } intent_involves;
+
+        /* Intent value binding */
+        struct {
+            char* alias;
+            ASTNode* value_type;
+        } intent_value;
 
         /* Intent step */
         struct {
@@ -1157,6 +1166,7 @@ ASTNode* ast_create_world_state_compose(const char* state_name,
                                         size_t input_count);
 ASTNode* ast_create_intent_declaration(const char* name);
 ASTNode* ast_create_intent_involves(const char* alias);
+ASTNode* ast_create_intent_value(const char* alias);
 ASTNode* ast_create_intent_step(const char* name);
 ASTNode* ast_create_relation_declaration(const char* name);
 ASTNode* ast_create_effect_declaration(const char* name);

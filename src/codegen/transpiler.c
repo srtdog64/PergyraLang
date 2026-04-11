@@ -1919,12 +1919,20 @@ transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *routine,
                     }
                 }
             } else if (func_decl->type == AST_INTENT_DECL) {
-                /* For intent, extract alias from involves */
+                /* For intent, extract alias from involves/value bindings */
                 for (size_t p = 0; p < func_decl->data.intent_decl.involve_count; p++) {
                     ASTNode *involves = func_decl->data.intent_decl.involves[p];
                     if (involves != NULL && involves->type == AST_INTENT_INVOLVES
                         && involves->data.intent_involves.alias != NULL) {
                         transpiler_ssa_name_map_set(&ssa_map, involves->data.intent_involves.alias, involves->data.intent_involves.alias);
+                    }
+                }
+                for (size_t p = 0; p < func_decl->data.intent_decl.value_count; p++) {
+                    ASTNode *value = func_decl->data.intent_decl.values[p];
+                    if (value != NULL && value->type == AST_INTENT_VALUE
+                        && value->data.intent_value.alias != NULL) {
+                        transpiler_ssa_name_map_set(&ssa_map, value->data.intent_value.alias,
+                            value->data.intent_value.alias);
                     }
                 }
             }
@@ -4904,6 +4912,17 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             involves != NULL && involves->data.intent_involves.alias != NULL
                 ? involves->data.intent_involves.alias : "participant");
     }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        const char *pt = "int32_t";
+        if (node->data.intent_decl.involve_count > 0 || i > 0)
+            codebuf_write(buf, ", ");
+        if (value != NULL && value->data.intent_value.value_type != NULL)
+            pt = pergyra_ast_type_to_c(value->data.intent_value.value_type);
+        codebuf_write(buf, "%s %s", pt,
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias : "value");
+    }
     codebuf_write(buf, ");\n");
 }
 
@@ -4920,6 +4939,17 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
         }
         if (!transpiler_can_forward_declare_type_early(
                 ctx, involves->data.intent_involves.subject_type)) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
+        ASTNode *value = intent->data.intent_decl.values[i];
+        if (value == NULL || value->type != AST_INTENT_VALUE
+            || value->data.intent_value.value_type == NULL) {
+            continue;
+        }
+        if (!transpiler_can_forward_declare_type_early(
+                ctx, value->data.intent_value.value_type)) {
             return false;
         }
     }
@@ -4984,6 +5014,24 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             TypedVarEntry *entry = lookup_typed_entry(ctx, involves->data.intent_involves.alias);
             if (entry != NULL)
                 entry->is_subject_ref = pointer_param;
+            free(type_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        const char *pt = "int32_t";
+        char *type_name = NULL;
+        if (node->data.intent_decl.involve_count > 0 || i > 0)
+            codebuf_write(ctx->out, ", ");
+        if (value != NULL && value->data.intent_value.value_type != NULL) {
+            pt = pergyra_ast_type_to_c(value->data.intent_value.value_type);
+            type_name = render_type_name(value->data.intent_value.value_type);
+        }
+        codebuf_write(ctx->out, "%s %s", pt,
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias : "value");
+        if (type_name != NULL) {
+            register_typed_var(ctx, value->data.intent_value.alias, type_name);
             free(type_name);
         }
     }

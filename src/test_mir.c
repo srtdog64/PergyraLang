@@ -331,6 +331,10 @@ test_mir_lowering(void)
         EXPECT(ok
                && mir_validate(mir, NULL)
                && purchase != NULL
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentAuthorizedBy", "pay")
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentCauses", "pay")
                && purchase->has_cleanup_block
                && purchase->has_rollback_block
                && purchase->has_invalidation_block

@@ -485,11 +485,15 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     if (strcmp(type_name, "HashMap") == 0
         && type_node->data.type.generic_args != NULL
         && type_node->data.type.generic_args->count > 1
+        && type_node->data.type.generic_args->params[0] != NULL
+        && type_node->data.type.generic_args->params[0]->constraint != NULL
         && type_node->data.type.generic_args->params[1] != NULL
         && type_node->data.type.generic_args->params[1]->constraint != NULL) {
+        char *key_name = llvm_render_type_name(
+            type_node->data.type.generic_args->params[0]->constraint);
         char *value_name = llvm_render_type_name(
             type_node->data.type.generic_args->params[1]->constraint);
-        llvm_register_map_var(ctx, var_name, value_name);
+        llvm_register_map_var(ctx, var_name, key_name, value_name);
         return;
     }
 

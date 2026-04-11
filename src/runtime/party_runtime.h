@@ -1,7 +1,9 @@
 /*
  * Copyright (c) 2025 Pergyra Language Project
  * Party System Runtime Implementation
- * FiberMap generation and parallel execution orchestration
+ * Current public surface is intentionally limited to the subset that is
+ * actually implemented in party_runtime.c. Async dispatch/cache/tracing
+ * APIs are not yet part of the stable surface.
  */
 
 #ifndef PERGYRA_PARTY_RUNTIME_H
@@ -12,6 +14,8 @@
 #include "../runtime/slot_manager.h"
 #include "../runtime/async/fiber.h"
 #include "../runtime/async/scheduler.h"
+
+typedef Scheduler FiberScheduler;
 
 /* ============= Scheduler Tags ============= */
 
@@ -87,10 +91,11 @@ typedef struct PartyContext {
     
     /* Party metadata */
     const char* partyName;
+    FiberMap* fiberMap;             /* Attached execution map for roster/world runtime */
     bool inCombat;                   /* Example shared state */
     
     /* Synchronization */
-    SpinLock contextLock;            /* For thread-safe access */
+    pthread_mutex_t contextLock;     /* For thread-safe access */
 } PartyContext;
 
 /* ============= FiberMap Generation ============= */
@@ -105,19 +110,25 @@ typedef struct {
     bool continuous;
 } RoleParallelMetadata;
 
+typedef struct {
+    const char* slotName;
+    uint32_t instanceSlotId;
+    RoleParallelMetadata* metadata;
+} PartyRoleBinding;
+
 /* Generate FiberMap from party type and role bindings */
 FiberMap* GenerateFiberMap(
     const char* partyType,
-    const struct {
-        const char* slotName;
-        uint32_t instanceSlotId;
-        RoleParallelMetadata* metadata;
-    }* roleBindings,
+    const PartyRoleBinding* roleBindings,
     size_t bindingCount
 );
 
 /* Free a dynamically generated FiberMap */
 void FreeFiberMap(FiberMap* map);
+
+/* Attach or query the execution map bound to a party context */
+void PartyContextAttachFiberMap(PartyContext* context, FiberMap* map);
+FiberMap* PartyContextGetFiberMap(PartyContext* context);
 
 /* ============= Runtime Dispatcher ============= */
 
@@ -178,22 +189,6 @@ DispatchResult DispatchParallel(
     DispatcherConfig* config
 );
 
-/* Async version that returns immediately */
-typedef struct DispatchHandle DispatchHandle;
-
-DispatchHandle* DispatchParallelAsync(
-    FiberMap* map,
-    PartyContext* context,
-    JoinStrategy joinStrategy,
-    DispatcherConfig* config
-);
-
-/* Wait for async dispatch to complete */
-DispatchResult WaitForDispatch(DispatchHandle* handle, uint64_t timeoutMs);
-
-/* Cancel running dispatch */
-void CancelDispatch(DispatchHandle* handle);
-
 /* ============= Context API (for roles) ============= */
 
 /* Get role by ability - used by 'context.GetRole<Ability>("slot")' */
@@ -233,20 +228,6 @@ bool RegisterScheduler(
 /* Get scheduler for tag */
 FiberScheduler* GetSchedulerForTag(SchedulerTag tag);
 
-/* ============= Optimization & Caching ============= */
-
-/* Cache for static FiberMaps */
-typedef struct FiberMapCache FiberMapCache;
-
-/* Global cache instance */
-extern FiberMapCache* g_fiberMapCache;
-
-/* Cache operations */
-void InitializeFiberMapCache(size_t maxEntries);
-void CacheFiberMap(uint64_t key, FiberMap* map);
-FiberMap* GetCachedFiberMap(uint64_t key);
-void CleanupFiberMapCache(void);
-
 /* ============= Debugging & Profiling ============= */
 
 /* Fiber execution statistics */
@@ -265,9 +246,6 @@ FiberStats GetFiberStats(const char* roleId);
 
 /* Dump all fiber maps for debugging */
 void DumpFiberMaps(void);
-
-/* Trace fiber execution */
-void EnableFiberTracing(bool enable);
 
 /* ============= Helper Macros ============= */
 

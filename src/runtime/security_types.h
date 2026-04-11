@@ -225,8 +225,7 @@ static inline SecureSlotWithToken SecurityUpgrade(UnifiedSlot insecureSlot,
 static inline void FastWrite(GenericSlot slot, const void* data, size_t size) 
 {
     if (slot.security == SECURITY_MODEL_ZERO_COST) {
-        void* ptr = GetSlotPointer(slot.slotId);
-        memcpy(ptr, data, size);
+        GenericWrite(slot, data, size, NULL);
     } else {
         Panic("FastWrite called on secure slot");
     }
@@ -235,8 +234,7 @@ static inline void FastWrite(GenericSlot slot, const void* data, size_t size)
 static inline void FastRead(GenericSlot slot, void* buffer, size_t size) 
 {
     if (slot.security == SECURITY_MODEL_ZERO_COST) {
-        void* ptr = GetSlotPointer(slot.slotId);
-        memcpy(buffer, ptr, size);
+        GenericRead(slot, buffer, size, NULL);
     } else {
         Panic("FastRead called on secure slot");
     }

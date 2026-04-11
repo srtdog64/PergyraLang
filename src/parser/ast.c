@@ -507,6 +507,8 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.name = name ? pergyra_strdup(name) : NULL;
     node->data.intent_decl.involves = NULL;
     node->data.intent_decl.involve_count = 0;
+    node->data.intent_decl.values = NULL;
+    node->data.intent_decl.value_count = 0;
     node->data.intent_decl.steps = NULL;
     node->data.intent_decl.step_count = 0;
     node->data.intent_decl.is_concurrent = false;
@@ -525,6 +527,13 @@ ASTNode* ast_create_intent_involves(const char* alias) {
     ASTNode* node = ast_create_node(AST_INTENT_INVOLVES);
     node->data.intent_involves.alias = alias ? pergyra_strdup(alias) : NULL;
     node->data.intent_involves.subject_type = NULL;
+    return node;
+}
+
+ASTNode* ast_create_intent_value(const char* alias) {
+    ASTNode* node = ast_create_node(AST_INTENT_VALUE);
+    node->data.intent_value.alias = alias ? pergyra_strdup(alias) : NULL;
+    node->data.intent_value.value_type = NULL;
     return node;
 }
 
@@ -1673,6 +1682,9 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.intent_decl.involve_count; i++)
                 ast_destroy(node->data.intent_decl.involves[i]);
             free(node->data.intent_decl.involves);
+            for (size_t i = 0; i < node->data.intent_decl.value_count; i++)
+                ast_destroy(node->data.intent_decl.values[i]);
+            free(node->data.intent_decl.values);
             for (size_t i = 0; i < node->data.intent_decl.step_count; i++)
                 ast_destroy(node->data.intent_decl.steps[i]);
             free(node->data.intent_decl.steps);
@@ -1689,6 +1701,10 @@ void ast_destroy(ASTNode* node) {
         case AST_INTENT_INVOLVES:
             free(node->data.intent_involves.alias);
             ast_destroy(node->data.intent_involves.subject_type);
+            break;
+        case AST_INTENT_VALUE:
+            free(node->data.intent_value.alias);
+            ast_destroy(node->data.intent_value.value_type);
             break;
 
         case AST_INTENT_STEP:

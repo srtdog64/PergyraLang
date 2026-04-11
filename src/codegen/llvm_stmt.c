@@ -1203,11 +1203,18 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
         if (strcmp(ann_name, "HashMap") == 0 && strcmp(callee, "MapNew") == 0) {
             const char *value_type = "Int";
+            const char *key_type = "String";
             LLVMTypeRef map_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef value_ty;
             LLVMValueRef alloca_val;
             LLVMFuncEntry *new_fn;
 
+            if (type_ann->data.type.generic_args != NULL
+                && type_ann->data.type.generic_args->count > 0
+                && type_ann->data.type.generic_args->params[0] != NULL) {
+                key_type = llvm_stmt_render_type_arg(
+                    type_ann->data.type.generic_args->params[0]);
+            }
             if (type_ann->data.type.generic_args != NULL
                 && type_ann->data.type.generic_args->count > 1
                 && type_ann->data.type.generic_args->params[1] != NULL) {
@@ -1225,7 +1232,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
             }
             llvm_scope_declare(ctx, name, alloca_val, map_ty);
-            llvm_register_map_var(ctx, name, value_type);
+            llvm_register_map_var(ctx, name, key_type, value_type);
             return;
         }
     }
@@ -1674,10 +1681,13 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         } else if (strcmp(ann_name, "HashMap") == 0
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 1
+            && type_ann->data.type.generic_args->params[0] != NULL
             && type_ann->data.type.generic_args->params[1] != NULL) {
+            char *key_name = llvm_stmt_render_type_arg(
+                type_ann->data.type.generic_args->params[0]);
             char *value_name = llvm_stmt_render_type_arg(
                 type_ann->data.type.generic_args->params[1]);
-            llvm_register_map_var(ctx, name, value_name);
+            llvm_register_map_var(ctx, name, key_name, value_name);
         }
     }
 

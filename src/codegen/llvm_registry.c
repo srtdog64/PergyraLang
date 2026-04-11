@@ -713,13 +713,24 @@ llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name)
 
 void
 llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
-                      const char *value_type)
+                      const char *key_type, const char *value_type)
 {
     PGY_DYNARR_ENSURE(ctx->map_vars, ctx->map_var_count,
                       ctx->map_var_capacity, LLVMMapVarEntry);
     ctx->map_vars[ctx->map_var_count].var_name = var_name;
+    ctx->map_vars[ctx->map_var_count].key_type = key_type;
     ctx->map_vars[ctx->map_var_count].value_type = value_type;
     ctx->map_var_count++;
+}
+
+const char *
+llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name)
+{
+    for (int i = ctx->map_var_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->map_vars[i].var_name, var_name) == 0)
+            return ctx->map_vars[i].key_type;
+    }
+    return NULL;
 }
 
 const char *

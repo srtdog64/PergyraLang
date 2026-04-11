@@ -1602,10 +1602,34 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     }
     /* Math builtins */
     if (strcmp(name, "Sqrt") == 0 || strcmp(name, "Floor") == 0
-        || strcmp(name, "Ceil") == 0) {
+        || strcmp(name, "Ceil") == 0
+        || strcmp(name, "Sin") == 0 || strcmp(name, "Cos") == 0
+        || strcmp(name, "Tan") == 0 || strcmp(name, "Asin") == 0
+        || strcmp(name, "Acos") == 0 || strcmp(name, "Atan") == 0
+        || strcmp(name, "Exp") == 0 || strcmp(name, "MathLog") == 0
+        || strcmp(name, "Log10") == 0 || strcmp(name, "Log2") == 0
+        || strcmp(name, "Round") == 0) {
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         type_check_expression(expr->data.call.arguments[0], ctx);
+        return TYPE_FLOAT;
+    }
+    if (strcmp(name, "Atan2") == 0) {
+        if (!check_call_arity(expr, 2, name, ctx))
+            return TYPE_UNKNOWN;
+        type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        return TYPE_FLOAT;
+    }
+    if (strcmp(name, "Clamp") == 0) {
+        if (!check_call_arity(expr, 3, name, ctx))
+            return TYPE_UNKNOWN;
+        Type *val = type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(expr->data.call.arguments[1], ctx);
+        type_check_expression(expr->data.call.arguments[2], ctx);
+        return val;
+    }
+    if (strcmp(name, "PI") == 0 || strcmp(name, "E") == 0) {
         return TYPE_FLOAT;
     }
     if (strcmp(name, "Pow") == 0) {
@@ -1651,9 +1675,17 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             require_assignable(value_type,
                 map_type->data.constructed.args[1],
                 expr->data.call.arguments[2], ctx);
+            if (map_type->data.constructed.args[0] != NULL
+                && map_type->data.constructed.args[0]->name != NULL
+                && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                semantic_error(ctx, expr->data.call.arguments[0],
+                    "MapSet currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    map_type->name != NULL ? map_type->name : "<type>");
+            }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "MapSet expects HashMap<String, T> as first argument, got '%s'",
+                "MapSet expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
         return TYPE_VOID;
@@ -1670,11 +1702,19 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             require_assignable(key_type,
                 map_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
+            if (map_type->data.constructed.args[0] != NULL
+                && map_type->data.constructed.args[0]->name != NULL
+                && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                semantic_error(ctx, expr->data.call.arguments[0],
+                    "MapGet currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    map_type->name != NULL ? map_type->name : "<type>");
+            }
             return map_type->data.constructed.args[1];
         }
         if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "MapGet expects HashMap<String, T> as first argument, got '%s'",
+                "MapGet expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
         return TYPE_UNKNOWN; /* resolved from context */
@@ -1691,9 +1731,17 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             require_assignable(key_type,
                 map_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
+            if (map_type->data.constructed.args[0] != NULL
+                && map_type->data.constructed.args[0]->name != NULL
+                && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                semantic_error(ctx, expr->data.call.arguments[0],
+                    "MapHas currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    map_type->name != NULL ? map_type->name : "<type>");
+            }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "MapHas expects HashMap<String, T> as first argument, got '%s'",
+                "MapHas expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
         return TYPE_BOOL;
@@ -1710,9 +1758,17 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             require_assignable(key_type,
                 map_type->data.constructed.args[0],
                 expr->data.call.arguments[1], ctx);
+            if (map_type->data.constructed.args[0] != NULL
+                && map_type->data.constructed.args[0]->name != NULL
+                && strcmp(map_type->data.constructed.args[0]->name, "String") != 0
+                && strcmp(map_type->data.constructed.args[0]->name, "Int") != 0) {
+                semantic_error(ctx, expr->data.call.arguments[0],
+                    "MapRemove currently supports only HashMap<String, T> and HashMap<Int, T>, got '%s'",
+                    map_type->name != NULL ? map_type->name : "<type>");
+            }
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "MapRemove expects HashMap<String, T> as first argument, got '%s'",
+                "MapRemove expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
         return TYPE_VOID;
@@ -1725,7 +1781,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (map_type != NULL && map_type != TYPE_UNKNOWN
             && !type_is_constructed_named(map_type, "HashMap")) {
             semantic_error(ctx, expr->data.call.arguments[0],
-                "MapSize expects HashMap<String, T> as first argument, got '%s'",
+                "MapSize expects HashMap<K, T> as first argument, got '%s'",
                 map_type->name != NULL ? map_type->name : "<type>");
         }
         return TYPE_INT;

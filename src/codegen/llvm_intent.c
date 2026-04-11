@@ -904,6 +904,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     const char **participant_aliases = NULL;
     const char **participant_types = NULL;
     size_t participant_count = 0;
+    size_t param_count = 0;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
@@ -915,34 +916,43 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
     }
+    param_count = node->data.intent_decl.involve_count
+        + node->data.intent_decl.value_count;
     if (participant_count == 0)
         participant_count = node->data.intent_decl.involve_count;
+    if (param_count == 0)
+        param_count = participant_count;
 
-    if (participant_count > 0) {
-        param_types = calloc(participant_count, sizeof(LLVMTypeRef));
-        for (size_t i = 0; i < participant_count; i++) {
-            ASTNode *involves = i < node->data.intent_decl.involve_count
-                ? node->data.intent_decl.involves[i]
-                : NULL;
-            const char *type_name = participant_types != NULL
-                ? participant_types[i]
-                : llvm_intent_involves_type_name(involves);
+    if (param_count > 0) {
+        param_types = calloc(param_count, sizeof(LLVMTypeRef));
+        for (size_t i = 0; i < param_count; i++) {
             LLVMTypeRef pt = ctx->type_i32;
-            if (type_name != NULL) {
-                pt = pergyra_type_to_llvm(ctx, type_name);
-                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
-                    pt = LLVMPointerType(pt, 0);
-            } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-                pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
-                if (llvm_intent_involves_uses_pointer_self(ctx, involves))
-                    pt = LLVMPointerType(pt, 0);
+            if (i < node->data.intent_decl.involve_count) {
+                ASTNode *involves = node->data.intent_decl.involves[i];
+                const char *type_name = participant_types != NULL && i < participant_count
+                    ? participant_types[i]
+                    : llvm_intent_involves_type_name(involves);
+                if (type_name != NULL) {
+                    pt = pergyra_type_to_llvm(ctx, type_name);
+                    if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                        pt = LLVMPointerType(pt, 0);
+                } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+                    pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                    if (llvm_intent_involves_uses_pointer_self(ctx, involves))
+                        pt = LLVMPointerType(pt, 0);
+                }
+            } else {
+                ASTNode *value = node->data.intent_decl.values[
+                    i - node->data.intent_decl.involve_count];
+                if (value != NULL && value->data.intent_value.value_type != NULL)
+                    pt = ast_type_to_llvm(ctx, value->data.intent_value.value_type);
             }
             param_types[i] = pt;
         }
     }
 
     fn_type = LLVMFunctionType(ctx->type_i1, param_types,
-        (unsigned)participant_count, 0);
+        (unsigned)param_count, 0);
     fn = LLVMAddFunction(ctx->module, name, fn_type);
     /* Disable stack probing (avoids __chkstk linking issues with mingw) */
     {
@@ -993,6 +1003,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef subjects_ptr;
     LLVMValueRef *completed_allocas = NULL;
     size_t participant_count = 0;
+    size_t param_count = 0;
     size_t subject_count = 0;
     size_t step_count = 0;
     bool has_compensate_steps = false;
@@ -1040,6 +1051,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (participant_count == 0)
         participant_count = node->data.intent_decl.involve_count;
+    param_count = node->data.intent_decl.involve_count
+        + node->data.intent_decl.value_count;
+    if (param_count == 0)
+        param_count = participant_count;
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
@@ -1083,32 +1098,44 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, entry_bb);
     llvm_scope_push(ctx);
 
-    for (size_t i = 0; i < participant_count; i++) {
-        ASTNode *involves = i < node->data.intent_decl.involve_count
-            ? node->data.intent_decl.involves[i]
-            : NULL;
-        const char *alias = participant_aliases != NULL
-            ? participant_aliases[i]
-            : (involves != NULL ? involves->data.intent_involves.alias : NULL);
-        const char *type_name = participant_types != NULL
-            ? participant_types[i]
-            : ((involves != NULL
-                && involves->data.intent_involves.subject_type != NULL
-                && involves->data.intent_involves.subject_type->type == AST_TYPE)
-                ? involves->data.intent_involves.subject_type->data.type.name : NULL);
+    for (size_t i = 0; i < param_count; i++) {
         LLVMTypeRef pt = ctx->type_i8ptr;
-        if (type_name != NULL) {
-            pt = pergyra_type_to_llvm(ctx, type_name);
-            if (llvm_intent_type_uses_pointer_self(ctx, type_name))
-                pt = LLVMPointerType(pt, 0);
-        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-            pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
-            if (llvm_intent_involves_uses_pointer_self(ctx, involves))
-                pt = LLVMPointerType(pt, 0);
+        const char *alias = NULL;
+        const char *type_name = NULL;
+        if (i < node->data.intent_decl.involve_count) {
+            ASTNode *involves = node->data.intent_decl.involves[i];
+            alias = participant_aliases != NULL && i < participant_count
+                ? participant_aliases[i]
+                : (involves != NULL ? involves->data.intent_involves.alias : NULL);
+            type_name = participant_types != NULL && i < participant_count
+                ? participant_types[i]
+                : ((involves != NULL
+                    && involves->data.intent_involves.subject_type != NULL
+                    && involves->data.intent_involves.subject_type->type == AST_TYPE)
+                    ? involves->data.intent_involves.subject_type->data.type.name : NULL);
+            if (type_name != NULL) {
+                pt = pergyra_type_to_llvm(ctx, type_name);
+                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                    pt = LLVMPointerType(pt, 0);
+            } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+                pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                if (llvm_intent_involves_uses_pointer_self(ctx, involves))
+                    pt = LLVMPointerType(pt, 0);
+            }
+        } else {
+            ASTNode *value = node->data.intent_decl.values[
+                i - node->data.intent_decl.involve_count];
+            alias = value != NULL ? value->data.intent_value.alias : NULL;
+            type_name = (value != NULL
+                && value->data.intent_value.value_type != NULL
+                && value->data.intent_value.value_type->type == AST_TYPE)
+                ? value->data.intent_value.value_type->data.type.name : NULL;
+            if (value != NULL && value->data.intent_value.value_type != NULL)
+                pt = ast_type_to_llvm(ctx, value->data.intent_value.value_type);
         }
-        LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "participant");
+        LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "param");
         LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), a);
-        llvm_scope_declare(ctx, alias != NULL ? alias : "participant", a, pt);
+        llvm_scope_declare(ctx, alias != NULL ? alias : "param", a, pt);
         if (type_name != NULL)
             llvm_register_var_class(ctx, alias, type_name);
     }

@@ -1989,13 +1989,37 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             free(a); free(b);
             return result;
         }
-        if ((strcmp(fn, "Floor") == 0 || strcmp(fn, "Ceil") == 0)
+        if ((strcmp(fn, "Floor") == 0 || strcmp(fn, "Ceil") == 0
+            || strcmp(fn, "Round") == 0
+            || strcmp(fn, "Sin") == 0 || strcmp(fn, "Cos") == 0
+            || strcmp(fn, "Tan") == 0 || strcmp(fn, "Asin") == 0
+            || strcmp(fn, "Acos") == 0 || strcmp(fn, "Atan") == 0
+            || strcmp(fn, "Exp") == 0 || strcmp(fn, "MathLog") == 0
+            || strcmp(fn, "Log10") == 0 || strcmp(fn, "Log2") == 0)
             && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("%s(%s)", fn, arg);
             free(arg);
             return result;
         }
+        if (strcmp(fn, "Atan2") == 0 && call->data.call.arg_count == 2) {
+            char *a = emit_expression(call->data.call.arguments[0], ctx);
+            char *b = emit_expression(call->data.call.arguments[1], ctx);
+            char *result = strdup_fmt("Atan2(%s, %s)", a, b);
+            free(a); free(b);
+            return result;
+        }
+        if (strcmp(fn, "Clamp") == 0 && call->data.call.arg_count == 3) {
+            char *val = emit_expression(call->data.call.arguments[0], ctx);
+            char *lo = emit_expression(call->data.call.arguments[1], ctx);
+            char *hi = emit_expression(call->data.call.arguments[2], ctx);
+            char *result = strdup_fmt("Clamp(%s, %s, %s)", val, lo, hi);
+            free(val); free(lo); free(hi);
+            return result;
+        }
+        if (strcmp(fn, "PI") == 0) return pergyra_strdup("PGY_PI");
+        if (strcmp(fn, "E") == 0 && call->data.call.arg_count == 0)
+            return pergyra_strdup("PGY_E");
         if (strcmp(fn, "Random") == 0) {
             if (call->data.call.arg_count >= 1) {
                 char *arg = emit_expression(call->data.call.arguments[0], ctx);
@@ -2306,7 +2330,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
                 result = pergyra_strdup(arg);
             } else if (arg_type != NULL && strcmp(arg_type, "Bool") == 0) {
-                result = strdup_fmt("((%s) ? \"true\" : \"false\")", arg);
+                result = strdup_fmt("pgy_bool_to_string(%s)", arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Float") == 0) {
+                result = strdup_fmt("pgy_float_to_string(%s)", arg);
+            } else if (arg_type != NULL && strcmp(arg_type, "Double") == 0) {
+                result = strdup_fmt("pgy_float_to_string((float)(%s))", arg);
             } else if (arg_type != NULL && strcmp(arg_type, "Long") == 0) {
                 result = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
             } else {
@@ -2332,11 +2360,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             char *v = emit_expression(call->data.call.arguments[2], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 0)
+                : "String";
             const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                 ? constructed_arg_name_at(map_type, 1)
                 : "Int";
             ensure_collection_specialization(ctx, "Map", value);
-            char *result = strdup_fmt("pgy_map_set_%s(&%s, %s, %s)",
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_set_i32_%s(&%s, %s, %s)"
+                                        : "pgy_map_set_%s(&%s, %s, %s)",
                 collection_runtime_suffix(value), m, k, v);
             free(m); free(k); free(v);
             return result;
@@ -2345,11 +2378,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 0)
+                : "String";
             const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                 ? constructed_arg_name_at(map_type, 1)
                 : "Int";
             ensure_collection_specialization(ctx, "Map", value);
-            char *result = strdup_fmt("pgy_map_get_%s(&%s, %s)",
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_get_i32_%s(&%s, %s)"
+                                        : "pgy_map_get_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -2358,11 +2396,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 0)
+                : "String";
             const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                 ? constructed_arg_name_at(map_type, 1)
                 : "Int";
             ensure_collection_specialization(ctx, "Map", value);
-            char *result = strdup_fmt("pgy_map_has_%s(&%s, %s)",
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_has_i32_%s(&%s, %s)"
+                                        : "pgy_map_has_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -2371,11 +2414,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *m = emit_expression(call->data.call.arguments[0], ctx);
             char *k = emit_expression(call->data.call.arguments[1], ctx);
             const char *map_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *key = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
+                ? constructed_arg_name_at(map_type, 0)
+                : "String";
             const char *value = (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
                 ? constructed_arg_name_at(map_type, 1)
                 : "Int";
             ensure_collection_specialization(ctx, "Map", value);
-            char *result = strdup_fmt("pgy_map_remove_%s(&%s, %s)",
+            char *result = strdup_fmt(
+                strcmp(key, "Int") == 0 ? "pgy_map_remove_i32_%s(&%s, %s)"
+                                        : "pgy_map_remove_%s(&%s, %s)",
                 collection_runtime_suffix(value), m, k);
             free(m); free(k);
             return result;
@@ -3019,12 +3067,23 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
                             && i < decl->data.func_decl.param_count)
             ? decl->data.func_decl.params[i] : NULL;
-        ASTNode *intent_param_type = (decl != NULL && decl->type == AST_INTENT_DECL
-                                      && i < decl->data.intent_decl.involve_count
-                                      && decl->data.intent_decl.involves[i] != NULL)
-            ? decl->data.intent_decl.involves[i]->data.intent_involves.subject_type : NULL;
+        ASTNode *intent_param_type = NULL;
         bool handled = false;
         char *arg = NULL;
+
+        if (decl != NULL && decl->type == AST_INTENT_DECL) {
+            if (i < decl->data.intent_decl.involve_count
+                && decl->data.intent_decl.involves[i] != NULL) {
+                intent_param_type =
+                    decl->data.intent_decl.involves[i]->data.intent_involves.subject_type;
+            } else if (i < decl->data.intent_decl.involve_count
+                    + decl->data.intent_decl.value_count) {
+                size_t value_index = i - decl->data.intent_decl.involve_count;
+                ASTNode *value = decl->data.intent_decl.values[value_index];
+                if (value != NULL)
+                    intent_param_type = value->data.intent_value.value_type;
+            }
+        }
 
         if (param != NULL && param->type != NULL
             && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {

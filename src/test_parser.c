@@ -1164,6 +1164,25 @@ main(void)
             1
         },
         {
+            "Intent Step Authorized Requires By",
+            "subject Buyer {\n"
+            "    action Pay(self) -> Void { return; }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized: buyer;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n",
+            0
+        },
+        {
             "Intent Step Subintent Clause",
             "subject Buyer {\n"
             "    let hp: Int;\n"

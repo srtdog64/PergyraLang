@@ -1080,6 +1080,74 @@ pgy_map_size_raw_export(void *map_ptr)
     return (int32_t)map->count;
 }
 
+static char *
+pgy_map_i32_key_string_export(int32_t key)
+{
+    char stack_buf[32];
+    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", key);
+    char *buf;
+
+    if (len < 0)
+        return NULL;
+    buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL)
+        return NULL;
+    memcpy(buf, stack_buf, (size_t)len + 1);
+    return buf;
+}
+
+void
+pgy_map_set_raw_i32_export(void *map_ptr, int32_t key, void *value_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_i32", "key formatting failed");
+        return;
+    }
+    pgy_map_set_raw_export(map_ptr, key_str, value_ptr, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_get_raw_i32_export(void *map_ptr, int32_t key, void *out_ptr, int64_t value_size)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_i32", "key formatting failed");
+        if (out_ptr != NULL && value_size > 0)
+            memset(out_ptr, 0, (size_t)value_size);
+        return;
+    }
+    pgy_map_get_raw_export(map_ptr, key_str, out_ptr, value_size);
+    free(key_str);
+}
+
+bool
+pgy_map_has_raw_i32_export(void *map_ptr, int32_t key)
+{
+    bool result;
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_has_i32", "key formatting failed");
+        return false;
+    }
+    result = pgy_map_has_raw_export(map_ptr, key_str);
+    free(key_str);
+    return result;
+}
+
+void
+pgy_map_remove_raw_i32_export(void *map_ptr, int32_t key, int64_t value_size)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_i32", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_raw_export(map_ptr, key_str, value_size);
+    free(key_str);
+}
+
 /* =================================================================
  * Set — raw (type-erased) export functions for LLVM linking
  *

@@ -259,8 +259,9 @@ PartyIR* TransformPartyToIR(
     "    .sharedFields = %s_shared,\n" \
     "    .sharedFieldCount = %zu,\n" \
     "    .partyName = \"%s\",\n" \
+    "    .fiberMap = NULL,\n" \
     "    .inCombat = false,\n" \
-    "    .contextLock = SPINLOCK_INIT\n" \
+    "    .contextLock = PTHREAD_MUTEX_INITIALIZER\n" \
     "};\n"
 
 #endif /* PERGYRA_PARTY_COMPILER_H */
