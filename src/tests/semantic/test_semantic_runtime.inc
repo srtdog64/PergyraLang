@@ -2172,6 +2172,33 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone refresh map remaps target fields from differently named source fields");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { totalHp: Int; label: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player map {\n"
+            "        totalHp <- hp;\n"
+            "        label <- name;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("authority-bearing zone publish requires explicit by authority");
     {
         const char *source =
@@ -3889,6 +3916,42 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implicitly copies zone binding 'battle'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Clone makes world zone copy explicit and keeps old binding mutable");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    shared hp: Int = 0\n"
+            "    func Hurt() -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let battle = BattleZone(Player(10));\n"
+            "    let world = GameWorld(Clone(battle));\n"
+            "    battle.hp = 3;\n"
+            "    battle.Hurt();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -939,6 +939,10 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_LOG_BANNER:
     case BUILTIN_LOG_BLOCK:
         return emit_builtin_log_banner(call, ctx);
+    case BUILTIN_CLONE:
+        if (call->data.call.arg_count >= 1 && call->data.call.arguments[0] != NULL)
+            return emit_expression(call->data.call.arguments[0], ctx);
+        return pergyra_strdup("0");
     case BUILTIN_RC_NEW:
     case BUILTIN_RC_CLONE:
     case BUILTIN_RC_DROP:
@@ -3405,7 +3409,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 : NULL;
             if (target_decl != NULL && source_decl != NULL) {
                 return emit_projection_literal(ctx, target_decl, source_decl,
-                    projection_entry->type_name, projection_entry->source_slot);
+                    NULL, projection_entry->type_name, projection_entry->source_slot);
             }
         }
         return pergyra_strdup(id_name);

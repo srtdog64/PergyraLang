@@ -1333,6 +1333,7 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
 
 static bool
 projection_target_mentions_source_field(TranspilerCtx *ctx,
+                                        ASTNode *refresh,
                                         const char *target_slot_name,
                                         const char *source_field_name)
 {
@@ -1360,8 +1361,23 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *field = target_decl->data.class_decl.fields[i];
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, source_field_name) == 0) {
+        const char *mapped_source_name = field != NULL ? field->name : NULL;
+        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH && field != NULL
+            && field->name != NULL) {
+            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
+                const char *mapped_target =
+                    refresh->data.zone_refresh.mapped_target_fields[j];
+                const char *mapped_source =
+                    refresh->data.zone_refresh.mapped_source_fields[j];
+                if (mapped_target != NULL && mapped_source != NULL
+                    && strcmp(mapped_target, field->name) == 0) {
+                    mapped_source_name = mapped_source;
+                    break;
+                }
+            }
+        }
+        if (mapped_source_name != NULL
+            && strcmp(mapped_source_name, source_field_name) == 0) {
             return true;
         }
     }
@@ -1404,7 +1420,8 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
             || strcmp(refresh_source_name, source_slot_name) != 0) {
             continue;
         }
-        if (!projection_target_mentions_source_field(ctx, target_name, source_field_name))
+        if (!projection_target_mentions_source_field(ctx, refresh,
+                target_name, source_field_name))
             continue;
         codebuf_write(buf,
             "%s->__projection_dirty_%s = true; "
@@ -2533,7 +2550,8 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 
 static char *
 emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *source_decl,
-                        const char *target_type_name, const char *source_expr)
+                        ASTNode *refresh, const char *target_type_name,
+                        const char *source_expr)
 {
     CodeBuf *buf;
     char *result;
@@ -2549,14 +2567,30 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
+        const char *source_field_name = NULL;
         char *source_path = NULL;
         int source_status;
 
         if (target_field == NULL || target_field->name == NULL)
             continue;
 
+        source_field_name = target_field->name;
+        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
+            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
+                const char *mapped_target =
+                    refresh->data.zone_refresh.mapped_target_fields[j];
+                const char *mapped_source =
+                    refresh->data.zone_refresh.mapped_source_fields[j];
+                if (mapped_target != NULL && mapped_source != NULL
+                    && strcmp(mapped_target, target_field->name) == 0) {
+                    source_field_name = mapped_source;
+                    break;
+                }
+            }
+        }
+
         source_status = resolve_projection_source_path_rec(
-            ctx, source_decl, target_field->name, 0, &source_path);
+            ctx, source_decl, source_field_name, 0, &source_path);
         if (!first)
             codebuf_write(buf, ", ");
         first = false;

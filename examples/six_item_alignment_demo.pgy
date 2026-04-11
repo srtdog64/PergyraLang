@@ -1,0 +1,121 @@
+// six_item_alignment_demo.pgy
+//
+// 통합 surface 예제:
+// - refresh/publish map
+// - intent step who/where/using/action-contract inference
+// - IntentHistoryCount()
+// - exhaustive match + defensive default
+// - world에는 inline zone constructor 사용
+
+ability Payable {
+    func CanPay() -> Bool;
+}
+
+within PaymentZone {
+    subject Buyer {
+        let displayName: String;
+        let total: Int;
+
+        action Promote(self) -> Void
+            requires Payable
+            authorized by self
+            causes Charged
+        {
+            self.total = self.total + 1;
+        }
+    }
+}
+
+role BuyerPayable for Buyer {
+    impl ability Payable {
+        func CanPay() -> Bool {
+            return true;
+        }
+    }
+}
+
+object BuyerView {
+    label: String;
+    totalPurchases: Int;
+}
+
+tobject BuyerPacket {
+    user: String;
+    totalPurchases: Int;
+}
+
+effect Charged for bearer: Buyer {
+}
+
+zone PaymentZone {
+    subject slot buyer: Buyer
+    object slot buyerView: BuyerView
+    tobject slot buyerPacket: BuyerPacket
+    effect slot charged: Charged
+    authority buyer requires Payable
+
+    refresh buyerView from buyer by buyer map {
+        label <- displayName;
+        totalPurchases <- total;
+    }
+
+    publish buyerPacket from buyer by buyer map {
+        user <- displayName;
+        totalPurchases <- total;
+    }
+
+    func Ready(self) -> Bool {
+        return HasProjection(buyerView) && HasProjection(buyerPacket);
+    }
+
+    func Label(self) -> String {
+        return buyerView.label;
+    }
+}
+
+world PaymentWorld {
+    zone payment: PaymentZone
+
+    func Ready(self) -> Bool {
+        return HasZoneProjection(payment, buyerView)
+            && HasZoneProjection(payment, buyerPacket);
+    }
+}
+
+intent Checkout(payment: PaymentZone, buyer: Buyer) {
+    step Promote {
+        on: buyer.Promote();
+        expect: true;
+    }
+}
+
+enum CheckoutState {
+    Idle,
+    Paid
+}
+
+func Describe(state: CheckoutState) -> String {
+    match state {
+        case Idle:
+            return "idle";
+        case Paid:
+            return "paid";
+        default:
+            return "future";
+    }
+}
+
+func Main() -> Void {
+    let buyer = Buyer("Mina", 2);
+    let payment = PaymentZone(buyer);
+    let world = PaymentWorld(Clone(payment));
+
+    Checkout(payment, buyer);
+
+    Log("six item alignment demo");
+    Log(payment.Ready());
+    Log(payment.Label());
+    Log(ToString(IntentHistoryCount()));
+    Log(Describe(Paid));
+    Log(world.Ready());
+}

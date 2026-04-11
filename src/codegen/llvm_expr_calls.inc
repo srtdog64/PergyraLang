@@ -16,6 +16,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (callee_name == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
+    if (strcmp(callee_name, "Clone") == 0 && node->data.call.arg_count == 1) {
+        return llvm_emit_expression(node->data.call.arguments[0], ctx);
+    }
+
     {
         LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, callee_name);
         if (variant != NULL) {

@@ -746,7 +746,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
-                target_type_name, source_expr);
+                refresh, target_type_name, source_expr);
             free(source_expr);
         }
         write_indent(ctx);
@@ -938,7 +938,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
-                target_type_name, source_expr);
+                refresh, target_type_name, source_expr);
             free(source_expr);
         }
         write_indent(ctx);
@@ -1194,7 +1194,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             char *source_expr = strdup_fmt("self->%s",
                 refresh->data.zone_refresh.source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
-                target_type_name, source_expr);
+                refresh, target_type_name, source_expr);
             free(source_expr);
         }
         write_indent(ctx);

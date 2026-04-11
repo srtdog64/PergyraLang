@@ -405,14 +405,21 @@ reject_if_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
     }
 
     semantic_error(ctx, site,
-        "Zone '%s' cannot be mutated via %s after it was embedded into a world value; configure zones first or mutate them through the owning world",
-        root_name, op_name);
+        "Zone '%s' cannot be mutated via %s after it was embedded into a world value.\n"
+        "Reason:\n"
+        "- current world construction embeds zone state by value into the world value\n"
+        "- mutating the old binding would diverge from the world-owned zone copy\n"
+        "Fix:\n"
+        "- finish configuring '%s' before constructing the world\n"
+        "- or mutate it through the owning world after embedding",
+        root_name, op_name, root_name);
 }
 
 static void
 mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 {
     ASTNode *world_decl;
+    const char *world_name = NULL;
 
     if (call == NULL || call->type != AST_CALL || ctx == NULL
         || call->data.call.callee == NULL
@@ -420,8 +427,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
         return;
     }
 
+    world_name = call->data.call.callee->data.identifier.name;
     world_decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
-        call->data.call.callee->data.identifier.name);
+        world_name);
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
         return;
 
@@ -444,6 +452,15 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             ASTNode *zone_slot = world_decl->data.world_decl.zones[i];
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
                 && zone_slot->data.world_zone.zone_type != NULL) {
+                semantic_warning(ctx, arg,
+                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                    world_name != NULL ? world_name : "<world>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
                     arg->data.identifier.name);
@@ -462,6 +479,15 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
             }
             if (arg_sym->type != NULL && arg_sym->type->name != NULL
                 && strcmp(arg_sym->type->name, zone_slot->data.world_zone.zone_type) == 0) {
+                semantic_warning(ctx, arg,
+                    "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                    world_name != NULL ? world_name : "<world>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>",
+                    zone_slot->data.world_zone.slot_name != NULL
+                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    arg->data.identifier.name != NULL
+                        ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
                     arg->data.identifier.name);
@@ -1706,6 +1732,18 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                     }
                                     if (strcmp(arg_type_name,
                                             zone_slot->data.world_zone.zone_type) == 0) {
+                                        semantic_warning(ctx, expr->data.call.arguments[i],
+                                            "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'; use Clone(%s) for an explicit copy or construct the zone inline",
+                                            display_name != NULL ? display_name : "<world>",
+                                            expr->data.call.arguments[i]->data.identifier.name != NULL
+                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                                : "<zone>",
+                                            zone_slot->data.world_zone.slot_name != NULL
+                                                ? zone_slot->data.world_zone.slot_name
+                                                : "<slot>",
+                                            expr->data.call.arguments[i]->data.identifier.name != NULL
+                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                                : "<zone>");
                                         arg_sym->embedded_in_world = true;
                                         semantic_ctx_mark_embedded_world_zone_name(ctx,
                                             expr->data.call.arguments[i]->data.identifier.name);

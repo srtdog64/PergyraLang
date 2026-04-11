@@ -481,11 +481,10 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
         }
     }
 
-    if (node->data.match_stmt.default_body != NULL && covered == variant_count) {
-        semantic_warning(ctx, node->data.match_stmt.default_body,
-            "Redundant default case; previous cases already cover all variants of '%s'",
-            subj_type->name != NULL ? subj_type->name : "<unknown>");
-    }
+    /* Defensive default after full variant coverage is allowed silently.
+     * Users may write default as a safety net against future enum expansion. */
+    (void)covered;
+    (void)variant_count;
 
     free(seen);
 }

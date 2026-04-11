@@ -2413,7 +2413,7 @@ test_match_stmt(void)
         lexer_destroy(lexer);
     }
 
-    TEST("redundant default after full variant coverage produces warning");
+    TEST("defensive default after full variant coverage is silently accepted");
     {
         const char *source =
             "enum Color { Red, Green }\n"
@@ -2435,9 +2435,7 @@ test_match_stmt(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(result != NULL && result->warning_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Redundant default case"));
+        /* Defensive default is allowed without warning */
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3184,6 +3182,51 @@ test_event_semantics(void)
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(
                 result, "parameter 1 mismatch"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event invoke validates argument types");
+    {
+        const char *source =
+            "event OnScore(points: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnScore(\"oops\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event invoke with correct args passes");
+    {
+        const char *source =
+            "event OnScore(points: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnScore(42);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

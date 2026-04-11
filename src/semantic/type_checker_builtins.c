@@ -1018,6 +1018,7 @@ builtin_resolve(const char *name)
     if (strcmp(name, "LogBanner")       == 0) return BUILTIN_LOG_BANNER;
     if (strcmp(name, "LogBlock")        == 0) return BUILTIN_LOG_BLOCK;
     if (strcmp(name, "LogRaw")          == 0) return BUILTIN_LOG_RAW;
+    if (strcmp(name, "Clone")           == 0) return BUILTIN_CLONE;
     if (strcmp(name, "RcNew")           == 0) return BUILTIN_RC_NEW;
     if (strcmp(name, "RcClone")         == 0) return BUILTIN_RC_CLONE;
     if (strcmp(name, "RcDrop")          == 0) return BUILTIN_RC_DROP;
@@ -2928,6 +2929,8 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
                           TYPE_STRING, call->data.call.arguments[0], ctx);
         return TYPE_VOID;
+    case BUILTIN_CLONE:
+        return type_check_stdlib_call(call, "Clone", ctx);
     case BUILTIN_RC_NEW:
         return type_check_rc_new(call, ctx);
     case BUILTIN_RC_CLONE:

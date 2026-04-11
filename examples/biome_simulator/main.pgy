@@ -322,7 +322,7 @@ func Main() -> Void
     grove.habitat.shelter = 7;
     grove.habitat.blight = 2;
 
-    let biomeWorld = BiomeWorld(meadow, grove);
+    let biomeWorld = BiomeWorld(Clone(meadow), Clone(grove));
     biomeWorld.Simulate();
 
     Log("");

@@ -663,7 +663,8 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
                 if (inner != NULL && inner != TYPE_UNKNOWN)
                     return type_create_slot(inner, strcmp(callee, "ClaimSecureSlot") == 0);
             }
-            if (strcmp(callee, "RcClone") == 0 && expr->data.call.arg_count >= 1)
+            if ((strcmp(callee, "Clone") == 0 || strcmp(callee, "RcClone") == 0)
+                && expr->data.call.arg_count >= 1)
                 return type_infer_expression(expr->data.call.arguments[0], env);
             if (strcmp(callee, "RcDowngrade") == 0 && expr->data.call.arg_count >= 1) {
                 Type *rc_type = type_infer_expression(expr->data.call.arguments[0], env);

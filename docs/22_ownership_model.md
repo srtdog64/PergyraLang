@@ -119,6 +119,41 @@ GPU 개발자든 네트워크 개발자든 함수 시그니처만 보면
 
 ---
 
+## World 생성과 Zone 값 복사
+
+`World(...)`에 기존 zone binding을 바로 넣는 표면은 허용되지만,
+현재 의미론은 참조 공유가 아니라 값 복사에 가깝다.
+
+```pgy
+let zone = ConnectionZone(...);
+let world = PacketWorld(zone);
+```
+
+이 경우 `zone`과 `world` 내부 zone slot은 같은 핸들을 공유하는 것으로
+자동 연결되지 않는다. 그래서 컴파일러는 direct binding world-embedding에
+경고를 내고, 복사 의도를 surface에서 보이라고 요구한다.
+
+권장 표면:
+
+```pgy
+let world = PacketWorld(Clone(zone));
+```
+
+또는:
+
+```pgy
+let world = PacketWorld(ConnectionZone(...));
+```
+
+핵심 규칙:
+
+- `World(zone)`는 hidden alias가 아니다
+- world 내부 zone 값과 바깥 binding은 자동 동기화되지 않는다
+- 복사를 의도했다면 `Clone(...)`으로 드러내는 편이 맞다
+- hidden control flow나 hidden reference semantics를 추가하지 않는다
+
+---
+
 ## 왜 이렇게 하는가
 
 Pergyra는 도메인 파편화를 줄이기 위해 만들어졌다.

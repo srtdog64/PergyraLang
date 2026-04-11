@@ -22,7 +22,7 @@ func Main() -> Void
     let vault = BuildVaultSector();
     let summit = BuildSummitSector();
 
-    let world = CampaignWorld(watch, ruins, vault, summit);
+    let world = CampaignWorld(Clone(watch), Clone(ruins), Clone(vault), Clone(summit));
     world.ResetWorld();
     world.Recount();
 

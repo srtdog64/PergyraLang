@@ -956,6 +956,102 @@ intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
     }
 }
 
+static void
+intent_step_infer_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
+                                       SemanticContext *ctx)
+{
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP) {
+        return;
+    }
+
+    if (step->data.intent_step.where_type == NULL
+        && step->data.intent_step.using_expr != NULL
+        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
+        ASTNode *using_involves = find_intent_involves_local(intent_decl,
+            step->data.intent_step.using_expr->data.identifier.name);
+        Type *using_type = using_involves != NULL
+            ? resolve_type_node(using_involves->data.intent_involves.subject_type, ctx)
+            : NULL;
+        ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
+            AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
+        if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
+            step->data.intent_step.where_type = ast_create_type(using_type->name);
+        }
+    }
+
+    if (step->data.intent_step.using_expr == NULL
+        && step->data.intent_step.where_type != NULL) {
+        Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
+        const char *matched_alias = NULL;
+
+        if (zone_type == NULL || zone_type->name == NULL)
+            return;
+
+        for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
+            ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+            Type *participant_type;
+
+            if (involves == NULL || involves->type != AST_INTENT_INVOLVES
+                || involves->data.intent_involves.subject_type == NULL) {
+                continue;
+            }
+
+            participant_type = resolve_type_node(
+                involves->data.intent_involves.subject_type, ctx);
+            if (participant_type == NULL || participant_type->name == NULL
+                || strcmp(participant_type->name, zone_type->name) != 0) {
+                continue;
+            }
+
+            if (matched_alias != NULL)
+                return;
+            matched_alias = involves->data.intent_involves.alias;
+        }
+
+        if (matched_alias != NULL)
+            step->data.intent_step.using_expr = ast_create_identifier(matched_alias);
+    }
+}
+
+static const char *
+projection_refresh_source_field_name(ASTNode *refresh,
+                                     const char *target_field_name)
+{
+    if (target_field_name == NULL)
+        return NULL;
+    if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
+        for (size_t i = 0; i < refresh->data.zone_refresh.field_map_count; i++) {
+            const char *mapped_target =
+                refresh->data.zone_refresh.mapped_target_fields[i];
+            const char *mapped_source =
+                refresh->data.zone_refresh.mapped_source_fields[i];
+            if (mapped_target != NULL && mapped_source != NULL
+                && strcmp(mapped_target, target_field_name) == 0) {
+                return mapped_source;
+            }
+        }
+    }
+    return target_field_name;
+}
+
+static bool
+projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
+{
+    if (target_decl == NULL || target_decl->type != AST_CLASS_DECL
+        || field_name == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
+        ClassField *field = target_decl->data.class_decl.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -1022,6 +1118,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         intent_step_infer_who_from_action(node, step, ctx);
         intent_step_inherit_action_contract(node, step, ctx);
         intent_step_infer_transfer_context(node, step, ctx);
+        intent_step_infer_zone_binding_context(node, step, ctx);
 
         if (step->data.intent_step.where_type == NULL && !has_subintent) {
             semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
@@ -2798,10 +2895,38 @@ type_check_projection_contract(ASTNode **slots,
         return true;
     }
 
+    if (site != NULL && site->type == AST_ZONE_REFRESH
+        && site->data.zone_refresh.field_map_count > 0) {
+        for (size_t i = 0; i < site->data.zone_refresh.field_map_count; i++) {
+            const char *mapped_target =
+                site->data.zone_refresh.mapped_target_fields[i];
+
+            if (!projection_target_decl_has_field(target_decl, mapped_target)) {
+                semantic_error(ctx, site,
+                    "%s %s projection map refers to unknown target field '%s' in slot '%s'",
+                    owner_label, action_name,
+                    mapped_target != NULL ? mapped_target : "<field>",
+                    object_slot_name != NULL ? object_slot_name : "<unknown>");
+            }
+
+            for (size_t j = i + 1; j < site->data.zone_refresh.field_map_count; j++) {
+                const char *other_target =
+                    site->data.zone_refresh.mapped_target_fields[j];
+                if (mapped_target != NULL && other_target != NULL
+                    && strcmp(mapped_target, other_target) == 0) {
+                    semantic_error(ctx, site,
+                        "%s %s projection map duplicates target field '%s'",
+                        owner_label, action_name, mapped_target);
+                }
+            }
+        }
+    }
+
     for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
         ClassField *target_field = target_decl->data.class_decl.fields[i];
         Type *target_field_type;
         Type *source_field_type;
+        const char *source_field_name;
         char *source_path = NULL;
         int source_status;
 
@@ -2810,15 +2935,27 @@ type_check_projection_contract(ASTNode **slots,
             continue;
         }
 
+        source_field_name = projection_refresh_source_field_name(site,
+            target_field->name);
         source_status = resolve_projection_source_field_path(
-            ctx->program_root, source_decl, target_field->name, ctx,
+            ctx->program_root, source_decl, source_field_name, ctx,
             &source_path, &source_field_type);
         if (source_status == 0 || source_field_type == NULL) {
-            semantic_error(ctx, site,
-                "%s %s target field '%s' is missing from source slot '%s'",
-                owner_label, action_name,
-                target_field->name,
-                source_slot_name != NULL ? source_slot_name : "<unknown>");
+            if (source_field_name != NULL
+                && strcmp(source_field_name, target_field->name) != 0) {
+                semantic_error(ctx, site,
+                    "%s %s target field '%s' maps from missing source field '%s' in slot '%s'",
+                    owner_label, action_name,
+                    target_field->name,
+                    source_field_name,
+                    source_slot_name != NULL ? source_slot_name : "<unknown>");
+            } else {
+                semantic_error(ctx, site,
+                    "%s %s target field '%s' is missing from source slot '%s'",
+                    owner_label, action_name,
+                    target_field->name,
+                    source_slot_name != NULL ? source_slot_name : "<unknown>");
+            }
             continue;
         }
         if (source_status == 2) {

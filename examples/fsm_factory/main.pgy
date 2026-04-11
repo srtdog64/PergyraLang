@@ -349,7 +349,7 @@ func Main() -> Void
     alpha.maintenance = 7;
     beta.maintenance = 5;
 
-    let factory = FactoryWorld(alpha, beta);
+    let factory = FactoryWorld(Clone(alpha), Clone(beta));
     factory.Simulate();
 
     Log("SAVING FSM REPORT");

@@ -620,6 +620,55 @@ parser_match_domain_layer_group_kind(Parser *parser)
 }
 
 static void
+parser_parse_projection_field_map(Parser *parser,
+                                  char ***mapped_target_fields,
+                                  char ***mapped_source_fields,
+                                  size_t *field_map_count)
+{
+    if (mapped_target_fields != NULL)
+        *mapped_target_fields = NULL;
+    if (mapped_source_fields != NULL)
+        *mapped_source_fields = NULL;
+    if (field_map_count != NULL)
+        *field_map_count = 0;
+    if (parser == NULL || !parser_match_identifier_keyword(parser, "map"))
+        return;
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'map'");
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        Token target_field = consume_name_token(parser,
+            "Expected target field name in projection map");
+        Token source_field;
+
+        parser_consume(parser, TOKEN_CHANNEL_OP,
+            "Expected '<-' in projection map entry");
+        source_field = consume_name_token(parser,
+            "Expected source field name after '<-' in projection map");
+
+        if (mapped_target_fields != NULL && mapped_source_fields != NULL
+            && field_map_count != NULL) {
+            *mapped_target_fields = realloc(*mapped_target_fields,
+                sizeof(char *) * (*field_map_count + 1));
+            *mapped_source_fields = realloc(*mapped_source_fields,
+                sizeof(char *) * (*field_map_count + 1));
+            (*mapped_target_fields)[*field_map_count] =
+                pergyra_strdup(target_field.text);
+            (*mapped_source_fields)[*field_map_count] =
+                pergyra_strdup(source_field.text);
+            (*field_map_count)++;
+        }
+
+        parser_match(parser, TOKEN_SEMICOLON);
+    }
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after projection map");
+
+    if (field_map_count != NULL && *field_map_count == 0) {
+        parser_error(parser,
+            "Expected at least one 'target <- source' entry inside projection map");
+    }
+}
+
+static void
 append_domain_projection_sync_entries(Parser *parser,
                                       ASTNode ***refreshes,
                                       size_t *refresh_count,
@@ -636,6 +685,9 @@ append_domain_projection_sync_entries(Parser *parser,
     size_t target_count = 0;
     unsigned first_line = parser->current_token.line;
     unsigned first_column = parser->current_token.column;
+    char **mapped_target_fields = NULL;
+    char **mapped_source_fields = NULL;
+    size_t field_map_count = 0;
 
     if (parser_match(parser, TOKEN_LBRACKET)) {
         do {
@@ -685,6 +737,12 @@ append_domain_projection_sync_entries(Parser *parser,
     char *participant_slot_name = allow_participant
         ? parse_optional_zone_participant_name(parser)
         : NULL;
+    parser_parse_projection_field_map(parser, &mapped_target_fields,
+        &mapped_source_fields, &field_map_count);
+    if (field_map_count > 0 && target_count != 1) {
+        parser_error(parser,
+            "Projection map is currently supported only for a single refresh/publish/bind target");
+    }
 
     for (size_t i = 0; i < target_count; i++) {
         ASTNode *refresh = ast_create_zone_refresh(target_names[i], source_slot.text);
@@ -692,6 +750,19 @@ append_domain_projection_sync_entries(Parser *parser,
         refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
         refresh->data.zone_refresh.participant_slot_name =
             participant_slot_name != NULL ? pergyra_strdup(participant_slot_name) : NULL;
+        if (field_map_count > 0 && target_count == 1) {
+            refresh->data.zone_refresh.field_map_count = field_map_count;
+            refresh->data.zone_refresh.mapped_target_fields = calloc(
+                field_map_count, sizeof(char *));
+            refresh->data.zone_refresh.mapped_source_fields = calloc(
+                field_map_count, sizeof(char *));
+            for (size_t j = 0; j < field_map_count; j++) {
+                refresh->data.zone_refresh.mapped_target_fields[j] =
+                    pergyra_strdup(mapped_target_fields[j]);
+                refresh->data.zone_refresh.mapped_source_fields[j] =
+                    pergyra_strdup(mapped_source_fields[j]);
+            }
+        }
         refresh->line = first_line;
         refresh->column = first_column;
         append_child_node(refreshes, refresh_count, refresh);
@@ -700,6 +771,12 @@ append_domain_projection_sync_entries(Parser *parser,
 
     free(participant_slot_name);
     free(target_names);
+    for (size_t i = 0; i < field_map_count; i++) {
+        free(mapped_target_fields[i]);
+        free(mapped_source_fields[i]);
+    }
+    free(mapped_target_fields);
+    free(mapped_source_fields);
 }
 
 ASTNode* parse_relation_declaration(Parser* parser) {

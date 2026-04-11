@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체)
+마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체, `refresh/publish/bind map { ... }` 연결, explicit `Clone(...)` surface 정식화, world zone embedding warning 추가)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -222,6 +222,8 @@
 - function/action clause parser는 이미 table-driven이고 clause 순서는 고정이 아니다
 - `transfer target -> using` inference 구현됨
 - `transfer target -> where` inference 구현됨
+- explicit `using` zone binding -> `where` inference 구현됨
+- explicit `where` + unique matching participant -> `using` inference 구현됨
 - intent transfer mismatch diagnostics는 이제 추론된 `using/where`를 직접 보여준다
 - example smoke에 아래 예제가 올라가 있다
   - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
@@ -229,6 +231,7 @@
   - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
   - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
   - [zone_context_minimal.pgy](/mnt/e/PergyraLang/examples/zone_context_minimal.pgy)
+  - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)
 
 현재 구현됨:
 
@@ -236,6 +239,9 @@
 - `using self.route as route;` / `using self.seal as seal;` explicit alias
 - `move <from-alias> to <to-alias>;` transfer short surface 1차
 - `who`의 유일 subject participant + matching action 기반 추론
+- `refresh/publish/bind ... map { target <- source; }` field-level projection remap
+- `Clone(...)` builtin이 semantic/C backend/LLVM 경로까지 닫혔다
+- world constructor에 direct zone binding을 넘기면 implicit-copy warning이 난다
 
 아직 설계 단계:
 

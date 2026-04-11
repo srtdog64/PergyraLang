@@ -252,7 +252,7 @@ func Main() -> Void {
     market.ShowState();
 
     // === 4. World ===
-    let gameWorld: GameWorld = GameWorld(market);
+    let gameWorld: GameWorld = GameWorld(Clone(market));
     gameWorld.ShowWorldState();
 
     // === 5. Event ===

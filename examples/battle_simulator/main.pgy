@@ -101,7 +101,7 @@ func Main() -> Void {
     let goblin = Fighter("Goblin", 4, Health(14, 14));
     let arena = BattleZone(hero, slime);
     let rematch = BattleZone(knight, goblin);
-    let battleWorld = BattleWorld(arena, rematch);
+    let battleWorld = BattleWorld(Clone(arena), Clone(rematch));
 
     battleWorld.Run();
     battleWorld.SaveReport("examples/battle_simulator/results.txt");

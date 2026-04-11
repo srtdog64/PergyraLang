@@ -539,7 +539,7 @@ world GameWorld {
 
 func Main() -> Void {
     let battle = BattleZone(Player(7));
-    let gameWorld = GameWorld(battle);
+    let gameWorld = GameWorld(Clone(battle));
     gameWorld.Show();
 }
 EOF
@@ -575,7 +575,7 @@ world GameWorld {
 
 func Main() -> Void {
     let battle = BattleZone(Player(7));
-    let gameWorld = GameWorld(battle);
+    let gameWorld = GameWorld(Clone(battle));
     gameWorld.Show();
 }
 EOF

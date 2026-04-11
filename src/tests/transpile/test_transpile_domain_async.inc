@@ -329,6 +329,38 @@ test_roster_world_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("zone refresh map lowers renamed source fields into projection literal");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { totalHp: Int; label: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player map {\n"
+            "        totalHp <- hp;\n"
+            "        label <- name;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = lower_program(program);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->hir = hir;
+
+        emit_program(hir, ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, ".totalHp = self->player.hp");
+        EXPECT_STR_CONTAINS(ctx->out->data, ".label = self->player.name");
+
+        transpiler_ctx_destroy(ctx);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("zone action calls activate matching effect layers at runtime");
     {
         const char *source =

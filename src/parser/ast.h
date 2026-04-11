@@ -955,6 +955,9 @@ struct ASTNode
             char* participant_slot_name;
             bool requires_dto;
             bool infer_target_kind;
+            char** mapped_target_fields;
+            char** mapped_source_fields;
+            size_t field_map_count;
         } zone_refresh;
 
         /* Zone effect maintenance rule */

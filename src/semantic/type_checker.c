@@ -3014,7 +3014,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (p->data.let_decl.type != NULL)
                         eptypes[j] = resolve_type_node(p->data.let_decl.type, ctx);
                     else
-                        eptypes[j] = TYPE_INT;
+                        eptypes[j] = TYPE_UNKNOWN;
                 }
                 Type *evt_ft = type_create_function(eptypes, epc, TYPE_VOID);
                 free(eptypes);

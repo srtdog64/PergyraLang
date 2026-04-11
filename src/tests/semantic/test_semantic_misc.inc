@@ -1626,6 +1626,42 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 2);
+        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implicitly copies zone binding 'battle'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Clone makes world zone copy explicit and keeps old binding mutable");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    shared hp: Int = 0\n"
+            "    func Hurt() -> Void { hp = hp + 1; }\n"
+            "}\n"
+            "world GameWorld {\n"
+            "    zone battle: BattleZone\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let battle = BattleZone(Player(10));\n"
+            "    let world = GameWorld(Clone(battle));\n"
+            "    battle.hp = 3;\n"
+            "    battle.Hurt();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3020,7 +3056,6 @@ test_misc_grammar_edges(void)
             "}\n"
             "intent Patrol(battle: BattleZone, hero: Hero) {\n"
             "    step Guard {\n"
-            "        using: battle;\n"
             "        who: hero;\n"
             "        on: hero.Guard();\n"
             "        expect: true;\n"
@@ -3067,6 +3102,10 @@ test_misc_grammar_edges(void)
         EXPECT(step != NULL
             && step->data.intent_step.authorized_by_count == 1
             && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.using_expr != NULL
+            && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+            && strcmp(step->data.intent_step.using_expr->data.identifier.name, "battle") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3122,6 +3161,63 @@ test_misc_grammar_edges(void)
         EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "hero") == 0);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.using_expr != NULL
+            && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+            && strcmp(step->data.intent_step.using_expr->data.identifier.name, "battle") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step infers where from explicit using zone binding");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Guard(self) -> Void {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    step Guard {\n"
+            "        using: battle;\n"
+            "        who: hero;\n"
+            "        on: hero.Guard();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE
+            && strcmp(step->data.intent_step.where_type->data.type.name, "BattleZone") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -4057,6 +4153,58 @@ test_misc_grammar_edges(void)
                 && !publish_b->data.zone_refresh.infer_target_kind
                 && strcmp(publish_b->data.zone_refresh.object_slot_name, "packet") == 0
                 && strcmp(publish_b->data.zone_refresh.participant_slot_name, "player") == 0);
+        }
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone refresh map records explicit target-to-source field pairs");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let name: String; }\n"
+            "object PlayerView { totalHp: Int; label: String; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player map {\n"
+            "        totalHp <- hp;\n"
+            "        label <- name;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *zone = NULL;
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        if (program != NULL) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_ZONE_DECL
+                    && stmt->data.zone_decl.name != NULL
+                    && strcmp(stmt->data.zone_decl.name, "BattleZone") == 0) {
+                    zone = stmt;
+                    break;
+                }
+            }
+        }
+        EXPECT(zone != NULL);
+        EXPECT(zone != NULL && zone->data.zone_decl.refresh_count == 1);
+        if (zone != NULL && zone->data.zone_decl.refresh_count == 1) {
+            ASTNode *refresh = zone->data.zone_decl.refreshes[0];
+            EXPECT(refresh != NULL
+                && refresh->data.zone_refresh.field_map_count == 2);
+            EXPECT(refresh != NULL
+                && strcmp(refresh->data.zone_refresh.mapped_target_fields[0], "totalHp") == 0
+                && strcmp(refresh->data.zone_refresh.mapped_source_fields[0], "hp") == 0);
+            EXPECT(refresh != NULL
+                && strcmp(refresh->data.zone_refresh.mapped_target_fields[1], "label") == 0
+                && strcmp(refresh->data.zone_refresh.mapped_source_fields[1], "name") == 0);
         }
 
         semantic_result_destroy(result);

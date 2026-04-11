@@ -712,6 +712,9 @@ ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* sourc
     node->data.zone_refresh.participant_slot_name = NULL;
     node->data.zone_refresh.requires_dto = false;
     node->data.zone_refresh.infer_target_kind = false;
+    node->data.zone_refresh.mapped_target_fields = NULL;
+    node->data.zone_refresh.mapped_source_fields = NULL;
+    node->data.zone_refresh.field_map_count = 0;
     return node;
 }
 
@@ -1846,6 +1849,12 @@ void ast_destroy(ASTNode* node) {
             free(node->data.zone_refresh.object_slot_name);
             free(node->data.zone_refresh.source_slot_name);
             free(node->data.zone_refresh.participant_slot_name);
+            for (size_t i = 0; i < node->data.zone_refresh.field_map_count; i++) {
+                free(node->data.zone_refresh.mapped_target_fields[i]);
+                free(node->data.zone_refresh.mapped_source_fields[i]);
+            }
+            free(node->data.zone_refresh.mapped_target_fields);
+            free(node->data.zone_refresh.mapped_source_fields);
             break;
 
         case AST_ZONE_MAINTAIN_EFFECT:

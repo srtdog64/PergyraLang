@@ -566,6 +566,7 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *target_cls,
                                    LLVMClassTypeEntry *source_cls,
                                    ASTNode *source_decl,
+                                   ASTNode *refresh,
                                    LLVMValueRef source_ptr);
 
 static ASTNode *
@@ -776,6 +777,7 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *target_cls,
                                    LLVMClassTypeEntry *source_cls,
                                    ASTNode *source_decl,
+                                   ASTNode *refresh,
                                    LLVMValueRef source_ptr)
 {
     LLVMValueRef projected;
@@ -786,13 +788,28 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
     projected = LLVMConstNull(target_cls->struct_type);
     for (int i = 0; i < target_cls->field_count; i++) {
         LLVMClassFieldInfo *target_field = &target_cls->fields[i];
+        const char *source_field_name = target_field->field_name;
         LLVMValueRef field_value;
 
         if (target_field->field_name == NULL)
             continue;
 
+        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
+            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
+                const char *mapped_target =
+                    refresh->data.zone_refresh.mapped_target_fields[j];
+                const char *mapped_source =
+                    refresh->data.zone_refresh.mapped_source_fields[j];
+                if (mapped_target != NULL && mapped_source != NULL
+                    && strcmp(mapped_target, target_field->field_name) == 0) {
+                    source_field_name = mapped_source;
+                    break;
+                }
+            }
+        }
+
         field_value = llvm_load_projection_path_value(ctx, source_decl, source_cls,
-            source_ptr, target_field->field_name);
+            source_ptr, source_field_name);
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
             (unsigned)target_field->index, llvm_tmp_name(ctx));
     }
@@ -910,6 +927,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             self_ptr, (unsigned)source_index, llvm_tmp_name(ctx));
         projected = llvm_build_domain_projection_value(ctx, target_cls,
             source_cls, llvm_find_projection_nominal_decl_local(ctx, source_type_name),
+            refresh,
             source_ptr);
         LLVMBuildStore(ctx->builder, projected, target_ptr);
         {

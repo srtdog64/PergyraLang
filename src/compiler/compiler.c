@@ -82,6 +82,74 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
+static int
+pgy_exec_probe_argv(const char *const argv[])
+{
+#ifdef _WIN32
+    intptr_t rc = _spawnvp(_P_WAIT, argv[0], argv);
+    return (int)rc;
+#else
+    pid_t pid = fork();
+    if (pid < 0)
+        return -1;
+    if (pid == 0) {
+        FILE *devnull = fopen("/dev/null", "w");
+        if (devnull != NULL) {
+            dup2(fileno(devnull), STDOUT_FILENO);
+            dup2(fileno(devnull), STDERR_FILENO);
+            fclose(devnull);
+        }
+        execvp(argv[0], (char *const *)argv);
+        _exit(127);
+    }
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status);
+    return -1;
+#endif
+}
+
+/* -----------------------------------------------------------------
+ * C compiler detection: PGY_CC env → clang → gcc → cc
+ * ----------------------------------------------------------------- */
+static const char *
+pgy_detect_c_compiler(void)
+{
+    static const char *cached = NULL;
+    const char *env_cc;
+    if (cached != NULL)
+        return cached;
+    env_cc = getenv("PGY_CC");
+    if (env_cc != NULL && env_cc[0] != '\0') {
+        cached = env_cc;
+        return cached;
+    }
+#ifdef _WIN32
+    {
+        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang", "--version", NULL);
+        if (rc == 0) { cached = "clang"; return cached; }
+    }
+    {
+        intptr_t rc = _spawnlp(_P_WAIT, "gcc", "gcc", "--version", NULL);
+        if (rc == 0) { cached = "gcc"; return cached; }
+    }
+#else
+    {
+        const char *candidates[] = { "gcc", "clang", "cc", NULL };
+        for (int i = 0; candidates[i] != NULL; i++) {
+            const char *test_argv[] = { candidates[i], "--version", NULL };
+            if (pgy_exec_probe_argv(test_argv) == 0) {
+                cached = candidates[i];
+                return cached;
+            }
+        }
+    }
+#endif
+    cached = "gcc";
+    return cached;
+}
+
 static double
 compiler_now_seconds(void)
 {
@@ -371,9 +439,10 @@ compiler_build_native(const CompilerIRBundle *bundle,
             ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
             : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
     CompilerResult *result = NULL;
+    const char *cc = pgy_detect_c_compiler();
 #ifdef _WIN32
     const char *compile_argv[] = {
-        "gcc", "-std=c11", "-Wall", opt_flag,
+        cc, "-std=c11", "-Wall", opt_flag,
         intent_observability_flag,
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
@@ -382,7 +451,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         NULL
     };
     const char *link_argv[] = {
-        "gcc", "-std=c11", "-Wall", opt_flag,
+        cc, "-std=c11", "-Wall", opt_flag,
         output_obj_path,
         "-o", output_binary_path,
         PGY_CFLAGS_THREAD_LIB,
@@ -391,7 +460,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
     };
 #else
     const char *compile_argv[] = {
-        "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
+        cc, "-std=c11", "-Wall", opt_flag, "-fopenmp",
         intent_observability_flag,
         "-I", PGY_SRC_DIR,
         "-I", PGY_RUNTIME_DIR,
@@ -429,7 +498,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
     {
         const char *link_argv[16];
         int link_argc = 0;
-        link_argv[link_argc++] = "gcc";
+        link_argv[link_argc++] = pgy_detect_c_compiler();
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = "-Wall";
         link_argv[link_argc++] = opt_flag;
@@ -648,7 +717,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
 #ifdef _WIN32
     const char *compile_runtime_argv[] = {
-        "gcc", "-std=c11", "-Wall", opt_flag,
+        pgy_detect_c_compiler(), "-std=c11", "-Wall", opt_flag,
         intent_observability_flag,
         "-DPGY_LLVM_ENABLED",
         "-I", PGY_SRC_DIR,
@@ -658,7 +727,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     };
 #else
     const char *compile_runtime_argv[] = {
-        "gcc", "-std=c11", "-Wall", opt_flag, "-fopenmp",
+        pgy_detect_c_compiler(), "-std=c11", "-Wall", opt_flag, "-fopenmp",
         intent_observability_flag,
         "-DPGY_LLVM_ENABLED",
         "-I", PGY_SRC_DIR,
@@ -700,7 +769,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     {
         const char *link_argv[16];
         int link_argc = 0;
-        link_argv[link_argc++] = "gcc";
+        link_argv[link_argc++] = pgy_detect_c_compiler();
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
         link_argv[link_argc++] = "-mconsole";
@@ -720,7 +789,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     {
         const char *link_argv[20];
         int link_argc = 0;
-        link_argv[link_argc++] = "gcc";
+        link_argv[link_argc++] = pgy_detect_c_compiler();
         link_argv[link_argc++] = "-std=c11";
         link_argv[link_argc++] = opt_flag;
         if (opt_profile == PGY_OPT_RELEASE) {

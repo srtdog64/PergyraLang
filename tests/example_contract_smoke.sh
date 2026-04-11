@@ -294,6 +294,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/projection_bind_group_minimal.pgy" "projection bind group minimal"
     run_expect_lines "projection_refresh_publish_group_minimal" "$backend" \
         "$ROOT_DIR/examples/projection_refresh_publish_group_minimal.pgy" "projection refresh publish group minimal"
+    run_expect_lines "six_item_alignment_demo" "$backend" \
+        "$ROOT_DIR/examples/six_item_alignment_demo.pgy" "six item alignment demo" "Mina" "1" "paid"
     run_expect_file_lines "battle_simulator" \
         "$backend" "$ROOT_DIR/examples/battle_simulator/results.txt" "TOURNAMENT" "Hero" "Knight" "projection_ready"
     run_expect_file_lines "biome_simulator" \
