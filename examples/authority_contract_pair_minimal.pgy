@@ -1,6 +1,6 @@
 // authority_contract_pair_minimal.pgy
 //
-// Reference example / not compile-smoke covered yet.
+// Compile-smoke covered example.
 //
 // Focus: zone authority + action/step requires duplication.
 // - PatrolVerbose repeats the ability contract at the step.

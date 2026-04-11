@@ -1,6 +1,6 @@
 // intent_contract_pair_minimal.pgy
 //
-// Reference example / not compile-smoke covered yet.
+// Compile-smoke covered example.
 //
 // Same semantics, two authoring styles:
 // 1. PatrolVerbose repeats the full step contract.

@@ -1,6 +1,6 @@
 # Surface Compression Examples
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 이 문서는 Pergyra의 authoring pain point를 줄이기 위해,
 이미 구현된 압축과 아직 설계 단계인 압축을 예제로 나눠 보여준다.
@@ -10,10 +10,28 @@
 - [58_keyword_authorship_pain_points.md](/mnt/e/PergyraLang/docs/58_keyword_authorship_pain_points.md)
 - [59_authoring_surface_compression_plan.md](/mnt/e/PergyraLang/docs/59_authoring_surface_compression_plan.md)
 - [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+- [65_stable_example_surface_board.md](/mnt/e/PergyraLang/docs/65_stable_example_surface_board.md)
+
+이 문서의 운영 규칙:
+
+- `compile-smoke covered` 예제를 stable source of truth로 본다
+- `reference` 예제는 현재 구현과 맞는 real surface지만 아직 smoke source of truth는 아니다
+- `design sketch` 예제는 방향 설명용이지 현재 권장 surface가 아니다
+
+즉 이 문서에서 `긴 버전 vs 압축 버전`을 설명할 때는 sketch 예제가 아니라 smoke-covered canonical pair를 우선 사용한다.
 
 ## 1. 현재 이미 구현된 압축
 
-### 1.1 action contract inference / transfer inference
+### 1.1 canonical pair: action contract inference / transfer inference
+
+우선 봐야 할 stable canonical pair:
+
+- [intent_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_pair_minimal.pgy)
+- [authority_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/authority_contract_pair_minimal.pgy)
+- [transfer_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_contract_pair_minimal.pgy)
+
+이 세 파일은 같은 의미를 `긴 버전`과 `압축 버전`으로 나란히 보여 주는 canonical pair다.
+이제 smoke source of truth에도 포함되므로, contract compression 설명의 기준 예제로 먼저 링크해야 한다.
 
 긴 표면:
 
@@ -79,7 +97,7 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 가 기본 추론된다.
 
-실제 예제 파일:
+stable example source of truth:
 
 - [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)
 - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
@@ -91,6 +109,18 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 - [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)
 - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)
+
+stable canonical pair:
+
+- [intent_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_pair_minimal.pgy)
+- [authority_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/authority_contract_pair_minimal.pgy)
+- [transfer_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_contract_pair_minimal.pgy)
+
+현재 권장 읽기 순서:
+
+1. canonical pair로 긴 버전과 압축 버전의 의미 동등성을 먼저 본다
+2. smoke-covered minimal example으로 현재 stable syntax subset을 확인한다
+3. maximal/composite example은 마지막에 본다
 
 주의:
 
@@ -110,7 +140,11 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
   `refresh [a, b] from source`와 `publish [x, y] from source` 그룹 표면을 보여준다
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)는
   action contract 추론, `where/use` 상호 추론, projection field map, explicit `Clone` world embedding을 함께 보여준다
-- 즉 지금 smoke에 박힌 것은 `transfer -> using/where` 추론이다
+- diagnostics는 이제 같은 vocabulary를 쓴다:
+  - `locally declared ...`
+  - `inherited ... from matching action`
+  - `inferred ... from transfer target`
+- 즉 압축이 실패해도 사용자는 local/inherited/inferred provenance를 같은 용어로 읽을 수 있어야 한다
 
 ### 1.2 clause 순서 자유화
 
@@ -182,6 +216,7 @@ within CalendarZone {
 
 - inheritance가 아니라 zone context inference다
 - 현재는 top-level block 1차 구현이다
+- 같은 파일/블록에서 `within CalendarZone`를 반복해서 쓰는 부담을 줄이는 용도다
 
 실제 예제 파일:
 
@@ -208,6 +243,7 @@ seal.Validate();
 
 - implicit magic보다 explicit alias가 먼저다
 - 이름 충돌 규칙을 단순하게 유지할 수 있다
+- `self.` 반복을 무작정 없애는 것이 아니라, 제어 가능한 축약만 허용하는 방향이다
 
 ### 2.3 group bind / projection scaffold
 
@@ -236,6 +272,7 @@ bind snapshot from player
 - 새 projection 의미론을 추가하지 않는다
 - parser가 기존 `bind` 두 줄로 펼치기 때문에 semantic/codegen debt가 늘지 않는다
 - object/tobject target 혼합도 기존 `bind`의 target-kind inference를 그대로 탄다
+- 즉 surface만 줄이고 의미론은 넓히지 않는다
 
 같은 패턴으로 다음도 된다:
 

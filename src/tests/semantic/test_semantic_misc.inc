@@ -2687,9 +2687,53 @@ test_misc_grammar_edges(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "transfer target inference would choose zone 'DeliveryZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inferred using from transfer target: load"));
+            "locally declared zone on step: LoadingZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inferred zone from transfer target: LoadingZone"));
+            "locally declared using on step: load"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authority diagnostic mentions locally declared step zone");
+    {
+        const char *source =
+            "/// @effects secure\n"
+            "func Gate() -> Bool { return true; }\n"
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void {\n"
+            "        self.started = true;\n"
+            "    }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        on: Gate();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "locally declared zone on step: CockpitZone"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "locally declared using on step: cockpit"));
+        EXPECT(!ctx_has_diagnostic_substring_from_result(result,
+            "inherited zone from matching action"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -282,6 +282,12 @@ run_stable_examples() {
         "$ROOT_DIR/examples/action_contract_inference_minimal.pgy" "action contract inference minimal"
     run_expect_lines "intent_inference_minimal" "$backend" \
         "$ROOT_DIR/examples/intent_inference_minimal.pgy" "intent inference minimal"
+    run_expect_lines "intent_contract_pair_minimal" "$backend" \
+        "$ROOT_DIR/examples/intent_contract_pair_minimal.pgy" "intent-contract-pair-minimal"
+    run_expect_lines "authority_contract_pair_minimal" "$backend" \
+        "$ROOT_DIR/examples/authority_contract_pair_minimal.pgy" "authority-contract-pair-minimal"
+    run_expect_lines "transfer_contract_pair_minimal" "$backend" \
+        "$ROOT_DIR/examples/transfer_contract_pair_minimal.pgy" "transfer-contract-pair-minimal"
     run_expect_lines "transfer_move_minimal" "$backend" \
         "$ROOT_DIR/examples/transfer_move_minimal.pgy" "transfer move minimal"
     run_expect_lines "transfer_move_typed_minimal" "$backend" \

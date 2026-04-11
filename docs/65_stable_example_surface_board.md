@@ -41,6 +41,9 @@
 | `examples/generic_ability_requires_minimal/` | stable | generic ability baseline |
 | `examples/action_contract_inference_minimal/` | stable | action contract inference |
 | `examples/intent_inference_minimal/` | stable | intent inference subset |
+| `examples/intent_contract_pair_minimal.pgy` | stable | verbose/compressed action-contract pair |
+| `examples/authority_contract_pair_minimal.pgy` | stable | verbose/compressed authority-contract pair |
+| `examples/transfer_contract_pair_minimal.pgy` | stable | verbose/compressed transfer-contract pair |
 | `examples/transfer_move_minimal/` | stable | transfer shorthand subset |
 | `examples/transfer_move_typed_minimal/` | stable | typed transfer subset |
 | `examples/surface_compression_maximal/` | stable | compressed authoring surface |
@@ -83,15 +86,15 @@
 
 | 예제 | 상태 | 주의 |
 | --- | --- | --- |
-| `examples/intent_contract_pair_minimal.pgy` | reference | same-semantics verbose/compressed pair, not smoke-covered yet |
-| `examples/authority_contract_pair_minimal.pgy` | reference | authority/ability duplication pair, not smoke-covered yet |
-| `examples/transfer_contract_pair_minimal.pgy` | reference | transfer where/using inference pair, not smoke-covered yet |
+현재 reference tier에 남는 예제는 없다.
 
-이 예제의 역할:
+방금 stable로 승격된 canonical pair는 다음 셋이다.
 
-- 장문 계약 surface와 압축 surface를 나란히 보여 준다
-- stable syntax reference처럼 읽을 수는 있지만, 아직 smoke source of truth는 아니다
-- 따라서 stable board보다 약한 trust level로 다뤄야 한다
+- `examples/intent_contract_pair_minimal.pgy`
+- `examples/authority_contract_pair_minimal.pgy`
+- `examples/transfer_contract_pair_minimal.pgy`
+
+즉 `긴 버전 vs 압축 버전`을 보여 줄 때는 sketch 예제가 아니라 이 stable pair를 먼저 사용한다.
 
 ## 4. 운영 규칙
 
@@ -117,3 +120,4 @@
 - 아직 self-label이 없는 예제를 stable/sketch/unclassified로 전수 분류
 - `README`와 핵심 모델 문서에서 stable example 우선 링크
 - sketch example header wording 표준화
+- contract compression 본문 문서에서 canonical pair 우선 링크

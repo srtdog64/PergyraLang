@@ -64,6 +64,14 @@ nominal_decl_kind_name(NominalDeclKind kind)
 }
 
 static void
+print_indent(int level)
+{
+    for (int i = 0; i < level; i++) {
+        printf("  ");
+    }
+}
+
+static void
 print_intent_step_contract_sources(const ASTNode *node, int indent)
 {
     bool printed = false;
@@ -114,12 +122,6 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
 }
 
 // ============= AST 출력 (디버깅용) =============
-
-static void print_indent(int level) {
-    for (int i = 0; i < level; i++) {
-        printf("  ");
-    }
-}
 
 static const char* ast_operator_to_string(PgyTokenType type) {
     switch (type) {

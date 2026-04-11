@@ -18,6 +18,57 @@ intent_step_format_contract_source_summary(const ASTNode *step,
 
     buffer[0] = '\0';
 
+    if (step->data.intent_step.who_count > 0
+        && !step->data.intent_step.inferred_who_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared who on step",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.where_type != NULL
+        && !step->data.intent_step.inherited_where_from_action
+        && !step->data.intent_step.inferred_where_from_transfer
+        && step->data.intent_step.where_type->type == AST_TYPE
+        && step->data.intent_step.where_type->data.type.name != NULL) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared zone on step: %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.where_type->data.type.name);
+        has_any = true;
+    }
+    if (step->data.intent_step.required_ability_count > 0
+        && !step->data.intent_step.inherited_requires_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared requires on step",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.causes_effect != NULL
+        && !step->data.intent_step.inherited_causes_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared causes on step: %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.causes_effect);
+        has_any = true;
+    }
+    if (step->data.intent_step.authorized_by_count > 0
+        && !step->data.intent_step.inherited_authorized_by_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared authorized by on step",
+            has_any ? "\n" : "");
+        has_any = true;
+    }
+    if (step->data.intent_step.using_expr != NULL
+        && !step->data.intent_step.inferred_using_from_transfer
+        && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+        && step->data.intent_step.using_expr->data.identifier.name != NULL) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- locally declared using on step: %s",
+            has_any ? "\n" : "",
+            step->data.intent_step.using_expr->data.identifier.name);
+        has_any = true;
+    }
+
     if (step->data.intent_step.inferred_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
             "%s- inferred who from matching action",

@@ -81,8 +81,18 @@ Stable example guidance:
   - `examples/order_analytics/`
   - `examples/battle_simulator/`
   - `examples/biome_simulator/`
+- contract compression canonical pairs:
+  - `examples/intent_contract_pair_minimal.pgy`
+  - `examples/authority_contract_pair_minimal.pgy`
+  - `examples/transfer_contract_pair_minimal.pgy`
 - design-sketch examples such as `examples/party_system_demo.pgy` and
   `examples/world_roster_city.pgy` are not stable syntax references
+
+Authoring-surface references:
+
+- compression overview: [docs/61_surface_compression_examples.md](docs/61_surface_compression_examples.md)
+- pain-point board: [docs/58_keyword_authorship_pain_points.md](docs/58_keyword_authorship_pain_points.md)
+- compression plan: [docs/59_authoring_surface_compression_plan.md](docs/59_authoring_surface_compression_plan.md)
 
 ## Basics
 

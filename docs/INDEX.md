@@ -1,6 +1,6 @@
 # PergyraLang 전체 문서 인덱스
 
-마지막 업데이트: 2026-04-11
+마지막 업데이트: 2026-04-12
 
 ## 문서 분류
 
@@ -25,6 +25,7 @@
 | **현황** | [`docs/63_feature_depth_matrix.md`](docs/63_feature_depth_matrix.md) | 기능별 depth 매트릭스와 상태 변경 기록 (파싱/시맨틱/MIR/C/LLVM/런타임/테스트) |
 | **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | empty cell 제거 중심의 depth filling 로드맵과 진행 기록 |
 | **현황** | [`docs/65_stable_example_surface_board.md`](docs/65_stable_example_surface_board.md) | stable example / design sketch 예제 경계와 source of truth |
+| **현황** | [`docs/66_semantic_implementation_map.md`](docs/66_semantic_implementation_map.md) | 의미론 기준의 현재 구현 지도와 stable/partial 분류 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |
@@ -34,6 +35,22 @@
 | **리뷰** | [`review/object_vs_tobject_semantics.md`](review/object_vs_tobject_semantics.md) | object vs tobject 의미론 |
 | **레퍼런스** | [`README.md`](README.md) | 언어 소개, 시작 가이드 |
 | **레퍼런스** | [`TODO.md`](TODO.md) | 상세 TODO |
+
+## 최신 변경 사항 (2026-04-12)
+
+### 작성 surface / diagnostics 정리
+
+1. **Contract provenance를 local / inherited / inferred로 정리**
+   - intent step diagnostics와 AST/debug가 `locally declared`, `inherited from matching action`, `inferred from transfer target`를 같은 용어로 드러내도록 정렬
+   - dense action/step surface에서 왜 실패했는지 한 번에 읽을 수 있도록 provenance summary 강화
+
+2. **Dense clause diagnostic 개선**
+   - `with remote` 같은 오용에 대해 `use 'with effects ...'` 수정 힌트 추가
+   - `authorized self` 같은 오용에 대해 `use 'authorized by <subject>'` 수정 힌트 추가
+
+3. **Contract compression reference pair 고정**
+   - `docs/65_stable_example_surface_board.md`에 canonical pair 사용 원칙 명시
+   - `intent/authority/transfer` 압축 예제를 stable source of truth와 분리된 reference tier로 명확화
 
 ## 최신 변경 사항 (2026-04-11)
 
