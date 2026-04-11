@@ -370,7 +370,7 @@ MIR로 이월하는 것:
 - `as`
 - `impl`
 - `include`
-- `require`
+- `fields`
 - `override`
 - `extends`
 
@@ -764,7 +764,7 @@ Pergyra는 키워드를 아래 네 층으로 분류한다.
 | `ability` | `TOKEN_ABILITY` | declaration | 중간 | `HIR -> DIR` | capability contract |
 | `role` | `TOKEN_ROLE` | declaration | 큼 | `HIR -> DIR -> RIR` | ability implementation/binding |
 | `include` | `TOKEN_INCLUDE` | declaration clause | 낮음 | `HIR -> DIR` | role composition helper |
-| `require` | `TOKEN_REQUIRE` | declaration clause | 낮음 | `HIR -> DIR` | declaration constraint helper |
+| `fields` | contextual identifier | ability declaration clause | 낮음 | `HIR -> DIR` | ability host-field contract |
 | `override` | `TOKEN_OVERRIDE` | declaration modifier | 낮음 | `HIR` | method override surface |
 | `secure` | `TOKEN_SECURE` | type/resource modifier | 중간 | `HIR -> RIR -> MIR` | secure resource surface |
 | `party` | `TOKEN_PARTY` | declaration | 큼 | `HIR -> DIR -> RIR -> MIR` | collaboration contract |

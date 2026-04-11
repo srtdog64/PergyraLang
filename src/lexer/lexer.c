@@ -66,7 +66,6 @@ static const KeywordEntry keywords[] = {
     {"ability",  TOKEN_ABILITY},
     {"role",     TOKEN_ROLE},
     {"include",  TOKEN_INCLUDE},
-    {"require",  TOKEN_REQUIRE},
     {"override", TOKEN_OVERRIDE},
     {"secure",   TOKEN_SECURE},
     {"remote",   TOKEN_REMOTE},
@@ -616,7 +615,6 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_EFFECT: return "EFFECT";
         case TOKEN_ZONE: return "ZONE";
         case TOKEN_INCLUDE: return "INCLUDE";
-        case TOKEN_REQUIRE: return "REQUIRE";
         case TOKEN_OVERRIDE: return "OVERRIDE";
         case TOKEN_SECURE: return "SECURE";
         case TOKEN_REMOTE: return "REMOTE";

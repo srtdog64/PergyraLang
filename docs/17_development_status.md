@@ -132,14 +132,14 @@
 - `with effects ...` / `/// @effects ...` 계약: 선언이 있으면 body inferred effect와 mismatch를 semantic error로 보고함
 - effect contract는 이제 최소 closure/subsumption과 join API를 가진다. 현재 `collapse`는 `nondeterministic`를 포함하는 것으로 취급되며, disjoint branch effect도 계약으로 합쳐진다.
 - `use module;` duplicate import는 semantic warning으로 보고하며, `use datetime;` exported stdlib surface 회귀가 존재한다.
-- ability `require` 필드는 이제 선언 검증만이 아니라 role impl 시 bound subject host가 실제로 요구 필드를 만족하는지도 검사한다.
+- ability `fields` 항목은 이제 선언 검증만이 아니라 role impl 시 bound subject host가 실제로 요구 필드를 만족하는지도 검사한다.
 - `ability`는 이제 기본 공개 계약이다. cross-module에서 숨겨진 ability는 explicit `private ability`일 때만 `role impl ability ...`와 `action ... requires Ability` 양쪽에서 semantic error로 차단된다. `export ability`는 허용되더라도 권장 표기는 아니다.
 - `secure` capability는 이제 `SecureSlot`뿐 아니라 `Token<T>` 시그니처도 secure effect를 유발하며, paired token 이름/타입 정합성까지 정적으로 검사한다.
 - `Token<T>`와 secure capability는 이제 channel transport도 금지되어 capability-bearing 값이 병렬/원격 payload로 새는 경로를 semantic에서 차단한다.
 - authority가 선언된 `zone`에서 boundary projection(`publish` / tobject-target `bind`)은 이제 explicit `by <subjectSlot>` 없이 허용되지 않는다.
 - explicit `private` nominal member는 same host 내부에서만 허용되고, explicit visibility가 붙은 nominal field/method/constructor는 cross-module 경계에서 실제로 검사된다.
 - foreign non-exported nominal constructor는 이제 cross-module 호출이 차단되며, exported nominal constructor만 외부 모듈에서 생성할 수 있다.
-- ability `require` field는 duplicate declaration을 semantic error로 보고한다.
+- ability `fields` 항목은 duplicate declaration을 semantic error로 보고한다.
 - `Box<T>` explicit handle surface: `Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`
 - `Box<class>`는 현재 object handle 경로로 허용되며, plain class value parameter/return 제한을 우회하는 명시적 저장/전달 표면으로 사용 가능
 - `subject`는 plain copy / plain value parameter / plain value return이 금지되고, `class`는 값 복사/값 parameter/값 return을 허용함

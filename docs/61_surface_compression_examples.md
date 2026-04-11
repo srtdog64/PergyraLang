@@ -169,7 +169,7 @@ stable canonical pair:
 
 - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
 
-### 1.3 generic ability requires
+### 1.3 generic ability contracts
 
 현재 상태:
 

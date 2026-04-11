@@ -1147,7 +1147,7 @@ main(void)
         {
             "Ability Declaration",
             "ability Damageable {\n"
-            "    require health: Int\n"
+            "    fields health: Int\n"
             "    func TakeDamage(amount: Int) -> Void {\n"
             "        Log(amount);\n"
             "    }\n"

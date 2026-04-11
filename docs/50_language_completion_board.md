@@ -190,7 +190,7 @@
 현재:
 
 - `ability<T> { ... }` generic declaration 지원
-- `ability { require field: Type; }`는 일반 type parser를 타므로 `List<Int>` 같은 generic field type 자체는 받을 수 있다
+- `ability { fields field: Type; }`는 일반 type parser를 타므로 `List<Int>` 같은 generic field type 자체는 받을 수 있다
 - `action requires Ability` / intent step `requires:` / zone authority `requires`는 이제 type-reference AST를 저장한다
 - `requires SomeAbility<T>` 같은 generic ability reference를 parser/AST/semantic/DIR 경로에서 표현할 수 있다
 - semantic은 이제 generic reference를 blanket reject하지 않고 declaration 존재 여부, arity, type argument 해석을 검증한다

@@ -137,7 +137,7 @@ Pergyra에서 `ability`는 일반적인 OOP 인터페이스와 완전히 같지 
 
 ```pergyra
 ability Damageable {
-    require _health: Slot<Int>;
+    fields _health: Slot<Int>;
     func TakeDamage(self, amount: Int) -> Void;
 }
 
@@ -163,7 +163,7 @@ Pergyra에서 subject action/method는 개념적으로 항상 `self object cell`
 
 - slot 철학과 자연스럽게 연결된다
 - subject를 값 타입과 구분할 수 있다
-- ability의 `require`를 객체 내부 자원 셀과 연결할 수 있다
+- ability의 `fields`를 객체 내부 자원 셀과 연결할 수 있다
 - role/party/world가 object 협력 모델로 읽힌다
 
 ## 5. copy / identity / storage

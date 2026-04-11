@@ -139,14 +139,14 @@ Log(IntentLastFailed());  // "false" (기대: "true")
 
 ## 키워드 사용 현황 (종합 테스트 기준)
 
-### 사용된 키워드 (43/57)
+### 사용된 키워드 (43/56)
 
 ```
 ability  action   as       async    await    bind     break    case
 channel  class    continue default  defer    else     enum     event
 export   extends  extern   false    for      func     if       impl
 import   in       include  let      match    namespace override own
-parallel party    private  public   ref      require  return   role
+parallel party    private  public   ref      return   role
 secure   select   shared   slot     spawn    struct   subject  tobject
 true     type     unsafe   use      where    while
 with
@@ -160,7 +160,7 @@ with
 | 비동기 | async, await, channel, select, spawn, parallel | ✅ channel+select |
 | 소유권 | own, ref | ⚠️ 이 테스트에서 미사용 (smoke test에서 커버) |
 | 모듈 | export, namespace, import, use, extern | ✅ namespace+export |
-| Role/Ability | ability, role, include, require, override, secure | ✅ ability+role+require |
+| Role/Ability | ability, role, include, fields, override, secure | ✅ ability+role+fields |
 | 도메인 | party, relation, effect, zone, slot, shared, context | ✅ 대부분 |
 | Roster/World | roster, world | ✅ world |
 | 안전 | unsafe, defer, bind | ✅ defer |

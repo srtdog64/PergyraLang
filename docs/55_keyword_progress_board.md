@@ -39,7 +39,7 @@
 | `as` | 75% | alias/type helper 표면 안정 |
 | `impl` | 85% | role/ability 구현 핵심 표면 |
 | `include` | 75% | role composition helper 수준 |
-| `require` | 96% | ability require field 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal require type/ability 차단 + action requires의 foreign hidden ability 차단 + generic ability declaration/arity/type-arg validation + generic impl/requires satisfaction + richer required/actual generic mismatch diagnostics까지 연결됨 |
+| `fields` | 96% | ability fields 타입/중복 진단 + role impl 시 bound subject host 만족성 검사 + imported ability의 hidden nominal field type/ability 차단 + action requires의 foreign hidden ability 차단 + generic ability declaration/arity/type-arg validation + generic impl/requires satisfaction + richer required/actual generic mismatch diagnostics까지 연결됨 |
 | `override` | 55% | role/party 보조 modifier는 있으나 inheritance override는 코어 대상 아님 |
 | `extends` | 30% | party 보조 관계 표면은 있으나 inheritance 코어 축은 아님 |
 | `if` | 100% | 안정 |

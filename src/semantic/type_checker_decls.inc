@@ -364,13 +364,38 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ? ability_decl->data.ability_decl.generic_params->count : 0;
 
                     if (arg_count > 0 && param_count == 0) {
+                        char *impl_text =
+                            ability_ref_display(impl->data.impl_ability.ability_ref);
                         semantic_error(ctx, impl,
-                            "Ability '%s' does not accept generic type arguments in impl clauses",
+                            "Ability '%s' does not accept generic type arguments in impl clauses.\n"
+                            "Reason:\n"
+                            "- impl ability uses '%s'\n"
+                            "- ability declaration '%s' is non-generic\n"
+                            "Fix:\n"
+                            "- remove the generic arguments from '%s'\n"
+                            "- or declare '%s' with matching generic parameters",
+                            ability_name,
+                            impl_text != NULL ? impl_text : ability_name,
+                            ability_name,
+                            ability_name,
                             ability_name);
+                        free(impl_text);
                     } else if (arg_count != param_count) {
+                        char *impl_text =
+                            ability_ref_display(impl->data.impl_ability.ability_ref);
                         semantic_error(ctx, impl,
-                            "Ability '%s' requires %zu generic argument(s) in impl clauses, got %zu",
-                            ability_name, param_count, arg_count);
+                            "Ability '%s' requires %zu generic argument(s) in impl clauses, got %zu.\n"
+                            "Reason:\n"
+                            "- impl ability uses '%s'\n"
+                            "- ability declaration '%s' expects %zu type parameter(s)\n"
+                            "Fix:\n"
+                            "- pass exactly %zu generic argument(s) to '%s'\n"
+                            "- or change the ability declaration to match the intended arity",
+                            ability_name, param_count, arg_count,
+                            impl_text != NULL ? impl_text : ability_name,
+                            ability_name, param_count,
+                            param_count, ability_name);
+                        free(impl_text);
                     } else {
                         for (size_t k = 0; k < arg_count; k++) {
                             GenericParam *gp =
@@ -3777,9 +3802,31 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                 semantic_error(ctx, authority,
                     actual_impl != NULL
-                        ? "Zone authority '%s' requires ability '%s', but subject type '%s' implements '%s' instead"
-                        : "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl",
+                        ? "Zone authority '%s' requires ability '%s', but subject type '%s' implements '%s' instead.\n"
+                          "Reason:\n"
+                          "- subject type '%s' does not satisfy required ability '%s'\n"
+                          "Fix:\n"
+                          "- implement '%s' for subject type '%s'\n"
+                          "- or change/remove the zone authority requirement"
+                        : "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl.\n"
+                          "Reason:\n"
+                          "- subject type '%s' does not satisfy required ability '%s'\n"
+                          "Fix:\n"
+                          "- implement '%s' for subject type '%s'\n"
+                          "- or change/remove the zone authority requirement",
                     authority->data.zone_authority.subject_slot_name,
+                    required_text != NULL ? required_text : ability_name,
+                    slot_type->name,
+                    actual_text != NULL ? actual_text : NULL,
+                    slot_type->name,
+                    required_text != NULL ? required_text : ability_name,
+                    required_text != NULL ? required_text : ability_name,
+                    slot_type->name,
+                    authority->data.zone_authority.subject_slot_name,
+                    required_text != NULL ? required_text : ability_name,
+                    slot_type->name,
+                    slot_type->name,
+                    required_text != NULL ? required_text : ability_name,
                     required_text != NULL ? required_text : ability_name,
                     slot_type->name,
                     actual_text != NULL ? actual_text : NULL);

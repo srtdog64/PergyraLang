@@ -3517,12 +3517,12 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("ability require cannot reference non-exported foreign type");
+    TEST("ability fields cannot reference non-exported foreign type");
     {
         const char *source =
             "subject Hidden { let hp: Int; }\n"
             "ability NeedsHidden {\n"
-            "    require h: Hidden\n"
+            "    fields h: Hidden\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3536,7 +3536,7 @@ test_misc_grammar_edges(void)
         result = semantic_analyze(program);
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot require field 'h' with non-exported type 'Hidden'"));
+            "cannot declare field 'h' in fields with non-exported type 'Hidden'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3769,6 +3769,10 @@ test_misc_grammar_edges(void)
             "requires ability 'Combatable<Int>'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implements 'Combatable<String>' instead"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3799,6 +3803,10 @@ test_misc_grammar_edges(void)
             "requires ability 'Combatable<Int>'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implements 'Combatable<String>' instead"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3806,11 +3814,63 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
-    TEST("generic ability declaration accepts generic require fields and method signatures");
+    TEST("role impl rejects generic type arguments when ability is non-generic");
+    {
+        const char *source =
+            "ability Combatable { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<Int> { func Ping() -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not accept generic type arguments in impl clauses"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ability declaration 'Combatable' is non-generic"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("role impl rejects wrong generic ability arity");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<Int, String> { func Ping() -> Void { return; } }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "requires 1 generic argument(s) in impl clauses, got 2"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "impl ability uses 'Combatable<Int, String>'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic ability declaration accepts generic fields entries and method signatures");
     {
         const char *source =
             "ability Bufferable<T> {\n"
-            "    require items: List<T>;\n"
+            "    fields items: List<T>;\n"
             "    func Put(value: T) -> Void;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -3831,7 +3891,7 @@ test_misc_grammar_edges(void)
     {
         const char *source =
             "ability Bufferable<T> where T: String {\n"
-            "    require items: List<T>;\n"
+            "    fields items: List<T>;\n"
             "    func Put(value: T) -> Void;\n"
             "}\n";
         Lexer *lexer = lexer_create(source);

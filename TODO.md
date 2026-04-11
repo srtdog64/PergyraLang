@@ -16,6 +16,33 @@
 - [x] **declaration name surface tightening** — declaration name을 일반 식별자로만 제한하고 reserved keyword 재사용 surface 제거
 - [x] **anchored-handle diagnostics/test 정렬** — `own/ref` closed-subset 진단 문구와 `DeviceSlot`/anchored-handle semantic test expectation을 현재 구현 기준으로 일치시킴
 
+## 베타 클로저 보드
+
+베타 전 원칙:
+- `부분 구현` 상태를 남기지 않는다
+- 완료시키지 못하는 surface는 내리거나 experimental로 격리한다
+- parser가 받는 표면은 semantic/C/LLVM/runtime/test/documentation까지 닫는다
+
+### B0 — 의미론 클로저 필수
+
+- [ ] **Intent/Zone/World semantics 완전 closure**
+  - inference / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
+- [ ] **relation/effect/projection semantics 완전 closure**
+  - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
+- [ ] **generic contract 완전 closure**
+  - `ability<T>`, `requires Ability<T>`, `zone authority requires Ability<T>`, mismatch diagnostics, unsupported generic surface 정리
+- [ ] **own/ref 완전 closure**
+  - 허용 타입 범위, move/borrow/escape/rebind/return/channel 경계 규칙, forwarding 규칙, diagnostics, regression
+
+### B1 — 베타 신뢰도 필수
+
+- [ ] **surface trust 문서 재분류**
+  - alpha-complete / experimental / removed 기준으로 전면 재정리
+- [ ] **stable example / smoke source of truth 확대**
+  - canonical examples와 closure examples를 smoke에 직접 연결
+- [ ] **experimental surface 제거 또는 격리**
+  - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
+
 ## 완료 (P0 — 즉시 수정)
 
 - [x] **`system()` 명령 주입 제거** — `_spawnvp`/`execvp`로 교체, 경로 검증 추가 (`pgy_path_is_safe`)

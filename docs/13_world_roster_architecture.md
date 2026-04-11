@@ -39,7 +39,7 @@ parser/semantic은 둘을 다른 nominal declaration flavor로 기록한다.
 
 ```pergyra
 ability Damageable {
-    require health: Int;
+    fields health: Int;
     func TakeDamage(amount: Int) -> Void;
 }
 
@@ -173,7 +173,7 @@ ServerWorld
 
 ```pergyra
 ability Damageable {
-    require _healthSlot: Slot<Int>
+    fields _healthSlot: Slot<Int>
     func TakeDamage(&mut self, amount: Int)
     func GetHealth(&self) -> Int
 }
@@ -293,17 +293,17 @@ world GameWorld {
 ### Ability 레벨
 ```pergyra
 ability Attackable {
-    require _attackPower: Int
+    fields _attackPower: Int
     func Attack(target: &mut impl Damageable) -> Int
 }
 
 ability Tradeable {
-    require _inventory: Slot<Inventory>
+    fields _inventory: Slot<Inventory>
     func Trade(other: &mut impl Tradeable, items: Array<Item>)
 }
 
 ability Craftable {
-    require _craftingSkill: Int
+    fields _craftingSkill: Int
     // 장기적으로는 Option/Result 계열 반환을 원하지만,
     // 현재 stable current surface로는 tagged union enum 또는 Result<T> 쪽이 더 가깝다.
     func Craft(recipe: Recipe) -> Result<Item>

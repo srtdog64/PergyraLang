@@ -19,7 +19,7 @@
 
 ```pergyra
 ability Damageable {
-    require health: Int;
+    fields health: Int;
     func TakeDamage(amount: Int) -> Void;
 }
 
@@ -40,7 +40,7 @@ role MonsterCombat for Monster {
 ```
 
 지원되는 요소:
-- `ability` + `require`
+- `ability` + `fields`
 - `role ... for Type`
 - `impl ability ...`
 - `include role ...`
@@ -88,14 +88,14 @@ subject Player
 - 객체가 무엇을 할 수 있는지 정의
 - 단순 인터페이스보다 강하다
 - `self` 객체가 어떤 자원 셀과 규율 위에서 움직이는지 전제한다
-- `require` 키워드로 ability 수행에 필요한 자원/필드 명시
+- `fields` 키워드로 ability 수행에 필요한 자원/필드 명시
 - 기본 구현 제공 가능
 
 ```pergyra
 ability Damageable
 {
-    require _healthSlot: SecureSlot<Int>
-    require _token: Token
+    fields _healthSlot: SecureSlot<Int>
+    fields _token: Token
     
     func TakeDamage(&mut self, amount: Int)
     func Heal(&mut self, amount: Int)
@@ -109,7 +109,7 @@ ability Damageable
 
 ability Attackable
 {
-    require _attackPower: Int
+    fields _attackPower: Int
     
     func Attack(&self, target: &mut impl Damageable) -> Int
 }
@@ -202,7 +202,7 @@ Pergyra에서 `ability`는 모든 타입에 무차별적으로 붙는 일반 인
 - `struct`는 값 타입이다
 - `subject`는 ability를 수행하는 주체 타입이다
 - role은 subject에 ability를 바인딩한다
-- ability의 `require`는 그 subject가 점유하거나 접근 가능한 자원 셀을 전제한다
+- ability의 `fields`는 그 subject가 점유하거나 접근 가능한 자원 셀을 전제한다
 - `object`는 이 subject가 transfer/view 문맥에서 수동적으로 해석된 모습일 뿐, 별도 코어 타입은 아니다
 
 즉 `ability`는 "메서드 목록"보다
@@ -214,8 +214,8 @@ Pergyra에서 `ability`는 모든 타입에 무차별적으로 붙는 일반 인
 // 보안 능력
 secure ability SecureTransferable
 {
-    require _balanceSlot: SecureSlot<Decimal>
-    require _token: Token
+    fields _balanceSlot: SecureSlot<Decimal>
+    fields _token: Token
     
     func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) -> Result<(), Error>
 }
@@ -223,7 +223,7 @@ secure ability SecureTransferable
 // 일반 전송 능력
 ability Transferable
 {
-    require _balanceSlot: Slot<Decimal>
+    fields _balanceSlot: Slot<Decimal>
     
     func Transfer(&mut self, to: &mut impl Transferable, amount: Decimal) -> Result<(), Error>
 }
@@ -295,7 +295,7 @@ role GameUnit for WorldUnit
 1. `ability` 키워드 파싱
 2. `role` 키워드 파싱
 3. `include` 문 파싱
-4. `require` 필드 파싱
+4. `fields` 필드 파싱
 
 ### Phase 3: Type System Integration
 1. Ability를 타입으로 취급

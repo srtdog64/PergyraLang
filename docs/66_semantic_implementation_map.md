@@ -18,17 +18,15 @@
 
 ## 1. 한 줄 요약
 
-현재 Pergyra의 의미론은 다음처럼 보는 것이 가장 정확하다.
+현재 Pergyra의 의미론은 다음처럼 분류해야 한다.
 
-- `코어 실행 의미론`: 깊음
-- `slot/resource/authority`: 깊음
-- `intent/zone/world orchestration`: 중상
-- `relation/effect/projection`: 중간
-- `generic contract / own-ref / richer runtime propagation`: 부분 구현
+- `알파 완료`: 코어 실행 의미론, slot/resource/authority, async/channel/select
+- `알파 범위에서 이번에 닫아야 할 축`: intent/zone/world orchestration, relation/effect/projection, generic contract, own/ref
+- `베타 전까지 추가 금지`: 새 surface, 새 ontology, 새 runtime subsystem
 
 즉 지금의 Pergyra는 단순한 문법 실험이 아니라,
 `slot anchor를 중심으로 한 실행 의미론`이 실제 컴파일러와 런타임까지 연결된 상태다.
-반대로, 모든 도메인 표면이 같은 깊이로 닫힌 상태는 아니다.
+다만 베타로 가려면 남은 축을 `완료`시키거나 `표면에서 내려야` 한다.
 
 ---
 
@@ -147,7 +145,7 @@
 
 ---
 
-## 4. 현재 강하지만 아직 덜 닫힌 의미론
+## 4. 알파 범위에서 이번에 닫아야 하는 의미론
 
 ### 4.1 Ability / role / require contract
 
@@ -158,7 +156,7 @@
 - action requires
 - generic ability baseline
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - richer mismatch diagnostics
 - module contract 수준의 `use/require`
 - generic bound와 contract summary의 전면 정리
@@ -178,7 +176,7 @@
 - transfer inference
 - history 일부
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - richer runtime observability
 - distributed runtime 모델
 - deeper policy surface
@@ -195,7 +193,7 @@
 - world embedded zone query surface
 - C/LLVM lowering과 테스트 범위 존재
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - multi-zone coordination policy의 깊이
 - embedding ownership story의 더 넓은 정리
 - richer runtime propagation
@@ -206,7 +204,7 @@
 
 ---
 
-## 5. 현재 가장 조심해서 설명해야 하는 의미론
+## 5. 아직 완료라고 부르면 안 되는 의미론
 
 ### 5.1 relation / effect / projection
 
@@ -218,7 +216,7 @@
 - object/tobject projection contract 분리
 - 일부 query surface (`HasProjection`, `HasLayer`, `HasState`)
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - full effect lattice
 - authority/resource partial order와의 완전 통합
 - richer propagation model
@@ -235,7 +233,7 @@
 - generic ability baseline
 - 일부 bound validation
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - default type arg
 - richer multi-bound closure
 - parser가 받는 표면 대비 full semantic closure
@@ -251,7 +249,7 @@
 - 일부 forwarding 경로
 - secure boundary paired-token 경로
 
-현재 덜 닫힌 것:
+이번 알파 범위에서 끝내야 할 것:
 - 일반 타입 전반에 대한 ownership discipline
 - borrow-after-move 전면 closure
 - alias/rebind/escape 전체 모델
@@ -333,9 +331,11 @@
 
 ## 8. 현재 구현 정리 기준
 
+이제부터 문서와 상태판은 `부분 구현`이라는 표현을 줄이고 아래 세 분류를 우선 사용한다.
+
 지금 저장소를 정리할 때는 기능을 다음 셋으로 나누는 것이 맞다.
 
-### 8.1 Stable semantics
+### 8.1 Alpha-complete semantics
 
 조건:
 - parser/semantic/MIR/C/LLVM 중 핵심 경로가 닫혀 있음
@@ -349,7 +349,7 @@
 - nominal core (`subject/class/object/tobject/...`)
 - compressed action/transfer authoring path의 stable subset
 
-### 8.2 Partially closed semantics
+### 8.2 Experimental semantics
 
 조건:
 - 실행 경로는 있으나
@@ -362,7 +362,7 @@
 - relation/effect/projection
 - collections
 
-### 8.3 Surface that must not be oversold
+### 8.3 Removed or explicitly closed surface
 
 조건:
 - parser가 받거나 일부 경로가 있더라도
@@ -390,11 +390,10 @@
 
 현재 Pergyra는 다음처럼 정리하는 것이 가장 정확하다.
 
-- 코어 언어와 slot/resource 의미론은 이미 강하다.
-- intent/zone/world는 실제 실행 의미론이 있으며, 남은 문제는 주로 runtime depth와 설명력이다.
-- relation/effect/projection, generic contract, own/ref는 아직 과장 없이 `부분 구현`으로 관리해야 한다.
-- 현재 제품성의 핵심은 새 개념 추가보다 `surface trust`, `diagnostics provenance`, `stable semantics 분류`다.
+- 코어 언어와 slot/resource 의미론은 이미 알파 완료 범위다.
+- intent/zone/world, relation/effect/projection, generic contract, own/ref는 베타 전까지 완료시키거나 surface를 내려야 한다.
+- 현재 제품성의 핵심은 새 개념 추가보다 `closure`, `diagnostics provenance`, `surface trust`다.
 
 즉 지금 해야 할 일은
 `언어가 무엇을 표현할 수 있는가`를 더 넓히는 것보다,
-`이미 있는 의미론 중 무엇이 진짜로 닫혔는가`를 계속 더 정확하게 고정하는 일이다.
+`이미 표면에 올린 의미론을 전부 닫는 일`이다.

@@ -44,7 +44,7 @@
 | 모듈 | `import`, `use`, `export`, `namespace`, `extern` |
 | 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
 | 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local` |
-| 도메인 | `slot`, `shared`, `bind`, `include`, `require`, `override` |
+| 도메인 | `slot`, `shared`, `bind`, `include`, `fields`, `override` |
 | 블록 | `with`, `parallel`, `private`, `public` |
 | 리터럴 | `true`, `false` |
 

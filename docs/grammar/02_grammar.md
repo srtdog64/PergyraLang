@@ -12,7 +12,7 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- 예약 키워드 (54개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `require`, `override`, `with`, `parallel`, `private`, `public`, `true`, `false`, `tobject`, `object`
+- 예약 키워드 (53개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `override`, `with`, `parallel`, `private`, `public`, `true`, `false`, `tobject`, `object`
 - 컨텍스트 키워드: `world`, `roster`, `roster`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
   선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
 - `context`는 현재 ordinary identifier다.
@@ -554,7 +554,7 @@ let value: Int = <-ch;
 
 ```pergyra
 ability Damageable {
-    require health: Int;
+    fields health: Int;
     func TakeDamage(amount: Int) -> Void;
 }
 

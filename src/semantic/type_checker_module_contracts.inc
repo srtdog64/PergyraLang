@@ -101,6 +101,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 {
     const char *ability = ability_ref_name(ability_ref);
     ASTNode *ability_decl;
+    char *required_text = ability_ref_display(ability_ref);
 
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
@@ -108,16 +109,24 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             "%s '%s' requires a valid ability type reference",
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>");
+        free(required_text);
         return NULL;
     }
 
     ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
     if (ability_decl == NULL) {
         semantic_error(ctx, site,
-            "%s '%s' requires unknown ability '%s'",
+            "%s '%s' requires unknown ability '%s'.\n"
+            "Reason:\n"
+            "- no visible ability declaration named '%s' was found\n"
+            "Fix:\n"
+            "- declare ability '%s'\n"
+            "- or import/export the module that defines it",
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>",
+            ability,
             ability);
+        free(required_text);
         return NULL;
     }
 
@@ -129,15 +138,36 @@ resolve_required_ability_decl(ASTNode *ability_ref,
 
         if (arg_count > 0 && param_count == 0) {
             semantic_error(ctx, site,
-                "Ability '%s' does not accept generic type arguments in requires clauses",
+                "Ability '%s' does not accept generic type arguments in requires clauses.\n"
+                "Reason:\n"
+                "- requires uses '%s'\n"
+                "- ability declaration '%s' is non-generic\n"
+                "Fix:\n"
+                "- remove the generic arguments from '%s'\n"
+                "- or declare '%s' with matching generic parameters",
+                ability,
+                required_text != NULL ? required_text : ability,
+                ability,
+                ability,
                 ability);
+            free(required_text);
             return NULL;
         }
 
         if (arg_count != param_count) {
             semantic_error(ctx, site,
-                "Ability '%s' requires %zu generic argument(s) in requires clauses, got %zu",
-                ability, param_count, arg_count);
+                "Ability '%s' requires %zu generic argument(s) in requires clauses, got %zu.\n"
+                "Reason:\n"
+                "- requires uses '%s'\n"
+                "- ability declaration '%s' expects %zu type parameter(s)\n"
+                "Fix:\n"
+                "- pass exactly %zu generic argument(s) to '%s'\n"
+                "- or change the ability declaration to match the intended arity",
+                ability, param_count, arg_count,
+                required_text != NULL ? required_text : ability,
+                ability, param_count,
+                param_count, ability);
+            free(required_text);
             return NULL;
         }
 
@@ -146,14 +176,21 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
             if (arg == NULL) {
                 semantic_error(ctx, site,
-                    "Ability '%s' has an invalid generic argument in requires clause",
-                    ability);
+                    "Ability '%s' has an invalid generic argument in requires clause.\n"
+                    "Reason:\n"
+                    "- generic argument %zu in '%s' is missing or malformed\n"
+                    "Fix:\n"
+                    "- provide a concrete type argument for each generic parameter",
+                    ability, i + 1,
+                    required_text != NULL ? required_text : ability);
+                free(required_text);
                 return NULL;
             }
             resolve_type_node(arg, ctx);
         }
     }
 
+    free(required_text);
     return ability_decl;
 }
 
@@ -172,7 +209,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
         if (req == NULL || req->data.require_field.name == NULL
             || req->data.require_field.type == NULL) {
             semantic_error(ctx, node,
-                "Ability '%s' has an invalid require field declaration",
+                "Ability '%s' has an invalid fields declaration",
                 name != NULL ? name : "<ability>");
             continue;
         }
@@ -182,7 +219,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                 && strcmp(prev->data.require_field.name,
                           req->data.require_field.name) == 0) {
                 semantic_error(ctx, req,
-                    "Ability '%s' declares duplicate require field '%s'",
+                    "Ability '%s' declares duplicate field '%s' in fields",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name);
                 break;
@@ -197,7 +234,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
             if (type_decl != NULL
                 && !explicit_type_reference_allowed(type_decl, node, ctx)) {
                 semantic_error(ctx, req,
-                    "Ability '%s' cannot require field '%s' with non-exported type '%s' from another module",
+                    "Ability '%s' cannot declare field '%s' in fields with non-exported type '%s' from another module",
                     name != NULL ? name : "<ability>",
                     req->data.require_field.name,
                     req->data.require_field.type->data.type.name);
@@ -257,9 +294,36 @@ validate_action_required_abilities(ASTNode *node,
             char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
             semantic_error(ctx, node,
                 actual_impl != NULL
-                    ? "action '%s' requires ability '%s' but subject '%s' implements '%s' instead"
-                    : "action '%s' requires ability '%s' but subject '%s' does not implement it",
+                    ? "action '%s' requires ability '%s', but subject '%s' implements '%s' instead.\n"
+                      "Reason:\n"
+                      "- subject '%s' does not satisfy required ability '%s'\n"
+                      "Fix:\n"
+                      "- implement '%s' for subject '%s'\n"
+                      "- or change/remove the action requirement"
+                    : "action '%s' requires ability '%s', but subject '%s' does not implement it.\n"
+                      "Reason:\n"
+                      "- subject '%s' does not satisfy required ability '%s'\n"
+                      "Fix:\n"
+                      "- implement '%s' for subject '%s'\n"
+                      "- or change/remove the action requirement",
                 name != NULL ? name : "<anonymous>",
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
+                subject_name,
+                actual_text != NULL ? actual_text : NULL,
+                subject_name,
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
+                subject_name,
+                name != NULL ? name : "<anonymous>",
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
+                subject_name,
+                subject_name,
+                required_text != NULL ? required_text
+                                      : (ability != NULL ? ability : "<ability>"),
                 required_text != NULL ? required_text
                                       : (ability != NULL ? ability : "<ability>"),
                 subject_name,

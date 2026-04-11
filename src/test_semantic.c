@@ -2456,6 +2456,59 @@ test_qubit_slot_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("own SecureSlot<subject> return stays blocked by slot return rule");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func Leak(own s: SecureSlot<Vec2>) -> SecureSlot<Vec2> {\n"
+            "    return s;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Slot return types are not supported yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("own SecureSlot<subject> channel send stays blocked by anchored-handle rule");
+    {
+        const char *source =
+            "subject Vec2 {\n"
+            "    let x: Int;\n"
+            "    let y: Int;\n"
+            "}\n"
+            "func SendAway(own s: SecureSlot<Vec2>) -> Void {\n"
+            "    let ch: Channel<SecureSlot<Vec2>> = Channel(2);\n"
+            "    ch <- s;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "anchored resource handles"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Slot return types are rejected for now");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -2996,7 +3049,7 @@ test_ability_decl(void)
 {
     printf("\n[ability_decl]\n");
 
-    TEST("valid ability with require field passes");
+    TEST("valid ability with fields entry passes");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -3037,7 +3090,7 @@ test_ability_decl(void)
         ast_destroy(ability2);
     }
 
-    TEST("duplicate ability require field triggers error");
+    TEST("duplicate ability fields entry triggers error");
     {
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
@@ -3060,7 +3113,7 @@ test_ability_decl(void)
 
         type_check_ability_decl(ability, ctx);
         EXPECT(ctx->has_error);
-        EXPECT(ctx_has_diagnostic_substring(ctx, "duplicate require field"));
+        EXPECT(ctx_has_diagnostic_substring(ctx, "duplicate field 'health' in fields"));
 
         semantic_context_destroy(ctx);
         ast_destroy(ability);
@@ -3098,11 +3151,11 @@ test_role_decl(void)
         ast_destroy(role);
     }
 
-    TEST("role ability require fields must exist on bound subject host");
+    TEST("role ability fields must exist on bound subject host");
     {
         const char *source =
             "ability Combatable {\n"
-            "    require hp: Int;\n"
+            "    fields hp: Int;\n"
             "}\n"
             "subject Bot {\n"
             "    let hp: Int;\n"
@@ -3125,11 +3178,11 @@ test_role_decl(void)
         lexer_destroy(lexer);
     }
 
-    TEST("role ability require fields reject missing bound subject field");
+    TEST("role ability fields reject missing bound subject field");
     {
         const char *source =
             "ability Combatable {\n"
-            "    require hp: Int;\n"
+            "    fields hp: Int;\n"
             "}\n"
             "subject Bot {\n"
             "    let mp: Int;\n"

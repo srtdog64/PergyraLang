@@ -1493,7 +1493,7 @@ ASTNode* parse_party_declaration(Parser* parser) {
 
 /*
  * ability Damageable {
- *     require health: Int
+ *     fields health: Int
  *     func TakeDamage(amount: Int) -> Void
  *     func GetHealth() -> Int { return self.health; }
  * }
@@ -1512,11 +1512,11 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
-        if (parser_match(parser, TOKEN_REQUIRE)) {
-            /* require field_name: Type */
+        if (parser_match_identifier_keyword(parser, "fields")) {
+            /* fields field_name: Type */
             Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected field name after 'require'");
-            parser_consume(parser, TOKEN_COLON, "Expected ':' after require field name");
+                "Expected field name after 'fields'");
+            parser_consume(parser, TOKEN_COLON, "Expected ':' after fields field name");
             ASTNode* field_type = parse_type(parser);
 
             ASTNode* req = ast_create_require_field(field_name.text);
@@ -1548,7 +1548,7 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
 
         } else {
             parser_discard_pending_doc_comment(parser);
-            parser_error(parser, "Expected 'require' or 'func' in ability body");
+            parser_error(parser, "Expected 'fields' or 'func' in ability body");
             parser_advance(parser);
         }
     }
