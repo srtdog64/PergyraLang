@@ -169,7 +169,7 @@ driver_run_fmt_command(int argc, char *argv[])
 
     if (write_inplace || check_only) {
         snprintf(tmppath, sizeof(tmppath), "%s.fmt.tmp", path);
-        out = fopen(tmppath, "w");
+        out = fopen(tmppath, "wb");
         if (!out) {
             fprintf(stderr, "pgy fmt: cannot create temp file\n");
             free(source);
