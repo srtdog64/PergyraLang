@@ -82,13 +82,10 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
+#ifndef _WIN32
 static int
 pgy_exec_probe_argv(const char *const argv[])
 {
-#ifdef _WIN32
-    intptr_t rc = _spawnvp(_P_WAIT, argv[0], argv);
-    return (int)rc;
-#else
     pid_t pid = fork();
     if (pid < 0)
         return -1;
@@ -107,8 +104,8 @@ pgy_exec_probe_argv(const char *const argv[])
     if (WIFEXITED(status))
         return WEXITSTATUS(status);
     return -1;
-#endif
 }
+#endif
 
 /* -----------------------------------------------------------------
  * C compiler detection: PGY_CC env → clang → gcc → cc
@@ -194,6 +191,7 @@ compiler_now_seconds(void)
 #endif
 }
 
+#ifndef _WIN32
 static bool
 compiler_env_truthy(const char *name)
 {
@@ -220,14 +218,11 @@ compiler_should_use_lld(void)
 
     if (value != NULL && value[0] != '\0')
         return compiler_env_truthy("PGY_USE_LLD");
-#ifdef _WIN32
-    return false;
-#else
     return access("/usr/bin/ld.lld", X_OK) == 0
         || access("/usr/local/bin/ld.lld", X_OK) == 0
         || access("/bin/ld.lld", X_OK) == 0;
-#endif
 }
+#endif
 
 #ifdef PGY_LLVM_ENABLED
 
@@ -470,8 +465,11 @@ compiler_build_native(const CompilerIRBundle *bundle,
     const char *cc_target = pgy_cc_extra_target_flag();
     {
         const char *compile_argv[20];
+        int ci = 0;
+#ifdef _WIN32
         const char *link_argv[20];
-        int ci = 0, li = 0;
+        int li = 0;
+#endif
         compile_argv[ci++] = cc;
         if (cc_target != NULL) compile_argv[ci++] = cc_target;
         compile_argv[ci++] = "-std=c11";
@@ -491,6 +489,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = output_obj_path;
         compile_argv[ci] = NULL;
 
+#ifdef _WIN32
         link_argv[li++] = cc;
         if (cc_target != NULL) link_argv[li++] = cc_target;
         link_argv[li++] = "-std=c11";
@@ -502,6 +501,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         link_argv[li++] = PGY_CFLAGS_THREAD_LIB;
         link_argv[li++] = "-lm";
         link_argv[li] = NULL;
+#endif
 
     result = compiler_success(output_c_path, output_binary_path);
     if (result == NULL) {

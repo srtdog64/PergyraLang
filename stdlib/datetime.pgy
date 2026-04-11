@@ -44,6 +44,36 @@ export class DateTime
     }
 }
 
+export class Duration
+{
+    let milliseconds: Int;
+
+    func Format(self) -> String
+    {
+        return ToString(milliseconds) + "ms";
+    }
+}
+
+export class Instant
+{
+    let milliseconds: Int;
+
+    func Add(self, delta: Duration) -> Instant
+    {
+        return Instant(milliseconds + delta.milliseconds);
+    }
+
+    func Since(self, earlier: Instant) -> Duration
+    {
+        return Duration(milliseconds - earlier.milliseconds);
+    }
+
+    func Reached(self, deadline: Instant) -> Bool
+    {
+        return milliseconds >= deadline.milliseconds;
+    }
+}
+
 export func SameDate(a: LocalDate, b: LocalDate) -> Bool
 {
     return a.year == b.year
@@ -69,4 +99,44 @@ export func FormatDateTime(at: DateTime) -> String
 export func DateTimeOnDate(at: DateTime, date: LocalDate) -> Bool
 {
     return at.IsOnDate(date);
+}
+
+export func DurationMs(ms: Int) -> Duration
+{
+    return Duration(ms);
+}
+
+export func DurationSeconds(seconds: Int) -> Duration
+{
+    return Duration(seconds * 1000);
+}
+
+export func DurationMinutes(minutes: Int) -> Duration
+{
+    return DurationSeconds(minutes * 60);
+}
+
+export func FormatDuration(delta: Duration) -> String
+{
+    return delta.Format();
+}
+
+export func InstantNow() -> Instant
+{
+    return Instant(Now());
+}
+
+export func InstantAdd(at: Instant, delta: Duration) -> Instant
+{
+    return at.Add(delta);
+}
+
+export func DurationBetween(start: Instant, end: Instant) -> Duration
+{
+    return Duration(end.milliseconds - start.milliseconds);
+}
+
+export func DeadlineReached(now: Instant, deadline: Instant) -> Bool
+{
+    return now.Reached(deadline);
 }

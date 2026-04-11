@@ -26,6 +26,8 @@
 | **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | empty cell 제거 중심의 depth filling 로드맵과 진행 기록 |
 | **현황** | [`docs/65_stable_example_surface_board.md`](docs/65_stable_example_surface_board.md) | stable example / design sketch 예제 경계와 source of truth |
 | **현황** | [`docs/66_semantic_implementation_map.md`](docs/66_semantic_implementation_map.md) | 의미론 기준의 현재 구현 지도와 stable/partial 분류 |
+| **라이브러리** | [`docs/29_stdlib_design.md`](docs/29_stdlib_design.md) | stdlib/common/domain kit 계층과 모듈 정책 |
+| **라이브러리** | [`docs/67_layered_stdlib_and_domain_kits.md`](docs/67_layered_stdlib_and_domain_kits.md) | 코어 추가 금지, common stdlib vs domain kit 분리 정책 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |
@@ -37,6 +39,22 @@
 | **레퍼런스** | [`TODO.md`](TODO.md) | 상세 TODO |
 
 ## 최신 변경 사항 (2026-04-12)
+
+### 계층형 stdlib / domain kit 정리
+
+1. **코어 확장 대신 라이브러리 계층 확정**
+   - `docs/67_layered_stdlib_and_domain_kits.md` 추가
+   - 코어는 `authority / boundary / orchestration / ownership`에 집중
+   - common stdlib와 domain kit로 금융/IoT/컴플라이언스 재료를 분리
+
+2. **새 common stdlib / domain kit 모듈 추가**
+   - common: `money`, `datetime(Duration/Instant)`, `timer`, `versioning`
+   - domain: `ledger`, `obligation`, `device_adapter`
+
+3. **도메인별 probe 예제 추가**
+   - `examples/finance_ledger_probe/main.pgy`
+   - `examples/compliance_obligation_probe/main.pgy`
+   - `examples/iot_device_adapter_probe/main.pgy`
 
 ### 작성 surface / diagnostics 정리
 

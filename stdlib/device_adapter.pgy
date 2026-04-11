@@ -1,0 +1,53 @@
+class DeviceRegister
+{
+    let name: String;
+    let address: Int;
+}
+
+class DeviceSample
+{
+    let source: DeviceRegister;
+    let value: Int;
+    let capturedAtMs: Int;
+}
+
+class DeviceCommand
+{
+    let target: DeviceRegister;
+    let value: Int;
+}
+
+func Register(name: String, address: Int) -> DeviceRegister
+{
+    return DeviceRegister(name, address);
+}
+
+func SampleDevice(source: DeviceRegister, value: Int, capturedAtMs: Int) -> DeviceSample
+{
+    return DeviceSample(source, value, capturedAtMs);
+}
+
+func WriteDevice(target: DeviceRegister, value: Int) -> DeviceCommand
+{
+    return DeviceCommand(target, value);
+}
+
+func SampleEventTopic(sample: DeviceSample) -> String
+{
+    return "device/" + sample.source.name;
+}
+
+func RenderDeviceSample(sample: DeviceSample) -> String
+{
+    return "[device] source=" + sample.source.name
+        + " address=" + ToString(sample.source.address)
+        + " value=" + ToString(sample.value)
+        + " captured=" + ToString(sample.capturedAtMs);
+}
+
+func RenderDeviceCommand(command: DeviceCommand) -> String
+{
+    return "[command] target=" + command.target.name
+        + " address=" + ToString(command.target.address)
+        + " value=" + ToString(command.value);
+}

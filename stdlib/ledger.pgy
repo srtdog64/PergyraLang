@@ -1,0 +1,66 @@
+class LedgerEntry
+{
+    let account: String;
+    let amount: Money;
+    let direction: String;
+    let version: VersionStamp;
+    let memo: String;
+}
+
+class LedgerPosting
+{
+    let debit: LedgerEntry;
+    let credit: LedgerEntry;
+    let key: IdempotencyKey;
+}
+
+func DebitEntry(account: String, amount: Money, version: VersionStamp, memo: String) -> LedgerEntry
+{
+    return LedgerEntry(account, amount, "debit", version, memo);
+}
+
+func CreditEntry(account: String, amount: Money, version: VersionStamp, memo: String) -> LedgerEntry
+{
+    return LedgerEntry(account, amount, "credit", version, memo);
+}
+
+func BuildTransferPosting(
+    fromAccount: String,
+    toAccount: String,
+    amount: Money,
+    version: VersionStamp,
+    key: IdempotencyKey,
+    memo: String
+) -> LedgerPosting
+{
+    return LedgerPosting(
+        DebitEntry(fromAccount, amount, version, memo),
+        CreditEntry(toAccount, amount, version, memo),
+        key
+    );
+}
+
+func LedgerBalanced(posting: LedgerPosting) -> Bool
+{
+    return posting.debit.amount.currency == posting.credit.amount.currency
+        && posting.debit.amount.minorUnits == posting.credit.amount.minorUnits;
+}
+
+func RenderLedgerEntry(entry: LedgerEntry) -> String
+{
+    return entry.direction
+        + " account=" + entry.account
+        + " amount=" + RenderMoney(entry.amount)
+        + " version=" + RenderVersion(entry.version)
+        + " memo=" + entry.memo;
+}
+
+func RenderLedgerPosting(posting: LedgerPosting) -> String
+{
+    return "[ledger] "
+        + RenderLedgerEntry(posting.debit)
+        + " | "
+        + RenderLedgerEntry(posting.credit)
+        + " | key=" + RenderIdempotencyKey(posting.key)
+        + " balanced=" + ToString(LedgerBalanced(posting));
+}

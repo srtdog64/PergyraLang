@@ -1,0 +1,20 @@
+use datetime;
+use timer;
+use device_adapter;
+
+func Main() -> Void
+{
+    let started = InstantNow();
+    let poll = TimerAfter("poll:temp", started.milliseconds, 1000);
+    let sensor = Register("temp", 4096);
+    let command = WriteDevice(sensor, 77);
+    let sample = SampleDevice(sensor, 77, started.milliseconds + 1000);
+    let nowMs = started.milliseconds + 1000;
+
+    Log("=== IOT DEVICE ADAPTER PROBE ===");
+    Log(RenderTimer(poll));
+    Log("expired=" + ToString(TimerExpired(poll, nowMs)));
+    Log(RenderDeviceCommand(command));
+    Log(RenderDeviceSample(sample));
+    Log("topic=" + SampleEventTopic(sample));
+}

@@ -1,0 +1,50 @@
+class TimerSpec
+{
+    let name: String;
+    let startedAtMs: Int;
+    let dueAtMs: Int;
+    let intervalMs: Int;
+    let repeating: Bool;
+}
+
+func TimerAfter(name: String, nowMs: Int, delayMs: Int) -> TimerSpec
+{
+    return TimerSpec(name, nowMs, nowMs + delayMs, delayMs, false);
+}
+
+func TimerEvery(name: String, nowMs: Int, intervalMs: Int) -> TimerSpec
+{
+    return TimerSpec(name, nowMs, nowMs + intervalMs, intervalMs, true);
+}
+
+func TimerExpired(timer: TimerSpec, nowMs: Int) -> Bool
+{
+    return nowMs >= timer.dueAtMs;
+}
+
+func TimerRemaining(timer: TimerSpec, nowMs: Int) -> Int
+{
+    if nowMs >= timer.dueAtMs {
+        return 0;
+    }
+    return timer.dueAtMs - nowMs;
+}
+
+func TimerTick(timer: TimerSpec, nowMs: Int) -> TimerSpec
+{
+    if !timer.repeating {
+        return timer;
+    }
+    if nowMs < timer.dueAtMs {
+        return timer;
+    }
+    return TimerSpec(timer.name, timer.startedAtMs, nowMs + timer.intervalMs, timer.intervalMs, timer.repeating);
+}
+
+func RenderTimer(timer: TimerSpec) -> String
+{
+    return "[timer] " + timer.name
+        + " due=" + ToString(timer.dueAtMs)
+        + " interval=" + ToString(timer.intervalMs)
+        + " repeating=" + ToString(timer.repeating);
+}

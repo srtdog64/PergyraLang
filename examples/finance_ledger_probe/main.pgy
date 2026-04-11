@@ -1,0 +1,24 @@
+use money;
+use versioning;
+use ledger;
+
+func Main() -> Void
+{
+    let amount = MoneyOf(12500, "KRW");
+    let version = VersionInitial("wallet:min");
+    let key = MakeIdempotencyKey("payment:checkout-42", 7);
+    let posting = BuildTransferPosting(
+        "cash:buyer",
+        "revenue:store",
+        amount,
+        version,
+        key,
+        "checkout transfer"
+    );
+
+    Log("=== FINANCE LEDGER PROBE ===");
+    Log(RenderLedgerPosting(posting));
+    Log("balanced=" + ToString(LedgerBalanced(posting)));
+    Log("version=" + RenderVersion(version));
+    Log("idempotency=" + RenderIdempotencyKey(key));
+}

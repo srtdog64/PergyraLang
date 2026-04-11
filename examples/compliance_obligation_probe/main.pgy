@@ -1,0 +1,24 @@
+use datetime;
+use obligation;
+
+func Main() -> Void
+{
+    let opened = InstantNow();
+    let window = DurationSeconds(30);
+    let obligation = OpenObligation(
+        "KYC_REVIEW",
+        "merchant:alpha",
+        opened.milliseconds,
+        window.milliseconds
+    );
+    let before = EvaluateObligation(obligation, opened.milliseconds + 15000);
+    let after = EvaluateObligation(obligation, opened.milliseconds + 45000);
+    let fulfilled = FulfillObligation(obligation);
+
+    Log("=== COMPLIANCE OBLIGATION PROBE ===");
+    Log(RenderObligation(obligation));
+    Log("before.violation=" + ToString(before.violated));
+    Log("after.violation=" + ToString(after.violated));
+    Log(RenderViolation(after.violation));
+    Log("fulfilled=" + ToString(fulfilled.fulfilled));
+}

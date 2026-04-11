@@ -20,6 +20,13 @@ encounter/turn/state machine, strategy/AI, content tables는 언어 키워드로
 
 자세한 철학은 [`30_pattern_library_model.md`](/mnt/e/PergyraLang/docs/30_pattern_library_model.md)를 따른다.
 
+계층 분리는 [`67_layered_stdlib_and_domain_kits.md`](/mnt/e/PergyraLang/docs/67_layered_stdlib_and_domain_kits.md)에 고정한다.
+핵심 원칙은 다음과 같다.
+
+- 코어에는 새 도메인 키워드를 넣지 않는다
+- 공통 개념은 common stdlib에 둔다
+- 업종별 표준 패턴은 domain kit로 분리한다
+
 ## 3단계 모듈 체계
 
 ```pergyra
@@ -80,9 +87,15 @@ import "creatures.pgy";
 | 이름 | `use` | 핵심 API | 용도 |
 |------|-------|----------|------|
 | **datetime** | `use datetime;` | `LocalDate`, `LocalTime`, `DateTime`, `FormatDate`, `FormatTime`, `FormatDateTime`, `SameDate` | 캘린더/결제/리포트 날짜 표면 |
+| **money** | `use money;` | `Money`, `MoneyOf`, `MoneyAdd`, `MoneySub`, `MoneyGte`, `RenderMoney` | 금액 value object |
+| **timer** | `use timer;` | `TimerAfter`, `TimerEvery`, `TimerExpired`, `TimerRemaining`, `TimerTick` | monotonic timer/deadline helper |
+| **versioning** | `use versioning;` | `VersionStamp`, `IdempotencyKey`, `VersionNext`, `MakeIdempotencyKey` | 낙관적 동시성 / 중복 방지 |
 | **http** | `use http;` | `HttpRequest`, `HttpResponse`, `HttpIntentRequest`, `HttpIntentResponse`, `PostJson`, `BuildIntentRequest`, `BuildIntentResponse`, `RenderHttpRequest`, `RenderHttpResponse` | transport/intent adapter 경계 |
 | **storage** | `use storage;` | `SnapshotMeta`, `SnapshotRecord`, `StorageSave`, `StorageLoad`, `StorageAppendLog`, `StorageWrite`, `StorageWriteRecord`, `SaveTextSnapshot`, `SaveTranscript`, `RenderStorageWrite` | snapshot/repository/persistence 표면 |
 | **page** | `use page;` | `PageRoute`, `PageAction`, `PageMessage`, `MountPage`, `NavigatePage`, `BindAction`, `RenderMessage`, `RenderSection` | page/projection/action binder 표면 |
+| **ledger** | `use ledger;` | `LedgerEntry`, `LedgerPosting`, `BuildTransferPosting`, `LedgerBalanced`, `RenderLedgerPosting` | 금융 원장 패턴 |
+| **obligation** | `use obligation;` | `Obligation`, `Violation`, `OpenObligation`, `EvaluateObligation`, `FulfillObligation` | 규정 준수 / 기한 기반 패턴 |
+| **device_adapter** | `use device_adapter;` | `DeviceRegister`, `DeviceSample`, `DeviceCommand`, `SampleDevice`, `WriteDevice` | IoT/임베디드 adapter 패턴 |
 | **pool** | `use pool;` | `PoolNew`, `PoolSpawn`, `PoolDespawn`, `PoolGet`, `PoolAlive` | 오브젝트 풀, 엔티티 재활용 |
 | **fsm** | `use fsm;` | `FsmNew`, `FsmAddState`, `FsmTransition`, `FsmCurrent` | 상태 머신 |
 | **encounter** | `use encounter;` | `EncounterNew`, `EncounterStep`, `EncounterResolve`, `TurnOrder` | 전투/조우 상태 머신 |
@@ -113,9 +126,15 @@ use fsm;
 use encounter;
 use strategy;
 use tables;
+use money;
+use timer;
+use versioning;
 use http;
 use storage;
 use page;
+use ledger;
+use obligation;
+use device_adapter;
 ```
 
 이지:

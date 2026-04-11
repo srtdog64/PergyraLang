@@ -1,0 +1,50 @@
+class Money
+{
+    let minorUnits: Int;
+    let currency: String;
+}
+
+func MoneyOf(minorUnits: Int, currency: String) -> Money
+{
+    return Money(minorUnits, currency);
+}
+
+func MoneyZero(currency: String) -> Money
+{
+    return Money(0, currency);
+}
+
+func MoneySameCurrency(a: Money, b: Money) -> Bool
+{
+    return a.currency == b.currency;
+}
+
+func MoneyAdd(a: Money, b: Money) -> Money
+{
+    return Money(a.minorUnits + b.minorUnits, a.currency);
+}
+
+func MoneySub(a: Money, b: Money) -> Money
+{
+    return Money(a.minorUnits - b.minorUnits, a.currency);
+}
+
+func MoneyNeg(amount: Money) -> Money
+{
+    return Money(-amount.minorUnits, amount.currency);
+}
+
+func MoneyEq(a: Money, b: Money) -> Bool
+{
+    return a.currency == b.currency && a.minorUnits == b.minorUnits;
+}
+
+func MoneyGte(a: Money, b: Money) -> Bool
+{
+    return a.currency == b.currency && a.minorUnits >= b.minorUnits;
+}
+
+func RenderMoney(amount: Money) -> String
+{
+    return amount.currency + " " + ToString(amount.minorUnits);
+}

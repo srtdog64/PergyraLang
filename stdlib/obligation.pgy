@@ -1,0 +1,79 @@
+class Obligation
+{
+    let code: String;
+    let owner: String;
+    let openedAtMs: Int;
+    let dueAtMs: Int;
+    let fulfilled: Bool;
+}
+
+class Violation
+{
+    let code: String;
+    let owner: String;
+    let reason: String;
+    let latenessMs: Int;
+}
+
+class ObligationCheck
+{
+    let violated: Bool;
+    let violation: Violation;
+}
+
+func OpenObligation(code: String, owner: String, openedAtMs: Int, windowMs: Int) -> Obligation
+{
+    return Obligation(code, owner, openedAtMs, openedAtMs + windowMs, false);
+}
+
+func FulfillObligation(obligation: Obligation) -> Obligation
+{
+    return Obligation(
+        obligation.code,
+        obligation.owner,
+        obligation.openedAtMs,
+        obligation.dueAtMs,
+        true
+    );
+}
+
+func ObligationDue(obligation: Obligation, nowMs: Int) -> Bool
+{
+    return !obligation.fulfilled && nowMs >= obligation.dueAtMs;
+}
+
+func EvaluateObligation(obligation: Obligation, nowMs: Int) -> ObligationCheck
+{
+    if !ObligationDue(obligation, nowMs) {
+        return ObligationCheck(
+            false,
+            Violation(obligation.code, obligation.owner, "", 0)
+        );
+    }
+
+    return ObligationCheck(
+        true,
+        Violation(
+            obligation.code,
+            obligation.owner,
+            "deadline exceeded",
+            nowMs - obligation.dueAtMs
+        )
+    );
+}
+
+func RenderObligation(obligation: Obligation) -> String
+{
+    return "[obligation] " + obligation.code
+        + " owner=" + obligation.owner
+        + " due=" + ToString(obligation.dueAtMs)
+        + " fulfilled=" + ToString(obligation.fulfilled);
+}
+
+func RenderViolation(violation: Violation) -> String
+{
+    return "[violation] " + violation.code
+        + " owner=" + violation.owner
+        + " reason=" + violation.reason
+        + " lateness=" + ToString(violation.latenessMs);
+}

@@ -1,0 +1,46 @@
+class VersionStamp
+{
+    let stream: String;
+    let revision: Int;
+}
+
+class IdempotencyKey
+{
+    let scope: String;
+    let nonce: Int;
+}
+
+func VersionInitial(stream: String) -> VersionStamp
+{
+    return VersionStamp(stream, 1);
+}
+
+func VersionNext(stamp: VersionStamp) -> VersionStamp
+{
+    return VersionStamp(stamp.stream, stamp.revision + 1);
+}
+
+func SameVersion(a: VersionStamp, b: VersionStamp) -> Bool
+{
+    return a.stream == b.stream && a.revision == b.revision;
+}
+
+func MakeIdempotencyKey(scope: String, nonce: Int) -> IdempotencyKey
+{
+    return IdempotencyKey(scope, nonce);
+}
+
+func SameIdempotencyKey(a: IdempotencyKey, b: IdempotencyKey) -> Bool
+{
+    return a.scope == b.scope && a.nonce == b.nonce;
+}
+
+func RenderVersion(stamp: VersionStamp) -> String
+{
+    return stamp.stream + "@" + ToString(stamp.revision);
+}
+
+func RenderIdempotencyKey(key: IdempotencyKey) -> String
+{
+    return key.scope + "#" + ToString(key.nonce);
+}

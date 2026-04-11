@@ -15,6 +15,7 @@
 - [x] **`order_analytics` example 실전화** — sketch 수준 surface를 정리하고 compile-smoke covered example로 승격
 - [x] **declaration name surface tightening** — declaration name을 일반 식별자로만 제한하고 reserved keyword 재사용 surface 제거
 - [x] **anchored-handle diagnostics/test 정렬** — `own/ref` closed-subset 진단 문구와 `DeviceSlot`/anchored-handle semantic test expectation을 현재 구현 기준으로 일치시킴
+- [x] **계층형 stdlib/domain kit v0 고정** — `money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 모듈과 probe 예제 추가, 코어 추가 금지 원칙 문서화
 
 ## 베타 클로저 보드
 
