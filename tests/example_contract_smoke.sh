@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
-TMP_PGY="/tmp/pgy-PergyraLang-bin/pgy"
+TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi

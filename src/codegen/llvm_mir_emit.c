@@ -45,6 +45,21 @@ llvm_mir_type_from_ast(LLVMGenCtx *ctx, ASTNode *type_node)
     return type != NULL ? type : ctx->type_i32;
 }
 
+static bool
+llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
+{
+    LLVMClassTypeEntry *cls;
+
+    if (ctx == NULL || type_node == NULL
+        || type_node->type != AST_TYPE
+        || type_node->data.type.name == NULL) {
+        return false;
+    }
+
+    cls = llvm_lookup_class(ctx, type_node->data.type.name);
+    return cls != NULL && cls->is_pointer_self_host;
+}
+
 #include "llvm_mir_blocks.inc"
 #include "llvm_mir_locals.inc"
 
@@ -108,8 +123,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             }
         } else {
             size_t param_index = i;
-            if (is_method)
-                param_index--;
             FuncParam *p = func_decl->data.func_decl.params[param_index];
             while (is_method && p != NULL && p->type == NULL
                    && p->name != NULL && strcmp(p->name, "self") == 0) {
@@ -122,6 +135,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 param_types[i] = llvm_mir_type_from_ast(ctx, p->type);
             else
                 param_types[i] = ctx->type_i32;
+            if (p != NULL && p->type != NULL
+                && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
+                param_types[i] = LLVMPointerType(param_types[i], 0);
+            }
         }
     }
     LLVMTypeRef ret_type = is_intent ? ctx->type_i1 : ctx->type_i32;

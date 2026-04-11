@@ -76,7 +76,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 if (owner_name != NULL)
                     llvm_register_var_class(ctx, "self", owner_name);
             } else {
-                size_t param_index = is_method ? (i - 1) : i;
+                size_t param_index = i;
                 FuncParam *p = func_decl->data.func_decl.params[param_index];
                 while (is_method && p != NULL && p->type == NULL
                        && p->name != NULL && strcmp(p->name, "self") == 0) {
@@ -89,6 +89,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     continue;
                 LLVMTypeRef pt = (p->type != NULL) ? llvm_mir_type_from_ast(ctx, p->type)
                                                    : ctx->type_i32;
+                if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx, p->type))
+                    pt = LLVMPointerType(pt, 0);
                 LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
                 LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
                 llvm_scope_declare(ctx, p->name, alloca, pt);

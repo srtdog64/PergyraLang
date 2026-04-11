@@ -3437,6 +3437,23 @@ test_stdlib_and_enum_emit(void)
     }
 }
 
+/* Build a temp file path using TMPDIR (set by Makefile) or fallback. */
+static void
+make_tmp_path(char *buf, size_t bufsz, const char *filename)
+{
+    const char *tmpdir = getenv("TMPDIR");
+    if (tmpdir == NULL || tmpdir[0] == '\0') {
+#ifdef _WIN32
+        tmpdir = getenv("TEMP");
+        if (tmpdir == NULL || tmpdir[0] == '\0')
+            tmpdir = ".";
+#else
+        tmpdir = "/tmp";
+#endif
+    }
+    snprintf(buf, bufsz, "%s/%s", tmpdir, filename);
+}
+
 static void
 test_mir_vertical_slice_emit(void)
 {
@@ -3455,7 +3472,9 @@ test_mir_vertical_slice_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const char *path = "/tmp/pgy_test_mir_vertical_slice.c";
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_vertical_slice.c");
+        const char *path = path_buf;
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
@@ -3512,7 +3531,9 @@ test_mir_vertical_slice_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const char *path = "/tmp/pgy_test_mir_phi_slice.c";
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_phi_slice.c");
+        const char *path = path_buf;
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
@@ -3564,7 +3585,9 @@ test_mir_vertical_slice_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const char *path = "/tmp/pgy_test_mir_stmt_slice.c";
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_stmt_slice.c");
+        const char *path = path_buf;
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
@@ -3630,7 +3653,9 @@ test_mir_vertical_slice_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const char *path = "/tmp/pgy_test_mir_intent_cleanup.c";
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_mir_intent_cleanup.c");
+        const char *path = path_buf;
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {
@@ -3692,7 +3717,9 @@ test_mir_vertical_slice_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const char *path = "/tmp/pgy_test_intent_subintent.c";
+        char path_buf[512];
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_subintent.c");
+        const char *path = path_buf;
         char *output = NULL;
         bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         if (ok) {

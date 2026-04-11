@@ -6,13 +6,14 @@ PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
 fi
+TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 
 if [[ ! -x "$PGY" ]]; then
     echo "missing compiler binary: $PGY" >&2
     exit 1
 fi
 
-WORK_DIR="$(mktemp -d)"
+WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_stdlib_smoke.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 cat > "$WORK_DIR/stable_stdlib.pgy" <<'EOF'

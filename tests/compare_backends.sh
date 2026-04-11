@@ -6,7 +6,7 @@ PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
     PGY_BIN="${PGY_BIN}.exe"
 fi
-TMP_BASE="${TMPDIR:-/tmp}"
+TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_backend_compare.XXXXXX")"
 
 cleanup() {

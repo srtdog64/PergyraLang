@@ -8,7 +8,8 @@ fi
 
 SOURCE="$1"
 PROFILE="${2:-dev}"
-PGY_BIN="${PGY_BIN:-/tmp/pgy-PergyraLang-bin/pgy}"
+TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+PGY_BIN="${PGY_BIN:-${TMP_BASE%/}/pgy-PergyraLang-bin/pgy}"
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
   PGY_BIN="${PGY_BIN}.exe"
 fi
@@ -18,13 +19,16 @@ if [[ ! -x "$PGY_BIN" ]]; then
   exit 1
 fi
 
+WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_bench.XXXXXX")"
+trap 'rm -rf "$WORK_DIR"' EXIT
+
 run_one() {
   local backend="$1"
   local label="$2"
   /usr/bin/time -f "${label}: %e sec %M KB" \
     "$PGY_BIN" "$SOURCE" "--backend=${backend}" "--opt=${PROFILE}" --run \
-    >/tmp/pgy_bench_${backend}.out 2>/tmp/pgy_bench_${backend}.time
-  cat /tmp/pgy_bench_${backend}.time
+    >"$WORK_DIR/pgy_bench_${backend}.out" 2>"$WORK_DIR/pgy_bench_${backend}.time"
+  cat "$WORK_DIR/pgy_bench_${backend}.time"
 }
 
 run_one c "c ${PROFILE}"
