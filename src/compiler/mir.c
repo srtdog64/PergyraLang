@@ -1555,7 +1555,7 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
     for (size_t i = 0; i < routine->block_count; i++) {
         MIRBasicBlock *block = &routine->blocks[i];
         /* Skip cleanup/rollback/invalidation blocks themselves and unreachable blocks */
-        if (i == routine->cleanup_block
+        if (block->is_cleanup
             || !block->is_reachable)
             continue;
         /* All reachable non-cleanup blocks get a cleanup edge to the cleanup block */
