@@ -4725,28 +4725,54 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 break;
             }
         }
-        if (party_type == NULL) party_type = "UnknownParty";
+        if (party_type == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot resolve party type for bind statement '%s.%s = %s'",
+                pvar != NULL ? pvar : "<party>",
+                slot != NULL ? slot : "<slot>",
+                role != NULL ? role : "<role>");
+            break;
+        }
 
         /* Find the ability name by scanning the current program view for the
          * party declaration. In MIR-backed emission this view is synthesized
          * from MIRProgram inventory, not from the original HIR. The dyn role
          * slot records the required ability. */
-        const char *ability_name = slot; /* fallback: use slot name */
+        const char *ability_name = NULL;
         char *ability_tag = NULL;
         {
             ASTNode *it = find_party_decl(ctx, party_type);
-            if (it != NULL) {
-                for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
-                    ASTNode *rs = it->data.party_decl.role_slots[ri];
-                    if (strcmp(rs->data.role_slot.slot_name, slot) == 0
-                        && rs->data.role_slot.ability_count > 0
-                        && rs->data.role_slot.required_abilities[0] != NULL) {
-                        ability_tag = render_ability_ref_vtable_tag(
-                            rs->data.role_slot.required_abilities[0]);
-                        ability_name = ability_tag;
-                    }
+            if (it == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot resolve party declaration '%s' while emitting bind statement '%s.%s = %s'",
+                    party_type,
+                    pvar != NULL ? pvar : "<party>",
+                    slot != NULL ? slot : "<slot>",
+                    role != NULL ? role : "<role>");
+                break;
+            }
+            for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
+                ASTNode *rs = it->data.party_decl.role_slots[ri];
+                if (strcmp(rs->data.role_slot.slot_name, slot) == 0
+                    && rs->data.role_slot.ability_count > 0
+                    && rs->data.role_slot.required_abilities[0] != NULL) {
+                    ability_tag = render_ability_ref_vtable_tag(
+                        rs->data.role_slot.required_abilities[0]);
+                    ability_name = ability_tag;
+                    break;
                 }
             }
+        }
+        if (ability_name == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",
+                party_type,
+                slot != NULL ? slot : "<slot>");
+            free(ability_tag);
+            break;
         }
         write_indent(ctx);
         codebuf_write(ctx->out,
@@ -6793,7 +6819,10 @@ emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "/* include %s */\n", included_role);
     if (find_role_decl(ctx, included_role) == NULL) {
-        codebuf_write(ctx->out, "/* unresolved include %s */\n", included_role);
+        transpiler_set_backend_error(
+            ctx,
+            "cannot resolve included role '%s' while emitting include statement",
+            included_role != NULL ? included_role : "<role>");
     }
 }
 

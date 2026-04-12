@@ -429,9 +429,10 @@
 
 - MIR path의 main wrapper는 이제 top-level statement list 직접 순회가 아니라
   `__pgy_top_level_exec`를 source of truth로 사용한다.
-- `MIRProgram.has_main_function` / `synthetic_executable_func` / `has_top_level_exec`도
-  MIR function inventory에서 직접 채운다.
-- 남은 debt는 `executables` inventory 자체가 아직 AST-carried list라는 점이다.
+- `MIRProgram.has_main_function` / `has_top_level_exec`는 MIR function inventory에서 직접 채운다.
+- top-level wrapper AST도 MIR에 별도 저장하지 않고 MIR function inventory에서 다시 찾는다.
+- main wrapper/thread-pool 판단의 MIR path는 raw `executables` inventory를 직접 소비하지 않는다.
+- 남은 debt는 top-level entry contract를 dedicated metadata로 더 정리하는 일과, legacy HIR compatibility를 위해 HIR 쪽에만 남아 있는 `executables` inventory다.
 
 ### 4.5 제거 순서
 

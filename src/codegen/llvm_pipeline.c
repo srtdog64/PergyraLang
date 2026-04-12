@@ -288,10 +288,12 @@ llvm_requires_thread_pool(const LLVMGenCtx *ctx)
         return true;
     }
 
-    llvm_active_executables(ctx, &executables, &executable_count);
-    for (size_t i = 0; i < executable_count; i++) {
-        if (llvm_ast_uses_thread_pool(executables[i]))
-            return true;
+    if (ctx->hir != NULL) {
+        llvm_active_executables(ctx, &executables, &executable_count);
+        for (size_t i = 0; i < executable_count; i++) {
+            if (llvm_ast_uses_thread_pool(executables[i]))
+                return true;
+        }
     }
 
     return false;

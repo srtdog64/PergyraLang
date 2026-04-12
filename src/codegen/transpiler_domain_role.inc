@@ -44,18 +44,27 @@ build_ability_ref_bindings(ASTNode *ability_decl,
         *binding_count = out;
 }
 
-static const char *
-ability_ref_vtable_typedef_name(ASTNode *ability_ref, char *buf, size_t buf_size)
+static bool
+ability_ref_vtable_typedef_name(ASTNode *ability_ref,
+                                char *buf,
+                                size_t buf_size,
+                                TranspilerCtx *ctx)
 {
     char *tag;
 
     if (buf == NULL || buf_size == 0)
-        return "UnknownAbility_vtable";
+        return false;
 
     tag = render_ability_ref_vtable_tag(ability_ref);
-    snprintf(buf, buf_size, "%s_vtable", tag != NULL ? tag : "UnknownAbility");
+    if (tag == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot render ability vtable tag for ability reference");
+        return false;
+    }
+    snprintf(buf, buf_size, "%s_vtable", tag);
     free(tag);
-    return buf;
+    return true;
 }
 
 static void
@@ -87,6 +96,13 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     }
 
     tag = render_ability_ref_vtable_tag(ability_ref);
+    if (tag == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot render ability vtable tag for ability '%s'",
+            ability_name != NULL ? ability_name : "<ability>");
+        return;
+    }
     for (int i = 0; i < ctx->ability_vtable_spec_count; i++) {
         if (strcmp(ctx->ability_vtable_specs[i].name, tag) == 0) {
             already_emitted = true;
@@ -103,7 +119,10 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             sizeof(ctx->ability_vtable_specs[0].name), "%s", tag);
     }
 
-    ability_ref_vtable_typedef_name(ability_ref, typedef_name, sizeof(typedef_name));
+    if (!ability_ref_vtable_typedef_name(ability_ref, typedef_name, sizeof(typedef_name), ctx)) {
+        free(tag);
+        return;
+    }
     codebuf_write(target, "\ntypedef struct\n{\n");
 
     for (size_t i = 0; i < ability_decl->data.ability_decl.method_count; i++) {
@@ -229,11 +248,21 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         return;
 
     ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx);
-    ability_ref_vtable_typedef_name(impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name));
+    if (!ability_ref_vtable_typedef_name(
+            impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name), ctx))
+        return;
     vtable_tag = render_ability_ref_vtable_tag(impl->data.impl_ability.ability_ref);
+    if (vtable_tag == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot render ability vtable tag for role '%s' impl ability '%s'",
+            role_name != NULL ? role_name : "<role>",
+            ability_name != NULL ? ability_name : "<ability>");
+        return;
+    }
     codebuf_write(ctx->out,
         "\nstatic const %s %s_%s_vtable_instance __attribute__((unused)) = {\n",
-        typedef_name, role_name, vtable_tag != NULL ? vtable_tag : ability_name);
+        typedef_name, role_name, vtable_tag);
 
     for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
         ASTNode *method = impl->data.impl_ability.methods[j];
@@ -329,9 +358,16 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
         ASTNode *included_role = find_role_decl(ctx, include_stmt->data.include_stmt.role_name);
 
         if (included_role == NULL) {
-            codebuf_write(ctx->out, "/* unresolved include role: %s */\n",
-                          include_stmt->data.include_stmt.role_name);
-            continue;
+            transpiler_set_backend_error(
+                ctx,
+                "cannot resolve included role '%s' while emitting role '%s'",
+                include_stmt->data.include_stmt.role_name != NULL
+                    ? include_stmt->data.include_stmt.role_name
+                    : "<role>",
+                role->data.role_decl.name != NULL
+                    ? role->data.role_decl.name
+                    : "<role>");
+            return;
         }
 
         for (size_t j = 0; j < included_role->data.role_decl.impl_count; j++) {
@@ -496,7 +532,18 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                 char typedef_name[128];
                 char *vtable_tag = render_ability_ref_vtable_tag(ab);
                 ensure_ability_ref_vtable_decl(ab, ctx);
-                ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name));
+                if (!ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name), ctx)) {
+                    free(vtable_tag);
+                    return;
+                }
+                if (vtable_tag == NULL) {
+                    transpiler_set_backend_error(
+                        ctx,
+                        "cannot render ability vtable tag for party '%s' slot '%s'",
+                        name != NULL ? name : "<party>",
+                        slot_name != NULL ? slot_name : "<slot>");
+                    return;
+                }
                 if (is_dyn) {
                     /* dyn: mutable vtable pointer — swappable at runtime */
                     codebuf_write(ctx->out,
@@ -583,7 +630,18 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             char typedef_name[128];
             char *vtable_tag = render_ability_ref_vtable_tag(ab);
             ensure_ability_ref_vtable_decl(ab, ctx);
-            ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name));
+            if (!ability_ref_vtable_typedef_name(ab, typedef_name, sizeof(typedef_name), ctx)) {
+                free(vtable_tag);
+                return;
+            }
+            if (vtable_tag == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot render ability vtable tag for party '%s' bind helper slot '%s'",
+                    name != NULL ? name : "<party>",
+                    slot_name != NULL ? slot_name : "<slot>");
+                return;
+            }
             codebuf_write(ctx->out,
                 "\nstatic inline void\n"
                 "%s_bind_%s(%s *self, void *impl, const %s *vt)\n"

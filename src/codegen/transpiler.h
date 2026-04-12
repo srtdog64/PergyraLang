@@ -300,10 +300,10 @@ transpiler_active_executables(const TranspilerCtx *ctx,
     ASTNode **nodes = NULL;
     size_t count = 0;
 
-    if (ctx != NULL && ctx->mir != NULL) {
-        nodes = ctx->mir->executables;
-        count = ctx->mir->executable_count;
-    } else if (ctx != NULL && ctx->hir != NULL) {
+    /* MIR-backed codegen treats __pgy_top_level_exec plus has_top_level_exec
+     * as the source of truth. Raw executable statement inventory remains a
+     * legacy HIR compatibility surface only. */
+    if (ctx != NULL && ctx->hir != NULL) {
         nodes = ctx->hir->executables;
         count = ctx->hir->executable_count;
     }
@@ -318,7 +318,7 @@ static inline ASTNode *
 transpiler_active_synthetic_executable_func(const TranspilerCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
-        return ctx->mir->synthetic_executable_func;
+        return mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
     if (ctx != NULL && ctx->hir != NULL)
         return ctx->hir->synthetic_executable_func;
     return NULL;

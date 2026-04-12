@@ -135,8 +135,6 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     MIR_COPY_AST_LIST(events, event_count);
     MIR_COPY_AST_LIST(intents, intent_count);
     MIR_COPY_AST_LIST(functions, function_count);
-    MIR_COPY_AST_LIST(executables, executable_count);
-    mir->synthetic_executable_func = NULL;
     mir->has_top_level_exec = false;
     mir->has_main_function = false;
     for (size_t i = 0; i < mir->function_count; i++) {
@@ -146,7 +144,6 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             continue;
         }
         if (strcmp(fn->data.func_decl.name, "__pgy_top_level_exec") == 0) {
-            mir->synthetic_executable_func = fn;
             mir->has_top_level_exec = true;
         }
         if (strcmp(fn->data.func_decl.name, "Main") == 0) {
@@ -301,10 +298,30 @@ mir_build_hir_inventory_view(const MIRProgram *mir, HIRProgram *hir_view)
     hir_view->intent_count = mir->intent_count;
     hir_view->functions = mir->functions;
     hir_view->function_count = mir->function_count;
-    hir_view->executables = mir->executables;
-    hir_view->executable_count = mir->executable_count;
-    hir_view->synthetic_executable_func = mir->synthetic_executable_func;
+    hir_view->executables = NULL;
+    hir_view->executable_count = 0;
+    hir_view->synthetic_executable_func =
+        mir_find_function_decl(mir, "__pgy_top_level_exec");
     hir_view->has_main_function = mir->has_main_function;
+}
+
+ASTNode *
+mir_find_function_decl(const MIRProgram *mir, const char *name)
+{
+    if (mir == NULL || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < mir->function_count; i++) {
+        ASTNode *fn = mir->functions[i];
+        if (fn == NULL || fn->type != AST_FUNC_DECL
+            || fn->data.func_decl.name == NULL) {
+            continue;
+        }
+        if (strcmp(fn->data.func_decl.name, name) == 0)
+            return fn;
+    }
+
+    return NULL;
 }
 
 const MIRDeclHeader *
@@ -451,7 +468,6 @@ mir_destroy(MIRProgram *mir)
     free(mir->events);
     free(mir->intents);
     free(mir->functions);
-    free(mir->executables);
     free(mir->routines);
     free(mir);
 }

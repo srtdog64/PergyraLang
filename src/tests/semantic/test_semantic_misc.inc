@@ -3068,9 +3068,9 @@ test_misc_grammar_edges(void)
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inherited from the matching action contract"));
+            "inherited from matching action contract"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inherited zone from matching action: CockpitZone"));
+            "inherited zone from matching action contract: CockpitZone"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3220,9 +3220,9 @@ test_misc_grammar_edges(void)
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "using binding does not match the transfer target"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "transfer target inference would choose using 'deliver'"));
+            "transfer target derivation would choose using 'deliver'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "transfer target inference would choose zone 'DeliveryZone'"));
+            "transfer target derivation would choose zone 'DeliveryZone'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "locally declared zone on step: LoadingZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
@@ -3271,6 +3271,42 @@ test_misc_grammar_edges(void)
             "locally declared using on step: cockpit"));
         EXPECT(!ctx_has_diagnostic_substring_from_result(result,
             "inherited zone from matching action"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authority diagnostic mentions derived transfer zone and using");
+    {
+        const char *source =
+            "subject Courier { let level: Int; }\n"
+            "zone LoadingZone {\n"
+            "    subject slot courier: Courier\n"
+            "}\n"
+            "zone DeliveryZone {\n"
+            "    subject slot courier: Courier\n"
+            "    authority courier\n"
+            "}\n"
+            "intent MoveCargo(load: LoadingZone, deliver: DeliveryZone, courier: Courier) {\n"
+            "    step Deliver {\n"
+            "        transfer: load -> deliver;\n"
+            "        who: courier;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "derived zone from transfer target: DeliveryZone"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "derived using from transfer target: deliver"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3607,6 +3643,70 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step warns when matching action contract is restated locally");
+    {
+        const char *source =
+            "ability DriverCap { func Ping() -> Void; }\n"
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action Ignite(self) -> Void\n"
+            "        requires DriverCap\n"
+            "        within CockpitZone\n"
+            "        causes Started\n"
+            "        authorized by self {\n"
+            "        self.started = true;\n"
+            "    }\n"
+            "}\n"
+            "role DriverCapRole for Driver {\n"
+            "    impl ability DriverCap {\n"
+            "        func Ping() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "effect Started for bearer: Driver {\n"
+            "    subject slot bearer: Driver\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver requires DriverCap\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        who: driver;\n"
+            "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
+            "        requires: DriverCap;\n"
+            "        causes: Started;\n"
+            "        authorized by: driver;\n"
+            "        on: true;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count >= 1);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "restates contract clauses already provided by the matching action contract"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Matching action contract: Driver.Ignite"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Redundant clauses:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- who"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- where"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- requires"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- causes"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- authorized by"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

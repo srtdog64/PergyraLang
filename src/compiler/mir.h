@@ -215,15 +215,13 @@ struct MIRProgram
     size_t      intent_count;
     ASTNode   **functions;
     size_t      function_count;
-    ASTNode   **executables;
-    size_t      executable_count;
-    ASTNode    *synthetic_executable_func;
     bool        has_top_level_exec;
     bool        has_main_function;
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
 void        mir_build_hir_inventory_view(const MIRProgram *mir, HIRProgram *hir_view);
+ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);

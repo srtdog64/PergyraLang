@@ -1633,7 +1633,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 "Fix:\n"
                 "- add 'where: <Zone>;' to the step\n"
                 "- or add 'within <Zone>' to the matching action contract\n"
-                "- or add a transfer/using binding that can infer the zone",
+                "- or add a transfer/using binding that can derive the zone",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 contract_summary[0] != '\0' ? contract_summary : "",
                 contract_summary[0] != '\0' ? "\n" : "");

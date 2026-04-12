@@ -3313,16 +3313,19 @@ render_ability_ref_vtable_tag(ASTNode *ability_ref)
     char *rendered;
 
     if (ability_ref == NULL)
-        return pergyra_strdup("UnknownAbility");
+        return NULL;
 
     rendered = render_type_name(ability_ref);
-    sanitize_c_suffix(rendered != NULL ? rendered : "UnknownAbility",
-        suffix, sizeof(suffix));
+    if (rendered == NULL)
+        return NULL;
+    sanitize_c_suffix(rendered, suffix, sizeof(suffix));
     len = strlen(suffix);
     while (len > 0 && suffix[len - 1] == '_')
         suffix[--len] = '\0';
-    if (len == 0)
-        snprintf(suffix, sizeof(suffix), "UnknownAbility");
+    if (len == 0) {
+        free(rendered);
+        return NULL;
+    }
     free(rendered);
     return pergyra_strdup(suffix);
 }

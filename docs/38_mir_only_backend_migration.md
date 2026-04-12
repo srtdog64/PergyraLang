@@ -138,9 +138,11 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 - nominal registration은 MIR inventory와 legacy inventory가 같은 helper를 공유한다
 - transpiler의 MIR resource-op / DEF dumb emitter는 layout 누락 시 ABI table(`mir_abi_lookup`)을 다시 조회한다
 - `MIRProgram.has_main_function`은 이제 lowering 시 MIR function inventory를 직접 스캔해 채워진다
-- `MIRProgram.synthetic_executable_func`도 이제 HIR pointer 복사가 아니라 MIR function inventory에서 `__pgy_top_level_exec`를 다시 찾는다
 - `MIRProgram.has_top_level_exec`도 MIR function inventory에서 직접 파생된다
+- top-level wrapper AST는 `MIRProgram`에 별도 저장하지 않고, 필요 시 MIR function inventory에서 `__pgy_top_level_exec`를 다시 찾는다
 - MIR backend main-wrapper path는 top-level statement list를 직접 순회하지 않고 `__pgy_top_level_exec`를 top-level execution source of truth로 사용한다
+- LLVM/C main-wrapper와 thread-pool 판단의 MIR path도 raw `executables` list를 직접 소비하지 않는다
+- C declaration emit의 role/party include 및 ability-vtable naming 경로에서도 `UnknownAbility`/주석 fallback 대신 backend error로 실패시키기 시작했다
 
 남은 완료 기준:
 
