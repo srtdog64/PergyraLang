@@ -2002,6 +2002,7 @@ typedef struct { \
 } PgySlot_##SuffixName; \
 \
 static inline PgySlot_##SuffixName \
+__attribute__((unused)) \
 pgy_claim_##SuffixName(void) \
 { \
     PgySlot_##SuffixName s; \
@@ -2011,6 +2012,7 @@ pgy_claim_##SuffixName(void) \
 } \
 \
 static inline void \
+__attribute__((unused)) \
 pgy_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
 { \
     PGY_ASSERT(s->occupied, "Write to released slot"); \
@@ -2018,6 +2020,7 @@ pgy_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
 } \
 \
 static inline CType \
+__attribute__((unused)) \
 pgy_read_##SuffixName(PgySlot_##SuffixName* s) \
 { \
     PGY_ASSERT(s->occupied, "Read from released slot"); \
@@ -2025,6 +2028,7 @@ pgy_read_##SuffixName(PgySlot_##SuffixName* s) \
 } \
 \
 static inline void \
+__attribute__((unused)) \
 pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
 { \
     PGY_ASSERT(s->occupied, "Double release of slot"); \
@@ -2039,6 +2043,7 @@ typedef struct { \
 } PgySlot_##SuffixName; \
 \
 static inline PgySlot_##SuffixName \
+__attribute__((unused)) \
 pgy_claim_##SuffixName(void) \
 { \
     PgySlot_##SuffixName s; \
@@ -2047,18 +2052,21 @@ pgy_claim_##SuffixName(void) \
 } \
 \
 static inline void \
+__attribute__((unused)) \
 pgy_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
 { \
     s->value = v; \
 } \
 \
 static inline CType \
+__attribute__((unused)) \
 pgy_read_##SuffixName(PgySlot_##SuffixName* s) \
 { \
     return s->value; \
 } \
 \
 static inline void \
+__attribute__((unused)) \
 pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
 { \
     (void)s; /* no-op in release mode */ \
@@ -5001,6 +5009,100 @@ StringConcat(const char *a, const char *b)
     memcpy(buf, a, la);
     memcpy(buf + la, b, lb + 1);
     return buf;
+}
+
+/* =================================================================
+ * StringSplit / StringJoin — string manipulation
+ *
+ * StringSplit(s, delim) → Array<String>
+ * StringJoin(arr, sep)  → String
+ *
+ * Note: These must be defined AFTER PGY_ARRAY_DEFINE(String, char*)
+ * which generates PgyArray_String.
+ * ================================================================= */
+
+static inline PgyArray_String
+StringSplit(const char *s, const char *delim)
+{
+    PgyArray_String result;
+    result.data = NULL;
+    result.length = 0;
+    result.capacity = 0;
+    result.allocator = NULL;
+    if (s == NULL || delim == NULL || delim[0] == '\0') {
+        return result;
+    }
+    /* Count tokens first */
+    const char *tmp = s;
+    size_t count = 0;
+    while (*tmp) {
+        const char *found = strstr(tmp, delim);
+        if (found == NULL) {
+            if (*tmp) count++;
+            break;
+        }
+        if (found > tmp) count++;
+        tmp = found + strlen(delim);
+    }
+    if (count == 0) {
+        /* No delimiter found — return single element */
+        result.capacity = 1;
+        result.data = (char **)calloc(1, sizeof(char *));
+        result.data[0] = strdup(s);
+        result.length = 1;
+        return result;
+    }
+    result.capacity = count;
+    result.data = (char **)calloc(count, sizeof(char *));
+    result.length = 0;
+    tmp = s;
+    while (*tmp && result.length < count) {
+        const char *found = strstr(tmp, delim);
+        if (found == NULL) {
+            result.data[result.length++] = strdup(tmp);
+            break;
+        }
+        size_t token_len = (size_t)(found - tmp);
+        if (token_len > 0) {
+            char *token = (char *)malloc(token_len + 1);
+            memcpy(token, tmp, token_len);
+            token[token_len] = '\0';
+            result.data[result.length++] = token;
+        }
+        tmp = found + strlen(delim);
+    }
+    return result;
+}
+
+static inline char *
+StringJoin(PgyArray_String *arr, const char *sep)
+{
+    if (arr == NULL || arr->data == NULL || arr->length == 0) {
+        return strdup("");
+    }
+    if (sep == NULL) sep = "";
+    size_t sep_len = strlen(sep);
+    /* Calculate total length */
+    size_t total = 0;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (arr->data[i]) total += strlen(arr->data[i]);
+        if (i < arr->length - 1) total += sep_len;
+    }
+    char *result = (char *)malloc(total + 1);
+    size_t pos = 0;
+    for (size_t i = 0; i < arr->length; i++) {
+        if (arr->data[i]) {
+            size_t sl = strlen(arr->data[i]);
+            memcpy(result + pos, arr->data[i], sl);
+            pos += sl;
+        }
+        if (i < arr->length - 1) {
+            memcpy(result + pos, sep, sep_len);
+            pos += sep_len;
+        }
+    }
+    result[pos] = '\0';
+    return result;
 }
 
 static inline bool

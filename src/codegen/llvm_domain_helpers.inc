@@ -1,11 +1,18 @@
 static ASTNode *
-llvm_find_role_decl(const HIRProgram *hir, const char *role_name)
+llvm_find_role_decl(LLVMGenCtx *ctx, const char *role_name)
 {
-    if (hir == NULL || role_name == NULL)
+    ASTNode **roles = NULL;
+    size_t role_count = 0;
+
+    if (ctx == NULL || role_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < hir->role_count; i++) {
-        ASTNode *stmt = hir->roles[i];
+    llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    if (roles == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *stmt = roles[i];
         if (stmt != NULL && stmt->type == AST_ROLE_DECL
             && stmt->data.role_decl.name != NULL
             && strcmp(stmt->data.role_decl.name, role_name) == 0) {
@@ -16,10 +23,10 @@ llvm_find_role_decl(const HIRProgram *hir, const char *role_name)
 }
 
 static ASTNode *
-llvm_find_role_operator_method(const HIRProgram *hir, ASTNode *role,
+llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
                                PgyTokenType op, int depth)
 {
-    if (hir == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
+    if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
         return NULL;
 
     for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
@@ -37,8 +44,8 @@ llvm_find_role_operator_method(const HIRProgram *hir, ASTNode *role,
 
     for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
         ASTNode *inc = role->data.role_decl.includes[i];
-        ASTNode *included = llvm_find_role_decl(hir, inc->data.include_stmt.role_name);
-        ASTNode *method = llvm_find_role_operator_method(hir, included, op, depth + 1);
+        ASTNode *included = llvm_find_role_decl(ctx, inc->data.include_stmt.role_name);
+        ASTNode *method = llvm_find_role_operator_method(ctx, included, op, depth + 1);
         if (method != NULL)
             return method;
     }
@@ -253,44 +260,48 @@ llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
 static ASTNode *
 llvm_find_named_domain_decl_local(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
 {
-    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || name == NULL)
         return NULL;
 
-    if (decl_type == AST_RELATION_DECL) {
-        for (size_t i = 0; i < ctx->hir->relation_count; i++) {
-            ASTNode *stmt = ctx->hir->relations[i];
-            if (stmt != NULL && stmt->data.relation_decl.name != NULL
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, name);
+        if (decl_header != NULL && decl_header->ast_type == decl_type)
+            return decl_header->ast;
+    }
+    llvm_active_inventory(ctx, decl_type, &decls, &decl_count);
+
+    for (size_t i = 0; i < decl_count; i++) {
+        ASTNode *stmt = decls[i];
+        if (stmt == NULL)
+            continue;
+        switch (decl_type) {
+        case AST_RELATION_DECL:
+            if (stmt->data.relation_decl.name != NULL
                 && strcmp(stmt->data.relation_decl.name, name) == 0)
                 return stmt;
-        }
-        return NULL;
-    }
-    if (decl_type == AST_EFFECT_DECL) {
-        for (size_t i = 0; i < ctx->hir->effect_count; i++) {
-            ASTNode *stmt = ctx->hir->effects[i];
-            if (stmt != NULL && stmt->data.effect_decl.name != NULL
+            break;
+        case AST_EFFECT_DECL:
+            if (stmt->data.effect_decl.name != NULL
                 && strcmp(stmt->data.effect_decl.name, name) == 0)
                 return stmt;
-        }
-        return NULL;
-    }
-    if (decl_type == AST_ZONE_DECL) {
-        for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-            ASTNode *stmt = ctx->hir->zones[i];
-            if (stmt != NULL && stmt->data.zone_decl.name != NULL
+            break;
+        case AST_ZONE_DECL:
+            if (stmt->data.zone_decl.name != NULL
                 && strcmp(stmt->data.zone_decl.name, name) == 0)
                 return stmt;
-        }
-        return NULL;
-    }
-    if (decl_type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < ctx->hir->world_count; i++) {
-            ASTNode *stmt = ctx->hir->worlds[i];
-            if (stmt != NULL && stmt->data.world_decl.name != NULL
+            break;
+        case AST_WORLD_DECL:
+            if (stmt->data.world_decl.name != NULL
                 && strcmp(stmt->data.world_decl.name, name) == 0)
                 return stmt;
+            break;
+        default:
+            break;
         }
-        return NULL;
     }
 
     return NULL;
@@ -587,10 +598,17 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
 static ASTNode *
 llvm_find_projection_nominal_decl_local(LLVMGenCtx *ctx, const char *name)
 {
-    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+    ASTNode **types = NULL;
+    size_t type_count = 0;
+
+    if (ctx == NULL || name == NULL)
         return NULL;
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    if (types == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt == NULL)
             continue;
         if (stmt->type == AST_CLASS_DECL

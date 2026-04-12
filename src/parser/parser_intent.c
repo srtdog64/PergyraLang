@@ -52,6 +52,63 @@ intent_append_name(char ***items, size_t *count, const char *name)
     (*count)++;
 }
 
+static bool
+intent_has_involves_alias(ASTNode *intent, const char *alias)
+{
+    if (intent == NULL || alias == NULL || intent->type != AST_INTENT_DECL)
+        return false;
+
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        if (involves != NULL
+            && involves->type == AST_INTENT_INVOLVES
+            && involves->data.intent_involves.alias != NULL
+            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+intent_has_value_alias(ASTNode *intent, const char *alias)
+{
+    if (intent == NULL || alias == NULL || intent->type != AST_INTENT_DECL)
+        return false;
+
+    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
+        ASTNode *value = intent->data.intent_decl.values[i];
+        if (value != NULL
+            && value->type == AST_INTENT_VALUE
+            && value->data.intent_value.alias != NULL
+            && strcmp(value->data.intent_value.alias, alias) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+intent_has_step_name(ASTNode *intent, const char *name)
+{
+    if (intent == NULL || name == NULL || intent->type != AST_INTENT_DECL)
+        return false;
+
+    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
+        ASTNode *step = intent->data.intent_decl.steps[i];
+        if (step != NULL
+            && step->type == AST_INTENT_STEP
+            && step->data.intent_step.name != NULL
+            && strcmp(step->data.intent_step.name, name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static void
 parse_intent_name_list(Parser *parser, char ***items, size_t *count,
                        const char *message)
@@ -68,6 +125,12 @@ parse_intent_param_list(Parser *parser, ASTNode *intent)
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' after intent name");
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {
         Token alias = consume_binding_name_token(parser, "Expected intent participant name");
+        if (intent_has_involves_alias(intent, alias.text)
+            || intent_has_value_alias(intent, alias.text)) {
+            parser_error(parser,
+                "Duplicate intent binding alias '%s' in parameter list", alias.text);
+            return;
+        }
         ASTNode *involves = ast_create_intent_involves(alias.text);
         parser_consume(parser, TOKEN_COLON, "Expected ':' after intent participant name");
         involves->data.intent_involves.subject_type = parse_type(parser);
@@ -84,6 +147,13 @@ parse_intent_step_transfer_clause(Parser *parser, ASTNode *step, bool shorthand_
 {
     Token from_alias;
     Token to_alias;
+
+    if (step->data.intent_step.transfer_from_alias != NULL
+        || step->data.intent_step.transfer_to_alias != NULL) {
+        parser_error(parser, "Duplicate '%s' clause in intent step",
+            shorthand_move ? "move" : "transfer");
+        return;
+    }
 
     if (!shorthand_move) {
         parser_consume(parser, TOKEN_COLON, "Expected ':' after 'transfer'");
@@ -130,6 +200,10 @@ parse_intent_step(Parser *parser)
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after step name");
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         if (parser_match(parser, TOKEN_WHERE)) {
+            if (step->data.intent_step.where_type != NULL) {
+                parser_error(parser, "Duplicate 'where' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'where'");
             ast_destroy(step->data.intent_step.where_type);
             step->data.intent_step.where_type = parse_type(parser);
@@ -138,6 +212,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "who")) {
+            if (step->data.intent_step.who_count > 0) {
+                parser_error(parser, "Duplicate 'who' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'who'");
             parse_intent_name_list(parser,
                 &step->data.intent_step.who_names,
@@ -148,6 +226,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "using")) {
+            if (step->data.intent_step.using_expr != NULL) {
+                parser_error(parser, "Duplicate 'using' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'using'");
             ast_destroy(step->data.intent_step.using_expr);
             step->data.intent_step.using_expr = parser_parse_expression(parser);
@@ -156,6 +238,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "intent")) {
+            if (step->data.intent_step.intent_expr != NULL) {
+                parser_error(parser, "Duplicate 'intent' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'intent'");
             ast_destroy(step->data.intent_step.intent_expr);
             step->data.intent_step.intent_expr = parser_parse_expression(parser);
@@ -192,6 +278,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "pre")) {
+            if (step->data.intent_step.pre_expr != NULL) {
+                parser_error(parser, "Duplicate 'pre' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'pre'");
             ast_destroy(step->data.intent_step.pre_expr);
             step->data.intent_step.pre_expr = parser_parse_expression(parser);
@@ -200,6 +290,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "guard")) {
+            if (step->data.intent_step.guard_expr != NULL) {
+                parser_error(parser, "Duplicate 'guard' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'guard'");
             ast_destroy(step->data.intent_step.guard_expr);
             step->data.intent_step.guard_expr = parser_parse_expression(parser);
@@ -208,6 +302,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "post")) {
+            if (step->data.intent_step.post_expr != NULL) {
+                parser_error(parser, "Duplicate 'post' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'post'");
             ast_destroy(step->data.intent_step.post_expr);
             step->data.intent_step.post_expr = parser_parse_expression(parser);
@@ -216,6 +314,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "invariant")) {
+            if (step->data.intent_step.invariant_expr != NULL) {
+                parser_error(parser, "Duplicate 'invariant' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'invariant'");
             ast_destroy(step->data.intent_step.invariant_expr);
             step->data.intent_step.invariant_expr = parser_parse_expression(parser);
@@ -224,6 +326,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "requires")) {
+            if (step->data.intent_step.required_ability_count > 0) {
+                parser_error(parser, "Duplicate 'requires' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'requires'");
             do {
                 ASTNode *ability = parse_type(parser);
@@ -239,8 +345,13 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "authorized")) {
+            if (step->data.intent_step.authorized_by_count > 0) {
+                parser_error(parser, "Duplicate 'authorized by' clause in intent step");
+                return step;
+            }
             if (!parser_intent_match_keyword(parser, "by")) {
-                parser_error(parser, "Expected 'by' after 'authorized'");
+                parser_error(parser,
+                    "Expected 'by' after 'authorized' in intent step clause; use 'authorized by: <participant>'");
                 return step;
             }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'authorized by'");
@@ -254,6 +365,10 @@ parse_intent_step(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "causes")) {
             Token effect_name;
+            if (step->data.intent_step.causes_effect != NULL) {
+                parser_error(parser, "Duplicate 'causes' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'causes'");
             effect_name = consume_name_token(parser, "Expected effect name after 'causes:'");
             free(step->data.intent_step.causes_effect);
@@ -263,6 +378,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "intent")) {
+            if (step->data.intent_step.intent_expr != NULL) {
+                parser_error(parser, "Duplicate 'intent' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'intent'");
             ast_destroy(step->data.intent_step.intent_expr);
             step->data.intent_step.intent_expr = parser_parse_expression(parser);
@@ -271,6 +390,10 @@ parse_intent_step(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "expect")) {
+            if (step->data.intent_step.expect_expr != NULL) {
+                parser_error(parser, "Duplicate 'expect' clause in intent step");
+                return step;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'expect'");
             ast_destroy(step->data.intent_step.expect_expr);
             step->data.intent_step.expect_expr = parser_parse_expression(parser);
@@ -278,7 +401,10 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
-        parser_error(parser, "Unsupported intent step clause");
+        parser_error(parser,
+            "Unsupported intent step clause; expected one of: "
+            "where:, who:, using:, intent:, transfer:, move, on:, compensate:, "
+            "pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:");
         return step;
     }
 
@@ -291,6 +417,11 @@ parse_intent_declaration(Parser *parser)
 {
     Token name_tok = consume_decl_name_token(parser, "Expected intent name");
     ASTNode *intent = ast_create_intent_declaration(name_tok.text);
+    bool seen_mode_clause = false;
+    bool seen_priority_clause = false;
+    bool seen_rollback_clause = false;
+    bool seen_success_clause = false;
+    bool seen_failure_clause = false;
 
     if (parser_check(parser, TOKEN_LPAREN))
         parse_intent_param_list(parser, intent);
@@ -298,18 +429,33 @@ parse_intent_declaration(Parser *parser)
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after intent name");
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         if (parser_intent_match_keyword(parser, "exclusive")) {
+            if (seen_mode_clause) {
+                parser_error(parser, "Duplicate intent mode clause; use only one of 'exclusive' or 'concurrent'");
+                return intent;
+            }
+            seen_mode_clause = true;
             intent->data.intent_decl.is_concurrent = false;
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after 'exclusive'");
             continue;
         }
 
         if (parser_intent_match_keyword(parser, "concurrent")) {
+            if (seen_mode_clause) {
+                parser_error(parser, "Duplicate intent mode clause; use only one of 'exclusive' or 'concurrent'");
+                return intent;
+            }
+            seen_mode_clause = true;
             intent->data.intent_decl.is_concurrent = true;
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after 'concurrent'");
             continue;
         }
 
         if (parser_intent_match_keyword(parser, "priority")) {
+            if (seen_priority_clause) {
+                parser_error(parser, "Duplicate 'priority' clause in intent declaration");
+                return intent;
+            }
+            seen_priority_clause = true;
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'priority'");
             ast_destroy(intent->data.intent_decl.priority_expr);
             intent->data.intent_decl.priority_expr = parser_parse_expression(parser);
@@ -319,6 +465,11 @@ parse_intent_declaration(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "rollback")) {
             Token mode;
+            if (seen_rollback_clause) {
+                parser_error(parser, "Duplicate 'rollback' clause in intent declaration");
+                return intent;
+            }
+            seen_rollback_clause = true;
 
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'rollback'");
             mode = consume_name_token(parser, "Expected rollback policy after 'rollback:'");
@@ -338,16 +489,46 @@ parse_intent_declaration(Parser *parser)
 
         /* Intent-level who: / where: — propagated to steps that omit them */
         if (parser_intent_match_keyword(parser, "who")) {
-            parser_consume(parser, TOKEN_COLON, "Expected ':' after 'who'");
-            parse_intent_name_list(parser,
-                &intent->data.intent_decl.default_who_names,
-                &intent->data.intent_decl.default_who_count,
-                "Expected involves alias after 'who:'");
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who clause");
-            continue;
+            if (intent->data.intent_decl.default_who_count > 0) {
+                parser_error(parser, "Duplicate intent-level 'who' clause");
+                return intent;
+            }
+            if (parser_match(parser, TOKEN_COLON)) {
+                parse_intent_name_list(parser,
+                    &intent->data.intent_decl.default_who_names,
+                    &intent->data.intent_decl.default_who_count,
+                    "Expected involves alias after 'who:'");
+                parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who clause");
+                continue;
+            }
+
+            {
+                Token alias = consume_binding_name_token(
+                    parser, "Expected intent participant alias after 'who'");
+                if (intent_has_involves_alias(intent, alias.text)
+                    || intent_has_value_alias(intent, alias.text)) {
+                    parser_error(parser,
+                        "Duplicate intent binding alias '%s' in intent-level who declaration",
+                        alias.text);
+                    return intent;
+                }
+                ASTNode *involves = ast_create_intent_involves(alias.text);
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after intent participant alias");
+                involves->data.intent_involves.subject_type = parse_type(parser);
+                parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after intent-level who declaration");
+                intent_append_node(&intent->data.intent_decl.involves,
+                    &intent->data.intent_decl.involve_count, involves);
+                intent_append_name(&intent->data.intent_decl.default_who_names,
+                    &intent->data.intent_decl.default_who_count, alias.text);
+                continue;
+            }
         }
 
         if (parser_match(parser, TOKEN_WHERE)) {
+            if (intent->data.intent_decl.default_where_type != NULL) {
+                parser_error(parser, "Duplicate intent-level 'where' clause");
+                return intent;
+            }
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'where'");
             ast_destroy(intent->data.intent_decl.default_where_type);
             intent->data.intent_decl.default_where_type = parse_type(parser);
@@ -357,6 +538,12 @@ parse_intent_declaration(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "involves")) {
             Token alias = consume_binding_name_token(parser, "Expected involves alias");
+            if (intent_has_involves_alias(intent, alias.text)
+                || intent_has_value_alias(intent, alias.text)) {
+                parser_error(parser, "Duplicate intent binding alias '%s' in involves clause",
+                    alias.text);
+                return intent;
+            }
             ASTNode *involves = ast_create_intent_involves(alias.text);
             parser_consume(parser, TOKEN_COLON, "Expected ':' after involves alias");
             involves->data.intent_involves.subject_type = parse_type(parser);
@@ -369,6 +556,12 @@ parse_intent_declaration(Parser *parser)
         if (parser_match(parser, TOKEN_WITH)) {
             Token alias = consume_binding_name_token(
                 parser, "Expected intent value binding after 'with'");
+            if (intent_has_value_alias(intent, alias.text)
+                || intent_has_involves_alias(intent, alias.text)) {
+                parser_error(parser, "Duplicate intent binding alias '%s' in value clause",
+                    alias.text);
+                return intent;
+            }
             ASTNode *value = ast_create_intent_value(alias.text);
             parser_consume(parser, TOKEN_COLON, "Expected ':' after intent value binding");
             value->data.intent_value.value_type = parse_type(parser);
@@ -380,12 +573,26 @@ parse_intent_declaration(Parser *parser)
 
         if (parser_intent_match_keyword(parser, "step")) {
             ASTNode *step = parse_intent_step(parser);
+            if (step != NULL
+                && step->type == AST_INTENT_STEP
+                && step->data.intent_step.name != NULL
+                && intent_has_step_name(intent, step->data.intent_step.name)) {
+                parser_error(parser, "Duplicate intent step '%s'",
+                    step->data.intent_step.name);
+                ast_destroy(step);
+                return intent;
+            }
             intent_append_node(&intent->data.intent_decl.steps,
                 &intent->data.intent_decl.step_count, step);
             continue;
         }
 
         if (parser_intent_match_keyword(parser, "success")) {
+            if (seen_success_clause) {
+                parser_error(parser, "Duplicate 'success' clause in intent declaration");
+                return intent;
+            }
+            seen_success_clause = true;
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'success'");
             ast_destroy(intent->data.intent_decl.success_expr);
             intent->data.intent_decl.success_expr = parser_parse_expression(parser);
@@ -394,6 +601,11 @@ parse_intent_declaration(Parser *parser)
         }
 
         if (parser_intent_match_keyword(parser, "failure")) {
+            if (seen_failure_clause) {
+                parser_error(parser, "Duplicate 'failure' clause in intent declaration");
+                return intent;
+            }
+            seen_failure_clause = true;
             parser_consume(parser, TOKEN_COLON, "Expected ':' after 'failure'");
             ast_destroy(intent->data.intent_decl.failure_expr);
             intent->data.intent_decl.failure_expr = parser_parse_expression(parser);
@@ -401,7 +613,11 @@ parse_intent_declaration(Parser *parser)
             continue;
         }
 
-        parser_error(parser, "Unsupported intent declaration item");
+        parser_error(parser,
+            "Unsupported intent declaration item; expected one of: "
+            "exclusive;, concurrent;, priority:, rollback:, who:, who <alias>: <Type>;, "
+            "where:, involves <alias>: <Type>;, with <alias>: <Type>;, "
+            "step <Name> { ... }, success:, failure:");
         return intent;
     }
 

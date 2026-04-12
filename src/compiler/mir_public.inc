@@ -1,3 +1,87 @@
+static bool
+mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
+{
+    MIRDeclHeader *grown;
+
+    if (mir == NULL)
+        return false;
+    grown = realloc(mir->decl_headers,
+                    (mir->decl_header_count + 1) * sizeof(MIRDeclHeader));
+    if (grown == NULL)
+        return false;
+    mir->decl_headers = grown;
+    mir->decl_headers[mir->decl_header_count++] = header;
+    return true;
+}
+
+static bool
+mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
+{
+    MIRDeclHeader header;
+
+    if (mir == NULL || decl == NULL)
+        return true;
+
+    memset(&header, 0, sizeof(header));
+    header.ast = decl;
+    header.ast_type = decl->type;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        header.name = decl->data.class_decl.name;
+        header.methods = decl->data.class_decl.methods;
+        header.method_count = decl->data.class_decl.method_count;
+        header.uses_pointer_self =
+            decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+        break;
+    case AST_ENUM_DECL:
+        header.name = decl->data.enum_decl.name;
+        header.methods = decl->data.enum_decl.methods;
+        header.method_count = decl->data.enum_decl.method_count;
+        break;
+    case AST_PARTY_DECL:
+        header.name = decl->data.party_decl.name;
+        header.methods = decl->data.party_decl.methods;
+        header.method_count = decl->data.party_decl.method_count;
+        header.uses_pointer_self = true;
+        break;
+    case AST_ROSTER_DECL:
+        header.name = decl->data.roster_decl.name;
+        header.uses_pointer_self = true;
+        break;
+    case AST_WORLD_DECL:
+        header.name = decl->data.world_decl.name;
+        header.methods = decl->data.world_decl.methods;
+        header.method_count = decl->data.world_decl.method_count;
+        header.uses_pointer_self = true;
+        break;
+    case AST_RELATION_DECL:
+        header.name = decl->data.relation_decl.name;
+        header.methods = decl->data.relation_decl.methods;
+        header.method_count = decl->data.relation_decl.method_count;
+        header.uses_pointer_self = true;
+        break;
+    case AST_EFFECT_DECL:
+        header.name = decl->data.effect_decl.name;
+        header.methods = decl->data.effect_decl.methods;
+        header.method_count = decl->data.effect_decl.method_count;
+        header.uses_pointer_self = true;
+        break;
+    case AST_ZONE_DECL:
+        header.name = decl->data.zone_decl.name;
+        header.methods = decl->data.zone_decl.methods;
+        header.method_count = decl->data.zone_decl.method_count;
+        header.uses_pointer_self = true;
+        break;
+    default:
+        return true;
+    }
+
+    if (header.name == NULL)
+        return true;
+    return mir_append_decl_header(mir, header);
+}
+
 MIRProgram *
 mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
 {
@@ -23,51 +107,96 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         return NULL;
     }
 
-    mir->item_count = hir->item_count;
-    if (hir->item_count > 0) {
-        mir->items = calloc(hir->item_count, sizeof(HIRTopLevelItem));
-        if (mir->items == NULL) {
-            if (error_message != NULL)
-                *error_message = pergyra_strdup("out of memory");
-            mir_destroy(mir);
-            return NULL;
-        }
-        memcpy(mir->items, hir->items, hir->item_count * sizeof(HIRTopLevelItem));
-    }
-
-#define MIR_COPY_AST_LIST(field) \
+#define MIR_COPY_AST_LIST(field, count_field) \
     do { \
-        mir->field##_count = hir->field##_count; \
-        if (hir->field##_count > 0) { \
-            mir->field = calloc(hir->field##_count, sizeof(ASTNode *)); \
+        mir->count_field = hir->count_field; \
+        if (hir->count_field > 0) { \
+            mir->field = calloc(hir->count_field, sizeof(ASTNode *)); \
             if (mir->field == NULL) { \
                 if (error_message != NULL) \
                     *error_message = pergyra_strdup("out of memory"); \
                 mir_destroy(mir); \
                 return NULL; \
             } \
-            memcpy(mir->field, hir->field, hir->field##_count * sizeof(ASTNode *)); \
+            memcpy(mir->field, hir->field, hir->count_field * sizeof(ASTNode *)); \
         } \
     } while (0)
 
-    MIR_COPY_AST_LIST(externs);
-    MIR_COPY_AST_LIST(types);
-    MIR_COPY_AST_LIST(abilities);
-    MIR_COPY_AST_LIST(roles);
-    MIR_COPY_AST_LIST(parties);
-    MIR_COPY_AST_LIST(rosters);
-    MIR_COPY_AST_LIST(worlds);
-    MIR_COPY_AST_LIST(relations);
-    MIR_COPY_AST_LIST(effects);
-    MIR_COPY_AST_LIST(zones);
-    MIR_COPY_AST_LIST(events);
-    MIR_COPY_AST_LIST(intents);
-    MIR_COPY_AST_LIST(functions);
-    MIR_COPY_AST_LIST(executables);
+    MIR_COPY_AST_LIST(externs, extern_count);
+    MIR_COPY_AST_LIST(types, type_count);
+    MIR_COPY_AST_LIST(abilities, ability_count);
+    MIR_COPY_AST_LIST(roles, role_count);
+    MIR_COPY_AST_LIST(parties, party_count);
+    MIR_COPY_AST_LIST(rosters, roster_count);
+    MIR_COPY_AST_LIST(worlds, world_count);
+    MIR_COPY_AST_LIST(relations, relation_count);
+    MIR_COPY_AST_LIST(effects, effect_count);
+    MIR_COPY_AST_LIST(zones, zone_count);
+    MIR_COPY_AST_LIST(events, event_count);
+    MIR_COPY_AST_LIST(intents, intent_count);
+    MIR_COPY_AST_LIST(functions, function_count);
+    MIR_COPY_AST_LIST(executables, executable_count);
     mir->synthetic_executable_func = hir->synthetic_executable_func;
     mir->has_main_function = hir->has_main_function;
 
 #undef MIR_COPY_AST_LIST
+
+    for (size_t i = 0; i < hir->type_count; i++) {
+        if (!mir_record_decl_header(mir, hir->types[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->party_count; i++) {
+        if (!mir_record_decl_header(mir, hir->parties[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->roster_count; i++) {
+        if (!mir_record_decl_header(mir, hir->rosters[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->world_count; i++) {
+        if (!mir_record_decl_header(mir, hir->worlds[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->relation_count; i++) {
+        if (!mir_record_decl_header(mir, hir->relations[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->effect_count; i++) {
+        if (!mir_record_decl_header(mir, hir->effects[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->zone_count; i++) {
+        if (!mir_record_decl_header(mir, hir->zones[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
 
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *hir_routine = &hir->routines[i];
@@ -120,6 +249,60 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     }
 
     return mir;
+}
+
+void
+mir_build_hir_inventory_view(const MIRProgram *mir, HIRProgram *hir_view)
+{
+    if (hir_view == NULL)
+        return;
+    memset(hir_view, 0, sizeof(*hir_view));
+    if (mir == NULL)
+        return;
+
+    hir_view->externs = mir->externs;
+    hir_view->extern_count = mir->extern_count;
+    hir_view->types = mir->types;
+    hir_view->type_count = mir->type_count;
+    hir_view->abilities = mir->abilities;
+    hir_view->ability_count = mir->ability_count;
+    hir_view->roles = mir->roles;
+    hir_view->role_count = mir->role_count;
+    hir_view->parties = mir->parties;
+    hir_view->party_count = mir->party_count;
+    hir_view->rosters = mir->rosters;
+    hir_view->roster_count = mir->roster_count;
+    hir_view->worlds = mir->worlds;
+    hir_view->world_count = mir->world_count;
+    hir_view->relations = mir->relations;
+    hir_view->relation_count = mir->relation_count;
+    hir_view->effects = mir->effects;
+    hir_view->effect_count = mir->effect_count;
+    hir_view->zones = mir->zones;
+    hir_view->zone_count = mir->zone_count;
+    hir_view->events = mir->events;
+    hir_view->event_count = mir->event_count;
+    hir_view->intents = mir->intents;
+    hir_view->intent_count = mir->intent_count;
+    hir_view->functions = mir->functions;
+    hir_view->function_count = mir->function_count;
+    hir_view->executables = mir->executables;
+    hir_view->executable_count = mir->executable_count;
+    hir_view->synthetic_executable_func = mir->synthetic_executable_func;
+    hir_view->has_main_function = mir->has_main_function;
+}
+
+const MIRDeclHeader *
+mir_find_decl_header(const MIRProgram *mir, const char *name)
+{
+    if (mir == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < mir->decl_header_count; i++) {
+        const MIRDeclHeader *header = &mir->decl_headers[i];
+        if (header->name != NULL && strcmp(header->name, name) == 0)
+            return header;
+    }
+    return NULL;
 }
 
 bool
@@ -239,8 +422,8 @@ mir_destroy(MIRProgram *mir)
         free(routine->value_summaries);
         free(routine->blocks);
     }
-    free(mir->items);
     free(mir->externs);
+    free(mir->decl_headers);
     free(mir->types);
     free(mir->abilities);
     free(mir->roles);

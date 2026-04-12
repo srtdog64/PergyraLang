@@ -593,9 +593,15 @@ llvm_render_type_name(ASTNode *type_node)
         return pergyra_strdup("Int");
     if (type_node->data.type.generic_args == NULL
         || type_node->data.type.generic_args->count == 0) {
-        if (g_llvm_type_render_ctx != NULL && g_llvm_type_render_ctx->hir != NULL) {
-            for (size_t i = 0; i < g_llvm_type_render_ctx->hir->type_count; i++) {
-                ASTNode *stmt = g_llvm_type_render_ctx->hir->types[i];
+        ASTNode **types = NULL;
+        size_t type_count = 0;
+        if (g_llvm_type_render_ctx != NULL) {
+            llvm_active_inventory(g_llvm_type_render_ctx, AST_TYPE_ALIAS, &types,
+                                  &type_count);
+        }
+        if (types != NULL) {
+            for (size_t i = 0; i < type_count; i++) {
+                ASTNode *stmt = types[i];
                 if (stmt != NULL && stmt->type == AST_TYPE_ALIAS
                     && stmt->data.type_alias.name != NULL
                     && strcmp(stmt->data.type_alias.name, type_node->data.type.name) == 0) {

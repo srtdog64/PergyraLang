@@ -8,9 +8,125 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "../common/string_compat.h"
 #include "semantic.h"
 #include "type_checker.h"
 #include "slot_analyzer.h"
+#include "../compiler/import_resolver.h"
+
+static bool
+semantic_program_append_statement(ASTNode *program, ASTNode *stmt)
+{
+    ASTNode **grown;
+
+    if (program == NULL || program->type != AST_PROGRAM || stmt == NULL)
+        return false;
+
+    grown = realloc(program->data.program.statements,
+        sizeof(ASTNode *) * (program->data.program.count + 1));
+    if (grown == NULL)
+        return false;
+
+    program->data.program.statements = grown;
+    program->data.program.statements[program->data.program.count++] = stmt;
+    return true;
+}
+
+static bool
+semantic_program_has_module_name(char **module_names, size_t module_count,
+                                 const char *module_name)
+{
+    for (size_t i = 0; i < module_count; i++) {
+        if (module_names[i] != NULL && module_name != NULL
+            && strcmp(module_names[i], module_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void
+semantic_preload_stdlib_uses(ASTNode *ast)
+{
+    char  **loaded_modules = NULL;
+    size_t  loaded_count = 0;
+
+    if (ast == NULL || ast->type != AST_PROGRAM)
+        return;
+
+    for (size_t i = 0; i < ast->data.program.count; i++) {
+        ASTNode *stmt = ast->data.program.statements[i];
+        char *module_path = NULL;
+        ASTNode *loaded = NULL;
+        char *error_message = NULL;
+        size_t module_path_len;
+
+        if (stmt == NULL || stmt->type != AST_USE_DECL
+            || stmt->data.use_decl.module_name == NULL) {
+            continue;
+        }
+
+        if (semantic_program_has_module_name(loaded_modules, loaded_count,
+                stmt->data.use_decl.module_name)) {
+            continue;
+        }
+
+        module_path_len = strlen(PGY_PROJECT_ROOT) + strlen("/stdlib/")
+            + strlen(stmt->data.use_decl.module_name) + strlen(".pgy") + 1;
+        module_path = malloc(module_path_len);
+        if (module_path == NULL)
+            continue;
+
+        snprintf(module_path, module_path_len, "%s/stdlib/%s.pgy",
+            PGY_PROJECT_ROOT, stmt->data.use_decl.module_name);
+        loaded = import_resolver_load_program(module_path, &error_message);
+        free(module_path);
+        free(error_message);
+        if (loaded == NULL || loaded->type != AST_PROGRAM) {
+            ast_destroy(loaded);
+            continue;
+        }
+
+        {
+            char **grown = realloc(loaded_modules, sizeof(char *) * (loaded_count + 1));
+            if (grown != NULL) {
+                loaded_modules = grown;
+                loaded_modules[loaded_count] =
+                    pergyra_strdup(stmt->data.use_decl.module_name);
+                if (loaded_modules[loaded_count] != NULL)
+                    loaded_count++;
+            }
+        }
+
+        for (size_t j = 0; j < loaded->data.program.count; j++) {
+            ASTNode *imported_stmt = loaded->data.program.statements[j];
+            bool explicit_private = false;
+
+            if (imported_stmt == NULL
+                || imported_stmt->type == AST_IMPORT_DECL
+                || imported_stmt->type == AST_USE_DECL) {
+                continue;
+            }
+
+            explicit_private = imported_stmt->has_explicit_access
+                && (imported_stmt->access == ACCESS_PRIVATE
+                    || imported_stmt->access == ACCESS_PROTECTED);
+            imported_stmt->is_exported = !explicit_private;
+
+            if (!semantic_program_append_statement(ast, imported_stmt)) {
+                break;
+            }
+            loaded->data.program.statements[j] = NULL;
+        }
+
+        ast_destroy(loaded);
+    }
+
+    for (size_t i = 0; i < loaded_count; i++)
+        free(loaded_modules[i]);
+    free(loaded_modules);
+}
 
 SemanticResult *
 semantic_analyze(ASTNode *ast)
@@ -24,6 +140,8 @@ semantic_analyze(ASTNode *ast)
         free(result);
         return NULL;
     }
+
+    semantic_preload_stdlib_uses(ast);
 
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);

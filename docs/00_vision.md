@@ -6,6 +6,15 @@
 
 ---
 
+## Intent-First 설계 철학
+
+Pergyra의 가장 큰 특징은 **Intent를 최상위 설계 축으로 둔다**는 것이다.
+대부분의 언어는 함수/타입/클래스를 1차로 두지만, Pergyra는 "누가 무엇을 위해 행동하는가"를 먼저 정의한다.
+
+자세한 설계 철학과 좋은 Intent를 정의하는 방법은 [`docs/01_intent_first_design.md`](docs/01_intent_first_design.md)를 참조하라.
+
+---
+
 ## 두 가지 정체성
 
 ### 1차 정체성 — 도메인 모델링 언어

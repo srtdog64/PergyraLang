@@ -11,6 +11,8 @@
 - LLVM backend는 `누락돼서 전반적으로 동작 안 하는 상태`가 아니다.
 - 실제 경로는 `MIR body emission + MIR inventory-backed declaration emission`이다.
 - ordinary/async function과 subject/class method의 주 경로는 MIR emission을 탄다.
+- backend path는 더 이상 `HIR.items[]` / `item_count` inventory를 소비하지 않는다.
+- 대표 declaration lookup은 `MIR decl header`를 우선 사용한다.
 - 일부 표면은 여전히 dedicated decl IR 없이 AST inventory를 소비하는 구조 debt를 가진다.
 
 ## 직접 검증된 범위

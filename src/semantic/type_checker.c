@@ -20,6 +20,8 @@ static bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx);
 static bool
 semantic_is_known_stdlib_use_module(const char *module_name);
+static bool
+callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx);
 
 /* Local printf-to-heap helper (same as transpiler's strdup_fmt) */
 #include "type_checker_helpers.inc"
@@ -740,6 +742,10 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     }
 
     case AST_IDENTIFIER: {
+        /* Special handling for Option value constructors used without parens */
+        if (strcmp(expr->data.identifier.name, "None") == 0) {
+            return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
+        }
         Symbol *sym = scope_lookup(ctx->scope,
                                     expr->data.identifier.name);
         if (sym == NULL) {
@@ -1776,6 +1782,23 @@ semantic_is_known_stdlib_use_module(const char *module_name)
     return false;
 }
 
+static bool
+callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
+{
+    ASTNode *host = current_host_decl(ctx);
+
+    if (node == NULL || ctx == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_exported)
+        return true;
+    if (host == NULL || !host->is_exported)
+        return false;
+    if (!node->data.func_decl.has_explicit_access)
+        return true;
+    return node->data.func_decl.access == ACCESS_PUBLIC
+        || node->data.func_decl.access == ACCESS_PROTECTED;
+}
+
 bool
 type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -2414,6 +2437,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.within_zone);
             }
+            if (zone_decl != NULL
+                && !zone_decl->is_exported
+                && callable_contract_is_externally_visible(node, ctx)) {
+                semantic_error(ctx, node,
+                    "action '%s' cannot reference non-exported zone '%s' in an externally visible contract",
+                    name != NULL ? name : "<anonymous>",
+                    node->data.func_decl.within_zone);
+            }
         }
 
         if (node->data.func_decl.causes_effect != NULL
@@ -2431,6 +2462,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
                 semantic_error(ctx, node,
                     "action '%s' cannot reference non-exported effect '%s' from another module",
+                    name != NULL ? name : "<anonymous>",
+                    node->data.func_decl.causes_effect);
+            }
+            if (effect_decl != NULL
+                && !effect_decl->is_exported
+                && callable_contract_is_externally_visible(node, ctx)) {
+                semantic_error(ctx, node,
+                    "action '%s' cannot reference non-exported effect '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
                     node->data.func_decl.causes_effect);
             }
@@ -2670,7 +2709,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         if (param->mode != PARAM_MODE_DEFAULT
             && !type_is_anchored_resource_handle(param_types[i])) {
             semantic_error(ctx, node,
-                "'%s' parameter mode is currently a closed subset: only ref Slot<subject-host> / "
+                "'%s' parameter mode is currently a closed subset: only ref/own Slot<subject-host> / "
                 "own SecureSlot<subject-host> are supported at function boundaries",
                 param->mode == PARAM_MODE_OWN ? "own" : "ref");
         }
@@ -2678,7 +2717,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             bool allowed_subject_slot = type_is_subject_host_slot_handle(param_types[i], ctx);
             if (!allowed_subject_slot) {
                 semantic_error(ctx, node,
-                    "Anchored handle parameters are currently closed to ref Slot<subject-host> / "
+                    "Anchored handle parameters are currently closed to ref/own Slot<subject-host> / "
                     "own SecureSlot<subject-host>; other anchored handles remain local-only");
             } else if (param->mode == PARAM_MODE_DEFAULT) {
                 semantic_error(ctx, node,
@@ -2694,16 +2733,6 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- change the parameter to 'own SecureSlot<subject-host>'\n"
                     "- or keep the SecureSlot local and pass a projection/value instead");
-            } else if (!param_types[i]->data.slot.is_secure
-                       && param->mode != PARAM_MODE_REF) {
-                semantic_error(ctx, node,
-                    "Plain Slot<subject-host> parameters currently support only 'ref' at function boundaries.\n"
-                    "Reason:\n"
-                    "- move-style own forwarding for plain anchored subject slots is not part of the closed subset yet\n"
-                    "- the stable boundary rule is borrowed inspection/mutation via 'ref'\n"
-                    "Fix:\n"
-                    "- change the parameter to 'ref Slot<subject-host>'\n"
-                    "- or keep ownership local and release/move inside the current scope");
             }
         }
         /* Subject parameters are passed by reference (pointer) internally.

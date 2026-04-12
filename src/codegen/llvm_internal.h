@@ -492,6 +492,57 @@ typedef struct LLVMGenCtx
     uint32_t        error_column;
 } LLVMGenCtx;
 
+static inline void
+llvm_active_inventory(const LLVMGenCtx *ctx,
+                      ASTNodeType decl_type,
+                      ASTNode ***nodes_out,
+                      size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        switch (decl_type) {
+        case AST_FUNC_DECL: nodes = ctx->mir->functions; count = ctx->mir->function_count; break;
+        case AST_INTENT_DECL: nodes = ctx->mir->intents; count = ctx->mir->intent_count; break;
+        case AST_PARTY_DECL: nodes = ctx->mir->parties; count = ctx->mir->party_count; break;
+        case AST_ROSTER_DECL: nodes = ctx->mir->rosters; count = ctx->mir->roster_count; break;
+        case AST_WORLD_DECL: nodes = ctx->mir->worlds; count = ctx->mir->world_count; break;
+        case AST_RELATION_DECL: nodes = ctx->mir->relations; count = ctx->mir->relation_count; break;
+        case AST_EFFECT_DECL: nodes = ctx->mir->effects; count = ctx->mir->effect_count; break;
+        case AST_ZONE_DECL: nodes = ctx->mir->zones; count = ctx->mir->zone_count; break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = ctx->mir->types; count = ctx->mir->type_count; break;
+        default:
+            break;
+        }
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        switch (decl_type) {
+        case AST_FUNC_DECL: nodes = ctx->hir->functions; count = ctx->hir->function_count; break;
+        case AST_INTENT_DECL: nodes = ctx->hir->intents; count = ctx->hir->intent_count; break;
+        case AST_PARTY_DECL: nodes = ctx->hir->parties; count = ctx->hir->party_count; break;
+        case AST_ROSTER_DECL: nodes = ctx->hir->rosters; count = ctx->hir->roster_count; break;
+        case AST_WORLD_DECL: nodes = ctx->hir->worlds; count = ctx->hir->world_count; break;
+        case AST_RELATION_DECL: nodes = ctx->hir->relations; count = ctx->hir->relation_count; break;
+        case AST_EFFECT_DECL: nodes = ctx->hir->effects; count = ctx->hir->effect_count; break;
+        case AST_ZONE_DECL: nodes = ctx->hir->zones; count = ctx->hir->zone_count; break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = ctx->hir->types; count = ctx->hir->type_count; break;
+        default:
+            break;
+        }
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
 /* =================================================================
  * Context lifecycle (llvm_backend.c)
  * ================================================================= */
@@ -673,7 +724,9 @@ bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
 void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_func_requires_hir_fallback(ASTNode *func_decl);
-void llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx);
+void llvm_emit_mir_main_wrapper(const MIRProgram *mir,
+                                const HIRProgram *hir,
+                                LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx);

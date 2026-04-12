@@ -132,6 +132,7 @@ transpiler_ctx_destroy(TranspilerCtx *ctx)
     codebuf_destroy(ctx->out);
     codebuf_destroy(ctx->decls);
     codebuf_destroy(ctx->helpers);
+    free(ctx->backend_error);
     pgy_arena_destroy(&ctx->arena);
     free(ctx);
 }
@@ -156,6 +157,37 @@ write_indent_to(CodeBuf *buf, int indent)
 
 static TranspilerCtx *g_type_render_ctx = NULL;
 static char *strdup_fmt(const char *fmt, ...);
+
+static void
+transpiler_set_backend_error(TranspilerCtx *ctx, const char *fmt, ...)
+{
+    va_list ap;
+    va_list ap2;
+    int needed;
+    char *msg;
+
+    if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
+        return;
+
+    va_start(ap, fmt);
+    va_copy(ap2, ap);
+    needed = vsnprintf(NULL, 0, fmt, ap2);
+    va_end(ap2);
+    if (needed < 0) {
+        va_end(ap);
+        return;
+    }
+
+    msg = malloc((size_t)needed + 1);
+    if (msg == NULL) {
+        va_end(ap);
+        return;
+    }
+
+    vsnprintf(msg, (size_t)needed + 1, fmt, ap);
+    va_end(ap);
+    ctx->backend_error = msg;
+}
 
 /* -----------------------------------------------------------------
  * Slot variable tracking
@@ -326,11 +358,18 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
 static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
-    if (ctx == NULL || ctx->hir == NULL)
-        return NULL;
+    ASTNode **roles = NULL;
+    size_t role_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->role_count; i++) {
-        ASTNode *stmt = ctx->hir->roles[i];
+    if (ctx == NULL)
+        return NULL;
+    transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    if (roles == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *stmt = roles[i];
         if (stmt->type == AST_ROLE_DECL
             && stmt->data.role_decl.name != NULL
             && strcmp(stmt->data.role_decl.name, role_name) == 0) {
@@ -344,11 +383,18 @@ find_role_decl(TranspilerCtx *ctx, const char *role_name)
 static ASTNode *
 find_function_decl(TranspilerCtx *ctx, const char *function_name)
 {
-    if (ctx == NULL || ctx->hir == NULL)
-        return NULL;
+    ASTNode **functions = NULL;
+    size_t function_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->function_count; i++) {
-        ASTNode *stmt = ctx->hir->functions[i];
+    if (ctx == NULL)
+        return NULL;
+    transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    if (functions == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (stmt->type == AST_FUNC_DECL
             && stmt->data.func_decl.name != NULL
             && strcmp(stmt->data.func_decl.name, function_name) == 0) {
@@ -362,11 +408,18 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
 static ASTNode *
 find_intent_decl(TranspilerCtx *ctx, const char *intent_name)
 {
-    if (ctx == NULL || ctx->hir == NULL)
-        return NULL;
+    ASTNode **intents = NULL;
+    size_t intent_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->intent_count; i++) {
-        ASTNode *stmt = ctx->hir->intents[i];
+    if (ctx == NULL)
+        return NULL;
+    transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
+    if (intents == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < intent_count; i++) {
+        ASTNode *stmt = intents[i];
         if (stmt->type == AST_INTENT_DECL
             && stmt->data.intent_decl.name != NULL
             && strcmp(stmt->data.intent_decl.name, intent_name) == 0) {
@@ -386,22 +439,76 @@ find_callable_decl(TranspilerCtx *ctx, const char *name)
     return find_intent_decl(ctx, name);
 }
 
+static bool
+transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type, const char *name)
+{
+    if (stmt == NULL || name == NULL || stmt->type != decl_type)
+        return false;
+
+    switch (decl_type) {
+    case AST_PARTY_DECL:
+        return stmt->data.party_decl.name != NULL
+            && strcmp(stmt->data.party_decl.name, name) == 0;
+    case AST_ROSTER_DECL:
+        return stmt->data.roster_decl.name != NULL
+            && strcmp(stmt->data.roster_decl.name, name) == 0;
+    case AST_ENUM_DECL:
+        return stmt->data.enum_decl.name != NULL
+            && strcmp(stmt->data.enum_decl.name, name) == 0;
+    case AST_CLASS_DECL:
+        return stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, name) == 0;
+    case AST_TYPE_ALIAS:
+        return stmt->data.type_alias.name != NULL
+            && strcmp(stmt->data.type_alias.name, name) == 0;
+    case AST_ZONE_DECL:
+        return stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, name) == 0;
+    case AST_WORLD_DECL:
+        return stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, name) == 0;
+    case AST_RELATION_DECL:
+        return stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, name) == 0;
+    case AST_EFFECT_DECL:
+        return stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, name) == 0;
+    default:
+        return false;
+    }
+}
+
+static ASTNode *
+transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
+                                 const char *name)
+{
+    const MIRDeclHeader *decl_header = NULL;
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    if (ctx->mir != NULL) {
+        decl_header = mir_find_decl_header(ctx->mir, name);
+        if (decl_header != NULL && decl_header->ast_type == decl_type)
+            return decl_header->ast;
+    }
+    transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    if (decls == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < decl_count; i++) {
+        ASTNode *stmt = decls[i];
+        if (transpiler_named_decl_matches(stmt, decl_type, name))
+            return stmt;
+    }
+    return NULL;
+}
+
 static ASTNode *
 find_party_decl(TranspilerCtx *ctx, const char *party_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || party_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->party_count; i++) {
-        ASTNode *stmt = ctx->hir->parties[i];
-        if (stmt != NULL && stmt->type == AST_PARTY_DECL
-            && stmt->data.party_decl.name != NULL
-            && strcmp(stmt->data.party_decl.name, party_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_PARTY_DECL, party_name);
 }
 
 static ASTNode *
@@ -411,79 +518,34 @@ static ASTNode *
 find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name);
 
 static ASTNode *
+find_world_decl(TranspilerCtx *ctx, const char *world_name);
+
+static ASTNode *
+find_relation_decl(TranspilerCtx *ctx, const char *relation_name);
+
+static ASTNode *
+find_effect_decl(TranspilerCtx *ctx, const char *effect_name);
+
+static ASTNode *
 find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                               const char *method_name);
 
 static ASTNode *
 find_enum_decl(TranspilerCtx *ctx, const char *enum_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || enum_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
-        if (stmt != NULL && stmt->type == AST_ENUM_DECL
-            && stmt->data.enum_decl.name != NULL
-            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
-            return stmt;
-        }
-    }
-
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_ENUM_DECL
-            && stmt->data.enum_decl.name != NULL
-            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_ENUM_DECL, enum_name);
 }
 
 static ASTNode *
 find_class_decl(TranspilerCtx *ctx, const char *class_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || class_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
-        if (stmt != NULL && stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, class_name) == 0) {
-            return stmt;
-        }
-    }
-
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, class_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, class_name);
 }
 
 static ASTNode *
 find_type_alias_decl(TranspilerCtx *ctx, const char *alias_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || alias_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
-        if (stmt != NULL && stmt->type == AST_TYPE_ALIAS
-            && stmt->data.type_alias.name != NULL
-            && strcmp(stmt->data.type_alias.name, alias_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_TYPE_ALIAS, alias_name);
 }
 
 static ASTNode *
@@ -519,103 +581,43 @@ find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name)
 static ASTNode *
 find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-        ASTNode *stmt = ctx->hir->zones[i];
-        if (stmt != NULL && stmt->type == AST_ZONE_DECL
-            && stmt->data.zone_decl.name != NULL
-            && strcmp(stmt->data.zone_decl.name, zone_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, zone_name);
 }
 
 static bool
 transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
 {
-    if (ctx == NULL || ctx->hir == NULL || name == NULL)
+    if (ctx == NULL || name == NULL)
         return false;
 
     if (find_class_decl(ctx, name) != NULL
         || find_zone_decl(ctx, name) != NULL
         || find_party_decl(ctx, name) != NULL
-        || find_roster_decl(ctx, name) != NULL)
+        || find_roster_decl(ctx, name) != NULL
+        || find_world_decl(ctx, name) != NULL
+        || find_relation_decl(ctx, name) != NULL
+        || find_effect_decl(ctx, name) != NULL)
         return true;
-    for (size_t i = 0; i < ctx->hir->world_count; i++) {
-        (void)i;
-    }
-    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
-        ASTNode *stmt = ctx->hir->relations[i];
-        if (stmt != NULL && stmt->data.relation_decl.name != NULL
-            && strcmp(stmt->data.relation_decl.name, name) == 0)
-            return true;
-    }
-    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
-        ASTNode *stmt = ctx->hir->effects[i];
-        if (stmt != NULL && stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, name) == 0)
-            return true;
-    }
-
     return false;
 }
 
 static ASTNode *
 find_world_decl(TranspilerCtx *ctx, const char *world_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || world_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->world_count; i++) {
-        ASTNode *stmt = ctx->hir->worlds[i];
-        if (stmt != NULL && stmt->type == AST_WORLD_DECL
-            && stmt->data.world_decl.name != NULL
-            && strcmp(stmt->data.world_decl.name, world_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, world_name);
 }
 
 static ASTNode *
 find_relation_decl(TranspilerCtx *ctx, const char *relation_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || relation_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
-        ASTNode *stmt = ctx->hir->relations[i];
-        if (stmt != NULL && stmt->type == AST_RELATION_DECL
-            && stmt->data.relation_decl.name != NULL
-            && strcmp(stmt->data.relation_decl.name, relation_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_RELATION_DECL,
+                                            relation_name);
 }
 
 static ASTNode *
 find_effect_decl(TranspilerCtx *ctx, const char *effect_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || effect_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
-        ASTNode *stmt = ctx->hir->effects[i];
-        if (stmt != NULL && stmt->type == AST_EFFECT_DECL
-            && stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, effect_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_EFFECT_DECL, effect_name);
 }
 
 static size_t
@@ -1231,19 +1233,7 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
 static ASTNode *
 find_roster_decl(TranspilerCtx *ctx, const char *roster_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || roster_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ctx->hir->roster_count; i++) {
-        ASTNode *stmt = ctx->hir->rosters[i];
-        if (stmt != NULL && stmt->type == AST_ROSTER_DECL
-            && stmt->data.roster_decl.name != NULL
-            && strcmp(stmt->data.roster_decl.name, roster_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_ROSTER_DECL, roster_name);
 }
 
 static const char *
@@ -2630,11 +2620,18 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 static ASTNode *
 find_ability_decl(TranspilerCtx *ctx, const char *ability_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || ability_name == NULL)
-        return NULL;
+    ASTNode **abilities = NULL;
+    size_t ability_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->ability_count; i++) {
-        ASTNode *stmt = ctx->hir->abilities[i];
+    if (ctx == NULL || ability_name == NULL)
+        return NULL;
+    transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
+    if (abilities == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ability_count; i++) {
+        ASTNode *stmt = abilities[i];
         if (stmt != NULL && stmt->type == AST_ABILITY_DECL
             && stmt->data.ability_decl.name != NULL
             && strcmp(stmt->data.ability_decl.name, ability_name) == 0) {
@@ -2648,11 +2645,18 @@ find_ability_decl(TranspilerCtx *ctx, const char *ability_name)
 static ASTNode *
 find_event_decl(TranspilerCtx *ctx, const char *event_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || event_name == NULL)
-        return NULL;
+    ASTNode **events = NULL;
+    size_t event_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->event_count; i++) {
-        ASTNode *stmt = ctx->hir->events[i];
+    if (ctx == NULL || event_name == NULL)
+        return NULL;
+    transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
+    if (events == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < event_count; i++) {
+        ASTNode *stmt = events[i];
         if (stmt != NULL && stmt->type == AST_EVENT_DECL
             && stmt->data.event_decl.name != NULL
             && strcmp(stmt->data.event_decl.name, event_name) == 0) {
@@ -2698,12 +2702,18 @@ static const char *
 lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
 {
     static char qualified[128];
+    ASTNode **types = NULL;
+    size_t type_count = 0;
 
-    if (ctx == NULL || ctx->hir == NULL || variant_name == NULL)
+    if (ctx == NULL || variant_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
+    transpiler_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
+    if (types == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
         for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
@@ -2747,6 +2757,8 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenT
 {
     const char *suffix = operator_overload_suffix(op);
     char fn_name[256];
+    ASTNode **roles = NULL;
+    size_t role_count = 0;
 
     if (ctx == NULL || type_name == NULL || suffix == NULL)
         return NULL;
@@ -2756,9 +2768,10 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenT
     if (fn != NULL)
         return fn;
 
-    if (ctx != NULL && ctx->hir != NULL && type_name != NULL) {
-        for (size_t i = 0; i < ctx->hir->role_count; i++) {
-            ASTNode *role = ctx->hir->roles[i];
+    transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    if (roles != NULL) {
+        for (size_t i = 0; i < role_count; i++) {
+            ASTNode *role = roles[i];
             if (role == NULL || role->type != AST_ROLE_DECL
                 || role->data.role_decl.for_type == NULL
                 || role->data.role_decl.for_type->type != AST_TYPE

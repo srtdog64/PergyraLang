@@ -1049,6 +1049,27 @@ main(void)
             1
         },
         {
+            "Intent Default Who Alias Clause",
+            "intent Patrol(guard: Guard) {\n"
+            "    who: guard;\n"
+            "    step Check {\n"
+            "        on: 1;\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Intent Default Where Clause",
+            "intent Patrol(guard: Guard) {\n"
+            "    where: GuardZone;\n"
+            "    step Check {\n"
+            "        who: guard;\n"
+            "        on: 1;\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
             "Top-level Private Event Declaration",
             "private event HiddenPing(value: Int);",
             1
@@ -1318,6 +1339,75 @@ main(void)
             "        who: buyer;\n"
             "        authorized: buyer;\n"
             "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n",
+            0
+        },
+        {
+            "Intent Step Duplicate Requires Clause",
+            "subject Buyer {\n"
+            "    action Pay(self) -> Void { return; }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        requires: Payable;\n"
+            "        requires: Movable;\n"
+            "        on: buyer.Pay();\n"
+            "    }\n"
+            "}\n",
+            0
+        },
+        {
+            "Intent Step Duplicate Transfer Clause",
+            "zone LoadingZone {\n"
+            "}\n"
+            "zone DeliveryZone {\n"
+            "}\n"
+            "intent Deliver(src: LoadingZone, dst: DeliveryZone) {\n"
+            "    step handoff {\n"
+            "        who: courier;\n"
+            "        transfer: src -> dst;\n"
+            "        move dst to src;\n"
+            "        on: 1;\n"
+            "    }\n"
+            "}\n",
+            0
+        },
+        {
+            "Intent Declaration Duplicate Mode Clause",
+            "intent Patrol {\n"
+            "    exclusive;\n"
+            "    concurrent;\n"
+            "}\n",
+            0
+        },
+        {
+            "Intent Duplicate Binding Alias Clause",
+            "intent Patrol(guard: Guard) {\n"
+            "    involves guard: Guard;\n"
+            "    step Check {\n"
+            "        who: guard;\n"
+            "        on: 1;\n"
+            "    }\n"
+            "}\n",
+            0
+        },
+        {
+            "Intent Duplicate Step Name",
+            "intent Patrol(guard: Guard) {\n"
+            "    step Check {\n"
+            "        who: guard;\n"
+            "        on: 1;\n"
+            "    }\n"
+            "    step Check {\n"
+            "        who: guard;\n"
+            "        on: 2;\n"
             "    }\n"
             "}\n",
             0

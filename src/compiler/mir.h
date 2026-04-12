@@ -173,12 +173,22 @@ typedef struct
     bool               has_use_def_summary;
 } MIRRoutine;
 
+typedef struct
+{
+    ASTNode     *ast;
+    ASTNodeType  ast_type;
+    const char  *name;
+    ASTNode    **methods;
+    size_t       method_count;
+    bool         uses_pointer_self;
+} MIRDeclHeader;
+
 struct MIRProgram
 {
     MIRRoutine *routines;
     size_t      routine_count;
-    HIRTopLevelItem *items;
-    size_t      item_count;
+    MIRDeclHeader *decl_headers;
+    size_t      decl_header_count;
     ASTNode   **externs;
     size_t      extern_count;
     ASTNode   **types;
@@ -212,6 +222,8 @@ struct MIRProgram
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
+void        mir_build_hir_inventory_view(const MIRProgram *mir, HIRProgram *hir_view);
+const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
 bool        mir_validate(const MIRProgram *mir, char **error_message);

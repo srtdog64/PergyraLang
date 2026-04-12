@@ -531,8 +531,16 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
         ASTNode *method = node->data.party_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL)
             continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
@@ -630,7 +638,15 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
         ASTNode *method = node->data.roster_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
@@ -780,7 +796,15 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
         ASTNode *method = node->data.relation_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
@@ -972,7 +996,15 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
         ASTNode *method = node->data.effect_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
@@ -1480,7 +1512,15 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
         ASTNode *method = node->data.zone_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
@@ -1801,7 +1841,15 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
         ASTNode *method = node->data.world_decl.methods[i];
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL) continue;
+        if (mir_method != NULL) {
+            char emitted_name[256];
+            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
+                method->data.func_decl.name);
+            emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
+            continue;
+        }
 
         const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";

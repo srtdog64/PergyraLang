@@ -275,6 +275,8 @@ struct ClassField {
 struct ASTNode
 {
     ASTNodeType type;
+    AccessModifier access;
+    bool        has_explicit_access;
     bool        is_exported;
     bool        has_explicit_export;
     bool        is_async_decl;

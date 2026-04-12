@@ -12,23 +12,28 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
      * If encountered standalone, emit a comment.
      */
     (void)call;
-    (void)ctx;
-    return pergyra_strdup("/* ClaimSlot */");
+    transpiler_set_backend_error(ctx,
+        "C backend: standalone ClaimSlot expression is unsupported; ClaimSlot<T>() must lower through let binding");
+    return pergyra_strdup("0");
 }
 
 static char *
 emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     (void)call;
-    (void)ctx;
+    transpiler_set_backend_error(ctx,
+        "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
     return pergyra_strdup("pgy_claim_device_Int()");
 }
 
 char *
 emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 2)
-        return pergyra_strdup("/* Write: missing args */");
+    if (call->data.call.arg_count < 2) {
+        transpiler_set_backend_error(ctx,
+            "C backend: Write requires slot and value");
+        return pergyra_strdup("0");
+    }
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
@@ -72,8 +77,11 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 static char *
 emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1)
-        return pergyra_strdup("/* View: missing args */");
+    if (call->data.call.arg_count < 1) {
+        transpiler_set_backend_error(ctx,
+            "C backend: View requires source slot");
+        return pergyra_strdup("0");
+    }
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -139,8 +147,11 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
 char *
 emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1)
-        return pergyra_strdup("/* Read: missing args */");
+    if (call->data.call.arg_count < 1) {
+        transpiler_set_backend_error(ctx,
+            "C backend: Read requires slot");
+        return pergyra_strdup("0");
+    }
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
@@ -177,8 +188,11 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1)
-        return pergyra_strdup("/* Release: missing args */");
+    if (call->data.call.arg_count < 1) {
+        transpiler_set_backend_error(ctx,
+            "C backend: Release requires slot");
+        return pergyra_strdup("0");
+    }
 
     /* Resolve slot inner type from tracking table */
     const char *inner = "Int";
@@ -521,8 +535,11 @@ normalize_banner_string_literal(const char *src)
 char *
 emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1 || call->data.call.arguments[0] == NULL)
-        return pergyra_strdup("/* LogBanner: missing arg */");
+    if (call->data.call.arg_count < 1 || call->data.call.arguments[0] == NULL) {
+        transpiler_set_backend_error(ctx,
+            "C backend: LogBanner requires one argument");
+        return pergyra_strdup("0");
+    }
 
     if (call->data.call.arg_count != 1)
         return emit_builtin_log(call, ctx);
@@ -568,8 +585,11 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 
     switch (kind) {
     case BUILTIN_RC_NEW:
-        if (call->data.call.arg_count != 1)
-            return pergyra_strdup("/* RcNew: invalid args */");
+        if (call->data.call.arg_count != 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: RcNew requires exactly one argument");
+            return pergyra_strdup("0");
+        }
         if (arg->type == AST_NUMBER) inner = "Int";
         else if (arg->type == AST_STRING) inner = "String";
         else if (arg->type == AST_BOOLEAN) inner = "Bool";
@@ -642,7 +662,9 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
 
-    return pergyra_strdup("/* unsupported rc builtin */");
+    transpiler_set_backend_error(ctx,
+        "C backend: unsupported Rc builtin kind %d", (int)kind);
+    return pergyra_strdup("0");
 }
 
 char *
@@ -653,8 +675,11 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 
     switch (kind) {
     case BUILTIN_BOX:
-        if (call->data.call.arg_count != 1)
-            return pergyra_strdup("/* Box: invalid args */");
+        if (call->data.call.arg_count != 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: Box requires exactly one argument");
+            return pergyra_strdup("0");
+        }
         if (arg->type == AST_NUMBER) inner = "Int";
         else if (arg->type == AST_STRING) inner = "String";
         else if (arg->type == AST_BOOLEAN) inner = "Bool";
@@ -728,7 +753,9 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
 
-    return pergyra_strdup("/* unsupported box builtin */");
+    transpiler_set_backend_error(ctx,
+        "C backend: unsupported Box builtin kind %d", (int)kind);
+    return pergyra_strdup("0");
 }
 
 char *
@@ -742,8 +769,11 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_ALLOCATOR_DEBUG:
         return pergyra_strdup("pgy_allocator_debug()");
     case BUILTIN_ALLOCATOR_POOL:
-        if (call->data.call.arg_count != 1)
-            return pergyra_strdup("/* AllocatorPool: invalid args */");
+        if (call->data.call.arg_count != 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: AllocatorPool requires exactly one capacity argument");
+            return pergyra_strdup("0");
+        }
         {
             char *cap = emit_expression(call->data.call.arguments[0], ctx);
             char *result = strdup_fmt("pgy_allocator_pool(%s)", cap);
@@ -751,7 +781,9 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             return result;
         }
     default:
-        return pergyra_strdup("/* unsupported allocator builtin */");
+        transpiler_set_backend_error(ctx,
+            "C backend: unsupported allocator builtin kind %d", (int)kind);
+        return pergyra_strdup("0");
     }
 }
 
@@ -975,7 +1007,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
             }
         }
-        return pergyra_strdup("false /* HasProjection: domain-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasProjection requires active relation/effect/zone projection context");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_LAYER:
         if (ctx->current_zone_name != NULL
             && call->data.call.arg_count == 1
@@ -989,7 +1023,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
                     ctx->current_zone_name, layer_name);
         }
-        return pergyra_strdup("false /* HasLayer: zone-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasLayer requires active zone context");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_STATE:
         if (ctx->current_zone_name != NULL
             && call->data.call.arg_count >= 1
@@ -1005,7 +1041,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (state_decl != NULL && state_name != NULL)
                 return strdup_fmt("self->__state_%s", state_name);
         }
-        return pergyra_strdup("false /* HasState: zone-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasState requires active zone context with matching state");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE:
         if (ctx->current_world_name != NULL
             && call->data.call.arg_count >= 1
@@ -1023,7 +1061,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             if (world_has_zone_slot(world_decl, name))
                 return strdup_fmt("self->__zone_active_%s", name);
         }
-        return pergyra_strdup("false /* HasZone: world-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasZone requires active world context");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_PROJECTION:
         if (ctx->current_world_name != NULL
             && call->data.call.arg_count == 2
@@ -1048,7 +1088,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->%s.__projection_ready_%s", zone_name, slot_name);
             }
         }
-        return pergyra_strdup("false /* HasZoneProjection: world-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasZoneProjection requires active world context with matching zone projection");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_LAYER:
         if (ctx->current_world_name != NULL
             && call->data.call.arg_count == 2
@@ -1072,7 +1114,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->%s.__layer_active_%s", zone_name, layer_name);
             }
         }
-        return pergyra_strdup("false /* HasZoneLayer: world-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasZoneLayer requires active world context with matching zone layer");
+        return pergyra_strdup("false");
     case BUILTIN_HAS_ZONE_STATE:
         if (ctx->current_world_name != NULL
             && call->data.call.arg_count == 2
@@ -1096,7 +1140,9 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
                 return strdup_fmt("self->%s.__state_%s", zone_name, state_name);
             }
         }
-        return pergyra_strdup("false /* HasZoneState: world-semantic query only */");
+        transpiler_set_backend_error(ctx,
+            "C backend: HasZoneState requires active world context with matching zone state");
+        return pergyra_strdup("false");
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
@@ -1105,8 +1151,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     /* I/O built-ins */
     case BUILTIN_FILE_OPEN: {
         /* FileOpen(path, mode) → pgy_file_open(path, mode) */
-        if (call->data.call.arg_count < 2)
-            return pergyra_strdup("/* FileOpen: need path, mode */");
+        if (call->data.call.arg_count < 2) {
+            transpiler_set_backend_error(ctx,
+                "C backend: FileOpen requires path and mode");
+            return pergyra_strdup("0");
+        }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
         char *mode = emit_expression(call->data.call.arguments[1], ctx);
         char *result = strdup_fmt("pgy_file_open(%s, %s)", path, mode);
@@ -1115,8 +1164,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_FILE_READ: {
         /* FileRead(fd) → pgy_file_read(fd) */
-        if (call->data.call.arg_count < 1)
-            return pergyra_strdup("/* FileRead: need fd */");
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: FileRead requires file descriptor");
+            return pergyra_strdup("0");
+        }
         char *fd = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_file_read(%s)", fd);
         free(fd);
@@ -1124,8 +1176,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_FILE_WRITE: {
         /* FileWrite(fd, data) → pgy_file_write(fd, data) */
-        if (call->data.call.arg_count < 2)
-            return pergyra_strdup("/* FileWrite: need fd, data */");
+        if (call->data.call.arg_count < 2) {
+            transpiler_set_backend_error(ctx,
+                "C backend: FileWrite requires file descriptor and data");
+            return pergyra_strdup("0");
+        }
         char *fd   = emit_expression(call->data.call.arguments[0], ctx);
         char *data = emit_expression(call->data.call.arguments[1], ctx);
         char *result = strdup_fmt("pgy_file_write(%s, %s)", fd, data);
@@ -1134,8 +1189,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_FILE_CLOSE: {
         /* FileClose(fd) → pgy_file_close(fd) */
-        if (call->data.call.arg_count < 1)
-            return pergyra_strdup("/* FileClose: need fd */");
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: FileClose requires file descriptor");
+            return pergyra_strdup("0");
+        }
         char *fd = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_file_close(%s)", fd);
         free(fd);
@@ -1143,8 +1201,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_READ_FILE: {
         /* ReadFile(path) → pgy_read_file(path) */
-        if (call->data.call.arg_count < 1)
-            return pergyra_strdup("/* ReadFile: need path */");
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: ReadFile requires path");
+            return pergyra_strdup("0");
+        }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_read_file(%s)", path);
         free(path);
@@ -1152,8 +1213,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_WRITE_FILE: {
         /* WriteFile(path, data) → pgy_write_file(path, data) */
-        if (call->data.call.arg_count < 2)
-            return pergyra_strdup("/* WriteFile: need path, data */");
+        if (call->data.call.arg_count < 2) {
+            transpiler_set_backend_error(ctx,
+                "C backend: WriteFile requires path and data");
+            return pergyra_strdup("0");
+        }
         char *path = emit_expression(call->data.call.arguments[0], ctx);
         char *data = emit_expression(call->data.call.arguments[1], ctx);
         char *result = strdup_fmt("pgy_write_file(%s, %s)", path, data);
@@ -1171,8 +1235,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     }
     case BUILTIN_PRINT: {
         /* Print(msg) → pgy_print(msg) */
-        if (call->data.call.arg_count < 1)
-            return pergyra_strdup("/* Print: need msg */");
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: Print requires message");
+            return pergyra_strdup("0");
+        }
         char *msg = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_print(%s)", msg);
         free(msg);
@@ -1183,8 +1250,11 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_NOW:
         return pergyra_strdup("pgy_now_ms()");
     case BUILTIN_SLEEP: {
-        if (call->data.call.arg_count < 1)
-            return pergyra_strdup("/* Sleep: need ms */");
+        if (call->data.call.arg_count < 1) {
+            transpiler_set_backend_error(ctx,
+                "C backend: Sleep requires milliseconds");
+            return pergyra_strdup("0");
+        }
         char *ms = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("pgy_sleep_ms(%s)", ms);
         free(ms);
@@ -1830,7 +1900,12 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             return result;
         }
         if (strcmp(fn, "None") == 0 && call->data.call.arg_count == 0) {
-            return strdup_fmt("None_Int()");
+            /* Use expected target type from enclosing let declaration if available */
+            const char *inner = "Int";
+            if (ctx->expected_type != NULL && strncmp(ctx->expected_type, "Option<", 7) == 0) {
+                inner = slot_inner_type_name(ctx->expected_type);
+            }
+            return strdup_fmt("None_%s()", inner);
         }
         if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
@@ -3206,7 +3281,9 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         free(wrapper_name);
         free(return_type_name);
         free(return_c_type);
-        return pergyra_strdup("/* unsupported spawn target */");
+        transpiler_set_backend_error(ctx,
+            "C backend: unsupported spawn target at line %d", target->line);
+        return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
 
     decl = find_function_decl(ctx, function_name);
@@ -3387,6 +3464,14 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = node->data.identifier.name;
+        /* Handle None used without parentheses as Option<Int> fallback */
+        if (strcmp(id_name, "None") == 0) {
+            const char *inner = "Int";
+            if (ctx->expected_type != NULL && strncmp(ctx->expected_type, "Option<", 7) == 0) {
+                inner = slot_inner_type_name(ctx->expected_type);
+            }
+            return strdup_fmt("None_%s()", inner);
+        }
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL)
             return transpiler_make_c_ssa_name(ssa_name);
@@ -3706,6 +3791,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_lambda_expr(node, ctx);
 
     default:
-        return pergyra_strdup("/* unsupported expr */");
+        transpiler_set_backend_error(ctx,
+            "C backend: unsupported expression node type %d at line %d",
+            (int)node->type, node->line);
+        return pergyra_strdup("0");
     }
 }

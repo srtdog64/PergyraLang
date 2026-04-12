@@ -66,11 +66,18 @@ llvm_stmt_render_type_arg(GenericParam *param)
 static ASTNode *
 llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
-        return NULL;
+    ASTNode **zones = NULL;
+    size_t zone_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-        ASTNode *stmt = ctx->hir->zones[i];
+    if (ctx == NULL || zone_name == NULL)
+        return NULL;
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    if (zones == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *stmt = zones[i];
         if (stmt != NULL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, zone_name) == 0) {
@@ -83,11 +90,18 @@ llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
 static ASTNode *
 llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || effect_name == NULL)
-        return NULL;
+    ASTNode **effects = NULL;
+    size_t effect_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
-        ASTNode *stmt = ctx->hir->effects[i];
+    if (ctx == NULL || effect_name == NULL)
+        return NULL;
+    llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+    if (effects == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < effect_count; i++) {
+        ASTNode *stmt = effects[i];
         if (stmt != NULL
             && stmt->data.effect_decl.name != NULL
             && strcmp(stmt->data.effect_decl.name, effect_name) == 0) {
@@ -100,11 +114,18 @@ llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 static ASTNode *
 llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
 {
-    if (ctx == NULL || ctx->hir == NULL || type_name == NULL)
-        return NULL;
+    ASTNode **types = NULL;
+    size_t type_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    if (types == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt == NULL)
             continue;
         if (stmt->type == AST_CLASS_DECL
@@ -119,11 +140,18 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
 static ASTNode *
 llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
 {
-    if (ctx == NULL || ctx->hir == NULL || name == NULL)
-        return NULL;
+    ASTNode **functions = NULL;
+    size_t function_count = 0;
 
-    for (size_t i = 0; i < ctx->hir->function_count; i++) {
-        ASTNode *stmt = ctx->hir->functions[i];
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    if (functions == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (stmt != NULL && stmt->type == AST_FUNC_DECL
             && stmt->data.func_decl.name != NULL
             && strcmp(stmt->data.func_decl.name, name) == 0) {
@@ -906,19 +934,10 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     }
     if (callee != NULL && callee->type == AST_IDENTIFIER)
         callee_name = callee->data.identifier.name;
-    if (callee_name == NULL || ctx->hir == NULL)
+    if (callee_name == NULL)
         return "Int";
 
-    ASTNode *decl = NULL;
-    for (size_t i = 0; i < ctx->hir->function_count; i++) {
-        ASTNode *fn = ctx->hir->functions[i];
-        if (fn != NULL && fn->type == AST_FUNC_DECL
-            && fn->data.func_decl.name != NULL
-            && strcmp(fn->data.func_decl.name, callee_name) == 0) {
-            decl = fn;
-            break;
-        }
-    }
+    ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->data.func_decl.return_type == NULL
         || decl->data.func_decl.return_type->type != AST_TYPE
         || decl->data.func_decl.return_type->data.type.name == NULL) {

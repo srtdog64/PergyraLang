@@ -70,11 +70,16 @@ explicit_member_access_allowed(ASTNode *decl,
 static bool
 explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticContext *ctx)
 {
+    const char *site_module = NULL;
+
     if (decl == NULL || site == NULL || ctx == NULL)
         return true;
-    if (site->origin_path == NULL || decl->origin_path == NULL)
+    site_module = site->origin_path != NULL
+        ? site->origin_path
+        : ctx->current_module_path;
+    if (site_module == NULL || decl->origin_path == NULL)
         return true;
-    if (same_module_origin(site->origin_path, decl->origin_path))
+    if (same_module_origin(site_module, decl->origin_path))
         return true;
     if (decl->type == AST_ABILITY_DECL) {
         if (!decl->data.ability_decl.has_explicit_access)

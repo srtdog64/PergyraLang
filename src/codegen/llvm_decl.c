@@ -62,6 +62,22 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 static bool
 llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 {
+    const MIRDeclHeader *mir_decl;
+    ASTNode **types = NULL;
+    size_t type_count = 0;
+    ASTNode **parties = NULL;
+    size_t party_count = 0;
+    ASTNode **rosters = NULL;
+    size_t roster_count = 0;
+    ASTNode **worlds = NULL;
+    size_t world_count = 0;
+    ASTNode **relations = NULL;
+    size_t relation_count = 0;
+    ASTNode **effects = NULL;
+    size_t effect_count = 0;
+    ASTNode **zones = NULL;
+    size_t zone_count = 0;
+
     if (ctx == NULL || type_name == NULL)
         return false;
 
@@ -71,11 +87,24 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
             return true;
     }
 
-    if (ctx->hir == NULL)
-        return false;
+    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
+    if (mir_decl != NULL)
+        return mir_decl->uses_pointer_self;
 
-    for (size_t i = 0; i < ctx->hir->type_count; i++) {
-        ASTNode *stmt = ctx->hir->types[i];
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    llvm_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
+    llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
+    llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+    llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+    llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    if (types == NULL && parties == NULL && rosters == NULL && worlds == NULL
+        && relations == NULL && effects == NULL && zones == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt != NULL
             && stmt->type == AST_CLASS_DECL
             && stmt->data.class_decl.name != NULL
@@ -83,43 +112,43 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
             && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->party_count; i++) {
-        ASTNode *stmt = ctx->hir->parties[i];
+    for (size_t i = 0; i < party_count; i++) {
+        ASTNode *stmt = parties[i];
         if (stmt != NULL
             && stmt->data.party_decl.name != NULL
             && strcmp(stmt->data.party_decl.name, type_name) == 0)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->roster_count; i++) {
-        ASTNode *stmt = ctx->hir->rosters[i];
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *stmt = rosters[i];
         if (stmt != NULL
             && stmt->data.roster_decl.name != NULL
             && strcmp(stmt->data.roster_decl.name, type_name) == 0)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->world_count; i++) {
-        ASTNode *stmt = ctx->hir->worlds[i];
+    for (size_t i = 0; i < world_count; i++) {
+        ASTNode *stmt = worlds[i];
         if (stmt != NULL
             && stmt->data.world_decl.name != NULL
             && strcmp(stmt->data.world_decl.name, type_name) == 0)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
-        ASTNode *stmt = ctx->hir->relations[i];
+    for (size_t i = 0; i < relation_count; i++) {
+        ASTNode *stmt = relations[i];
         if (stmt != NULL
             && stmt->data.relation_decl.name != NULL
             && strcmp(stmt->data.relation_decl.name, type_name) == 0)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
-        ASTNode *stmt = ctx->hir->effects[i];
+    for (size_t i = 0; i < effect_count; i++) {
+        ASTNode *stmt = effects[i];
         if (stmt != NULL
             && stmt->data.effect_decl.name != NULL
             && strcmp(stmt->data.effect_decl.name, type_name) == 0)
             return true;
     }
-    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-        ASTNode *stmt = ctx->hir->zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *stmt = zones[i];
         if (stmt != NULL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, type_name) == 0)
@@ -132,11 +161,26 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 static ASTNode *
 llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
 {
-    if (ctx == NULL || ctx->hir == NULL || ctx->current_class_name == NULL)
+    const MIRDeclHeader *mir_decl;
+    ASTNode **zones = NULL;
+    size_t zone_count = 0;
+
+    if (ctx == NULL || ctx->current_class_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
-        ASTNode *stmt = ctx->hir->zones[i];
+    mir_decl = ctx->mir != NULL
+        ? mir_find_decl_header(ctx->mir, ctx->current_class_name)
+        : NULL;
+    if (mir_decl != NULL && mir_decl->ast_type == AST_ZONE_DECL)
+        return mir_decl->ast;
+
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    if (zones == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *stmt = zones[i];
         if (stmt != NULL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, ctx->current_class_name) == 0) {

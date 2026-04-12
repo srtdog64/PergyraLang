@@ -11,6 +11,51 @@
 
 #include "llvm_internal.h"
 
+static bool
+llvm_mir_routine_has_instructions_local(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        if (routine->blocks[i].instruction_count > 0)
+            return true;
+    }
+    return false;
+}
+
+static const MIRRoutine *
+llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
+                                   const char *owner_name,
+                                   ASTNode *method)
+{
+    const char *method_name;
+
+    if (ctx == NULL || ctx->mir == NULL || owner_name == NULL
+        || method == NULL || method->type != AST_FUNC_DECL) {
+        return NULL;
+    }
+
+    method_name = method->data.func_decl.name;
+    if (method_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
+        const MIRRoutine *routine = &ctx->mir->routines[i];
+        if (routine->kind != MIR_SCOPE_METHOD)
+            continue;
+        if (routine->ast == method)
+            return routine;
+        if (routine->name != NULL
+            && routine->owner_name != NULL
+            && strcmp(routine->name, method_name) == 0
+            && strcmp(routine->owner_name, owner_name) == 0) {
+            return routine;
+        }
+    }
+
+    return NULL;
+}
+
 static const char *
 llvm_operator_suffix(PgyTokenType op)
 {
@@ -1206,21 +1251,71 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 void
 llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
+    ASTNode **abilities = NULL;
+    ASTNode **relations = NULL;
+    ASTNode **effects = NULL;
+    ASTNode **zones = NULL;
+    ASTNode **worlds = NULL;
+    ASTNode **parties = NULL;
+    ASTNode **rosters = NULL;
+    ASTNode **roles = NULL;
+    ASTNode **events = NULL;
+    size_t ability_count = 0;
+    size_t relation_count = 0;
+    size_t effect_count = 0;
+    size_t zone_count = 0;
+    size_t world_count = 0;
+    size_t party_count = 0;
+    size_t roster_count = 0;
+    size_t role_count = 0;
+    size_t event_count = 0;
+
+    if (ctx != NULL) {
+        llvm_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
+        llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+        llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+        llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+        llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+        llvm_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
+        llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
+        llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+        llvm_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
+    } else if (hir != NULL) {
+        abilities = hir->abilities;
+        ability_count = hir->ability_count;
+        relations = hir->relations;
+        relation_count = hir->relation_count;
+        effects = hir->effects;
+        effect_count = hir->effect_count;
+        zones = hir->zones;
+        zone_count = hir->zone_count;
+        worlds = hir->worlds;
+        world_count = hir->world_count;
+        parties = hir->parties;
+        party_count = hir->party_count;
+        rosters = hir->rosters;
+        roster_count = hir->roster_count;
+        roles = hir->roles;
+        role_count = hir->role_count;
+        events = hir->events;
+        event_count = hir->event_count;
+    }
+
     ASTNode **domain_groups[] = {
-        hir->relations,
-        hir->effects,
-        hir->zones,
-        hir->worlds,
-        hir->parties,
-        hir->rosters,
+        relations,
+        effects,
+        zones,
+        worlds,
+        parties,
+        rosters,
     };
     size_t domain_group_counts[] = {
-        hir->relation_count,
-        hir->effect_count,
-        hir->zone_count,
-        hir->world_count,
-        hir->party_count,
-        hir->roster_count,
+        relation_count,
+        effect_count,
+        zone_count,
+        world_count,
+        party_count,
+        roster_count,
     };
 
     /* Pass 0a: Register domain struct types + methods */
@@ -1670,8 +1765,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 0b: Register ability vtable types */
-    for (size_t i = 0; i < hir->ability_count; i++) {
-        ASTNode *stmt = hir->abilities[i];
+    for (size_t i = 0; i < ability_count; i++) {
+        ASTNode *stmt = abilities[i];
         if (stmt == NULL || stmt->type != AST_ABILITY_DECL)
             continue;
 
@@ -1746,8 +1841,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 0c: Forward-declare role methods + create vtable globals */
-    for (size_t i = 0; i < hir->role_count; i++) {
-        ASTNode *stmt = hir->roles[i];
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *stmt = roles[i];
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
@@ -1823,7 +1918,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             for (size_t oi = 0; for_type_name != NULL
                    && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
                 const char *suffix = llvm_operator_suffix(ops[oi]);
-                ASTNode *method = llvm_find_role_operator_method(hir, stmt, ops[oi], 0);
+                ASTNode *method = llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
                 if (suffix == NULL || method == NULL)
                     continue;
 
@@ -1860,8 +1955,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 0e: Register event types and generate helper functions */
-    for (size_t i = 0; i < hir->event_count; i++) {
-        ASTNode *stmt = hir->events[i];
+    for (size_t i = 0; i < event_count; i++) {
+        ASTNode *stmt = events[i];
         if (stmt == NULL || stmt->type != AST_EVENT_DECL)
             continue;
 
@@ -2153,8 +2248,8 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 2b: Emit role method bodies + vtable globals */
-    for (size_t i = 0; i < hir->role_count; i++) {
-        ASTNode *stmt = hir->roles[i];
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *stmt = roles[i];
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
@@ -2260,7 +2355,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 for (size_t oi = 0; for_type_name != NULL
                        && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
                     const char *suffix = llvm_operator_suffix(ops[oi]);
-                    ASTNode *method = llvm_find_role_operator_method(hir, stmt, ops[oi], 0);
+                    ASTNode *method = llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
                     if (suffix == NULL || method == NULL)
                         continue;
 
@@ -2404,8 +2499,29 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 
         for (size_t j = 0; j < method_count; j++) {
             ASTNode *method = methods[j];
+            const MIRRoutine *mir_method;
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
+
+            mir_method = llvm_find_mir_method_routine_local(ctx, decl_name, method);
+            if (mir_method != NULL && llvm_mir_routine_has_instructions_local(mir_method)) {
+                const char *saved_class_name = ctx->current_class_name;
+                ctx->current_class_name = decl_name;
+                llvm_emit_func_from_mir(mir_method, ctx);
+                ctx->current_class_name = saved_class_name;
+                continue;
+            }
+            if (ctx->mir != NULL) {
+                char msg[384];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path missing routine for domain method '%s.%s'",
+                         decl_name != NULL ? decl_name : "(anonymous-domain)",
+                         method->data.func_decl.name != NULL
+                             ? method->data.func_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                return;
+            }
 
             char fname[256];
             snprintf(fname, sizeof(fname), "%s_%s",

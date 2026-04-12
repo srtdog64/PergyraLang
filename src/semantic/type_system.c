@@ -490,6 +490,19 @@ type_is_assignable(const Type *from, const Type *to)
     if (from == TYPE_UNKNOWN || to == TYPE_UNKNOWN)
         return true;
 
+    /* Option<unknown> (i.e. None literal) is assignable to any Option<T> */
+    if (from->kind == TYPE_KIND_CONSTRUCTED && to->kind == TYPE_KIND_CONSTRUCTED
+        && from->data.constructed.constructor != NULL && to->data.constructed.constructor != NULL
+        && from->data.constructed.constructor->name != NULL && to->data.constructed.constructor->name != NULL
+        && strcmp(from->data.constructed.constructor->name, "Option") == 0
+        && strcmp(to->data.constructed.constructor->name, "Option") == 0) {
+        /* If from's inner type is unknown (None literal), allow assignment */
+        if (from->data.constructed.arg_count > 0 && from->data.constructed.args[0] == TYPE_UNKNOWN)
+            return true;
+        if (to->data.constructed.arg_count > 0 && to->data.constructed.args[0] == TYPE_UNKNOWN)
+            return true;
+    }
+
     /* Int → Long widening */
     if (from->kind == TYPE_KIND_PRIMITIVE
         && to->kind == TYPE_KIND_PRIMITIVE) {

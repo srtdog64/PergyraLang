@@ -72,6 +72,8 @@ static ASTNode* ast_create_node(ASTNodeType type) {
     ASTNode* node = calloc(1, sizeof(ASTNode));
     if (!node) return NULL;
     node->type = type;
+    node->access = ACCESS_PUBLIC;
+    node->has_explicit_access = false;
     node->is_exported = false;
     node->has_explicit_export = false;
     node->is_async_decl = false;
@@ -1098,6 +1100,8 @@ ast_clone(ASTNode* node)
     }
 
     if (clone != NULL) {
+        clone->access = node->access;
+        clone->has_explicit_access = node->has_explicit_access;
         clone->line = node->line;
         clone->column = node->column;
         clone->origin_path = node->origin_path != NULL

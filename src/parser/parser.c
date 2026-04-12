@@ -885,6 +885,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
         }
 
         if (node != NULL && node->type == AST_ABILITY_DECL) {
+            node->access = access;
+            node->has_explicit_access = explicit_access;
             node->data.ability_decl.access = access;
             node->data.ability_decl.has_explicit_access = explicit_access;
             if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
@@ -892,6 +894,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
             else
                 node->is_exported = true;
         } else if (node != NULL && node->type == AST_CLASS_DECL) {
+            node->access = access;
+            node->has_explicit_access = explicit_access;
             if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
                 node->is_exported = false;
             else
@@ -905,6 +909,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
                        || node->type == AST_ZONE_DECL
                        || node->type == AST_INTENT_DECL
                        || node->type == AST_EVENT_DECL)) {
+            node->access = access;
+            node->has_explicit_access = explicit_access;
             if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
                 node->is_exported = false;
             else

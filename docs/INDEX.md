@@ -7,6 +7,7 @@
 | 분류 | 문서 | 목적 |
 |------|------|------|
 | **비전** | [`docs/00_vision.md`](docs/00_vision.md) | 언어 철학, Slot = 자원 소유, v2 계획(양자 연산) |
+| **비전** | [`docs/01_intent_first_design.md`](docs/01_intent_first_design.md) | Intent-First 설계 철학, 좋은 Intent 정의 방법 |
 | **비전** | [`docs/19_design_philosophy.md`](docs/19_design_philosophy.md) | 설계 철학 |
 | **현황** | [`docs/18_language_status.md`](docs/18_language_status.md) | 현재 구현 상태, v2 양자 연산 계획 |
 | **현황** | [`CHANGELOG.md`](CHANGELOG.md) | 버전 히스토리 |
@@ -26,6 +27,7 @@
 | **현황** | [`docs/64_depth_filling_roadmap.md`](docs/64_depth_filling_roadmap.md) | empty cell 제거 중심의 depth filling 로드맵과 진행 기록 |
 | **현황** | [`docs/65_stable_example_surface_board.md`](docs/65_stable_example_surface_board.md) | stable example / design sketch 예제 경계와 source of truth |
 | **현황** | [`docs/66_semantic_implementation_map.md`](docs/66_semantic_implementation_map.md) | 의미론 기준의 현재 구현 지도와 stable/partial 분류 |
+| **현황** | [`docs/68_pain_point_report.md`](docs/68_pain_point_report.md) | 실제 사용 pain point 보고 (컴파일/런타임 버그 포함) |
 | **라이브러리** | [`docs/29_stdlib_design.md`](docs/29_stdlib_design.md) | stdlib/common/domain kit 계층과 모듈 정책 |
 | **라이브러리** | [`docs/67_layered_stdlib_and_domain_kits.md`](docs/67_layered_stdlib_and_domain_kits.md) | 코어 추가 금지, common stdlib vs domain kit 분리 정책 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |

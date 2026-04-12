@@ -7,11 +7,12 @@
 <h1 align="center">Pergyra</h1>
 
 <p align="center">
-  <em>A domain modeling language with subject-first design and compile-time verified contracts.</em>
+  <em>An intent-first language that closes complex behavior into executable units and derives the rest of the structure from purpose.</em>
 </p>
 
 <p align="center">
   <a href="docs/README_ko.md">한국어</a> ·
+  <a href="docs/01_intent_first_design.md">Intent-First Design</a> ·
   <a href="docs/grammar/01_syntax.md">Syntax Reference</a> ·
   <a href="docs/grammar/02_grammar.md">Grammar</a> ·
   <a href="docs/grammar/03_naming.md">Naming Convention</a> ·

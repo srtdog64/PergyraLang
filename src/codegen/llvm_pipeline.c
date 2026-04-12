@@ -137,6 +137,35 @@ llvm_hir_requires_thread_pool(const HIRProgram *hir)
 }
 
 static bool
+llvm_mir_requires_thread_pool(const MIRProgram *mir)
+{
+    if (mir == NULL)
+        return false;
+
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        ASTNode *ast = mir->routines[i].ast;
+        if (ast != NULL && ast->type == AST_FUNC_DECL
+            && llvm_ast_uses_thread_pool(ast->data.func_decl.body)) {
+            return true;
+        }
+    }
+
+    if (mir->synthetic_executable_func != NULL
+        && mir->synthetic_executable_func->type == AST_FUNC_DECL
+        && llvm_ast_uses_thread_pool(
+            mir->synthetic_executable_func->data.func_decl.body)) {
+        return true;
+    }
+
+    for (size_t i = 0; i < mir->executable_count; i++) {
+        if (llvm_ast_uses_thread_pool(mir->executables[i]))
+            return true;
+    }
+
+    return false;
+}
+
+static bool
 llvm_mir_routine_has_instructions(const MIRRoutine *routine)
 {
     if (routine == NULL)
@@ -183,48 +212,6 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
     return true;
 }
 
-static void
-llvm_build_hir_view_from_mir(const MIRProgram *mir, HIRProgram *hir_view)
-{
-    if (hir_view == NULL)
-        return;
-    memset(hir_view, 0, sizeof(*hir_view));
-    if (mir == NULL)
-        return;
-    hir_view->items = mir->items;
-    hir_view->item_count = mir->item_count;
-    hir_view->externs = mir->externs;
-    hir_view->extern_count = mir->extern_count;
-    hir_view->types = mir->types;
-    hir_view->type_count = mir->type_count;
-    hir_view->abilities = mir->abilities;
-    hir_view->ability_count = mir->ability_count;
-    hir_view->roles = mir->roles;
-    hir_view->role_count = mir->role_count;
-    hir_view->parties = mir->parties;
-    hir_view->party_count = mir->party_count;
-    hir_view->rosters = mir->rosters;
-    hir_view->roster_count = mir->roster_count;
-    hir_view->worlds = mir->worlds;
-    hir_view->world_count = mir->world_count;
-    hir_view->relations = mir->relations;
-    hir_view->relation_count = mir->relation_count;
-    hir_view->effects = mir->effects;
-    hir_view->effect_count = mir->effect_count;
-    hir_view->zones = mir->zones;
-    hir_view->zone_count = mir->zone_count;
-    hir_view->events = mir->events;
-    hir_view->event_count = mir->event_count;
-    hir_view->intents = mir->intents;
-    hir_view->intent_count = mir->intent_count;
-    hir_view->functions = mir->functions;
-    hir_view->function_count = mir->function_count;
-    hir_view->executables = mir->executables;
-    hir_view->executable_count = mir->executable_count;
-    hir_view->synthetic_executable_func = mir->synthetic_executable_func;
-    hir_view->has_main_function = mir->has_main_function;
-}
-
 static const MIRRoutine *
 llvm_find_mir_method_routine(const MIRProgram *mir,
                              const char *owner_name,
@@ -255,14 +242,31 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
 }
 
 void
-llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
+llvm_emit_mir_main_wrapper(const MIRProgram *mir,
+                           const HIRProgram *hir,
+                           LLVMGenCtx *ctx)
 {
-    if (hir == NULL || ctx == NULL)
+    bool has_executables = false;
+    bool has_main_function = false;
+    bool needs_thread_pool = false;
+
+    if (ctx == NULL || (hir == NULL && mir == NULL))
         return;
 
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
-    bool has_top_level = (hir->executable_count > 0)
-        || hir->has_main_function
+    if (mir != NULL) {
+        has_executables = mir->executable_count > 0
+            || mir->synthetic_executable_func != NULL;
+        has_main_function = mir->has_main_function;
+        needs_thread_pool = llvm_mir_requires_thread_pool(mir);
+    } else if (hir != NULL) {
+        has_executables = hir->executable_count > 0;
+        has_main_function = hir->has_main_function;
+        needs_thread_pool = llvm_hir_requires_thread_pool(hir);
+    }
+
+    bool has_top_level = has_executables
+        || has_main_function
         || (main_user != NULL);
     if (!has_top_level)
         return;
@@ -271,7 +275,6 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
     LLVMFuncEntry *main_entry = llvm_lookup_or_create_function(ctx, "main", main_type,
                                                                ctx->type_i32);
     LLVMValueRef main_fn = main_entry != NULL ? main_entry->fn : NULL;
-    bool needs_thread_pool = llvm_hir_requires_thread_pool(hir);
     if (main_fn == NULL)
         return;
 
@@ -312,14 +315,16 @@ llvm_emit_mir_main_wrapper(const HIRProgram *hir, LLVMGenCtx *ctx)
         LLVMBuildCall2(ctx->builder, main_user->fn_type,
                        main_user->fn, NULL, 0, "");
 
-    if (hir->executable_count > 0) {
+    if (has_executables) {
         LLVMFuncEntry *top_level_entry = llvm_lookup_function(ctx, "__pgy_top_level_exec");
         if (top_level_entry != NULL) {
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
         } else {
-            for (size_t i = 0; i < hir->executable_count; i++) {
-                ASTNode *stmt = hir->executables[i];
+            ASTNode **executables = mir != NULL ? mir->executables : hir->executables;
+            size_t executable_count = mir != NULL ? mir->executable_count : hir->executable_count;
+            for (size_t i = 0; i < executable_count; i++) {
+                ASTNode *stmt = executables[i];
                 if (stmt != NULL) {
                     llvm_emit_statement(stmt, ctx);
                     if (LLVMGetBasicBlockTerminator(
@@ -547,38 +552,46 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             const char *enum_name = stmt->data.enum_decl.name;
             for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
                 ASTNode *method = stmt->data.enum_decl.methods[j];
+                const MIRRoutine *mir_method;
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
-                {
-                    char *orig_name = method->data.func_decl.name;
-                    char prefixed[256];
-                    snprintf(prefixed, sizeof(prefixed), "%s_%s", enum_name, orig_name);
-                    method->data.func_decl.name = prefixed;
+                mir_method = llvm_find_mir_method_routine(mir, enum_name, method);
+                if (mir_method != NULL && llvm_mir_routine_has_instructions(mir_method)) {
+                    const char *saved_class_name = ctx->current_class_name;
                     ctx->current_class_name = enum_name;
-                    llvm_emit_func_decl(method, ctx);
-                    ctx->current_class_name = NULL;
-                    method->data.func_decl.name = orig_name;
+                    llvm_emit_func_from_mir(mir_method, ctx);
+                    ctx->current_class_name = saved_class_name;
+                    continue;
+                }
+                {
+                    char msg[384];
+                    snprintf(msg, sizeof(msg),
+                             "MIR-only LLVM path missing routine for enum method '%s.%s'",
+                             enum_name != NULL ? enum_name : "(anonymous-enum)",
+                             method->data.func_decl.name != NULL
+                                 ? method->data.func_decl.name
+                                 : "(anonymous)");
+                    llvm_set_error(ctx, msg);
+                    return false;
                 }
             }
         }
     }
 
-    llvm_emit_mir_main_wrapper(hir, ctx);
+    llvm_emit_mir_main_wrapper(NULL, hir, ctx);
     llvm_set_type_render_ctx(NULL);
 }
 
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
-    HIRProgram mir_hir_view;
     const HIRProgram *saved_hir;
 
     if (mir == NULL || ctx == NULL)
         return false;
 
-    llvm_build_hir_view_from_mir(mir, &mir_hir_view);
     saved_hir = ctx->hir;
-    ctx->hir = &mir_hir_view;
+    ctx->hir = saved_hir;
 
     /* MIR-only backend entry:
      *
@@ -593,115 +606,113 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
-    if (ctx->hir != NULL) {
-        llvm_pipeline_debug_stage("emit_program_from_mir:register_hir_items");
-        for (size_t i = 0; i < mir->type_count; i++) {
-            ASTNode *stmt = mir->types[i];
-            if (stmt == NULL)
+    llvm_pipeline_debug_stage("emit_program_from_mir:register_hir_items");
+    for (size_t i = 0; i < mir->type_count; i++) {
+        ASTNode *stmt = mir->types[i];
+        if (stmt == NULL)
+            continue;
+        if (stmt->type == AST_CLASS_DECL) {
+            const char *cls_name = stmt->data.class_decl.name;
+            if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
                 continue;
-            if (stmt->type == AST_CLASS_DECL) {
-                const char *cls_name = stmt->data.class_decl.name;
-                if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
-                    continue;
-                size_t fc = stmt->data.class_decl.field_count;
-                LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            size_t fc = stmt->data.class_decl.field_count;
+            LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
+            for (size_t j = 0; j < fc; j++) {
+                ClassField *f = stmt->data.class_decl.fields[j];
+                field_types[j] = (f->type != NULL)
+                    ? ast_type_to_llvm(ctx, f->type)
+                    : ctx->type_i32;
+            }
+            LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
+            LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
+            NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
+            bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
+            bool is_immutable =
+                llvm_nominal_uses_immutable_projection_storage(nominal_kind);
+            bool is_boundary_transfer =
+                llvm_nominal_is_boundary_transfer_contract(nominal_kind);
+            bool is_pointer_self_host = is_subject
+                || nominal_kind == NOMINAL_DECL_VESSEL;
+            LLVMClassTypeEntry *entry = llvm_register_class(
+                ctx, cls_name, struct_ty, is_subject, is_pointer_self_host);
+            if (entry != NULL) {
+                entry->is_immutable = is_immutable;
+                entry->is_boundary_transfer_contract = is_boundary_transfer;
                 for (size_t j = 0; j < fc; j++) {
                     ClassField *f = stmt->data.class_decl.fields[j];
-                    field_types[j] = (f->type != NULL)
-                        ? ast_type_to_llvm(ctx, f->type)
+                    llvm_class_add_field(entry, f->name, field_types[j], (int)j);
+                }
+            }
+            for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                ASTNode *method = stmt->data.class_decl.methods[j];
+                if (method == NULL || method->type != AST_FUNC_DECL)
+                    continue;
+                const char *mname = method->data.func_decl.name;
+                size_t mpc = method->data.func_decl.param_count;
+                LLVMTypeRef mret = ctx->type_void;
+                if (method->data.func_decl.return_type != NULL)
+                    mret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+                size_t user_pc = 0;
+                for (size_t k = 0; k < mpc; k++) {
+                    FuncParam *p = method->data.func_decl.params[k];
+                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                        continue;
+                    user_pc++;
+                }
+                LLVMTypeRef *mpt = calloc(user_pc + 1, sizeof(LLVMTypeRef));
+                mpt[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
+                size_t pidx = 1;
+                for (size_t k = 0; k < mpc; k++) {
+                    FuncParam *p = method->data.func_decl.params[k];
+                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                        continue;
+                    mpt[pidx++] = (p->type != NULL)
+                        ? ast_type_to_llvm(ctx, p->type)
                         : ctx->type_i32;
                 }
-                LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
-                LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
-                NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
-                bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
-                bool is_immutable =
-                    llvm_nominal_uses_immutable_projection_storage(nominal_kind);
-                bool is_boundary_transfer =
-                    llvm_nominal_is_boundary_transfer_contract(nominal_kind);
-                bool is_pointer_self_host = is_subject
-                    || nominal_kind == NOMINAL_DECL_VESSEL;
-                LLVMClassTypeEntry *entry = llvm_register_class(
-                    ctx, cls_name, struct_ty, is_subject, is_pointer_self_host);
-                if (entry != NULL) {
-                    entry->is_immutable = is_immutable;
-                    entry->is_boundary_transfer_contract = is_boundary_transfer;
-                    for (size_t j = 0; j < fc; j++) {
-                        ClassField *f = stmt->data.class_decl.fields[j];
-                        llvm_class_add_field(entry, f->name, field_types[j], (int)j);
-                    }
-                }
-                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                    ASTNode *method = stmt->data.class_decl.methods[j];
-                    if (method == NULL || method->type != AST_FUNC_DECL)
-                        continue;
-                    const char *mname = method->data.func_decl.name;
-                    size_t mpc = method->data.func_decl.param_count;
-                    LLVMTypeRef mret = ctx->type_void;
-                    if (method->data.func_decl.return_type != NULL)
-                        mret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
-                    size_t user_pc = 0;
-                    for (size_t k = 0; k < mpc; k++) {
-                        FuncParam *p = method->data.func_decl.params[k];
-                        if (p->type == NULL && strcmp(p->name, "self") == 0)
-                            continue;
-                        user_pc++;
-                    }
-                    LLVMTypeRef *mpt = calloc(user_pc + 1, sizeof(LLVMTypeRef));
-                    mpt[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
-                    size_t pidx = 1;
-                    for (size_t k = 0; k < mpc; k++) {
-                        FuncParam *p = method->data.func_decl.params[k];
-                        if (p->type == NULL && strcmp(p->name, "self") == 0)
-                            continue;
-                        mpt[pidx++] = (p->type != NULL)
-                            ? ast_type_to_llvm(ctx, p->type)
-                            : ctx->type_i32;
-                    }
-                    LLVMTypeRef mft = LLVMFunctionType(mret, mpt, (unsigned)(user_pc + 1), 0);
-                    char full_name[256];
-                    snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, mname);
-                    LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, mft);
-                    llvm_register_function(ctx, LLVMGetValueName(fn), fn, mft, mret);
-                    free(mpt);
-                }
-                free(field_types);
-            } else if (stmt->type == AST_ENUM_DECL) {
-                llvm_register_enum_decl(ctx, stmt);
+                LLVMTypeRef mft = LLVMFunctionType(mret, mpt, (unsigned)(user_pc + 1), 0);
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, mname);
+                LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, mft);
+                llvm_register_function(ctx, LLVMGetValueName(fn), fn, mft, mret);
+                free(mpt);
             }
+            free(field_types);
+        } else if (stmt->type == AST_ENUM_DECL) {
+            llvm_register_enum_decl(ctx, stmt);
         }
-        llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
-        llvm_emit_domain_passes(&mir_hir_view, ctx);
+    }
+    llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
+    llvm_emit_domain_passes(NULL, ctx);
 
-        llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            ASTNode *stmt = routine->ast;
-            if (routine->kind != MIR_SCOPE_FUNCTION
-                || stmt == NULL
-                || stmt->type != AST_FUNC_DECL)
-                continue;
-            if (stmt->data.func_decl.generic_params != NULL
-                && stmt->data.func_decl.generic_params->count > 0) {
-                if (!llvm_register_generic_template_decl(ctx, stmt))
-                    return false;
-                continue;
-            }
-            if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
-                llvm_forward_declare_func(stmt, ctx);
+    llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        ASTNode *stmt = routine->ast;
+        if (routine->kind != MIR_SCOPE_FUNCTION
+            || stmt == NULL
+            || stmt->type != AST_FUNC_DECL)
+            continue;
+        if (stmt->data.func_decl.generic_params != NULL
+            && stmt->data.func_decl.generic_params->count > 0) {
+            if (!llvm_register_generic_template_decl(ctx, stmt))
+                return false;
+            continue;
         }
+        if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
+            llvm_forward_declare_func(stmt, ctx);
+    }
 
-        llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_intents");
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            ASTNode *stmt = routine->ast;
-            if (routine->kind != MIR_SCOPE_INTENT
-                || stmt == NULL
-                || stmt->type != AST_INTENT_DECL) {
-                continue;
-            }
-            llvm_forward_declare_intent(stmt, ctx);
+    llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_intents");
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        ASTNode *stmt = routine->ast;
+        if (routine->kind != MIR_SCOPE_INTENT
+            || stmt == NULL
+            || stmt->type != AST_INTENT_DECL) {
+            continue;
         }
+        llvm_forward_declare_intent(stmt, ctx);
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_function_routines");
@@ -731,87 +742,85 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             llvm_emit_func_from_mir(routine, ctx);
     }
 
-    if (ctx->hir != NULL) {
-        llvm_pipeline_debug_stage("emit_program_from_mir:emit_hir_residuals");
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            ASTNode *stmt = routine->ast;
-            if (routine->kind == MIR_SCOPE_FUNCTION
-                && stmt != NULL
-                && stmt->type == AST_FUNC_DECL) {
-                if (stmt->data.func_decl.generic_params != NULL
-                    && stmt->data.func_decl.generic_params->count > 0) {
+    llvm_pipeline_debug_stage("emit_program_from_mir:emit_hir_residuals");
+    for (size_t i = 0; i < mir->routine_count; i++) {
+        const MIRRoutine *routine = &mir->routines[i];
+        ASTNode *stmt = routine->ast;
+        if (routine->kind == MIR_SCOPE_FUNCTION
+            && stmt != NULL
+            && stmt->type == AST_FUNC_DECL) {
+            if (stmt->data.func_decl.generic_params != NULL
+                && stmt->data.func_decl.generic_params->count > 0) {
+                continue;
+            }
+            if (llvm_func_requires_hir_fallback(stmt)) {
+                llvm_emit_func_decl(stmt, ctx);
+                continue;
+            }
+            if (!llvm_mir_routine_has_instructions(routine)) {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path missing routine for function '%s'",
+                         stmt->data.func_decl.name != NULL
+                             ? stmt->data.func_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                return false;
+            }
+        } else if (routine->kind == MIR_SCOPE_INTENT
+                   && stmt != NULL
+                   && stmt->type == AST_INTENT_DECL) {
+            llvm_emit_intent_decl(stmt, ctx);
+        }
+    }
+
+    for (size_t i = 0; i < mir->type_count; i++) {
+        ASTNode *stmt = mir->types[i];
+        if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
+            const char *cls_name = stmt->data.class_decl.name;
+            bool require_mir_methods =
+                stmt->data.class_decl.nominal_kind == NOMINAL_DECL_CLASS
+                || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+            for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                ASTNode *method = stmt->data.class_decl.methods[j];
+                const MIRRoutine *mir_method;
+                if (method == NULL || method->type != AST_FUNC_DECL)
+                    continue;
+                mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
+                if (mir_method != NULL && llvm_mir_routine_has_instructions(mir_method)) {
+                    const char *saved_class_name = ctx->current_class_name;
+                    ctx->current_class_name = cls_name;
+                    llvm_emit_func_from_mir(mir_method, ctx);
+                    ctx->current_class_name = saved_class_name;
                     continue;
                 }
-                if (llvm_func_requires_hir_fallback(stmt)) {
-                    llvm_emit_func_decl(stmt, ctx);
-                    continue;
-                }
-                if (!llvm_mir_routine_has_instructions(routine)) {
-                    char msg[256];
+                if (require_mir_methods) {
+                    char msg[384];
                     snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for function '%s'",
-                             stmt->data.func_decl.name != NULL
-                                 ? stmt->data.func_decl.name
+                             "MIR-only LLVM path missing routine for class method '%s.%s'",
+                             cls_name != NULL ? cls_name : "(anonymous-class)",
+                             method->data.func_decl.name != NULL
+                                 ? method->data.func_decl.name
                                  : "(anonymous)");
                     llvm_set_error(ctx, msg);
                     return false;
                 }
-            } else if (routine->kind == MIR_SCOPE_INTENT
-                       && stmt != NULL
-                       && stmt->type == AST_INTENT_DECL) {
-                llvm_emit_intent_decl(stmt, ctx);
-            }
-        }
-
-        for (size_t i = 0; i < mir->type_count; i++) {
-            ASTNode *stmt = mir->types[i];
-            if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
-                const char *cls_name = stmt->data.class_decl.name;
-                bool require_mir_methods =
-                    stmt->data.class_decl.nominal_kind == NOMINAL_DECL_CLASS
-                    || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
-                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                    ASTNode *method = stmt->data.class_decl.methods[j];
-                    const MIRRoutine *mir_method;
-                    if (method == NULL || method->type != AST_FUNC_DECL)
-                        continue;
-                    mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
-                    if (mir_method != NULL && llvm_mir_routine_has_instructions(mir_method)) {
-                        const char *saved_class_name = ctx->current_class_name;
-                        ctx->current_class_name = cls_name;
-                        llvm_emit_func_from_mir(mir_method, ctx);
-                        ctx->current_class_name = saved_class_name;
-                        continue;
-                    }
-                    if (require_mir_methods) {
-                        char msg[384];
-                        snprintf(msg, sizeof(msg),
-                                 "MIR-only LLVM path missing routine for class method '%s.%s'",
-                                 cls_name != NULL ? cls_name : "(anonymous-class)",
-                                 method->data.func_decl.name != NULL
-                                     ? method->data.func_decl.name
-                                     : "(anonymous)");
-                        llvm_set_error(ctx, msg);
-                        return false;
-                    }
-                    {
-                        char *orig_name = method->data.func_decl.name;
-                        char prefixed[256];
-                        snprintf(prefixed, sizeof(prefixed), "%s_%s", cls_name, orig_name);
-                        method->data.func_decl.name = prefixed;
-                        ctx->current_class_name = cls_name;
-                        llvm_emit_func_decl(method, ctx);
-                        ctx->current_class_name = NULL;
-                        method->data.func_decl.name = orig_name;
-                    }
+                {
+                    char *orig_name = method->data.func_decl.name;
+                    char prefixed[256];
+                    snprintf(prefixed, sizeof(prefixed), "%s_%s", cls_name, orig_name);
+                    method->data.func_decl.name = prefixed;
+                    ctx->current_class_name = cls_name;
+                    llvm_emit_func_decl(method, ctx);
+                    ctx->current_class_name = NULL;
+                    method->data.func_decl.name = orig_name;
                 }
             }
         }
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_main_wrapper");
-    llvm_emit_mir_main_wrapper(&mir_hir_view, ctx);
+    llvm_emit_mir_main_wrapper(mir, NULL, ctx);
     llvm_pipeline_debug_stage("emit_program_from_mir:end");
     ctx->hir = saved_hir;
     return !ctx->has_error;

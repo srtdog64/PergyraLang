@@ -1798,10 +1798,22 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             const char *alias = step->data.intent_step.authorized_by[j];
             ASTNode *involves = find_intent_involves_local(node, alias);
             const char *participant_type_name = intent_involves_type_name(involves);
+            char contract_summary[512];
+            intent_step_format_contract_source_summary(
+                step, contract_summary, sizeof(contract_summary));
             if (involves == NULL) {
                 semantic_error(ctx, step,
-                    "Intent step '%s' authorizes unknown participant '%s'",
+                    "Intent step '%s' authorizes unknown participant '%s'.\n"
+                    "Reason:\n"
+                    "- the authorized-by clause references a participant alias that is not declared on the intent\n"
+                    "%s%s"
+                    "Fix:\n"
+                    "- add 'involves %s: <Subject>' to the intent\n"
+                    "- or change 'authorized by' to one of the declared participants",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    alias != NULL ? alias : "<participant>",
+                    contract_summary[0] != '\0' ? contract_summary : "",
+                    contract_summary[0] != '\0' ? "\n" : "",
                     alias != NULL ? alias : "<participant>");
                 continue;
             }
@@ -1809,25 +1821,61 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             if (zone_decl != NULL && participant_type_name != NULL) {
                 if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized participant '%s' must bind to a subject type",
+                        "Intent step '%s' authorized participant '%s' must bind to a subject type.\n"
+                        "Reason:\n"
+                        "- only subject participants can satisfy zone authority contracts\n"
+                        "- participant '%s' is not a subject host\n"
+                        "%s%s"
+                        "Fix:\n"
+                        "- authorize a subject participant instead\n"
+                        "- or change the intent binding so '%s' is a subject type",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        alias != NULL ? alias : "<participant>",
+                        alias != NULL ? alias : "<participant>",
+                        contract_summary[0] != '\0' ? contract_summary : "",
+                        contract_summary[0] != '\0' ? "\n" : "",
                         alias != NULL ? alias : "<participant>");
                     continue;
                 }
                 if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
                         zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' has no matching subject slot",
+                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
+                        "Reason:\n"
+                        "- authorized participants must map to a subject slot inside the current zone\n"
+                        "- zone '%s' does not declare a subject slot of type '%s'\n"
+                        "%s%s"
+                        "Fix:\n"
+                        "- authorize a participant whose subject type exists in zone '%s'\n"
+                        "- or add a matching subject slot to zone '%s'",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         participant_type_name,
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        participant_type_name,
+                        contract_summary[0] != '\0' ? contract_summary : "",
+                        contract_summary[0] != '\0' ? "\n" : "",
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
                 } else if (zone_decl->data.zone_decl.authority_count > 0
                     && !zone_has_authority_for_subject_type(zone_decl, ctx, participant_type_name)) {
                     semantic_error(ctx, step,
-                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' declares no matching authority",
+                        "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' declares no matching authority.\n"
+                        "Reason:\n"
+                        "- zone '%s' has authority rules, but none match subject type '%s'\n"
+                        "%s%s"
+                        "Fix:\n"
+                        "- authorize a participant whose subject type is listed in zone authority\n"
+                        "- or add an authority declaration for subject type '%s' in zone '%s'",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         alias != NULL ? alias : "<participant>",
+                        participant_type_name,
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        participant_type_name,
+                        contract_summary[0] != '\0' ? contract_summary : "",
+                        contract_summary[0] != '\0' ? "\n" : "",
                         participant_type_name,
                         zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
                 }

@@ -39,11 +39,15 @@ static bool
 llvm_intent_type_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 {
     LLVMClassTypeEntry *cls;
+    const MIRDeclHeader *mir_decl;
 
     if (ctx == NULL || type_name == NULL)
         return false;
     cls = llvm_lookup_class(ctx, type_name);
-    return cls != NULL && cls->is_pointer_self_host;
+    if (cls != NULL && cls->is_pointer_self_host)
+        return true;
+    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
+    return mir_decl != NULL && mir_decl->uses_pointer_self;
 }
 
 bool
@@ -51,12 +55,16 @@ llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves)
 {
     const char *type_name = llvm_intent_involves_type_name(involves);
     LLVMClassTypeEntry *cls;
+    const MIRDeclHeader *mir_decl;
 
     if (ctx == NULL || type_name == NULL)
         return false;
 
     cls = llvm_lookup_class(ctx, type_name);
-    return cls != NULL && cls->is_pointer_self_host;
+    if (cls != NULL && cls->is_pointer_self_host)
+        return true;
+    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
+    return mir_decl != NULL && mir_decl->uses_pointer_self;
 }
 
 static const char *

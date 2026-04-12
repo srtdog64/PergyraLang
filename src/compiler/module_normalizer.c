@@ -710,6 +710,9 @@ normalize_statement_list(ASTNode **statements, size_t count,
         char *public_name = join_names(public_prefix, *name_slot);
         bool visible = !imported || !has_explicit_exports
             || inherited_export || stmt->is_exported;
+        bool explicit_private =
+            stmt->has_explicit_access
+            && (stmt->access == ACCESS_PRIVATE || stmt->access == ACCESS_PROTECTED);
         char *final_name = visible
             ? pergyra_strdup(public_name)
             : join_names(private_prefix, public_name);
@@ -735,6 +738,10 @@ normalize_statement_list(ASTNode **statements, size_t count,
 
         free(public_name);
         free(final_name);
+
+        if (imported) {
+            stmt->is_exported = visible && !explicit_private;
+        }
     }
 
     for (size_t i = 0; i < count; i++) {

@@ -204,7 +204,71 @@ typedef struct
     bool uses_intent_observability;
     const void *active_ssa_map;
     const char *active_type_hint;
+
+    /* Expected target type for context-sensitive emission.
+     * Set when emitting a let initializer so that `None` can resolve
+     * to the correct type-specific constructor (e.g. None_String vs None_Int). */
+    const char *expected_type;
+
+    char *backend_error;
 } TranspilerCtx;
+
+static inline void
+transpiler_active_inventory(const TranspilerCtx *ctx,
+                            ASTNodeType decl_type,
+                            ASTNode ***nodes_out,
+                            size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        switch (decl_type) {
+        case AST_ABILITY_DECL: nodes = ctx->mir->abilities; count = ctx->mir->ability_count; break;
+        case AST_FUNC_DECL: nodes = ctx->mir->functions; count = ctx->mir->function_count; break;
+        case AST_INTENT_DECL: nodes = ctx->mir->intents; count = ctx->mir->intent_count; break;
+        case AST_ROLE_DECL: nodes = ctx->mir->roles; count = ctx->mir->role_count; break;
+        case AST_PARTY_DECL: nodes = ctx->mir->parties; count = ctx->mir->party_count; break;
+        case AST_ROSTER_DECL: nodes = ctx->mir->rosters; count = ctx->mir->roster_count; break;
+        case AST_WORLD_DECL: nodes = ctx->mir->worlds; count = ctx->mir->world_count; break;
+        case AST_RELATION_DECL: nodes = ctx->mir->relations; count = ctx->mir->relation_count; break;
+        case AST_EFFECT_DECL: nodes = ctx->mir->effects; count = ctx->mir->effect_count; break;
+        case AST_ZONE_DECL: nodes = ctx->mir->zones; count = ctx->mir->zone_count; break;
+        case AST_EVENT_DECL: nodes = ctx->mir->events; count = ctx->mir->event_count; break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = ctx->mir->types; count = ctx->mir->type_count; break;
+        default:
+            break;
+        }
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        switch (decl_type) {
+        case AST_ABILITY_DECL: nodes = ctx->hir->abilities; count = ctx->hir->ability_count; break;
+        case AST_FUNC_DECL: nodes = ctx->hir->functions; count = ctx->hir->function_count; break;
+        case AST_INTENT_DECL: nodes = ctx->hir->intents; count = ctx->hir->intent_count; break;
+        case AST_ROLE_DECL: nodes = ctx->hir->roles; count = ctx->hir->role_count; break;
+        case AST_PARTY_DECL: nodes = ctx->hir->parties; count = ctx->hir->party_count; break;
+        case AST_ROSTER_DECL: nodes = ctx->hir->rosters; count = ctx->hir->roster_count; break;
+        case AST_WORLD_DECL: nodes = ctx->hir->worlds; count = ctx->hir->world_count; break;
+        case AST_RELATION_DECL: nodes = ctx->hir->relations; count = ctx->hir->relation_count; break;
+        case AST_EFFECT_DECL: nodes = ctx->hir->effects; count = ctx->hir->effect_count; break;
+        case AST_ZONE_DECL: nodes = ctx->hir->zones; count = ctx->hir->zone_count; break;
+        case AST_EVENT_DECL: nodes = ctx->hir->events; count = ctx->hir->event_count; break;
+        case AST_CLASS_DECL:
+        case AST_ENUM_DECL:
+        case AST_TYPE_ALIAS:
+            nodes = ctx->hir->types; count = ctx->hir->type_count; break;
+        default:
+            break;
+        }
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
 
 TranspilerCtx *transpiler_ctx_create(void);
 void           transpiler_ctx_destroy(TranspilerCtx *ctx);

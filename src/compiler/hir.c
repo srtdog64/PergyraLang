@@ -1343,6 +1343,90 @@ oom_free_calls:
 }
 
 static bool
+hir_decl_method_slice(ASTNode *decl, ASTNode ***methods_out, size_t *method_count_out,
+                      const char **owner_name_out)
+{
+    if (methods_out != NULL)
+        *methods_out = NULL;
+    if (method_count_out != NULL)
+        *method_count_out = 0;
+    if (owner_name_out != NULL)
+        *owner_name_out = NULL;
+
+    if (decl == NULL)
+        return false;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.class_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.class_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.class_decl.name;
+        return true;
+    case AST_ENUM_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.enum_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.enum_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.enum_decl.name;
+        return true;
+    case AST_PARTY_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.party_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.party_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.party_decl.name;
+        return true;
+    case AST_ROSTER_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.roster_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.roster_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.roster_decl.name;
+        return true;
+    case AST_WORLD_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.world_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.world_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.world_decl.name;
+        return true;
+    case AST_RELATION_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.relation_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.relation_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.relation_decl.name;
+        return true;
+    case AST_EFFECT_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.effect_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.effect_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.effect_decl.name;
+        return true;
+    case AST_ZONE_DECL:
+        if (methods_out != NULL)
+            *methods_out = decl->data.zone_decl.methods;
+        if (method_count_out != NULL)
+            *method_count_out = decl->data.zone_decl.method_count;
+        if (owner_name_out != NULL)
+            *owner_name_out = decl->data.zone_decl.name;
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
 hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_message)
 {
     HIRDecl decl;
@@ -1500,13 +1584,18 @@ oom_free_calls:
         hir->routine_count++;
     }
 
-    if (item.ast != NULL && item.ast->type == AST_CLASS_DECL) {
-        for (size_t i = 0; i < item.ast->data.class_decl.method_count; i++) {
-            if (!hir_append_hidden_method_routine(hir,
-                                                  decl.id,
-                                                  item.ast->data.class_decl.name,
-                                                  item.ast->data.class_decl.methods[i])) {
-                goto oom;
+    if (item.ast != NULL) {
+        ASTNode **methods = NULL;
+        size_t method_count = 0;
+        const char *owner_name = NULL;
+        if (hir_decl_method_slice(item.ast, &methods, &method_count, &owner_name)) {
+            for (size_t i = 0; i < method_count; i++) {
+                if (!hir_append_hidden_method_routine(hir,
+                                                      decl.id,
+                                                      owner_name,
+                                                      methods[i])) {
+                    goto oom;
+                }
             }
         }
     }

@@ -672,7 +672,7 @@ test_misc_grammar_edges(void)
         remove(module_path);
     }
 
-    TEST("own Slot<subject-host> parameter is rejected outside closed subset");
+    TEST("own Slot<subject-host> parameter is allowed in closed subset");
     {
         const char *source =
             "subject Session { let id: Int; }\n"
@@ -685,9 +685,7 @@ test_misc_grammar_edges(void)
         SemanticResult *result = semantic_analyze(program);
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Plain Slot<subject-host> parameters currently support only 'ref'"));
+        EXPECT(result != NULL && result->error_count == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3073,6 +3071,49 @@ test_misc_grammar_edges(void)
             "inherited from the matching action contract"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "inherited zone from matching action: CockpitZone"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent authorized participant mismatch diagnostic includes reason and fix");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "}\n"
+            "subject Passenger {\n"
+            "    let seated: Bool;\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar {\n"
+            "    involves passenger: Passenger;\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        who: passenger;\n"
+            "        authorized by: passenger;\n"
+            "        on: true;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "has no matching subject slot"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

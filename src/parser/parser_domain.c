@@ -818,8 +818,16 @@ ASTNode* parse_relation_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        ASTNode *slot = parse_domain_slot_entry(parser, "relation");
-        if (slot != NULL) {
+        if (parser_check(parser, TOKEN_FOR)) {
+            parse_header_subject_targets(parser,
+                &relation->data.relation_decl.slots,
+                &relation->data.relation_decl.slot_count,
+                "relation");
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else {
+            ASTNode *slot = parse_domain_slot_entry(parser, "relation");
+            if (slot != NULL) {
             append_domain_slot(&relation->data.relation_decl.slots,
                 &relation->data.relation_decl.slot_count, slot);
 
@@ -873,6 +881,7 @@ ASTNode* parse_relation_declaration(Parser* parser) {
                 "Expected 'subject slot', 'object slot', 'tobject slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in relation body");
             parser_advance(parser);
         }
+        }
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after relation body");
@@ -894,8 +903,16 @@ ASTNode* parse_effect_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
-        ASTNode *slot = parse_domain_slot_entry(parser, "effect");
-        if (slot != NULL) {
+        if (parser_check(parser, TOKEN_FOR)) {
+            parse_header_subject_targets(parser,
+                &effect->data.effect_decl.slots,
+                &effect->data.effect_decl.slot_count,
+                "effect");
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+        } else {
+            ASTNode *slot = parse_domain_slot_entry(parser, "effect");
+            if (slot != NULL) {
             append_domain_slot(&effect->data.effect_decl.slots,
                 &effect->data.effect_decl.slot_count, slot);
 
@@ -948,6 +965,7 @@ ASTNode* parse_effect_declaration(Parser* parser) {
             parser_error(parser,
                 "Expected 'subject slot', 'object slot', 'tobject slot', 'refresh', 'publish', 'bind', 'shared', or 'func' in effect body");
             parser_advance(parser);
+        }
         }
     }
 

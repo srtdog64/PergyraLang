@@ -122,4 +122,8 @@ LLVM 관련 상태는 앞으로 이렇게 적는다.
 3. `MIR body + inventory-backed decl debt`
 4. `remaining debt`는 구체 항목만 적기
 
+보조 기준:
+- backend path가 `HIR.items[]` 같은 broad top-level inventory에 의존하면 안 된다
+- 남은 debt는 `AST declaration inventory representation`인지 `actual emission fallback`인지 분리해서 적는다
+
 이 기준을 쓰면 “부분 debt”와 “기능 누락”을 섞지 않게 된다.
