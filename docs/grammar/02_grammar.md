@@ -647,3 +647,14 @@ bind team.fighter = Warrior;
 - 일부 고수준 domain 문법의 세부 의미론
 - effect 표기 문법의 확장
 - backend별 세부 동작 차이
+## Visibility grammar note
+
+`public` and `private` are no longer just nominal/member modifiers.
+
+Current stable grammar surface allows top-level visibility modifiers on:
+
+- nominal declarations: `subject`, `class`, `struct`, `object`, `tobject`, `vessel`
+- domain declarations: `ability`, `party`, `roster`, `world`, `zone`, `relation`, `effect`
+- callable declarations: `func`, `intent`, `event`
+
+This means module visibility is expressed directly on the declaration that owns the exported surface, instead of being restricted to type-like declarations only.

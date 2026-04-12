@@ -230,8 +230,8 @@ llvm_register_hir_extern_prototypes(const HIRProgram *hir, LLVMGenCtx *ctx)
     if (hir == NULL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < hir->item_count; i++) {
-        ASTNode *stmt = hir->items[i].ast;
+    for (size_t i = 0; i < hir->extern_count; i++) {
+        ASTNode *stmt = hir->externs[i];
         if (stmt == NULL || stmt->type != AST_EXTERN_BLOCK)
             continue;
 

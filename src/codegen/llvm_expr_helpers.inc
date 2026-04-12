@@ -54,14 +54,6 @@ llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
             return stmt;
         }
     }
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL
-            && stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0) {
-            return stmt;
-        }
-    }
     return llvm_lookup_generic_template(ctx, name);
 }
 
@@ -252,8 +244,8 @@ llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || ctx->hir == NULL || name == NULL)
         return NULL;
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
         if (stmt == NULL)
             continue;
         if (stmt->type == AST_CLASS_DECL
@@ -536,26 +528,41 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt == NULL || stmt->type != decl_type)
-            continue;
-        if (decl_type == AST_RELATION_DECL
-            && stmt->data.relation_decl.name != NULL
-            && strcmp(stmt->data.relation_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_EFFECT_DECL
-            && stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_ZONE_DECL
-            && stmt->data.zone_decl.name != NULL
-            && strcmp(stmt->data.zone_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_WORLD_DECL
-            && stmt->data.world_decl.name != NULL
-            && strcmp(stmt->data.world_decl.name, name) == 0)
-            return stmt;
+    if (decl_type == AST_RELATION_DECL) {
+        for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+            ASTNode *stmt = ctx->hir->relations[i];
+            if (stmt != NULL && stmt->data.relation_decl.name != NULL
+                && strcmp(stmt->data.relation_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_EFFECT_DECL) {
+        for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+            ASTNode *stmt = ctx->hir->effects[i];
+            if (stmt != NULL && stmt->data.effect_decl.name != NULL
+                && strcmp(stmt->data.effect_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_ZONE_DECL) {
+        for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+            ASTNode *stmt = ctx->hir->zones[i];
+            if (stmt != NULL && stmt->data.zone_decl.name != NULL
+                && strcmp(stmt->data.zone_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_WORLD_DECL) {
+        for (size_t i = 0; i < ctx->hir->world_count; i++) {
+            ASTNode *stmt = ctx->hir->worlds[i];
+            if (stmt != NULL && stmt->data.world_decl.name != NULL
+                && strcmp(stmt->data.world_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
     }
 
     return NULL;
@@ -753,50 +760,57 @@ llvm_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     if (ctx->hir == NULL)
         return false;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
         if (stmt == NULL)
             continue;
-        switch (stmt->type) {
-        case AST_CLASS_DECL:
-            if (stmt->data.class_decl.name != NULL
-                && strcmp(stmt->data.class_decl.name, type_name) == 0
-                && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
-                return true;
-            break;
-        case AST_PARTY_DECL:
-            if (stmt->data.party_decl.name != NULL
-                && strcmp(stmt->data.party_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_ROSTER_DECL:
-            if (stmt->data.roster_decl.name != NULL
-                && strcmp(stmt->data.roster_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_WORLD_DECL:
-            if (stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_RELATION_DECL:
-            if (stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_EFFECT_DECL:
-            if (stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_ZONE_DECL:
-            if (stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, type_name) == 0)
-                return true;
-            break;
-        default:
-            break;
-        }
+        if (stmt->type == AST_CLASS_DECL
+            && stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, type_name) == 0
+            && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->party_count; i++) {
+        ASTNode *stmt = ctx->hir->parties[i];
+        if (stmt != NULL && stmt->type == AST_PARTY_DECL
+            && stmt->data.party_decl.name != NULL
+            && strcmp(stmt->data.party_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->roster_count; i++) {
+        ASTNode *stmt = ctx->hir->rosters[i];
+        if (stmt != NULL && stmt->type == AST_ROSTER_DECL
+            && stmt->data.roster_decl.name != NULL
+            && strcmp(stmt->data.roster_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->world_count; i++) {
+        ASTNode *stmt = ctx->hir->worlds[i];
+        if (stmt != NULL && stmt->type == AST_WORLD_DECL
+            && stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+        ASTNode *stmt = ctx->hir->relations[i];
+        if (stmt != NULL && stmt->type == AST_RELATION_DECL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL && stmt->type == AST_EFFECT_DECL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
+        if (stmt != NULL && stmt->type == AST_ZONE_DECL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, type_name) == 0)
+            return true;
     }
 
     return false;
@@ -963,8 +977,8 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
         || ctx->hir == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
         if (stmt == NULL)
             continue;
         switch (stmt->type) {
@@ -984,43 +998,52 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
                 method_count = stmt->data.enum_decl.method_count;
             }
             break;
-        case AST_RELATION_DECL:
-            if (stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, ctx->current_class_name) == 0) {
-                decl = stmt;
-                methods = stmt->data.relation_decl.methods;
-                method_count = stmt->data.relation_decl.method_count;
-            }
-            break;
-        case AST_EFFECT_DECL:
-            if (stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, ctx->current_class_name) == 0) {
-                decl = stmt;
-                methods = stmt->data.effect_decl.methods;
-                method_count = stmt->data.effect_decl.method_count;
-            }
-            break;
-        case AST_ZONE_DECL:
-            if (stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, ctx->current_class_name) == 0) {
-                decl = stmt;
-                methods = stmt->data.zone_decl.methods;
-                method_count = stmt->data.zone_decl.method_count;
-            }
-            break;
-        case AST_WORLD_DECL:
-            if (stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, ctx->current_class_name) == 0) {
-                decl = stmt;
-                methods = stmt->data.world_decl.methods;
-                method_count = stmt->data.world_decl.method_count;
-            }
-            break;
         default:
             break;
         }
         if (decl != NULL)
             break;
+    }
+
+    for (size_t i = 0; decl == NULL && i < ctx->hir->relation_count; i++) {
+        ASTNode *stmt = ctx->hir->relations[i];
+        if (stmt != NULL && stmt->type == AST_RELATION_DECL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, ctx->current_class_name) == 0) {
+            decl = stmt;
+            methods = stmt->data.relation_decl.methods;
+            method_count = stmt->data.relation_decl.method_count;
+        }
+    }
+    for (size_t i = 0; decl == NULL && i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL && stmt->type == AST_EFFECT_DECL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, ctx->current_class_name) == 0) {
+            decl = stmt;
+            methods = stmt->data.effect_decl.methods;
+            method_count = stmt->data.effect_decl.method_count;
+        }
+    }
+    for (size_t i = 0; decl == NULL && i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
+        if (stmt != NULL && stmt->type == AST_ZONE_DECL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, ctx->current_class_name) == 0) {
+            decl = stmt;
+            methods = stmt->data.zone_decl.methods;
+            method_count = stmt->data.zone_decl.method_count;
+        }
+    }
+    for (size_t i = 0; decl == NULL && i < ctx->hir->world_count; i++) {
+        ASTNode *stmt = ctx->hir->worlds[i];
+        if (stmt != NULL && stmt->type == AST_WORLD_DECL
+            && stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, ctx->current_class_name) == 0) {
+            decl = stmt;
+            methods = stmt->data.world_decl.methods;
+            method_count = stmt->data.world_decl.method_count;
+        }
     }
 
     for (size_t i = 0; methods != NULL && i < method_count; i++) {

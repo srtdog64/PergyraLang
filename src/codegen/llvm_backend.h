@@ -2,9 +2,15 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM native backend — currently a MIR-led / HIR-assisted hybrid backend.
- * Ordinary function bodies prefer MIR, but some language surfaces still
- * require HIR fallback today.
+ * LLVM native backend.
+ *
+ * MIR-backed entry paths no longer require the original HIR program as the
+ * source of truth during codegen: routine bodies emit from MIR routines, and
+ * declaration / top-level inventory is carried through MIRProgram.
+ *
+ * Remaining debt is declaration-side structure, not routine-body fallback:
+ * some helpers still consume AST-carried declaration inventory instead of a
+ * dedicated declaration IR layer.
  *
  * Build: compile with -DPGY_LLVM_ENABLED and link against LLVM-C.
  */
@@ -42,9 +48,9 @@ typedef struct
 LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
 
 /*
- * Generate LLVM IR from MIR (preferred) with HIR fallback.
- * Current fallback debt still includes intent/domain emission,
- * and main-wrapper metadata.
+ * Generate LLVM IR from MIR (preferred).
+ * When `mir` is present, backend codegen uses MIR routines plus MIR-carried
+ * declaration/top-level inventory. `hir` is only for the legacy non-MIR path.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
@@ -53,9 +59,8 @@ LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
 
 /*
  * Generate LLVM IR from MIR and emit a native object file (.o).
- * If mir is NULL, this keeps the legacy behavior and falls back to HIR emission.
- * Even when mir is present, some HIR-assisted paths still remain until the
- * MIR-only backend migration is complete.
+ * If `mir` is NULL, this keeps the legacy behavior and falls back to HIR emission.
+ * With `mir` present, routine and top-level codegen consumes MIR-backed data.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,

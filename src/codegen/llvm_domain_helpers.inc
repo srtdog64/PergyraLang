@@ -256,26 +256,41 @@ llvm_find_named_domain_decl_local(LLVMGenCtx *ctx, ASTNodeType decl_type, const 
     if (ctx == NULL || ctx->hir == NULL || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt == NULL || stmt->type != decl_type)
-            continue;
-        if (decl_type == AST_RELATION_DECL
-            && stmt->data.relation_decl.name != NULL
-            && strcmp(stmt->data.relation_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_EFFECT_DECL
-            && stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_ZONE_DECL
-            && stmt->data.zone_decl.name != NULL
-            && strcmp(stmt->data.zone_decl.name, name) == 0)
-            return stmt;
-        if (decl_type == AST_WORLD_DECL
-            && stmt->data.world_decl.name != NULL
-            && strcmp(stmt->data.world_decl.name, name) == 0)
-            return stmt;
+    if (decl_type == AST_RELATION_DECL) {
+        for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+            ASTNode *stmt = ctx->hir->relations[i];
+            if (stmt != NULL && stmt->data.relation_decl.name != NULL
+                && strcmp(stmt->data.relation_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_EFFECT_DECL) {
+        for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+            ASTNode *stmt = ctx->hir->effects[i];
+            if (stmt != NULL && stmt->data.effect_decl.name != NULL
+                && strcmp(stmt->data.effect_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_ZONE_DECL) {
+        for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+            ASTNode *stmt = ctx->hir->zones[i];
+            if (stmt != NULL && stmt->data.zone_decl.name != NULL
+                && strcmp(stmt->data.zone_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
+    }
+    if (decl_type == AST_WORLD_DECL) {
+        for (size_t i = 0; i < ctx->hir->world_count; i++) {
+            ASTNode *stmt = ctx->hir->worlds[i];
+            if (stmt != NULL && stmt->data.world_decl.name != NULL
+                && strcmp(stmt->data.world_decl.name, name) == 0)
+                return stmt;
+        }
+        return NULL;
     }
 
     return NULL;
@@ -574,8 +589,8 @@ llvm_find_projection_nominal_decl_local(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || ctx->hir == NULL || name == NULL)
         return NULL;
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
         if (stmt == NULL)
             continue;
         if (stmt->type == AST_CLASS_DECL

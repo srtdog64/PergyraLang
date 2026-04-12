@@ -141,13 +141,88 @@ llvm_mir_routine_has_instructions(const MIRRoutine *routine)
 {
     if (routine == NULL)
         return false;
-    if (routine->block_count > 0)
-        return true;
     for (size_t i = 0; i < routine->block_count; i++) {
         if (routine->blocks[i].instruction_count > 0)
             return true;
     }
     return false;
+}
+
+static bool
+llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
+{
+    if (ctx == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+    if (func_decl->data.func_decl.name == NULL)
+        return false;
+    if (llvm_lookup_generic_template(ctx, func_decl->data.func_decl.name) != NULL)
+        return true;
+
+    if (ctx->generic_template_count >= ctx->generic_template_capacity) {
+        int new_capacity = ctx->generic_template_capacity == 0
+            ? 16
+            : ctx->generic_template_capacity * 2;
+        LLVMGenericTemplate *new_templates =
+            realloc(ctx->generic_templates,
+                    (size_t)new_capacity * sizeof(LLVMGenericTemplate));
+        if (new_templates == NULL) {
+            llvm_set_error(ctx, "out of memory growing generic_templates");
+            return false;
+        }
+        memset(new_templates + ctx->generic_template_capacity, 0,
+               (size_t)(new_capacity - ctx->generic_template_capacity)
+                   * sizeof(LLVMGenericTemplate));
+        ctx->generic_templates = new_templates;
+        ctx->generic_template_capacity = new_capacity;
+    }
+
+    ctx->generic_templates[ctx->generic_template_count].name =
+        func_decl->data.func_decl.name;
+    ctx->generic_templates[ctx->generic_template_count].ast = func_decl;
+    ctx->generic_template_count++;
+    return true;
+}
+
+static void
+llvm_build_hir_view_from_mir(const MIRProgram *mir, HIRProgram *hir_view)
+{
+    if (hir_view == NULL)
+        return;
+    memset(hir_view, 0, sizeof(*hir_view));
+    if (mir == NULL)
+        return;
+    hir_view->items = mir->items;
+    hir_view->item_count = mir->item_count;
+    hir_view->externs = mir->externs;
+    hir_view->extern_count = mir->extern_count;
+    hir_view->types = mir->types;
+    hir_view->type_count = mir->type_count;
+    hir_view->abilities = mir->abilities;
+    hir_view->ability_count = mir->ability_count;
+    hir_view->roles = mir->roles;
+    hir_view->role_count = mir->role_count;
+    hir_view->parties = mir->parties;
+    hir_view->party_count = mir->party_count;
+    hir_view->rosters = mir->rosters;
+    hir_view->roster_count = mir->roster_count;
+    hir_view->worlds = mir->worlds;
+    hir_view->world_count = mir->world_count;
+    hir_view->relations = mir->relations;
+    hir_view->relation_count = mir->relation_count;
+    hir_view->effects = mir->effects;
+    hir_view->effect_count = mir->effect_count;
+    hir_view->zones = mir->zones;
+    hir_view->zone_count = mir->zone_count;
+    hir_view->events = mir->events;
+    hir_view->event_count = mir->event_count;
+    hir_view->intents = mir->intents;
+    hir_view->intent_count = mir->intent_count;
+    hir_view->functions = mir->functions;
+    hir_view->function_count = mir->function_count;
+    hir_view->executables = mir->executables;
+    hir_view->executable_count = mir->executable_count;
+    hir_view->synthetic_executable_func = mir->synthetic_executable_func;
+    hir_view->has_main_function = mir->has_main_function;
 }
 
 static const MIRRoutine *
@@ -167,7 +242,7 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
         const MIRRoutine *routine = &mir->routines[i];
         if (routine->kind != MIR_SCOPE_METHOD)
             continue;
-        if (routine->hir_routine != NULL && routine->hir_routine->ast == method)
+        if (routine->ast == method)
             return routine;
         if (routine->name != NULL
             && routine->owner_name != NULL
@@ -344,8 +419,8 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         if (llvm_can_forward_declare_func_early(ctx, stmt))
             llvm_forward_declare_func(stmt, ctx);
     }
-    for (size_t i = 0; i < hir->item_count; i++) {
-        ASTNode *stmt = hir->items[i].ast;
+    for (size_t i = 0; i < hir->function_count; i++) {
+        ASTNode *stmt = hir->functions[i];
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
         if (stmt->data.func_decl.generic_params != NULL
@@ -361,29 +436,10 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         ASTNode *stmt = hir->functions[i];
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
-                if (stmt->data.func_decl.generic_params != NULL
-                    && stmt->data.func_decl.generic_params->count > 0) {
-                    if (ctx->generic_template_count >= ctx->generic_template_capacity) {
-                        int new_capacity = ctx->generic_template_capacity == 0
-                            ? 16
-                            : ctx->generic_template_capacity * 2;
-                        LLVMGenericTemplate *new_templates =
-                            realloc(ctx->generic_templates,
-                                    (size_t)new_capacity * sizeof(LLVMGenericTemplate));
-                        if (new_templates == NULL) {
-                            llvm_set_error(ctx, "out of memory growing generic_templates");
-                            return;
-                        }
-                        memset(new_templates + ctx->generic_template_capacity, 0,
-                               (size_t)(new_capacity - ctx->generic_template_capacity)
-                                   * sizeof(LLVMGenericTemplate));
-                        ctx->generic_templates = new_templates;
-                        ctx->generic_template_capacity = new_capacity;
-                    }
-                    ctx->generic_templates[ctx->generic_template_count].name =
-                        stmt->data.func_decl.name;
-                    ctx->generic_templates[ctx->generic_template_count].ast = stmt;
-            ctx->generic_template_count++;
+        if (stmt->data.func_decl.generic_params != NULL
+            && stmt->data.func_decl.generic_params->count > 0) {
+            if (!llvm_register_generic_template_decl(ctx, stmt))
+                return;
         } else if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL) {
             llvm_forward_declare_func(stmt, ctx);
         }
@@ -391,14 +447,21 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
     for (size_t i = 0; i < hir->intent_count; i++)
         llvm_forward_declare_intent(hir->intents[i], ctx);
 
-    for (size_t i = 0; i < hir->item_count; i++) {
-        ASTNode *stmt = hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_FUNC_DECL
+    for (size_t i = 0; i < hir->function_count; i++) {
+        ASTNode *stmt = hir->functions[i];
+        if (stmt != NULL
             && llvm_lookup_generic_template(ctx, stmt->data.func_decl.name) == NULL) {
             llvm_emit_func_decl(stmt, ctx);
-        } else if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+        }
+    }
+    for (size_t i = 0; i < hir->intent_count; i++) {
+        ASTNode *stmt = hir->intents[i];
+        if (stmt != NULL)
             llvm_emit_intent_decl(stmt, ctx);
-        } else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
+    }
+    for (size_t i = 0; i < hir->type_count; i++) {
+        ASTNode *stmt = hir->types[i];
+        if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             const char *cls_name = stmt->data.class_decl.name;
             LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, cls_name);
 
@@ -507,24 +570,33 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
+    HIRProgram mir_hir_view;
+    const HIRProgram *saved_hir;
+
     if (mir == NULL || ctx == NULL)
         return false;
 
-    /* MIR-led path, but not MIR-only yet.
+    llvm_build_hir_view_from_mir(mir, &mir_hir_view);
+    saved_hir = ctx->hir;
+    ctx->hir = &mir_hir_view;
+
+    /* MIR-only backend entry:
      *
-     * Remaining HIR-assisted work here:
-     * - nominal/enum/domain registration
-     * - generic template population
-     * - intent forward declaration + body emission
-     * - main-wrapper/top-level executable orchestration
+     * function/intent/method bodies lower from MIR routines,
+     * and declaration / top-level orchestration state is read from
+     * MIR-carried inventory rather than the original HIR program.
+     *
+     * Remaining debt is not "original HIR dependency" anymore; it is
+     * that declaration inventory is still AST-carried inside MIRProgram
+     * instead of a dedicated declaration IR.
      */
     llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
     if (ctx->hir != NULL) {
         llvm_pipeline_debug_stage("emit_program_from_mir:register_hir_items");
-        for (size_t i = 0; i < ctx->hir->item_count; i++) {
-            ASTNode *stmt = ctx->hir->items[i].ast;
+        for (size_t i = 0; i < mir->type_count; i++) {
+            ASTNode *stmt = mir->types[i];
             if (stmt == NULL)
                 continue;
             if (stmt->type == AST_CLASS_DECL) {
@@ -599,44 +671,37 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             }
         }
         llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
-        llvm_emit_domain_passes(ctx->hir, ctx);
+        llvm_emit_domain_passes(&mir_hir_view, ctx);
 
         llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
-        for (size_t i = 0; i < ctx->hir->item_count; i++) {
-            ASTNode *stmt = ctx->hir->items[i].ast;
-            if (stmt == NULL || stmt->type != AST_FUNC_DECL)
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            ASTNode *stmt = routine->ast;
+            if (routine->kind != MIR_SCOPE_FUNCTION
+                || stmt == NULL
+                || stmt->type != AST_FUNC_DECL)
                 continue;
             if (stmt->data.func_decl.generic_params != NULL
                 && stmt->data.func_decl.generic_params->count > 0) {
-                if (ctx->generic_template_count >= ctx->generic_template_capacity) {
-                    int new_capacity = ctx->generic_template_capacity == 0
-                        ? 16
-                        : ctx->generic_template_capacity * 2;
-                    LLVMGenericTemplate *new_templates =
-                        realloc(ctx->generic_templates,
-                                (size_t)new_capacity * sizeof(LLVMGenericTemplate));
-                    if (new_templates == NULL) {
-                        llvm_set_error(ctx, "out of memory growing generic_templates");
-                        return false;
-                    }
-                    memset(new_templates + ctx->generic_template_capacity, 0,
-                           (size_t)(new_capacity - ctx->generic_template_capacity)
-                               * sizeof(LLVMGenericTemplate));
-                    ctx->generic_templates = new_templates;
-                    ctx->generic_template_capacity = new_capacity;
-                }
-                ctx->generic_templates[ctx->generic_template_count].name =
-                    stmt->data.func_decl.name;
-                ctx->generic_templates[ctx->generic_template_count].ast = stmt;
-                ctx->generic_template_count++;
+                if (!llvm_register_generic_template_decl(ctx, stmt))
+                    return false;
                 continue;
             }
-            llvm_forward_declare_func(stmt, ctx);
+            if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
+                llvm_forward_declare_func(stmt, ctx);
         }
 
         llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_intents");
-        for (size_t i = 0; i < ctx->hir->intent_count; i++)
-            llvm_forward_declare_intent(ctx->hir->intents[i], ctx);
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            ASTNode *stmt = routine->ast;
+            if (routine->kind != MIR_SCOPE_INTENT
+                || stmt == NULL
+                || stmt->type != AST_INTENT_DECL) {
+                continue;
+            }
+            llvm_forward_declare_intent(stmt, ctx);
+        }
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_function_routines");
@@ -645,7 +710,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         if (routine->kind != MIR_SCOPE_FUNCTION)
             continue;
 
-        ASTNode *func_decl = routine->hir_routine != NULL ? routine->hir_routine->ast : NULL;
+        ASTNode *func_decl = routine->ast;
         if (func_decl != NULL
             && func_decl->type == AST_FUNC_DECL
             && func_decl->data.func_decl.generic_params != NULL
@@ -668,9 +733,12 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 
     if (ctx->hir != NULL) {
         llvm_pipeline_debug_stage("emit_program_from_mir:emit_hir_residuals");
-        for (size_t i = 0; i < ctx->hir->item_count; i++) {
-            ASTNode *stmt = ctx->hir->items[i].ast;
-            if (stmt != NULL && stmt->type == AST_FUNC_DECL) {
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            ASTNode *stmt = routine->ast;
+            if (routine->kind == MIR_SCOPE_FUNCTION
+                && stmt != NULL
+                && stmt->type == AST_FUNC_DECL) {
                 if (stmt->data.func_decl.generic_params != NULL
                     && stmt->data.func_decl.generic_params->count > 0) {
                     continue;
@@ -679,20 +747,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     llvm_emit_func_decl(stmt, ctx);
                     continue;
                 }
-                bool has_mir = false;
-                for (size_t j = 0; j < mir->routine_count; j++) {
-                    const MIRRoutine *routine = &mir->routines[j];
-                    if (routine->hir_routine != NULL && routine->hir_routine->ast == stmt) {
-                        for (size_t bi = 0; bi < routine->block_count; bi++) {
-                            if (routine->blocks[bi].instruction_count > 0) {
-                                has_mir = true;
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-                if (!has_mir) {
+                if (!llvm_mir_routine_has_instructions(routine)) {
                     char msg[256];
                     snprintf(msg, sizeof(msg),
                              "MIR-only LLVM path missing routine for function '%s'",
@@ -702,9 +757,16 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     llvm_set_error(ctx, msg);
                     return false;
                 }
-            } else if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+            } else if (routine->kind == MIR_SCOPE_INTENT
+                       && stmt != NULL
+                       && stmt->type == AST_INTENT_DECL) {
                 llvm_emit_intent_decl(stmt, ctx);
-            } else if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
+            }
+        }
+
+        for (size_t i = 0; i < mir->type_count; i++) {
+            ASTNode *stmt = mir->types[i];
+            if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
                 const char *cls_name = stmt->data.class_decl.name;
                 bool require_mir_methods =
                     stmt->data.class_decl.nominal_kind == NOMINAL_DECL_CLASS
@@ -749,8 +811,9 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_main_wrapper");
-    llvm_emit_mir_main_wrapper(ctx->hir, ctx);
+    llvm_emit_mir_main_wrapper(&mir_hir_view, ctx);
     llvm_pipeline_debug_stage("emit_program_from_mir:end");
+    ctx->hir = saved_hir;
     return !ctx->has_error;
 }
 

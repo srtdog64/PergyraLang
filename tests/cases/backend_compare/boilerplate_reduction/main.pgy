@@ -18,7 +18,7 @@ subject Adventurer
 
 ability Climber
 {
-    require hp: Int;
+    fields hp: Int;
     func CanClimb() -> Bool;
 }
 

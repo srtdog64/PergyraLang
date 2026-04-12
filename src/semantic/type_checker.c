@@ -279,10 +279,24 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
                 semantic_error(ctx, site,
-                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'",
+                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
+                    "Reason:\n"
+                    "- class '%s' requires '%s: %s'\n"
+                    "- instantiated type argument is '%s'\n"
+                    "Fix:\n"
+                    "- pass a type argument that satisfies '%s'\n"
+                    "- or relax the class where-clause",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
                     tc->type_param,
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>",
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>",
+                    tc->type_param,
+                    bound_name,
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    bound_name,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>");
             }
@@ -343,10 +357,26 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
             if (!concrete_type_satisfies_bound(concrete_type, bound_node, ctx)) {
                 semantic_error(ctx, site,
-                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'",
+                    "Type '%s' does not satisfy constraint '%s' for generic parameter '%s' in class '%s'.\n"
+                    "Reason:\n"
+                    "- class '%s' requires '%s: %s'\n"
+                    "- specialized type argument is '%s'\n"
+                    "Fix:\n"
+                    "- specialize '%s' with a type that satisfies '%s'\n"
+                    "- or relax the class where-clause",
                     concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
                     tc->type_param,
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>",
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>",
+                    tc->type_param,
+                    bound_name,
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name : "<class>",
+                    bound_name,
                     class_decl->data.class_decl.name != NULL
                         ? class_decl->data.class_decl.name : "<class>");
             }
@@ -1723,10 +1753,16 @@ semantic_is_known_stdlib_use_module(const char *module_name)
 {
     static const char *const modules[] = {
         "datetime",
+        "device_adapter",
         "http",
+        "ledger",
+        "money",
+        "obligation",
         "page",
         "spray",
-        "storage"
+        "storage",
+        "timer",
+        "versioning"
     };
 
     if (module_name == NULL)
@@ -2368,6 +2404,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.within_zone);
         }
+        if (node->data.func_decl.within_zone != NULL) {
+            ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                node->data.func_decl.within_zone);
+            if (zone_decl != NULL
+                && !explicit_type_reference_allowed(zone_decl, node, ctx)) {
+                semantic_error(ctx, node,
+                    "action '%s' cannot reference non-exported zone '%s' from another module",
+                    name != NULL ? name : "<anonymous>",
+                    node->data.func_decl.within_zone);
+            }
+        }
 
         if (node->data.func_decl.causes_effect != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
@@ -2376,6 +2423,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "action '%s' references unknown effect '%s'",
                 name != NULL ? name : "<anonymous>",
                 node->data.func_decl.causes_effect);
+        }
+        if (node->data.func_decl.causes_effect != NULL) {
+            ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+                node->data.func_decl.causes_effect);
+            if (effect_decl != NULL
+                && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
+                semantic_error(ctx, node,
+                    "action '%s' cannot reference non-exported effect '%s' from another module",
+                    name != NULL ? name : "<anonymous>",
+                    node->data.func_decl.causes_effect);
+            }
         }
 
         for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
@@ -2626,6 +2684,26 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, node,
                     "Slot<subject-host>/SecureSlot<subject-host> parameters are part of the anchored "
                     "subject-slot boundary and require explicit 'own' or 'ref'");
+            } else if (param_types[i]->data.slot.is_secure
+                       && param->mode != PARAM_MODE_OWN) {
+                semantic_error(ctx, node,
+                    "SecureSlot<subject-host> parameters currently support only 'own' at function boundaries.\n"
+                    "Reason:\n"
+                    "- secure anchored handles carry capability-bearing ownership across the boundary\n"
+                    "- borrowed secure forwarding is not part of the closed subset yet\n"
+                    "Fix:\n"
+                    "- change the parameter to 'own SecureSlot<subject-host>'\n"
+                    "- or keep the SecureSlot local and pass a projection/value instead");
+            } else if (!param_types[i]->data.slot.is_secure
+                       && param->mode != PARAM_MODE_REF) {
+                semantic_error(ctx, node,
+                    "Plain Slot<subject-host> parameters currently support only 'ref' at function boundaries.\n"
+                    "Reason:\n"
+                    "- move-style own forwarding for plain anchored subject slots is not part of the closed subset yet\n"
+                    "- the stable boundary rule is borrowed inspection/mutation via 'ref'\n"
+                    "Fix:\n"
+                    "- change the parameter to 'ref Slot<subject-host>'\n"
+                    "- or keep ownership local and release/move inside the current scope");
             }
         }
         /* Subject parameters are passed by reference (pointer) internally.

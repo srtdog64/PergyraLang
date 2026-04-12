@@ -155,7 +155,11 @@ resolved:
 - local slot의 borrow-after-own-move는 금지
 - `own SecureSlot<subject-host>`의 transitive own-helper forwarding은 semantic/C/backend-compare까지 고정
 
-open:
+beta decision:
+- 베타 stable surface는 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`에 한정한다
+- 일반 ownership system은 이 roadmap의 후속 축으로 분리한다
+
+post-beta / follow-up:
 - helper/function call 경유 escape를 다단계 alias/summary 수준까지 더 정교하게 판정
 - move-after-borrow를 지역/다단계 ownership 규칙으로 더 정교하게 정리
 
@@ -272,7 +276,7 @@ open:
 ### 2.4 World / LLVM 구조 debt
 
 대상:
-- MIR-led / HIR-assisted 구조 debt
+- MIR body + inventory-backed decl 구조 debt
 
 현재 관찰:
 - world는 llvm-smoke 전용 케이스에서 이미 동작이 검증됐다.
@@ -280,7 +284,7 @@ open:
 
 남은 작업:
 1. llvm backend 문서와 실제 smoke 범위를 정렬한다.
-2. world/domain 경로의 HIR-assisted 부분을 debt ledger와 연결한다.
+2. world/domain 경로의 inventory-backed declaration debt를 debt ledger와 연결한다.
 3. 필요 시 file split은 구조 정리 수단으로만 사용한다.
 
 완료 기준:
@@ -291,7 +295,7 @@ open:
 체크리스트:
 - [ ] world smoke 근거를 depth 문서에 반영
 - [ ] debt ledger와 depth matrix 표현 정렬
-- [ ] HIR-assisted 경로를 구조 debt로 분류
+- [ ] inventory-backed declaration 경로를 구조 debt로 분류
 
 ### 2.4 Silent fallback 제거
 
@@ -383,7 +387,7 @@ open:
 
 작업:
 1. `docs/62_llvm_backend_debt_ledger.md`의 항목을 코드/테스트와 연결한다.
-2. LLVM에서 남은 hybrid lowering을 줄인다.
+2. LLVM에서 남은 inventory-backed declaration helper debt를 줄인다.
 3. MIR-first 경로와 LLVM emission의 책임 경계를 더 분명히 한다.
 
 완료 기준:

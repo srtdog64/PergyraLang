@@ -1,5 +1,7 @@
 static bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
+static ASTNode *
+any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
 static bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
 
@@ -405,6 +407,13 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                 resolve_type_node(arg, ctx);
                         }
                     }
+                    validate_ability_decl_where_clause_reference(
+                        ability_decl,
+                        impl->data.impl_ability.ability_ref,
+                        impl,
+                        ctx,
+                        "role",
+                        name != NULL ? name : "<role>");
                     validate_ability_require_fields_for_role(node, ability_decl, ctx);
                 }
             }
@@ -451,6 +460,12 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, sym);
     }
 
+    if (node->data.party_decl.generic_params != NULL
+        && node->data.party_decl.generic_params->count > 0) {
+        validate_generic_param_defaults(node->data.party_decl.generic_params,
+            ctx, node, "party");
+    }
+
     /* Check role slot ability references */
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
         ASTNode *rs = node->data.party_decl.role_slots[i];
@@ -474,13 +489,42 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                         "Ability '%s' not found for role slot '%s'",
                         ab_type->data.type.name,
                         rs->data.role_slot.slot_name);
-                } else if (ctx->program_root != NULL
+                } else if (ctx->program_root != NULL) {
+                    ASTNode *ability_decl = resolve_required_ability_decl(
+                        ab_type, rs, ctx, "party role slot",
+                        rs->data.role_slot.slot_name);
+                    if (ability_decl == NULL) {
+                        free(required_text);
+                        continue;
+                    }
+                }
+                if (ctx->program_root != NULL
                            && !any_subject_role_has_ability(ctx->program_root,
                                ab_type)) {
+                    ASTNode *actual_impl = any_subject_role_find_base_ability_impl(
+                        ctx->program_root, ability_name);
+                    char *actual_text = actual_impl != NULL
+                        ? ability_ref_display(actual_impl) : NULL;
                     semantic_error(ctx, rs,
-                        "Party role slot '%s' requires ability '%s', but no subject-bound role implements it",
+                        actual_impl != NULL
+                            ? "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
+                              "Reason:\n"
+                              "- no subject-bound role satisfies required ability '%s'\n"
+                              "Fix:\n"
+                              "- implement '%s' on a subject-bound role\n"
+                              "- or change the role slot contract"
+                            : "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
+                              "Reason:\n"
+                              "- no subject-bound role satisfies required ability '%s'\n"
+                              "Fix:\n"
+                              "- implement '%s' on a subject-bound role\n"
+                              "- or change the role slot contract",
                         rs->data.role_slot.slot_name,
+                        required_text != NULL ? required_text : ability_name,
+                        actual_text != NULL ? actual_text : NULL,
+                        required_text != NULL ? required_text : ability_name,
                         required_text != NULL ? required_text : ability_name);
+                    free(actual_text);
                 }
                 free(required_text);
             }
@@ -530,6 +574,12 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     } else {
         scope_declare(ctx->scope, sym);
+    }
+
+    if (node->data.roster_decl.generic_params != NULL
+        && node->data.roster_decl.generic_params->count > 0) {
+        validate_generic_param_defaults(node->data.roster_decl.generic_params,
+            ctx, node, "roster");
     }
 
     /* Check party slot references */
@@ -2663,6 +2713,50 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
     }
 
     return false;
+}
+
+static ASTNode *
+any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM
+        || ability_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        ASTNode *type_decl;
+        const char *type_name;
+
+        if (stmt == NULL || stmt->type != AST_ROLE_DECL
+            || stmt->data.role_decl.for_type == NULL
+            || stmt->data.role_decl.for_type->type != AST_TYPE
+            || stmt->data.role_decl.for_type->data.type.name == NULL) {
+            continue;
+        }
+
+        type_name = stmt->data.role_decl.for_type->data.type.name;
+        type_decl = find_subject_host_decl_by_name(program, type_name);
+        if (!decl_is_subject_host(type_decl))
+            continue;
+
+        for (size_t j = 0; j < stmt->data.role_decl.impl_count; j++) {
+            ASTNode *impl = stmt->data.role_decl.impl_abilities[j];
+            ASTNode *ability_ref;
+
+            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+                continue;
+            ability_ref = impl->data.impl_ability.ability_ref;
+            if (ability_ref == NULL || ability_ref->type != AST_TYPE
+                || ability_ref->data.type.name == NULL) {
+                continue;
+            }
+            if (strcmp(ability_ref->data.type.name, ability_name) == 0)
+                return ability_ref;
+        }
+    }
+
+    return NULL;
 }
 
 static ASTNode *

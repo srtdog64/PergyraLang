@@ -1711,8 +1711,10 @@ ASTNode* parse_event_declaration(Parser* parser) {
     // 접근 제어자 (선택적)
     if (parser_match(parser, TOKEN_PUBLIC)) {
         event_decl->data.event_decl.access = ACCESS_PUBLIC;
+        event_decl->is_exported = true;
     } else if (parser_match(parser, TOKEN_PRIVATE)) {
         event_decl->data.event_decl.access = ACCESS_PRIVATE;
+        event_decl->is_exported = false;
     }
 
     // 파라미터 파싱

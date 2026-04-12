@@ -69,9 +69,9 @@ llvm_stmt_find_zone_decl(LLVMGenCtx *ctx, const char *zone_name)
     if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_ZONE_DECL
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
+        if (stmt != NULL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, zone_name) == 0) {
             return stmt;
@@ -86,9 +86,9 @@ llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
     if (ctx == NULL || ctx->hir == NULL || effect_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt != NULL && stmt->type == AST_EFFECT_DECL
+    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL
             && stmt->data.effect_decl.name != NULL
             && strcmp(stmt->data.effect_decl.name, effect_name) == 0) {
             return stmt;
@@ -103,8 +103,8 @@ llvm_stmt_find_subject_host_decl(LLVMGenCtx *ctx, const char *type_name)
     if (ctx == NULL || ctx->hir == NULL || type_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
         if (stmt == NULL)
             continue;
         if (stmt->type == AST_CLASS_DECL

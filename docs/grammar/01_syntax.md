@@ -731,3 +731,37 @@ world GameWorld {
 - standalone `event handler type` 표면 문법
 
 이 항목들은 AST enum이나 내부 코드 경로 흔적이 있을 수 있어도, 현재는 공식 문법 레퍼런스로 보면 안 된다.
+## Visibility surface update
+
+Current stable visibility surface is broader than nominal types only.
+
+- Top-level `public` / `private` apply to nominal declarations:
+  `subject`, `class`, `struct`, `object`, `tobject`, `vessel`
+- Top-level `public` / `private` also apply to core domain declarations:
+  `party`, `roster`, `world`, `zone`, `relation`, `effect`, `ability`
+- Top-level `public` / `private` also apply to callable declarations:
+  `func`, `intent`, `event`
+
+Preferred surface:
+
+```pgy
+private zone HiddenZone { }
+
+private intent HiddenFlow
+{
+    step Run;
+}
+
+private event HiddenPing(value: Int);
+```
+
+Module-boundary behavior:
+
+- non-exported top-level declarations are not accessible from importing modules
+- action contracts also respect visibility, so imported `within HiddenZone` and `causes HiddenEffect` are rejected when those declarations are private
+- calls to private imported `func`, `intent`, and `event` are rejected across the module boundary
+
+Legacy note:
+
+- inline event access forms such as `event Name private(...)` are still accepted for migration
+- the preferred stable surface is top-level `private event Name(...)`

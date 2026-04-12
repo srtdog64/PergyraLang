@@ -1206,10 +1206,30 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 void
 llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
+    ASTNode **domain_groups[] = {
+        hir->relations,
+        hir->effects,
+        hir->zones,
+        hir->worlds,
+        hir->parties,
+        hir->rosters,
+    };
+    size_t domain_group_counts[] = {
+        hir->relation_count,
+        hir->effect_count,
+        hir->zone_count,
+        hir->world_count,
+        hir->party_count,
+        hir->roster_count,
+    };
+
     /* Pass 0a: Register domain struct types + methods */
-    for (size_t i = 0; i < hir->item_count; i++) {
-        ASTNode *stmt = hir->items[i].ast;
-        if (stmt == NULL) continue;
+    for (size_t group = 0;
+         group < sizeof(domain_groups) / sizeof(domain_groups[0]);
+         group++) {
+        for (size_t i = 0; i < domain_group_counts[group]; i++) {
+            ASTNode *stmt = domain_groups[group][i];
+            if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
         ASTNode **slots = NULL;
@@ -1645,6 +1665,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_register_function(ctx, LLVMGetValueName(fn),
                                     fn, ft, ret);
             free(ptypes);
+        }
         }
     }
 
@@ -2340,9 +2361,12 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
     }
 
     /* Pass 2c: Emit domain sync helpers + method bodies */
-    for (size_t i = 0; i < hir->item_count; i++) {
-        ASTNode *stmt = hir->items[i].ast;
-        if (stmt == NULL) continue;
+    for (size_t group = 0;
+         group < sizeof(domain_groups) / sizeof(domain_groups[0]);
+         group++) {
+        for (size_t i = 0; i < domain_group_counts[group]; i++) {
+            ASTNode *stmt = domain_groups[group][i];
+            if (stmt == NULL) continue;
 
         const char *decl_name = NULL;
         ASTNode **slots = NULL;
@@ -2531,6 +2555,7 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
                 if (last != NULL)
                     LLVMPositionBuilderAtEnd(ctx->builder, last);
             }
+        }
         }
     }
 

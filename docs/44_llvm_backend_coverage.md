@@ -9,9 +9,9 @@
 ## 현재 판단
 
 - LLVM backend는 `누락돼서 전반적으로 동작 안 하는 상태`가 아니다.
-- 실제 경로는 `MIR-led / HIR-assisted hybrid`다.
+- 실제 경로는 `MIR body emission + MIR inventory-backed declaration emission`이다.
 - ordinary/async function과 subject/class method의 주 경로는 MIR emission을 탄다.
-- 일부 표면은 여전히 HIR-assisted debt를 가진다.
+- 일부 표면은 여전히 dedicated decl IR 없이 AST inventory를 소비하는 구조 debt를 가진다.
 
 ## 직접 검증된 범위
 
@@ -78,9 +78,10 @@
 
 ## 현재 실제 debt
 
-### 1. MIR-only 미완료
+### 1. MIR-only decl inventory debt
 
-- intent/domain 일부는 여전히 HIR-assisted path를 쓴다
+- routine body는 MIR-only다
+- top-level/domain 선언은 원본 HIR가 아니라 MIRProgram이 운반한 AST inventory를 소비한다
 - MIR routine/step sequence가 비어 있으면 LLVM은 hard error로 실패한다
 - intent step의 check/eval/meta carrier는 이제 MIR-only로 검증된다
 
@@ -120,7 +121,7 @@
 
 다음과 같이 적는 것이 맞다.
 
-- LLVM backend: `MIR-led / HIR-assisted hybrid`
+- LLVM backend: `MIR body + MIR inventory-backed decl path`
 - validated:
   - loops
   - recursion
@@ -129,6 +130,6 @@
   - intent trace
   - subject/class dispatch
 - remaining debt:
-  - domain/intent HIR-assisted paths
+  - dedicated decl IR 없이 AST inventory를 직접 소비하는 paths
   - remaining AST-assisted expression lowering inside domain/intent
   - MIR-only completion

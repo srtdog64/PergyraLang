@@ -5,7 +5,7 @@
 ## 요약
 
 - 컴파일러의 실제 driver 경로는 이제 `Lexer → Parser → Semantic → HIR → DIR → RIR → MIR → Backend dispatch`로 고정되며, `driver_run_pipeline()`은 backend 진입 전에 `DIR/RIR/MIR` lowering과 structural validation을 항상 수행한다.
-- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 실제 codegen은 `MIR` 주도 + `HIR` 보조 하이브리드로 움직이며, C/LLVM 두 backend 모두 MIR entrypoint를 받는다. LLVM ordinary/async function과 subject/class method는 MIR direct path를 우선 사용하고, top-level executable main-wrapper도 synthetic executable MIR routine을 통해 직접 AST loop를 줄였다. intent step의 `check/eval/meta` carrier 역시 MIR-only로 강제된다. 남은 HIR-assisted debt는 domain/intent 쪽에 집중되어 있다.
+- `DIR`, `RIR`, `MIR` 코드 계층은 각각 `--dir`, `--rir`, `--mir`로 declaration/resource/execution dump를 제공하고, backend runner는 `CompilerIRBundle`을 입력으로 받는다. 현재 C/LLVM의 MIR entrypoint는 routine body뿐 아니라 declaration/top-level inventory도 `MIRProgram`에서 직접 읽는다. compiler entry는 MIR path에서 원본 `HIRProgram`을 넘기지 않으며, backend는 `MIR routine + MIR-carried AST inventory`를 source of truth로 사용한다. intent step의 `check/eval/meta` carrier 역시 MIR-only로 강제된다. 남은 debt는 `원본 HIR 의존`이 아니라 `declaration inventory가 dedicated decl IR이 아닌 AST-carried inventory`라는 구조 debt 쪽에 가깝다.
 - `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability의 고정 계약은 `docs/37_compiler_contracts.md`에 정리함.
 - 최근 ABI/성능/AlphaDev식 invariant 최적화 진행 상태는 `docs/49_invariant_optimization_progress.md`에 따로 추적한다.
 - 아직 부분 구현 상태인 핵심 언어 축(effect lattice, capability security, MIR->LLVM debt, stack-slot escape analysis, generic where validation, tooling 고도화)은 `docs/50_language_completion_board.md`에서 추적한다.
@@ -147,7 +147,7 @@
 - plain `Slot<subject>`는 이제 local object-cell anchor로 허용됨
 - 현재 회귀 범위: `make test-transpile` 통과, `make test-abi` 통과, `make llvm-test-backend-compare` 통과, `make example-test-smoke` 통과, `make ir-pipeline-test-smoke` 통과, `make fmt-test-smoke` 통과, `make test-abi-perf` 통과
 - `SecureSlot<subject>`도 이제 local secure object-cell anchor로 허용됨
-- `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
+- `ref Slot<subject-host>` / `own SecureSlot<subject-host>` 함수 경계 전달이 semantic + C/LLVM backend에 반영됨
 - secure boundary slot은 paired token symbol을 함수 바디 안에 자동 노출해 `Write(s, ..., s_token)` / `Release(s, s_token)` 형태를 유지함
 - secure boundary slot은 helper를 한 번 더 거치는 forwarding call에서도 paired token이 함께 전달됨
 - LLVM backend는 `self.battle.player.hp = hp` 같은 deeper nested member assignment도 world/zone/object-cell 경로에서 실제로 갱신함
@@ -236,7 +236,7 @@
 - partial 완료: `subject`를 코어 host로 semantic 정렬 (`role`, `subject slot`, projection source, copy restriction)
 - partial 완료: `subject Name { ... }`를 코어 host surface로 고정
 - partial 완료: plain `Slot<subject-host>` / secure `SecureSlot<subject-host>` local object-cell anchor
-- 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달 (semantic + C/LLVM backend)
+- 완료: `ref Slot<subject-host>` / `own SecureSlot<subject-host>` 함수 경계 전달 (semantic + C/LLVM backend)
 - effect system 2단계 (더 정교한 effect lattice, call-site contract)
 - relation/effect/zone declaration 이후의 구조적 의미론 고도화
 - 안정화 문서 갱신 및 표면 문법 정리

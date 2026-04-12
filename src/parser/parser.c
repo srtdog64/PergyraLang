@@ -832,7 +832,7 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_parse_export_declaration(parser);
     }
 
-    // top-level access modifier for ability declarations
+    // top-level access modifier for ability and nominal declarations
     if (parser_check(parser, TOKEN_PUBLIC)
         || parser_check(parser, TOKEN_PRIVATE)) {
         AccessModifier access = ACCESS_PUBLIC;
@@ -850,15 +850,61 @@ ASTNode* parser_parse_statement(Parser* parser) {
             node = parse_ability_declaration(parser, true);
         } else if (parser_match(parser, TOKEN_ABILITY)) {
             node = parse_ability_declaration(parser, false);
+        } else if (parser_match(parser, TOKEN_SUBJECT)) {
+            node = parse_subject_declaration(parser);
+        } else if (parser_match(parser, TOKEN_CLASS)) {
+            node = parse_class_declaration(parser);
+        } else if (parser_match(parser, TOKEN_STRUCT)) {
+            node = parse_struct_declaration(parser);
+        } else if (parser_match(parser, TOKEN_OBJECT)) {
+            node = parse_object_declaration(parser);
+        } else if (parser_match(parser, TOKEN_TOBJECT)) {
+            node = parse_tobject_declaration(parser);
+        } else if (parser_match(parser, TOKEN_VESSEL)) {
+            node = parse_vessel_declaration(parser);
+        } else if (parser_match(parser, TOKEN_PARTY)) {
+            node = parse_party_declaration(parser);
+        } else if (parser_match(parser, TOKEN_ROSTER)) {
+            node = parse_roster_declaration(parser);
+        } else if (parser_match(parser, TOKEN_WORLD)) {
+            node = parse_world_declaration(parser);
+        } else if (parser_match(parser, TOKEN_RELATION)) {
+            node = parse_relation_declaration(parser);
+        } else if (parser_match(parser, TOKEN_EFFECT)) {
+            node = parse_effect_declaration(parser);
+        } else if (parser_match(parser, TOKEN_ZONE)) {
+            node = parse_zone_declaration(parser);
+        } else if (parser_match(parser, TOKEN_INTENT)) {
+            node = parse_intent_declaration(parser);
+        } else if (parser_match(parser, TOKEN_EVENT)) {
+            node = parse_event_declaration(parser);
         } else {
             parser_error(parser,
-                "Top-level access modifiers currently apply only to ability declarations");
+                "Top-level access modifiers currently apply only to ability, nominal, or domain declarations");
             return NULL;
         }
 
         if (node != NULL && node->type == AST_ABILITY_DECL) {
             node->data.ability_decl.access = access;
             node->data.ability_decl.has_explicit_access = explicit_access;
+            if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
+                node->is_exported = false;
+            else
+                node->is_exported = true;
+        } else if (node != NULL && node->type == AST_CLASS_DECL) {
+            if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
+                node->is_exported = false;
+            else
+                node->is_exported = true;
+        } else if (node != NULL
+                   && (node->type == AST_PARTY_DECL
+                       || node->type == AST_ROSTER_DECL
+                       || node->type == AST_WORLD_DECL
+                       || node->type == AST_RELATION_DECL
+                       || node->type == AST_EFFECT_DECL
+                       || node->type == AST_ZONE_DECL
+                       || node->type == AST_INTENT_DECL
+                       || node->type == AST_EVENT_DECL)) {
             if (access == ACCESS_PRIVATE || access == ACCESS_PROTECTED)
                 node->is_exported = false;
             else

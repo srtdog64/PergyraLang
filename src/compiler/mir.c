@@ -1945,6 +1945,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.is_entry = true;
         block.is_reachable = true;
         block.source_hir_block_id = SIZE_MAX;
+        block.source_ast = NULL;
         routine->entry_block = 0;
         return append_block(routine, block);
     }
@@ -1958,6 +1959,14 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.is_entry = (i == hir_routine->cfg.entry_block);
         block.is_reachable = src->is_reachable;
         block.source_hir_block_id = src->id;
+        if (src->statement_count > 0)
+            block.source_ast = src->statements[0];
+        else if (src->terminator_condition != NULL)
+            block.source_ast = src->terminator_condition;
+        else if (src->terminator_value != NULL)
+            block.source_ast = src->terminator_value;
+        else
+            block.source_ast = NULL;
         block.succ_true = src->succ_true;
         block.succ_false = src->succ_false;
         block.has_succ_true = src->has_succ_true;

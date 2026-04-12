@@ -72,21 +72,21 @@
 | 영역 | 파싱 | 시맨틱 | MIR/하강 | C | LLVM | 런타임 | 테스트 | 깊이 판정 | 핵심 메모 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|---|
 | 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
-| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | generic contract 검증은 부분적, default type arg 미지원 |
+| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | default type arg는 explicit reject, exact/ability/multi-bound baseline은 동작, broader generalization은 남음 |
 | `subject/class/object/tobject/enum/vessel` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 6종 존재론 전부 동작 확인 |
-| `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중간 | generic ability ref, richer contract validation은 남음 |
+| `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중상 | `fields` canonical surface, generic ability ref, action/step/zone/party-role contract inference·diagnostics, ability-bound revalidation은 정렬됨. `override/dyn/extends`는 비코어 축으로 분리 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
 | `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+추론 강함, `with name: Type;` 값 파라미터 지원 |
 | `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/contract 연결됨, move/clone ownership 정리 중 |
 | `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
-| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | causes 동작, refresh map 미구현, lattice 통합 미완 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity다. refresh map, lattice 통합, deeper propagation은 아직 미완 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
 | `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | arity/타입 체크 동작, C+LLVM 코드젠 완성, invoke는 AST_CALL 경로 |
 | `Set/Map/List` | ✅ | ◐ | ◐ | ✅ | ✅ | ✅ | ◐ | 중간 | C+LLVM raw_export 동작, Map은 `String/Int` 키 지원, 그 외 키는 명시 오류 |
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |
-| `own/ref` 소유권 | ✅ | ◐ | ❌ | ◐ | ◐ | 해당 없음 | ✅ | 얕음 | `Slot<subject-host>/SecureSlot<subject-host>`에 한해 강제, 일반 타입은 오류, transitive safe `ref -> ref`와 transitive `own SecureSlot -> own` forwarding은 허용, `ref` return/channel escape 및 alias/rebind, borrow-after-move 금지 |
+| `own/ref` 소유권 | ✅ | ✅ | ◐ | ✅ | ✅ | 해당 없음 | ✅ | 중상 | 베타 stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`로 고정. 일반 타입 ownership system은 explicit reject이며 surface trust가 문서/진단/예제/회귀와 정렬됨 |
 | 디버거 | ✅ | ◐ | ❌ | ❌ | ❌ | ◐ | ❌ | 얕음 | AST-walking source debugger는 있으나 compiled runtime debug는 없음 |
 | 포매터 | ✅ | ✅ | 해당 없음 | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | 기본 구현 | stable/idempotent formatter와 smoke는 있으나 style/product depth는 얕음 |
 | LSP | ✅ | ◐ | 해당 없음 | 해당 없음 | 해당 없음 | ◐ | ◐ | 기본 구현 | diagnostics/hover/completion/symbol/definition/reference/rename까지는 있음 |
@@ -133,18 +133,21 @@
 
 ### 2.4 `ability/role/require/use` 계약 축
 
-언어 철학상 핵심인데, 실제 depth는 "중간"이다.
+언어 철학상 핵심인데, 실제 depth는 이제 "중상"으로 봐야 한다.
 기본 계약 검증과 코드젠은 있으나, richer contract system은 아직 partially closed 상태다.
 
 최근 닫힌 점:
 - `ability<T>` 선언과 참조 baseline은 parser/semantic/DIR 경로까지 연결됐다
 - hidden/default-export 규칙과 generic ability 해석의 첫 정렬이 끝났다
 - mixed `ability + zone` module에서 explicit export 판정 충돌도 정리됐다
+- ability field surface는 `fields`로 완전히 canonicalized 되었고 parser/docs/tests/examples/smoke가 정렬됐다
+- action/step/zone authority 계약 키워드군(`requires`, `within`, `authorized by`, `causes`)은 inherited diagnostics와 LSP hover/completion까지 연결됐다
+- `public/private`는 이제 nominal 선언을 넘어 `party/roster/world/relation/effect/zone`의 top-level visibility, imported action contract leakage 차단, 그리고 `func/intent/event` callable boundary 차단까지 반영된다
 
 남은 gap:
-- `requires Ability<T>`의 더 풍부한 mismatch 진단
 - `use/require`를 module contract까지 일관되게 올리는 작업
 - richer contract summary를 diagnostics/tooling까지 노출하는 작업
+- `override/dyn/extends`를 코어 closure와 별도 experimental 축으로 더 명확히 분리하는 문서/정책 정렬
 
 판정:
 - 방향은 맞다.

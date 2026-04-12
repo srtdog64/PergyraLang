@@ -358,7 +358,7 @@ object Door {
 - generic class codegen (단형화 전략: `Pair<Int>` → `Pair_Int` struct + methods)
 - participant를 subject host로 인식하는 semantic predeclaration / constructor / projection / domain check
 - plain/secure `Slot<subject>` / `Slot<subject>` local object-cell anchor
-- `own/ref Slot<subject-host>` / `own/ref SecureSlot<subject-host>` 함수 경계 전달
+- `ref Slot<subject-host>` / `own SecureSlot<subject-host>` 함수 경계 전달
 - secure boundary forwarding call에서 paired token 전파
 - LLVM nested member assignment (`self.zone.subject.field = value`) runtime parity
 - participant constructor가 C backend에서도 compound literal로 lowering됨

@@ -1223,3 +1223,18 @@ authority는 "누가 승인하는가"다.
 
 > Pergyra는 단순 transpiler가 아니라,  
 > 도메인 의미론과 자원 의미론을 분리한 뒤 실행 의미론으로 내리는 언어다.
+## Visibility contract update
+
+Current compiler visibility contract:
+
+- `export` remains the explicit module export/import surface for namespaces and module-facing organization
+- `public` / `private` now govern module-boundary visibility for:
+  nominal declarations, core domain declarations, and callable declarations
+- callable visibility is enforced for imported `func`, `intent`, and `event` references
+- action contracts participate in the same boundary:
+  imported contracts cannot leak private `zone` or `effect` declarations through `within` or `causes`
+
+Practical consequence:
+
+- if a declaration is marked `private`, importing modules cannot name it directly
+- this applies equally to type references, callable references, and action contract references

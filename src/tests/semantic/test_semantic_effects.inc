@@ -101,6 +101,9 @@ test_effect_inference(void)
         EXPECT(type_effect_mask_requires_authority(EFFECT_SECURE));
         EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_SECURE));
         EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_REMOTE));
+        EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_COLLAPSE));
+        EXPECT(type_effect_mask_conflicts(EFFECT_SECURE, EFFECT_COLLAPSE));
+        EXPECT(type_effect_mask_conflicts(EFFECT_COLLAPSE, EFFECT_SECURE));
     }
 
     TEST("SecureSlot declarations infer secure effect on function");
@@ -1251,6 +1254,29 @@ test_effect_inference(void)
         const char *source =
             "/// @effects secure, remote\n"
             "func Mixed() -> Void {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "combines effect classes that are currently treated as conflicting"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-conflict: secure and collapse combination emits warning");
+    {
+        const char *source =
+            "/// @effects secure, collapse\n"
+            "func MixedCollapse() -> Void {\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);

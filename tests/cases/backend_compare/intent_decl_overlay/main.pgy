@@ -12,7 +12,7 @@ subject Player
 
 ability Scouting
 {
-    require hp: Int;
+    fields hp: Int;
     func ScoutMark() -> String;
 }
 

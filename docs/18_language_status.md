@@ -113,15 +113,27 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - projection의 중심은 `tobject` 자체가 아니라 `relation/effect/zone/world` 문맥과 projection sync 흐름이다
 - `HasProjection(slotName)`는 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 상태를 읽는 query surface로 들어갔고, semantic/C/LLVM runtime parity까지 닫혀 있다
 - zone/world lifecycle은 C/LLVM 양쪽에서 flag + sync helper 기반 incremental semantics까지 올라왔지만 richer propagation model 자체는 아직 얕다
+- 베타 기준에서 먼저 믿어도 되는 relation/effect/projection surface는 다음이다:
+  - declaration + positional constructor
+  - `subject slot` / `object slot` / `tobject slot`
+  - `refresh` / `publish` / `bind`
+  - `HasProjection` / `HasLayer` / `HasState`
+  - zone/world sync helper 기반 incremental runtime parity
+- 베타 범위 밖으로 남겨둔 것은 다음이다:
+  - authority/resource/effect의 더 완전한 unified partial order
+  - 더 깊은 propagation model
+  - higher-order multi-layer runtime policy
 - `subject`와 `class`는 이제 parser/semantic뿐 아니라 C/LLVM method lowering, 저장/복사 규칙에서도 분기되기 시작했다
 - `subject slot`과 `ToObject` / `ToTObject` projection source는 subject host (`subject`, `subject`)에 허용되고 bare `class`는 제외된다
 - `subject`는 코어 host 선언으로 고정됐고 `subject Name { ... }`가 기본 표면이다
 - plain `Slot<subject-host>`와 secure `SecureSlot<subject-host>`는 local object-cell anchor로 동작한다
-- `own/ref Slot<subject-host>`와 `own/ref SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
+- `ref Slot<subject-host>`와 `own SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
 - secure boundary slot은 함수 body 안에서 paired `s_token` 심볼을 자동 제공받는다
 - secure boundary slot은 helper forwarding call에서도 paired token을 유지한다
+- 베타 기준에서 `own/ref` stable surface는 여기까지다. 일반 ownership system은 아직 surface에 올리지 않는다
 - LLVM backend는 nested member assignment와 world-owned zone mutation propagation까지 runtime smoke로 검증된다
 - 남은 공백은 deeper handle/runtime propagation model이다
+- `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` 표면은 남아 있지만, full quantum resource semantics는 베타 대상이 아니라 `v2 / experimental`이다
 - 클래식 OOP 계층(상속, 부모 호출)은 미지원
 - 패키지 매니저, WASM, product-grade debugger/LSP 같은 생태계 영역은 아직 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
@@ -165,3 +177,12 @@ v2에서 구현 예정:
 - `Entangle(a, b)` 얽힘 관계 추적
 - 관측 후 읽기 금지 (컴파일 에러)
 - 양자 자원 수명 주기 관리
+## Visibility and module boundary status
+
+The current implementation now closes the main visibility gap around callable surfaces.
+
+- top-level `public` / `private` cover nominal declarations, core domain declarations, and callable declarations
+- private `intent` and private `event` declarations are blocked across module boundaries
+- imported action contracts cannot reference private foreign `zone` or `effect` declarations through `within` / `causes`
+
+Remaining work is no longer basic visibility plumbing. The remaining surface work is mostly about richer diagnostics and additional convenience surface, not whether these declarations are actually hidden.

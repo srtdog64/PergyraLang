@@ -155,6 +155,8 @@
 - zone authority requires
 - action requires
 - generic ability baseline
+- canonical `fields` ability contract surface
+- action/step `requires` / `within` / `authorized by` / `causes` inheritance diagnostics
 
 이번 알파 범위에서 끝내야 할 것:
 - richer mismatch diagnostics
@@ -164,6 +166,7 @@
 판단:
 - 철학의 핵심 축이지만, 구현 깊이는 아직 `중간`이다
 - 존재는 분명하지만 “컴파일러가 항상 완전히 설명해 준다” 수준은 아니다
+- 단, `override` / `extends` / `dyn` 같은 보조 표면은 이 축의 core-closure 판정에서 분리해서 봐야 한다
 
 ### 4.2 Intent orchestration semantics
 
@@ -232,15 +235,18 @@
 - generic declaration baseline
 - generic ability baseline
 - 일부 bound validation
+- default type argument explicit reject
+- exact bound / ability-style bound / multi-bound baseline
+- `ability<T> where ...` bound의 reference/impl revalidation
 
-이번 알파 범위에서 끝내야 할 것:
-- default type arg
-- richer multi-bound closure
-- parser가 받는 표면 대비 full semantic closure
+이번 알파/베타 범위에서 끝내야 할 것:
+- default type arg를 영구 불지원 stable policy로 문서화할지 결정
+- broader type-family generalization 여부를 결정
+- parser가 받는 표면 대비 beta-stable semantic closure 범위를 고정
 
 판단:
 - parser가 넓게 받아들인다고 구현이 깊은 것은 아니다
-- generic은 아직 닫아야 할 표면이 남아 있다
+- generic은 stable subset이 생겼고, 남은 것은 주로 policy와 broader generalization 범위다
 
 ### 5.3 own/ref ownership surface
 
@@ -249,14 +255,14 @@
 - 일부 forwarding 경로
 - secure boundary paired-token 경로
 
-이번 알파 범위에서 끝내야 할 것:
-- 일반 타입 전반에 대한 ownership discipline
-- borrow-after-move 전면 closure
-- alias/rebind/escape 전체 모델
+베타 기준 고정:
+- stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`다
+- 일반 ownership system은 베타 범위 밖이다
+- unsupported 조합은 explicit semantic error로 유지한다
 
 판단:
 - `own/ref`는 존재하지만 아직 일반 목적 ownership system이라고 부르기 어렵다
-- 정확한 표현은 `anchored-slot subset이 먼저 닫힌 상태`다
+- 정확한 표현은 `anchored-slot subset이 stable surface로 닫힌 상태`다
 
 ---
 
@@ -265,6 +271,30 @@
 ### 6.1 Matching action contract pack
 
 현재 action에서 step으로 상속되는 기본 계약 묶음은 다음이다.
+
+### 6.2 relation/effect/projection stable subset
+
+베타 기준으로 지금 고정해서 읽어야 하는 surface:
+
+- `relation` / `effect` / `zone` / `world` declaration baseline
+- positional constructor baseline
+- `subject slot` / `object slot` / `tobject slot`
+- `refresh objectSlot from subjectSlot`
+- `publish dtoSlot from subjectSlot`
+- `bind slotName from sourceSlot`
+- `HasProjection` / `HasLayer` / `HasState` / world-side zone query family
+- C/LLVM 공통의 sync-helper 기반 incremental parity
+
+아직 과장하면 안 되는 것:
+
+- projection propagation 전체가 깊게 닫혔다고 말하는 것
+- authority/resource/effect unified lattice가 완성됐다고 말하는 것
+- zone/world runtime policy가 fully compositional하다고 말하는 것
+
+정확한 표현:
+
+- projection sync baseline은 stable하다
+- deeper propagation model은 아직 진행 중이다
 
 - `who`
 - `where`

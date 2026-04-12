@@ -46,7 +46,7 @@
 
 ### 2.2 fallback debt와 미구현의 혼동
 
-LLVM backend는 아직 `MIR-only complete`가 아니다.
+LLVM backend는 이제 MIR path에서 원본 `HIRProgram`을 직접 필요로 하지는 않는다.
 하지만 fallback debt가 있다는 사실과, 기능이 통째로 안 된다는 사실은 다르다.
 
 ### 2.3 이전 세션의 부분 수정 목록
@@ -59,10 +59,12 @@ LLVM backend는 아직 `MIR-only complete`가 아니다.
 
 ### 3.1 MIR-only completion debt
 
-- domain / intent 일부는 HIR-assisted
+- routine body와 top-level inventory source of truth는 MIR로 올라왔다
+- compiler MIR entry는 `llvm_codegen_with_mir(NULL, mir, ...)` 경로를 사용한다
+- 남은 debt는 `원본 HIR fallback`보다 `declaration inventory가 AST-carried view`라는 구조 debt다
 - MIR routine/sequence가 없으면 LLVM은 hard error
 - intent step의 `pre/guard/post/expect/invariant/on/subintent/compensate`
-  및 `zone/who/transfer` metadata carrier는 이제 MIR-only로 강제된다
+  및 `zone/who/transfer` metadata carrier는 MIR-only로 강제된다
 
 근거:
 
@@ -117,7 +119,7 @@ LLVM 관련 상태는 앞으로 이렇게 적는다.
 
 1. `validated by llvm-smoke`
 2. `validated by ABI pipeline`
-3. `MIR-led with HIR fallback debt`
+3. `MIR body + inventory-backed decl debt`
 4. `remaining debt`는 구체 항목만 적기
 
 이 기준을 쓰면 “부분 debt”와 “기능 누락”을 섞지 않게 된다.

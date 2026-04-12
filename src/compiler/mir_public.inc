@@ -23,6 +23,52 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         return NULL;
     }
 
+    mir->item_count = hir->item_count;
+    if (hir->item_count > 0) {
+        mir->items = calloc(hir->item_count, sizeof(HIRTopLevelItem));
+        if (mir->items == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+        memcpy(mir->items, hir->items, hir->item_count * sizeof(HIRTopLevelItem));
+    }
+
+#define MIR_COPY_AST_LIST(field) \
+    do { \
+        mir->field##_count = hir->field##_count; \
+        if (hir->field##_count > 0) { \
+            mir->field = calloc(hir->field##_count, sizeof(ASTNode *)); \
+            if (mir->field == NULL) { \
+                if (error_message != NULL) \
+                    *error_message = pergyra_strdup("out of memory"); \
+                mir_destroy(mir); \
+                return NULL; \
+            } \
+            memcpy(mir->field, hir->field, hir->field##_count * sizeof(ASTNode *)); \
+        } \
+    } while (0)
+
+    MIR_COPY_AST_LIST(externs);
+    MIR_COPY_AST_LIST(types);
+    MIR_COPY_AST_LIST(abilities);
+    MIR_COPY_AST_LIST(roles);
+    MIR_COPY_AST_LIST(parties);
+    MIR_COPY_AST_LIST(rosters);
+    MIR_COPY_AST_LIST(worlds);
+    MIR_COPY_AST_LIST(relations);
+    MIR_COPY_AST_LIST(effects);
+    MIR_COPY_AST_LIST(zones);
+    MIR_COPY_AST_LIST(events);
+    MIR_COPY_AST_LIST(intents);
+    MIR_COPY_AST_LIST(functions);
+    MIR_COPY_AST_LIST(executables);
+    mir->synthetic_executable_func = hir->synthetic_executable_func;
+    mir->has_main_function = hir->has_main_function;
+
+#undef MIR_COPY_AST_LIST
+
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *hir_routine = &hir->routines[i];
         MIRRoutine routine;
@@ -30,6 +76,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
         routine.name = hir_routine->name;
+        routine.ast = hir_routine->ast;
+        routine.is_action_like = hir_routine->is_action_like;
         routine.hir_routine = hir_routine;
         routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
         routine.owner_name = routine.rir_scope != NULL
@@ -191,6 +239,21 @@ mir_destroy(MIRProgram *mir)
         free(routine->value_summaries);
         free(routine->blocks);
     }
+    free(mir->items);
+    free(mir->externs);
+    free(mir->types);
+    free(mir->abilities);
+    free(mir->roles);
+    free(mir->parties);
+    free(mir->rosters);
+    free(mir->worlds);
+    free(mir->relations);
+    free(mir->effects);
+    free(mir->zones);
+    free(mir->events);
+    free(mir->intents);
+    free(mir->functions);
+    free(mir->executables);
     free(mir->routines);
     free(mir);
 }

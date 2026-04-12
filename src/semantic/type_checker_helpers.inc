@@ -817,6 +817,33 @@ find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
     return NULL;
 }
 
+static ASTNode *
+find_callable_decl_by_name(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt == NULL)
+            continue;
+        if (stmt->type == AST_FUNC_DECL
+            && stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, name) == 0)
+            return stmt;
+        if (stmt->type == AST_EVENT_DECL
+            && stmt->data.event_decl.name != NULL
+            && strcmp(stmt->data.event_decl.name, name) == 0)
+            return stmt;
+        if (stmt->type == AST_INTENT_DECL
+            && stmt->data.intent_decl.name != NULL
+            && strcmp(stmt->data.intent_decl.name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
 static bool
 decl_is_projection_source(const ASTNode *decl)
 {
@@ -1780,6 +1807,16 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             sig_buf);
         return TYPE_UNKNOWN;
     }
+    if (ctx->program_root != NULL
+        && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
+        ASTNode *decl = find_callable_decl_by_name(ctx->program_root, display_name);
+        if (decl != NULL && !explicit_type_reference_allowed(decl, expr, ctx)) {
+            semantic_error(ctx, expr,
+                "Callable '%s' is not accessible across the current visibility boundary",
+                display_name);
+            return sym->type->data.function.return_type;
+        }
+    }
     sym->is_used = true;
     semantic_record_effect(ctx, type_function_effects(sym->type));
     if (ctx->in_parallel
@@ -1961,10 +1998,21 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         }
                         if (bound != NULL && !satisfies) {
                             semantic_error(ctx, expr,
-                                "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'",
+                                "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
+                                "Reason:\n"
+                                "- function '%s' requires '%s: %s'\n"
+                                "- call-site inferred type argument is '%s'\n"
+                                "Fix:\n"
+                                "- pass an argument whose type satisfies '%s'\n"
+                                "- or relax the function where-clause",
                                 concrete_type->name != NULL ? concrete_type->name : "<type>",
                                 bound_name != NULL ? bound_name : "<constraint>",
-                                param_name);
+                                param_name,
+                                display_name,
+                                param_name,
+                                bound_name != NULL ? bound_name : "<constraint>",
+                                concrete_type->name != NULL ? concrete_type->name : "<type>",
+                                bound_name != NULL ? bound_name : "<constraint>");
                         }
                     }
                 }

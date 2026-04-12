@@ -91,6 +91,7 @@ typedef struct
     bool             is_reachable;
     bool             is_cleanup;
     size_t           source_hir_block_id;
+    ASTNode         *source_ast;
     size_t          *predecessors;
     size_t           predecessor_count;
     size_t           succ_true;
@@ -144,6 +145,8 @@ typedef struct
     MIRScopeKind       kind;
     const char        *owner_name;
     const char        *name;
+    ASTNode           *ast;
+    bool               is_action_like;
     const HIRRoutine  *hir_routine;
     const RIRScope    *rir_scope;
     MIRBasicBlock     *blocks;
@@ -174,6 +177,38 @@ struct MIRProgram
 {
     MIRRoutine *routines;
     size_t      routine_count;
+    HIRTopLevelItem *items;
+    size_t      item_count;
+    ASTNode   **externs;
+    size_t      extern_count;
+    ASTNode   **types;
+    size_t      type_count;
+    ASTNode   **abilities;
+    size_t      ability_count;
+    ASTNode   **roles;
+    size_t      role_count;
+    ASTNode   **parties;
+    size_t      party_count;
+    ASTNode   **rosters;
+    size_t      roster_count;
+    ASTNode   **worlds;
+    size_t      world_count;
+    ASTNode   **relations;
+    size_t      relation_count;
+    ASTNode   **effects;
+    size_t      effect_count;
+    ASTNode   **zones;
+    size_t      zone_count;
+    ASTNode   **events;
+    size_t      event_count;
+    ASTNode   **intents;
+    size_t      intent_count;
+    ASTNode   **functions;
+    size_t      function_count;
+    ASTNode   **executables;
+    size_t      executable_count;
+    ASTNode    *synthetic_executable_func;
+    bool        has_main_function;
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);

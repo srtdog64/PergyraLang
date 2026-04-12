@@ -345,6 +345,379 @@ test_misc_grammar_edges(void)
         ast_destroy(program);
     }
 
+    TEST("private top-level subject stays hidden across modules");
+    {
+        const char *module_path = "test_private_subject_module_a.pgy";
+        const char *main_path = "test_private_subject_module_main_a.pgy";
+        const char *module_source =
+            "private subject Vault {\n"
+            "    let code: Int;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_subject_module_a.pgy\";\n"
+            "func Main() -> Int {\n"
+            "    let v = Vault(7);\n"
+            "    return 0;\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Constructor 'Vault' is not accessible across the current visibility boundary"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("public top-level subject remains visible across modules");
+    {
+        const char *module_path = "test_public_subject_module_a.pgy";
+        const char *main_path = "test_public_subject_module_main_a.pgy";
+        const char *module_source =
+            "public subject Vault {\n"
+            "    let code: Int;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_public_subject_module_a.pgy\";\n"
+            "func Main() -> Int {\n"
+            "    let v = Vault(7);\n"
+            "    return v.code;\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count == 0);
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private top-level zone stays hidden across modules");
+    {
+        const char *module_path = "test_private_zone_module_a.pgy";
+        const char *main_path = "test_private_zone_module_main_a.pgy";
+        const char *module_source =
+            "private zone VaultZone {\n"
+            "    subject slot owner: Keeper;\n"
+            "}\n"
+            "subject Keeper { let id: Int; }\n";
+        const char *main_source =
+            "import \"test_private_zone_module_a.pgy\";\n"
+            "func Main() -> Void {\n"
+            "    let z = VaultZone(Keeper(1));\n"
+            "    return;\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Constructor 'VaultZone' is not accessible across the current visibility boundary"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private zone cannot leak through imported action contract");
+    {
+        const char *module_path = "test_private_zone_action_module_a.pgy";
+        const char *main_path = "test_private_zone_action_module_main_a.pgy";
+        const char *module_source =
+            "private zone HiddenZone {\n"
+            "    subject slot hero: Hero;\n"
+            "}\n"
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Patrol(self) -> Void within HiddenZone {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_zone_action_module_a.pgy\";\n"
+            "func Main() -> Void { return; }\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot reference non-exported zone 'HiddenZone'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private effect cannot leak through imported action contract");
+    {
+        const char *module_path = "test_private_effect_action_module_a.pgy";
+        const char *main_path = "test_private_effect_action_module_main_a.pgy";
+        const char *module_source =
+            "private effect HiddenEffect {\n"
+            "    for target: Hero\n"
+            "}\n"
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Trigger(self) -> Void causes HiddenEffect {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_effect_action_module_a.pgy\";\n"
+            "func Main() -> Void { return; }\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot reference non-exported effect 'HiddenEffect'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private intent stays hidden across modules");
+    {
+        const char *module_path = "test_private_intent_module_a.pgy";
+        const char *main_path = "test_private_intent_module_main_a.pgy";
+        const char *module_source =
+            "private intent HiddenIntent {\n"
+            "    with value: Int;\n"
+            "    step Check {\n"
+            "        on: value > 0;\n"
+            "    }\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_intent_module_a.pgy\";\n"
+            "func Main() -> Bool {\n"
+            "    return HiddenIntent(1);\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Callable 'HiddenIntent' is not accessible across the current visibility boundary"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("private event stays hidden across modules");
+    {
+        const char *module_path = "test_private_event_module_a.pgy";
+        const char *main_path = "test_private_event_module_main_a.pgy";
+        const char *module_source =
+            "private event HiddenPing(value: Int);\n";
+        const char *main_source =
+            "import \"test_private_event_module_a.pgy\";\n"
+            "func Main() -> Void {\n"
+            "    HiddenPing(1);\n"
+            "    return;\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Callable 'HiddenPing' is not accessible across the current visibility boundary"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("own Slot<subject-host> parameter is rejected outside closed subset");
+    {
+        const char *source =
+            "subject Session { let id: Int; }\n"
+            "func Consume(own s: Slot<Session>) -> Void {\n"
+            "    Release(s);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Plain Slot<subject-host> parameters currently support only 'ref'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref SecureSlot<subject-host> parameter is rejected outside closed subset");
+    {
+        const char *source =
+            "subject Session { let id: Int; }\n"
+            "func Inspect(ref s: SecureSlot<Session>) -> Void {\n"
+            "    return;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "SecureSlot<subject-host> parameters currently support only 'own'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("explicit cross-module private method access is rejected");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -1783,6 +2156,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1886,6 +2261,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Comparable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1951,6 +2328,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Cloneable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2001,6 +2380,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2058,6 +2439,8 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Comparable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2346,6 +2729,28 @@ test_misc_grammar_edges(void)
         const char *source =
             "use datetime;\n"
             "func Main() -> Void { Log(Now()); }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("new known stdlib use remains accepted");
+    {
+        const char *source =
+            "use money;\n"
+            "func Main() -> Void {\n"
+            "    let amount: Money = MoneyOf(100, \"KRW\");\n"
+            "    Log(RenderMoney(amount));\n"
+            "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
@@ -3870,6 +4275,39 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("party role slot reports required and actual generic ability mismatch");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<String> { func Ping() -> Void { return; } }\n"
+            "}\n"
+            "party RaidTeam {\n"
+            "    role slot fighter: Combatable<Int>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "requires ability 'Combatable<Int>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implement 'Combatable<String>' instead"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("role impl rejects generic type arguments when ability is non-generic");
     {
         const char *source =
@@ -4030,6 +4468,48 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("generic party declaration rejects default type argument for now");
+    {
+        const char *source =
+            "party RaidTeam<T = Int> {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type arguments are not supported yet in party declarations"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("generic roster declaration rejects default type argument for now");
+    {
+        const char *source =
+            "roster RaidRoster<T = Int> {\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Default generic type arguments are not supported yet in roster declarations"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("generic ability declaration rejects unknown where bound");
     {
         const char *source =
@@ -4045,6 +4525,93 @@ test_misc_grammar_edges(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Unknown constraint type 'MissingBound'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("action requires rejects generic ability reference that violates ability where bound");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Hero {\n"
+            "    action Do(self) -> Void requires Bufferable<String> {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "uses ability 'Bufferable' with generic argument 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("role impl rejects generic ability reference that violates ability where bound");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Bufferable<String> {\n"
+            "        func Put(value: String) -> Void { return; }\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "role 'HeroRole' uses ability 'Bufferable' with generic argument 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party role slot rejects generic ability reference that violates ability where bound");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Hero { let hp: Int; }\n"
+            "party RaidTeam {\n"
+            "    role slot fighter: Bufferable<String>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "party role slot 'fighter' uses ability 'Bufferable' with generic argument 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -29,6 +29,24 @@ Pergyra는 이종 자원(메모리, GPU, 네트워크, 양자)을 같은 Slot �
 
 즉 이 문서는 "장기 ownership 비전"보다 **현재 닫힌 boundary subset**을 우선 설명한다.
 
+## 베타 기준 판정
+
+베타 기준에서 `own/ref`는 **일반 목적 ownership system**이 아니다.
+
+베타 stable surface:
+
+- `ref Slot<subject-host>`
+- `own SecureSlot<subject-host>`
+
+베타 범위 밖:
+
+- 일반 값 타입 전반에 대한 ownership discipline
+- `DeviceSlot<T>` / `QubitSlot` / arbitrary `Slot<T>` 전반에 대한 함수 경계 ownership
+- region-based 또는 multi-level alias summary ownership model
+
+즉 현재 베타 문서에서 `own/ref`는 "확장 중인 범용 시스템"이 아니라
+**anchored boundary ownership subset**으로 읽어야 한다.
+
 ## 기본 규칙
 
 ### 1. 대입은 move

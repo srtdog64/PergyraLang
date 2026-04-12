@@ -2,6 +2,146 @@
 
 마지막 업데이트: 2026-04-12
 
+## 현재 상태 냉정 평가 (2026-04-12 재정렬)
+
+### 종합 판단: Late-Stage Alpha
+
+실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
+
+판정 기준:
+- 베타 원칙인 `부분 구현 상태를 남기지 않는다`를 아직 충족하지 못함
+- 키워드 부족이 아니라 `구현 depth 불균형`이 문제임
+- parser가 받는 surface 중 일부가 semantic/C/LLVM/runtime/test/documentation까지 완전히 닫히지 않음
+
+### 이미 닫힌 축과 더 이상 베타 차단이 아닌 것
+
+- `public/private/export` module boundary
+  - top-level nominal/domain/callable visibility 정렬 완료
+  - private `func/intent/event` cross-module call 차단 완료
+  - private `zone/effect` action-contract leakage 차단 완료
+- nominal token split
+  - `subject/class/struct/object/tobject`는 lexer token 레벨에서 이미 분리됨
+- ability field surface
+  - legacy `require` alias 제거, `fields` canonical surface 고정
+- generic ability baseline
+  - `ability<T>`, `requires Ability<T>`, `impl ability Ability<T>`, zone authority generic ref, mismatch diagnostics baseline 존재
+- 양자 surface
+  - 베타 대상에서 제외
+  - `v2 / experimental`로만 추적
+
+### 현재 베타를 막는 실제 B0 갭
+
+#### 1. Intent / Zone / World closure
+
+현재:
+- intent orchestration, inferred contract, rollback/cleanup carrier, zone/world declaration과 기본 lowering은 존재
+- zone/world projection/layer/state query도 존재
+
+남은 것:
+- embedding ownership / handoff policy를 surface trust 수준까지 명확히 고정
+- richer runtime observability
+- cross-layer propagation policy의 더 깊은 closure
+- C/LLVM parity를 declaration/runtime/diagnostic까지 같은 품질로 정렬
+
+#### 2. relation / effect / projection closure
+
+현재:
+- declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 존재
+- effect join/meet/conflict API와 basic closure 존재
+
+남은 것:
+- authority/resource와 effect partial order의 더 완전한 통합
+- projection propagation policy 심화
+- runtime/diagnostic contract를 더 설명 가능하게 정리
+- C/LLVM parity에서 helper-heavy edge path 감소
+
+#### 3. generic contract closure
+
+현재:
+- generic ability declaration/reference baseline 존재
+- action / intent step / zone authority / party role slot generic mismatch diagnostics baseline 존재
+- `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
+- default type argument는 parser surface 대비 semantic에서 explicit reject로 고정되어 있음
+- multi-bound `where T: A + B` baseline은 현재 동작함
+- hidden/default-export와 generic ability ref 규칙 정렬 완료
+
+남은 것:
+- default type argument를 영구 불지원 stable policy로 박을지 최종 문서화
+- broader type-family generalization 여부 결정
+- richer generic constraint validation의 범위를 어디까지 beta contract로 삼을지 고정
+- module contract `use/require`까지의 일관된 closure
+
+#### 4. own/ref closure
+
+현재:
+- anchored subset은 닫혀 있음
+  - `ref Slot<subject-host>`
+  - `own SecureSlot<subject-host>`
+- 관련 진단/예제/문서는 현재 구현 기준으로 정렬됨
+
+판정:
+- 베타 기준 own/ref는 anchored subset만 stable surface로 본다
+- 일반 ownership system은 이번 베타 범위에서 제외한다
+- 따라서 own/ref의 B0 클로저는 `확장`이 아니라 `surface trust 고정`으로 본다
+
+### 레이어별 현재 진실
+
+#### 시맨틱
+
+- 강한 부분:
+  - nominal family
+  - subject/action
+  - async/channel/select
+  - generic ability baseline
+  - visibility/export boundary
+- 아직 얕은 부분:
+  - richer generic constraint validation
+  - general own/ref
+  - event closure의 잔여 negative path
+  - collection semantic depth
+
+#### 코드 생성
+
+- C backend:
+  - 코어 surface는 가장 성숙
+- LLVM backend:
+  - MIR-led / HIR-assisted hybrid
+  - ordinary routine은 MIR 중심이지만 domain declaration과 일부 bootstrap/helper path에 HIR/AST 의존 잔존
+  - pure MIR-only라고 부르기에는 아직 이름이 과함
+
+#### 런타임
+
+- 강한 부분:
+  - slot / secure baseline
+  - async/channel basic runtime
+  - basic intent execution/rollback
+- 아직 얕은 부분:
+  - intent history / observability
+  - channel backpressure protocol
+  - party edge-path completeness
+  - richer zone/world runtime policy
+
+### 컬렉션 / 표면 신뢰
+
+- `Map<K, V>`는 현재 `String | Int` key만 stable surface
+- 이것은 버그가 아니라 현재 contract
+- 나머지 key type을 지원하지 않으면 surface trust 문서에 명시적으로 남겨야 함
+
+### 툴링
+
+- LSP / formatter는 베타 차단 핵심이 아님
+- debugger / package manager / WASM도 베타 차단 핵심이 아님
+- 이들은 B0 closure 이후에 다루는 것이 맞음
+
+### 베타 직전 정리 원칙
+
+1. 새 키워드/새 축을 더 추가하지 않는다
+2. 남은 미완성 surface를 `완성`하거나 `experimental`로 내린다
+3. `양자`, `WASM`, `패키지 매니저`, `고급 디버거`는 베타 대상에서 제외한다
+4. B0 4개를 닫기 전에는 베타라고 부르지 않는다
+
+---
+
 ## 완료 (최근)
 
 - [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor

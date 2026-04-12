@@ -13,11 +13,6 @@ func Middle(ref s: Slot<Vec2>) -> Void {
     Log("middle-ref");
 }
 
-func Consume(own s: Slot<Vec2>) -> Void {
-    Release(s);
-    Log("plain-consumed");
-}
-
 func ConsumeSecure(own s: SecureSlot<Vec2>) -> Void {
     Log("secure-consumed");
 }
@@ -32,7 +27,8 @@ func Main() -> Void {
 
     let plain: Slot<Vec2> = Vec2(0, 0);
     Middle(plain);
-    Consume(plain);
+    Release(plain);
+    Log("plain-consumed");
 
     let guarded: SecureSlot<Vec2> = Vec2(5, 6);
     RelaySecure(guarded);

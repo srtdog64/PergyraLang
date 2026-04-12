@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-11 (name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체, `refresh/publish/bind map { ... }` 연결, explicit `Clone(...)` surface 정식화, world zone embedding warning 추가)
+마지막 업데이트: 2026-04-12 (visibility/callable export boundary closure, name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체, `refresh/publish/bind map { ... }` 연결, explicit `Clone(...)` surface 정식화, world zone embedding warning 추가)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -23,12 +23,13 @@
 
 | 항목 | 현재 상태 | 이번 착수 내용 | 다음 구현 단위 |
 |------|-----------|----------------|----------------|
-| Effect lattice | 부분 구현 | `effect_mask` closure, join/meet/compare/conflict API, 함수-level conflict warning, if/match branch-local effect join/conflict 경고, authority/resource helper 정리 | authority/resource를 포함한 richer partial order로 확장 |
+| Effect lattice | 부분 구현 | `effect_mask` closure, join/meet/compare/conflict API, 함수-level conflict warning, if/match branch-local effect join/conflict 경고, authority/resource helper 정리, `secure` vs `collapse`까지 resource-boundary conflict class 정렬 | authority/resource를 포함한 richer partial order로 확장 |
 | Capability security | 부분 구현 | `SecureSlot` + `Token<T>` pairing, channel transport 차단, zone/intent authority 규칙, runtime file I/O/fingerprint policy 강화 | 토큰/권한/호출 계약을 capability/type rule로 더 일반화 |
-| MIR -> LLVM | 진행 중 | ordinary/async function MIR 경로 고정, intent/class/subject MIR carrier 확장, main-wrapper top-level executable synthetic MIR routine 추가, intent step check/eval/meta MIR-only 강제 | domain/intent HIR-assisted path 축소 |
+| MIR -> LLVM | 진행 중 | routine body MIR 경로 고정, compiler MIR entry에서 원본 HIR direct dependency 제거, declaration/top-level inventory를 MIRProgram으로 이관, intent/class/subject MIR carrier 확장, intent step check/eval/meta MIR-only 강제 | dedicated declaration IR 없이 AST-carried inventory를 쓰는 구조 debt 축소 |
 | Debugger / Formatter / LSP | 진행 중 | debugger breakpoint/backtrace 명령, formatter `--check`+parse guard+idempotent roundtrip guard, LSP completion/documentSymbol/definition/references/rename 추가 | formatter AST-aware layout, LSP semantic symbol/diagnostic 확장 |
 | Stack slot / escape analysis | 진행 중 | return/call/channel-send 기반 slot escape 분류/경고 추가, LLVM AST path에서 non-escaping local slot을 entry-hoist 대신 current-block alloca로 sink | backend local sinking/elision 연결 확대 |
 | Generic `where` validation | 진행 중 | func/class/role bound validation, function call-site check, class specialization enforcement 추가 | generic instantiation 전반과 richer diagnostics 확장 |
+| Visibility / export boundary | 구현 정렬 | top-level nominal/domain/callable `public/private`, imported private `func/intent/event` call 차단, private `zone/effect` action-contract leakage 차단, syntax/contracts/status docs 동기화 | richer tooling presentation only |
 
 ## 2. 항목별 현재 진실
 
@@ -47,6 +48,15 @@
 - 함수-level conflicting effect 조합 warning
 - if/match branch-local effect delta를 join하고 conflicting branch 조합을 warning으로 표시
 - authority/resource helper (`requires_authority`, `touches_resource_boundary`)
+- resource-boundary conflict class는 `secure` vs `remote|collapse`까지 정렬됨
+
+베타 stable subset:
+
+- function-level declared/inferred effect contract
+- join/meet/conflict API
+- branch-local join/conflict warning
+- `requires_authority` / `touches_resource_boundary` helper
+- relation/effect/zone/world projection sync와의 기본 연결
 
 부족한 것:
 
@@ -105,13 +115,13 @@
 - top-level executable main-wrapper는 synthetic executable MIR routine을 통해 wrapper의 직접 AST loop를 줄였다
 - intent는 cleanup/rollback/invalidation topology를 MIR에서 읽고, run-body step sequence도 MIR `STMT(intent step)` carrier를 읽는다
 - intent step의 `pre/guard/post/expect/invariant/on/subintent/compensate` 및 `zone/who/transfer` metadata는 LLVM에서 MIR carrier를 필수로 요구한다
-- 하지만 다음 범주에 HIR-assisted debt가 남음
-  - domain/world/zone/relation/effect declaration emission
-  - intent/domain 내부의 일부 보조 AST-assisted 해석
+- 하지만 다음 범주에 decl-inventory debt가 남음
+  - domain/world/zone/relation/effect declaration emission이 dedicated decl IR 없이 AST inventory를 소비함
+  - intent/domain 내부의 일부 보조 해석이 AST inventory helper에 의존함
 
 부족한 것:
 
-- backend에서 HIR direct emission 제거
+- backend에서 AST inventory helper debt 제거
 - MIR-only contract 강제
 - `intent`를 expression-level MIR instruction contract로 더 세분화
 
@@ -172,6 +182,15 @@
 - generic class specialization annotation(`Box<Int>`)에서 class-level where constraint를 실제로 강제한다
 - 첫 ability-style constraint(`where T: Comparable`)는 subject-bound role의 `impl ability`를 통해 일부 만족 판정을 한다
 - foreign non-exported ability는 cross-module `role impl ability` / `action requires`에서 거부된다
+- function/class where-clause constraint 실패는 이제 `Reason / Fix` 형식의 richer diagnostic을 제공한다
+
+베타 stable subset:
+
+- default type argument는 explicit reject
+- exact bound (`where T: Int`) 동작
+- ability-style bound (`where T: Comparable`) baseline 동작
+- multi-bound (`where T: A + B`) baseline 동작
+- `ability<T> where ...` bound는 reference/impl 경로에서 재검증
 
 아직 부족한 것:
 
@@ -198,11 +217,20 @@
 - subject/role satisfaction은 이제 base name이 아니라 full generic ability ref 기준으로 판정된다
 - foreign hidden ability / default-export ability 정책도 generic ability ref와 같은 규칙으로 정렬되었다
 - `ability<T> where ...` declaration surface도 parser/AST/semantic에 연결되었다
-- generic mismatch diagnostics는 이제 `required Ability<Int>` vs `actual Ability<String>`를 action/zone 경로에서 직접 보여준다
+- generic mismatch diagnostics는 이제 `required Ability<Int>` vs `actual Ability<String>`를 action/intent step/zone/party role slot 경로에서 직접 보여준다
+- `ability<T> where ...` bound는 `requires Ability<...>` / `impl ability Ability<...>` / party role slot ability ref에서도 다시 검증된다
+
+베타 stable subset:
+
+- `ability<T>`
+- `requires Ability<T>`
+- `impl ability Ability<T>`
+- zone authority generic ability ref
+- action/intent step/zone/party role slot mismatch diagnostics
+- hidden/default-export와 generic ref visibility alignment
 
 부족한 것:
 
-- intent/step/party role slot까지 같은 품질의 richer diagnostics 확장
 - generic ability declaration의 richer constraint validation
 - 예제 전반의 generic ability authoring 확대
 

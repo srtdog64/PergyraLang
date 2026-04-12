@@ -74,50 +74,56 @@ llvm_decl_nominal_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     if (ctx->hir == NULL)
         return false;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
-        if (stmt == NULL)
-            continue;
-        switch (stmt->type) {
-        case AST_CLASS_DECL:
-            if (stmt->data.class_decl.name != NULL
-                && strcmp(stmt->data.class_decl.name, type_name) == 0
-                && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
-                return true;
-            break;
-        case AST_PARTY_DECL:
-            if (stmt->data.party_decl.name != NULL
-                && strcmp(stmt->data.party_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_ROSTER_DECL:
-            if (stmt->data.roster_decl.name != NULL
-                && strcmp(stmt->data.roster_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_WORLD_DECL:
-            if (stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_RELATION_DECL:
-            if (stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_EFFECT_DECL:
-            if (stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, type_name) == 0)
-                return true;
-            break;
-        case AST_ZONE_DECL:
-            if (stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, type_name) == 0)
-                return true;
-            break;
-        default:
-            break;
-        }
+    for (size_t i = 0; i < ctx->hir->type_count; i++) {
+        ASTNode *stmt = ctx->hir->types[i];
+        if (stmt != NULL
+            && stmt->type == AST_CLASS_DECL
+            && stmt->data.class_decl.name != NULL
+            && strcmp(stmt->data.class_decl.name, type_name) == 0
+            && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->party_count; i++) {
+        ASTNode *stmt = ctx->hir->parties[i];
+        if (stmt != NULL
+            && stmt->data.party_decl.name != NULL
+            && strcmp(stmt->data.party_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->roster_count; i++) {
+        ASTNode *stmt = ctx->hir->rosters[i];
+        if (stmt != NULL
+            && stmt->data.roster_decl.name != NULL
+            && strcmp(stmt->data.roster_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->world_count; i++) {
+        ASTNode *stmt = ctx->hir->worlds[i];
+        if (stmt != NULL
+            && stmt->data.world_decl.name != NULL
+            && strcmp(stmt->data.world_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->relation_count; i++) {
+        ASTNode *stmt = ctx->hir->relations[i];
+        if (stmt != NULL
+            && stmt->data.relation_decl.name != NULL
+            && strcmp(stmt->data.relation_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->effect_count; i++) {
+        ASTNode *stmt = ctx->hir->effects[i];
+        if (stmt != NULL
+            && stmt->data.effect_decl.name != NULL
+            && strcmp(stmt->data.effect_decl.name, type_name) == 0)
+            return true;
+    }
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
+        if (stmt != NULL
+            && stmt->data.zone_decl.name != NULL
+            && strcmp(stmt->data.zone_decl.name, type_name) == 0)
+            return true;
     }
 
     return false;
@@ -129,10 +135,9 @@ llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
     if (ctx == NULL || ctx->hir == NULL || ctx->current_class_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < ctx->hir->item_count; i++) {
-        ASTNode *stmt = ctx->hir->items[i].ast;
+    for (size_t i = 0; i < ctx->hir->zone_count; i++) {
+        ASTNode *stmt = ctx->hir->zones[i];
         if (stmt != NULL
-            && stmt->type == AST_ZONE_DECL
             && stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, ctx->current_class_name) == 0) {
             return stmt;

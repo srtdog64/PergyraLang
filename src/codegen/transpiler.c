@@ -187,6 +187,48 @@ hir_requires_thread_pool(const HIRProgram *hir)
     return false;
 }
 
+static void
+transpiler_build_hir_view_from_mir(const MIRProgram *mir, HIRProgram *hir_view)
+{
+    if (hir_view == NULL)
+        return;
+    memset(hir_view, 0, sizeof(*hir_view));
+    if (mir == NULL)
+        return;
+    hir_view->items = mir->items;
+    hir_view->item_count = mir->item_count;
+    hir_view->externs = mir->externs;
+    hir_view->extern_count = mir->extern_count;
+    hir_view->types = mir->types;
+    hir_view->type_count = mir->type_count;
+    hir_view->abilities = mir->abilities;
+    hir_view->ability_count = mir->ability_count;
+    hir_view->roles = mir->roles;
+    hir_view->role_count = mir->role_count;
+    hir_view->parties = mir->parties;
+    hir_view->party_count = mir->party_count;
+    hir_view->rosters = mir->rosters;
+    hir_view->roster_count = mir->roster_count;
+    hir_view->worlds = mir->worlds;
+    hir_view->world_count = mir->world_count;
+    hir_view->relations = mir->relations;
+    hir_view->relation_count = mir->relation_count;
+    hir_view->effects = mir->effects;
+    hir_view->effect_count = mir->effect_count;
+    hir_view->zones = mir->zones;
+    hir_view->zone_count = mir->zone_count;
+    hir_view->events = mir->events;
+    hir_view->event_count = mir->event_count;
+    hir_view->intents = mir->intents;
+    hir_view->intent_count = mir->intent_count;
+    hir_view->functions = mir->functions;
+    hir_view->function_count = mir->function_count;
+    hir_view->executables = mir->executables;
+    hir_view->executable_count = mir->executable_count;
+    hir_view->synthetic_executable_func = mir->synthetic_executable_func;
+    hir_view->has_main_function = mir->has_main_function;
+}
+
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 #define TRANSPILE_SSA_MAP_CAPACITY 256
 #define TRANSPILE_SSA_NAME_BUCKETS 1024
@@ -207,8 +249,6 @@ static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
                                                       const ASTNode *func_decl);
 static const MIRRoutine *transpiler_find_mir_intent(const TranspilerCtx *ctx,
                                                     const ASTNode *intent_decl);
-static const HIRBasicBlock *transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine,
-                                                              size_t block_id);
 static bool transpiler_parse_versioned_name(const char *versioned,
                                             char *base,
                                             size_t base_size,
@@ -1125,25 +1165,6 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
     return NULL;
 }
 
-static const HIRBasicBlock *
-transpiler_find_hir_block_for_mir(const MIRRoutine *mir_routine, size_t block_id)
-{
-    const MIRBasicBlock *mir_block;
-    size_t hir_block_id;
-
-    if (mir_routine == NULL || mir_routine->hir_routine == NULL
-        || !mir_routine->hir_routine->has_cfg
-        || block_id >= mir_routine->block_count) {
-        return NULL;
-    }
-    mir_block = &mir_routine->blocks[block_id];
-    hir_block_id = mir_block->source_hir_block_id;
-
-    if (hir_block_id == SIZE_MAX || hir_block_id >= mir_routine->hir_routine->cfg.block_count)
-        return NULL;
-    return &mir_routine->hir_routine->cfg.blocks[hir_block_id];
-}
-
 static bool
 transpiler_parse_versioned_name(const char *versioned, char *base, size_t base_size,
                                 size_t *version_out)
@@ -1303,29 +1324,16 @@ transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
                                           const MIRBasicBlock *block)
 {
     const ASTNode *source_stmt = NULL;
-    const HIRBasicBlock *hir_block = NULL;
     uint32_t line = 0;
     uint32_t column = 0;
 
     if (out == NULL || routine == NULL || block == NULL)
         return;
 
-    if (routine->hir_routine != NULL && routine->hir_routine->has_cfg
-        && block->source_hir_block_id != SIZE_MAX
-        && block->source_hir_block_id < routine->hir_routine->cfg.block_count) {
-        hir_block = &routine->hir_routine->cfg.blocks[block->source_hir_block_id];
-        if (hir_block != NULL) {
-            if (hir_block->statement_count > 0)
-                source_stmt = hir_block->statements[0];
-            else if (hir_block->terminator_condition != NULL)
-                source_stmt = hir_block->terminator_condition;
-            else if (hir_block->terminator_value != NULL)
-                source_stmt = hir_block->terminator_value;
-            if (source_stmt != NULL) {
-                line = source_stmt->line;
-                column = source_stmt->column;
-            }
-        }
+    source_stmt = block->source_ast;
+    if (source_stmt != NULL) {
+        line = source_stmt->line;
+        column = source_stmt->column;
     }
 
     if (source_stmt != NULL) {
@@ -1633,10 +1641,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      char *reason,
                                      size_t reason_cap)
 {
-    const HIRBasicBlock *hir_block = transpiler_find_hir_block_for_mir(mir_routine, block->id);
     TranspilerSSANameMap ssa_map = {0};
     TranspilerSSANameMap *ssa_map_out = &ssa_map;
     const void *saved_active_ssa_map;
+    bool ok = true;
 
     if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
         return false;
@@ -1669,116 +1677,125 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     saved_active_ssa_map = ctx->active_ssa_map;
     ctx->active_ssa_map = ssa_map_out;
 
-    if (hir_block != NULL) {
-        size_t def_index = 0;
-        for (size_t i = 0; i < hir_block->statement_count; i++) {
-            ASTNode *stmt = hir_block->statements[i];
-            if (stmt == NULL
-                || stmt->type == AST_IF_STMT
-                || stmt->type == AST_WHILE_LOOP
-                || stmt->type == AST_RETURN)
-                continue;
-            if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
-                const char *saved_type_hint;
-                char *rendered_type_hint = NULL;
-                char *local_type_name_owned = NULL;
-                while (def_index < block->instruction_count
-                       && block->instructions[def_index].kind != MIR_INST_DEF)
-                    def_index++;
-                const MIRInstruction *def_inst =
-                    (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
-                if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
-                    || def_inst->arg0 == NULL || def_inst->result_name == NULL
-                    || strcmp(def_inst->arg0, stmt->data.let_decl.name) != 0) {
-                    /* Dead SSA defs may be removed by MIR DCE. In that case the
-                     * original let initializer is semantically dead in the MIR
-                     * subset and should not be emitted back into C. */
-                    continue;
-                }
-                char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
-                saved_type_hint = ctx->active_type_hint;
-                if (stmt->data.let_decl.type != NULL) {
-                    rendered_type_hint = render_type_name(stmt->data.let_decl.type);
-                    ctx->active_type_hint = rendered_type_hint;
-                }
-                if (rendered_type_hint != NULL)
-                    local_type_name_owned = pergyra_strdup(rendered_type_hint);
-                else {
-                    const char *inferred = infer_expression_type_name(ctx, stmt->data.let_decl.initializer);
-                    if (inferred != NULL)
-                        local_type_name_owned = pergyra_strdup(inferred);
-                }
-                char *rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx,
-                                                        ssa_map_out);
-                ctx->active_type_hint = saved_type_hint;
-                free(rendered_type_hint);
-                if (rhs == NULL) {
-                    free(local_type_name_owned);
-                    if (reason != NULL && reason_cap > 0)
-                        snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to render initializer for '%s'",
-                                 block->id, stmt->data.let_decl.name != NULL ? stmt->data.let_decl.name : "<binding>");
-                    return false;
-                }
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        ASTNode *stmt = inst->ast;
+
+        if (inst->kind == MIR_INST_DEF
+            && stmt != NULL
+            && stmt->type == AST_LET_DECL
+            && stmt->data.let_decl.name != NULL
+            && inst->arg0 != NULL
+            && inst->result_name != NULL
+            && strcmp(inst->arg0, stmt->data.let_decl.name) == 0) {
+            const char *saved_type_hint = ctx->active_type_hint;
+            char *rendered_type_hint = NULL;
+            char *local_type_name_owned = NULL;
+            char *lhs = NULL;
+            char *rhs = NULL;
+
+            if (stmt->data.let_decl.type != NULL) {
+                rendered_type_hint = render_type_name(stmt->data.let_decl.type);
+                ctx->active_type_hint = rendered_type_hint;
+            }
+            if (rendered_type_hint != NULL)
+                local_type_name_owned = pergyra_strdup(rendered_type_hint);
+            else if (stmt->data.let_decl.initializer != NULL) {
+                const char *inferred =
+                    infer_expression_type_name(ctx, stmt->data.let_decl.initializer);
+                if (inferred != NULL)
+                    local_type_name_owned = pergyra_strdup(inferred);
+            }
+
+            lhs = transpiler_make_c_ssa_name(inst->result_name);
+            rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx, ssa_map_out);
+            ctx->active_type_hint = saved_type_hint;
+            free(rendered_type_hint);
+
+            if (rhs == NULL) {
                 free(lhs);
-                free(rhs);
-                if (!transpiler_ssa_name_map_set(ssa_map_out, stmt->data.let_decl.name,
-                                                def_inst->result_name)) {
-                    free(local_type_name_owned);
-                    return false;
-                }
-                if (local_type_name_owned != NULL)
-                    register_typed_var(ctx, stmt->data.let_decl.name, local_type_name_owned);
                 free(local_type_name_owned);
-                def_index++;
-                continue;
+                if (reason != NULL && reason_cap > 0) {
+                    snprintf(reason, reason_cap,
+                             "MIR block %zu emission failed: unable to render initializer for '%s'",
+                             block->id,
+                             stmt->data.let_decl.name != NULL
+                                 ? stmt->data.let_decl.name
+                                 : "<binding>");
+                }
+                ok = false;
+                break;
             }
-            if (stmt->type == AST_ASSIGNMENT
-                && stmt->data.assignment.target != NULL
-                && stmt->data.assignment.target->type == AST_IDENTIFIER) {
-                while (def_index < block->instruction_count
-                       && block->instructions[def_index].kind != MIR_INST_DEF)
-                    def_index++;
-                const MIRInstruction *def_inst =
-                    (def_index < block->instruction_count) ? &block->instructions[def_index] : NULL;
-                const char *target_name = stmt->data.assignment.target->data.identifier.name;
-                if (def_inst == NULL || def_inst->kind != MIR_INST_DEF
-                    || def_inst->arg0 == NULL || def_inst->result_name == NULL
-                    || strcmp(def_inst->arg0, target_name) != 0) {
-                    /* Dead assignment versions are also removed by MIR DCE. */
-                    continue;
-                }
-                char *lhs = transpiler_make_c_ssa_name(def_inst->result_name);
-                char *rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx,
-                                                        ssa_map_out);
-                if (rhs == NULL) {
-                    if (reason != NULL && reason_cap > 0)
-                        snprintf(reason, reason_cap,
-                                 "MIR block %zu emission failed: unable to render assignment to '%s'",
-                                 block->id,
-                                 stmt->data.assignment.target->data.identifier.name != NULL
-                                 ? stmt->data.assignment.target->data.identifier.name
-                                 : "<target>");
-                    return false;
-                }
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
-                free(lhs);
-                free(rhs);
-                if (!transpiler_ssa_name_map_set(ssa_map_out, target_name, def_inst->result_name)) {
-                    return false;
-                }
-                def_index++;
-                continue;
+
+            write_indent_to(buf, ctx->indent);
+            codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+            free(lhs);
+            free(rhs);
+
+            if (!transpiler_ssa_name_map_set(ssa_map_out, stmt->data.let_decl.name,
+                                             inst->result_name)) {
+                free(local_type_name_owned);
+                ok = false;
+                break;
             }
-            emit_statement(stmt, ctx);
+            if (local_type_name_owned != NULL)
+                register_typed_var(ctx, stmt->data.let_decl.name, local_type_name_owned);
+            free(local_type_name_owned);
             continue;
         }
+
+        if (inst->kind == MIR_INST_DEF
+            && stmt != NULL
+            && stmt->type == AST_ASSIGNMENT
+            && stmt->data.assignment.target != NULL
+            && stmt->data.assignment.target->type == AST_IDENTIFIER
+            && inst->arg0 != NULL
+            && inst->result_name != NULL) {
+            const char *target_name = stmt->data.assignment.target->data.identifier.name;
+            char *lhs = NULL;
+            char *rhs = NULL;
+
+            if (target_name == NULL || strcmp(inst->arg0, target_name) != 0)
+                continue;
+
+            lhs = transpiler_make_c_ssa_name(inst->result_name);
+            rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx, ssa_map_out);
+            if (rhs == NULL) {
+                free(lhs);
+                if (reason != NULL && reason_cap > 0) {
+                    snprintf(reason, reason_cap,
+                             "MIR block %zu emission failed: unable to render assignment to '%s'",
+                             block->id, target_name != NULL ? target_name : "<target>");
+                }
+                ok = false;
+                break;
+            }
+
+            write_indent_to(buf, ctx->indent);
+            codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+            free(lhs);
+            free(rhs);
+
+            if (!transpiler_ssa_name_map_set(ssa_map_out, target_name, inst->result_name)) {
+                ok = false;
+                break;
+            }
+            continue;
+        }
+
+        if (inst->kind != MIR_INST_STMT)
+            continue;
+        if (stmt == NULL
+            || stmt->type == AST_IF_STMT
+            || stmt->type == AST_WHILE_LOOP
+            || stmt->type == AST_RETURN) {
+            continue;
+        }
+        emit_statement(stmt, ctx);
     }
+
     ctx->active_ssa_map = saved_active_ssa_map;
-    return true;
+    return ok;
 }
 
 static bool
@@ -2238,14 +2255,10 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             snprintf(reason, reason_cap, "function %s has wrong MIR kind: %d", func_decl->data.func_decl.name, routine->kind);
         return false;
     }
-    if (routine->hir_routine == NULL) {
+    if (routine->ast == NULL) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "function %s has no HIR routine in MIR", func_decl->data.func_decl.name);
+            snprintf(reason, reason_cap, "function %s has no declaration AST in MIR", func_decl->data.func_decl.name);
         return false;
-    }
-    /* Hosted functions are now supported via MIR */
-    if (routine->hir_routine->is_action_like) {
-        /* Action-like functions are now supported via MIR */
     }
     /* cleanup blocks are now fully supported - removed restriction */
     if (!transpiler_mir_function_signature_supported(func_decl)) {
@@ -2309,11 +2322,11 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         return false;
     }
     if (routine->kind != MIR_SCOPE_INTENT
-        || routine->hir_routine == NULL
+        || routine->ast == NULL
         || !routine->has_cleanup_block) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section (kind=%d, hir_routine=%p, has_cleanup_block=%d)",
-                intent_decl->data.intent_decl.name, routine->kind, (void*)routine->hir_routine, routine->has_cleanup_block);
+            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section (kind=%d, ast=%p, has_cleanup_block=%d)",
+                intent_decl->data.intent_decl.name, routine->kind, (void*)routine->ast, routine->has_cleanup_block);
         return false;
     }
     if (!transpiler_validate_mir_emission_contract(routine,
@@ -4146,16 +4159,16 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         }
         if (party_type == NULL) party_type = "UnknownParty";
 
-        /* Find the ability name by scanning the HIR for the party declaration.
-         * The dyn role slot records the required ability. */
+        /* Find the ability name by scanning the current program view for the
+         * party declaration. In MIR-backed emission this view is synthesized
+         * from MIRProgram inventory, not from the original HIR. The dyn role
+         * slot records the required ability. */
         const char *ability_name = slot; /* fallback: use slot name */
         char *ability_tag = NULL;
         if (ctx->hir != NULL) {
-            for (size_t hi = 0; hi < ctx->hir->item_count; hi++) {
-                ASTNode *it = ctx->hir->items[hi].ast;
-                if (it == NULL || it->type != AST_PARTY_DECL)
-                    continue;
-                if (strcmp(it->data.party_decl.name, party_type) != 0)
+            for (size_t hi = 0; hi < ctx->hir->party_count; hi++) {
+                ASTNode *it = ctx->hir->parties[hi];
+                if (it == NULL || strcmp(it->data.party_decl.name, party_type) != 0)
                     continue;
                 for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
                     ASTNode *rs = it->data.party_decl.role_slots[ri];
@@ -4551,7 +4564,7 @@ find_subject_action_decl(TranspilerCtx *ctx, const char *subject_name, const cha
 }
 
 static ASTNode *
-find_zone_decl_in_hir(TranspilerCtx *ctx, const char *zone_name)
+find_zone_decl_in_program_view(TranspilerCtx *ctx, const char *zone_name)
 {
     if (ctx == NULL || ctx->hir == NULL || zone_name == NULL)
         return NULL;
@@ -4849,7 +4862,7 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
         return "<unbound>";
     }
 
-    zone_decl = find_zone_decl_in_hir(ctx, zone_type_name);
+    zone_decl = find_zone_decl_in_program_view(ctx, zone_type_name);
     participant_type = intent_participant_type_name(intent, alias);
     if (zone_decl == NULL)
         return "<unbound>";
@@ -5522,10 +5535,18 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 void
 emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 {
-    if (hir == NULL)
+    HIRProgram mir_hir_view;
+    const HIRProgram *source = hir;
+
+    if (hir == NULL && (ctx == NULL || ctx->mir == NULL))
         return;
 
-    ctx->hir = hir;
+    if (ctx != NULL && ctx->mir != NULL) {
+        transpiler_build_hir_view_from_mir(ctx->mir, &mir_hir_view);
+        source = &mir_hir_view;
+    }
+
+    ctx->hir = source;
 
     /* File header */
     codebuf_write(ctx->out,
@@ -5554,95 +5575,95 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
      */
 
     /* Pass 1: abilities (vtable typedefs) */
-    for (size_t i = 0; i < hir->ability_count; i++)
-        emit_ability_decl(hir->abilities[i], ctx);
+    for (size_t i = 0; i < source->ability_count; i++)
+        emit_ability_decl(source->abilities[i], ctx);
 
     /* Pass 1.5: enums + type aliases */
-    for (size_t i = 0; i < hir->type_count; i++) {
-        if (hir->types[i] != NULL
-            && (hir->types[i]->type == AST_ENUM_DECL
-                || hir->types[i]->type == AST_TYPE_ALIAS))
-            emit_statement(hir->types[i], ctx);
+    for (size_t i = 0; i < source->type_count; i++) {
+        if (source->types[i] != NULL
+            && (source->types[i]->type == AST_ENUM_DECL
+                || source->types[i]->type == AST_TYPE_ALIAS))
+            emit_statement(source->types[i], ctx);
     }
 
     /* Pass 2: classes */
-    for (size_t i = 0; i < hir->type_count; i++) {
-        if (hir->types[i] != NULL && hir->types[i]->type == AST_CLASS_DECL)
-            emit_class_decl(hir->types[i], ctx);
+    for (size_t i = 0; i < source->type_count; i++) {
+        if (source->types[i] != NULL && source->types[i]->type == AST_CLASS_DECL)
+            emit_class_decl(source->types[i], ctx);
     }
 
     /* Pass 2.5: extern declarations */
-    for (size_t i = 0; i < hir->extern_count; i++)
-        emit_extern_block(hir->externs[i], ctx);
+    for (size_t i = 0; i < source->extern_count; i++)
+        emit_extern_block(source->externs[i], ctx);
 
     /* Pass 2.6: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
-    for (size_t i = 0; i < hir->function_count; i++) {
-        if (transpiler_can_forward_declare_func_early(ctx, hir->functions[i]))
-            emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
+    for (size_t i = 0; i < source->function_count; i++) {
+        if (transpiler_can_forward_declare_func_early(ctx, source->functions[i]))
+            emit_func_forward_decl(source->functions[i], ctx->out, ctx);
     }
-    if (hir->synthetic_executable_func != NULL
-        && transpiler_can_forward_declare_func_early(ctx, hir->synthetic_executable_func)) {
-        emit_func_forward_decl(hir->synthetic_executable_func, ctx->out, ctx);
+    if (source->synthetic_executable_func != NULL
+        && transpiler_can_forward_declare_func_early(ctx, source->synthetic_executable_func)) {
+        emit_func_forward_decl(source->synthetic_executable_func, ctx->out, ctx);
     }
-    for (size_t i = 0; i < hir->intent_count; i++) {
-        if (transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
-            emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    for (size_t i = 0; i < source->intent_count; i++) {
+        if (transpiler_can_forward_declare_intent_early(ctx, source->intents[i]))
+            emit_intent_forward_decl(source->intents[i], ctx->out, ctx);
     }
 
     /* Pass 3: roles (vtable instances + free functions) */
-    for (size_t i = 0; i < hir->role_count; i++)
-        emit_role_decl(hir->roles[i], ctx);
+    for (size_t i = 0; i < source->role_count; i++)
+        emit_role_decl(source->roles[i], ctx);
 
     /* Pass 3.5: parties (struct + methods) */
-    for (size_t i = 0; i < hir->party_count; i++)
-        emit_party_decl(hir->parties[i], ctx);
+    for (size_t i = 0; i < source->party_count; i++)
+        emit_party_decl(source->parties[i], ctx);
 
     /* Pass 3.7: rosters (struct + methods) */
-    for (size_t i = 0; i < hir->roster_count; i++)
-        emit_roster_decl(hir->rosters[i], ctx);
+    for (size_t i = 0; i < source->roster_count; i++)
+        emit_roster_decl(source->rosters[i], ctx);
 
     /* Pass 3.75: relations and effects (must precede zones that reference them) */
-    for (size_t i = 0; i < hir->relation_count; i++)
-        emit_relation_decl(hir->relations[i], ctx);
-    for (size_t i = 0; i < hir->effect_count; i++)
-        emit_effect_decl(hir->effects[i], ctx);
+    for (size_t i = 0; i < source->relation_count; i++)
+        emit_relation_decl(source->relations[i], ctx);
+    for (size_t i = 0; i < source->effect_count; i++)
+        emit_effect_decl(source->effects[i], ctx);
 
     /* Pass 3.8: zones (struct + methods + sync helpers) */
-    for (size_t i = 0; i < hir->zone_count; i++)
-        emit_zone_decl(hir->zones[i], ctx);
+    for (size_t i = 0; i < source->zone_count; i++)
+        emit_zone_decl(source->zones[i], ctx);
 
     /* Pass 3.85: now that zones are declared, emit intent prototypes that
      * depend on zone types before world methods are emitted. */
-    for (size_t i = 0; i < hir->intent_count; i++) {
-        if (!transpiler_can_forward_declare_intent_early(ctx, hir->intents[i]))
-            emit_intent_forward_decl(hir->intents[i], ctx->out, ctx);
+    for (size_t i = 0; i < source->intent_count; i++) {
+        if (!transpiler_can_forward_declare_intent_early(ctx, source->intents[i]))
+            emit_intent_forward_decl(source->intents[i], ctx->out, ctx);
     }
-    for (size_t i = 0; i < hir->function_count; i++) {
-        if (!transpiler_can_forward_declare_func_early(ctx, hir->functions[i])
-            && transpiler_can_forward_declare_func_after_zones(ctx, hir->functions[i])) {
-            emit_func_forward_decl(hir->functions[i], ctx->out, ctx);
+    for (size_t i = 0; i < source->function_count; i++) {
+        if (!transpiler_can_forward_declare_func_early(ctx, source->functions[i])
+            && transpiler_can_forward_declare_func_after_zones(ctx, source->functions[i])) {
+            emit_func_forward_decl(source->functions[i], ctx->out, ctx);
         }
     }
-    if (hir->synthetic_executable_func != NULL
-        && !transpiler_can_forward_declare_func_early(ctx, hir->synthetic_executable_func)
-        && transpiler_can_forward_declare_func_after_zones(ctx, hir->synthetic_executable_func)) {
-        emit_func_forward_decl(hir->synthetic_executable_func, ctx->out, ctx);
+    if (source->synthetic_executable_func != NULL
+        && !transpiler_can_forward_declare_func_early(ctx, source->synthetic_executable_func)
+        && transpiler_can_forward_declare_func_after_zones(ctx, source->synthetic_executable_func)) {
+        emit_func_forward_decl(source->synthetic_executable_func, ctx->out, ctx);
     }
 
     /* Pass 3.9: worlds (struct + methods) */
-    for (size_t i = 0; i < hir->world_count; i++)
-        emit_world_decl(hir->worlds[i], ctx);
+    for (size_t i = 0; i < source->world_count; i++)
+        emit_world_decl(source->worlds[i], ctx);
 
-    for (size_t i = 0; i < hir->event_count; i++)
-        emit_event_decl(hir->events[i], ctx);
+    for (size_t i = 0; i < source->event_count; i++)
+        emit_event_decl(source->events[i], ctx);
 
-    for (size_t i = 0; i < hir->function_count; i++)
-        emit_func_forward_decl(hir->functions[i], ctx->decls, ctx);
-    if (hir->synthetic_executable_func != NULL)
-        emit_func_forward_decl(hir->synthetic_executable_func, ctx->decls, ctx);
-    for (size_t i = 0; i < hir->intent_count; i++)
-        emit_intent_forward_decl(hir->intents[i], ctx->decls, ctx);
+    for (size_t i = 0; i < source->function_count; i++)
+        emit_func_forward_decl(source->functions[i], ctx->decls, ctx);
+    if (source->synthetic_executable_func != NULL)
+        emit_func_forward_decl(source->synthetic_executable_func, ctx->decls, ctx);
+    for (size_t i = 0; i < source->intent_count; i++)
+        emit_intent_forward_decl(source->intents[i], ctx->decls, ctx);
 
     /* Pass 4: functions — emit in two sub-passes so that helpers
      * (parallel context structs, wrapper functions) generated during
@@ -5652,12 +5673,12 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         CodeBuf *func_buf = codebuf_create();
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
-        for (size_t i = 0; i < hir->function_count; i++)
-            emit_func_decl(hir->functions[i], ctx);
-        if (hir->synthetic_executable_func != NULL)
-            emit_func_decl(hir->synthetic_executable_func, ctx);
-        for (size_t i = 0; i < hir->intent_count; i++)
-            emit_intent_decl(hir->intents[i], func_buf, ctx);
+        for (size_t i = 0; i < source->function_count; i++)
+            emit_func_decl(source->functions[i], ctx);
+        if (source->synthetic_executable_func != NULL)
+            emit_func_decl(source->synthetic_executable_func, ctx);
+        for (size_t i = 0; i < source->intent_count; i++)
+            emit_intent_decl(source->intents[i], func_buf, ctx);
         ctx->out = saved_out;
 
         /* Emit forward declarations after function emission so late-added
@@ -5682,8 +5703,8 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 
     /* Check if a Main() function exists */
     /* Generate int main(void) { ... } */
-    if (hir->executable_count > 0 || hir->has_main_function) {
-        bool needs_thread_pool = hir_requires_thread_pool(hir);
+    if (source->executable_count > 0 || source->has_main_function) {
+        bool needs_thread_pool = hir_requires_thread_pool(source);
         codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
         ctx->indent++;
 
@@ -5694,16 +5715,16 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         }
 
         /* Emit top-level statements inside main() */
-        if (hir->synthetic_executable_func != NULL) {
+        if (source->synthetic_executable_func != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "__pgy_top_level_exec();\n");
         } else {
-            for (size_t i = 0; i < hir->executable_count; i++)
-                emit_statement(hir->executables[i], ctx);
+            for (size_t i = 0; i < source->executable_count; i++)
+                emit_statement(source->executables[i], ctx);
         }
 
         /* If Main() exists and no top-level statements, call it */
-        if (hir->has_main_function) {
+        if (source->has_main_function) {
             write_indent(ctx);
             codebuf_write(ctx->out, "Main();\n");
         }

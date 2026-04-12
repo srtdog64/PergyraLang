@@ -1023,6 +1023,37 @@ main(void)
             1
         },
         {
+            "Top-level Public Subject Declaration",
+            "public subject Vault {\n"
+            "    let code: Int;\n"
+            "}",
+            1
+        },
+        {
+            "Top-level Private Zone Declaration",
+            "private zone VaultZone {\n"
+            "    subject slot owner: Keeper;\n"
+            "}",
+            1
+        },
+        {
+            "Top-level Public Intent Declaration",
+            "public intent Patrol {\n"
+            "    who guard: Guard;\n"
+            "    step Check {\n"
+            "        where: GuardZone;\n"
+            "        who: guard;\n"
+            "        on: 1;\n"
+            "    }\n"
+            "}",
+            1
+        },
+        {
+            "Top-level Private Event Declaration",
+            "private event HiddenPing(value: Int);",
+            1
+        },
+        {
             "Struct Declaration",
             "struct Vec3 {\n"
             "    x: Float;\n"

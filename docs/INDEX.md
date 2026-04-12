@@ -106,7 +106,7 @@
 
 ### 양자 표면 / v2 경계
 
-- **현 상태**: `QubitSlot`, `ClaimQubit`, `Measure`, `Entangle` 표면은 존재하지만 전체 quantum resource semantics는 아직 미완료
+- **현 상태**: `QubitSlot`, `ClaimQubit`, `Measure`, `Entangle` 표면은 존재하지만 전체 quantum resource semantics는 아직 미완료이며 베타 대상이 아니라 `v2 / experimental`로 분리 추적한다
 - **v2 계획**: Linear 타입, Measure 후 상태 붕괴 추적, 얽힘 관계 검증
 - **문서**: `docs/00_vision.md`, `docs/18_language_status.md` 업데이트
 

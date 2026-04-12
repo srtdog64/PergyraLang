@@ -377,14 +377,14 @@ invoke_c_backend(const CompilerIRBundle *bundle,
         *error_message = NULL;
     if (uses_intent_observability != NULL)
         *uses_intent_observability = false;
-    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+    if (bundle == NULL || bundle->dir == NULL
         || bundle->rir == NULL || bundle->mir == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("IR bundle is incomplete");
         return 1;
     }
 
-    transpile_result = transpile_with_mir(bundle->hir, bundle->mir, output_c_path);
+    transpile_result = transpile_with_mir(NULL, bundle->mir, output_c_path);
     if (transpile_result == NULL) {
         *error_message = pergyra_strdup("Out of memory");
         return 1;
@@ -614,12 +614,12 @@ compiler_run_binary(const char *binary_path, bool verbose)
 CompilerResult *
 compiler_emit_llvm_ir(const CompilerIRBundle *bundle, const char *module_name)
 {
-    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+    if (bundle == NULL || bundle->dir == NULL
         || bundle->rir == NULL || bundle->mir == NULL) {
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen_with_mir(bundle->hir, bundle->mir, module_name);
+    LLVMGenResult *gen = llvm_codegen_with_mir(NULL, bundle->mir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -646,12 +646,12 @@ compiler_emit_llvm_ir_to_file(const CompilerIRBundle *bundle,
 {
     if (!pgy_path_is_safe(output_ir_path))
         return compiler_error("Unsafe characters in file path");
-    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+    if (bundle == NULL || bundle->dir == NULL
         || bundle->rir == NULL || bundle->mir == NULL) {
         return compiler_error("IR bundle is incomplete");
     }
 
-    LLVMGenResult *gen = llvm_codegen_with_mir(bundle->hir, bundle->mir, module_name);
+    LLVMGenResult *gen = llvm_codegen_with_mir(NULL, bundle->mir, module_name);
     if (gen == NULL)
         return compiler_error("Out of memory");
 
@@ -690,7 +690,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     bool compiled_runtime = false;
     bool uses_intent_observability = false;
 
-    if (bundle == NULL || bundle->hir == NULL || bundle->dir == NULL
+    if (bundle == NULL || bundle->dir == NULL
         || bundle->rir == NULL || bundle->mir == NULL) {
         return compiler_error("IR bundle is incomplete");
     }
@@ -698,7 +698,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
     phase_start = compiler_now_seconds();
-    LLVMGenResult *gen = llvm_codegen_to_object_with_mir(bundle->hir,
+    LLVMGenResult *gen = llvm_codegen_to_object_with_mir(NULL,
                                                          bundle->mir,
                                                          "pergyra_module",
                                                          output_obj_path,

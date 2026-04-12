@@ -45,6 +45,149 @@ ability_ref_display(ASTNode *ability_ref)
 static ASTNode *
 subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
                                     const char *ability_name);
+static bool
+subject_type_has_ability(ASTNode *program, const char *type_name,
+                         ASTNode *ability_ref);
+
+static int
+ability_decl_generic_param_index(GenericParams *gp, const char *param_name)
+{
+    if (gp == NULL || param_name == NULL)
+        return -1;
+
+    for (size_t i = 0; i < gp->count; i++) {
+        if (gp->params[i] != NULL
+            && gp->params[i]->name != NULL
+            && strcmp(gp->params[i]->name, param_name) == 0) {
+            return (int)i;
+        }
+    }
+
+    return -1;
+}
+
+static bool
+ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
+                                    SemanticContext *ctx)
+{
+    Type *bound_type;
+    Symbol *bound_sym;
+
+    if (concrete_type == NULL || bound_node == NULL || ctx == NULL)
+        return false;
+
+    bound_type = resolve_type_node(bound_node, ctx);
+    if (bound_type == NULL || bound_type == TYPE_UNKNOWN)
+        return false;
+
+    if (type_satisfies_constraint(concrete_type, bound_type))
+        return true;
+
+    if (ctx->program_root == NULL
+        || bound_node->type != AST_TYPE
+        || bound_node->data.type.name == NULL
+        || concrete_type->name == NULL) {
+        return false;
+    }
+
+    bound_sym = scope_lookup(ctx->scope, bound_node->data.type.name);
+    if (bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY) {
+        return subject_type_has_ability(ctx->program_root,
+                                        concrete_type->name,
+                                        bound_node);
+    }
+
+    return false;
+}
+
+static bool
+validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
+                                             ASTNode *ability_ref,
+                                             const ASTNode *site,
+                                             SemanticContext *ctx,
+                                             const char *owner_label,
+                                             const char *owner_name)
+{
+    GenericParams *decl_params;
+    GenericParams *ref_args;
+    WhereClause *wc;
+    char *required_text;
+
+    if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
+        || ability_ref == NULL || ability_ref->type != AST_TYPE
+        || ctx == NULL) {
+        return true;
+    }
+
+    decl_params = ability_decl->data.ability_decl.generic_params;
+    ref_args = ability_ref->data.type.generic_args;
+    wc = ability_decl->data.ability_decl.where_clause;
+    if (decl_params == NULL || decl_params->count == 0
+        || ref_args == NULL || ref_args->count == 0
+        || wc == NULL || wc->count == 0) {
+        return true;
+    }
+
+    required_text = ability_ref_display(ability_ref);
+
+    for (size_t ci = 0; ci < wc->count; ci++) {
+        TypeConstraint *tc = wc->constraints[ci];
+        int param_index;
+        Type *concrete_type;
+
+        if (tc == NULL || tc->type_param == NULL)
+            continue;
+
+        param_index = ability_decl_generic_param_index(decl_params, tc->type_param);
+        if (param_index < 0 || (size_t)param_index >= ref_args->count)
+            continue;
+
+        concrete_type = resolve_generic_type_arg(ref_args->params[param_index], ctx, site);
+        if (concrete_type == NULL)
+            continue;
+
+        for (size_t bi = 0; bi < tc->bound_count; bi++) {
+            ASTNode *bound_node = tc->bounds[bi];
+            const char *bound_name =
+                (bound_node != NULL
+                 && bound_node->type == AST_TYPE
+                 && bound_node->data.type.name != NULL)
+                    ? bound_node->data.type.name
+                    : "<constraint>";
+
+            if (!ability_generic_arg_satisfies_bound(concrete_type, bound_node, ctx)) {
+                semantic_error(ctx, site,
+                    "%s '%s' uses ability '%s' with generic argument '%s' that does not satisfy bound '%s'.\n"
+                    "Reason:\n"
+                    "- ability declaration '%s' requires '%s: %s'\n"
+                    "- %s uses '%s'\n"
+                    "Fix:\n"
+                    "- pass a type argument that satisfies '%s'\n"
+                    "- or relax the bound on ability '%s'",
+                    owner_label != NULL ? owner_label : "construct",
+                    owner_name != NULL ? owner_name : "<anonymous>",
+                    ability_decl->data.ability_decl.name != NULL
+                        ? ability_decl->data.ability_decl.name : "<ability>",
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
+                    bound_name,
+                    ability_decl->data.ability_decl.name != NULL
+                        ? ability_decl->data.ability_decl.name : "<ability>",
+                    tc->type_param,
+                    bound_name,
+                    owner_label != NULL ? owner_label : "construct",
+                    required_text != NULL ? required_text : "<ability>",
+                    bound_name,
+                    ability_decl->data.ability_decl.name != NULL
+                        ? ability_decl->data.ability_decl.name : "<ability>");
+                free(required_text);
+                return false;
+            }
+        }
+    }
+
+    free(required_text);
+    return true;
+}
 
 static bool
 ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
@@ -188,6 +331,12 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             }
             resolve_type_node(arg, ctx);
         }
+    }
+
+    if (!validate_ability_decl_where_clause_reference(
+            ability_decl, ability_ref, site, ctx, owner_label, owner_name)) {
+        free(required_text);
+        return NULL;
     }
 
     free(required_text);
@@ -344,7 +493,7 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
 
     if (!semantic_is_known_stdlib_use_module(stmt->data.use_decl.module_name)) {
         semantic_error(ctx, stmt,
-            "Unknown stdlib use '%s'; expected one of datetime, http, page, spray, storage",
+            "Unknown stdlib use '%s'; expected one of datetime, device_adapter, http, ledger, money, obligation, page, spray, storage, timer, versioning",
             stmt->data.use_decl.module_name);
         return;
     }

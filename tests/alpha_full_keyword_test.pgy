@@ -68,7 +68,7 @@ class PriceCalculator {
 
 // --- ability (interface) ----------------------------------------------------
 ability Tradable {
-    require gold: Int;
+    fields gold: Int;
     func CanTrade() -> Bool;
 }
 
