@@ -268,6 +268,10 @@ run_stable_examples() {
         "$ROOT_DIR/examples/spray_device_probe" "=== SPRAY DEVICE PROBE ===" "[spray] success=3 all=true" "[device] 910 911 912" "[capability] spray-batch=true device-readback=true real-gpu-backend=false"
     run_expect_lines "calendar_working" "$backend" \
         "$ROOT_DIR/examples/calendar_working/main.pgy" "total events: 3" "== 2026-4-5 ==" "Team Sync" "Dentist"
+    run_expect_lines "event_closure_probe" "$backend" \
+        "$ROOT_DIR/examples/event_closure_probe.pgy" "event.score=42" "event.closure=ok"
+    run_expect_lines "collections_closure_probe" "$backend" \
+        "$ROOT_DIR/examples/collections_closure_probe.pgy" "list.sum=7" "set.has3=true" "map.sum=70" "sizes=2/2/2"
     run_expect_lines "finance_ledger_probe" "$backend" \
         "$ROOT_DIR/examples/finance_ledger_probe/main.pgy" "=== FINANCE LEDGER PROBE ===" "[ledger]" "balanced=true" "version=wallet:min@1" "idempotency=payment:checkout-42#7"
     run_expect_lines "compliance_obligation_probe" "$backend" \

@@ -38,6 +38,8 @@
 - `파싱/시맨틱/C/LLVM`만 보던 표를 `MIR/하강`, `런타임`, `테스트`까지 확장
 - `Intent`, `Zone`, `Channel`, `Slot`은 최근 구현 상태를 반영해 상향 판정
 - `Event semantic`, `Set/Map/List`, `runtime observability`, `relation/effect/projection`을 핵심 depth gap으로 재고정
+- `Event` stable subset에 unsubscribe mismatch / invoke count mismatch negative semantic test와 positive smoke를 추가
+- `Set/Map/List` stable subset에 unsupported key kind / wrong set element / wrong list container negative semantic test와 positive smoke를 추가
 - tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
 - `debugger`는 단순 스텁이 아니라 `AST-walking source debugger`로, `formatter`는 Windows LF 안정성까지 포함한 basic formatter로, `LSP`는 lightweight semantic tooling으로 재분류
 - authoring compression 중 일부는 더 이상 "나중 sugar"가 아니라 실제 depth-closure 수단으로 반영
@@ -81,8 +83,8 @@
 | `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
 | `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, 그리고 RIR projection/authority/handoff conservative merge helper까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
-| `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | arity/타입 체크 동작, C+LLVM 코드젠 완성, invoke는 AST_CALL 경로 |
-| `Set/Map/List` | ✅ | ◐ | ◐ | ✅ | ✅ | ✅ | ◐ | 중간 | C+LLVM raw_export 동작, Map은 `String/Int` 키 지원, 그 외 키는 명시 오류 |
+| `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | declaration/subscribe/unsubscribe/invoke 시맨틱과 negative path, positive smoke까지 정렬됐다. invoke의 canonical surface는 parser상 `AST_CALL` 경로다 |
+| `Set/Map/List` | ✅ | ✅ | ◐ | ✅ | ✅ | ✅ | ✅ | 중상 | stable subset은 `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`로 닫혔고, 그 외 key 조합은 explicit error다 |
 | `Math stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Sin/Cos/Sqrt/Pow/Exp/Log/Round/Clamp/PI/E 등 22개 빌트인 |
 | `String stdlib` | 해당 없음 | ✅ | 해당 없음 | ✅ | ◐ | ✅ | ◐ | 중상 | Length/Contains/Replace/Substring/Trim/Split/Join/Upper/Lower 10개 |
 | `Async/spawn/await` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | pthread 스케줄러+fiber, Future/RemoteFuture 동작 |

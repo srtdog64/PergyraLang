@@ -470,8 +470,8 @@ post-beta / follow-up:
 ### 다음 실행
 
 - [x] `Event` semantic closure 착수
-- [ ] `Event` semantic closure 마무리 및 문서 정합성 반영
-- [ ] `Set/Map/List` semantic closure
+- [x] `Event` semantic closure 마무리 및 문서 정합성 반영
+- [x] `Set/Map/List` semantic closure
 
 ### 2026-04-11 진행 메모
 
@@ -480,13 +480,17 @@ post-beta / follow-up:
 - 테스트 추가: 정상 handler, arity mismatch, lambda typed mismatch
 - 추가 확인: LLVM은 이미 `INIT/SUBSCRIBE/UNSUBSCRIBE/INVOKE` helper와 global event storage를 생성함
 - 정합성 확인: parser surface의 `OnEvent(x)`는 일반 `AST_CALL`로 들어가고, `AST_EVENT_INVOKE`는 내부 carrier 성격이 더 강함
-- 아직 남은 것: generated helper 기반 runtime 설명 정리
+- 마감: unsubscribe mismatch, invoke count mismatch negative semantic test 추가
+- 마감: `examples/event_closure_probe.pgy` example smoke 연결
+- 마감: generated helper 기반 runtime 설명/정합성 반영
 - `Collections` semantic closure 1차 착수
 - 범위: `List/Map/Set/Queue` builtin의 arity, container kind, key/value/element/index 타입 검증 강화
 - 테스트 추가: positive generic collections flow, wrong list element, wrong map key, wrong list index
 - `Collections` LLVM 경로 재평가
 - 확인: `List/Set/Queue/HashMap`는 생성자와 주요 builtin 호출 lowering이 이미 존재함
 - 보강: `SetAdd/SetHas/SetRemove/QueuePush/MapSet`의 값 coercion 경로를 `ListPush/ListSet`과 맞춤
+- 마감: unsupported key kind / wrong set element / wrong list container negative semantic test 추가
+- 마감: `examples/collections_closure_probe.pgy` example smoke 연결
 - `runtime fallback / observability` 1차 착수
 - 범위: collection raw export의 null/invalid argument, bounds, empty-pop 경로에 최소 runtime warning 추가
 - intent active inspection surface 보강

@@ -3431,6 +3431,31 @@ test_engine_collections(void)
         lexer_destroy(lexer);
     }
 
+    TEST("MapGet rejects unsupported key kind outside stable subset");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let table: HashMap<Long, Int> = MapNew();\n"
+            "    let hp: Int = MapGet(table, 7);\n"
+            "    Log(hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "HashMap currently supports only String or Int keys"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ListGet rejects non-Int index");
     {
         const char *source =
@@ -3448,6 +3473,52 @@ test_engine_collections(void)
         EXPECT(result != NULL
             && result->error_count > 0
             && ctx_has_diagnostic_substring_from_result(result, "cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SetAdd rejects wrong element type");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let seen: Set<Int> = SetNew();\n"
+            "    SetAdd(seen, \"oops\");\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "cannot assign"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ListSize rejects non-list values");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let size: Int = ListSize(1);\n"
+            "    Log(size);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(result, "ListSize expects List<T>"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3722,6 +3793,56 @@ test_event_semantics(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event unsubscribe rejects handler arity mismatch");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func BadHandler() -> Void {\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    OnDamage -= BadHandler;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "parameter count mismatch"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("event invoke rejects argument count mismatch");
+    {
+        const char *source =
+            "event OnScore(points: Int);\n"
+            "func Main() -> Void {\n"
+            "    OnScore();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "'OnScore' expects 1 argument(s), got 0"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -85,22 +85,103 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #ifdef _WIN32
 /* Silent probe via CreateProcess: stdout/stderr → NUL in the child only.
  * Parent's file descriptors are never touched. */
+static bool
+pgy_win32_quote_arg(char *dst, size_t dst_cap, size_t *pos_io, const char *arg)
+{
+    size_t pos = pos_io != NULL ? *pos_io : 0;
+    bool needs_quotes = false;
+    const char *p;
+
+    if (dst == NULL || dst_cap == 0 || pos_io == NULL || arg == NULL)
+        return false;
+
+    for (p = arg; *p != '\0'; p++) {
+        if (*p == ' ' || *p == '\t' || *p == '"') {
+            needs_quotes = true;
+            break;
+        }
+    }
+
+    if (!needs_quotes) {
+        size_t n = strlen(arg);
+        if (pos + n + 1 >= dst_cap)
+            return false;
+        memcpy(dst + pos, arg, n);
+        pos += n;
+        dst[pos] = '\0';
+        *pos_io = pos;
+        return true;
+    }
+
+    if (pos + 2 >= dst_cap)
+        return false;
+    dst[pos++] = '"';
+
+    p = arg;
+    while (*p != '\0') {
+        size_t slash_count = 0;
+        while (*p == '\\') {
+            slash_count++;
+            p++;
+        }
+        if (*p == '"') {
+            while (slash_count-- > 0) {
+                if (pos + 2 >= dst_cap)
+                    return false;
+                dst[pos++] = '\\';
+                dst[pos++] = '\\';
+            }
+            if (pos + 2 >= dst_cap)
+                return false;
+            dst[pos++] = '\\';
+            dst[pos++] = '"';
+            p++;
+            continue;
+        }
+        if (*p == '\0') {
+            while (slash_count-- > 0) {
+                if (pos + 2 >= dst_cap)
+                    return false;
+                dst[pos++] = '\\';
+                dst[pos++] = '\\';
+            }
+            break;
+        }
+        while (slash_count-- > 0) {
+            if (pos + 1 >= dst_cap)
+                return false;
+            dst[pos++] = '\\';
+        }
+        if (pos + 1 >= dst_cap)
+            return false;
+        dst[pos++] = *p++;
+    }
+
+    if (pos + 2 >= dst_cap)
+        return false;
+    dst[pos++] = '"';
+    dst[pos] = '\0';
+    *pos_io = pos;
+    return true;
+}
+
 static int
 pgy_exec_probe_argv_silent(const char *const argv[])
 {
-    /* Build command line from argv */
     char cmdline[1024];
     size_t pos = 0;
     for (const char *const *p = argv; *p != NULL; p++) {
-        if (pos > 0) cmdline[pos++] = ' ';
-        size_t n = strlen(*p);
-        if (pos + n + 1 >= sizeof(cmdline)) return -1;
-        memcpy(cmdline + pos, *p, n);
-        pos += n;
+        if (pos > 0) {
+            if (pos + 1 >= sizeof(cmdline))
+                return -1;
+            cmdline[pos++] = ' ';
+            cmdline[pos] = '\0';
+        }
+        if (!pgy_win32_quote_arg(cmdline, sizeof(cmdline), &pos, *p))
+            return -1;
     }
     cmdline[pos] = '\0';
 
-    /* Open NUL for child's stdout/stderr */
     SECURITY_ATTRIBUTES sa = { sizeof(sa), NULL, TRUE };
     HANDLE nul = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ,
                              &sa, OPEN_EXISTING, 0, NULL);
@@ -120,9 +201,18 @@ pgy_exec_probe_argv_silent(const char *const argv[])
                              CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
     if (!ok) { CloseHandle(nul); return -1; }
 
-    WaitForSingleObject(pi.hProcess, 5000); /* 5s timeout for probe */
+    DWORD wait_rc = WaitForSingleObject(pi.hProcess, 5000);
     DWORD exit_code = 1;
-    GetExitCodeProcess(pi.hProcess, &exit_code);
+    if (wait_rc == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 124);
+        WaitForSingleObject(pi.hProcess, 1000);
+        exit_code = 124;
+    } else if (wait_rc == WAIT_OBJECT_0) {
+        if (!GetExitCodeProcess(pi.hProcess, &exit_code))
+            exit_code = 1;
+    } else {
+        exit_code = 1;
+    }
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     CloseHandle(nul);
@@ -310,19 +400,30 @@ static bool
 compiler_runtime_cache_is_fresh(const char *cache_obj_path)
 {
     time_t cache_mtime;
-    time_t runtime_c_mtime;
-    time_t runtime_h_mtime;
-    char runtime_h_path[1024];
+    const char *deps[] = {
+        PGY_RUNTIME_LIB_C,
+        PGY_RUNTIME_DIR "/pgy_runtime.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_part_a.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_part_b.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_part_a.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_part_b.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_part_ba.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_part_bb.inc",
+        PGY_RUNTIME_DIR "/pgy_runtime_part_c.inc",
+        NULL
+    };
 
     if (!compiler_file_mtime(cache_obj_path, &cache_mtime))
         return false;
-    if (!compiler_file_mtime(PGY_RUNTIME_LIB_C, &runtime_c_mtime))
-        return false;
-    snprintf(runtime_h_path, sizeof(runtime_h_path), "%s/pgy_runtime.h", PGY_RUNTIME_DIR);
-    if (!compiler_file_mtime(runtime_h_path, &runtime_h_mtime))
-        runtime_h_mtime = runtime_c_mtime;
+    for (size_t i = 0; deps[i] != NULL; i++) {
+        time_t dep_mtime;
 
-    return cache_mtime >= runtime_c_mtime && cache_mtime >= runtime_h_mtime;
+        if (!compiler_file_mtime(deps[i], &dep_mtime))
+            return false;
+        if (cache_mtime < dep_mtime)
+            return false;
+    }
+    return true;
 }
 
 static char *

@@ -8,6 +8,7 @@ static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                                               size_t reason_cap);
 static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
                                            int indent,
+                                           size_t pred_block_index,
                                            const MIRBasicBlock *pred_block,
                                            const MIRBasicBlock *target_block);
 static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
@@ -226,10 +227,14 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out,
                 "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s_token);\n",
                 slot_inner, name, slot_inner, name);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "(void)%s;\n", name);
         } else {
             codebuf_write(ctx->out,
                 "PgySlot_%s %s = pgy_claim_%s();\n",
                 slot_inner, name, slot_inner);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "(void)%s;\n", name);
         }
         if (ann_type_name != NULL)
             register_typed_var(ctx, name, ann_type_name);
@@ -260,6 +265,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out,
             "PgyDeviceSlot_%s %s = pgy_claim_device_%s();\n",
             slot_inner, name, slot_inner);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "(void)%s;\n", name);
         if (ann_type_name != NULL)
             register_typed_var(ctx, name, ann_type_name);
         else {
@@ -1649,6 +1656,36 @@ transpiler_make_c_ssa_name(const char *versioned_name)
 }
 
 static bool
+transpiler_versioned_name_list_contains(const char **names,
+                                        size_t count,
+                                        const char *name)
+{
+    if (names == NULL || name == NULL)
+        return false;
+    for (size_t i = 0; i < count; i++) {
+        if (names[i] != NULL && strcmp(names[i], name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+transpiler_versioned_name_list_add(const char **names,
+                                   size_t *count,
+                                   size_t capacity,
+                                   const char *name)
+{
+    if (names == NULL || count == NULL || name == NULL)
+        return false;
+    if (transpiler_versioned_name_list_contains(names, *count, name))
+        return true;
+    if (*count >= capacity)
+        return false;
+    names[(*count)++] = name;
+    return true;
+}
+
+static bool
 transpiler_c_type_uses_scalar_zero(const char *c_type)
 {
     if (c_type == NULL)
@@ -1670,7 +1707,9 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                            ASTNode *expr)
 {
     const char *semantic_type = infer_expression_type_name(ctx, expr);
-    if (semantic_type != NULL && semantic_type[0] != '\0')
+    if (semantic_type != NULL
+        && semantic_type[0] != '\0'
+        && strcmp(semantic_type, "Int") != 0)
         return semantic_type;
     if (expr == NULL)
         return NULL;
@@ -1683,6 +1722,31 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             return "Bool";
         case AST_IDENTIFIER:
             return transpiler_find_local_type_name(ctx, func_decl, expr->data.identifier.name);
+        case AST_MEMBER_ACCESS: {
+            const char *resolved = resolve_nominal_host_expr_type_name(ctx, expr);
+            if (resolved != NULL && resolved[0] != '\0')
+                return resolved;
+            if (expr->data.member.object != NULL && expr->data.member.name != NULL) {
+                const char *obj_type = transpiler_infer_local_type_name_from_expr(
+                    ctx, func_decl, expr->data.member.object);
+                if (obj_type != NULL) {
+                    ASTNode *obj_decl = find_class_decl(ctx, obj_type);
+                    if (obj_decl != NULL) {
+                        for (size_t fi = 0; fi < obj_decl->data.class_decl.field_count; fi++) {
+                            ClassField *f = obj_decl->data.class_decl.fields[fi];
+                            if (f != NULL && f->name != NULL && f->type != NULL
+                                && strcmp(f->name, expr->data.member.name) == 0) {
+                                static char *rendered_member = NULL;
+                                free(rendered_member);
+                                rendered_member = render_type_name(f->type);
+                                return rendered_member;
+                            }
+                        }
+                    }
+                }
+            }
+            return semantic_type != NULL && semantic_type[0] != '\0' ? semantic_type : NULL;
+        }
         case AST_BINARY:
             switch (expr->data.binary.op.type) {
                 case TOKEN_EQUAL:
@@ -1701,6 +1765,50 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             if (expr->data.unary.op.type == TOKEN_NOT)
                 return "Bool";
             return transpiler_infer_local_type_name_from_expr(ctx, func_decl, expr->data.unary.operand);
+        case AST_CALL:
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type == AST_MEMBER_ACCESS
+                && expr->data.call.callee->data.member.name != NULL) {
+                ASTNode *receiver = expr->data.call.callee->data.member.object;
+                const char *method_name = expr->data.call.callee->data.member.name;
+                const char *receiver_type = transpiler_infer_local_type_name_from_expr(
+                    ctx, func_decl, receiver);
+                ASTNode *method_decl = NULL;
+                if (receiver_type != NULL) {
+                    method_decl = find_nominal_host_method_decl(ctx, receiver_type, method_name);
+                }
+                if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
+                    && method_decl->data.func_decl.return_type != NULL) {
+                    static char *rendered_return = NULL;
+                    free(rendered_return);
+                    rendered_return = render_type_name(method_decl->data.func_decl.return_type);
+                    return rendered_return;
+                }
+            }
+            if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type == AST_IDENTIFIER
+                && expr->data.call.callee->data.identifier.name != NULL) {
+                const char *callee_name = expr->data.call.callee->data.identifier.name;
+                ASTNode *callee_decl = find_function_decl(ctx, callee_name);
+                if (callee_decl != NULL
+                    && callee_decl->type == AST_FUNC_DECL
+                    && callee_decl->data.func_decl.return_type != NULL) {
+                    static char *rendered_func_return = NULL;
+                    free(rendered_func_return);
+                    rendered_func_return = render_type_name(callee_decl->data.func_decl.return_type);
+                    return rendered_func_return;
+                }
+                if (find_class_decl(ctx, callee_name) != NULL
+                    || find_zone_decl(ctx, callee_name) != NULL
+                    || find_world_decl(ctx, callee_name) != NULL
+                    || find_relation_decl(ctx, callee_name) != NULL
+                    || find_effect_decl(ctx, callee_name) != NULL
+                    || find_party_decl(ctx, callee_name) != NULL
+                    || find_roster_decl(ctx, callee_name) != NULL) {
+                    return callee_name;
+                }
+            }
+            return semantic_type != NULL && semantic_type[0] != '\0' ? semantic_type : NULL;
         default:
             return NULL;
     }
@@ -1735,6 +1843,21 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
         }
         return transpiler_infer_local_type_name_from_expr(ctx, func_decl, body->data.let_decl.initializer);
     }
+    if (body->type == AST_WITH_STMT) {
+        if (body->data.with_stmt.alias != NULL
+            && strcmp(body->data.with_stmt.alias, base_name) == 0) {
+            static char rendered_slot[256];
+            char *inner = render_type_name(body->data.with_stmt.slot_type);
+            snprintf(rendered_slot, sizeof(rendered_slot),
+                     "%s<%s>",
+                     body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                     inner != NULL ? inner : "Int");
+            free(inner);
+            return rendered_slot;
+        }
+        return transpiler_find_local_type_name_in_block(ctx, func_decl,
+            body->data.with_stmt.body, base_name);
+    }
     if (body->type == AST_IF_STMT) {
         const char *found = transpiler_find_local_type_name_in_block(ctx, func_decl, body->data.if_stmt.then_branch, base_name);
         if (found != NULL)
@@ -1765,6 +1888,13 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
         && strcmp(body->data.let_decl.name, base_name) == 0) {
         return true;
     }
+    if (body->type == AST_WITH_STMT) {
+        if (body->data.with_stmt.alias != NULL
+            && strcmp(body->data.with_stmt.alias, base_name) == 0) {
+            return true;
+        }
+        return transpiler_has_local_binding_in_block(body->data.with_stmt.body, base_name);
+    }
     if (body->type == AST_IF_STMT) {
         return transpiler_has_local_binding_in_block(body->data.if_stmt.then_branch, base_name)
             || transpiler_has_local_binding_in_block(body->data.if_stmt.else_branch, base_name);
@@ -1774,6 +1904,95 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
     if (body->type == AST_FOR_LOOP)
         return transpiler_has_local_binding_in_block(body->data.for_loop.body, base_name);
     return false;
+}
+
+static void
+transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
+                                                 ASTNode *body)
+{
+    if (ssa_map == NULL || body == NULL)
+        return;
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < body->data.block.count; i++)
+            transpiler_register_with_alias_bindings_in_block(ssa_map,
+                body->data.block.statements[i]);
+        return;
+    }
+    if (body->type == AST_WITH_STMT) {
+        if (body->data.with_stmt.alias != NULL)
+            transpiler_ssa_name_map_set(ssa_map,
+                body->data.with_stmt.alias, body->data.with_stmt.alias);
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            body->data.with_stmt.body);
+        return;
+    }
+    if (body->type == AST_IF_STMT) {
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            body->data.if_stmt.then_branch);
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            body->data.if_stmt.else_branch);
+        return;
+    }
+    if (body->type == AST_WHILE_LOOP) {
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            body->data.while_loop.body);
+        return;
+    }
+    if (body->type == AST_FOR_LOOP) {
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            body->data.for_loop.body);
+    }
+}
+
+static void
+transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
+                                                     const ASTNode *func_decl,
+                                                     ASTNode *body)
+{
+    if (ctx == NULL || body == NULL || body->type != AST_BLOCK)
+        return;
+    for (size_t i = 0; i < body->data.block.count; i++) {
+        ASTNode *stmt = body->data.block.statements[i];
+        if (stmt == NULL)
+            continue;
+        if (stmt->type == AST_LET_DECL && stmt->data.let_decl.name != NULL) {
+            const char *type_name = NULL;
+            char *rendered_type = NULL;
+            if (stmt->data.let_decl.type != NULL) {
+                rendered_type = render_type_name(stmt->data.let_decl.type);
+                type_name = rendered_type;
+            } else if (stmt->data.let_decl.initializer != NULL) {
+                type_name = transpiler_infer_local_type_name_from_expr(
+                    ctx, func_decl, stmt->data.let_decl.initializer);
+            }
+            if (type_name != NULL && type_name[0] != '\0') {
+                register_typed_var(ctx, stmt->data.let_decl.name, type_name);
+                if (transpiler_type_name_is_slot_like(type_name)) {
+                    register_slot_var(ctx, stmt->data.let_decl.name,
+                        slot_inner_type_name(type_name),
+                        strncmp(type_name, "SecureSlot<", 11) == 0,
+                        false);
+                }
+            }
+            free(rendered_type);
+            continue;
+        }
+        if (stmt->type == AST_WITH_STMT && stmt->data.with_stmt.alias != NULL) {
+            char *inner = render_type_name(stmt->data.with_stmt.slot_type);
+            char *slot_type = strdup_fmt("%s<%s>",
+                stmt->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                inner != NULL ? inner : "Int");
+            register_typed_var(ctx, stmt->data.with_stmt.alias,
+                slot_type != NULL ? slot_type : "Slot<Int>");
+            register_slot_var(ctx, stmt->data.with_stmt.alias,
+                inner != NULL ? inner : "Int",
+                stmt->data.with_stmt.is_secure, false);
+            free(slot_type);
+            free(inner);
+            transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
+                stmt->data.with_stmt.body);
+        }
+    }
 }
 
 static bool
@@ -1832,6 +2051,12 @@ owner_fallback:
     if (ctx != NULL && ctx->current_zone_name != NULL) {
         member_type = lookup_nominal_host_member_type_name(ctx,
             ctx->current_zone_name, base_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+    if (ctx != NULL && ctx->current_world_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_world_name, base_name);
         if (member_type != NULL)
             return member_type;
     }
@@ -1941,28 +2166,93 @@ emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
 
 static bool
 transpiler_emit_mir_phi_copies(CodeBuf *buf, int indent,
+                               size_t pred_block_index,
                                const MIRBasicBlock *pred_block,
                                const MIRBasicBlock *target_block)
 {
+    const char *pred_bases[TRANSPILE_SSA_MAP_CAPACITY];
+    const char *pred_versions[TRANSPILE_SSA_MAP_CAPACITY];
+    const char *target_bases[TRANSPILE_SSA_MAP_CAPACITY];
+    const char *target_versions[TRANSPILE_SSA_MAP_CAPACITY];
+    size_t pred_count = 0;
+    size_t target_count = 0;
+
     if (buf == NULL || pred_block == NULL || target_block == NULL)
         return false;
+
     for (size_t i = 0; i < target_block->instruction_count; i++) {
         const MIRInstruction *inst = &target_block->instructions[i];
         if (inst->kind != MIR_INST_PHI || inst->result_name == NULL)
             continue;
         for (size_t j = 0; j < inst->phi_incoming_count; j++) {
-            if (inst->phi_incomings[j].predecessor_block != pred_block->id
-                || inst->phi_incomings[j].value_name == NULL) {
+            const MIRPhiIncoming *incoming = &inst->phi_incomings[j];
+            if (incoming->predecessor_block != pred_block_index
+                || incoming->value_name == NULL
+                || strcmp(inst->result_name, incoming->value_name) == 0) {
                 continue;
             }
-            char *lhs = transpiler_make_c_ssa_name(inst->result_name);
-            char *rhs = transpiler_make_c_ssa_name(inst->phi_incomings[j].value_name);
+            {
+                char *lhs = transpiler_make_c_ssa_name(inst->result_name);
+                char *rhs = transpiler_make_c_ssa_name(incoming->value_name);
+                write_indent_to(buf, indent);
+                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
+                free(lhs);
+                free(rhs);
+            }
+            break;
+        }
+    }
+
+    if (!transpiler_collect_ssa_name_entries(
+            pred_block->ssa_exit_value_count > 0
+                ? pred_block->ssa_exit_values
+                : pred_block->ssa_entry_values,
+            pred_block->ssa_exit_value_count > 0
+                ? pred_block->ssa_exit_value_count
+                : pred_block->ssa_entry_value_count,
+            pred_bases,
+            pred_versions,
+            TRANSPILE_SSA_MAP_CAPACITY,
+            &pred_count)) {
+        return false;
+    }
+    if (!transpiler_collect_ssa_name_entries(target_block->ssa_entry_values,
+                                             target_block->ssa_entry_value_count,
+                                             target_bases,
+                                             target_versions,
+                                             TRANSPILE_SSA_MAP_CAPACITY,
+                                             &target_count)) {
+        transpiler_free_ssa_name_entries(pred_bases, pred_count);
+        return false;
+    }
+
+    for (size_t i = 0; i < target_count; i++) {
+        const char *lhs_version = target_versions[i];
+        const char *rhs_version = NULL;
+
+        if (lhs_version == NULL || target_bases[i] == NULL)
+            continue;
+        for (size_t j = 0; j < pred_count; j++) {
+            if (pred_bases[j] != NULL
+                && strcmp(pred_bases[j], target_bases[i]) == 0) {
+                rhs_version = pred_versions[j];
+                break;
+            }
+        }
+        if (rhs_version == NULL || strcmp(lhs_version, rhs_version) == 0)
+            continue;
+        {
+            char *lhs = transpiler_make_c_ssa_name(lhs_version);
+            char *rhs = transpiler_make_c_ssa_name(rhs_version);
             write_indent_to(buf, indent);
             codebuf_write(buf, "%s = %s;\n", lhs, rhs);
             free(lhs);
             free(rhs);
         }
     }
+
+    transpiler_free_ssa_name_entries(pred_bases, pred_count);
+    transpiler_free_ssa_name_entries(target_bases, target_count);
     return true;
 }
 
@@ -2305,6 +2595,8 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                         transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
                     }
                 }
+                transpiler_register_with_alias_bindings_in_block(&ssa_map,
+                    func_decl->data.func_decl.body);
             } else if (func_decl->type == AST_INTENT_DECL) {
                 /* For intent, extract alias from involves/value bindings */
                 for (size_t p = 0; p < func_decl->data.intent_decl.involve_count; p++) {
@@ -2754,25 +3046,29 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         return false;
 
     if (inst->kind == MIR_INST_RESOURCE_OP) {
-        if (!transpiler_emit_mir_resource_op(ctx, out, indent, inst, inst->type_layout, NULL)) {
-            if (inst->name != NULL
-                && (strcmp(inst->name, "ProjectRefresh") == 0
-                    || strcmp(inst->name, "ProjectPublish") == 0)) {
-                /* Direct projection expressions already emit the concrete value
-                 * via MIR DEF/STMT paths; keep only the observability/export hook
-                 * for projection resource ops that do not have a slot runtime ABI. */
-            } else {
-            if (ctx != NULL && ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
-                    inst->name != NULL ? inst->name : "<op>",
-                    inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
+        bool needs_concrete_emit = cleanup_hook
+            || (inst->name != NULL && strcmp(inst->name, "Claim") == 0);
+        if (needs_concrete_emit) {
+            if (!transpiler_emit_mir_resource_op(ctx, out, indent, inst, inst->type_layout, NULL)) {
+                if (inst->name != NULL
+                    && (strcmp(inst->name, "ProjectRefresh") == 0
+                        || strcmp(inst->name, "ProjectPublish") == 0)) {
+                    /* Direct projection expressions already emit the concrete value
+                     * via MIR DEF/STMT paths; keep only the observability/export hook
+                     * for projection resource ops that do not have a slot runtime ABI. */
+                } else {
+                    if (ctx != NULL && ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
+                            inst->name != NULL ? inst->name : "<op>",
+                            inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
+                    }
+                    return false;
+                }
             }
-            return false;
-            }
+            if (!cleanup_hook)
+                return true;
         }
-        if (!cleanup_hook)
-            return true;
     }
 
     if (inst->name != NULL) {

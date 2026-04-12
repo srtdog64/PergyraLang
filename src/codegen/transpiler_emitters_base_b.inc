@@ -179,35 +179,140 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             free(type_name);
         }
     }
+    transpiler_register_explicit_local_bindings_in_block(ctx, node,
+        node->data.func_decl.body);
 
-    for (size_t i = 0; i < mir_routine->block_count; i++) {
-        const MIRBasicBlock *block = &mir_routine->blocks[i];
-        if (!block->is_reachable || block->is_cleanup)
-            continue;
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            const MIRInstruction *inst = &block->instructions[j];
+    {
+        const char *declared_versioned_names[4096];
+        size_t declared_versioned_count = 0;
+        for (size_t i = 0; i < mir_routine->block_count; i++) {
+            const MIRBasicBlock *block = &mir_routine->blocks[i];
+            if (!block->is_reachable || block->is_cleanup)
+                continue;
+            for (size_t j = 0; j < block->live_in_name_count; j++) {
+                if (!transpiler_versioned_name_list_add(declared_versioned_names,
+                                                        &declared_versioned_count,
+                                                        4096,
+                                                        block->live_in_names[j])) {
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "too many MIR SSA locals while emitting function '%s'",
+                            name != NULL ? name : "<function>");
+                    }
+                    codebuf_destroy(params_sig);
+                    free(header_decl);
+                    ctx->slot_var_count = saved_slot_count;
+                    ctx->typed_var_count = saved_typed_count;
+                    g_type_render_ctx = saved_render_ctx;
+                    ctx->out = saved_out;
+                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                        "%s", saved_return_type);
+                    return;
+                }
+            }
+            for (size_t j = 0; j < block->ssa_entry_value_count; j++) {
+                if (!transpiler_versioned_name_list_add(declared_versioned_names,
+                                                        &declared_versioned_count,
+                                                        4096,
+                                                        block->ssa_entry_values[j])) {
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "too many MIR SSA locals while emitting function '%s'",
+                            name != NULL ? name : "<function>");
+                    }
+                    codebuf_destroy(params_sig);
+                    free(header_decl);
+                    ctx->slot_var_count = saved_slot_count;
+                    ctx->typed_var_count = saved_typed_count;
+                    g_type_render_ctx = saved_render_ctx;
+                    ctx->out = saved_out;
+                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                        "%s", saved_return_type);
+                    return;
+                }
+            }
+            for (size_t j = 0; j < block->ssa_exit_value_count; j++) {
+                if (!transpiler_versioned_name_list_add(declared_versioned_names,
+                                                        &declared_versioned_count,
+                                                        4096,
+                                                        block->ssa_exit_values[j])) {
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "too many MIR SSA locals while emitting function '%s'",
+                            name != NULL ? name : "<function>");
+                    }
+                    codebuf_destroy(params_sig);
+                    free(header_decl);
+                    ctx->slot_var_count = saved_slot_count;
+                    ctx->typed_var_count = saved_typed_count;
+                    g_type_render_ctx = saved_render_ctx;
+                    ctx->out = saved_out;
+                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                        "%s", saved_return_type);
+                    return;
+                }
+            }
+            for (size_t j = 0; j < block->instruction_count; j++) {
+                const MIRInstruction *inst = &block->instructions[j];
+                for (size_t u = 0; u < inst->use_count; u++) {
+                    if (!transpiler_versioned_name_list_add(declared_versioned_names,
+                                                            &declared_versioned_count,
+                                                            4096,
+                                                            inst->uses[u])) {
+                        if (ctx->backend_error == NULL) {
+                            ctx->backend_error = strdup_fmt(
+                                "too many MIR SSA locals while emitting function '%s'",
+                                name != NULL ? name : "<function>");
+                        }
+                        codebuf_destroy(params_sig);
+                        free(header_decl);
+                        ctx->slot_var_count = saved_slot_count;
+                        ctx->typed_var_count = saved_typed_count;
+                        g_type_render_ctx = saved_render_ctx;
+                        ctx->out = saved_out;
+                        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                            "%s", saved_return_type);
+                        return;
+                    }
+                }
+                if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
+                    && inst->result_name != NULL
+                    && !transpiler_versioned_name_list_add(declared_versioned_names,
+                                                           &declared_versioned_count,
+                                                           4096,
+                                                           inst->result_name)) {
+                    if (ctx->backend_error == NULL) {
+                        ctx->backend_error = strdup_fmt(
+                            "too many MIR SSA locals while emitting function '%s'",
+                            name != NULL ? name : "<function>");
+                    }
+                    codebuf_destroy(params_sig);
+                    free(header_decl);
+                    ctx->slot_var_count = saved_slot_count;
+                    ctx->typed_var_count = saved_typed_count;
+                    g_type_render_ctx = saved_render_ctx;
+                    ctx->out = saved_out;
+                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                        "%s", saved_return_type);
+                    return;
+                }
+            }
+        }
+
+        for (size_t i = 0; i < declared_versioned_count; i++) {
+            const char *versioned_name = declared_versioned_names[i];
+            char base[128];
+            size_t version = 0;
             const char *type_name = NULL;
             const char *c_type = NULL;
             char *c_name = NULL;
-            if ((inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
-                || inst->result_name == NULL) {
+            char *initial_expr = NULL;
+
+            if (versioned_name == NULL
+                || !transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)) {
                 continue;
             }
-            const char *lookup_name =
-                (inst->kind == MIR_INST_PHI)
-                    ? inst->name
-                    : (inst->arg0 != NULL ? inst->arg0 : inst->name);
-            if (inst->kind == MIR_INST_DEF
-                && inst->ast != NULL
-                && inst->ast->type == AST_ASSIGNMENT
-                && inst->ast->data.assignment.target != NULL
-                && inst->ast->data.assignment.target->type == AST_IDENTIFIER
-                && !transpiler_has_explicit_local_binding(node,
-                    inst->ast->data.assignment.target->data.identifier.name)) {
-                continue;
-            }
-            type_name = transpiler_find_local_type_name(ctx, node,
-                lookup_name);
+            type_name = transpiler_find_local_type_name(ctx, node, base);
             if (transpiler_type_name_is_slot_like(type_name))
                 continue;
             if (type_name != NULL)
@@ -216,7 +321,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(
                         "cannot determine C type for MIR local '%s' in function '%s'",
-                        inst->result_name != NULL ? inst->result_name : "<ssa>",
+                        versioned_name,
                         name != NULL ? name : "<function>");
                 }
                 if (params_sig != NULL)
@@ -230,14 +335,34 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     "%s", saved_return_type);
                 return;
             }
-            c_name = transpiler_make_c_ssa_name(inst->result_name);
+            c_name = transpiler_make_c_ssa_name(versioned_name);
             write_indent(ctx);
-            if (transpiler_c_type_uses_scalar_zero(c_type))
+            if (version == 0) {
+                if (transpiler_has_explicit_local_binding(node, base)) {
+                    initial_expr = pergyra_strdup(base);
+                } else if (owner_name != NULL) {
+                    initial_expr = strdup_fmt("self->%s", base);
+                } else {
+                    initial_expr = pergyra_strdup(base);
+                }
+            }
+            if (initial_expr != NULL) {
+                codebuf_write(ctx->out, "%s %s = %s;\n", c_type, c_name, initial_expr);
+            } else if (transpiler_c_type_uses_scalar_zero(c_type))
                 codebuf_write(ctx->out, "%s %s = 0;\n", c_type, c_name);
             else
                 codebuf_write(ctx->out, "%s %s = (%s){0};\n", c_type, c_name, c_type);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "(void)%s;\n", c_name);
+            free(initial_expr);
             free(c_name);
         }
+    }
+
+    for (size_t i = 0; i < mir_routine->block_count; i++) {
+        const MIRBasicBlock *block = &mir_routine->blocks[i];
+        if (!block->is_reachable || block->is_cleanup)
+            continue;
     }
 
     write_indent(ctx);
@@ -312,7 +437,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (cond == NULL)
                     cond = pergyra_strdup("false");
                 if (block->has_succ_true)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, i, block,
                         &mir_routine->blocks[block->succ_true]);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if (%s) {\n", cond != NULL ? cond : "false");
@@ -321,7 +446,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 write_indent(ctx);
                 codebuf_write(ctx->out, "} else {\n");
                 if (block->has_succ_false)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent + 1, block,
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent + 1, i, block,
                         &mir_routine->blocks[block->succ_false]);
                 write_indent_to(ctx->out, ctx->indent + 1);
                 codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_false);
@@ -344,10 +469,32 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
         }
         if (!terminator_emitted && block->has_succ_true) {
-            transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, block,
+            transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, i, block,
                 &mir_routine->blocks[block->succ_true]);
             write_indent(ctx);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
+            terminator_emitted = true;
+        }
+        if (!terminator_emitted && !block->has_succ_true && !block->has_succ_false) {
+            write_indent(ctx);
+            if (strcmp(ctx->current_return_type, "Void") == 0) {
+                codebuf_write(ctx->out, "return;\n");
+            } else {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "MIR exit block in function '%s' has no explicit return for non-void type '%s'",
+                        name != NULL ? name : "<function>",
+                        ctx->current_return_type);
+                }
+                transpiler_ssa_map_clear(&block_ssa_map);
+                ctx->slot_var_count = saved_slot_count;
+                ctx->typed_var_count = saved_typed_count;
+                snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                    "%s", saved_return_type);
+                g_type_render_ctx = saved_render_ctx;
+                ctx->out = saved_out;
+                return;
+            }
         }
     }
 
@@ -1064,11 +1211,15 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out,
             "PgySecureSlot_%s %s = pgy_claim_secure_%s(&%s_token);\n",
             inner, alias, inner, alias);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "(void)%s;\n", alias);
     } else {
         write_indent(ctx);
         codebuf_write(ctx->out,
             "PgySlot_%s %s = pgy_claim_%s();\n",
             inner, alias, inner);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "(void)%s;\n", alias);
     }
 
     if (node->data.with_stmt.body != NULL)

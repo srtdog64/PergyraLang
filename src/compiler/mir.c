@@ -13,6 +13,87 @@ static void mir_clear_block_name_set(const char ***names, size_t *count);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
 static bool mir_compute_liveness(MIRRoutine *routine);
 
+static char *
+mir_render_type_name(ASTNode *type_node)
+{
+    if (type_node == NULL)
+        return pergyra_strdup("Int");
+    if (type_node->type == AST_TYPE) {
+        size_t cap = 256;
+        char *buf = calloc(cap, 1);
+        if (buf == NULL)
+            return NULL;
+        snprintf(buf, cap, "%s", type_node->data.type.name != NULL
+            ? type_node->data.type.name : "Int");
+        if (type_node->data.type.generic_args != NULL
+            && type_node->data.type.generic_args->count > 0) {
+            strncat(buf, "<", cap - strlen(buf) - 1);
+            for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
+                GenericParam *param = type_node->data.type.generic_args->params[i];
+                char *inner = mir_render_type_name(
+                    param != NULL ? param->constraint : NULL);
+                if (i > 0)
+                    strncat(buf, ",", cap - strlen(buf) - 1);
+                strncat(buf, inner != NULL ? inner : "Int", cap - strlen(buf) - 1);
+                free(inner);
+            }
+            strncat(buf, ">", cap - strlen(buf) - 1);
+        }
+        return buf;
+    }
+    if (type_node->type == AST_CHANNEL_TYPE) {
+        char *inner = mir_render_type_name(type_node->data.channel_type.element_type);
+        char *result = NULL;
+        if (inner != NULL)
+            result = mir_strdup_fmt("Channel<%s>", inner);
+        free(inner);
+        return result != NULL ? result : pergyra_strdup("Channel<Int>");
+    }
+    if (type_node->type == AST_FUTURE_TYPE) {
+        char *inner = mir_render_type_name(type_node->data.future_type.value_type);
+        char *result = NULL;
+        if (inner != NULL)
+            result = mir_strdup_fmt("Future<%s>", inner);
+        free(inner);
+        return result != NULL ? result : pergyra_strdup("Future<Int>");
+    }
+    return pergyra_strdup("Int");
+}
+
+static char *
+mir_claim_abi_type_name_from_ast(const ASTNode *ast)
+{
+    if (ast == NULL)
+        return NULL;
+    if (ast->type == AST_WITH_STMT) {
+        char *inner = mir_render_type_name(ast->data.with_stmt.slot_type);
+        char *result = mir_strdup_fmt("%s<%s>",
+                                  ast->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                                  inner != NULL ? inner : "Int");
+        free(inner);
+        return result;
+    }
+    if (ast->type == AST_CALL
+        && ast->data.call.callee != NULL
+        && ast->data.call.callee->type == AST_IDENTIFIER
+        && ast->data.call.callee->data.identifier.name != NULL) {
+        const char *callee = ast->data.call.callee->data.identifier.name;
+        if (ast->data.call.arg_count >= 1 && ast->data.call.arguments[0] != NULL) {
+            char *inner = mir_render_type_name(ast->data.call.arguments[0]);
+            char *result = NULL;
+            if (strcmp(callee, "ClaimSlot") == 0)
+                result = mir_strdup_fmt("Slot<%s>", inner != NULL ? inner : "Int");
+            else if (strcmp(callee, "ClaimSecureSlot") == 0)
+                result = mir_strdup_fmt("SecureSlot<%s>", inner != NULL ? inner : "Int");
+            else if (strcmp(callee, "ClaimDeviceSlot") == 0)
+                result = mir_strdup_fmt("DeviceSlot<%s>", inner != NULL ? inner : "Int");
+            free(inner);
+            return result;
+        }
+    }
+    return NULL;
+}
+
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block, const HIRBasicBlock *hir_block)
 {
@@ -120,6 +201,8 @@ static bool
 mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
 {
     MIRInstruction inst;
+    char *claim_type_name = NULL;
+    const char *abi_type_name = NULL;
     memset(&inst, 0, sizeof(inst));
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_RESOURCE_OP;
@@ -130,7 +213,13 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     inst.rir_op = op;
     inst.ast = op->ast;
     /* ABI type layout — lookup from type table */
-    inst.type_layout = mir_abi_lookup(op->arg0 != NULL ? op->arg0 : op->subject);
+    if (op->kind == RIR_OP_CLAIM)
+        claim_type_name = mir_claim_abi_type_name_from_ast(op->ast);
+    abi_type_name = claim_type_name != NULL
+        ? claim_type_name
+        : (op->arg0 != NULL ? op->arg0 : op->subject);
+    inst.type_layout = mir_abi_lookup(abi_type_name);
+    free(claim_type_name);
     return append_instruction(block, inst);
 }
 

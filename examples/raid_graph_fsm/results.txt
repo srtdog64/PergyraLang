@@ -1,17 +1,17 @@
 === RAID GRAPH FSM REPORT ===
-storm=2
-relics=7
-blocks=8
-forgeCost=5
-sanctumViaForge=8
+storm=1
+relics=9
+blocks=2
+forgeCost=3
+sanctumViaForge=6
 
 --- FORGE ---
-relics=0 cleared=3 threat=1
+relics=0 cleared=3 threat=0
 --- VAULT ---
-relics=2 cleared=4 threat=5
+relics=0 cleared=6 threat=5
 --- SANCTUM ---
-relics=8 cleared=0 threat=14
+relics=8 cleared=0 threat=10
 --- RAIDERS ---
-Iris relics=2 blocks=2 stamina=15
-Brom relics=3 blocks=0 stamina=0
-Nyra relics=2 blocks=2 stamina=14
+Iris relics=4 blocks=0 stamina=9
+Brom relics=3 blocks=0 stamina=5
+Nyra relics=2 blocks=1 stamina=12

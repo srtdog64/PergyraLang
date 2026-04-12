@@ -1,0 +1,22 @@
+func Main() -> Void {
+    let items: List<Int> = ListNew();
+    ListPush(items, 3);
+    ListPush(items, 4);
+
+    let seen: Set<Int> = SetNew();
+    SetAdd(seen, 3);
+    SetAdd(seen, 9);
+
+    let table: HashMap<Int, Int> = MapNew();
+    MapSet(table, 3, 30);
+    MapSet(table, 4, 40);
+
+    Log("list.sum=" + ToString(ListGet(items, 0) + ListGet(items, 1)));
+    if SetHas(seen, 3) {
+        Log("set.has3=true");
+    } else {
+        Log("set.has3=false");
+    }
+    Log("map.sum=" + ToString(MapGet(table, 3) + MapGet(table, 4)));
+    Log("sizes=" + ToString(ListSize(items)) + "/" + ToString(SetSize(seen)) + "/" + ToString(MapSize(table)));
+}

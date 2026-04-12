@@ -177,7 +177,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             if (inner_c != NULL && inner_c[0] != '\0') {
                 const char *op = inst->name;
                 if (op != NULL) {
-                    if (strcmp(op, "CLAIM") == 0) {
+                    if (strcmp(op, "Claim") == 0) {
                         if (is_secure_slot) {
                             snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
                                 "pgy_claim_secure_%s", inner_name);
@@ -194,7 +194,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                             fn = runtime_fn_buf;
                             suffix = inner_name;
                         }
-                    } else if (strcmp(op, "READ") == 0) {
+                    } else if (strcmp(op, "Read") == 0) {
                         if (is_secure_slot) {
                             /* Secure slots require tokens; keep hard error. */
                             return false;
@@ -209,7 +209,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                             fn = runtime_fn_buf;
                             suffix = inner_name;
                         }
-                    } else if (strcmp(op, "WRITE") == 0) {
+                    } else if (strcmp(op, "Write") == 0) {
                         if (is_secure_slot) {
                             /* Secure slots require tokens; keep hard error. */
                             return false;
@@ -224,7 +224,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                             fn = runtime_fn_buf;
                             suffix = inner_name;
                         }
-                    } else if (strcmp(op, "RELEASE") == 0) {
+                    } else if (strcmp(op, "Release") == 0) {
                         if (is_secure_slot) {
                             /* Secure slots require tokens; keep hard error. */
                             return false;
@@ -248,9 +248,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     if (fn == NULL)
         return false;
 
-    const char *op_name = inst->name;  /* "CLAIM", "READ", "WRITE", "RELEASE", etc. */
+    const char *op_name = inst->name;  /* "Claim", "Read", "Write", "Release", etc. */
 
-    if (op_name != NULL && strcmp(op_name, "CLAIM") == 0) {
+    if (op_name != NULL && strcmp(op_name, "Claim") == 0) {
         /* Rule 1: Slot Claim
          * C: PgySlot_<T> <anchor> = pgy_claim_<T>();
          */
@@ -267,8 +267,10 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         write_indent_to(out, indent);
         codebuf_write(out, "%s %s = %s();\n", c_type_buf, anchor, fn);
+        write_indent_to(out, indent);
+        codebuf_write(out, "(void)%s;\n", anchor);
     }
-    else if (op_name != NULL && strcmp(op_name, "READ") == 0) {
+    else if (op_name != NULL && strcmp(op_name, "Read") == 0) {
         /* Rule 4: Slot Read
          * C: <inner_type> <name> = pgy_read_<T>(&<anchor>);
          */
@@ -283,7 +285,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         write_indent_to(out, indent);
         codebuf_write(out, "%s %s = %s(&%s);\n", read_inner_c, result, fn, anchor);
     }
-    else if (op_name != NULL && strcmp(op_name, "WRITE") == 0) {
+    else if (op_name != NULL && strcmp(op_name, "Write") == 0) {
         /* Rule 5a: Slot Write
          * C: pgy_write_<T>(&<anchor>, <value>);
          */
@@ -294,7 +296,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         write_indent_to(out, indent);
         codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, value);
     }
-    else if (op_name != NULL && strcmp(op_name, "RELEASE") == 0) {
+    else if (op_name != NULL && strcmp(op_name, "Release") == 0) {
         /* Rule 5b: Slot Release
          * C: pgy_release_<T>(&<anchor>);
          */
@@ -303,7 +305,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         write_indent_to(out, indent);
         codebuf_write(out, "%s(&%s);\n", fn, anchor);
     }
-    else if (op_name != NULL && strcmp(op_name, "MOVE") == 0) {
+    else if (op_name != NULL && strcmp(op_name, "Move") == 0) {
         /* Rule 6: Ownership Move
          * C: <dst> = <src>; <src>.occupied = false;
          */

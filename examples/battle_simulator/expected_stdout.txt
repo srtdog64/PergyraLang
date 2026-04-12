@@ -7,7 +7,7 @@ Slime
 Hero
 Slime
 7
-0
+3
 true
 true
 true
@@ -20,7 +20,7 @@ Goblin
 Knight
 Goblin
 6
-0
+4
 true
 true
 true
@@ -46,7 +46,7 @@ Goblin
 Knight
 Goblin
 6
-0
+4
 true
 true
 true

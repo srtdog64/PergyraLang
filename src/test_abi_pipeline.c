@@ -407,6 +407,11 @@ run_pipeline_case(const char *case_name,
     abi_expect(msg, expected_compile_output == NULL
         || (compile_captured != NULL
             && strstr(compile_captured, expected_compile_output) != NULL));
+    if (compile_rc != 0) {
+        printf("    compile_rc=%d\n", compile_rc);
+        if (compile_captured != NULL && compile_captured[0] != '\0')
+            printf("    compile output:\n%s\n", compile_captured);
+    }
 
     if (enforce_thresholds) {
         snprintf(msg, sizeof(msg), "%s/%s: compiler latency <= %.1fs",
@@ -460,10 +465,12 @@ run_pipeline_case(const char *case_name,
     free(normalized_expected);
     free(normalized_captured);
     free(captured);
-    remove_if_exists(compile_capture_path);
-    remove_if_exists(capture_path);
-    remove_if_exists(binary_path);
-    remove_if_exists(source_path);
+    if (compile_rc == 0 && run_rc == 0 && g_fail == 0) {
+        remove_if_exists(compile_capture_path);
+        remove_if_exists(capture_path);
+        remove_if_exists(binary_path);
+        remove_if_exists(source_path);
+    }
 }
 
 int
