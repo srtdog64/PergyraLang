@@ -1686,6 +1686,21 @@ mir_stmt_is_def_source(const ASTNode *stmt)
     return false;
 }
 
+static const char *
+mir_stmt_def_name(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return NULL;
+    if (stmt->type == AST_LET_DECL)
+        return stmt->data.let_decl.name;
+    if (stmt->type == AST_ASSIGNMENT
+        && stmt->data.assignment.target != NULL
+        && stmt->data.assignment.target->type == AST_IDENTIFIER) {
+        return stmt->data.assignment.target->data.identifier.name;
+    }
+    return NULL;
+}
+
 /* Check if a statement is control flow that the HIR has already lowered into
  * separate CFG blocks (and therefore should NOT be emitted as a STMT
  * instruction, because the CFG blocks handle it).
@@ -1788,6 +1803,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             if (mir_stmt_is_control_flow(stmt, block))
                 continue;
             if (mir_stmt_is_def_source(stmt)) {
+                const char *stmt_name = mir_stmt_def_name(stmt);
                 /* Find the next DEF from old instructions */
                 size_t saved_cursor = def_cursor;
                 while (def_cursor < old_count
@@ -1795,6 +1811,20 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     def_cursor++;
                 if (def_cursor < old_count) {
                     MIRInstruction def_inst = old_insts[def_cursor];
+                    const char *def_name = def_inst.arg0 != NULL
+                        ? def_inst.arg0
+                        : def_inst.slot_anchor;
+                    if (stmt_name == NULL || def_name == NULL
+                        || strcmp(stmt_name, def_name) != 0) {
+                        def_cursor = saved_cursor;
+                        memset(&def_inst, 0, sizeof(def_inst));
+                        def_inst.id = routine->instruction_count++;
+                        def_inst.kind = MIR_INST_STMT;
+                        def_inst.name = "stmt";
+                        def_inst.ast = stmt;
+                        new_insts[new_count++] = def_inst;
+                        continue;
+                    }
                     /* Attach the full statement AST so LLVM emitter can
                      * extract both the type annotation and the initializer. */
                     if (def_inst.ast == NULL)

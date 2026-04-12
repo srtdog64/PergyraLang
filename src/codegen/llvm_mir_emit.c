@@ -60,6 +60,97 @@ llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
     return cls != NULL && cls->is_pointer_self_host;
 }
 
+static void
+llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
+                                   LLVMClassTypeEntry *owner_cls,
+                                   const char *owner_name)
+{
+    LLVMVarEntry *self_entry;
+    LLVMValueRef self_ptr;
+
+    if (ctx == NULL || owner_cls == NULL || owner_name == NULL)
+        return;
+
+    self_entry = llvm_scope_lookup(ctx, "self");
+    if (self_entry == NULL)
+        return;
+
+    self_ptr = LLVMBuildLoad2(ctx->builder,
+        LLVMPointerType(owner_cls->struct_type, 0),
+        self_entry->alloca, llvm_tmp_name(ctx));
+
+    if (owner_cls->domain_kind == LLVM_DOMAIN_WORLD && ctx->mir != NULL) {
+        const MIRDeclHeader *decl = mir_find_decl_header(ctx->mir, owner_name);
+        ASTNode *world_decl = (decl != NULL && decl->ast_type == AST_WORLD_DECL)
+            ? decl->ast : NULL;
+
+        if (world_decl != NULL) {
+            for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
+                ASTNode *zone = world_decl->data.world_decl.zones[i];
+                const char *slot_name = zone != NULL
+                    ? zone->data.world_zone.slot_name
+                    : NULL;
+                char dirty_field[256];
+                int dirty_idx;
+                LLVMValueRef dirty_ptr;
+
+                if (slot_name == NULL)
+                    continue;
+
+                snprintf(dirty_field, sizeof(dirty_field),
+                    "__zone_dirty_%s", slot_name);
+                dirty_idx = llvm_class_field_index(owner_cls, dirty_field);
+                if (dirty_idx < 0)
+                    continue;
+
+                dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    owner_cls->struct_type, self_ptr, (unsigned)dirty_idx,
+                    llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                    dirty_ptr);
+            }
+        }
+
+        {
+            int derived_idx = llvm_class_field_index(owner_cls, "__world_derived_dirty");
+            if (derived_idx >= 0) {
+                LLVMValueRef derived_ptr = LLVMBuildStructGEP2(ctx->builder,
+                    owner_cls->struct_type, self_ptr, (unsigned)derived_idx,
+                    llvm_tmp_name(ctx));
+                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                    derived_ptr);
+            }
+        }
+    }
+}
+
+static void
+llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
+                              LLVMClassTypeEntry *owner_cls,
+                              LLVMFuncEntry *owner_sync,
+                              const char *owner_name)
+{
+    LLVMVarEntry *self_entry;
+    LLVMValueRef self_ptr;
+    LLVMValueRef sync_args[1];
+
+    if (ctx == NULL || owner_cls == NULL || owner_sync == NULL)
+        return;
+
+    llvm_mir_mark_owner_dirty_for_exit(ctx, owner_cls, owner_name);
+
+    self_entry = llvm_scope_lookup(ctx, "self");
+    if (self_entry == NULL)
+        return;
+
+    self_ptr = LLVMBuildLoad2(ctx->builder,
+        LLVMPointerType(owner_cls->struct_type, 0),
+        self_entry->alloca, llvm_tmp_name(ctx));
+    sync_args[0] = self_ptr;
+    LLVMBuildCall2(ctx->builder, owner_sync->fn_type, owner_sync->fn,
+        sync_args, 1, "");
+}
+
 #include "llvm_mir_blocks.inc"
 #include "llvm_mir_locals.inc"
 
@@ -235,7 +326,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx,
-                                       llvm_blocks, vars, var_count, func_decl);
+                                       llvm_blocks, vars, var_count, func_decl,
+                                       owner_cls, owner_sync, owner_name);
     }
     llvm_mir_debug_stage("emit_func_from_mir:entry_emitted", routine);
     for (size_t i = 0; i < routine->block_count; i++) {
@@ -244,7 +336,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         const MIRBasicBlock *mir_block = &routine->blocks[i];
         if (mir_block->is_reachable && !mir_block->is_cleanup) {
             llvm_emit_mir_block_with_exprs(mir_block, routine, ctx, llvm_blocks,
-                                           vars, var_count, func_decl);
+                                           vars, var_count, func_decl,
+                                           owner_cls, owner_sync, owner_name);
         } else if (!mir_block->is_cleanup) {
             LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[i]);
             LLVMBuildUnreachable(ctx->builder);
@@ -272,7 +365,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             const MIRBasicBlock *mir_block = &routine->blocks[i];
             if (mir_block->is_cleanup && mir_block->is_reachable) {
                 llvm_emit_mir_block_with_exprs(mir_block, routine, ctx, llvm_blocks,
-                                               vars, var_count, func_decl);
+                                               vars, var_count, func_decl,
+                                               owner_cls, owner_sync, owner_name);
             }
         }
     }

@@ -248,6 +248,9 @@ LSP_OBJ                = $(BUILD_DIR)/lsp/pgy_lsp.o
 FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
                    $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS) $(COMPILER_OBJECTS) \
                    $(LLVM_BACKEND_OBJECTS) $(RUNTIME_LIB_OBJECTS)
+SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
+                        $(BUILD_DIR)/compiler/module_normalizer.o \
+                        $(BUILD_DIR)/compiler/path_utils.o
 
 # -----------------------------------------------------------------
 # Executables
@@ -355,27 +358,27 @@ $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # DIR lowering test
-$(DIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/dir.o $(TEST_DIR_OBJ) | $(BIN_DIR)
+$(DIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(TEST_DIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # HIR lowering test
-$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
+$(RIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/dir.o $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # MIR lowering test
-$(MIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(TEST_MIR_OBJ) | $(BIN_DIR)
+$(MIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir.o $(BUILD_DIR)/compiler/rir.o $(BUILD_DIR)/compiler/mir.o $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # HIR lowering test
-$(HIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(BUILD_DIR)/compiler/hir.o $(TEST_HIR_OBJ) | $(BIN_DIR)
+$(HIR_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(BUILD_DIR)/compiler/hir.o $(TEST_HIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 
 # LSP server
-$(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(LSP_OBJ) | $(BIN_DIR)
+$(PGY_LSP): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(LSP_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
 

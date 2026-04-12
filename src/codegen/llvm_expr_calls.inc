@@ -141,6 +141,72 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     object = LLVMBuildInsertValue(ctx->builder, object, init_val,
                         (unsigned)field_idx, llvm_tmp_name(ctx));
                 }
+                if (relation_decl != NULL || effect_decl != NULL || zone_decl != NULL) {
+                    ASTNode **slots = NULL;
+                    size_t slot_count = 0;
+                    ASTNode **refreshes = NULL;
+                    size_t refresh_count = 0;
+
+                    if (relation_decl != NULL) {
+                        slots = relation_decl->data.relation_decl.slots;
+                        slot_count = relation_decl->data.relation_decl.slot_count;
+                        refreshes = relation_decl->data.relation_decl.refreshes;
+                        refresh_count = relation_decl->data.relation_decl.refresh_count;
+                    } else if (effect_decl != NULL) {
+                        slots = effect_decl->data.effect_decl.slots;
+                        slot_count = effect_decl->data.effect_decl.slot_count;
+                        refreshes = effect_decl->data.effect_decl.refreshes;
+                        refresh_count = effect_decl->data.effect_decl.refresh_count;
+                    } else if (zone_decl != NULL) {
+                        slots = zone_decl->data.zone_decl.slots;
+                        slot_count = zone_decl->data.zone_decl.slot_count;
+                        refreshes = zone_decl->data.zone_decl.refreshes;
+                        refresh_count = zone_decl->data.zone_decl.refresh_count;
+                    }
+
+                    for (size_t i = 0; i < slot_count; i++) {
+                        ASTNode *slot = slots != NULL ? slots[i] : NULL;
+                        const char *slot_name = slot != NULL
+                            ? slot->data.domain_slot.slot_name
+                            : NULL;
+                        bool projection_slot = false;
+
+                        if (slot == NULL || slot->type != AST_DOMAIN_SLOT || slot_name == NULL)
+                            continue;
+
+                        if (slot->data.domain_slot.is_tobject) {
+                            projection_slot = true;
+                        } else {
+                            for (size_t ri = 0; ri < refresh_count; ri++) {
+                                ASTNode *refresh = refreshes != NULL ? refreshes[ri] : NULL;
+                                if (refresh == NULL
+                                    || refresh->type != AST_ZONE_REFRESH
+                                    || refresh->data.zone_refresh.object_slot_name == NULL) {
+                                    continue;
+                                }
+                                if (strcmp(slot_name,
+                                           refresh->data.zone_refresh.object_slot_name) == 0) {
+                                    projection_slot = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (projection_slot) {
+                            char dirty_field[256];
+                            int dirty_idx;
+
+                            snprintf(dirty_field, sizeof(dirty_field),
+                                "__projection_dirty_%s", slot_name);
+                            dirty_idx = llvm_class_field_index(cls, dirty_field);
+                            if (dirty_idx < 0)
+                                continue;
+                            object = LLVMBuildInsertValue(ctx->builder, object,
+                                LLVMConstInt(ctx->type_i1, 1, 0),
+                                (unsigned)dirty_idx, llvm_tmp_name(ctx));
+                        }
+                    }
+                }
                 if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
                     int derived_idx = llvm_class_field_index(cls, "__world_derived_dirty");
                     if (derived_idx >= 0) {

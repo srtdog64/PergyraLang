@@ -1,0 +1,838 @@
+emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
+{
+    int saved_slot_count;
+    int saved_typed_count;
+    bool has_compensate_steps = false;
+    bool needs_cleanup_done_label = false;
+    bool mir_only_intent = false;
+    size_t subject_count = 0;
+    ASTNode **mir_steps = NULL;
+    ASTNode **step_nodes = NULL;
+    size_t step_count = 0;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    size_t participant_count = 0;
+    const MIRRoutine *mir_routine = NULL;
+    bool emit_cleanup_from_mir = false;
+    CodeBuf *saved_out;
+    TranspilerCtx *saved_render_ctx;
+
+    if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
+        return;
+
+    saved_slot_count = ctx->slot_var_count;
+    saved_typed_count = ctx->typed_var_count;
+    saved_out = ctx->out;
+    saved_render_ctx = g_type_render_ctx;
+    ctx->out = buf;
+    g_type_render_ctx = ctx;
+    mir_only_intent = ctx->mir != NULL;
+    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
+    emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
+    if (mir_routine != NULL) {
+        participant_count = transpiler_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+    }
+    if (mir_routine != NULL)
+        step_count = transpiler_collect_mir_intent_steps(mir_routine, &mir_steps);
+    if (step_count == 0) {
+        step_nodes = node->data.intent_decl.steps;
+        step_count = node->data.intent_decl.step_count;
+    } else {
+        step_nodes = mir_steps;
+    }
+    if (mir_only_intent && node->data.intent_decl.step_count > 0 && mir_routine == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only C path missing routine for intent '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous-intent)");
+        }
+        free(mir_steps);
+        free((void *)participant_aliases);
+        free((void *)participant_types);
+        g_type_render_ctx = saved_render_ctx;
+        ctx->out = saved_out;
+        return;
+    }
+    if (mir_only_intent && node->data.intent_decl.step_count > 0 && step_count == 0) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only C path missing intent step sequence for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous-intent)");
+        }
+        free(mir_steps);
+        free((void *)participant_aliases);
+        free((void *)participant_types);
+        g_type_render_ctx = saved_render_ctx;
+        ctx->out = saved_out;
+        return;
+    }
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = step_nodes[i];
+        if (step != NULL && step->type == AST_INTENT_STEP
+            && step->data.intent_step.compensate_expr_count > 0) {
+            has_compensate_steps = true;
+            break;
+        }
+    }
+    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE)
+        has_compensate_steps = false;
+    needs_cleanup_done_label = !emit_cleanup_from_mir && has_compensate_steps
+        && node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT;
+
+    codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = node->data.intent_decl.involves[i];
+        const char *pt = NULL;
+        const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
+            ? involves->data.intent_involves.alias : "participant";
+        const char *participant_type = participant_types != NULL && i < participant_count
+            ? participant_types[i]
+            : NULL;
+        char *type_name = NULL;
+        bool pointer_param = false;
+        char surface_desc[256];
+        if (i > 0)
+            codebuf_write(ctx->out, ", ");
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent participant '%s' of '%s'",
+            alias != NULL ? alias : "(anonymous)",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+        if (participant_type != NULL) {
+            pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
+            type_name = pergyra_strdup(participant_type);
+            pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+            pt = transpiler_require_ast_c_type(
+                ctx, involves->data.intent_involves.subject_type, surface_desc);
+            type_name = render_type_name(involves->data.intent_involves.subject_type);
+            pointer_param = intent_involves_uses_pointer_self(ctx, involves);
+        }
+        if (pt == NULL)
+            goto intent_emit_fail;
+        if (participant_aliases != NULL && i < participant_count
+            && participant_aliases[i] != NULL) {
+            alias = participant_aliases[i];
+        }
+        codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
+        if (type_name != NULL) {
+            register_typed_var(ctx, alias, type_name);
+            TypedVarEntry *entry = lookup_typed_entry(ctx, alias);
+            if (entry != NULL)
+                entry->is_subject_ref = pointer_param;
+            free(type_name);
+        }
+    }
+    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
+        ASTNode *value = node->data.intent_decl.values[i];
+        const char *pt = NULL;
+        char *type_name = NULL;
+        char surface_desc[256];
+        if (node->data.intent_decl.involve_count > 0 || i > 0)
+            codebuf_write(ctx->out, ", ");
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent value '%s' of '%s'",
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias
+                : "value",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(
+            ctx,
+            value != NULL ? value->data.intent_value.value_type : NULL,
+            surface_desc);
+        if (pt == NULL)
+            goto intent_emit_fail;
+        if (value != NULL && value->data.intent_value.value_type != NULL) {
+            type_name = render_type_name(value->data.intent_value.value_type);
+        }
+        codebuf_write(ctx->out, "%s %s", pt,
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias : "value");
+        if (type_name != NULL) {
+            register_typed_var(ctx, value->data.intent_value.alias, type_name);
+            free(type_name);
+        }
+    }
+    codebuf_write(ctx->out, ")\n{\n");
+    ctx->indent++;
+
+    write_indent(ctx);
+    codebuf_write(ctx->out, "bool __intent_result = false;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "bool __intent_failed = false;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "(void)__intent_failed;\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "int32_t __intent_handle = 0;\n");
+    if (has_compensate_steps && step_count > 0) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "bool __intent_step_completed[%zu] = { false };\n",
+            step_count);
+    }
+    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        if (intent_involves_is_subject_participant(ctx,
+                node->data.intent_decl.involves[i])) {
+            subject_count++;
+        }
+    }
+    if (subject_count > 0) {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "void *__intent_subjects[%zu];\n",
+            subject_count);
+        {
+            size_t subject_index = 0;
+            for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+                ASTNode *involves = node->data.intent_decl.involves[i];
+                const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
+                    ? involves->data.intent_involves.alias : "participant";
+                if (participant_aliases != NULL && i < participant_count
+                    && participant_aliases[i] != NULL) {
+                    alias = participant_aliases[i];
+                }
+                if (!intent_involves_is_subject_participant(ctx, involves))
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "__intent_subjects[%zu] = (void *)%s;\n",
+                    subject_index++, alias);
+            }
+        }
+    }
+    {
+        char *priority = node->data.intent_decl.priority_expr != NULL
+            ? emit_expression(node->data.intent_decl.priority_expr, ctx)
+            : pergyra_strdup("0");
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "__intent_handle = pgy_intent_enter_export(\"%s\", %s, %zu, %s, %s);\n",
+            node->data.intent_decl.name,
+            subject_count > 0 ? "__intent_subjects" : "NULL",
+            subject_count,
+            node->data.intent_decl.is_concurrent ? "true" : "false",
+            priority != NULL ? priority : "0");
+        free(priority);
+    }
+    {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (__intent_handle == 0) {\n");
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_failed = true;\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_result = false;\n");
+        write_indent(ctx);
+        if (emit_cleanup_from_mir) {
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->cleanup_block);
+        } else {
+            codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+        }
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+    }
+
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = step_nodes[i];
+        const char *saved_zone_name = ctx->current_zone_name;
+        const char *saved_overlay_receiver = ctx->current_overlay_receiver_expr;
+        const char *step_name = NULL;
+        ASTNode *pre_expr = NULL;
+        ASTNode *guard_expr = NULL;
+        ASTNode *post_expr = NULL;
+        ASTNode *expect_expr = NULL;
+        ASTNode *invariant_pre_expr = NULL;
+        ASTNode *invariant_post_expr = NULL;
+        ASTNode **on_exprs = NULL;
+        size_t on_expr_count = 0;
+        ASTNode *subintent_expr = NULL;
+        const char *step_zone_name = NULL;
+        const char *step_zone_alias = NULL;
+        const char *step_from_alias = NULL;
+        const char **who_aliases = NULL;
+        size_t who_alias_count = 0;
+        const char **dispatch_aliases = NULL;
+        size_t dispatch_alias_count = 0;
+        bool rebound_aliases = false;
+        if (step == NULL || step->type != AST_INTENT_STEP)
+            continue;
+        step_name = step->data.intent_step.name;
+        if (mir_routine != NULL) {
+            pre_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "pre");
+            guard_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "guard");
+            post_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "post");
+            expect_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "expect");
+            invariant_pre_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "invariant-pre");
+            invariant_post_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "invariant-post");
+            on_expr_count = transpiler_collect_mir_intent_eval_exprs(
+                mir_routine, step_name, "on", &on_exprs);
+            subintent_expr = transpiler_find_mir_intent_eval_expr(mir_routine, step_name, "intent");
+            step_zone_name = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
+            step_zone_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
+            step_from_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
+            who_alias_count = transpiler_collect_mir_intent_who_aliases(mir_routine, step_name, &who_aliases);
+            dispatch_alias_count = transpiler_collect_mir_intent_dispatch_aliases(mir_routine, step_name, &dispatch_aliases);
+        }
+        if (mir_only_intent) {
+            if (step->data.intent_step.pre_expr != NULL && pre_expr == NULL)
+                goto mir_step_missing_pre;
+            if (step->data.intent_step.guard_expr != NULL && guard_expr == NULL)
+                goto mir_step_missing_guard;
+            if (step->data.intent_step.post_expr != NULL && post_expr == NULL)
+                goto mir_step_missing_post;
+            if (step->data.intent_step.expect_expr != NULL && expect_expr == NULL)
+                goto mir_step_missing_expect;
+            if (step->data.intent_step.invariant_expr != NULL
+                && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
+                goto mir_step_missing_invariant;
+            if (step->data.intent_step.intent_expr != NULL && subintent_expr == NULL)
+                goto mir_step_missing_subintent;
+            if (step->data.intent_step.on_expr_count > 0 && on_expr_count == 0)
+                goto mir_step_missing_on;
+            if (step->data.intent_step.where_type != NULL && step_zone_name == NULL)
+                goto mir_step_missing_zone_where;
+            if (intent_step_effective_zone_alias(step) != NULL && step_zone_alias == NULL)
+                goto mir_step_missing_zone_alias;
+            if (step->data.intent_step.transfer_from_alias != NULL && step_from_alias == NULL)
+                goto mir_step_missing_zone_from;
+            if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                goto mir_step_missing_who;
+            if (step->data.intent_step.on_expr_count == 0
+                && step->data.intent_step.intent_expr == NULL
+                && step->data.intent_step.who_count > 0
+                && dispatch_alias_count == 0) {
+                goto mir_step_missing_dispatch;
+            }
+        } else {
+            if (pre_expr == NULL)
+                pre_expr = step->data.intent_step.pre_expr;
+            if (guard_expr == NULL)
+                guard_expr = step->data.intent_step.guard_expr;
+            if (post_expr == NULL)
+                post_expr = step->data.intent_step.post_expr;
+            if (expect_expr == NULL)
+                expect_expr = step->data.intent_step.expect_expr;
+            if (invariant_pre_expr == NULL)
+                invariant_pre_expr = step->data.intent_step.invariant_expr;
+            if (invariant_post_expr == NULL)
+                invariant_post_expr = step->data.intent_step.invariant_expr;
+            if (on_expr_count == 0) {
+                on_exprs = step->data.intent_step.on_exprs;
+                on_expr_count = step->data.intent_step.on_expr_count;
+            }
+            if (subintent_expr == NULL)
+                subintent_expr = step->data.intent_step.intent_expr;
+            if (step_zone_name == NULL
+                && step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE) {
+                step_zone_name = step->data.intent_step.where_type->data.type.name;
+            }
+            if (step_zone_alias == NULL)
+                step_zone_alias = intent_step_effective_zone_alias(step);
+            if (step_from_alias == NULL)
+                step_from_alias = step->data.intent_step.transfer_from_alias;
+            if (who_alias_count == 0) {
+                who_aliases = (const char **)step->data.intent_step.who_names;
+                who_alias_count = step->data.intent_step.who_count;
+            }
+            if (dispatch_alias_count == 0) {
+                dispatch_aliases = (const char **)step->data.intent_step.who_names;
+                dispatch_alias_count = step->data.intent_step.who_count;
+            }
+        }
+        if (step_zone_name != NULL)
+            ctx->current_zone_name = step_zone_name;
+        if (step_zone_alias != NULL)
+            ctx->current_overlay_receiver_expr = step_zone_alias;
+
+        write_indent(ctx);
+        codebuf_write(ctx->out, "/* intent step: %s */\n",
+            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
+            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            (step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE
+                && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name : "<zone>");
+        for (size_t j = 0; j < who_alias_count; j++) {
+            const char *alias = who_aliases[j];
+            const char *slot_name = resolve_intent_zone_slot_name(ctx, node, step, alias);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
+                alias != NULL ? alias : "<participant>",
+                slot_name != NULL ? slot_name : "<unbound>");
+        }
+        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+        rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
+
+        if (pre_expr != NULL) {
+            char *pre = emit_expression(pre_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"pre:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(pre);
+        }
+
+        if (invariant_pre_expr != NULL) {
+            char *invariant = emit_expression(invariant_pre_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-pre:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(invariant);
+        }
+
+        if (on_expr_count > 0) {
+            for (size_t j = 0; j < on_expr_count; j++) {
+                char *on_expr = emit_expression(on_exprs[j], ctx);
+                if (on_expr != NULL && on_expr[0] != '\0') {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "%s;\n", on_expr);
+                }
+                free(on_expr);
+            }
+        }
+        if (subintent_expr != NULL) {
+            char *intent_expr = emit_expression(subintent_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", intent_expr != NULL ? intent_expr : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"intent:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(intent_expr);
+        } else if (on_expr_count == 0) {
+            for (size_t j = 0; j < dispatch_alias_count; j++) {
+                const char *alias = dispatch_aliases[j];
+                ASTNode *involves = find_intent_participant_local(node, alias);
+                const char *subject_name = NULL;
+                ASTNode *action_decl = NULL;
+                if (involves != NULL && involves->data.intent_involves.subject_type != NULL
+                    && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                }
+                action_decl = find_subject_action_decl(ctx,
+                    subject_name, step->data.intent_step.name);
+                if (subject_name != NULL && action_decl != NULL
+                    && intent_action_has_only_self(action_decl)) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "%s_%s(%s);\n",
+                        subject_name, step->data.intent_step.name, alias);
+                }
+            }
+        }
+        if (rebound_aliases)
+            emit_intent_step_sync_effective_zone(ctx->out, ctx, step);
+        else
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+        if (rebound_aliases)
+            emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
+        ctx->current_zone_name = saved_zone_name;
+        ctx->current_overlay_receiver_expr = saved_overlay_receiver;
+
+        if (has_compensate_steps) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_step_completed[%zu] = true;\n", i);
+        }
+
+        if (guard_expr != NULL) {
+            char *guard = emit_expression(guard_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"guard:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(guard);
+        }
+
+        if (expect_expr != NULL) {
+            char *expect = emit_expression(expect_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"expect:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(expect);
+        }
+
+        if (post_expr != NULL) {
+            char *post = emit_expression(post_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"post:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(post);
+        }
+
+        if (invariant_post_expr != NULL) {
+            char *invariant = emit_expression(invariant_post_expr, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
+            codebuf_write(ctx->out, "__intent_failed = true; ");
+            codebuf_write(ctx->out,
+                "pgy_intent_trace_fail_export(__intent_handle, \"invariant-post:%s\"); __intent_result = false; ",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            if (emit_cleanup_from_mir) {
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu; }\n",
+                    node->data.intent_decl.name, mir_routine->cleanup_block);
+            } else {
+                codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
+            }
+            free(invariant);
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
+            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        free(on_exprs);
+        free((void *)who_aliases);
+        free((void *)dispatch_aliases);
+    }
+
+    write_indent(ctx);
+    if (node->data.intent_decl.success_expr != NULL) {
+        char *success = emit_expression(node->data.intent_decl.success_expr, ctx);
+        codebuf_write(ctx->out, "__intent_result = %s;\n", success != NULL ? success : "true");
+        free(success);
+    } else {
+        codebuf_write(ctx->out, "__intent_result = true;\n");
+    }
+    write_indent(ctx);
+    if (emit_cleanup_from_mir) {
+        codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+            node->data.intent_decl.name, mir_routine->cleanup_block);
+    } else {
+        codebuf_write(ctx->out, "goto __intent_cleanup;\n");
+    }
+
+    if (emit_cleanup_from_mir) {
+        const MIRBasicBlock *cleanup_block = &mir_routine->blocks[mir_routine->cleanup_block];
+        const MIRBasicBlock *rollback_block = mir_routine->has_rollback_block
+            ? &mir_routine->blocks[mir_routine->rollback_block] : NULL;
+        const MIRBasicBlock *invalidation_block = mir_routine->has_invalidation_block
+            ? &mir_routine->blocks[mir_routine->invalidation_block] : NULL;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "/* cleanup-emitted-from-mir */\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+            node->data.intent_decl.name, mir_routine->cleanup_block);
+        ctx->indent++;
+        transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+            node->data.intent_decl.name, mir_routine, cleanup_block);
+        for (size_t i = 0; i < cleanup_block->instruction_count; i++) {
+            const MIRInstruction *inst = &cleanup_block->instructions[i];
+            if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
+                if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                    goto intent_emit_fail;
+        }
+        if (mir_routine->has_rollback_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_failed) {\n");
+            write_indent_to(ctx->out, ctx->indent + 1);
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->rollback_block);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+        }
+        if (mir_routine->has_invalidation_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                node->data.intent_decl.name, mir_routine->invalidation_block);
+        } else {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out, "return __intent_result;\n");
+        }
+        ctx->indent--;
+        if (mir_routine->has_rollback_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+                node->data.intent_decl.name, mir_routine->rollback_block);
+            ctx->indent++;
+            transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+                node->data.intent_decl.name, mir_routine, rollback_block);
+            if (rollback_block != NULL) {
+                    for (size_t i = 0; i < rollback_block->instruction_count; i++) {
+                        const MIRInstruction *inst = &rollback_block->instructions[i];
+                        if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
+                            if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                                goto intent_emit_fail;
+                    }
+            }
+            if (has_compensate_steps && step_count > 0) {
+                for (size_t i = step_count; i-- > 0;) {
+                    ASTNode *step = step_nodes[i];
+                    ASTNode **compensate_exprs = NULL;
+                    size_t compensate_expr_count = 0;
+                    const char *zone_type_name = NULL;
+                    const char *zone_alias = NULL;
+                    const char *from_alias = NULL;
+                    const char **who_aliases = NULL;
+                    size_t who_alias_count = 0;
+                    if (step == NULL || step->type != AST_INTENT_STEP
+                        || step->data.intent_step.compensate_expr_count == 0)
+                        continue;
+                    if (mir_routine != NULL) {
+                        compensate_expr_count = transpiler_collect_mir_intent_eval_exprs(
+                            mir_routine, step->data.intent_step.name, "compensate", &compensate_exprs);
+                        zone_type_name = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneWhere");
+                        zone_alias = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneAlias");
+                        from_alias = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneFrom");
+                        who_alias_count = transpiler_collect_mir_intent_who_aliases(
+                            mir_routine, step->data.intent_step.name, &who_aliases);
+                    }
+                    if (mir_only_intent && step->data.intent_step.compensate_expr_count > 0
+                        && compensate_expr_count == 0)
+                        goto mir_step_missing_compensate;
+                    if (!mir_only_intent && compensate_expr_count == 0) {
+                        compensate_expr_count = step->data.intent_step.compensate_expr_count;
+                        compensate_exprs = step->data.intent_step.compensate_exprs;
+                    }
+                    if (mir_only_intent) {
+                        if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+                            goto mir_step_missing_zone_where;
+                        if (intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+                            goto mir_step_missing_zone_alias;
+                        if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+                            goto mir_step_missing_zone_from;
+                        if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                            goto mir_step_missing_who;
+                    }
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+                    ctx->indent++;
+                    for (size_t j = compensate_expr_count; j-- > 0;) {
+                        char *expr = emit_expression(compensate_exprs[j], ctx);
+                        if (expr != NULL && expr[0] != '\0') {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "%s;\n", expr);
+                        }
+                        free(expr);
+                    }
+                    emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                        if (mir_routine->has_invalidation_block) {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                                node->data.intent_decl.name, mir_routine->invalidation_block);
+                        } else {
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+                            write_indent(ctx);
+                            codebuf_write(ctx->out, "return __intent_result;\n");
+                        }
+                    }
+                    ctx->indent--;
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "}\n");
+                    free(compensate_exprs);
+                    free((void *)who_aliases);
+                }
+            }
+            if (mir_routine->has_invalidation_block) {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
+                    node->data.intent_decl.name, mir_routine->invalidation_block);
+            } else {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+                write_indent(ctx);
+                codebuf_write(ctx->out, "return __intent_result;\n");
+            }
+            ctx->indent--;
+        }
+        if (mir_routine->has_invalidation_block) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
+                node->data.intent_decl.name, mir_routine->invalidation_block);
+            ctx->indent++;
+            transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
+                node->data.intent_decl.name, mir_routine, invalidation_block);
+            if (invalidation_block != NULL) {
+                    for (size_t i = 0; i < invalidation_block->instruction_count; i++) {
+                        const MIRInstruction *inst = &invalidation_block->instructions[i];
+                        if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
+                            if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                                goto intent_emit_fail;
+                    }
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+            write_indent(ctx);
+            codebuf_write(ctx->out, "return __intent_result;\n");
+            ctx->indent--;
+        }
+    } else {
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__intent_cleanup:\n");
+        ctx->indent++;
+        if (has_compensate_steps && step_count > 0) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "if (__intent_failed) {\n");
+            ctx->indent++;
+            for (size_t i = step_count; i-- > 0;) {
+                ASTNode *step = step_nodes[i];
+                if (step == NULL || step->type != AST_INTENT_STEP
+                    || step->data.intent_step.compensate_expr_count == 0)
+                    continue;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
+                ctx->indent++;
+                for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
+                    char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                    if (expr != NULL && expr[0] != '\0') {
+                        write_indent(ctx);
+                        codebuf_write(ctx->out, "%s;\n", expr);
+                    }
+                    free(expr);
+                }
+                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");
+                }
+                ctx->indent--;
+                write_indent(ctx);
+                codebuf_write(ctx->out, "}\n");
+            }
+            ctx->indent--;
+            write_indent(ctx);
+            codebuf_write(ctx->out, "}\n");
+        }
+        if (needs_cleanup_done_label) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__intent_cleanup_done:\n");
+        }
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "return __intent_result;\n");
+    }
+    ctx->indent--;
+
+    ctx->indent--;
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    codebuf_write(ctx->out, "}\n");
+    free(mir_steps);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
+    g_type_render_ctx = saved_render_ctx;
+    ctx->out = saved_out;
+    return;
+
+mir_step_missing_pre:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent pre check carrier");
+    goto intent_emit_fail;
+mir_step_missing_guard:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent guard check carrier");
+    goto intent_emit_fail;
+mir_step_missing_post:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent post check carrier");
+    goto intent_emit_fail;
+mir_step_missing_expect:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent expect check carrier");
+    goto intent_emit_fail;
+mir_step_missing_invariant:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent invariant check carrier");
+    goto intent_emit_fail;
+mir_step_missing_subintent:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent subintent eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_on:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent on-eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_zone_where:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone where metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_alias:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone alias metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_from:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent transfer-from metadata");
+    goto intent_emit_fail;
+mir_step_missing_who:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent who metadata");
+    goto intent_emit_fail;
+mir_step_missing_dispatch:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent dispatch carrier");
+    goto intent_emit_fail;
+mir_step_missing_compensate:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent compensate eval carrier");
+    goto intent_emit_fail;
+
+intent_emit_fail:
+    free(mir_steps);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    g_type_render_ctx = saved_render_ctx;
+    ctx->out = saved_out;
+}
+

@@ -1,7 +1,9 @@
 static void
 llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine *routine,
                                LLVMGenCtx *ctx, LLVMBasicBlockRef *llvm_blocks,
-                               LLVMMirVar *vars, size_t var_count, ASTNode *func_decl)
+                               LLVMMirVar *vars, size_t var_count, ASTNode *func_decl,
+                               LLVMClassTypeEntry *owner_cls, LLVMFuncEntry *owner_sync,
+                               const char *owner_name)
 {
     (void)routine;
     (void)func_decl;
@@ -46,6 +48,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             break;
         case MIR_INST_RETURN:
             llvm_emit_defers_from(ctx, 0);
+            llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (inst->ast != NULL) {
                 LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
                 if (val != NULL) {
@@ -81,6 +84,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
         } else {
             llvm_emit_defers_from(ctx, 0);
+            llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (ctx->current_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {

@@ -1,4 +1,4 @@
-intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier, dispatcher: Dispatcher)
+export intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier, dispatcher: Dispatcher)
 {
     rollback: full;
     exclusive;
@@ -9,8 +9,7 @@ intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier
         where: LoadingZone;
         using: loading;
         who: courier;
-        requires: Routable;
-        requires: BatchReady<Int>;
+        requires: Routable, BatchReady<Int>;
         authorized by: courier;
         on: loading.Stage(5);
         pre: courier.prepared == 0;
@@ -26,8 +25,7 @@ intent RouteCargo(loading: LoadingZone, delivery: DeliveryZone, courier: Courier
         using: delivery;
         transfer: loading -> delivery;
         who: courier;
-        requires: Routable;
-        requires: BatchReady<Int>;
+        requires: Routable, BatchReady<Int>;
         authorized by: courier;
         causes: CargoSeal;
         on: delivery.Receive(3);
