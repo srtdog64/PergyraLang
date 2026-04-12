@@ -306,7 +306,7 @@ typedef CONDITION_VARIABLE pgy_condvar_t;
 |------|------|
 | 330-350 | `LLVMStructCreateNamed`로 Slot 타입을 직접 생성. MIR가 레이아웃을 정의해야 함. |
 | 3189-3280 | Slot 함수 시그니처를 백엔드가 직접 조립. MIR에 명시적 Call이 있어야 함. |
-| 3741+ | `llvm_emit_mir_main_wrapper`가 HIR를 직접 읽어서 최상위 문장을 처리. MIR로 완전히 하강되어야 함. |
+| 3741+ | main wrapper는 이제 active inventory를 읽는다. 남은 debt는 HIR direct read가 아니라 entry metadata가 별도 declaration IR이 아니라는 점이다. |
 
 ### 4.2 LLVM 표현식 헬퍼 (`src/codegen/llvm_expr_helpers.inc`)
 

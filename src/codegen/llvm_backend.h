@@ -46,6 +46,8 @@ typedef struct
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
+LLVMGenResult *llvm_codegen_from_mir(const MIRProgram *mir,
+                                     const char *module_name);
 
 /*
  * Generate LLVM IR from MIR (preferred).
@@ -56,6 +58,10 @@ LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
 LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
                                       const MIRProgram *mir,
                                       const char *module_name);
+LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
+                                               const char *module_name,
+                                               const char *output_path,
+                                               bool release_opt);
 
 /*
  * Generate LLVM IR from MIR and emit a native object file (.o).
@@ -87,7 +93,9 @@ void llvm_gen_result_destroy(LLVMGenResult *res);
 
 typedef struct { bool success; char *error_message; char *ir_text; bool uses_intent_observability; } LLVMGenResult;
 LLVMGenResult *llvm_codegen(const void *hir, const char *module_name);
+LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name);
 LLVMGenResult *llvm_codegen_with_mir(const void *hir, const void *mir, const char *module_name);
+LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *module_name, const char *output_path, bool release_opt);
 LLVMGenResult *llvm_codegen_to_object_with_mir(const void *hir, const void *mir, const char *module_name, const char *output_path, bool release_opt);
 LLVMGenResult *llvm_codegen_to_object(const void *hir, const char *module_name, const char *output_path, bool release_opt);
 void llvm_gen_result_destroy(LLVMGenResult *res);

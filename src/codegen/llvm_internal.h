@@ -543,6 +543,70 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
         *count_out = count;
 }
 
+static inline void
+llvm_active_executables(const LLVMGenCtx *ctx,
+                        ASTNode ***nodes_out,
+                        size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        nodes = ctx->mir->executables;
+        count = ctx->mir->executable_count;
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        nodes = ctx->hir->executables;
+        count = ctx->hir->executable_count;
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+static inline void
+llvm_active_externs(const LLVMGenCtx *ctx,
+                    ASTNode ***nodes_out,
+                    size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        nodes = ctx->mir->externs;
+        count = ctx->mir->extern_count;
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        nodes = ctx->hir->externs;
+        count = ctx->hir->extern_count;
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+static inline ASTNode *
+llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->synthetic_executable_func;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->synthetic_executable_func;
+    return NULL;
+}
+
+static inline bool
+llvm_active_has_main_function(const LLVMGenCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->has_main_function;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->has_main_function;
+    return false;
+}
+
 /* =================================================================
  * Context lifecycle (llvm_backend.c)
  * ================================================================= */
@@ -723,14 +787,11 @@ bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
 bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
 void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
-bool llvm_func_requires_hir_fallback(ASTNode *func_decl);
-void llvm_emit_mir_main_wrapper(const MIRProgram *mir,
-                                const HIRProgram *hir,
-                                LLVMGenCtx *ctx);
+void llvm_emit_main_wrapper(LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
-void llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx);
-void llvm_register_hir_extern_prototypes(const HIRProgram *hir, LLVMGenCtx *ctx);
+void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
+void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
 
 /* =================================================================
  * Emitters — expressions (llvm_expr.c)
@@ -754,7 +815,7 @@ bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
 /* =================================================================
  * Emitters — domain (llvm_domain.c)
  * ================================================================= */
-void llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx);
+void llvm_emit_domain_passes(LLVMGenCtx *ctx);
 
 /* =================================================================
  * Runtime declaration (llvm_backend.c)

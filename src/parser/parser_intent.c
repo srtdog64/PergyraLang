@@ -377,6 +377,20 @@ parse_intent_step(Parser *parser)
             continue;
         }
 
+        if (parser_intent_match_keyword(parser, "within")) {
+            parser_error(parser,
+                "'within' is an action clause, not an intent step clause; "
+                "use 'where: <Zone>;' on the step or omit it to inherit the zone from the matching action");
+            return step;
+        }
+
+        if (parser_intent_match_keyword(parser, "with")) {
+            parser_error(parser,
+                "'with effects ...' is not a valid intent step clause; "
+                "use 'causes: <Effect>;' on the step or declare effects on the matching action");
+            return step;
+        }
+
         if (parser_intent_match_keyword(parser, "intent")) {
             if (step->data.intent_step.intent_expr != NULL) {
                 parser_error(parser, "Duplicate 'intent' clause in intent step");

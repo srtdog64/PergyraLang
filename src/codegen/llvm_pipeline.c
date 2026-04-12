@@ -120,45 +120,177 @@ llvm_ast_uses_thread_pool(ASTNode *node)
 }
 
 static bool
-llvm_hir_requires_thread_pool(const HIRProgram *hir)
+llvm_decl_uses_thread_pool(ASTNode *node)
 {
-    if (hir == NULL)
+    if (node == NULL)
         return false;
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        if (llvm_ast_uses_thread_pool(hir->routines[i].body))
-            return true;
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        return llvm_ast_uses_thread_pool(node->data.func_decl.body);
+    case AST_CLASS_DECL:
+        for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.class_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ENUM_DECL:
+        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.enum_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ABILITY_DECL:
+        for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.ability_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ROLE_DECL:
+        for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
+            ASTNode *impl = node->data.role_decl.impl_abilities[i];
+            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+                continue;
+            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+                if (llvm_decl_uses_thread_pool(impl->data.impl_ability.methods[j]))
+                    return true;
+            }
+        }
+        return false;
+    case AST_PARTY_DECL:
+        for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.party_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ROSTER_DECL:
+        for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.roster_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_WORLD_DECL:
+        for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.world_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_RELATION_DECL:
+        for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.relation_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_EFFECT_DECL:
+        for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.effect_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ZONE_DECL:
+        for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+            if (llvm_decl_uses_thread_pool(node->data.zone_decl.methods[i]))
+                return true;
+        }
+        return false;
+    default:
+        return false;
     }
-    for (size_t i = 0; i < hir->executable_count; i++) {
-        if (llvm_ast_uses_thread_pool(hir->executables[i]))
-            return true;
-    }
-    return false;
 }
 
 static bool
-llvm_mir_requires_thread_pool(const MIRProgram *mir)
+llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 {
-    if (mir == NULL)
+    ASTNode **functions = NULL;
+    ASTNode **types = NULL;
+    ASTNode **abilities = NULL;
+    ASTNode **roles = NULL;
+    ASTNode **parties = NULL;
+    ASTNode **rosters = NULL;
+    ASTNode **relations = NULL;
+    ASTNode **effects = NULL;
+    ASTNode **zones = NULL;
+    ASTNode **worlds = NULL;
+    ASTNode **executables = NULL;
+    size_t function_count = 0;
+    size_t type_count = 0;
+    size_t ability_count = 0;
+    size_t role_count = 0;
+    size_t party_count = 0;
+    size_t roster_count = 0;
+    size_t relation_count = 0;
+    size_t effect_count = 0;
+    size_t zone_count = 0;
+    size_t world_count = 0;
+    size_t executable_count = 0;
+    ASTNode *synthetic_executable_func = NULL;
+
+    if (ctx == NULL)
         return false;
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        ASTNode *ast = mir->routines[i].ast;
-        if (ast != NULL && ast->type == AST_FUNC_DECL
-            && llvm_ast_uses_thread_pool(ast->data.func_decl.body)) {
+    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    llvm_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
+    llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    llvm_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
+    llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
+    llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+    llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+
+    for (size_t i = 0; i < function_count; i++) {
+        if (llvm_decl_uses_thread_pool(functions[i]))
             return true;
-        }
+    }
+    for (size_t i = 0; i < type_count; i++) {
+        if (llvm_decl_uses_thread_pool(types[i]))
+            return true;
+    }
+    for (size_t i = 0; i < ability_count; i++) {
+        if (llvm_decl_uses_thread_pool(abilities[i]))
+            return true;
+    }
+    for (size_t i = 0; i < role_count; i++) {
+        if (llvm_decl_uses_thread_pool(roles[i]))
+            return true;
+    }
+    for (size_t i = 0; i < party_count; i++) {
+        if (llvm_decl_uses_thread_pool(parties[i]))
+            return true;
+    }
+    for (size_t i = 0; i < roster_count; i++) {
+        if (llvm_decl_uses_thread_pool(rosters[i]))
+            return true;
+    }
+    for (size_t i = 0; i < relation_count; i++) {
+        if (llvm_decl_uses_thread_pool(relations[i]))
+            return true;
+    }
+    for (size_t i = 0; i < effect_count; i++) {
+        if (llvm_decl_uses_thread_pool(effects[i]))
+            return true;
+    }
+    for (size_t i = 0; i < zone_count; i++) {
+        if (llvm_decl_uses_thread_pool(zones[i]))
+            return true;
+    }
+    for (size_t i = 0; i < world_count; i++) {
+        if (llvm_decl_uses_thread_pool(worlds[i]))
+            return true;
     }
 
-    if (mir->synthetic_executable_func != NULL
-        && mir->synthetic_executable_func->type == AST_FUNC_DECL
+    synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
+    if (synthetic_executable_func != NULL
+        && synthetic_executable_func->type == AST_FUNC_DECL
         && llvm_ast_uses_thread_pool(
-            mir->synthetic_executable_func->data.func_decl.body)) {
+            synthetic_executable_func->data.func_decl.body)) {
         return true;
     }
 
-    for (size_t i = 0; i < mir->executable_count; i++) {
-        if (llvm_ast_uses_thread_pool(mir->executables[i]))
+    llvm_active_executables(ctx, &executables, &executable_count);
+    for (size_t i = 0; i < executable_count; i++) {
+        if (llvm_ast_uses_thread_pool(executables[i]))
             return true;
     }
 
@@ -242,28 +374,24 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
 }
 
 void
-llvm_emit_mir_main_wrapper(const MIRProgram *mir,
-                           const HIRProgram *hir,
-                           LLVMGenCtx *ctx)
+llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 {
+    ASTNode **executables = NULL;
+    size_t executable_count = 0;
+    ASTNode *synthetic_executable_func = NULL;
     bool has_executables = false;
     bool has_main_function = false;
     bool needs_thread_pool = false;
 
-    if (ctx == NULL || (hir == NULL && mir == NULL))
+    if (ctx == NULL || (ctx->mir == NULL && ctx->hir == NULL))
         return;
 
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
-    if (mir != NULL) {
-        has_executables = mir->executable_count > 0
-            || mir->synthetic_executable_func != NULL;
-        has_main_function = mir->has_main_function;
-        needs_thread_pool = llvm_mir_requires_thread_pool(mir);
-    } else if (hir != NULL) {
-        has_executables = hir->executable_count > 0;
-        has_main_function = hir->has_main_function;
-        needs_thread_pool = llvm_hir_requires_thread_pool(hir);
-    }
+    llvm_active_executables(ctx, &executables, &executable_count);
+    synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
+    has_executables = executable_count > 0 || synthetic_executable_func != NULL;
+    has_main_function = llvm_active_has_main_function(ctx);
+    needs_thread_pool = llvm_requires_thread_pool(ctx);
 
     bool has_top_level = has_executables
         || has_main_function
@@ -321,8 +449,6 @@ llvm_emit_mir_main_wrapper(const MIRProgram *mir,
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
         } else {
-            ASTNode **executables = mir != NULL ? mir->executables : hir->executables;
-            size_t executable_count = mir != NULL ? mir->executable_count : hir->executable_count;
             for (size_t i = 0; i < executable_count; i++) {
                 ASTNode *stmt = executables[i];
                 if (stmt != NULL) {
@@ -349,13 +475,6 @@ llvm_emit_mir_main_wrapper(const MIRProgram *mir,
     }
 
     llvm_mark_function_as_used(ctx, "main");
-}
-
-bool
-llvm_func_requires_hir_fallback(ASTNode *func_decl)
-{
-    (void)func_decl;
-    return false;
 }
 
 bool
@@ -407,25 +526,36 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
 void
 llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
 {
+    const MIRProgram *mir = ctx != NULL ? ctx->mir : NULL;
+    ASTNode **functions = NULL;
+    ASTNode **intents = NULL;
+    ASTNode **types = NULL;
+    size_t function_count = 0;
+    size_t intent_count = 0;
+    size_t type_count = 0;
+
     if (hir == NULL) {
         llvm_set_error(ctx, "Expected lowered HIR program");
         return;
     }
 
     ctx->hir = hir;
+    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    llvm_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
     llvm_set_type_render_ctx(ctx);
 
     llvm_declare_runtime(ctx);
-    llvm_register_hir_nominal_types(hir, ctx);
-    llvm_register_hir_extern_prototypes(hir, ctx);
+    llvm_register_active_nominal_types(ctx);
+    llvm_register_active_extern_prototypes(ctx);
 
-    for (size_t i = 0; i < hir->function_count; i++) {
-        ASTNode *stmt = hir->functions[i];
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (llvm_can_forward_declare_func_early(ctx, stmt))
             llvm_forward_declare_func(stmt, ctx);
     }
-    for (size_t i = 0; i < hir->function_count; i++) {
-        ASTNode *stmt = hir->functions[i];
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
         if (stmt->data.func_decl.generic_params != NULL
@@ -435,10 +565,10 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_forward_declare_func(stmt, ctx);
     }
 
-    llvm_emit_domain_passes(hir, ctx);
+    llvm_emit_domain_passes(ctx);
 
-    for (size_t i = 0; i < hir->function_count; i++) {
-        ASTNode *stmt = hir->functions[i];
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
         if (stmt->data.func_decl.generic_params != NULL
@@ -449,23 +579,23 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
             llvm_forward_declare_func(stmt, ctx);
         }
     }
-    for (size_t i = 0; i < hir->intent_count; i++)
-        llvm_forward_declare_intent(hir->intents[i], ctx);
+    for (size_t i = 0; i < intent_count; i++)
+        llvm_forward_declare_intent(intents[i], ctx);
 
-    for (size_t i = 0; i < hir->function_count; i++) {
-        ASTNode *stmt = hir->functions[i];
+    for (size_t i = 0; i < function_count; i++) {
+        ASTNode *stmt = functions[i];
         if (stmt != NULL
             && llvm_lookup_generic_template(ctx, stmt->data.func_decl.name) == NULL) {
             llvm_emit_func_decl(stmt, ctx);
         }
     }
-    for (size_t i = 0; i < hir->intent_count; i++) {
-        ASTNode *stmt = hir->intents[i];
+    for (size_t i = 0; i < intent_count; i++) {
+        ASTNode *stmt = intents[i];
         if (stmt != NULL)
             llvm_emit_intent_decl(stmt, ctx);
     }
-    for (size_t i = 0; i < hir->type_count; i++) {
-        ASTNode *stmt = hir->types[i];
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             const char *cls_name = stmt->data.class_decl.name;
             LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, cls_name);
@@ -578,20 +708,17 @@ llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
         }
     }
 
-    llvm_emit_mir_main_wrapper(NULL, hir, ctx);
+    llvm_emit_main_wrapper(ctx);
     llvm_set_type_render_ctx(NULL);
 }
 
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
-    const HIRProgram *saved_hir;
-
     if (mir == NULL || ctx == NULL)
         return false;
 
-    saved_hir = ctx->hir;
-    ctx->hir = saved_hir;
+    ctx->hir = NULL;
 
     /* MIR-only backend entry:
      *
@@ -606,7 +733,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_pipeline_debug_stage("emit_program_from_mir:declare_runtime");
     llvm_declare_runtime(ctx);
 
-    llvm_pipeline_debug_stage("emit_program_from_mir:register_hir_items");
+    llvm_pipeline_debug_stage("emit_program_from_mir:register_decl_items");
     for (size_t i = 0; i < mir->type_count; i++) {
         ASTNode *stmt = mir->types[i];
         if (stmt == NULL)
@@ -683,7 +810,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         }
     }
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
-    llvm_emit_domain_passes(NULL, ctx);
+    llvm_emit_domain_passes(ctx);
 
     llvm_pipeline_debug_stage("emit_program_from_mir:forward_declare_funcs");
     for (size_t i = 0; i < mir->routine_count; i++) {
@@ -728,9 +855,6 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             && func_decl->data.func_decl.generic_params->count > 0) {
             continue;
         }
-        if (func_decl != NULL && llvm_func_requires_hir_fallback(func_decl))
-            continue;
-
         bool mir_has_instructions = false;
         for (size_t bi = 0; bi < routine->block_count; bi++) {
             if (routine->blocks[bi].instruction_count > 0) {
@@ -742,7 +866,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             llvm_emit_func_from_mir(routine, ctx);
     }
 
-    llvm_pipeline_debug_stage("emit_program_from_mir:emit_hir_residuals");
+    llvm_pipeline_debug_stage("emit_program_from_mir:emit_residual_decls");
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         ASTNode *stmt = routine->ast;
@@ -751,10 +875,6 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             && stmt->type == AST_FUNC_DECL) {
             if (stmt->data.func_decl.generic_params != NULL
                 && stmt->data.func_decl.generic_params->count > 0) {
-                continue;
-            }
-            if (llvm_func_requires_hir_fallback(stmt)) {
-                llvm_emit_func_decl(stmt, ctx);
                 continue;
             }
             if (!llvm_mir_routine_has_instructions(routine)) {
@@ -778,9 +898,6 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         ASTNode *stmt = mir->types[i];
         if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
             const char *cls_name = stmt->data.class_decl.name;
-            bool require_mir_methods =
-                stmt->data.class_decl.nominal_kind == NOMINAL_DECL_CLASS
-                || stmt->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
             for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
                 ASTNode *method = stmt->data.class_decl.methods[j];
                 const MIRRoutine *mir_method;
@@ -794,7 +911,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     ctx->current_class_name = saved_class_name;
                     continue;
                 }
-                if (require_mir_methods) {
+                {
                     char msg[384];
                     snprintf(msg, sizeof(msg),
                              "MIR-only LLVM path missing routine for class method '%s.%s'",
@@ -805,24 +922,13 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                     llvm_set_error(ctx, msg);
                     return false;
                 }
-                {
-                    char *orig_name = method->data.func_decl.name;
-                    char prefixed[256];
-                    snprintf(prefixed, sizeof(prefixed), "%s_%s", cls_name, orig_name);
-                    method->data.func_decl.name = prefixed;
-                    ctx->current_class_name = cls_name;
-                    llvm_emit_func_decl(method, ctx);
-                    ctx->current_class_name = NULL;
-                    method->data.func_decl.name = orig_name;
-                }
             }
         }
     }
 
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_main_wrapper");
-    llvm_emit_mir_main_wrapper(mir, NULL, ctx);
+    llvm_emit_main_wrapper(ctx);
     llvm_pipeline_debug_stage("emit_program_from_mir:end");
-    ctx->hir = saved_hir;
     return !ctx->has_error;
 }
 

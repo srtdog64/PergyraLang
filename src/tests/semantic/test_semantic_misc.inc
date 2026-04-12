@@ -3078,6 +3078,41 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("intent authority diagnostic suggests single who alias for authorized by");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        where: CockpitZone;\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        on: true;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "add 'authorized by: driver;' to the step"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent authorized participant mismatch diagnostic includes reason and fix");
     {
         const char *source =

@@ -211,9 +211,31 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
 static const char *
 lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
 {
+    const char *typed_name;
+
+    if (ctx == NULL || var_name == NULL)
+        return "Int";
+
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
             return ctx->slot_vars[i].inner_type;
+    }
+    typed_name = lookup_typed_var(ctx, var_name);
+    if (typed_name != NULL) {
+        if (strncmp(typed_name, "Slot<", 5) == 0
+            || strncmp(typed_name, "SecureSlot<", 11) == 0
+            || strncmp(typed_name, "DeviceSlot<", 11) == 0) {
+            return slot_inner_type_name(typed_name);
+        }
+        return typed_name;
+    }
+    if (ctx->active_type_hint != NULL) {
+        if (strncmp(ctx->active_type_hint, "Slot<", 5) == 0
+            || strncmp(ctx->active_type_hint, "SecureSlot<", 11) == 0
+            || strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0) {
+            return slot_inner_type_name(ctx->active_type_hint);
+        }
+        return ctx->active_type_hint;
     }
     return "Int"; /* fallback */
 }

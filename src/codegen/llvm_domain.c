@@ -1249,7 +1249,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 }
 
 void
-llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
+llvm_emit_domain_passes(LLVMGenCtx *ctx)
 {
     ASTNode **abilities = NULL;
     ASTNode **relations = NULL;
@@ -1280,25 +1280,6 @@ llvm_emit_domain_passes(const HIRProgram *hir, LLVMGenCtx *ctx)
         llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
         llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
         llvm_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
-    } else if (hir != NULL) {
-        abilities = hir->abilities;
-        ability_count = hir->ability_count;
-        relations = hir->relations;
-        relation_count = hir->relation_count;
-        effects = hir->effects;
-        effect_count = hir->effect_count;
-        zones = hir->zones;
-        zone_count = hir->zone_count;
-        worlds = hir->worlds;
-        world_count = hir->world_count;
-        parties = hir->parties;
-        party_count = hir->party_count;
-        rosters = hir->rosters;
-        roster_count = hir->roster_count;
-        roles = hir->roles;
-        role_count = hir->role_count;
-        events = hir->events;
-        event_count = hir->event_count;
     }
 
     ASTNode **domain_groups[] = {

@@ -773,8 +773,34 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
             return type_check_block_flow(node->data.unsafe_block.body, ctx, loop_flow);
         return FLOW_FALLTHROUGH;
     case AST_DEFER_STMT:
-        if (node->data.defer_stmt.body != NULL)
-            return type_check_block_flow(node->data.defer_stmt.body, ctx, loop_flow);
+        /* Type-check deferred body, but save/restore slot states.
+         * Defer bodies run at scope exit, so their Release() calls
+         * should not affect the current scope's slot tracking. */
+        if (node->data.defer_stmt.body != NULL) {
+            /* Collect all slot symbols and their current states */
+            typedef struct { Symbol* sym; SlotState saved_state; } SlotStateSave;
+            SlotStateSave saves[256];
+            size_t save_count = 0;
+            Scope *cur = ctx->scope;
+            while (cur != NULL) {
+                for (size_t i = 0; i < cur->symbol_count && save_count < 256; i++) {
+                    Symbol *s = cur->symbols[i];
+                    if (s != NULL && s->kind == SYMBOL_SLOT) {
+                        saves[save_count].sym = s;
+                        saves[save_count].saved_state = s->slot_info.state;
+                        save_count++;
+                    }
+                }
+                cur = cur->parent;
+            }
+            /* Check the defer body */
+            FlowFlags body_flags = type_check_block_flow(node->data.defer_stmt.body, ctx, loop_flow);
+            /* Restore slot states */
+            for (size_t i = 0; i < save_count; i++) {
+                saves[i].sym->slot_info.state = saves[i].saved_state;
+            }
+            return body_flags;
+        }
         return FLOW_FALLTHROUGH;
     case AST_RETURN:
         type_check_return_stmt(node, ctx);

@@ -550,6 +550,118 @@ cleanup:
 }
 
 static int
+run_intent_step_within_clause_hint_test(void)
+{
+    const char *code =
+        "intent Purchase() {\n"
+        "    step Pay {\n"
+        "        within PaymentZone;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    const char *error = NULL;
+
+    printf("\n=== Test: Intent Step 'within' Hint Diagnostic ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (!parser_has_error(parser)) {
+        printf("[FAIL] Expected intent step clause parse error\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    error = parser_get_error(parser);
+    if (error == NULL
+        || strstr(error, "'within' is an action clause") == NULL
+        || strstr(error, "use 'where: <Zone>;' on the step") == NULL
+        || strstr(error, "inherit the zone from the matching action") == NULL) {
+        printf("[FAIL] Expected helpful within->where diagnostic, got: %s\n",
+               error != NULL ? error : "<null>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Intent step misuse of 'within' reports a fix-oriented diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_intent_step_with_effects_hint_test(void)
+{
+    const char *code =
+        "intent Purchase() {\n"
+        "    step Pay {\n"
+        "        with effects secure;\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = NULL;
+    ASTNode *ast = NULL;
+    const char *error = NULL;
+
+    printf("\n=== Test: Intent Step 'with effects' Hint Diagnostic ===\n");
+
+    if (lexer == NULL) {
+        printf("[FAIL] Failed to create lexer\n");
+        return 1;
+    }
+
+    parser = parser_create(lexer);
+    if (parser == NULL) {
+        printf("[FAIL] Failed to create parser\n");
+        lexer_destroy(lexer);
+        return 1;
+    }
+
+    ast = parser_parse_program(parser);
+    if (!parser_has_error(parser)) {
+        printf("[FAIL] Expected intent step with-effects parse error\n");
+        failed = 1;
+        goto cleanup;
+    }
+
+    error = parser_get_error(parser);
+    if (error == NULL
+        || strstr(error, "'with effects ...' is not a valid intent step clause") == NULL
+        || strstr(error, "use 'causes: <Effect>;' on the step") == NULL
+        || strstr(error, "matching action") == NULL) {
+        printf("[FAIL] Expected helpful with-effects intent-step diagnostic, got: %s\n",
+               error != NULL ? error : "<null>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    printf("Intent step misuse of 'with effects' reports a fix-oriented diagnostic.\n");
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
 run_vessel_keyword_alias_test(void)
 {
     const char *code =
@@ -1772,6 +1884,10 @@ main(void)
     failures += run_malformed_effect_clause_diagnostic_test();
     printf("\n");
     failures += run_authorized_clause_missing_by_test();
+    printf("\n");
+    failures += run_intent_step_within_clause_hint_test();
+    printf("\n");
+    failures += run_intent_step_with_effects_hint_test();
     printf("\n");
     failures += run_subject_keyword_alias_test();
     printf("\n");

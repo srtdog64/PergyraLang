@@ -270,6 +270,70 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
         *count_out = count;
 }
 
+static inline void
+transpiler_active_externs(const TranspilerCtx *ctx,
+                          ASTNode ***nodes_out,
+                          size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        nodes = ctx->mir->externs;
+        count = ctx->mir->extern_count;
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        nodes = ctx->hir->externs;
+        count = ctx->hir->extern_count;
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+static inline void
+transpiler_active_executables(const TranspilerCtx *ctx,
+                              ASTNode ***nodes_out,
+                              size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        nodes = ctx->mir->executables;
+        count = ctx->mir->executable_count;
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        nodes = ctx->hir->executables;
+        count = ctx->hir->executable_count;
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+static inline ASTNode *
+transpiler_active_synthetic_executable_func(const TranspilerCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->synthetic_executable_func;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->synthetic_executable_func;
+    return NULL;
+}
+
+static inline bool
+transpiler_active_has_main_function(const TranspilerCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->has_main_function;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->has_main_function;
+    return false;
+}
+
 TranspilerCtx *transpiler_ctx_create(void);
 void           transpiler_ctx_destroy(TranspilerCtx *ctx);
 
@@ -290,6 +354,8 @@ typedef struct
 } TranspileResult;
 
 TranspileResult *transpile(const HIRProgram *hir, const char *output_path);
+TranspileResult *transpile_from_mir(const MIRProgram *mir,
+                                    const char *output_path);
 TranspileResult *transpile_with_mir(const HIRProgram *hir,
                                     const MIRProgram *mir,
                                     const char *output_path);

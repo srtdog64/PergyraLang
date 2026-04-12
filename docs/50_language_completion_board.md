@@ -371,10 +371,8 @@
 
 ### 4.1 Function-level fallback
 
-- `llvm_func_requires_hir_fallback(...)`가 현재 아래 함수는 MIR-only로 내리지 못한다고 판단한다.
-  - async function
-
-즉 ordinary function 레벨의 남은 fallback은 현재 async subset으로 줄었다.
+- `llvm_func_requires_hir_fallback(...)` 훅은 제거됐다.
+- ordinary function 레벨에서 "fallback 허용"이 아니라 "MIR routine 누락 시 hard error"가 현재 계약이다.
 
 추가 메모:
 - event-handler typed ordinary function fallback은 제거됐다.

@@ -207,13 +207,20 @@ llvm_register_hir_class_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 }
 
 void
-llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx)
+llvm_register_active_nominal_types(LLVMGenCtx *ctx)
 {
-    if (hir == NULL || ctx == NULL)
+    ASTNode **types = NULL;
+    size_t type_count = 0;
+
+    if (ctx == NULL)
         return;
 
-    for (size_t i = 0; i < hir->type_count; i++) {
-        ASTNode *stmt = hir->types[i];
+    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    if (types == NULL)
+        return;
+
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *stmt = types[i];
         if (stmt != NULL && stmt->type == AST_ENUM_DECL) {
             llvm_register_enum_decl(ctx, stmt);
             continue;
@@ -225,13 +232,20 @@ llvm_register_hir_nominal_types(const HIRProgram *hir, LLVMGenCtx *ctx)
 }
 
 void
-llvm_register_hir_extern_prototypes(const HIRProgram *hir, LLVMGenCtx *ctx)
+llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
 {
-    if (hir == NULL || ctx == NULL)
+    ASTNode **externs = NULL;
+    size_t extern_count = 0;
+
+    if (ctx == NULL)
         return;
 
-    for (size_t i = 0; i < hir->extern_count; i++) {
-        ASTNode *stmt = hir->externs[i];
+    llvm_active_externs(ctx, &externs, &extern_count);
+    if (externs == NULL)
+        return;
+
+    for (size_t i = 0; i < extern_count; i++) {
+        ASTNode *stmt = externs[i];
         if (stmt == NULL || stmt->type != AST_EXTERN_BLOCK)
             continue;
 

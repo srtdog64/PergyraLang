@@ -110,10 +110,10 @@
 
 | fallback 지점 | 현재 구현 | 문제 | 제거 조건 |
 | --- | --- | --- | --- |
-| ordinary function | MIR routine이 없거나 instruction이 비면 `llvm_emit_func_decl(stmt, ctx)` | backend가 MIR completeness를 강제하지 못한다 | routine lookup 실패 시 hard error로 전환 |
+| ordinary function | MIR routine 누락 시 hard error | backend가 MIR completeness를 직접 강제한다 | 유지 |
 | intent declaration | `AST_INTENT_DECL`은 항상 `llvm_emit_intent_decl(stmt, ctx)` | intent가 MIR-only backend 바깥에 남아 있다 | intent routine과 clause metadata를 MIR에서 직접 emit |
 | class methods | `ClassName_MethodName`로 AST 이름을 임시 변경한 뒤 HIR emission | backend가 AST mutation에 기대고 있다 | method routine lookup을 MIR name table로 전환 |
-| main wrapper | `llvm_emit_mir_main_wrapper(ctx->hir, ctx)` | executable/main metadata가 HIR에 남아 있다 | MIR entry metadata로 wrapper 생성 |
+| main wrapper | `llvm_emit_main_wrapper(ctx)`가 active inventory를 읽는다 | wrapper는 더 이상 원본 HIR를 직접 읽지 않는다 | executable schedule carrier를 더 독립 IR로 올릴지 검토 |
 | top-level executable flow | HIR executable/top-level statements를 wrapper가 참조 | backend가 top boundary를 HIR에서 읽는다 | MIR entry routine 또는 top-level schedule metadata 필요 |
 
 ### 6.2 정확한 코드 위치
@@ -122,7 +122,7 @@
 | --- | --- | --- |
 | `src/codegen/llvm_backend.c` `llvm_emit_program_from_mir` | Pass 4 전체가 HIR fallback 블록 | Pass 4를 migration debt 블록으로 표시하고 항목별 제거 |
 | `src/codegen/llvm_backend.c` `llvm_emit_intent_decl` | intent는 HIR lowering 전용 경로 | MIR intent routine schema를 먼저 확정 |
-| `src/codegen/llvm_backend.c` `llvm_emit_mir_main_wrapper` | wrapper가 `hir->executable_count`, `hir->has_main_function`에 의존 | MIR program entry metadata 도입 |
+| `src/codegen/llvm_pipeline.c` `llvm_emit_main_wrapper` | wrapper가 active executable/main metadata를 읽는다 | entry metadata를 declaration IR로 더 분리할지 검토 |
 
 ### 6.3 intent MIR-only 조건
 

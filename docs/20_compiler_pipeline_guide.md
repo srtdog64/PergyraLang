@@ -34,9 +34,9 @@
 - 프론트엔드의 기준 자료구조는 여전히 AST다.
 - driver는 backend 진입 전에 항상 `HIR`, `DIR`, `RIR`, `MIR`를 모두 만든다.
 - backend runner는 현재 `CompilerIRBundle`을 받는다.
-- **양쪽 백엔드 모두 MIR을 수신한다.** C 백엔드는 `transpile_with_mir(bundle->hir, bundle->mir, ...)`, LLVM 백엔드는 `llvm_codegen_with_mir(bundle->hir, bundle->mir, ...)`를 호출한다.
-- C 백엔드: MIR CFG/SSA 기반 함수 본문 emit + intent cleanup/rollback/invalidation block 직접 emit. 도메인 선언(zone/world/relation/effect)과 intent step은 아직 HIR 기반이지만, object projection lowering은 이제 borrow-first이고 relation/effect/zone projection sync는 dirty-target만 다시 build한다.
-- LLVM 백엔드: MIR 기반 함수 본문 emit (`llvm_emit_func_from_mir`) + HIR fallback으로 도메인 선언과 intent 함수를 emit. Domain struct 타입 등록은 MIR emit 전에 수행.
+- **양쪽 백엔드 모두 MIR을 수신한다.** compiler MIR entry에서는 C 백엔드가 `transpile_from_mir(bundle->mir, ...)`, LLVM 백엔드가 `llvm_codegen_from_mir(bundle->mir, ...)` 또는 `llvm_codegen_to_object_from_mir(bundle->mir, ...)`를 호출한다.
+- C 백엔드: MIR CFG/SSA 기반 함수 본문 emit + intent cleanup/rollback/invalidation block 직접 emit. MIR path에서는 ordinary function / class method / enum method / intent step carrier 누락이 hard error이며, intent run-body도 MIR step/check/eval/meta carrier를 우선 source로 읽는다. 도메인 선언(zone/world/relation/effect)은 아직 AST-carried declaration inventory를 소비한다.
+- LLVM 백엔드: MIR 기반 함수/intent/method emit (`llvm_emit_func_from_mir` + intent carrier lookup)이며, MIR path에서는 ordinary function / nominal method / intent carrier 누락이 hard error다. Domain struct 타입 등록은 MIR emit 전에 MIR-carried declaration inventory에서 seed한다.
 - backend 정책상 LLVM/native가 primary path이고, C backend는 reference/bootstrap/debug path로 취급한다. 자세한 역할 정의는 [51_c_backend_reference_policy.md](/mnt/e/PergyraLang/docs/51_c_backend_reference_policy.md), 전환 계획은 [52_llvm_native_first_roadmap.md](/mnt/e/PergyraLang/docs/52_llvm_native_first_roadmap.md)에 둔다.
 - `driver_run_pipeline_timed()`는 같은 파이프라인을 phase별로 계측한다. ABI benchmark harness는 이 timing을 읽어 CI에서는 hard upper bound, 로컬에서는 comparative metric으로 사용한다. backend timing은 다시 `codegen`, `native_compile`, `link`로 분해된다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.

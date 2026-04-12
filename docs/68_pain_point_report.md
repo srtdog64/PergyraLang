@@ -38,6 +38,14 @@
 
 ---
 
+### ✅ P0-6: `defer` 블록 스코프 버그 — 변수가 보이지 않음
+
+**수정 파일:** `src/semantic/type_checker_flow.c`
+**변경 내용:** `type_check_statement_flow`의 `AST_DEFER_STMT` 케이스에서 defer body 처리 전 slot 상태 저장, 처리 후 복원. defer의 `Release()`가 현재 스코프의 slot 추적에 영향을 주지 않도록 함.
+**검증:** 시맨틱 검증 통과 (0 error) — defer body의 Release 이후에도 동일 slot의 Read 가능
+
+---
+
 ### ✅ P1-7: `struct`/`subject` 선언 시 26개의 warning 노이즈
 
 **수정 파일:** `src/codegen/transpiler.c` (2개 위치)
@@ -86,25 +94,7 @@ OR 패턴은 리터럴 Int에는 동작하지만 enum variant에는 동작 안 �
 
 ---
 
-### 4. enum match에서 OR 패턴이 variant에서 동작 안 함
-
-**현상:**
-```pergyra
-match dir {
-    case North | South:    // Error: OR patterns currently support only literal/simple expression cases
-        Log("vertical");
-    case East | West:
-        Log("horizontal");
-}
-```
-
-OR 패턴은 리터럴 Int에는 동작하지만 enum variant에는 동작 안 함.
-
-**영향:** match의 유용성이 반감. case를 일일이 나열해야 함.
-
----
-
-### 5. match exhaustive checker 버그 — 모든 case를 작성해도 "missing cases" 오류
+### 4. match exhaustive checker 버그 — 모든 case를 작성해도 "missing cases" 오류
 
 **현상:**
 ```pergyra
@@ -272,17 +262,16 @@ match가 exhaustiveness를 검증하지 못해 C 코드에서 default return이 
 
 | 우선순위 | 항목 | 예상 작업량 |
 |----------|------|-------------|
-| **P0-1** | Array for-in `.count` → `.length` 수정 | 1시간 |
-| **P0-2** | `StringSplit`/`StringJoin` 런타임 구현 또는 표면 제거 | 2-4시간 |
-| **P0-3** | `None` 심볼 정의 (Option<T>) | 30분 |
-| **P0-4** | enum match OR 패턴 + exhaustive checker 수정 | 2-4시간 |
-| **P0-6** | defer 변수 스코프 버그 수정 | 2-4시간 |
-| **P1-7** | struct/subject 불필요한 Slot 매크로 생성 억제 | 2-4시간 |
-| **P1-8** | 컬렉션 생성 API 통일 (`ArrayNew()`, `HashMapNew()` 등) | 4-8시간 |
-| **P1-9** | `Result<T>` 언랩 API 명확히 (`UnwrapResult`, `?` 연산자 문서화) | 2-4시간 |
-| **P2-11** | 가벼운 값 타입 (`data` 또는 `record` keyword) 검토 | TBD |
+| ~~**P0-1**~~ | Array for-in `.count` → `.length` | **✅ 완료** |
+| ~~**P0-2**~~ | `StringSplit`/`StringJoin` 런타임 | **✅ 완료** |
+| ~~**P0-3**~~ | `None` 심볼 정의 (`Option<T>`) | **✅ 완료** |
+| **P0-4** | enum match OR 패턴 + exhaustive checker | 2-4시간 |
+| ~~**P0-6**~~ | defer 변수 스코프 버그 | **✅ 완료** |
+| ~~**P1-7**~~ | struct/subject Slot 매크로 warning 억제 | **✅ 완료** |
+| **P1-8** | 컬렉션 생성 API 통일 | 4-8시간 |
+| **P1-9** | `Result<T>` 언랩 API 명확히 | 2-4시간 |
 | **P2-12** | struct 필드 가변성 규칙 명시 | 1시간 |
-| **P2-13** | match 기반 함수의 default return 자동 생성 | 1-2시간 |
+| **P2-13** | match 기반 함수 default return 자동 생성 | 1-2시간 |
 
 ---
 

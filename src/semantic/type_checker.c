@@ -2373,7 +2373,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             type_check_block(node->data.unsafe_block.body, ctx);
         return !ctx->has_error;
     case AST_DEFER_STMT:
-        /* Type-check deferred body */
+        /* Type-check deferred body — actual slot state save/restore
+         * is handled in type_check_statement_flow (type_checker_flow.c). */
         if (node->data.defer_stmt.body != NULL)
             type_check_block(node->data.defer_stmt.body, ctx);
         return !ctx->has_error;

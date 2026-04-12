@@ -27,7 +27,7 @@ void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
 static void emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx);
 static bool ast_uses_thread_pool(ASTNode *node);
-static bool hir_requires_thread_pool(const HIRProgram *hir);
+static bool transpiler_requires_thread_pool(const TranspilerCtx *ctx);
 static bool
 select_case_parts(ASTNode *case_node, ASTNode **channel_out,
                   const char **bind_name_out, ASTNode **body_out)
@@ -171,62 +171,180 @@ ast_uses_thread_pool(ASTNode *node)
 }
 
 static bool
-hir_requires_thread_pool(const HIRProgram *hir)
+ast_decl_uses_thread_pool(ASTNode *node)
 {
-    if (hir == NULL)
+    if (node == NULL)
         return false;
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        if (ast_uses_thread_pool(hir->routines[i].body))
-            return true;
-    }
-    for (size_t i = 0; i < hir->executable_count; i++) {
-        if (ast_uses_thread_pool(hir->executables[i]))
-            return true;
-    }
-    return false;
-}
-
-static void
-transpiler_collect_thread_pool_need_from_mir(const MIRProgram *mir, bool *needs_thread_pool)
-{
-    if (mir == NULL || needs_thread_pool == NULL || *needs_thread_pool)
-        return;
-
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        ASTNode *ast = mir->routines[i].ast;
-        if (ast != NULL && ast->type == AST_FUNC_DECL
-            && ast_uses_thread_pool(ast->data.func_decl.body)) {
-            *needs_thread_pool = true;
-            return;
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        return ast_uses_thread_pool(node->data.func_decl.body);
+    case AST_CLASS_DECL:
+        for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.class_decl.methods[i]))
+                return true;
         }
-    }
-
-    if (mir->synthetic_executable_func != NULL
-        && mir->synthetic_executable_func->type == AST_FUNC_DECL
-        && ast_uses_thread_pool(mir->synthetic_executable_func->data.func_decl.body)) {
-        *needs_thread_pool = true;
-        return;
-    }
-
-    for (size_t i = 0; i < mir->executable_count; i++) {
-        if (ast_uses_thread_pool(mir->executables[i])) {
-            *needs_thread_pool = true;
-            return;
+        return false;
+    case AST_ENUM_DECL:
+        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.enum_decl.methods[i]))
+                return true;
         }
+        return false;
+    case AST_ABILITY_DECL:
+        for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.ability_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ROLE_DECL:
+        for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
+            ASTNode *impl = node->data.role_decl.impl_abilities[i];
+            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+                continue;
+            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+                if (ast_decl_uses_thread_pool(impl->data.impl_ability.methods[j]))
+                    return true;
+            }
+        }
+        return false;
+    case AST_PARTY_DECL:
+        for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.party_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ROSTER_DECL:
+        for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.roster_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_WORLD_DECL:
+        for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.world_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_RELATION_DECL:
+        for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.relation_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_EFFECT_DECL:
+        for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.effect_decl.methods[i]))
+                return true;
+        }
+        return false;
+    case AST_ZONE_DECL:
+        for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+            if (ast_decl_uses_thread_pool(node->data.zone_decl.methods[i]))
+                return true;
+        }
+        return false;
+    default:
+        return false;
     }
 }
 
 static bool
-transpiler_requires_thread_pool(const HIRProgram *hir, const MIRProgram *mir)
+transpiler_requires_thread_pool(const TranspilerCtx *ctx)
 {
-    bool needs_thread_pool = false;
+    ASTNode **functions = NULL;
+    ASTNode **types = NULL;
+    ASTNode **abilities = NULL;
+    ASTNode **roles = NULL;
+    ASTNode **parties = NULL;
+    ASTNode **rosters = NULL;
+    ASTNode **relations = NULL;
+    ASTNode **effects = NULL;
+    ASTNode **zones = NULL;
+    ASTNode **worlds = NULL;
+    ASTNode **executables = NULL;
+    size_t function_count = 0;
+    size_t type_count = 0;
+    size_t ability_count = 0;
+    size_t role_count = 0;
+    size_t party_count = 0;
+    size_t roster_count = 0;
+    size_t relation_count = 0;
+    size_t effect_count = 0;
+    size_t zone_count = 0;
+    size_t world_count = 0;
+    size_t executable_count = 0;
+    ASTNode *synthetic_executable_func = NULL;
 
-    if (mir != NULL)
-        transpiler_collect_thread_pool_need_from_mir(mir, &needs_thread_pool);
-    if (!needs_thread_pool)
-        needs_thread_pool = hir_requires_thread_pool(hir);
-    return needs_thread_pool;
+    if (ctx == NULL)
+        return false;
+
+    transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
+    transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
+    transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
+    transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
+    transpiler_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
+    transpiler_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
+    transpiler_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
+    transpiler_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
+    transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
+    transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
+
+    for (size_t i = 0; i < function_count; i++) {
+        if (ast_decl_uses_thread_pool(functions[i]))
+            return true;
+    }
+    for (size_t i = 0; i < type_count; i++) {
+        if (ast_decl_uses_thread_pool(types[i]))
+            return true;
+    }
+    for (size_t i = 0; i < ability_count; i++) {
+        if (ast_decl_uses_thread_pool(abilities[i]))
+            return true;
+    }
+    for (size_t i = 0; i < role_count; i++) {
+        if (ast_decl_uses_thread_pool(roles[i]))
+            return true;
+    }
+    for (size_t i = 0; i < party_count; i++) {
+        if (ast_decl_uses_thread_pool(parties[i]))
+            return true;
+    }
+    for (size_t i = 0; i < roster_count; i++) {
+        if (ast_decl_uses_thread_pool(rosters[i]))
+            return true;
+    }
+    for (size_t i = 0; i < relation_count; i++) {
+        if (ast_decl_uses_thread_pool(relations[i]))
+            return true;
+    }
+    for (size_t i = 0; i < effect_count; i++) {
+        if (ast_decl_uses_thread_pool(effects[i]))
+            return true;
+    }
+    for (size_t i = 0; i < zone_count; i++) {
+        if (ast_decl_uses_thread_pool(zones[i]))
+            return true;
+    }
+    for (size_t i = 0; i < world_count; i++) {
+        if (ast_decl_uses_thread_pool(worlds[i]))
+            return true;
+    }
+
+    synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
+    if (synthetic_executable_func != NULL
+        && synthetic_executable_func->type == AST_FUNC_DECL
+        && ast_uses_thread_pool(synthetic_executable_func->data.func_decl.body)) {
+        return true;
+    }
+
+    transpiler_active_executables(ctx, &executables, &executable_count);
+    for (size_t i = 0; i < executable_count; i++) {
+        if (ast_uses_thread_pool(executables[i]))
+            return true;
+    }
+
+    return false;
 }
 
 void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
@@ -1047,8 +1165,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     } else if (init != NULL) {
         /* Fallback: infer from any initializer (string literals, binary exprs, etc.) */
         const char *inferred = infer_expression_type_name(ctx, init);
-        if (inferred != NULL && strcmp(inferred, "Int") != 0) {
-            /* Only register non-default (Int is the fallback, skip to avoid noise) */
+        if (inferred != NULL) {
             register_typed_var(ctx, name, inferred);
         }
     }
@@ -1170,6 +1287,289 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
     }
 
     return NULL;
+}
+
+static const char *
+transpiler_find_mir_intent_meta_arg(const MIRRoutine *routine,
+                                    const char *step_name,
+                                    const char *inst_name)
+{
+    if (routine == NULL || inst_name == NULL)
+        return NULL;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            return inst->arg0;
+        }
+    }
+    return NULL;
+}
+
+static size_t
+transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
+                                          const char *step_name,
+                                          const char ***aliases_out)
+{
+    const char **aliases = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)aliases);
+                    return 0;
+                }
+                aliases = grown;
+                capacity = new_capacity;
+            }
+            aliases[count++] = inst->arg0;
+        }
+    }
+
+    *aliases_out = aliases;
+    return count;
+}
+
+static size_t
+transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
+{
+    ASTNode **steps = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (steps_out != NULL)
+        *steps_out = NULL;
+    if (routine == NULL || steps_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            ASTNode **grown;
+
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL
+                || inst->ast->type != AST_INTENT_STEP) {
+                continue;
+            }
+            if (inst->name != NULL && strncmp(inst->name, "Intent", 6) == 0)
+                continue;
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
+                grown = realloc(steps, new_capacity * sizeof(ASTNode *));
+                if (grown == NULL) {
+                    free(steps);
+                    return 0;
+                }
+                steps = grown;
+                capacity = new_capacity;
+            }
+            steps[count++] = inst->ast;
+        }
+    }
+
+    *steps_out = steps;
+    return count;
+}
+
+static ASTNode *
+transpiler_find_mir_intent_check_expr(const MIRRoutine *routine,
+                                      const char *step_name,
+                                      const char *phase_name)
+{
+    if (routine == NULL || phase_name == NULL)
+        return NULL;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentCheck") != 0)
+                continue;
+            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            return inst->ast;
+        }
+    }
+    return NULL;
+}
+
+static size_t
+transpiler_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
+                                         const char *step_name,
+                                         const char *phase_name,
+                                         ASTNode ***exprs_out)
+{
+    ASTNode **exprs = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (exprs_out != NULL)
+        *exprs_out = NULL;
+    if (routine == NULL || phase_name == NULL || exprs_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            ASTNode **grown;
+
+            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentEval") != 0)
+                continue;
+            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc(exprs, new_capacity * sizeof(ASTNode *));
+                if (grown == NULL) {
+                    free(exprs);
+                    return 0;
+                }
+                exprs = grown;
+                capacity = new_capacity;
+            }
+            exprs[count++] = inst->ast;
+        }
+    }
+
+    *exprs_out = exprs;
+    return count;
+}
+
+static ASTNode *
+transpiler_find_mir_intent_eval_expr(const MIRRoutine *routine,
+                                     const char *step_name,
+                                     const char *phase_name)
+{
+    ASTNode **exprs = NULL;
+    ASTNode *result = NULL;
+    size_t count = transpiler_collect_mir_intent_eval_exprs(
+        routine, step_name, phase_name, &exprs);
+    if (count > 0)
+        result = exprs[0];
+    free(exprs);
+    return result;
+}
+
+static size_t
+transpiler_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
+                                               const char *step_name,
+                                               const char ***aliases_out)
+{
+    const char **aliases = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (routine == NULL || aliases_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentDispatch") != 0)
+                continue;
+            if (inst->arg0 == NULL)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown = realloc((void *)aliases, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)aliases);
+                    return 0;
+                }
+                aliases = grown;
+                capacity = new_capacity;
+            }
+            aliases[count++] = inst->arg0;
+        }
+    }
+
+    *aliases_out = aliases;
+    return count;
 }
 
 static bool
@@ -1565,6 +1965,15 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
                                 const ASTNode *func_decl,
                                 const char *base_name)
 {
+    const char *typed_name = NULL;
+
+    if (base_name == NULL)
+        return NULL;
+    if (ctx != NULL) {
+        typed_name = lookup_typed_var(ctx, base_name);
+        if (typed_name != NULL)
+            return typed_name;
+    }
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
         return NULL;
     for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
@@ -2707,6 +3116,23 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx)
 {
     const MIRRoutine *mir_routine = NULL;
+    if (ctx != NULL && ctx->mir != NULL) {
+        char reason[256];
+        if (transpiler_can_emit_function_from_mir_with_reason(
+                ctx, node, &mir_routine, reason, sizeof(reason))) {
+            emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
+        } else if (ctx->backend_error == NULL) {
+            const char *func_name = (node != NULL && node->type == AST_FUNC_DECL
+                                     && node->data.func_decl.name != NULL)
+                ? node->data.func_decl.name
+                : "(anonymous)";
+            ctx->backend_error = strdup_fmt(
+                "MIR-only C path missing routine for function '%s': %s",
+                func_name,
+                reason[0] != '\0' ? reason : "unknown reason");
+        }
+        return;
+    }
     if (transpiler_can_emit_function_from_mir(ctx, node, &mir_routine)) {
         emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
         return;
@@ -3123,6 +3549,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
         if (method->type != AST_FUNC_DECL)
             continue;
+        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "MIR-only C path missing routine for class method '%s.%s'",
+                    name != NULL ? name : "(anonymous-class)",
+                    method->data.func_decl.name != NULL
+                        ? method->data.func_decl.name
+                        : "(anonymous)");
+            }
+            return;
+        }
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
@@ -4433,6 +4870,17 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, ename, method);
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
+            if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "MIR-only C path missing routine for enum method '%s.%s'",
+                        ename != NULL ? ename : "(anonymous-enum)",
+                        method->data.func_decl.name != NULL
+                            ? method->data.func_decl.name
+                            : "(anonymous)");
+                }
+                return;
+            }
             if (mir_method != NULL) {
                 char emitted_name[256];
                 snprintf(emitted_name, sizeof(emitted_name), "%s_%s", ename,
@@ -5032,7 +5480,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     int saved_typed_count;
     bool has_compensate_steps = false;
     bool needs_cleanup_done_label = false;
+    bool mir_only_intent = false;
     size_t subject_count = 0;
+    ASTNode **mir_steps = NULL;
+    ASTNode **step_nodes = NULL;
+    size_t step_count = 0;
     const MIRRoutine *mir_routine = NULL;
     bool emit_cleanup_from_mir = false;
     CodeBuf *saved_out;
@@ -5047,10 +5499,45 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     saved_render_ctx = g_type_render_ctx;
     ctx->out = buf;
     g_type_render_ctx = ctx;
+    mir_only_intent = ctx->mir != NULL;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
-    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
-        ASTNode *step = node->data.intent_decl.steps[i];
+    if (mir_routine != NULL)
+        step_count = transpiler_collect_mir_intent_steps(mir_routine, &mir_steps);
+    if (step_count == 0) {
+        step_nodes = node->data.intent_decl.steps;
+        step_count = node->data.intent_decl.step_count;
+    } else {
+        step_nodes = mir_steps;
+    }
+    if (mir_only_intent && node->data.intent_decl.step_count > 0 && mir_routine == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only C path missing routine for intent '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous-intent)");
+        }
+        free(mir_steps);
+        g_type_render_ctx = saved_render_ctx;
+        ctx->out = saved_out;
+        return;
+    }
+    if (mir_only_intent && node->data.intent_decl.step_count > 0 && step_count == 0) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only C path missing intent step sequence for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous-intent)");
+        }
+        free(mir_steps);
+        g_type_render_ctx = saved_render_ctx;
+        ctx->out = saved_out;
+        return;
+    }
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = step_nodes[i];
         if (step != NULL && step->type == AST_INTENT_STEP
             && step->data.intent_step.compensate_expr_count > 0) {
             has_compensate_steps = true;
@@ -5115,10 +5602,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "(void)__intent_failed;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "int32_t __intent_handle = 0;\n");
-    if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+    if (has_compensate_steps && step_count > 0) {
         write_indent(ctx);
         codebuf_write(ctx->out, "bool __intent_step_completed[%zu] = { false };\n",
-            node->data.intent_decl.step_count);
+            step_count);
     }
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         if (intent_involves_is_subject_participant(ctx,
@@ -5178,20 +5665,114 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "}\n");
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
-        ASTNode *step = node->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = step_nodes[i];
         const char *saved_zone_name = ctx->current_zone_name;
         const char *saved_overlay_receiver = ctx->current_overlay_receiver_expr;
+        const char *step_name = NULL;
+        ASTNode *pre_expr = NULL;
+        ASTNode *guard_expr = NULL;
+        ASTNode *post_expr = NULL;
+        ASTNode *expect_expr = NULL;
+        ASTNode *invariant_pre_expr = NULL;
+        ASTNode *invariant_post_expr = NULL;
+        ASTNode **on_exprs = NULL;
+        size_t on_expr_count = 0;
+        ASTNode *subintent_expr = NULL;
         const char *step_zone_name = NULL;
         const char *step_zone_alias = NULL;
+        const char *step_from_alias = NULL;
+        const char **who_aliases = NULL;
+        size_t who_alias_count = 0;
+        const char **dispatch_aliases = NULL;
+        size_t dispatch_alias_count = 0;
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
-        if (step->data.intent_step.where_type != NULL
-            && step->data.intent_step.where_type->type == AST_TYPE) {
-            step_zone_name = step->data.intent_step.where_type->data.type.name;
+        step_name = step->data.intent_step.name;
+        if (mir_routine != NULL) {
+            pre_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "pre");
+            guard_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "guard");
+            post_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "post");
+            expect_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "expect");
+            invariant_pre_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "invariant-pre");
+            invariant_post_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "invariant-post");
+            on_expr_count = transpiler_collect_mir_intent_eval_exprs(
+                mir_routine, step_name, "on", &on_exprs);
+            subintent_expr = transpiler_find_mir_intent_eval_expr(mir_routine, step_name, "intent");
+            step_zone_name = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneWhere");
+            step_zone_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneAlias");
+            step_from_alias = transpiler_find_mir_intent_meta_arg(mir_routine, step_name, "IntentZoneFrom");
+            who_alias_count = transpiler_collect_mir_intent_who_aliases(mir_routine, step_name, &who_aliases);
+            dispatch_alias_count = transpiler_collect_mir_intent_dispatch_aliases(mir_routine, step_name, &dispatch_aliases);
         }
-        step_zone_alias = intent_step_effective_zone_alias(step);
+        if (mir_only_intent) {
+            if (step->data.intent_step.pre_expr != NULL && pre_expr == NULL)
+                goto mir_step_missing_pre;
+            if (step->data.intent_step.guard_expr != NULL && guard_expr == NULL)
+                goto mir_step_missing_guard;
+            if (step->data.intent_step.post_expr != NULL && post_expr == NULL)
+                goto mir_step_missing_post;
+            if (step->data.intent_step.expect_expr != NULL && expect_expr == NULL)
+                goto mir_step_missing_expect;
+            if (step->data.intent_step.invariant_expr != NULL
+                && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
+                goto mir_step_missing_invariant;
+            if (step->data.intent_step.intent_expr != NULL && subintent_expr == NULL)
+                goto mir_step_missing_subintent;
+            if (step->data.intent_step.on_expr_count > 0 && on_expr_count == 0)
+                goto mir_step_missing_on;
+            if (step->data.intent_step.where_type != NULL && step_zone_name == NULL)
+                goto mir_step_missing_zone_where;
+            if (intent_step_effective_zone_alias(step) != NULL && step_zone_alias == NULL)
+                goto mir_step_missing_zone_alias;
+            if (step->data.intent_step.transfer_from_alias != NULL && step_from_alias == NULL)
+                goto mir_step_missing_zone_from;
+            if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                goto mir_step_missing_who;
+            if (step->data.intent_step.on_expr_count == 0
+                && step->data.intent_step.intent_expr == NULL
+                && step->data.intent_step.who_count > 0
+                && dispatch_alias_count == 0) {
+                goto mir_step_missing_dispatch;
+            }
+        } else {
+            if (pre_expr == NULL)
+                pre_expr = step->data.intent_step.pre_expr;
+            if (guard_expr == NULL)
+                guard_expr = step->data.intent_step.guard_expr;
+            if (post_expr == NULL)
+                post_expr = step->data.intent_step.post_expr;
+            if (expect_expr == NULL)
+                expect_expr = step->data.intent_step.expect_expr;
+            if (invariant_pre_expr == NULL)
+                invariant_pre_expr = step->data.intent_step.invariant_expr;
+            if (invariant_post_expr == NULL)
+                invariant_post_expr = step->data.intent_step.invariant_expr;
+            if (on_expr_count == 0) {
+                on_exprs = step->data.intent_step.on_exprs;
+                on_expr_count = step->data.intent_step.on_expr_count;
+            }
+            if (subintent_expr == NULL)
+                subintent_expr = step->data.intent_step.intent_expr;
+            if (step_zone_name == NULL
+                && step->data.intent_step.where_type != NULL
+                && step->data.intent_step.where_type->type == AST_TYPE) {
+                step_zone_name = step->data.intent_step.where_type->data.type.name;
+            }
+            if (step_zone_alias == NULL)
+                step_zone_alias = intent_step_effective_zone_alias(step);
+            if (step_from_alias == NULL)
+                step_from_alias = step->data.intent_step.transfer_from_alias;
+            if (who_alias_count == 0) {
+                who_aliases = (const char **)step->data.intent_step.who_names;
+                who_alias_count = step->data.intent_step.who_count;
+            }
+            if (dispatch_alias_count == 0) {
+                dispatch_aliases = (const char **)step->data.intent_step.who_names;
+                dispatch_alias_count = step->data.intent_step.who_count;
+            }
+        }
         if (step_zone_name != NULL)
             ctx->current_zone_name = step_zone_name;
         if (step_zone_alias != NULL)
@@ -5207,8 +5788,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 && step->data.intent_step.where_type->type == AST_TYPE
                 && step->data.intent_step.where_type->data.type.name != NULL)
                 ? step->data.intent_step.where_type->data.type.name : "<zone>");
-        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-            const char *alias = step->data.intent_step.who_names[j];
+        for (size_t j = 0; j < who_alias_count; j++) {
+            const char *alias = who_aliases[j];
             const char *slot_name = resolve_intent_zone_slot_name(ctx, node, step, alias);
             write_indent(ctx);
             codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
@@ -5218,8 +5799,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
         rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
 
-        if (step->data.intent_step.pre_expr != NULL) {
-            char *pre = emit_expression(step->data.intent_step.pre_expr, ctx);
+        if (pre_expr != NULL) {
+            char *pre = emit_expression(pre_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", pre != NULL ? pre : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5235,8 +5816,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(pre);
         }
 
-        if (step->data.intent_step.invariant_expr != NULL) {
-            char *invariant = emit_expression(step->data.intent_step.invariant_expr, ctx);
+        if (invariant_pre_expr != NULL) {
+            char *invariant = emit_expression(invariant_pre_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5252,9 +5833,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(invariant);
         }
 
-        if (step->data.intent_step.on_expr_count > 0) {
-            for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-                char *on_expr = emit_expression(step->data.intent_step.on_exprs[j], ctx);
+        if (on_expr_count > 0) {
+            for (size_t j = 0; j < on_expr_count; j++) {
+                char *on_expr = emit_expression(on_exprs[j], ctx);
                 if (on_expr != NULL && on_expr[0] != '\0') {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "%s;\n", on_expr);
@@ -5262,8 +5843,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 free(on_expr);
             }
         }
-        if (step->data.intent_step.intent_expr != NULL) {
-            char *intent_expr = emit_expression(step->data.intent_step.intent_expr, ctx);
+        if (subintent_expr != NULL) {
+            char *intent_expr = emit_expression(subintent_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", intent_expr != NULL ? intent_expr : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5277,9 +5858,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "goto __intent_cleanup; }\n");
             }
             free(intent_expr);
-        } else if (step->data.intent_step.on_expr_count == 0) {
-            for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-                const char *alias = step->data.intent_step.who_names[j];
+        } else if (on_expr_count == 0) {
+            for (size_t j = 0; j < dispatch_alias_count; j++) {
+                const char *alias = dispatch_aliases[j];
                 ASTNode *involves = find_intent_participant_local(node, alias);
                 const char *subject_name = NULL;
                 ASTNode *action_decl = NULL;
@@ -5311,8 +5892,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "__intent_step_completed[%zu] = true;\n", i);
         }
 
-        if (step->data.intent_step.guard_expr != NULL) {
-            char *guard = emit_expression(step->data.intent_step.guard_expr, ctx);
+        if (guard_expr != NULL) {
+            char *guard = emit_expression(guard_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", guard != NULL ? guard : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5328,8 +5909,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(guard);
         }
 
-        if (step->data.intent_step.expect_expr != NULL) {
-            char *expect = emit_expression(step->data.intent_step.expect_expr, ctx);
+        if (expect_expr != NULL) {
+            char *expect = emit_expression(expect_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", expect != NULL ? expect : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5345,8 +5926,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(expect);
         }
 
-        if (step->data.intent_step.post_expr != NULL) {
-            char *post = emit_expression(step->data.intent_step.post_expr, ctx);
+        if (post_expr != NULL) {
+            char *post = emit_expression(post_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", post != NULL ? post : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5362,8 +5943,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free(post);
         }
 
-        if (step->data.intent_step.invariant_expr != NULL) {
-            char *invariant = emit_expression(step->data.intent_step.invariant_expr, ctx);
+        if (invariant_post_expr != NULL) {
+            char *invariant = emit_expression(invariant_post_expr, ctx);
             write_indent(ctx);
             codebuf_write(ctx->out, "if (!(%s)) { ", invariant != NULL ? invariant : "false");
             codebuf_write(ctx->out, "__intent_failed = true; ");
@@ -5381,6 +5962,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
             step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+        free(on_exprs);
+        free((void *)who_aliases);
+        free((void *)dispatch_aliases);
     }
 
     write_indent(ctx);
@@ -5452,17 +6036,53 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "__intent_handle", true);
                 }
             }
-            if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
-                for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
-                    ASTNode *step = node->data.intent_decl.steps[i];
+            if (has_compensate_steps && step_count > 0) {
+                for (size_t i = step_count; i-- > 0;) {
+                    ASTNode *step = step_nodes[i];
+                    ASTNode **compensate_exprs = NULL;
+                    size_t compensate_expr_count = 0;
+                    const char *zone_type_name = NULL;
+                    const char *zone_alias = NULL;
+                    const char *from_alias = NULL;
+                    const char **who_aliases = NULL;
+                    size_t who_alias_count = 0;
                     if (step == NULL || step->type != AST_INTENT_STEP
                         || step->data.intent_step.compensate_expr_count == 0)
                         continue;
+                    if (mir_routine != NULL) {
+                        compensate_expr_count = transpiler_collect_mir_intent_eval_exprs(
+                            mir_routine, step->data.intent_step.name, "compensate", &compensate_exprs);
+                        zone_type_name = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneWhere");
+                        zone_alias = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneAlias");
+                        from_alias = transpiler_find_mir_intent_meta_arg(
+                            mir_routine, step->data.intent_step.name, "IntentZoneFrom");
+                        who_alias_count = transpiler_collect_mir_intent_who_aliases(
+                            mir_routine, step->data.intent_step.name, &who_aliases);
+                    }
+                    if (mir_only_intent && step->data.intent_step.compensate_expr_count > 0
+                        && compensate_expr_count == 0)
+                        goto mir_step_missing_compensate;
+                    if (!mir_only_intent && compensate_expr_count == 0) {
+                        compensate_expr_count = step->data.intent_step.compensate_expr_count;
+                        compensate_exprs = step->data.intent_step.compensate_exprs;
+                    }
+                    if (mir_only_intent) {
+                        if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+                            goto mir_step_missing_zone_where;
+                        if (intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+                            goto mir_step_missing_zone_alias;
+                        if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+                            goto mir_step_missing_zone_from;
+                        if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                            goto mir_step_missing_who;
+                    }
                     write_indent(ctx);
                     codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
                     ctx->indent++;
-                    for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
-                        char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                    for (size_t j = compensate_expr_count; j-- > 0;) {
+                        char *expr = emit_expression(compensate_exprs[j], ctx);
                         if (expr != NULL && expr[0] != '\0') {
                             write_indent(ctx);
                             codebuf_write(ctx->out, "%s;\n", expr);
@@ -5485,6 +6105,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     ctx->indent--;
                     write_indent(ctx);
                     codebuf_write(ctx->out, "}\n");
+                    free(compensate_exprs);
+                    free((void *)who_aliases);
                 }
             }
             if (mir_routine->has_invalidation_block) {
@@ -5523,12 +6145,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "__intent_cleanup:\n");
         ctx->indent++;
-        if (has_compensate_steps && node->data.intent_decl.step_count > 0) {
+        if (has_compensate_steps && step_count > 0) {
             write_indent(ctx);
             codebuf_write(ctx->out, "if (__intent_failed) {\n");
             ctx->indent++;
-            for (size_t i = node->data.intent_decl.step_count; i-- > 0;) {
-                ASTNode *step = node->data.intent_decl.steps[i];
+            for (size_t i = step_count; i-- > 0;) {
+                ASTNode *step = step_nodes[i];
                 if (step == NULL || step->type != AST_INTENT_STEP
                     || step->data.intent_step.compensate_expr_count == 0)
                     continue;
@@ -5571,6 +6193,68 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->slot_var_count = saved_slot_count;
     ctx->typed_var_count = saved_typed_count;
     codebuf_write(ctx->out, "}\n");
+    free(mir_steps);
+    g_type_render_ctx = saved_render_ctx;
+    ctx->out = saved_out;
+    return;
+
+mir_step_missing_pre:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent pre check carrier");
+    goto intent_emit_fail;
+mir_step_missing_guard:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent guard check carrier");
+    goto intent_emit_fail;
+mir_step_missing_post:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent post check carrier");
+    goto intent_emit_fail;
+mir_step_missing_expect:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent expect check carrier");
+    goto intent_emit_fail;
+mir_step_missing_invariant:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent invariant check carrier");
+    goto intent_emit_fail;
+mir_step_missing_subintent:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent subintent eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_on:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent on-eval carrier");
+    goto intent_emit_fail;
+mir_step_missing_zone_where:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone where metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_alias:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent zone alias metadata");
+    goto intent_emit_fail;
+mir_step_missing_zone_from:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent transfer-from metadata");
+    goto intent_emit_fail;
+mir_step_missing_who:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent who metadata");
+    goto intent_emit_fail;
+mir_step_missing_dispatch:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent dispatch carrier");
+    goto intent_emit_fail;
+mir_step_missing_compensate:
+    if (ctx->backend_error == NULL)
+        ctx->backend_error = pergyra_strdup("MIR-only C path missing intent compensate eval carrier");
+    goto intent_emit_fail;
+
+intent_emit_fail:
+    free(mir_steps);
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
 }
@@ -5617,23 +6301,8 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     if (hir == NULL && mir == NULL)
         return;
 
-    if (mir != NULL) {
-        externs = mir->externs;
-        extern_count = mir->extern_count;
-        executables = mir->executables;
-        executable_count = mir->executable_count;
-        synthetic_executable_func = mir->synthetic_executable_func;
-        has_main_function = mir->has_main_function;
-    } else {
-        externs = hir->externs;
-        extern_count = hir->extern_count;
-        executables = hir->executables;
-        executable_count = hir->executable_count;
-        synthetic_executable_func = hir->synthetic_executable_func;
-        has_main_function = hir->has_main_function;
-    }
-
-    ctx->hir = hir;
+    ctx->hir = (mir == NULL) ? hir : NULL;
+    transpiler_active_externs(ctx, &externs, &extern_count);
     transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
     transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
     transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
@@ -5646,6 +6315,9 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
     transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
     transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
+    transpiler_active_executables(ctx, &executables, &executable_count);
+    synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
+    has_main_function = transpiler_active_has_main_function(ctx);
 
     /* File header */
     codebuf_write(ctx->out,
@@ -5803,7 +6475,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     /* Check if a Main() function exists */
     /* Generate int main(void) { ... } */
     if (executable_count > 0 || has_main_function) {
-        bool needs_thread_pool = transpiler_requires_thread_pool(hir, mir);
+        bool needs_thread_pool = transpiler_requires_thread_pool(ctx);
         codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
         ctx->indent++;
 
@@ -5852,6 +6524,12 @@ transpile(const HIRProgram *hir, const char *output_path)
 }
 
 TranspileResult *
+transpile_from_mir(const MIRProgram *mir, const char *output_path)
+{
+    return transpile_with_mir(NULL, mir, output_path);
+}
+
+TranspileResult *
 transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
@@ -5866,7 +6544,7 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
     }
 
     ctx->mir = mir;
-    emit_program(hir, ctx);
+    emit_program(mir != NULL ? NULL : hir, ctx);
 
     if (ctx->backend_error != NULL) {
         result->success = false;

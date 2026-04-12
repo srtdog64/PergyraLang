@@ -43,7 +43,7 @@
 아직 남은 것:
 
 - LLVM backend 내부에 `HIR` fallback emission이 남아 있다
-- `intent` emission이 아직 완전한 MIR-only가 아니다
+- `intent` emission은 step/check/eval/meta carrier를 MIR 우선 source로 읽고 누락 시 hard error로 실패한다. 남은 debt는 declaration inventory와 ABI metadata 실사용 쪽이다.
 - `main` wrapper가 `HIR executable_count / has_main_function`에 기대고 있다
 - 일부 routine/host method/class method emission이 AST naming/shape에 의존한다
 - transpiler는 ABI metadata를 직접 소비하는 경로가 약하다

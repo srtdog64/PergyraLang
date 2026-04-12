@@ -135,6 +135,18 @@ intent_step_format_contract_source_summary(const ASTNode *step,
     }
 }
 
+static const char *
+intent_step_single_who_alias(const ASTNode *step)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return NULL;
+    if (step->data.intent_step.who_count != 1
+        || step->data.intent_step.who_names == NULL) {
+        return NULL;
+    }
+    return step->data.intent_step.who_names[0];
+}
+
 static ClassField *
 find_nominal_field_by_name(ASTNode *decl, const char *field_name)
 {
@@ -1763,6 +1775,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 || step->data.intent_step.transfer_to_alias != NULL
                 || step_requires_authority_flow)) {
             char inherited_summary[512];
+            const char *suggested_authorizer = intent_step_single_who_alias(step);
             intent_step_format_contract_source_summary(
                 step, inherited_summary, sizeof(inherited_summary));
             semantic_error(ctx, step,
@@ -1773,7 +1786,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "- zone '%s' was inherited from the matching action contract\n"
                       "%s%s"
                       "Fix:\n"
-                      "- add 'authorized by <participant>' to the step\n"
+                      "- add 'authorized by: %s;' to the step\n"
                       "- or move the step to a non-authority zone\n"
                       "- or change the action contract that this step inherits"
                     : "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
@@ -1782,7 +1795,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "- zone '%s' declares authority, so explicit approval is required\n"
                       "%s%s"
                       "Fix:\n"
-                      "- add 'authorized by <participant>' to the step\n"
+                      "- add 'authorized by: %s;' to the step\n"
                       "- or move the step to a non-authority zone\n"
                       "- or remove the authority-sensitive operation from this step",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
@@ -1790,6 +1803,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "",
+                suggested_authorizer != NULL ? suggested_authorizer : "<participant>",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "");
         }

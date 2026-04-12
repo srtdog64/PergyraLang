@@ -175,6 +175,12 @@ llvm_codegen(const HIRProgram *hir, const char *module_name)
 }
 
 LLVMGenResult *
+llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
+{
+    return llvm_codegen_with_mir(NULL, mir, module_name);
+}
+
+LLVMGenResult *
 llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
                       const char *module_name)
 {
@@ -185,7 +191,7 @@ llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    ctx->hir = hir;
+    ctx->hir = (mir == NULL) ? hir : NULL;
     ctx->mir = mir;
 
     if (mir != NULL) {
@@ -248,6 +254,16 @@ llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
 }
 
 LLVMGenResult *
+llvm_codegen_to_object_from_mir(const MIRProgram *mir,
+                                const char *module_name,
+                                const char *output_path,
+                                bool release_opt)
+{
+    return llvm_codegen_to_object_with_mir(NULL, mir, module_name, output_path,
+                                           release_opt);
+}
+
+LLVMGenResult *
 llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
                                 const char *module_name,
                                 const char *output_path,
@@ -264,7 +280,7 @@ llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    ctx->hir = hir;
+    ctx->hir = (mir == NULL) ? hir : NULL;
     ctx->mir = mir;
 
     if (mir != NULL) {

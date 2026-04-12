@@ -962,8 +962,7 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
     size_t method_count = 0;
     const MIRDeclHeader *mir_decl = NULL;
 
-    if (ctx == NULL || method_name == NULL || ctx->current_class_name == NULL
-        || (ctx->hir == NULL && ctx->mir == NULL))
+    if (ctx == NULL || method_name == NULL || ctx->current_class_name == NULL)
         return NULL;
 
     if (ctx->mir != NULL) {
@@ -1550,13 +1549,8 @@ llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 
     if (ctx == NULL || enum_name == NULL)
         return NULL;
-    if (ctx->mir != NULL) {
-        types = ctx->mir->types;
-        type_count = ctx->mir->type_count;
-    } else if (ctx->hir != NULL) {
-        types = ctx->hir->types;
-        type_count = ctx->hir->type_count;
-    } else {
+    llvm_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
+    if (types == NULL) {
         return NULL;
     }
 
