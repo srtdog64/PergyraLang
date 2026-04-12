@@ -3148,6 +3148,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         bool secure_slot = false;
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
+        else if (p->name != NULL
+                 && strcmp(p->name, "self") == 0
+                 && mir_routine != NULL
+                 && mir_routine->owner_name != NULL) {
+            pt = mir_routine->owner_name;
+            type_name = pergyra_strdup(mir_routine->owner_name);
+        }
         if (pt == NULL) {
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(
@@ -3167,7 +3174,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         if (i > 0)
             codebuf_write(params_sig, ", ");
-        if (p->type != NULL)
+        if (p->type != NULL && type_name == NULL)
             type_name = render_type_name(p->type);
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
@@ -3182,6 +3189,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
             decl = pergyra_ast_typed_declarator(p->type, p->name);
             codebuf_write(params_sig, "%s", decl);
+        } else if (p->name != NULL && strcmp(p->name, "self") == 0
+                   && type_name != NULL
+                   && is_pointer_self_host_type_name(ctx, type_name)) {
+            codebuf_write(params_sig, "%s *%s", pt, p->name);
         } else if (p->name != NULL && strcmp(p->name, "self") != 0
                    && type_name != NULL
                    && is_pointer_self_host_type_name(ctx, type_name)) {
@@ -3203,9 +3214,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->indent++;
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
-        if (p == NULL || p->name == NULL || p->type == NULL)
+        char *type_name = NULL;
+        if (p == NULL || p->name == NULL)
             continue;
-        char *type_name = render_type_name(p->type);
+        if (p->type != NULL)
+            type_name = render_type_name(p->type);
+        if (p->type == NULL
+            && strcmp(p->name, "self") == 0
+            && mir_routine != NULL
+            && mir_routine->owner_name != NULL) {
+            free(type_name);
+            type_name = pergyra_strdup(mir_routine->owner_name);
+        }
+        if (type_name == NULL)
+            continue;
         if (type_name != NULL) {
             bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
                                || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -7146,6 +7168,43 @@ transpile_result_destroy(TranspileResult *res)
 
 #include "transpiler_domain_role.inc"
 
+static const char *
+transpiler_infer_lambda_param_c_type(ASTNode *lambda_node, ASTNode *param_node)
+{
+    const char *param_name = NULL;
+    ASTNode *body = NULL;
+    ASTNode *ret_value = NULL;
+
+    if (lambda_node == NULL || param_node == NULL)
+        return NULL;
+    if (param_node->type == AST_IDENTIFIER)
+        param_name = param_node->data.identifier.name;
+    else if (param_node->type == AST_LET_DECL)
+        param_name = param_node->data.let_decl.name;
+    if (param_name == NULL || lambda_node->data.lambda_expr.return_type == NULL)
+        return NULL;
+
+    body = lambda_node->data.lambda_expr.body;
+    if (body == NULL)
+        return NULL;
+    if (body->type == AST_IDENTIFIER) {
+        ret_value = body;
+    } else if (body->type == AST_BLOCK
+               && body->data.block.count == 1
+               && body->data.block.statements[0] != NULL
+               && body->data.block.statements[0]->type == AST_RETURN) {
+        ret_value = body->data.block.statements[0]->data.return_stmt.value;
+    }
+
+    if (ret_value != NULL
+        && ret_value->type == AST_IDENTIFIER
+        && ret_value->data.identifier.name != NULL
+        && strcmp(ret_value->data.identifier.name, param_name) == 0) {
+        return pergyra_ast_type_to_c(lambda_node->data.lambda_expr.return_type);
+    }
+    return NULL;
+}
+
 void
 emit_event_invoke(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -7194,6 +7253,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
         } else {
             param_name = param->data.identifier.name;
+            param_type = transpiler_infer_lambda_param_c_type(node, param);
         }
         if (param_type == NULL) {
             transpiler_set_backend_error(
@@ -7222,6 +7282,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
         } else {
             param_name = param->data.identifier.name;
+            param_type = transpiler_infer_lambda_param_c_type(node, param);
         }
         if (param_type == NULL) {
             transpiler_set_backend_error(

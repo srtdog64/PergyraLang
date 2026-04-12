@@ -384,7 +384,7 @@ parse_intent_step(Parser *parser)
             return step;
         }
 
-        if (parser_intent_match_keyword(parser, "with")) {
+        if (parser_match(parser, TOKEN_WITH)) {
             parser_error(parser,
                 "'with effects ...' is not a valid intent step clause; "
                 "use 'causes: <Effect>;' on the step or declare effects on the matching action contract");
