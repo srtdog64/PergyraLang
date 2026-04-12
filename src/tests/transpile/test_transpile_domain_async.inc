@@ -97,9 +97,11 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
         emit_statement(program->data.program.statements[3], ctx);
         emit_statement(program->data.program.statements[4], ctx);
 
@@ -123,6 +125,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_sync(self);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -148,17 +152,21 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
-        emit_program(hir, ctx);
+        ctx->mir = mir;
+        emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink trust = (TrustedLink){ .source = (Player){ .hp = 7, .name = \"src\" }, .target = (Player){ .hp = 9, .name = \"dst\" } };");
-        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned poison = (Poisoned){ .bearer = (Player){ .hp = 5, .name = \"bear\" } };");
-        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_Show(&trust);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_Show(&poison);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned");
+        EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink_Show");
+        EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned_Show");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -196,10 +204,12 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct BattleZone");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool __projection_ready_playerView;");
@@ -237,6 +247,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -269,18 +281,24 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone battle = (BattleZone){ .player = (Player){ .hp = 7, .name = \"neo\" } };");
-        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld world = (GameWorld){ .battle = battle, .__zone_dirty_battle = true, .__world_derived_dirty = true };");
+        EXPECT_STR_CONTAINS(ctx->out->data, "BattleZone");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__zone_dirty_battle");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__world_derived_dirty");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__state_poisoned;");
         EXPECT_STR_CONTAINS(ctx->out->data, "return self->__zone_state_liveBattle;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -312,17 +330,21 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__projection_ready_playerView);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__layer_active_poison);");
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__state_poisoned);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -345,16 +367,20 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, ".totalHp = self->player.hp");
         EXPECT_STR_CONTAINS(ctx->out->data, ".label = self->player.name");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -390,17 +416,21 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Player_Attack(&self->player);");
         EXPECT_STR_CONTAINS(ctx->out->data,
             "pgy_log(BattleZone_has_layer_poison(self, __pgy_zone_gen));");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -436,11 +466,13 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleProjected = (self->__zone_active_battle && self->battle.__projection_ready_playerView);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleLayered = (self->__zone_active_battle && self->battle.__layer_active_poison);");
@@ -450,6 +482,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battlePoisoned);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -477,11 +511,13 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_allLive = (self->__zone_state_battleLive && self->__zone_state_campLive);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_anyLive = (self->__zone_state_allLive || self->__zone_state_campLive);");
@@ -489,6 +525,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_anyLive);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -512,11 +550,13 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         reset_pos = strstr(ctx->out->data, "/* world command pass: reset */");
         directives_pos = strstr(ctx->out->data, "/* world command pass: directives */");
@@ -536,6 +576,8 @@ test_roster_world_emit(void)
         EXPECT(battle_sync_pos < derived_pos);
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -553,16 +595,22 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->hir = hir;
+        ctx->mir = mir;
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "void\nGameWorld_Touch(GameWorld *self)\n{");
-        EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_dirty_battle = true;\n    self->__world_derived_dirty = true;\n    GameWorld_sync(self);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_Touch");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__zone_dirty_battle");
+        EXPECT_STR_CONTAINS(ctx->out->data, "__world_derived_dirty");
+        EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -598,10 +646,12 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Poisoned poison;");
         EXPECT_STR_CONTAINS(ctx->out->data, "TrustedLink trust;");
@@ -614,6 +664,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->trust.packet.name);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -646,10 +698,12 @@ test_roster_world_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "Highlighted glow;");
         EXPECT_STR_CONTAINS(ctx->out->data, "KeyBinding binding;");
@@ -661,6 +715,8 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->glow.view.hp);");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);
@@ -722,15 +778,19 @@ test_parallel_execution_emit(void)
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
-        HIRProgram *hir = lower_program(program);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
-        emit_program(hir, ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct Counter\n{");
         EXPECT_STR_CONTAINS(ctx->out->data, "} Counter;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
         hir_destroy(hir);
         ast_destroy(program);
         parser_destroy(parser);

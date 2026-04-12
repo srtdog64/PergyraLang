@@ -3,6 +3,11 @@
  * ----------------------------------------------------------------- */
 
 static char *normalize_banner_string_literal(const char *src);
+static bool transpiler_type_name_is_slot_like(const char *type_name);
+static bool transpiler_parse_versioned_name(const char *versioned,
+                                            char *base,
+                                            size_t base_size,
+                                            size_t *version_out);
 
 char *
 emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
@@ -3562,8 +3567,23 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
-        if (ssa_name != NULL)
-            return transpiler_make_c_ssa_name(ssa_name);
+        if (ssa_name != NULL) {
+            char *c_ssa_name = transpiler_make_c_ssa_name(ssa_name);
+            const char *slot_type = lookup_typed_var(ctx, id_name);
+            if (slot_type == NULL) {
+                char base_name[128];
+                size_t version = 0;
+                if (transpiler_parse_versioned_name(id_name, base_name, sizeof(base_name), &version))
+                    slot_type = lookup_typed_var(ctx, base_name);
+            }
+            if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)) {
+                const char *inner = slot_inner_type_name(slot_type);
+                char *result = strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
+                free(c_ssa_name);
+                return result;
+            }
+            return c_ssa_name;
+        }
         {
             ASTNode *alias_expr = lookup_alias_expr(ctx, id_name);
             if (alias_expr != NULL)

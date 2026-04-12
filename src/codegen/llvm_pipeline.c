@@ -383,7 +383,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     bool has_main_function = false;
     bool needs_thread_pool = false;
 
-    if (ctx == NULL || (ctx->mir == NULL && ctx->hir == NULL))
+    if (ctx == NULL || ctx->mir == NULL)
         return;
 
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
@@ -448,32 +448,17 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         if (top_level_entry != NULL) {
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
-        } else if (ctx->mir != NULL) {
+        } else {
             llvm_set_error(ctx,
                            "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
             llvm_scope_pop(ctx);
             return;
-        } else {
-            for (size_t i = 0; i < executable_count; i++) {
-                ASTNode *stmt = executables[i];
-                if (stmt != NULL) {
-                    llvm_emit_statement(stmt, ctx);
-                    if (LLVMGetBasicBlockTerminator(
-                            LLVMGetInsertBlock(ctx->builder)) != NULL)
-                        break;
-                }
-            }
         }
     } else if (executable_count > 0) {
-        for (size_t i = 0; i < executable_count; i++) {
-            ASTNode *stmt = executables[i];
-            if (stmt != NULL) {
-                llvm_emit_statement(stmt, ctx);
-                if (LLVMGetBasicBlockTerminator(
-                        LLVMGetInsertBlock(ctx->builder)) != NULL)
-                    break;
-            }
-        }
+        llvm_set_error(ctx,
+                       "MIR-only LLVM path missing '__pgy_top_level_exec' for top-level exec");
+        llvm_scope_pop(ctx);
+        return;
     }
 
     llvm_scope_pop(ctx);
@@ -538,202 +523,11 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message)
     return true;
 }
 
-void
-llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx)
-{
-    const MIRProgram *mir = ctx != NULL ? ctx->mir : NULL;
-    ASTNode **functions = NULL;
-    ASTNode **intents = NULL;
-    ASTNode **types = NULL;
-    size_t function_count = 0;
-    size_t intent_count = 0;
-    size_t type_count = 0;
-
-    if (hir == NULL) {
-        llvm_set_error(ctx, "Expected lowered HIR program");
-        return;
-    }
-
-    ctx->hir = hir;
-    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
-    llvm_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count);
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    llvm_set_type_render_ctx(ctx);
-
-    llvm_declare_runtime(ctx);
-    llvm_register_active_nominal_types(ctx);
-    llvm_register_active_extern_prototypes(ctx);
-
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (llvm_can_forward_declare_func_early(ctx, stmt))
-            llvm_forward_declare_func(stmt, ctx);
-    }
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
-            continue;
-        if (stmt->data.func_decl.generic_params != NULL
-            && stmt->data.func_decl.generic_params->count > 0)
-            continue;
-        if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
-            llvm_forward_declare_func(stmt, ctx);
-    }
-
-    llvm_emit_domain_passes(ctx);
-
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
-            continue;
-        if (stmt->data.func_decl.generic_params != NULL
-            && stmt->data.func_decl.generic_params->count > 0) {
-            if (!llvm_register_generic_template_decl(ctx, stmt))
-                return;
-        } else if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL) {
-            llvm_forward_declare_func(stmt, ctx);
-        }
-    }
-    for (size_t i = 0; i < intent_count; i++)
-        llvm_forward_declare_intent(intents[i], ctx);
-
-    for (size_t i = 0; i < function_count; i++) {
-        ASTNode *stmt = functions[i];
-        if (stmt != NULL
-            && llvm_lookup_generic_template(ctx, stmt->data.func_decl.name) == NULL) {
-            llvm_emit_func_decl(stmt, ctx);
-        }
-    }
-    for (size_t i = 0; i < intent_count; i++) {
-        ASTNode *stmt = intents[i];
-        if (stmt != NULL)
-            llvm_emit_intent_decl(stmt, ctx);
-    }
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *stmt = types[i];
-        if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
-            const char *cls_name = stmt->data.class_decl.name;
-            LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, cls_name);
-
-            for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                ASTNode *method = stmt->data.class_decl.methods[j];
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-
-                char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s",
-                         cls_name, method->data.func_decl.name);
-
-                LLVMFuncEntry *entry = llvm_lookup_function(ctx, full_name);
-                if (entry == NULL)
-                    continue;
-
-                LLVMValueRef fn = entry->fn;
-                LLVMTypeRef ret_type = entry->ret_type;
-                LLVMValueRef saved_fn = ctx->current_function;
-                LLVMTypeRef saved_ret = ctx->current_ret_type;
-                const char *saved_class_name = ctx->current_class_name;
-                ctx->current_function = fn;
-                ctx->current_ret_type = ret_type;
-                ctx->current_class_name = cls_name;
-
-                LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
-                LLVMPositionBuilderAtEnd(ctx->builder, bb);
-
-                llvm_scope_push(ctx);
-
-                LLVMValueRef self_val = LLVMGetParam(fn, 0);
-                if (cls != NULL && cls->is_pointer_self_host) {
-                    LLVMTypeRef self_ptr_type = LLVMPointerType(cls->struct_type, 0);
-                    LLVMValueRef self_alloca = llvm_create_entry_alloca(
-                        ctx, self_ptr_type, "self.addr");
-                    LLVMBuildStore(ctx->builder, self_val, self_alloca);
-                    llvm_scope_declare(ctx, "self", self_alloca, self_ptr_type);
-                } else {
-                    LLVMTypeRef self_type = cls != NULL ? cls->struct_type : LLVMTypeOf(self_val);
-                    LLVMValueRef self_alloca = llvm_create_entry_alloca(ctx, self_type, "self");
-                    LLVMBuildStore(ctx->builder, self_val, self_alloca);
-                    llvm_scope_declare(ctx, "self", self_alloca, self_type);
-                }
-                llvm_register_var_class(ctx, "self", cls_name);
-
-                size_t pc = method->data.func_decl.param_count;
-                unsigned llvm_pidx = 1;
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
-                        continue;
-                    LLVMTypeRef pt = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
-                    LLVMValueRef alloca = llvm_create_entry_alloca(ctx, pt, p->name);
-                    LLVMBuildStore(ctx->builder, LLVMGetParam(fn, llvm_pidx++), alloca);
-                    llvm_scope_declare(ctx, p->name, alloca, pt);
-                    llvm_register_typed_var(ctx, p->name, p->type);
-                }
-
-                if (method->data.func_decl.body != NULL)
-                    llvm_emit_block(method->data.func_decl.body, ctx);
-
-                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                    if (ret_type == ctx->type_void)
-                        LLVMBuildRetVoid(ctx->builder);
-                    else
-                        LLVMBuildRet(ctx->builder, LLVMConstInt(ret_type, 0, 0));
-                }
-
-                llvm_scope_pop(ctx);
-                ctx->current_function = saved_fn;
-                ctx->current_ret_type = saved_ret;
-                ctx->current_class_name = saved_class_name;
-
-                if (saved_fn != NULL) {
-                    LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-                    if (last != NULL)
-                        LLVMPositionBuilderAtEnd(ctx->builder, last);
-                }
-            }
-        } else if (stmt != NULL && stmt->type == AST_ENUM_DECL) {
-            const char *enum_name = stmt->data.enum_decl.name;
-            for (size_t j = 0; j < stmt->data.enum_decl.method_count; j++) {
-                ASTNode *method = stmt->data.enum_decl.methods[j];
-                const MIRRoutine *mir_method;
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                mir_method = llvm_find_mir_method_routine(mir, enum_name, method);
-                if (mir_method != NULL) {
-                    const char *saved_class_name = ctx->current_class_name;
-                    ctx->current_class_name = enum_name;
-                    llvm_emit_func_from_mir(mir_method, ctx);
-                    ctx->current_class_name = saved_class_name;
-                    continue;
-                }
-                {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for enum method '%s.%s'",
-                             enum_name != NULL ? enum_name : "(anonymous-enum)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
-                                 : "(anonymous)");
-                    llvm_set_error(ctx, msg);
-                    return;
-                }
-            }
-        }
-    }
-
-    llvm_emit_main_wrapper(ctx);
-    llvm_set_type_render_ctx(NULL);
-}
-
 bool
 llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 {
     if (mir == NULL || ctx == NULL)
         return false;
-
-    ctx->hir = NULL;
 
     /* MIR-only backend entry:
      *

@@ -169,52 +169,6 @@ llvm_run_optimization(LLVMGenCtx *ctx, LLVMTargetMachineRef machine,
 }
 
 static LLVMGenResult *
-llvm_codegen_hir_only(const HIRProgram *hir, const char *module_name)
-{
-    llvm_debug_stage("codegen_with_mir:ctx_create");
-    LLVMGenCtx *ctx = llvm_ctx_create(module_name);
-    LLVMGenResult *verify_result;
-
-    if (ctx == NULL)
-        return llvm_result_error("Out of memory");
-
-    ctx->hir = hir;
-    ctx->mir = NULL;
-
-    llvm_debug_stage("codegen_with_mir:emit_program");
-    llvm_emit_program(hir, ctx);
-
-    if (ctx->has_error) {
-        LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
-        llvm_ctx_destroy(ctx);
-        return res;
-    }
-
-    llvm_debug_stage("codegen_with_mir:verify");
-    verify_result = llvm_verify_module_result(ctx);
-    if (verify_result != NULL) {
-        llvm_ctx_destroy(ctx);
-        return verify_result;
-    }
-
-    {
-        llvm_debug_stage("codegen_with_mir:print_module");
-        char *ir = LLVMPrintModuleToString(ctx->module);
-        char *ir_copy = pergyra_strdup(ir);
-        LLVMGenResult *res;
-        LLVMDisposeMessage(ir);
-
-        res = llvm_result_success(ir_copy);
-        if (res != NULL)
-            res->uses_intent_observability = ctx->uses_intent_observability;
-        llvm_debug_stage("codegen_with_mir:ctx_destroy");
-        llvm_ctx_destroy(ctx);
-        llvm_debug_stage("codegen_with_mir:return");
-        return res;
-    }
-}
-
-static LLVMGenResult *
 llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
 {
     llvm_debug_stage("codegen_with_mir:ctx_create");
@@ -224,7 +178,6 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    ctx->hir = NULL;
     ctx->mir = mir;
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
@@ -274,47 +227,13 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
 }
 
 LLVMGenResult *
-llvm_codegen(const HIRProgram *hir, const char *module_name)
-{
-    return llvm_codegen_hir_only(hir, module_name);
-}
-
-LLVMGenResult *
 llvm_codegen_from_mir(const MIRProgram *mir, const char *module_name)
 {
     return llvm_codegen_mir_only(mir, module_name);
 }
 
-LLVMGenResult *
-llvm_codegen_with_mir(const HIRProgram *hir, const MIRProgram *mir,
-                      const char *module_name)
-{
-    if (mir != NULL)
-        return llvm_codegen_mir_only(mir, module_name);
-    return llvm_codegen_hir_only(hir, module_name);
-}
-
-LLVMGenResult *
-llvm_codegen_to_object(const HIRProgram *hir, const char *module_name,
-                       const char *output_path, bool release_opt)
-{
-    return llvm_codegen_to_object_with_mir(hir, NULL, module_name, output_path,
-                                           release_opt);
-}
-
-LLVMGenResult *
-llvm_codegen_to_object_from_mir(const MIRProgram *mir,
-                                const char *module_name,
-                                const char *output_path,
-                                bool release_opt)
-{
-    return llvm_codegen_to_object_with_mir(NULL, mir, module_name, output_path,
-                                           release_opt);
-}
-
 static LLVMGenResult *
-llvm_codegen_to_object_core(const HIRProgram *hir,
-                            const MIRProgram *mir,
+llvm_codegen_to_object_core(const MIRProgram *mir,
                             const char *module_name,
                             const char *output_path,
                             bool release_opt)
@@ -330,28 +249,22 @@ llvm_codegen_to_object_core(const HIRProgram *hir,
     if (ctx == NULL)
         return llvm_result_error("Out of memory");
 
-    ctx->hir = hir;
     ctx->mir = mir;
 
-    if (mir != NULL) {
-        llvm_debug_stage("codegen_to_object:validate_mir");
-        char *mir_error = NULL;
-        if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
-            LLVMGenResult *res = llvm_result_error(
-                mir_error != NULL ? mir_error : "Invalid MIR program");
-            free(mir_error);
-            llvm_ctx_destroy(ctx);
-            return res;
-        }
-        llvm_debug_stage("codegen_to_object:emit_program_from_mir");
-        if (!llvm_emit_program_from_mir(mir, ctx)) {
-            LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
-            llvm_ctx_destroy(ctx);
-            return res;
-        }
-    } else {
-        llvm_debug_stage("codegen_to_object:emit_program");
-        llvm_emit_program(hir, ctx);
+    llvm_debug_stage("codegen_to_object:validate_mir");
+    char *mir_error = NULL;
+    if (!llvm_validate_mir_for_codegen(mir, &mir_error)) {
+        LLVMGenResult *res = llvm_result_error(
+            mir_error != NULL ? mir_error : "Invalid MIR program");
+        free(mir_error);
+        llvm_ctx_destroy(ctx);
+        return res;
+    }
+    llvm_debug_stage("codegen_to_object:emit_program_from_mir");
+    if (!llvm_emit_program_from_mir(mir, ctx)) {
+        LLVMGenResult *res = llvm_result_from_ctx_error(ctx);
+        llvm_ctx_destroy(ctx);
+        return res;
     }
 
     if (ctx->has_error) {
@@ -437,12 +350,12 @@ llvm_codegen_to_object_core(const HIRProgram *hir,
 }
 
 LLVMGenResult *
-llvm_codegen_to_object_with_mir(const HIRProgram *hir, const MIRProgram *mir,
+llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                 const char *module_name,
                                 const char *output_path,
                                 bool release_opt)
 {
-    return llvm_codegen_to_object_core(hir, mir, module_name, output_path,
+    return llvm_codegen_to_object_core(mir, module_name, output_path,
                                        release_opt);
 }
 

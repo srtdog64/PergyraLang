@@ -440,7 +440,7 @@ static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
  * ----------------------------------------------------------------- */
 
 void
-emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
+emit_program(TranspilerCtx *ctx)
 {
     const MIRProgram *mir = (ctx != NULL) ? ctx->mir : NULL;
     ASTNode **abilities = NULL;
@@ -475,7 +475,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     bool has_main_function = false;
     bool has_top_level_exec = false;
 
-    if (hir == NULL && mir == NULL)
+    if (mir == NULL)
         return;
 
     transpiler_active_externs(ctx, &externs, &extern_count);
@@ -695,47 +695,6 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
  * ----------------------------------------------------------------- */
 
 static TranspileResult *
-transpile_hir_only(const HIRProgram *hir, const char *output_path)
-{
-    TranspileResult *result = calloc(1, sizeof(TranspileResult));
-    if (result == NULL)
-        return NULL;
-
-    TranspilerCtx *ctx = transpiler_ctx_create();
-    if (ctx == NULL) {
-        result->success       = false;
-        result->error_message = pergyra_strdup("Out of memory");
-        return result;
-    }
-
-    ctx->hir = hir;
-    ctx->mir = NULL;
-    emit_program(hir, ctx);
-
-    if (ctx->backend_error != NULL) {
-        result->success = false;
-        result->error_message = pergyra_strdup(ctx->backend_error);
-        transpiler_ctx_destroy(ctx);
-        return result;
-    }
-
-    if (output_path != NULL) {
-        if (!codebuf_dump_file(ctx->out, output_path)) {
-            result->success       = false;
-            result->error_message = strdup_fmt(
-                "Cannot write output file: %s", output_path);
-            transpiler_ctx_destroy(ctx);
-            return result;
-        }
-    }
-
-    result->success = true;
-    result->uses_intent_observability = ctx->uses_intent_observability;
-    transpiler_ctx_destroy(ctx);
-    return result;
-}
-
-static TranspileResult *
 transpile_mir_only(const MIRProgram *mir, const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
@@ -749,9 +708,8 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
         return result;
     }
 
-    ctx->hir = NULL;
     ctx->mir = mir;
-    emit_program(NULL, ctx);
+    emit_program(ctx);
 
     if (ctx->backend_error != NULL) {
         result->success = false;
@@ -777,12 +735,6 @@ transpile_mir_only(const MIRProgram *mir, const char *output_path)
 }
 
 TranspileResult *
-transpile(const HIRProgram *hir, const char *output_path)
-{
-    return transpile_hir_only(hir, output_path);
-}
-
-TranspileResult *
 transpile_from_mir(const MIRProgram *mir, const char *output_path)
 {
     return transpile_mir_only(mir, output_path);
@@ -791,9 +743,16 @@ transpile_from_mir(const MIRProgram *mir, const char *output_path)
 TranspileResult *
 transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
 {
-    if (mir != NULL)
-        return transpile_mir_only(mir, output_path);
-    return transpile_hir_only(hir, output_path);
+    (void)hir;
+    if (mir == NULL) {
+        TranspileResult *result = calloc(1, sizeof(TranspileResult));
+        if (result != NULL) {
+            result->success = false;
+            result->error_message = pergyra_strdup("MIR-only C backend: missing MIR program");
+        }
+        return result;
+    }
+    return transpile_mir_only(mir, output_path);
 }
 
 void

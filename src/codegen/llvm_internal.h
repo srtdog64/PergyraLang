@@ -322,7 +322,6 @@ typedef struct
 
 typedef struct LLVMGenCtx
 {
-    const HIRProgram *hir;
     const MIRProgram *mir;  /* MIR-based emission support */
     LLVMModuleRef   module;
     LLVMBuilderRef  builder;
@@ -521,26 +520,6 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
         default:
             break;
         }
-    } else if (ctx != NULL && ctx->hir != NULL) {
-        switch (decl_type) {
-        case AST_FUNC_DECL: nodes = ctx->hir->functions; count = ctx->hir->function_count; break;
-        case AST_INTENT_DECL: nodes = ctx->hir->intents; count = ctx->hir->intent_count; break;
-        case AST_ABILITY_DECL: nodes = ctx->hir->abilities; count = ctx->hir->ability_count; break;
-        case AST_ROLE_DECL: nodes = ctx->hir->roles; count = ctx->hir->role_count; break;
-        case AST_PARTY_DECL: nodes = ctx->hir->parties; count = ctx->hir->party_count; break;
-        case AST_ROSTER_DECL: nodes = ctx->hir->rosters; count = ctx->hir->roster_count; break;
-        case AST_WORLD_DECL: nodes = ctx->hir->worlds; count = ctx->hir->world_count; break;
-        case AST_RELATION_DECL: nodes = ctx->hir->relations; count = ctx->hir->relation_count; break;
-        case AST_EFFECT_DECL: nodes = ctx->hir->effects; count = ctx->hir->effect_count; break;
-        case AST_ZONE_DECL: nodes = ctx->hir->zones; count = ctx->hir->zone_count; break;
-        case AST_EVENT_DECL: nodes = ctx->hir->events; count = ctx->hir->event_count; break;
-        case AST_CLASS_DECL:
-        case AST_ENUM_DECL:
-        case AST_TYPE_ALIAS:
-            nodes = ctx->hir->types; count = ctx->hir->type_count; break;
-        default:
-            break;
-        }
     }
 
     if (nodes_out != NULL)
@@ -560,9 +539,6 @@ llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
     if (ctx != NULL && ctx->mir != NULL) {
         nodes = ctx->mir->types;
         count = ctx->mir->type_count;
-    } else if (ctx != NULL && ctx->hir != NULL) {
-        nodes = ctx->hir->types;
-        count = ctx->hir->type_count;
     }
 
     if (nodes_out != NULL)
@@ -628,13 +604,8 @@ llvm_active_executables(const LLVMGenCtx *ctx,
     ASTNode **nodes = NULL;
     size_t count = 0;
 
-    /* MIR-backed codegen treats __pgy_top_level_exec plus has_top_level_exec
-     * as the source of truth. Raw executable statement inventory remains a
-     * legacy HIR compatibility surface only. */
-    if (ctx != NULL && ctx->hir != NULL) {
-        nodes = ctx->hir->executables;
-        count = ctx->hir->executable_count;
-    }
+    /* MIR-only: top-level exec is represented by __pgy_top_level_exec. */
+    (void)ctx;
 
     if (nodes_out != NULL)
         *nodes_out = nodes;
@@ -653,9 +624,6 @@ llvm_active_externs(const LLVMGenCtx *ctx,
     if (ctx != NULL && ctx->mir != NULL) {
         nodes = ctx->mir->externs;
         count = ctx->mir->extern_count;
-    } else if (ctx != NULL && ctx->hir != NULL) {
-        nodes = ctx->hir->externs;
-        count = ctx->hir->extern_count;
     }
 
     if (nodes_out != NULL)
@@ -669,8 +637,6 @@ llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
         return mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
-    if (ctx != NULL && ctx->hir != NULL)
-        return ctx->hir->synthetic_executable_func;
     return NULL;
 }
 
@@ -679,8 +645,6 @@ llvm_active_has_main_function(const LLVMGenCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
         return ctx->mir->has_main_function;
-    if (ctx != NULL && ctx->hir != NULL)
-        return ctx->hir->has_main_function;
     return false;
 }
 
@@ -689,9 +653,6 @@ llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
         return ctx->mir->has_top_level_exec;
-    if (ctx != NULL && ctx->hir != NULL)
-        return ctx->hir->synthetic_executable_func != NULL
-            || ctx->hir->executable_count > 0;
     return false;
 }
 
@@ -866,7 +827,6 @@ LLVMGenResult *llvm_result_success(char *ir_text);
  * Pipeline helpers (llvm_backend.c / llvm_api.c)
  * ================================================================= */
 bool llvm_validate_mir_for_codegen(const MIRProgram *mir, char **error_message);
-void llvm_emit_program(const HIRProgram *hir, LLVMGenCtx *ctx);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 void llvm_set_type_render_ctx(LLVMGenCtx *ctx);

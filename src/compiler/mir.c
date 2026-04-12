@@ -1,11 +1,13 @@
 #include "mir.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../runtime/pgy_abi_spec.h"
 
 #include "mir_base.inc"
 

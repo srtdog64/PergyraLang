@@ -1598,15 +1598,42 @@ transpiler_find_mir_method(const TranspilerCtx *ctx,
     return NULL;
 }
 
+static bool
+transpiler_name_is_token_local(const char *name);
+
 static const char *
 transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
                                    const char *base_name)
 {
+    const char *resolved;
     if (ctx == NULL || ctx->active_ssa_map == NULL || base_name == NULL)
         return NULL;
-    return transpiler_resolve_ssa_name(
+    resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);
+    if (resolved != NULL)
+        return resolved;
+    if (transpiler_name_is_token_local(base_name))
+        return base_name;
+    return NULL;
+}
+
+static bool
+transpiler_name_is_token_local(const char *name)
+{
+    const char *tag;
+    if (name == NULL)
+        return false;
+    tag = strstr(name, "_token");
+    if (tag == NULL)
+        return false;
+    tag += 6;
+    while (*tag != '\0') {
+        if (*tag < '0' || *tag > '9')
+            return false;
+        tag++;
+    }
+    return true;
 }
 
 static bool
@@ -2554,6 +2581,8 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
     if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
         const char *name = expr->data.identifier.name;
         if (transpiler_resolve_ssa_name(ssa_map, expr->data.identifier.name) != NULL)
+            return true;
+        if (transpiler_name_is_token_local(name))
             return true;
         if (ctx != NULL && find_enum_decl((TranspilerCtx *)ctx, name) != NULL)
             return true;

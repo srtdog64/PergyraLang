@@ -1011,32 +1011,22 @@ llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
 #include "llvm_backend.h"
 #include <stdlib.h>
 
-LLVMGenResult *llvm_codegen(const void *hir, const char *module_name) {
+LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name) {
     LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    (void)mir;
+    (void)module_name;
     if (res) res->error_message = strdup("LLVM backend not enabled");
     return res;
-}
-
-LLVMGenResult *llvm_codegen_from_mir(const void *mir, const char *module_name) {
-    return llvm_codegen(NULL, module_name);
-}
-
-LLVMGenResult *llvm_codegen_with_mir(const void *hir, const void *mir, const char *module_name) {
-    return llvm_codegen(hir, module_name);
 }
 
 LLVMGenResult *llvm_codegen_to_object_from_mir(const void *mir, const char *module_name, const char *output_path, bool release_opt) {
-    return llvm_codegen_to_object_with_mir(NULL, mir, module_name, output_path, release_opt);
-}
-
-LLVMGenResult *llvm_codegen_to_object_with_mir(const void *hir, const void *mir, const char *module_name, const char *output_path, bool release_opt) {
     LLVMGenResult *res = calloc(1, sizeof(LLVMGenResult));
+    (void)mir;
+    (void)module_name;
+    (void)output_path;
+    (void)release_opt;
     if (res) res->error_message = strdup("LLVM backend not enabled");
     return res;
-}
-
-LLVMGenResult *llvm_codegen_to_object(const void *hir, const char *module_name, const char *output_path, bool release_opt) {
-    return llvm_codegen_to_object_with_mir(hir, NULL, module_name, output_path, release_opt);
 }
 
 void llvm_gen_result_destroy(LLVMGenResult *res) {
