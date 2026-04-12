@@ -2,6 +2,27 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
                               TranspilerCtx *ctx)
 {
+    static bool
+    transpiler_strip_suffix(const char *name, const char *suffix,
+                            char *out, size_t out_cap)
+    {
+        size_t name_len;
+        size_t suffix_len;
+        if (name == NULL || suffix == NULL || out == NULL || out_cap == 0)
+            return false;
+        name_len = strlen(name);
+        suffix_len = strlen(suffix);
+        if (name_len <= suffix_len)
+            return false;
+        if (strcmp(name + name_len - suffix_len, suffix) != 0)
+            return false;
+        if (name_len - suffix_len + 1 > out_cap)
+            return false;
+        memcpy(out, name, name_len - suffix_len);
+        out[name_len - suffix_len] = '\0';
+        return true;
+    }
+
     const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
@@ -19,16 +40,53 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         && mir_routine->kind == MIR_SCOPE_METHOD
         && mir_routine->owner_name != NULL;
     const char *owner_name = is_method ? mir_routine->owner_name : NULL;
-    bool owner_is_zone = owner_name != NULL && find_zone_decl(ctx, owner_name) != NULL;
+    char owner_zone_buf[128];
+    char owner_prefix_buf[128];
+    const char *owner_zone_name = NULL;
+    bool owner_is_zone = false;
     bool owner_is_relation = owner_name != NULL && find_relation_decl(ctx, owner_name) != NULL;
     bool owner_is_effect = owner_name != NULL && find_effect_decl(ctx, owner_name) != NULL;
     bool owner_is_world = owner_name != NULL && find_world_decl(ctx, owner_name) != NULL;
     bool pointer_self = false;
 
+    if (owner_name != NULL) {
+        if (find_zone_decl(ctx, owner_name) != NULL) {
+            owner_zone_name = owner_name;
+        } else if (transpiler_strip_suffix(owner_name, "Zone",
+                                           owner_zone_buf, sizeof(owner_zone_buf))
+                   && find_zone_decl(ctx, owner_zone_buf) != NULL) {
+            owner_zone_name = owner_zone_buf;
+        }
+        if (owner_zone_name == NULL) {
+            size_t owner_len = strlen(owner_name);
+            if (owner_len > 4 && strcmp(owner_name + owner_len - 4, "Zone") == 0)
+                owner_zone_name = owner_name;
+        }
+        owner_is_zone = owner_zone_name != NULL;
+    }
+    if (owner_name == NULL && emitted_name != NULL) {
+        const char *underscore = strchr(emitted_name, '_');
+        if (underscore != NULL && underscore != emitted_name) {
+            size_t prefix_len = (size_t)(underscore - emitted_name);
+            if (prefix_len + 1 < sizeof(owner_prefix_buf)) {
+                memcpy(owner_prefix_buf, emitted_name, prefix_len);
+                owner_prefix_buf[prefix_len] = '\0';
+                if (find_zone_decl(ctx, owner_prefix_buf) != NULL) {
+                    owner_zone_name = owner_prefix_buf;
+                    owner_is_zone = true;
+                } else if (prefix_len > 4
+                           && strcmp(owner_prefix_buf + prefix_len - 4, "Zone") == 0) {
+                    owner_zone_name = owner_prefix_buf;
+                    owner_is_zone = true;
+                }
+            }
+        }
+    }
+
     ctx->out = buf;
     g_type_render_ctx = ctx;
     if (owner_is_zone) {
-        ctx->current_zone_name = owner_name;
+        ctx->current_zone_name = owner_zone_name;
     } else if (owner_is_relation) {
         ctx->current_relation_name = owner_name;
     } else if (owner_is_effect) {
@@ -37,6 +95,28 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         ctx->current_world_name = owner_name;
     } else if (owner_name != NULL) {
         ctx->current_class_name = owner_name;
+    }
+    if (ctx->current_zone_name == NULL && emitted_name != NULL) {
+        const char *underscore = strchr(emitted_name, '_');
+        if (underscore != NULL && underscore != emitted_name) {
+            size_t prefix_len = (size_t)(underscore - emitted_name);
+            if (prefix_len + 1 < sizeof(owner_prefix_buf)) {
+                memcpy(owner_prefix_buf, emitted_name, prefix_len);
+                owner_prefix_buf[prefix_len] = '\0';
+                if (prefix_len > 4
+                    && strcmp(owner_prefix_buf + prefix_len - 4, "Zone") == 0) {
+                    ctx->current_zone_name = owner_prefix_buf;
+                }
+            }
+        }
+    }
+    if (!owner_is_zone
+        && owner_name == NULL
+        && node != NULL
+        && node->type == AST_FUNC_DECL
+        && node->data.func_decl.within_zone != NULL
+        && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
+        ctx->current_zone_name = node->data.func_decl.within_zone;
     }
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
@@ -314,12 +394,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 || !transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)) {
                 continue;
             }
+            if (transpiler_is_implicit_field(ctx, base))
+                continue;
             type_name = transpiler_find_local_type_name(ctx, node, base);
             type_ast = transpiler_find_local_type_ast(ctx, node, base);
             if (transpiler_type_name_is_slot_like(type_name))
                 continue;
             if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
-                c_name = transpiler_make_c_ssa_name(versioned_name);
+                c_name = transpiler_render_ssa_name(ctx, versioned_name);
                 decl = pergyra_ast_typed_declarator(type_ast, c_name);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "%s = 0;\n", decl);
@@ -349,16 +431,42 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     "%s", saved_return_type);
                 return;
             }
-            c_name = transpiler_make_c_ssa_name(versioned_name);
+            c_name = transpiler_render_ssa_name(ctx, versioned_name);
             write_indent(ctx);
             if (version == 0) {
-                if (transpiler_has_explicit_local_binding(node, base)) {
-                    initial_expr = pergyra_strdup(base);
-                } else if (owner_name != NULL) {
-                    initial_expr = strdup_fmt("self->%s", base);
-                } else {
-                    initial_expr = pergyra_strdup(base);
+                bool has_param = false;
+                bool has_top_level = false;
+                for (size_t p = 0; p < node->data.func_decl.param_count; p++) {
+                    FuncParam *param = node->data.func_decl.params[p];
+                    if (param != NULL && param->name != NULL
+                        && strcmp(param->name, base) == 0) {
+                        has_param = true;
+                        break;
+                    }
                 }
+                if (!has_param && node->data.func_decl.body != NULL
+                    && node->data.func_decl.body->type == AST_BLOCK) {
+                    ASTNode *body = node->data.func_decl.body;
+                    for (size_t s = 0; s < body->data.block.count; s++) {
+                        ASTNode *stmt = body->data.block.statements[s];
+                        if (stmt == NULL)
+                            continue;
+                        if (stmt->type == AST_LET_DECL
+                            && stmt->data.let_decl.name != NULL
+                            && strcmp(stmt->data.let_decl.name, base) == 0) {
+                            has_top_level = true;
+                            break;
+                        }
+                        if (stmt->type == AST_WITH_STMT
+                            && stmt->data.with_stmt.alias != NULL
+                            && strcmp(stmt->data.with_stmt.alias, base) == 0) {
+                            has_top_level = true;
+                            break;
+                        }
+                    }
+                }
+                if (has_param || has_top_level)
+                    initial_expr = pergyra_strdup(base);
             }
             if (initial_expr != NULL) {
                 codebuf_write(ctx->out, "%s %s = %s;\n", c_type, c_name, initial_expr);
@@ -436,15 +544,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_RESOURCE_OP) {
-                if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "0", false)) {
-                    ctx->slot_var_count = saved_slot_count;
-                    ctx->typed_var_count = saved_typed_count;
-                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-                        "%s", saved_return_type);
-                    g_type_render_ctx = saved_render_ctx;
-                    ctx->out = saved_out;
-                    return;
-                }
+                continue;
             } else if (inst->kind == MIR_INST_BRANCH) {
                 char *cond = emit_expression_with_ssa_map(inst->ast, ctx,
                     &block_ssa_map);

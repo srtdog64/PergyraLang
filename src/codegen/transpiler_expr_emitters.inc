@@ -3566,30 +3566,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
         }
-        const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
-        if (ssa_name != NULL) {
-            char *c_ssa_name = transpiler_make_c_ssa_name(ssa_name);
-            const char *slot_type = lookup_typed_var(ctx, id_name);
-            if (slot_type == NULL) {
-                char base_name[128];
-                size_t version = 0;
-                if (transpiler_parse_versioned_name(id_name, base_name, sizeof(base_name), &version))
-                    slot_type = lookup_typed_var(ctx, base_name);
-            }
-            if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)) {
-                const char *inner = slot_inner_type_name(slot_type);
-                char *result = strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
-                free(c_ssa_name);
-                return result;
-            }
-            return c_ssa_name;
-        }
-        {
-            ASTNode *alias_expr = lookup_alias_expr(ctx, id_name);
-            if (alias_expr != NULL)
-                return emit_expression(alias_expr, ctx);
-        }
-        TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         if (ctx->current_class_name != NULL
             && strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
@@ -3627,6 +3603,30 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && current_world_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
+        const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
+        if (ssa_name != NULL) {
+            char *c_ssa_name = transpiler_make_c_ssa_name(ssa_name);
+            const char *slot_type = lookup_typed_var(ctx, id_name);
+            if (slot_type == NULL) {
+                char base_name[128];
+                size_t version = 0;
+                if (transpiler_parse_versioned_name(id_name, base_name, sizeof(base_name), &version))
+                    slot_type = lookup_typed_var(ctx, base_name);
+            }
+            if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)) {
+                const char *inner = slot_inner_type_name(slot_type);
+                char *result = strdup_fmt("pgy_read_%s(&%s)", inner, c_ssa_name);
+                free(c_ssa_name);
+                return result;
+            }
+            return c_ssa_name;
+        }
+        {
+            ASTNode *alias_expr = lookup_alias_expr(ctx, id_name);
+            if (alias_expr != NULL)
+                return emit_expression(alias_expr, ctx);
+        }
+        TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         /* Slot sugar: auto-Read — emit pgy_read_T(&x) instead of x */
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             const char *inner = lookup_slot_type(ctx, id_name);

@@ -1608,6 +1608,8 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
     const char *resolved;
     if (ctx == NULL || ctx->active_ssa_map == NULL || base_name == NULL)
         return NULL;
+    if (transpiler_is_implicit_field((TranspilerCtx *)ctx, base_name))
+        return NULL;
     resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);
@@ -1679,7 +1681,95 @@ transpiler_make_c_ssa_name(const char *versioned_name)
     size_t version = 0;
     if (!transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version))
         return pergyra_strdup(versioned_name);
+    if (g_type_render_ctx != NULL && transpiler_is_implicit_field(g_type_render_ctx, base)) {
+        if (g_type_render_ctx->current_class_name != NULL
+            && current_class_has_field(g_type_render_ctx, base)) {
+            return strdup_fmt(current_class_uses_self_cell(g_type_render_ctx)
+                ? "self->%s"
+                : "self.%s", base);
+        }
+        return strdup_fmt("self->%s", base);
+    }
     return strdup_fmt("_pgy_ssa_%s_%zu", base, version);
+}
+
+static bool
+transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
+{
+    if (ctx == NULL || base_name == NULL)
+        return false;
+    if (strcmp(base_name, "self") == 0)
+        return false;
+    if (ctx->current_class_name != NULL && current_class_has_field(ctx, base_name))
+        return true;
+    if (ctx->current_relation_name != NULL && current_relation_has_field(ctx, base_name))
+        return true;
+    if (ctx->current_effect_name != NULL && current_effect_has_field(ctx, base_name))
+        return true;
+    if (ctx->current_zone_name != NULL) {
+        if (current_zone_has_field(ctx, base_name))
+            return true;
+        if (lookup_typed_var(ctx, base_name) == NULL && !is_slot_var(ctx, base_name))
+            return true;
+    }
+    if (ctx->current_world_name != NULL && current_world_has_field(ctx, base_name))
+        return true;
+    if (ctx->current_zone_name == NULL && ctx->current_class_name != NULL) {
+        ASTNode *zone_decl = find_zone_decl(ctx, ctx->current_class_name);
+        if (zone_decl != NULL) {
+            for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
+                ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+                if (slot != NULL && slot->data.domain_slot.slot_name != NULL
+                    && strcmp(slot->data.domain_slot.slot_name, base_name) == 0) {
+                    return true;
+                }
+            }
+            for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
+                ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+                if (slot != NULL && slot->data.zone_layer_slot.slot_name != NULL
+                    && strcmp(slot->data.zone_layer_slot.slot_name, base_name) == 0) {
+                    return true;
+                }
+            }
+            for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
+                ASTNode *shared = zone_decl->data.zone_decl.shared_fields[i];
+                if (shared != NULL && shared->data.party_shared.name != NULL
+                    && strcmp(shared->data.party_shared.name, base_name) == 0) {
+                    return true;
+                }
+            }
+        }
+        {
+            size_t name_len = strlen(ctx->current_class_name);
+            if (name_len > 4
+                && strcmp(ctx->current_class_name + name_len - 4, "Zone") == 0
+                && lookup_typed_var(ctx, base_name) == NULL
+                && !is_slot_var(ctx, base_name)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static char *
+transpiler_render_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
+{
+    char base[128];
+    size_t version = 0;
+
+    if (ctx != NULL
+        && versioned_name != NULL
+        && transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)
+        && transpiler_is_implicit_field(ctx, base)) {
+        if (ctx->current_class_name != NULL && current_class_has_field(ctx, base)) {
+            return strdup_fmt(current_class_uses_self_cell(ctx)
+                ? "self->%s"
+                : "self.%s", base);
+        }
+        return strdup_fmt("self->%s", base);
+    }
+    return transpiler_make_c_ssa_name(versioned_name);
 }
 
 static bool
@@ -2303,8 +2393,8 @@ transpiler_emit_mir_phi_copies(CodeBuf *buf, int indent,
                 continue;
             }
             {
-                char *lhs = transpiler_make_c_ssa_name(inst->result_name);
-                char *rhs = transpiler_make_c_ssa_name(incoming->value_name);
+                char *lhs = transpiler_render_ssa_name(ctx, inst->result_name);
+                char *rhs = transpiler_render_ssa_name(ctx, incoming->value_name);
                 write_indent_to(buf, indent);
                 codebuf_write(buf, "%s = %s;\n", lhs, rhs);
                 free(lhs);
@@ -2353,8 +2443,8 @@ transpiler_emit_mir_phi_copies(CodeBuf *buf, int indent,
         if (rhs_version == NULL || strcmp(lhs_version, rhs_version) == 0)
             continue;
         {
-            char *lhs = transpiler_make_c_ssa_name(lhs_version);
-            char *rhs = transpiler_make_c_ssa_name(rhs_version);
+            char *lhs = transpiler_render_ssa_name(ctx, lhs_version);
+            char *rhs = transpiler_render_ssa_name(ctx, rhs_version);
             write_indent_to(buf, indent);
             codebuf_write(buf, "%s = %s;\n", lhs, rhs);
             free(lhs);
@@ -2414,7 +2504,46 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
+        if (inst->kind != MIR_INST_RESOURCE_OP)
+            continue;
+        if (inst->name == NULL || strcmp(inst->name, "Claim") != 0)
+            continue;
+        if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
+            if (reason != NULL && reason_cap > 0) {
+                snprintf(reason, reason_cap,
+                         "MIR block %zu emission failed: unable to emit claim op for '%s'",
+                         block->id,
+                         inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
+            }
+            ok = false;
+            break;
+        }
+    }
+
+    if (!ok) {
+        ctx->active_ssa_map = saved_active_ssa_map;
+        return false;
+    }
+
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
         ASTNode *stmt = inst->ast;
+
+        if (inst->kind == MIR_INST_RESOURCE_OP) {
+            if (inst->name != NULL && strcmp(inst->name, "Claim") == 0)
+                continue;
+            if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
+                if (reason != NULL && reason_cap > 0) {
+                    snprintf(reason, reason_cap,
+                             "MIR block %zu emission failed: unable to emit resource op '%s'",
+                             block->id,
+                             inst->name != NULL ? inst->name : "<op>");
+                }
+                ok = false;
+                break;
+            }
+            continue;
+        }
 
         if (inst->kind == MIR_INST_DEF
             && stmt != NULL
@@ -2451,7 +2580,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
             }
 
-            lhs = transpiler_make_c_ssa_name(inst->result_name);
+            lhs = transpiler_render_ssa_name(ctx, inst->result_name);
             rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer, ctx, ssa_map_out);
             ctx->active_type_hint = saved_type_hint;
             free(rendered_type_hint);
@@ -2498,10 +2627,52 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             const char *target_name = stmt->data.assignment.target->data.identifier.name;
             char *lhs = NULL;
             char *rhs = NULL;
+            bool target_is_field = false;
+            bool is_local_binding = false;
 
             if (target_name == NULL || strcmp(inst->arg0, target_name) != 0)
                 continue;
-            if (!transpiler_has_explicit_local_binding(func_decl, target_name)) {
+            is_local_binding = transpiler_has_explicit_local_binding(func_decl, target_name);
+            if (!is_local_binding) {
+                if (ctx->current_class_name != NULL
+                    && current_class_has_field(ctx, target_name))
+                    target_is_field = true;
+                if (ctx->current_relation_name != NULL
+                    && current_relation_has_field(ctx, target_name))
+                    target_is_field = true;
+                if (ctx->current_effect_name != NULL
+                    && current_effect_has_field(ctx, target_name))
+                    target_is_field = true;
+                if (ctx->current_zone_name != NULL
+                    && current_zone_has_field(ctx, target_name))
+                    target_is_field = true;
+                if (ctx->current_world_name != NULL
+                    && current_world_has_field(ctx, target_name))
+                    target_is_field = true;
+            }
+            if (!target_is_field && inst->slot_anchor != NULL) {
+                const char *slot_anchor = inst->slot_anchor;
+                if (ctx->current_class_name != NULL
+                    && current_class_has_field(ctx, slot_anchor))
+                    target_is_field = true;
+                if (ctx->current_relation_name != NULL
+                    && current_relation_has_field(ctx, slot_anchor))
+                    target_is_field = true;
+                if (ctx->current_effect_name != NULL
+                    && current_effect_has_field(ctx, slot_anchor))
+                    target_is_field = true;
+                if (ctx->current_zone_name != NULL
+                    && current_zone_has_field(ctx, slot_anchor))
+                    target_is_field = true;
+                if (ctx->current_world_name != NULL
+                    && current_world_has_field(ctx, slot_anchor))
+                    target_is_field = true;
+            }
+            if (target_is_field) {
+                emit_statement(stmt, ctx);
+                continue;
+            }
+            if (!is_local_binding) {
                 emit_statement(stmt, ctx);
                 continue;
             }
@@ -2510,7 +2681,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
             }
 
-            lhs = transpiler_make_c_ssa_name(inst->result_name);
+            lhs = transpiler_render_ssa_name(ctx, inst->result_name);
             rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx, ssa_map_out);
             if (rhs == NULL) {
                 free(lhs);
@@ -3165,6 +3336,9 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         bool is_claim_op = inst->name != NULL && strcmp(inst->name, "Claim") == 0;
         if (!cleanup_hook
             && is_claim_op) {
+            if (ctx != NULL && ctx->mir != NULL) {
+                claim_already_materialized_by_stmt = false;
+            } else {
             const char *claim_name = inst->slot_anchor != NULL
                 ? inst->slot_anchor
                 : inst->arg0;
@@ -3184,9 +3358,13 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                            || strncmp(existing_type, "DeviceSlot<", 11) == 0)) {
                 claim_already_materialized_by_stmt = true;
             }
+            }
         }
         bool needs_concrete_emit = (cleanup_hook && !is_claim_op)
             || (is_claim_op && !claim_already_materialized_by_stmt && !cleanup_hook);
+        if (ctx != NULL && ctx->mir != NULL && is_claim_op && !cleanup_hook) {
+            needs_concrete_emit = true;
+        }
         if (needs_concrete_emit) {
             if (!transpiler_emit_mir_resource_op(ctx, out, indent, inst, inst->type_layout, NULL)) {
                 if (inst->name != NULL

@@ -1,6 +1,6 @@
 === FACTORY FSM REPORT ===
-shift=0
-sealed=60
+shift=5
+sealed=0
 rejects=0
 projection_ready=true
 packet_ready=true

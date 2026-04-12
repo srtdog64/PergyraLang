@@ -1376,6 +1376,86 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
 }
 
 static bool
+mir_stmt_has_side_effect(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return false;
+    if (stmt->type == AST_ASSIGNMENT)
+        return true;
+    if (stmt->type == AST_BIND_STMT)
+        return true;
+    if (stmt->type == AST_UNSAFE_BLOCK)
+        return true;
+    if (stmt->type == AST_INTENT_STEP)
+        return true;
+    if (stmt->type == AST_WITH_STMT)
+        return true;
+    if (stmt->type == AST_CALL)
+        return true;
+    if (stmt->type == AST_CALL
+        && stmt->data.call.callee != NULL
+        && stmt->data.call.callee->type == AST_IDENTIFIER
+        && stmt->data.call.callee->data.identifier.name != NULL) {
+        const char *callee = stmt->data.call.callee->data.identifier.name;
+        if (strcmp(callee, "ClaimSlot") == 0
+            || strcmp(callee, "ClaimSecureSlot") == 0
+            || strcmp(callee, "ClaimDeviceSlot") == 0
+            || strcmp(callee, "Write") == 0
+            || strcmp(callee, "Release") == 0
+            || strcmp(callee, "Log") == 0
+            || strcmp(callee, "LogRaw") == 0
+            || strcmp(callee, "LogBlock") == 0
+            || strcmp(callee, "LogBanner") == 0
+            || strcmp(callee, "Emit") == 0
+            || strcmp(callee, "Spawn") == 0
+            || strcmp(callee, "Send") == 0
+            || strcmp(callee, "Recv") == 0
+            || strcmp(callee, "TrySend") == 0
+            || strcmp(callee, "TryRecv") == 0
+            || strcmp(callee, "Await") == 0
+            || strcmp(callee, "Cancel") == 0
+            || strcmp(callee, "Select") == 0
+            || strcmp(callee, "Exit") == 0
+            || strcmp(callee, "Abort") == 0
+            || strcmp(callee, "Fail") == 0
+            || strcmp(callee, "Panic") == 0
+            || strcmp(callee, "Raise") == 0) {
+            return true;
+        }
+        if (strncmp(callee, "pgy_", 4) == 0)
+            return true;
+        if (strncmp(callee, "Channel", 7) == 0
+            || strncmp(callee, "Map", 3) == 0
+            || strncmp(callee, "Set", 3) == 0
+            || strncmp(callee, "List", 4) == 0
+            || strncmp(callee, "Queue", 5) == 0
+            || strncmp(callee, "Box", 3) == 0
+            || strncmp(callee, "Rc", 2) == 0
+            || strncmp(callee, "Weak", 4) == 0
+            || strncmp(callee, "Allocator", 9) == 0
+            || strncmp(callee, "ReadFile", 8) == 0
+            || strncmp(callee, "WriteFile", 9) == 0
+            || strncmp(callee, "Sleep", 5) == 0
+            || strncmp(callee, "Now", 3) == 0
+            || strncmp(callee, "Random", 6) == 0) {
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+static bool
+mir_instruction_is_dead_stmt(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_STMT)
+        return false;
+    if (inst->ast == NULL)
+        return true;
+    return !mir_stmt_has_side_effect(inst->ast);
+}
+
+static bool
 mir_run_dce_on_routine(MIRRoutine *routine, bool *changed_out)
 {
     bool changed = false;
@@ -1388,12 +1468,14 @@ mir_run_dce_on_routine(MIRRoutine *routine, bool *changed_out)
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
         for (size_t inst_id = block->instruction_count; inst_id-- > 0;) {
-            if (!mir_instruction_is_dead_value(routine, &block->instructions[inst_id]))
-                continue;
-            if (!mir_remove_instruction(block, inst_id))
-                return false;
-            routine->dce_removed_count++;
-            changed = true;
+            MIRInstruction *inst = &block->instructions[inst_id];
+            if (mir_instruction_is_dead_value(routine, inst)
+                || mir_instruction_is_dead_stmt(inst)) {
+                if (!mir_remove_instruction(block, inst_id))
+                    return false;
+                routine->dce_removed_count++;
+                changed = true;
+            }
         }
     }
 

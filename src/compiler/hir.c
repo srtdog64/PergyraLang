@@ -500,6 +500,17 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             return exit_block;
         }
 
+        case AST_WITH_STMT:
+            if (!cfg_append_stmt(&(*blocks)[(size_t)current_block].statements,
+                                 &(*blocks)[(size_t)current_block].statement_count,
+                                 node)) {
+                return -1;
+            }
+            return hir_lower_block_body_to_cfg(node->data.with_stmt.body,
+                                               blocks,
+                                               block_count,
+                                               current_block);
+
         default:
             if (!cfg_append_stmt(&(*blocks)[(size_t)current_block].statements,
                                  &(*blocks)[(size_t)current_block].statement_count,
