@@ -11,18 +11,6 @@
 
 #include "llvm_internal.h"
 
-static bool
-llvm_mir_routine_has_instructions_local(const MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return false;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        if (routine->blocks[i].instruction_count > 0)
-            return true;
-    }
-    return false;
-}
-
 static const MIRRoutine *
 llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
                                    const char *owner_name,

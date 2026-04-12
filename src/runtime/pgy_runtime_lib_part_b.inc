@@ -1,3 +1,4 @@
+/* =================================================================
  * Log functions
  * ================================================================= */
 
@@ -3560,4 +3561,3 @@ bool pgy_task_is_cancelled_export(void)
     return pgy_task_is_cancelled();
 }
 
-#endif /* PGY_LLVM_ENABLED */

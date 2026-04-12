@@ -3742,5 +3742,3 @@ PGY_OPTION_DEFINE(String, char*)
 #define IsSome_String(o)        ((o).tag == PgyOptionSome)
 #define IsNone_String(o)        ((o).tag == PgyOptionNone)
 #define UnwrapOption_String(o)  pgy_option_unwrap_String(&(PgyOption_String){(o).tag, (o).value})
-
-/* =================================================================

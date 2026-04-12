@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2025 Pergyra Language Project
- * All rights reserved.
- *
- * pgy_runtime_lib.c — Non-inline runtime symbols for LLVM linking
- *
- * pgy_runtime.h uses static inline functions that are invisible to
- * the LLVM linker. This file provides real (extern) symbol definitions
- * with the EXACT names that LLVM IR references, so the linker can
- * resolve them.
- *
- * We do NOT include pgy_runtime.h here to avoid name collisions
- * between the static inline versions and our extern definitions.
- *
- * Only compiled when PGY_LLVM_ENABLED is defined.
- */
-
-#ifdef PGY_LLVM_ENABLED
-
 #ifndef PGY_INTENT_OBSERVABILITY_ENABLED
 #define PGY_INTENT_OBSERVABILITY_ENABLED 1
 #endif
@@ -38,6 +19,15 @@
 #include <pthread.h>
 #ifndef _WIN32
 #include <unistd.h>
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME 0
+extern int clock_gettime(int clk_id, struct timespec *tp);
+extern int nanosleep(const struct timespec *req, struct timespec *rem);
+extern char *realpath(const char *path, char *resolved_path);
+#endif
 #endif
 #ifdef _WIN32
 #include <windows.h>
@@ -464,4 +454,3 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
     return candidate;
 }
 
-/* =================================================================

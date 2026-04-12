@@ -1,3 +1,4 @@
+/* =================================================================
  * Channel (thread-safe bounded ring buffer)
  *
  * Blocking send/recv with mutex + condvar.
@@ -538,4 +539,3 @@ PGY_CHANNEL_SPSC_DEFINE(Int, int32_t)
 PGY_CHANNEL_SPSC_DEFINE(String, char*)
 
 #endif /* __STDC_NO_ATOMICS__ */
-

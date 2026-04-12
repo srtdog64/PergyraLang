@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2025 Pergyra Language Project
- * All rights reserved.
- *
- * pgy_runtime.h — Hybrid memory model runtime for Pergyra
- *
- * Memory Model:
- *   - Stack: Default for value types (zero overhead)
- *   - Heap: Box<T>, Arena for dynamic allocation
- *   - Slot: Optional safety wrapper with debug checks
- *   - Unsafe: Raw pointers for FFI (inside unsafe { } blocks)
- *
- * Build Modes:
- *   - Debug: PGY_DEBUG defined — safety checks enabled
- *   - Release: PGY_DEBUG not defined — zero-overhead
- */
-
-#ifndef PGY_RUNTIME_H
-#define PGY_RUNTIME_H
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -31,6 +11,15 @@
 #include <pthread.h>
 #ifndef _WIN32
 #include <unistd.h>
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME 0
+extern int clock_gettime(int clk_id, struct timespec *tp);
+extern int nanosleep(const struct timespec *req, struct timespec *rem);
+extern char *realpath(const char *path, char *resolved_path);
+#endif
 #endif
 #ifdef _WIN32
 #include <windows.h>
@@ -437,4 +426,3 @@ pgy_runtime_resolve_file_path(const char *path, bool for_write)
 
     return candidate;
 }
-

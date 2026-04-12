@@ -272,17 +272,16 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         /* Rule 4: Slot Read
          * C: <inner_type> <name> = pgy_read_<T>(&<anchor>);
          */
-        const char *inner_c =
-            (effective_layout != NULL && effective_layout->inner_c_type)
-                ? effective_layout->inner_c_type
-                : inner_c;
-        if (inner_c == NULL)
+        const char *read_inner_c = inner_c;
+        if (effective_layout != NULL && effective_layout->inner_c_type != NULL)
+            read_inner_c = effective_layout->inner_c_type;
+        if (read_inner_c == NULL)
             return false;
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
 
         write_indent_to(out, indent);
-        codebuf_write(out, "%s %s = %s(&%s);\n", inner_c, result, fn, anchor);
+        codebuf_write(out, "%s %s = %s(&%s);\n", read_inner_c, result, fn, anchor);
     }
     else if (op_name != NULL && strcmp(op_name, "WRITE") == 0) {
         /* Rule 5a: Slot Write

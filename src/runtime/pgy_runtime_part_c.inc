@@ -593,5 +593,3 @@ ReleaseQubit(int32_t id)
     _pgy_qubits[id].pool_id = -1;
     _pgy_qubits[id].measured = true;
 }
-
-#endif /* PGY_RUNTIME_H */
