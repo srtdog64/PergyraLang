@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #define PGY_STAT _stat
 #define PGY_STAT_STRUCT struct _stat
-#include <process.h>   /* _spawnvp */
+#include <process.h>    /* _spawnvp */
 #else
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -82,7 +82,53 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
-#ifndef _WIN32
+#ifdef _WIN32
+/* Silent probe via CreateProcess: stdout/stderr → NUL in the child only.
+ * Parent's file descriptors are never touched. */
+static int
+pgy_exec_probe_argv_silent(const char *const argv[])
+{
+    /* Build command line from argv */
+    char cmdline[1024];
+    size_t pos = 0;
+    for (const char *const *p = argv; *p != NULL; p++) {
+        if (pos > 0) cmdline[pos++] = ' ';
+        size_t n = strlen(*p);
+        if (pos + n + 1 >= sizeof(cmdline)) return -1;
+        memcpy(cmdline + pos, *p, n);
+        pos += n;
+    }
+    cmdline[pos] = '\0';
+
+    /* Open NUL for child's stdout/stderr */
+    SECURITY_ATTRIBUTES sa = { sizeof(sa), NULL, TRUE };
+    HANDLE nul = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ,
+                             &sa, OPEN_EXISTING, 0, NULL);
+    if (nul == INVALID_HANDLE_VALUE) return -1;
+
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = nul;
+    si.hStdError  = nul;
+
+    BOOL ok = CreateProcessA(NULL, cmdline, NULL, NULL, TRUE,
+                             CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+    if (!ok) { CloseHandle(nul); return -1; }
+
+    WaitForSingleObject(pi.hProcess, 5000); /* 5s timeout for probe */
+    DWORD exit_code = 1;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    CloseHandle(nul);
+    return (int)exit_code;
+}
+#else
 static int
 pgy_exec_probe_argv(const char *const argv[])
 {
@@ -131,9 +177,8 @@ pgy_detect_c_compiler(void)
     /* Try clang with mingw target first (MSVC-default clang lacks pthread.h,
      * and gcc on Windows frequently crashes via cc1.exe) */
     {
-        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang",
-            "--target=x86_64-w64-mingw32", "--version", NULL);
-        if (rc == 0) {
+        const char *clang_mingw[] = { "clang", "--target=x86_64-w64-mingw32", "--version", NULL };
+        if (pgy_exec_probe_argv_silent(clang_mingw) == 0) {
             pgy_cc_cached = "clang";
             pgy_cc_target_flag = "--target=x86_64-w64-mingw32";
             return pgy_cc_cached;
@@ -141,13 +186,16 @@ pgy_detect_c_compiler(void)
     }
     /* Try gcc (mingw gcc has pthread.h built-in, but cc1 may crash) */
     {
-        intptr_t rc = _spawnlp(_P_WAIT, "gcc", "gcc", "--version", NULL);
-        if (rc == 0) { pgy_cc_cached = "gcc"; return pgy_cc_cached; }
+        const char *gcc_ver[] = { "gcc", "--version", NULL };
+        if (pgy_exec_probe_argv_silent(gcc_ver) == 0) {
+            pgy_cc_cached = "gcc"; return pgy_cc_cached;
+        }
     }
     /* Fallback: plain clang without mingw target */
     {
-        intptr_t rc = _spawnlp(_P_WAIT, "clang", "clang", "--version", NULL);
-        if (rc == 0) { pgy_cc_cached = "clang"; return pgy_cc_cached; }
+        const char *clang_ver[] = { "clang", "--version", NULL };
+        if (pgy_exec_probe_argv_silent(clang_ver) == 0) {
+            pgy_cc_cached = "clang"; return pgy_cc_cached; }
     }
 #else
     {

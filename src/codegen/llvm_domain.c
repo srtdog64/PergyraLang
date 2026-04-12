@@ -1239,36 +1239,45 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 void
 llvm_emit_domain_passes(LLVMGenCtx *ctx)
 {
-    ASTNode **abilities = NULL;
-    ASTNode **relations = NULL;
-    ASTNode **effects = NULL;
-    ASTNode **zones = NULL;
-    ASTNode **worlds = NULL;
-    ASTNode **parties = NULL;
-    ASTNode **rosters = NULL;
-    ASTNode **roles = NULL;
-    ASTNode **events = NULL;
-    size_t ability_count = 0;
-    size_t relation_count = 0;
-    size_t effect_count = 0;
-    size_t zone_count = 0;
-    size_t world_count = 0;
-    size_t party_count = 0;
-    size_t roster_count = 0;
-    size_t role_count = 0;
-    size_t event_count = 0;
+    LLVMDomainInventory inventory;
+    ASTNode **abilities;
+    ASTNode **relations;
+    ASTNode **effects;
+    ASTNode **zones;
+    ASTNode **worlds;
+    ASTNode **parties;
+    ASTNode **rosters;
+    ASTNode **roles;
+    ASTNode **events;
+    size_t ability_count;
+    size_t relation_count;
+    size_t effect_count;
+    size_t zone_count;
+    size_t world_count;
+    size_t party_count;
+    size_t roster_count;
+    size_t role_count;
+    size_t event_count;
 
-    if (ctx != NULL) {
-        llvm_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
-        llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
-        llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
-        llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
-        llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
-        llvm_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
-        llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
-        llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
-        llvm_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
-    }
+    llvm_active_domain_inventory(ctx, &inventory);
+    abilities = inventory.abilities;
+    relations = inventory.relations;
+    effects = inventory.effects;
+    zones = inventory.zones;
+    worlds = inventory.worlds;
+    parties = inventory.parties;
+    rosters = inventory.rosters;
+    roles = inventory.roles;
+    events = inventory.events;
+    ability_count = inventory.ability_count;
+    relation_count = inventory.relation_count;
+    effect_count = inventory.effect_count;
+    zone_count = inventory.zone_count;
+    world_count = inventory.world_count;
+    party_count = inventory.party_count;
+    roster_count = inventory.roster_count;
+    role_count = inventory.role_count;
+    event_count = inventory.event_count;
 
     ASTNode **domain_groups[] = {
         relations,

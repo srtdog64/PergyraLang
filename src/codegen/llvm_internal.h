@@ -571,6 +571,55 @@ llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
         *count_out = count;
 }
 
+typedef struct
+{
+    ASTNode **abilities;
+    ASTNode **relations;
+    ASTNode **effects;
+    ASTNode **zones;
+    ASTNode **worlds;
+    ASTNode **parties;
+    ASTNode **rosters;
+    ASTNode **roles;
+    ASTNode **events;
+    size_t ability_count;
+    size_t relation_count;
+    size_t effect_count;
+    size_t zone_count;
+    size_t world_count;
+    size_t party_count;
+    size_t roster_count;
+    size_t role_count;
+    size_t event_count;
+} LLVMDomainInventory;
+
+static inline void
+llvm_active_domain_inventory(const LLVMGenCtx *ctx,
+                             LLVMDomainInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    memset(inventory, 0, sizeof(*inventory));
+    llvm_active_inventory(ctx, AST_ABILITY_DECL,
+        &inventory->abilities, &inventory->ability_count);
+    llvm_active_inventory(ctx, AST_RELATION_DECL,
+        &inventory->relations, &inventory->relation_count);
+    llvm_active_inventory(ctx, AST_EFFECT_DECL,
+        &inventory->effects, &inventory->effect_count);
+    llvm_active_inventory(ctx, AST_ZONE_DECL,
+        &inventory->zones, &inventory->zone_count);
+    llvm_active_inventory(ctx, AST_WORLD_DECL,
+        &inventory->worlds, &inventory->world_count);
+    llvm_active_inventory(ctx, AST_PARTY_DECL,
+        &inventory->parties, &inventory->party_count);
+    llvm_active_inventory(ctx, AST_ROSTER_DECL,
+        &inventory->rosters, &inventory->roster_count);
+    llvm_active_inventory(ctx, AST_ROLE_DECL,
+        &inventory->roles, &inventory->role_count);
+    llvm_active_inventory(ctx, AST_EVENT_DECL,
+        &inventory->events, &inventory->event_count);
+}
+
 static inline void
 llvm_active_executables(const LLVMGenCtx *ctx,
                         ASTNode ***nodes_out,

@@ -2086,6 +2086,54 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
     }
 
+    if (strcmp(callee_name, "IntentRecentCount") == 0
+        && node->data.call.arg_count == 0) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_count_export");
+        if (fn != NULL)
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0, llvm_tmp_name(ctx));
+    }
+
+    if (strcmp(callee_name, "IntentRecentName") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_name_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentRecentTrace") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_trace_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentRecentFailure") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_failure_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentRecentStepCount") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_step_count_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
+    if (strcmp(callee_name, "IntentRecentFailed") == 0
+        && node->data.call.arg_count == 1) {
+        ctx->uses_intent_observability = true;
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_intent_recent_failed_export");
+        if (fn != NULL)
+            return llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1);
+    }
+
     if (strcmp(callee_name, "SeedRandom") == 0
         && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, "SeedRandom");

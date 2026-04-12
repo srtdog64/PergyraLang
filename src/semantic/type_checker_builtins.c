@@ -1105,6 +1105,12 @@ builtin_resolve(const char *name)
     if (strcmp(name, "IntentActiveFailed") == 0) return BUILTIN_INTENT_ACTIVE_FAILED;
     if (strcmp(name, "IntentActiveFailure") == 0) return BUILTIN_INTENT_ACTIVE_FAILURE;
     if (strcmp(name, "IntentActiveTrace") == 0) return BUILTIN_INTENT_ACTIVE_TRACE;
+    if (strcmp(name, "IntentRecentCount") == 0) return BUILTIN_INTENT_RECENT_COUNT;
+    if (strcmp(name, "IntentRecentName") == 0) return BUILTIN_INTENT_RECENT_NAME;
+    if (strcmp(name, "IntentRecentTrace") == 0) return BUILTIN_INTENT_RECENT_TRACE;
+    if (strcmp(name, "IntentRecentFailure") == 0) return BUILTIN_INTENT_RECENT_FAILURE;
+    if (strcmp(name, "IntentRecentStepCount") == 0) return BUILTIN_INTENT_RECENT_STEP_COUNT;
+    if (strcmp(name, "IntentRecentFailed") == 0) return BUILTIN_INTENT_RECENT_FAILED;
     return BUILTIN_NOT_BUILTIN;
 }
 
@@ -3257,6 +3263,34 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
             TYPE_INT, call->data.call.arguments[0], ctx);
         return TYPE_STRING;
+    case BUILTIN_INTENT_RECENT_COUNT:
+        check_call_arity(call, 0, "IntentRecentCount", ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_RECENT_NAME:
+        check_call_arity(call, 1, "IntentRecentName", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_RECENT_TRACE:
+        check_call_arity(call, 1, "IntentRecentTrace", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_RECENT_FAILURE:
+        check_call_arity(call, 1, "IntentRecentFailure", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_STRING;
+    case BUILTIN_INTENT_RECENT_STEP_COUNT:
+        check_call_arity(call, 1, "IntentRecentStepCount", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_INT;
+    case BUILTIN_INTENT_RECENT_FAILED:
+        check_call_arity(call, 1, "IntentRecentFailed", ctx);
+        require_assignable(type_check_expression(call->data.call.arguments[0], ctx),
+            TYPE_INT, call->data.call.arguments[0], ctx);
+        return TYPE_BOOL;
     default:
         return TYPE_UNKNOWN;
     }

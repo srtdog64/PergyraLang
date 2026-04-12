@@ -1453,6 +1453,44 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         free(index);
         return result;
     }
+    case BUILTIN_INTENT_RECENT_COUNT:
+        ctx->uses_intent_observability = true;
+        return pergyra_strdup("pgy_intent_recent_count_export()");
+    case BUILTIN_INTENT_RECENT_NAME: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_name_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_RECENT_TRACE: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_trace_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_RECENT_FAILURE: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_failure_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_RECENT_STEP_COUNT: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_step_count_export(%s)", index);
+        free(index);
+        return result;
+    }
+    case BUILTIN_INTENT_RECENT_FAILED: {
+        ctx->uses_intent_observability = true;
+        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *result = strdup_fmt("pgy_intent_recent_failed_export(%s)", index);
+        free(index);
+        return result;
+    }
     default:
         break;
     }

@@ -570,10 +570,18 @@ main(void)
         "    Log(ToString(IntentLastStepCount()));\n"
         "    Log(ToString(IntentHistoryCount()));\n"
         "    Log(ToString(IntentLastFailed()));\n"
+        "    Log(ToString(IntentRecentCount()));\n"
+        "    Log(IntentRecentName(0));\n"
+        "    Log(ToString(IntentRecentStepCount(0)));\n"
+        "    Log(ToString(IntentRecentFailed(0)));\n"
         "}\n";
     static const char *intent_expected =
         "true\n"
         "1\n"
+        "1\n"
+        "false\n"
+        "1\n"
+        "Charge\n"
         "1\n"
         "false\n";
     static const char *loop_source =

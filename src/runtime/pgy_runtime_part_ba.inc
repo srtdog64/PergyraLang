@@ -32,6 +32,7 @@ pgy_runtime_strdup(const char *src)
 }
 
 #define PGY_INTENT_ACTIVE_MAX 256
+#define PGY_INTENT_RECENT_MAX 16
 
 #ifndef PGY_INTENT_OBSERVABILITY_ENABLED
 #define PGY_INTENT_OBSERVABILITY_ENABLED 1
@@ -71,6 +72,16 @@ typedef struct {
     bool    active;
 } PgyIntentActiveEntry;
 
+typedef struct {
+    int32_t handle;
+    int32_t trace_id;
+    int32_t step_count;
+    bool    failed;
+    char   *name;
+    char   *trace;
+    char   *failure_reason;
+} PgyIntentRecentEntry;
+
 static PgyIntentActiveEntry pgy_intent_active_registry[PGY_INTENT_ACTIVE_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static _Thread_local int32_t pgy_intent_current_stack[PGY_INTENT_ACTIVE_MAX];
@@ -86,6 +97,9 @@ static int32_t pgy_intent_last_step_count = 0;
 static bool pgy_intent_last_failed = false;
 static PgyIntentHistoryStep pgy_intent_last_steps[PGY_INTENT_ACTIVE_MAX];
 static int32_t pgy_intent_last_history_count = 0;
+static PgyIntentRecentEntry pgy_intent_recent_ring[PGY_INTENT_RECENT_MAX];
+static int32_t pgy_intent_recent_count = 0;
+static int32_t pgy_intent_recent_head = 0;
 
 static inline void
 pgy_intent_history_step_set_string(char **dst, const char *value)
@@ -122,6 +136,40 @@ pgy_intent_history_step_clear(PgyIntentHistoryStep *step)
     step->to_slot = NULL;
     step->failure_reason = NULL;
     step->ok = false;
+}
+
+static inline void
+pgy_intent_recent_entry_clear(PgyIntentRecentEntry *entry)
+{
+    if (entry == NULL)
+        return;
+    free(entry->name);
+    free(entry->trace);
+    free(entry->failure_reason);
+    entry->handle = 0;
+    entry->trace_id = 0;
+    entry->step_count = 0;
+    entry->failed = false;
+    entry->name = NULL;
+    entry->trace = NULL;
+    entry->failure_reason = NULL;
+}
+
+static inline void
+pgy_intent_recent_entry_copy_from_active(PgyIntentRecentEntry *dst,
+                                         const PgyIntentActiveEntry *src)
+{
+    if (dst == NULL || src == NULL)
+        return;
+    pgy_intent_recent_entry_clear(dst);
+    dst->handle = src->handle;
+    dst->trace_id = src->trace_id;
+    dst->step_count = src->step_count;
+    dst->failed = src->failed;
+    dst->name = pgy_runtime_strdup(src->name != NULL ? src->name : "");
+    dst->trace = pgy_runtime_strdup(src->trace != NULL ? src->trace : "");
+    dst->failure_reason = pgy_runtime_strdup(
+        src->failure_reason != NULL ? src->failure_reason : "");
 }
 
 static inline void
@@ -589,6 +637,24 @@ pgy_intent_active_entry_by_index_export(int32_t index)
     return NULL;
 }
 
+static inline PgyIntentRecentEntry *
+pgy_intent_recent_entry_by_index_export(int32_t index)
+{
+    int32_t recent_index;
+
+    if (index < 0 || index >= pgy_intent_recent_count) {
+        pgy_runtime_warn_invalid_intent_index("recent_entry_by_index", index,
+                                              pgy_intent_recent_count);
+        return NULL;
+    }
+
+    recent_index = pgy_intent_recent_head - 1 - index;
+    while (recent_index < 0)
+        recent_index += PGY_INTENT_RECENT_MAX;
+    recent_index %= PGY_INTENT_RECENT_MAX;
+    return &pgy_intent_recent_ring[recent_index];
+}
+
 static inline char *
 pgy_intent_history_step_name_export(int32_t index)
 {
@@ -868,6 +934,82 @@ pgy_intent_active_failure_export(int32_t index)
     return result;
 }
 
+static inline int32_t
+pgy_intent_recent_count_export(void)
+{
+    int32_t count;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    count = pgy_intent_recent_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return count;
+}
+
+static inline char *
+pgy_intent_recent_name_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL && entry->name != NULL)
+        result = entry->name;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_recent_trace_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL && entry->trace != NULL)
+        result = entry->trace;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline char *
+pgy_intent_recent_failure_export(int32_t index)
+{
+    char *result = "";
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL && entry->failure_reason != NULL)
+        result = entry->failure_reason;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline int32_t
+pgy_intent_recent_step_count_export(int32_t index)
+{
+    int32_t result = 0;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->step_count;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
+static inline bool
+pgy_intent_recent_failed_export(int32_t index)
+{
+    bool result = false;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    if (entry != NULL)
+        result = entry->failed;
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    return result;
+}
+
 static inline void
 pgy_intent_exit_export(int32_t handle)
 {
@@ -925,6 +1067,11 @@ pgy_intent_exit_export(int32_t handle)
                 pgy_intent_last_steps[j].failure_reason = pgy_runtime_strdup(
                     entry->steps[j].failure_reason != NULL ? entry->steps[j].failure_reason : "");
             }
+            pgy_intent_recent_entry_copy_from_active(
+                &pgy_intent_recent_ring[pgy_intent_recent_head], entry);
+            pgy_intent_recent_head = (pgy_intent_recent_head + 1) % PGY_INTENT_RECENT_MAX;
+            if (pgy_intent_recent_count < PGY_INTENT_RECENT_MAX)
+                pgy_intent_recent_count++;
         } else {
             free(pgy_intent_last_trace);
             free(pgy_intent_last_failure);
