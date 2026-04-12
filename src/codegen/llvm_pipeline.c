@@ -752,9 +752,14 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_declare_runtime(ctx);
 
     llvm_pipeline_debug_stage("emit_program_from_mir:register_decl_items");
-    for (size_t i = 0; i < mir->type_count; i++) {
-        ASTNode *stmt = mir->types[i];
-        llvm_register_nominal_decl(ctx, stmt);
+    {
+        ASTNode **decl_items = NULL;
+        size_t decl_item_count = 0;
+        llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
+        for (size_t i = 0; i < decl_item_count; i++) {
+            ASTNode *stmt = decl_items[i];
+            llvm_register_nominal_decl(ctx, stmt);
+        }
     }
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
     llvm_emit_domain_passes(ctx);
@@ -841,33 +846,38 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < mir->type_count; i++) {
-        ASTNode *stmt = mir->types[i];
-        if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
-            const char *cls_name = stmt->data.class_decl.name;
-            for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                ASTNode *method = stmt->data.class_decl.methods[j];
-                const MIRRoutine *mir_method;
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
-                if (mir_method != NULL) {
-                    const char *saved_class_name = ctx->current_class_name;
-                    ctx->current_class_name = cls_name;
-                    llvm_emit_func_from_mir(mir_method, ctx);
-                    ctx->current_class_name = saved_class_name;
-                    continue;
-                }
-                {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for class method '%s.%s'",
-                             cls_name != NULL ? cls_name : "(anonymous-class)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
-                                 : "(anonymous)");
-                    llvm_set_error(ctx, msg);
-                    return false;
+    {
+        ASTNode **decl_items = NULL;
+        size_t decl_item_count = 0;
+        llvm_active_nominal_inventory(ctx, &decl_items, &decl_item_count);
+        for (size_t i = 0; i < decl_item_count; i++) {
+            ASTNode *stmt = decl_items[i];
+            if (stmt != NULL && stmt->type == AST_CLASS_DECL) {
+                const char *cls_name = stmt->data.class_decl.name;
+                for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
+                    ASTNode *method = stmt->data.class_decl.methods[j];
+                    const MIRRoutine *mir_method;
+                    if (method == NULL || method->type != AST_FUNC_DECL)
+                        continue;
+                    mir_method = llvm_find_mir_method_routine(mir, cls_name, method);
+                    if (mir_method != NULL) {
+                        const char *saved_class_name = ctx->current_class_name;
+                        ctx->current_class_name = cls_name;
+                        llvm_emit_func_from_mir(mir_method, ctx);
+                        ctx->current_class_name = saved_class_name;
+                        continue;
+                    }
+                    {
+                        char msg[384];
+                        snprintf(msg, sizeof(msg),
+                                 "MIR-only LLVM path missing routine for class method '%s.%s'",
+                                 cls_name != NULL ? cls_name : "(anonymous-class)",
+                                 method->data.func_decl.name != NULL
+                                     ? method->data.func_decl.name
+                                     : "(anonymous)");
+                        llvm_set_error(ctx, msg);
+                        return false;
+                    }
                 }
             }
         }

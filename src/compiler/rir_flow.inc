@@ -264,6 +264,20 @@ rir_merge_states_for_kind(RIRResourceKind kind,
             return b;
         if (b == RIR_STATE_UNINIT)
             return a;
+        if (a == RIR_STATE_DETACHED || b == RIR_STATE_DETACHED) {
+            if ((a == RIR_STATE_DETACHED
+                 || a == RIR_STATE_SYNCED
+                 || a == RIR_STATE_DIRTY
+                 || a == RIR_STATE_PUBLISHED
+                 || a == RIR_STATE_STALE)
+                && (b == RIR_STATE_DETACHED
+                    || b == RIR_STATE_SYNCED
+                    || b == RIR_STATE_DIRTY
+                    || b == RIR_STATE_PUBLISHED
+                    || b == RIR_STATE_STALE)) {
+                return RIR_STATE_DETACHED;
+            }
+        }
         if (a == RIR_STATE_STALE || b == RIR_STATE_STALE)
             return RIR_STATE_STALE;
         if (a == RIR_STATE_DETACHED && b == RIR_STATE_DETACHED)

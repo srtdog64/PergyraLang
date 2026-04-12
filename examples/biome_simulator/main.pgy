@@ -2,7 +2,7 @@
 // BSD (Allman) style
 import "creatures.pgy";
 
-zone MeadowZone
+export zone MeadowZone
 {
     subject slot grazer: Creature
     subject slot browser: Creature

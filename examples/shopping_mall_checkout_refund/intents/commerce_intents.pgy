@@ -1,4 +1,4 @@
-intent CheckoutPurchase(cart: CartZone, payment: PaymentZone, buyer: Member, merchant: Merchant)
+export intent CheckoutPurchase(cart: CartZone, payment: PaymentZone, buyer: Member, merchant: Merchant)
 {
     exclusive;
     priority: 10;
@@ -38,7 +38,7 @@ intent CheckoutPurchase(cart: CartZone, payment: PaymentZone, buyer: Member, mer
     failure: payment.captured == 0;
 }
 
-intent RefundPurchase(payment: PaymentZone, refund: RefundZone, buyer: Member, merchant: Merchant)
+export intent RefundPurchase(payment: PaymentZone, refund: RefundZone, buyer: Member, merchant: Merchant)
 {
     exclusive;
     priority: 20;
@@ -63,7 +63,7 @@ intent RefundPurchase(payment: PaymentZone, refund: RefundZone, buyer: Member, m
     failure: refund.approved == 0;
 }
 
-intent SyncAccountProfile(refund: RefundZone, account: AccountZone, buyer: Member)
+export intent SyncAccountProfile(refund: RefundZone, account: AccountZone, buyer: Member)
 {
     concurrent;
     priority: 5;

@@ -2,7 +2,7 @@
 // BSD (Allman) style
 import "machines.pgy";
 
-zone AssemblyZone
+export zone AssemblyZone
 {
     subject slot supervisor: Station
     subject slot loader: Station

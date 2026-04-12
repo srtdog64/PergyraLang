@@ -182,6 +182,17 @@ rir_op_kind_name(RIROpKind kind)
     }
 }
 
+RIRResourceState
+rir_merge_state_for_kind(RIRResourceKind kind,
+                         RIRResourceState a,
+                         RIRResourceState b,
+                         bool *conflict)
+{
+    if (conflict != NULL)
+        *conflict = false;
+    return rir_merge_states_for_kind(kind, a, b, conflict);
+}
+
 bool
 rir_validate(const RIRProgram *rir, char **error_message)
 {

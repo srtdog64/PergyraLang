@@ -72,14 +72,14 @@
 | 영역 | 파싱 | 시맨틱 | MIR/하강 | C | LLVM | 런타임 | 테스트 | 깊이 판정 | 핵심 메모 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|---|
 | 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
-| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | default type arg는 explicit reject, exact/ability/multi-bound baseline은 동작, broader generalization은 남음 |
+| 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | default type arg는 beta-stable surface에서 explicit reject로 고정됐다. exact/ability/multi-bound baseline은 동작하고, 남은 것은 broader generalization이 아니라 module contract와 richer diagnostics/tooling 정렬이다 |
 | `subject/class/object/tobject/enum/vessel` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 6종 존재론 전부 동작 확인 |
 | `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중상 | `fields` canonical surface, generic ability ref, action/step/zone/party-role contract inference·diagnostics, ability-bound revalidation은 정렬됨. `override/dyn/extends`는 비코어 축으로 분리 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
 | `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+추론 강함, `with name: Type;` 값 파라미터 지원 |
 | `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/contract 연결됨, move/clone ownership 정리 중 |
 | `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
-| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity다. refresh map, lattice 통합, deeper propagation은 아직 미완 |
+| `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, 그리고 RIR projection/authority/handoff conservative merge helper까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
 | `Channel/select` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | MPMC+SPSC 런타임, send/recv/select 전부 동작 |
 | `Event` | ✅ | ✅ | ◐ | ✅ | ✅ | ◐ | ✅ | 중상 | arity/타입 체크 동작, C+LLVM 코드젠 완성, invoke는 AST_CALL 경로 |
 | `Set/Map/List` | ✅ | ◐ | ◐ | ✅ | ✅ | ✅ | ◐ | 중간 | C+LLVM raw_export 동작, Map은 `String/Int` 키 지원, 그 외 키는 명시 오류 |
@@ -145,7 +145,7 @@
 - `public/private`는 이제 nominal 선언을 넘어 `party/roster/world/relation/effect/zone`의 top-level visibility, imported action contract leakage 차단, 그리고 `func/intent/event` callable boundary 차단까지 반영된다
 
 남은 gap:
-- `use/require`를 module contract까지 일관되게 올리는 작업
+- 남은 핵심은 `use/require`를 module contract까지 일관되게 올리고 diagnostics/tooling 표현을 정렬하는 일이다
 - richer contract summary를 diagnostics/tooling까지 노출하는 작업
 - `override/dyn/extends`를 코어 closure와 별도 experimental 축으로 더 명확히 분리하는 문서/정책 정렬
 

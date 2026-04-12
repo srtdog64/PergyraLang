@@ -102,6 +102,8 @@ test_effect_inference(void)
         EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_SECURE));
         EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_REMOTE));
         EXPECT(type_effect_mask_touches_resource_boundary(EFFECT_COLLAPSE));
+        EXPECT(type_effect_mask_conflicts(EFFECT_SECURE, EFFECT_NONDETERMINISTIC));
+        EXPECT(type_effect_mask_conflicts(EFFECT_NONDETERMINISTIC, EFFECT_SECURE));
         EXPECT(type_effect_mask_conflicts(EFFECT_SECURE, EFFECT_COLLAPSE));
         EXPECT(type_effect_mask_conflicts(EFFECT_COLLAPSE, EFFECT_SECURE));
     }

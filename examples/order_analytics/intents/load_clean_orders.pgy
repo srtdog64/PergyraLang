@@ -1,7 +1,7 @@
 // Intent: ETL — 정제된 주문 적재
 // "유효한 주문만 골라서 clean_orders 테이블에 넣고 싶다"
 
-intent LoadCleanOrders(zone: EtlZone, batch: OrderBatch)
+export intent LoadCleanOrders(zone: EtlZone, batch: OrderBatch)
 {
     exclusive;
     who: batch;

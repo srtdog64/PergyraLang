@@ -1744,6 +1744,31 @@
         lexer_destroy(lexer);
     }
 
+    TEST("duplicate stdlib use emits warning but stays accepted");
+    {
+        const char *source =
+            "use datetime;\n"
+            "use datetime;\n"
+            "func Main() -> Void {\n"
+            "    Log(Now());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(
+            result, "Duplicate stdlib use 'datetime'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent authority diagnostic mentions derived transfer zone and using");
     {
         const char *source =

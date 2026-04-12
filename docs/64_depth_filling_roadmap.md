@@ -339,11 +339,13 @@ post-beta / follow-up:
 작업:
 1. `ability<T>` 선언 허용 범위를 분명히 정한다.
 2. `requires Ability<T>` mismatch 시 실제 기대/실제 인자를 진단한다.
-3. `use/require`를 모듈 경계까지 올리되, surface expansion 없이 기존 규칙을 닫는 방향으로 간다.
-4. hidden/default-export policy를 generic 해석과 같이 정렬한다.
+3. default type arg는 beta-stable generic surface에서 unsupported로 고정하고, parser가 받는 표면과 semantic 진단을 일치시킨다.
+4. `use/require`를 모듈 경계까지 올리되, surface expansion 없이 기존 규칙을 닫는 방향으로 간다.
+5. hidden/default-export policy를 generic 해석과 같이 정렬한다.
 
 완료 기준:
 - 계약 시스템이 "구조는 있음"이 아니라 "컴파일러가 설명 가능"한 상태가 된다.
+- beta-stable generic surface는 `ability<T>` / `requires Ability<T>` / multi-bound baseline / explicit default-type-arg reject로 고정된다.
 
 ### 3.2 `relation/effect/projection` 심화
 

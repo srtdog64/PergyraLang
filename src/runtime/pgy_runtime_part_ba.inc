@@ -481,10 +481,20 @@ pgy_mir_resource_op_export(int32_t handle,
                            const char *slot_anchor,
                            const char *arg_name)
 {
-    (void)handle;
-    (void)op_name;
-    (void)slot_anchor;
-    (void)arg_name;
+    if (!PGY_INTENT_OBSERVABILITY_ENABLED || handle == 0)
+        return;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[320];
+        snprintf(line, sizeof(line), "[mir-resource] %s %s %s\n",
+            op_name != NULL ? op_name : "<op>",
+            slot_anchor != NULL ? slot_anchor : "<slot>",
+            arg_name != NULL ? arg_name : "<arg>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
 
 static inline void
@@ -493,10 +503,20 @@ pgy_mir_cleanup_op_export(int32_t handle,
                           const char *slot_anchor,
                           const char *arg_name)
 {
-    (void)handle;
-    (void)op_name;
-    (void)slot_anchor;
-    (void)arg_name;
+    if (!PGY_INTENT_OBSERVABILITY_ENABLED || handle == 0)
+        return;
+
+    pthread_mutex_lock(&pgy_intent_registry_mutex);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    if (entry != NULL) {
+        char line[320];
+        snprintf(line, sizeof(line), "[mir-cleanup] %s %s %s\n",
+            op_name != NULL ? op_name : "<op>",
+            slot_anchor != NULL ? slot_anchor : "<slot>",
+            arg_name != NULL ? arg_name : "<arg>");
+        pgy_intent_append_line(&entry->trace, line);
+    }
+    pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
 
 static inline char *
@@ -866,13 +886,7 @@ pgy_intent_exit_export(int32_t handle)
             free(pgy_intent_last_failure);
             free(pgy_intent_last_name);
             for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
-                free(pgy_intent_last_steps[j].name);
-                free(pgy_intent_last_steps[j].zone);
-                free(pgy_intent_last_steps[j].failure_reason);
-                pgy_intent_last_steps[j].name = NULL;
-                pgy_intent_last_steps[j].zone = NULL;
-                pgy_intent_last_steps[j].failure_reason = NULL;
-                pgy_intent_last_steps[j].ok = false;
+                pgy_intent_history_step_clear(&pgy_intent_last_steps[j]);
             }
             pgy_intent_last_trace = entry->trace != NULL
                 ? pgy_runtime_strdup(entry->trace) : pgy_runtime_strdup("");

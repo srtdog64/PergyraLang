@@ -550,6 +550,28 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
 }
 
 static inline void
+llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
+                              ASTNode ***nodes_out,
+                              size_t *count_out)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL) {
+        nodes = ctx->mir->types;
+        count = ctx->mir->type_count;
+    } else if (ctx != NULL && ctx->hir != NULL) {
+        nodes = ctx->hir->types;
+        count = ctx->hir->type_count;
+    }
+
+    if (nodes_out != NULL)
+        *nodes_out = nodes;
+    if (count_out != NULL)
+        *count_out = count;
+}
+
+static inline void
 llvm_active_executables(const LLVMGenCtx *ctx,
                         ASTNode ***nodes_out,
                         size_t *count_out)

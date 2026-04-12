@@ -61,14 +61,13 @@
 - generic ability declaration/reference baseline 존재
 - action / intent step / zone authority / party role slot generic mismatch diagnostics baseline 존재
 - `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
-- default type argument는 parser surface 대비 semantic에서 explicit reject로 고정되어 있음
+- default type argument는 beta-stable surface에서 `unsupported`로 고정되어 있으며 semantic에서 explicit reject됨
 - multi-bound `where T: A + B` baseline은 현재 동작함
 - hidden/default-export와 generic ability ref 규칙 정렬 완료
 
 남은 것:
-- default type argument를 영구 불지원 stable policy로 박을지 최종 문서화
-- broader type-family generalization 여부 결정
-- richer generic constraint validation의 범위를 어디까지 beta contract로 삼을지 고정
+- broader type-family generalization을 beta 범위 밖으로 명시
+- richer generic constraint validation의 beta contract 범위를 문서/board에 일치시켜 고정
 - module contract `use/require`까지의 일관된 closure
 
 #### 4. own/ref closure

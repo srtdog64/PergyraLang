@@ -1,6 +1,6 @@
 import "fighters.pgy";
 
-zone BattleZone {
+export zone BattleZone {
     subject slot attacker: Fighter
     subject slot defender: Fighter
     object slot attackerView: FighterView

@@ -748,6 +748,34 @@ test_rir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("RIR lattice helper keeps detached projection and authority loss conservative");
+    {
+        bool projection_conflict = false;
+        bool authority_conflict = false;
+        bool handoff_conflict = false;
+        RIRResourceState projection_state =
+            rir_merge_state_for_kind(RIR_RESOURCE_PROJECTION_OBJECT,
+                                     RIR_STATE_DETACHED,
+                                     RIR_STATE_PUBLISHED,
+                                     &projection_conflict);
+        RIRResourceState authority_state =
+            rir_merge_state_for_kind(RIR_RESOURCE_AUTHORITY_HANDLE,
+                                     RIR_STATE_AUTHORIZED,
+                                     RIR_STATE_AUTHORITY_LOST,
+                                     &authority_conflict);
+        RIRResourceState handoff_state =
+            rir_merge_state_for_kind(RIR_RESOURCE_ZONE_HANDLE,
+                                     RIR_STATE_OWNED,
+                                     RIR_STATE_HANDED_OFF,
+                                     &handoff_conflict);
+        EXPECT(projection_state == RIR_STATE_DETACHED
+               && !projection_conflict
+               && authority_state == RIR_STATE_AUTHORITY_LOST
+               && !authority_conflict
+               && handoff_state == RIR_STATE_HANDOFF_PENDING
+               && !handoff_conflict);
+    }
+
     TEST("RIR bind infers tobject target as published boundary projection");
     {
         HIRProgram *hir = NULL;

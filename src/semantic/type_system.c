@@ -326,7 +326,7 @@ type_effect_mask_conflicts(uint32_t left, uint32_t right)
 {
     uint32_t closed_left = type_effect_mask_closure(left);
     uint32_t closed_right = type_effect_mask_closure(right);
-    uint32_t boundary_mask = EFFECT_REMOTE | EFFECT_COLLAPSE;
+    uint32_t boundary_mask = EFFECT_REMOTE | EFFECT_COLLAPSE | EFFECT_NONDETERMINISTIC;
 
     if ((closed_left & EFFECT_SECURE) != 0 && (closed_right & boundary_mask) != 0)
         return true;

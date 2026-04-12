@@ -240,8 +240,8 @@
 - `ability<T> where ...` bound의 reference/impl revalidation
 
 이번 알파/베타 범위에서 끝내야 할 것:
-- default type arg를 영구 불지원 stable policy로 문서화할지 결정
-- broader type-family generalization 여부를 결정
+- default type arg를 beta-stable generic surface에서 unsupported로 고정
+- broader type-family generalization은 beta 이후 과제로 분리
 - parser가 받는 표면 대비 beta-stable semantic closure 범위를 고정
 
 판단:
@@ -295,6 +295,7 @@
 
 - projection sync baseline은 stable하다
 - deeper propagation model은 아직 진행 중이다
+- 다만 RIR 수준에서는 projection/authority/handoff merge 규칙을 public helper + 회귀 테스트로 고정했고, detached projection은 mixed synced/published join에서도 더 보수적인 detached 상태를 유지한다
 
 - `who`
 - `where`

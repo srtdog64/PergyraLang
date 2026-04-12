@@ -206,5 +206,9 @@ const char *rir_fact_kind_name(RIRFactKind kind);
 const char *rir_resource_kind_name(RIRResourceKind kind);
 const char *rir_resource_state_name(RIRResourceState state);
 const char *rir_op_kind_name(RIROpKind kind);
+RIRResourceState rir_merge_state_for_kind(RIRResourceKind kind,
+                                          RIRResourceState a,
+                                          RIRResourceState b,
+                                          bool *conflict);
 
 #endif

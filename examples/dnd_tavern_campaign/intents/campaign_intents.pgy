@@ -1,4 +1,4 @@
-intent TavernRecruitment(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+export intent TavernRecruitment(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
 {
     exclusive;
     priority: 5;
@@ -42,7 +42,7 @@ intent TavernRecruitment(journey: JourneyZone, fighter: Adventurer, cleric: Adve
     failure: false;
 }
 
-intent DelveThreeFloors(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+export intent DelveThreeFloors(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
 {
     exclusive;
     priority: 10;
@@ -116,7 +116,7 @@ intent DelveThreeFloors(journey: JourneyZone, fighter: Adventurer, cleric: Adven
     failure: false;
 }
 
-intent SlayDragon(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
+export intent SlayDragon(journey: JourneyZone, fighter: Adventurer, cleric: Adventurer, rogue: Adventurer, mage: Adventurer)
 {
     exclusive;
     priority: 20;
