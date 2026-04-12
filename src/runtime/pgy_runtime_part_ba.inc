@@ -551,20 +551,10 @@ pgy_mir_cleanup_op_export(int32_t handle,
                           const char *slot_anchor,
                           const char *arg_name)
 {
-    if (!PGY_INTENT_OBSERVABILITY_ENABLED || handle == 0)
-        return;
-
-    pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
-    if (entry != NULL) {
-        char line[320];
-        snprintf(line, sizeof(line), "[mir-cleanup] %s %s %s\n",
-            op_name != NULL ? op_name : "<op>",
-            slot_anchor != NULL ? slot_anchor : "<slot>",
-            arg_name != NULL ? arg_name : "<arg>");
-        pgy_intent_append_line(&entry->trace, line);
-    }
-    pthread_mutex_unlock(&pgy_intent_registry_mutex);
+    (void)handle;
+    (void)op_name;
+    (void)slot_anchor;
+    (void)arg_name;
 }
 
 static inline char *

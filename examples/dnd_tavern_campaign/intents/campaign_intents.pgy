@@ -71,7 +71,6 @@ export intent DelveThreeFloors(journey: JourneyZone, fighter: Adventurer, cleric
         using: journey;
         who: rogue;
         on: rogue.HitTrap(2, 1, 0);
-        authorized by: rogue;
         causes: BattleBless;
         guard: rogue.effects.poison >= 0;
         post: rogue.effects.poison >= 0;

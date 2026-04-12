@@ -305,16 +305,30 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             size_t version = 0;
             const char *type_name = NULL;
             const char *c_type = NULL;
+            ASTNode *type_ast = NULL;
             char *c_name = NULL;
             char *initial_expr = NULL;
+            char *decl = NULL;
 
             if (versioned_name == NULL
                 || !transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)) {
                 continue;
             }
             type_name = transpiler_find_local_type_name(ctx, node, base);
+            type_ast = transpiler_find_local_type_ast(ctx, node, base);
             if (transpiler_type_name_is_slot_like(type_name))
                 continue;
+            if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
+                c_name = transpiler_make_c_ssa_name(versioned_name);
+                decl = pergyra_ast_typed_declarator(type_ast, c_name);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "%s = 0;\n", decl);
+                write_indent(ctx);
+                codebuf_write(ctx->out, "(void)%s;\n", c_name);
+                free(decl);
+                free(c_name);
+                continue;
+            }
             if (type_name != NULL)
                 c_type = pergyra_type_to_c(type_name);
             if (c_type == NULL) {
@@ -480,26 +494,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (strcmp(ctx->current_return_type, "Void") == 0) {
                 codebuf_write(ctx->out, "return;\n");
             } else {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "MIR exit block in function '%s' has no explicit return for non-void type '%s'",
-                        name != NULL ? name : "<function>",
-                        ctx->current_return_type);
-                }
-                transpiler_ssa_map_clear(&block_ssa_map);
-                ctx->slot_var_count = saved_slot_count;
-                ctx->typed_var_count = saved_typed_count;
-                snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-                    "%s", saved_return_type);
-                g_type_render_ctx = saved_render_ctx;
-                ctx->out = saved_out;
-                return;
+                codebuf_write(ctx->out, "__builtin_unreachable();\n");
             }
         }
     }
 
     /* Emit cleanup blocks if present (for intent compensation) */
-    if (mir_routine->has_cleanup_block) {
+    if (mir_routine->has_cleanup_block
+        && node != NULL
+        && node->type == AST_INTENT_DECL) {
         const char *cleanup_handle = node != NULL && node->type == AST_INTENT_DECL
             ? "__intent_handle"
             : "0";
@@ -1248,6 +1251,175 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
  * Parallel block
  * ----------------------------------------------------------------- */
 
+static bool
+transpiler_parallel_capture_has_name(char names[MAX_SLOT_VARS][64],
+                                     int count,
+                                     const char *name)
+{
+    if (name == NULL)
+        return false;
+    for (int i = 0; i < count; i++) {
+        if (strcmp(names[i], name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static void
+transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
+                                     const char *name,
+                                     char slot_names[MAX_SLOT_VARS][64],
+                                     int *slot_count,
+                                     char typed_names[MAX_SLOT_VARS][64],
+                                     int *typed_count)
+{
+    if (ctx == NULL || name == NULL || name[0] == '\0'
+        || strcmp(name, "self") == 0) {
+        return;
+    }
+
+    if (is_slot_var(ctx, name)) {
+        if (!transpiler_parallel_capture_has_name(slot_names,
+                slot_count != NULL ? *slot_count : 0, name)
+            && slot_count != NULL && *slot_count < MAX_SLOT_VARS) {
+            strncpy(slot_names[*slot_count], name, sizeof(slot_names[*slot_count]) - 1);
+            slot_names[*slot_count][sizeof(slot_names[*slot_count]) - 1] = '\0';
+            (*slot_count)++;
+        }
+        return;
+    }
+
+    if (lookup_typed_entry(ctx, name) != NULL) {
+        if (!transpiler_parallel_capture_has_name(slot_names,
+                slot_count != NULL ? *slot_count : 0, name)
+            && !transpiler_parallel_capture_has_name(typed_names,
+                typed_count != NULL ? *typed_count : 0, name)
+            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
+            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
+            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
+            (*typed_count)++;
+        }
+    }
+}
+
+static void
+transpiler_parallel_collect_stmt_captures(ASTNode *node,
+                                          TranspilerCtx *ctx,
+                                          char slot_names[MAX_SLOT_VARS][64],
+                                          int *slot_count,
+                                          char typed_names[MAX_SLOT_VARS][64],
+                                          int *typed_count)
+{
+    if (node == NULL || ctx == NULL)
+        return;
+
+    switch (node->type) {
+    case AST_IDENTIFIER:
+        transpiler_parallel_add_capture_name(ctx, node->data.identifier.name,
+            slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_LET_DECL:
+        transpiler_parallel_collect_stmt_captures(node->data.let_decl.initializer,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_ASSIGNMENT:
+        transpiler_parallel_collect_stmt_captures(node->data.assignment.target,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.assignment.value,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_CHANNEL_SEND:
+        transpiler_parallel_collect_stmt_captures(node->data.channel_send.channel,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.channel_send.value,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_CHANNEL_RECV:
+        transpiler_parallel_collect_stmt_captures(node->data.channel_recv.channel,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_CALL:
+        transpiler_parallel_collect_stmt_captures(node->data.call.callee,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        for (size_t i = 0; i < node->data.call.arg_count; i++) {
+            transpiler_parallel_collect_stmt_captures(node->data.call.arguments[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    case AST_MEMBER_ACCESS:
+        transpiler_parallel_collect_stmt_captures(node->data.member.object,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_ARRAY_ACCESS:
+        transpiler_parallel_collect_stmt_captures(node->data.array_access.array,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.array_access.index,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_ARRAY_LITERAL:
+        for (size_t i = 0; i < node->data.array_literal.count; i++) {
+            transpiler_parallel_collect_stmt_captures(node->data.array_literal.elements[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    case AST_BINARY:
+        transpiler_parallel_collect_stmt_captures(node->data.binary.left,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.binary.right,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_UNARY:
+        transpiler_parallel_collect_stmt_captures(node->data.unary.operand,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_AWAIT_EXPR:
+        transpiler_parallel_collect_stmt_captures(node->data.await_expr.expression,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_SPAWN_EXPR:
+        transpiler_parallel_collect_stmt_captures(node->data.spawn_expr.function,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++) {
+            transpiler_parallel_collect_stmt_captures(node->data.spawn_expr.arguments[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    case AST_IF_STMT:
+        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.condition,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.then_branch,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        transpiler_parallel_collect_stmt_captures(node->data.if_stmt.else_branch,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_RETURN:
+        transpiler_parallel_collect_stmt_captures(node->data.return_stmt.value,
+            ctx, slot_names, slot_count, typed_names, typed_count);
+        break;
+    case AST_BLOCK:
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            transpiler_parallel_collect_stmt_captures(node->data.block.statements[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    case AST_PARALLEL_BLOCK:
+        for (size_t i = 0; i < node->data.parallel.task_count; i++) {
+            transpiler_parallel_collect_stmt_captures(node->data.parallel.tasks[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    case AST_ASYNC_BLOCK:
+        for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+            transpiler_parallel_collect_stmt_captures(
+                node->data.async_block.statements[i],
+                ctx, slot_names, slot_count, typed_names, typed_count);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -1262,41 +1434,39 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
      *    variables currently in scope (slots + non-duplicate typed vars).
      *    Wrapper functions access outer variables through this struct.
      * --------------------------------------------------------------- */
-    int n_slots  = ctx->slot_var_count;
-    int n_typed  = ctx->typed_var_count;
+    char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
+    char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
+    int capture_slot_count = 0;
+    int capture_typed_count = 0;
 
-    /* Helper: check if a typed_var is already in slot_vars (avoid dupes) */
-    #define IS_SLOT_DUP(name_str) ({ \
-        bool _dup = false; \
-        for (int _j = 0; _j < n_slots; _j++) { \
-            if (strcmp(ctx->slot_vars[_j].name, (name_str)) == 0) \
-                { _dup = true; break; } \
-        } _dup; })
-
-    /* Count non-duplicate typed vars */
-    int n_unique_typed = 0;
-    for (int i = 0; i < n_typed; i++) {
-        if (!IS_SLOT_DUP(ctx->typed_vars[i].name))
-            n_unique_typed++;
+    for (size_t i = 0; i < count; i++) {
+        transpiler_parallel_collect_stmt_captures(node->data.parallel.tasks[i], ctx,
+            capture_slot_names, &capture_slot_count,
+            capture_typed_names, &capture_typed_count);
     }
 
-    bool has_captures = (n_slots > 0 || n_unique_typed > 0);
+    bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
     if (has_captures) {
         codebuf_write(ctx->helpers,
             "typedef struct {\n");
-        for (int i = 0; i < n_slots; i++) {
+        for (int i = 0; i < capture_slot_count; i++) {
+            const char *name = capture_slot_names[i];
+            const char *inner = lookup_slot_type(ctx, name);
+            bool secure = lookup_slot_is_secure(ctx, name);
             codebuf_write(ctx->helpers,
-                "    PgySlot_%s *%s;\n",
-                ctx->slot_vars[i].inner_type,
-                ctx->slot_vars[i].name);
+                secure ? "    PgySecureSlot_%s *%s;\n" : "    PgySlot_%s *%s;\n",
+                inner != NULL ? inner : "Int",
+                name);
         }
-        for (int i = 0; i < n_typed; i++) {
-            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
-                continue;
-            const char *c_type = pergyra_type_to_c(ctx->typed_vars[i].type_name);
+        for (int i = 0; i < capture_typed_count; i++) {
+            TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
+            const char *c_type = entry != NULL
+                ? pergyra_type_to_c(entry->type_name)
+                : NULL;
             codebuf_write(ctx->helpers,
-                "    %s *%s;\n", c_type, ctx->typed_vars[i].name);
+                "    %s *%s;\n", c_type != NULL ? c_type : "int32_t",
+                capture_typed_names[i]);
         }
         codebuf_write(ctx->helpers,
             "} _pgy_par_ctx_%u;\n\n", pid);
@@ -1323,22 +1493,30 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         CodeBuf *saved = ctx->out;
         int saved_indent = ctx->indent;
         bool saved_in_pw = ctx->in_parallel_wrapper;
-        int saved_slot_end  = ctx->par_capture_slot_end;
-        int saved_typed_end = ctx->par_capture_typed_end;
+        int saved_slot_count  = ctx->par_capture_slot_count;
+        int saved_typed_count = ctx->par_capture_typed_count;
+        char saved_slot_names[MAX_SLOT_VARS][64];
+        char saved_typed_names[MAX_SLOT_VARS][64];
 
         ctx->out = ctx->helpers;
         ctx->indent = 1;
         ctx->in_parallel_wrapper  = true;
-        ctx->par_capture_slot_end  = n_slots;
-        ctx->par_capture_typed_end = n_typed;
+        memcpy(saved_slot_names, ctx->par_capture_slot_names, sizeof(saved_slot_names));
+        memcpy(saved_typed_names, ctx->par_capture_typed_names, sizeof(saved_typed_names));
+        memcpy(ctx->par_capture_slot_names, capture_slot_names, sizeof(capture_slot_names));
+        memcpy(ctx->par_capture_typed_names, capture_typed_names, sizeof(capture_typed_names));
+        ctx->par_capture_slot_count = capture_slot_count;
+        ctx->par_capture_typed_count = capture_typed_count;
 
         emit_statement(node->data.parallel.tasks[i], ctx);
 
         ctx->out = saved;
         ctx->indent = saved_indent;
         ctx->in_parallel_wrapper  = saved_in_pw;
-        ctx->par_capture_slot_end  = saved_slot_end;
-        ctx->par_capture_typed_end = saved_typed_end;
+        memcpy(ctx->par_capture_slot_names, saved_slot_names, sizeof(saved_slot_names));
+        memcpy(ctx->par_capture_typed_names, saved_typed_names, sizeof(saved_typed_names));
+        ctx->par_capture_slot_count = saved_slot_count;
+        ctx->par_capture_typed_count = saved_typed_count;
 
         codebuf_write(ctx->helpers,
             "    return NULL;\n"
@@ -1356,16 +1534,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_par_ctx_%u _pctx%u = { ", pid, pid);
         bool first = true;
-        for (int i = 0; i < n_slots; i++) {
+        for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", ctx->slot_vars[i].name);
+            codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
             first = false;
         }
-        for (int i = 0; i < n_typed; i++) {
-            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
-                continue;
+        for (int i = 0; i < capture_typed_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", ctx->typed_vars[i].name);
+            codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
             first = false;
         }
         codebuf_write(ctx->out, " };\n");
@@ -1391,43 +1567,44 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
-    #undef IS_SLOT_DUP
 }
 
 static void
 emit_async_block(ASTNode *node, TranspilerCtx *ctx)
 {
     unsigned int pid = ctx->parallel_id++;
-    int n_slots  = ctx->slot_var_count;
-    int n_typed  = ctx->typed_var_count;
+    char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
+    char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
+    int capture_slot_count = 0;
+    int capture_typed_count = 0;
 
-    #define IS_SLOT_DUP(name_str) ({ \
-        bool _dup = false; \
-        for (int _j = 0; _j < n_slots; _j++) { \
-            if (strcmp(ctx->slot_vars[_j].name, (name_str)) == 0) \
-                { _dup = true; break; } \
-        } _dup; })
-
-    int n_unique_typed = 0;
-    for (int i = 0; i < n_typed; i++) {
-        if (!IS_SLOT_DUP(ctx->typed_vars[i].name))
-            n_unique_typed++;
+    for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+        transpiler_parallel_collect_stmt_captures(node->data.async_block.statements[i], ctx,
+            capture_slot_names, &capture_slot_count,
+            capture_typed_names, &capture_typed_count);
     }
 
-    bool has_captures = (n_slots > 0 || n_unique_typed > 0);
+    bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
     if (has_captures) {
         codebuf_write(ctx->helpers, "typedef struct {\n");
-        for (int i = 0; i < n_slots; i++) {
-            codebuf_write(ctx->helpers, "    PgySlot_%s *%s;\n",
-                ctx->slot_vars[i].inner_type, ctx->slot_vars[i].name);
+        for (int i = 0; i < capture_slot_count; i++) {
+            const char *name = capture_slot_names[i];
+            const char *inner = lookup_slot_type(ctx, name);
+            bool secure = lookup_slot_is_secure(ctx, name);
+            codebuf_write(ctx->helpers, secure
+                ? "    PgySecureSlot_%s *%s;\n"
+                : "    PgySlot_%s *%s;\n",
+                inner != NULL ? inner : "Int", name);
         }
-        for (int i = 0; i < n_typed; i++) {
-            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
-                continue;
+        for (int i = 0; i < capture_typed_count; i++) {
+            TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
+            const char *c_type = entry != NULL
+                ? pergyra_type_to_c(entry->type_name)
+                : NULL;
             codebuf_write(ctx->helpers, "    %s *%s;\n",
-                pergyra_type_to_c(ctx->typed_vars[i].type_name),
-                ctx->typed_vars[i].name);
+                c_type != NULL ? c_type : "int32_t",
+                capture_typed_names[i]);
         }
         codebuf_write(ctx->helpers, "} _pgy_async_ctx_%u;\n\n", pid);
     }
@@ -1444,14 +1621,20 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     CodeBuf *saved = ctx->out;
     int saved_indent = ctx->indent;
     bool saved_in_pw = ctx->in_parallel_wrapper;
-    int saved_slot_end  = ctx->par_capture_slot_end;
-    int saved_typed_end = ctx->par_capture_typed_end;
+    int saved_slot_count  = ctx->par_capture_slot_count;
+    int saved_typed_count = ctx->par_capture_typed_count;
+    char saved_slot_names[MAX_SLOT_VARS][64];
+    char saved_typed_names[MAX_SLOT_VARS][64];
 
     ctx->out = ctx->helpers;
     ctx->indent = 1;
     ctx->in_parallel_wrapper  = true;
-    ctx->par_capture_slot_end  = n_slots;
-    ctx->par_capture_typed_end = n_typed;
+    memcpy(saved_slot_names, ctx->par_capture_slot_names, sizeof(saved_slot_names));
+    memcpy(saved_typed_names, ctx->par_capture_typed_names, sizeof(saved_typed_names));
+    memcpy(ctx->par_capture_slot_names, capture_slot_names, sizeof(capture_slot_names));
+    memcpy(ctx->par_capture_typed_names, capture_typed_names, sizeof(capture_typed_names));
+    ctx->par_capture_slot_count = capture_slot_count;
+    ctx->par_capture_typed_count = capture_typed_count;
 
     for (size_t i = 0; i < node->data.async_block.statement_count; i++)
         emit_statement(node->data.async_block.statements[i], ctx);
@@ -1459,8 +1642,10 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->out = saved;
     ctx->indent = saved_indent;
     ctx->in_parallel_wrapper  = saved_in_pw;
-    ctx->par_capture_slot_end  = saved_slot_end;
-    ctx->par_capture_typed_end = saved_typed_end;
+    memcpy(ctx->par_capture_slot_names, saved_slot_names, sizeof(saved_slot_names));
+    memcpy(ctx->par_capture_typed_names, saved_typed_names, sizeof(saved_typed_names));
+    ctx->par_capture_slot_count = saved_slot_count;
+    ctx->par_capture_typed_count = saved_typed_count;
 
     codebuf_write(ctx->helpers, "    return NULL;\n}\n\n");
 
@@ -1471,16 +1656,14 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_async_ctx_%u _pctx%u = { ", pid, pid);
         bool first = true;
-        for (int i = 0; i < n_slots; i++) {
+        for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", ctx->slot_vars[i].name);
+            codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
             first = false;
         }
-        for (int i = 0; i < n_typed; i++) {
-            if (IS_SLOT_DUP(ctx->typed_vars[i].name))
-                continue;
+        for (int i = 0; i < capture_typed_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", ctx->typed_vars[i].name);
+            codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
             first = false;
         }
         codebuf_write(ctx->out, " };\n");
@@ -1493,7 +1676,6 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
-    #undef IS_SLOT_DUP
 }
 
 /* -----------------------------------------------------------------

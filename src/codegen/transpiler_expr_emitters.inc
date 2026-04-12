@@ -3548,6 +3548,19 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             }
             return strdup_fmt("None_%s()", inner);
         }
+        /* Inside parallel wrapper: captured outer variables are accessed
+         * through the context struct pointer.  (*_pctx->x) yields the
+         * value, and &(*_pctx->x) collapses to _pctx->x (a pointer). */
+        if (ctx->in_parallel_wrapper) {
+            for (int i = 0; i < ctx->par_capture_slot_count; i++) {
+                if (strcmp(ctx->par_capture_slot_names[i], id_name) == 0)
+                    return strdup_fmt("(*_pctx->%s)", id_name);
+            }
+            for (int i = 0; i < ctx->par_capture_typed_count; i++) {
+                if (strcmp(ctx->par_capture_typed_names[i], id_name) == 0)
+                    return strdup_fmt("(*_pctx->%s)", id_name);
+            }
+        }
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL)
             return transpiler_make_c_ssa_name(ssa_name);
@@ -3557,19 +3570,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return emit_expression(alias_expr, ctx);
         }
         TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
-        /* Inside parallel wrapper: captured outer variables are accessed
-         * through the context struct pointer.  (*_pctx->x) yields the
-         * value, and &(*_pctx->x) collapses to _pctx->x (a pointer). */
-        if (ctx->in_parallel_wrapper) {
-            for (int i = 0; i < ctx->par_capture_slot_end; i++) {
-                if (strcmp(ctx->slot_vars[i].name, id_name) == 0)
-                    return strdup_fmt("(*_pctx->%s)", id_name);
-            }
-            for (int i = 0; i < ctx->par_capture_typed_end; i++) {
-                if (strcmp(ctx->typed_vars[i].name, id_name) == 0)
-                    return strdup_fmt("(*_pctx->%s)", id_name);
-            }
-        }
         if (ctx->current_class_name != NULL
             && strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL

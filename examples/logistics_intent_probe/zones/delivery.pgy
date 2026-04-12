@@ -25,12 +25,10 @@ zone DeliveryZone
 
     func Receive(self, bonus: Int) -> Int
     {
-        using self.seal as seal;
-        using self.route as route;
         let shipped = courier.Deliver(bonus);
         dispatcher.ConfirmDelivery(shipped);
-        seal.qty = shipped;
-        route.lane = "city-gate";
+        self.seal.qty = shipped;
+        self.route.lane = "city-gate";
         received = shipped;
         routeScore = MergeRouteScore(false, shipped);
         stage = "received";
@@ -39,10 +37,9 @@ zone DeliveryZone
 
     func Snapshot(self) -> String
     {
-        using self.seal as seal;
         return stage
             + " received=" + ToString(received)
             + " score=" + ToString(routeScore)
-            + " sealed=" + ToString(seal.qty);
+            + " sealed=" + ToString(self.seal.qty);
     }
 }

@@ -148,11 +148,13 @@ typedef struct
     /* Counter for unique parallel wrapper function names */
     unsigned int  parallel_id;
 
-    /* Parallel variable capture: when emitting a parallel wrapper body,
-     * identifiers from the outer scope are accessed through _pctx->name */
+    /* Parallel variable capture: when emitting a parallel/async wrapper body,
+     * identifiers from the outer scope are accessed through _pctx->name. */
     bool  in_parallel_wrapper;
-    int   par_capture_slot_end;    /* slot_vars[0..end) are captured  */
-    int   par_capture_typed_end;   /* typed_vars[0..end) are captured */
+    char  par_capture_slot_names[MAX_SLOT_VARS][64];
+    int   par_capture_slot_count;
+    char  par_capture_typed_names[MAX_SLOT_VARS][64];
+    int   par_capture_typed_count;
 
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool  suppress_slot_auto_read;

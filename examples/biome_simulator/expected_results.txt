@@ -1,11 +1,11 @@
 === BIOME SIMULATION FINAL REPORT ===
-season: 2
+season: 6
 migration: 0
 projection_ready: true
 packet_ready: true
 
 --- MEADOW ---
-plants: grass=18 brush=7 berry=18
+plants: grass=16 brush=5 berry=18
 Swift Hare E:27 H:1
 browserView fatigue=0 age=6 metabolism=2
 predatorPacket stress=0 resilience=3
@@ -14,7 +14,7 @@ Boar E:30 H:1
 Grey Wolf E:30 H:1
 
 --- GROVE ---
-plants: grass=14 brush=7 berry=18
+plants: grass=7 brush=5 berry=11
 Field Mouse E:25 H:1
 browserView fatigue=0 age=6 metabolism=2
 predatorPacket stress=0 resilience=3
