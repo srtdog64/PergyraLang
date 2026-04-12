@@ -607,6 +607,17 @@ llvm_active_has_main_function(const LLVMGenCtx *ctx)
     return false;
 }
 
+static inline bool
+llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->has_top_level_exec;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->synthetic_executable_func != NULL
+            || ctx->hir->executable_count > 0;
+    return false;
+}
+
 /* =================================================================
  * Context lifecycle (llvm_backend.c)
  * ================================================================= */
@@ -789,6 +800,7 @@ void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_main_wrapper(LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
+void llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
 void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);

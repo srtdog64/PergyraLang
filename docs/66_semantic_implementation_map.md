@@ -175,8 +175,8 @@
 - participant binding
 - step contract validation
 - rollback/compensate/cleanup 경로
-- action contract inference
-- transfer inference
+- action contract inheritance
+- transfer derivation
 - history 일부
 
 이번 알파 범위에서 끝내야 할 것:
@@ -306,9 +306,9 @@
 - 이 다섯 개는 step에서 반복 서술하지 않는 방향이 현재 권장 surface다
 - step은 orchestration과 override 중심으로 쓰는 것이 맞다
 
-### 6.2 Transfer inference pack
+### 6.2 Transfer derivation pack
 
-현재 transfer target에서 기본 추론되는 묶음은 다음이다.
+현재 transfer target에서 기본 유도되는 묶음은 다음이다.
 
 - `where`
 - `using`
@@ -323,19 +323,19 @@
 
 판단:
 - 이 절은 declaration-local only로 보는 것이 맞다
-- action signature 뒤에 붙는다고 해서 step inference까지 가져가는 절이 아니다
+- action signature 뒤에 붙는다고 해서 step contract inheritance까지 가져가는 절이 아니다
 
 ### 6.4 Provenance vocabulary
 
 현재 diagnostics/tooling/docs에서 맞춰야 하는 용어는 다음 셋이다.
 
 - `locally declared ...`
-- `inherited ... from matching action`
-- `inferred ... from transfer target`
+- `inherited ... from matching action contract`
+- `derived ... from transfer target`
 
 판단:
 - compression이 강해질수록, 이 provenance vocabulary가 surface trust의 핵심이 된다
-- 사용자가 추론을 머리로 재구성하게 만들면 안 된다
+- 사용자가 상속/유도를 머리로 재구성하게 만들면 안 된다
 
 ---
 

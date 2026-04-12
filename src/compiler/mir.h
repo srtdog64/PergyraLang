@@ -218,6 +218,7 @@ struct MIRProgram
     ASTNode   **executables;
     size_t      executable_count;
     ASTNode    *synthetic_executable_func;
+    bool        has_top_level_exec;
     bool        has_main_function;
 };
 

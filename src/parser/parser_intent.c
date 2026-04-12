@@ -380,14 +380,14 @@ parse_intent_step(Parser *parser)
         if (parser_intent_match_keyword(parser, "within")) {
             parser_error(parser,
                 "'within' is an action clause, not an intent step clause; "
-                "use 'where: <Zone>;' on the step or omit it to inherit the zone from the matching action");
+                "use 'where: <Zone>;' on the step or omit it to inherit the zone from the matching action contract");
             return step;
         }
 
         if (parser_intent_match_keyword(parser, "with")) {
             parser_error(parser,
                 "'with effects ...' is not a valid intent step clause; "
-                "use 'causes: <Effect>;' on the step or declare effects on the matching action");
+                "use 'causes: <Effect>;' on the step or declare effects on the matching action contract");
             return step;
         }
 
@@ -418,7 +418,8 @@ parse_intent_step(Parser *parser)
         parser_error(parser,
             "Unsupported intent step clause; expected one of: "
             "where:, who:, using:, intent:, transfer:, move, on:, compensate:, "
-            "pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:");
+            "pre:, guard:, post:, invariant:, requires:, authorized by:, causes:, expect:. "
+            "Action-only clauses such as 'within' and 'with effects' belong on the matching action contract.");
         return step;
     }
 

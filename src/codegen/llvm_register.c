@@ -132,10 +132,21 @@ register_methods:
     }
 }
 
-static void
-llvm_register_hir_class_decl(LLVMGenCtx *ctx, ASTNode *stmt)
+void
+llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 {
+    if (ctx == NULL || stmt == NULL)
+        return;
+    if (stmt->type == AST_ENUM_DECL) {
+        llvm_register_enum_decl(ctx, stmt);
+        return;
+    }
+    if (stmt->type != AST_CLASS_DECL)
+        return;
+
     const char *cls_name = stmt->data.class_decl.name;
+    if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
+        return;
     size_t fc = stmt->data.class_decl.field_count;
     LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
     for (size_t j = 0; j < fc; j++) {
@@ -221,12 +232,7 @@ llvm_register_active_nominal_types(LLVMGenCtx *ctx)
 
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
-        if (stmt != NULL && stmt->type == AST_ENUM_DECL) {
-            llvm_register_enum_decl(ctx, stmt);
-            continue;
-        }
-        if (stmt != NULL && stmt->type == AST_CLASS_DECL)
-            llvm_register_hir_class_decl(ctx, stmt);
+        llvm_register_nominal_decl(ctx, stmt);
     }
 
 }

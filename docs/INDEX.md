@@ -32,7 +32,7 @@
 | **라이브러리** | [`docs/67_layered_stdlib_and_domain_kits.md`](docs/67_layered_stdlib_and_domain_kits.md) | 코어 추가 금지, common stdlib vs domain kit 분리 정책 |
 | **사용성** | [`docs/58_keyword_authorship_pain_points.md`](docs/58_keyword_authorship_pain_points.md) | 키워드/작성 UX pain point 정리 |
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
-| **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 추론 규칙 |
+| **사용성** | [`docs/60_zone_context_and_transfer_inference.md`](docs/60_zone_context_and_transfer_inference.md) | lexical zone context와 `using/transfer` 유도 규칙 |
 | **사용성** | [`docs/61_surface_compression_examples.md`](docs/61_surface_compression_examples.md) | surface compression의 구현 예제와 목표 예제 |
 | **리뷰** | [`review/abi_unification_log.md`](review/abi_unification_log.md) | ABI 통일 실행 로그 |
 | **리뷰** | [`review/channel_ownership_tier.md`](review/channel_ownership_tier.md) | Channel Zone/World 이중 소유 모델 |
@@ -60,8 +60,8 @@
 
 ### 작성 surface / diagnostics 정리
 
-1. **Contract provenance를 local / inherited / inferred로 정리**
-   - intent step diagnostics와 AST/debug가 `locally declared`, `inherited from matching action`, `inferred from transfer target`를 같은 용어로 드러내도록 정렬
+1. **Contract provenance를 local / inherited / derived로 정리**
+   - intent step diagnostics와 AST/debug가 `locally declared`, `inherited from matching action contract`, `derived from transfer target`를 같은 용어로 드러내도록 정렬
    - dense action/step surface에서 왜 실패했는지 한 번에 읽을 수 있도록 provenance summary 강화
 
 2. **Dense clause diagnostic 개선**

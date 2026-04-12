@@ -338,6 +338,9 @@ transpiler_requires_thread_pool(const TranspilerCtx *ctx)
         return true;
     }
 
+    if (ctx->mir != NULL)
+        return false;
+
     transpiler_active_executables(ctx, &executables, &executable_count);
     for (size_t i = 0; i < executable_count; i++) {
         if (ast_uses_thread_pool(executables[i]))
@@ -1371,6 +1374,73 @@ transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
     }
 
     *aliases_out = aliases;
+    return count;
+}
+
+static size_t
+transpiler_collect_mir_intent_participants(const MIRRoutine *routine,
+                                           const char ***aliases_out,
+                                           const char ***types_out)
+{
+    const char **aliases = NULL;
+    const char **types = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (aliases_out != NULL)
+        *aliases_out = NULL;
+    if (types_out != NULL)
+        *types_out = NULL;
+    if (routine == NULL || aliases_out == NULL || types_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown_aliases;
+            const char **grown_types;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
+                continue;
+            if (inst->arg0 == NULL || inst->arg1 == NULL)
+                continue;
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                grown_aliases = malloc(new_capacity * sizeof(const char *));
+                grown_types = malloc(new_capacity * sizeof(const char *));
+                if (grown_aliases == NULL || grown_types == NULL) {
+                    free((void *)grown_aliases);
+                    free((void *)grown_types);
+                    free((void *)aliases);
+                    free((void *)types);
+                    return 0;
+                }
+                if (count > 0) {
+                    memcpy((void *)grown_aliases, (const void *)aliases,
+                           count * sizeof(const char *));
+                    memcpy((void *)grown_types, (const void *)types,
+                           count * sizeof(const char *));
+                }
+                free((void *)aliases);
+                free((void *)types);
+                aliases = grown_aliases;
+                types = grown_types;
+                capacity = new_capacity;
+            }
+            aliases[count] = inst->arg0;
+            types[count] = inst->arg1;
+            count++;
+        }
+    }
+
+    *aliases_out = aliases;
+    *types_out = types;
     return count;
 }
 
@@ -5412,22 +5482,42 @@ intent_action_has_only_self(ASTNode *action_decl)
 static void
 emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {
+    const MIRRoutine *mir_routine = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    size_t participant_count = 0;
+
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
+    mir_routine = transpiler_find_mir_intent(ctx, node);
+    if (mir_routine != NULL) {
+        participant_count = transpiler_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+    }
     codebuf_write(buf, "\nbool\n%s(", node->data.intent_decl.name);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         const char *pt = "int32_t";
+        const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
+            ? involves->data.intent_involves.alias : "participant";
+        const char *participant_type = participant_types != NULL && i < participant_count
+            ? participant_types[i]
+            : NULL;
         bool pointer_param = false;
         if (i > 0)
             codebuf_write(buf, ", ");
-        if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+        if (participant_type != NULL) {
+            pt = pergyra_type_to_c(participant_type);
+            pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
             pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
             pointer_param = intent_involves_uses_pointer_self(ctx, involves);
         }
-        codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ",
-            involves != NULL && involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "participant");
+        if (participant_aliases != NULL && i < participant_count
+            && participant_aliases[i] != NULL) {
+            alias = participant_aliases[i];
+        }
+        codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
     }
     for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
         ASTNode *value = node->data.intent_decl.values[i];
@@ -5441,6 +5531,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ? value->data.intent_value.alias : "value");
     }
     codebuf_write(buf, ");\n");
+    free((void *)participant_aliases);
+    free((void *)participant_types);
 }
 
 static bool
@@ -5485,6 +5577,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ASTNode **mir_steps = NULL;
     ASTNode **step_nodes = NULL;
     size_t step_count = 0;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    size_t participant_count = 0;
     const MIRRoutine *mir_routine = NULL;
     bool emit_cleanup_from_mir = false;
     CodeBuf *saved_out;
@@ -5502,6 +5597,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     mir_only_intent = ctx->mir != NULL;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Bool");
     emit_cleanup_from_mir = transpiler_can_emit_intent_cleanup_from_mir(ctx, node, &mir_routine);
+    if (mir_routine != NULL) {
+        participant_count = transpiler_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+    }
     if (mir_routine != NULL)
         step_count = transpiler_collect_mir_intent_steps(mir_routine, &mir_steps);
     if (step_count == 0) {
@@ -5519,6 +5618,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     : "(anonymous-intent)");
         }
         free(mir_steps);
+        free((void *)participant_aliases);
+        free((void *)participant_types);
         g_type_render_ctx = saved_render_ctx;
         ctx->out = saved_out;
         return;
@@ -5532,6 +5633,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     : "(anonymous-intent)");
         }
         free(mir_steps);
+        free((void *)participant_aliases);
+        free((void *)participant_types);
         g_type_render_ctx = saved_render_ctx;
         ctx->out = saved_out;
         return;
@@ -5553,21 +5656,32 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         const char *pt = "int32_t";
+        const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
+            ? involves->data.intent_involves.alias : "participant";
+        const char *participant_type = participant_types != NULL && i < participant_count
+            ? participant_types[i]
+            : NULL;
         char *type_name = NULL;
         bool pointer_param = false;
         if (i > 0)
             codebuf_write(ctx->out, ", ");
-        if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+        if (participant_type != NULL) {
+            pt = pergyra_type_to_c(participant_type);
+            type_name = pergyra_strdup(participant_type);
+            pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
             pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
             type_name = render_type_name(involves->data.intent_involves.subject_type);
             pointer_param = intent_involves_uses_pointer_self(ctx, involves);
         }
-        codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ",
-            involves != NULL && involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "participant");
+        if (participant_aliases != NULL && i < participant_count
+            && participant_aliases[i] != NULL) {
+            alias = participant_aliases[i];
+        }
+        codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
         if (type_name != NULL) {
-            register_typed_var(ctx, involves->data.intent_involves.alias, type_name);
-            TypedVarEntry *entry = lookup_typed_entry(ctx, involves->data.intent_involves.alias);
+            register_typed_var(ctx, alias, type_name);
+            TypedVarEntry *entry = lookup_typed_entry(ctx, alias);
             if (entry != NULL)
                 entry->is_subject_ref = pointer_param;
             free(type_name);
@@ -5623,6 +5737,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 ASTNode *involves = node->data.intent_decl.involves[i];
                 const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
                     ? involves->data.intent_involves.alias : "participant";
+                if (participant_aliases != NULL && i < participant_count
+                    && participant_aliases[i] != NULL) {
+                    alias = participant_aliases[i];
+                }
                 if (!intent_involves_is_subject_participant(ctx, involves))
                     continue;
                 write_indent(ctx);
@@ -6194,6 +6312,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ctx->typed_var_count = saved_typed_count;
     codebuf_write(ctx->out, "}\n");
     free(mir_steps);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
     return;
@@ -6253,6 +6373,8 @@ mir_step_missing_compensate:
 
 intent_emit_fail:
     free(mir_steps);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
     ctx->slot_var_count = saved_slot_count;
     ctx->typed_var_count = saved_typed_count;
     g_type_render_ctx = saved_render_ctx;
@@ -6297,6 +6419,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     size_t executable_count = 0;
     ASTNode *synthetic_executable_func = NULL;
     bool has_main_function = false;
+    bool has_top_level_exec = false;
 
     if (hir == NULL && mir == NULL)
         return;
@@ -6315,9 +6438,11 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
     transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
     transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
-    transpiler_active_executables(ctx, &executables, &executable_count);
     synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
     has_main_function = transpiler_active_has_main_function(ctx);
+    has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
+    if (ctx->hir != NULL)
+        transpiler_active_executables(ctx, &executables, &executable_count);
 
     /* File header */
     codebuf_write(ctx->out,
@@ -6474,7 +6599,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
 
     /* Check if a Main() function exists */
     /* Generate int main(void) { ... } */
-    if (executable_count > 0 || has_main_function) {
+    if (has_top_level_exec || has_main_function) {
         bool needs_thread_pool = transpiler_requires_thread_pool(ctx);
         codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
         ctx->indent++;
@@ -6489,7 +6614,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         if (synthetic_executable_func != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "__pgy_top_level_exec();\n");
-        } else {
+        } else if (ctx->hir != NULL) {
             for (size_t i = 0; i < executable_count; i++)
                 emit_statement(executables[i], ctx);
         }

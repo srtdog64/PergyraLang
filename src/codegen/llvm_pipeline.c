@@ -379,7 +379,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     ASTNode **executables = NULL;
     size_t executable_count = 0;
     ASTNode *synthetic_executable_func = NULL;
-    bool has_executables = false;
+    bool has_top_level_exec = false;
     bool has_main_function = false;
     bool needs_thread_pool = false;
 
@@ -387,13 +387,14 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         return;
 
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
-    llvm_active_executables(ctx, &executables, &executable_count);
     synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
-    has_executables = executable_count > 0 || synthetic_executable_func != NULL;
+    has_top_level_exec = llvm_active_has_top_level_exec(ctx);
+    if (ctx->hir != NULL)
+        llvm_active_executables(ctx, &executables, &executable_count);
     has_main_function = llvm_active_has_main_function(ctx);
     needs_thread_pool = llvm_requires_thread_pool(ctx);
 
-    bool has_top_level = has_executables
+    bool has_top_level = has_top_level_exec
         || has_main_function
         || (main_user != NULL);
     if (!has_top_level)
@@ -443,11 +444,16 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         LLVMBuildCall2(ctx->builder, main_user->fn_type,
                        main_user->fn, NULL, 0, "");
 
-    if (has_executables) {
+    if (synthetic_executable_func != NULL) {
         LLVMFuncEntry *top_level_entry = llvm_lookup_function(ctx, "__pgy_top_level_exec");
         if (top_level_entry != NULL) {
             LLVMBuildCall2(ctx->builder, top_level_entry->fn_type,
                            top_level_entry->fn, NULL, 0, "");
+        } else if (ctx->mir != NULL) {
+            llvm_set_error(ctx,
+                           "MIR-only LLVM path missing emitted top-level executable wrapper '__pgy_top_level_exec'");
+            llvm_scope_pop(ctx);
+            return;
         } else {
             for (size_t i = 0; i < executable_count; i++) {
                 ASTNode *stmt = executables[i];
@@ -457,6 +463,16 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
                             LLVMGetInsertBlock(ctx->builder)) != NULL)
                         break;
                 }
+            }
+        }
+    } else if (ctx->hir != NULL && executable_count > 0) {
+        for (size_t i = 0; i < executable_count; i++) {
+            ASTNode *stmt = executables[i];
+            if (stmt != NULL) {
+                llvm_emit_statement(stmt, ctx);
+                if (LLVMGetBasicBlockTerminator(
+                        LLVMGetInsertBlock(ctx->builder)) != NULL)
+                    break;
             }
         }
     }
@@ -736,78 +752,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
     llvm_pipeline_debug_stage("emit_program_from_mir:register_decl_items");
     for (size_t i = 0; i < mir->type_count; i++) {
         ASTNode *stmt = mir->types[i];
-        if (stmt == NULL)
-            continue;
-        if (stmt->type == AST_CLASS_DECL) {
-            const char *cls_name = stmt->data.class_decl.name;
-            if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
-                continue;
-            size_t fc = stmt->data.class_decl.field_count;
-            LLVMTypeRef *field_types = calloc(fc > 0 ? fc : 1, sizeof(LLVMTypeRef));
-            for (size_t j = 0; j < fc; j++) {
-                ClassField *f = stmt->data.class_decl.fields[j];
-                field_types[j] = (f->type != NULL)
-                    ? ast_type_to_llvm(ctx, f->type)
-                    : ctx->type_i32;
-            }
-            LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
-            LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
-            NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
-            bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
-            bool is_immutable =
-                llvm_nominal_uses_immutable_projection_storage(nominal_kind);
-            bool is_boundary_transfer =
-                llvm_nominal_is_boundary_transfer_contract(nominal_kind);
-            bool is_pointer_self_host = is_subject
-                || nominal_kind == NOMINAL_DECL_VESSEL;
-            LLVMClassTypeEntry *entry = llvm_register_class(
-                ctx, cls_name, struct_ty, is_subject, is_pointer_self_host);
-            if (entry != NULL) {
-                entry->is_immutable = is_immutable;
-                entry->is_boundary_transfer_contract = is_boundary_transfer;
-                for (size_t j = 0; j < fc; j++) {
-                    ClassField *f = stmt->data.class_decl.fields[j];
-                    llvm_class_add_field(entry, f->name, field_types[j], (int)j);
-                }
-            }
-            for (size_t j = 0; j < stmt->data.class_decl.method_count; j++) {
-                ASTNode *method = stmt->data.class_decl.methods[j];
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                const char *mname = method->data.func_decl.name;
-                size_t mpc = method->data.func_decl.param_count;
-                LLVMTypeRef mret = ctx->type_void;
-                if (method->data.func_decl.return_type != NULL)
-                    mret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
-                size_t user_pc = 0;
-                for (size_t k = 0; k < mpc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
-                        continue;
-                    user_pc++;
-                }
-                LLVMTypeRef *mpt = calloc(user_pc + 1, sizeof(LLVMTypeRef));
-                mpt[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
-                size_t pidx = 1;
-                for (size_t k = 0; k < mpc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
-                        continue;
-                    mpt[pidx++] = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
-                }
-                LLVMTypeRef mft = LLVMFunctionType(mret, mpt, (unsigned)(user_pc + 1), 0);
-                char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, mname);
-                LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, mft);
-                llvm_register_function(ctx, LLVMGetValueName(fn), fn, mft, mret);
-                free(mpt);
-            }
-            free(field_types);
-        } else if (stmt->type == AST_ENUM_DECL) {
-            llvm_register_enum_decl(ctx, stmt);
-        }
+        llvm_register_nominal_decl(ctx, stmt);
     }
     llvm_pipeline_debug_stage("emit_program_from_mir:emit_domain_passes");
     llvm_emit_domain_passes(ctx);

@@ -1,6 +1,6 @@
 # MIR-Only Backend Migration Plan
 
-마지막 업데이트: 2026-04-08
+마지막 업데이트: 2026-04-12
 
 이 문서는 Pergyra backend를 다음 단방향 파이프라인으로 고정하기 위한 이행 계획을 정의한다.
 
@@ -42,28 +42,31 @@
 
 아직 남은 것:
 
-- LLVM backend 내부에 `HIR` fallback emission이 남아 있다
+- declaration inventory가 아직 dedicated declaration IR가 아니라 AST-carried inventory다
 - `intent` emission은 step/check/eval/meta carrier를 MIR 우선 source로 읽고 누락 시 hard error로 실패한다. 남은 debt는 declaration inventory와 ABI metadata 실사용 쪽이다.
-- `main` wrapper가 `HIR executable_count / has_main_function`에 기대고 있다
-- 일부 routine/host method/class method emission이 AST naming/shape에 의존한다
+- `main` wrapper / top-level scheduling metadata는 더 MIR 중심으로 밀 여지가 있다
+- 일부 declaration registration / naming helper가 AST-carried shape를 소비한다
 - transpiler는 ABI metadata를 직접 소비하는 경로가 약하다
 
 ### 2.1 현재 확인된 LLVM fallback map
 
 현재 `llvm_backend`에서 확인된 fallback은 아래와 같다.
 
-- ordinary function:
-  - matching MIR routine가 없거나 routine이 비어 있으면 HIR function emission으로 fallback
-- intent:
-  - 현재는 MIR path가 아니라 HIR intent emission을 사용
-- class method:
-  - class method body는 temporary prefixed-name rewrite 뒤 HIR emission을 사용
-- main wrapper:
-  - top-level 여부 판단이 `HIR executable_count`, `HIR has_main_function`, `HIR Main lookup`에 기대고 있음
-- top-level executable statements:
-  - main wrapper 안에서 HIR executable list를 순회하며 statement emission
+이미 제거된 것:
 
-이 다섯 항목이 제거 1순위다.
+- ordinary function body fallback
+- intent body fallback
+- class/enum method body fallback
+- MIR path의 missing routine/carrier silent fallback
+
+현재 남은 debt:
+
+- declaration inventory는 AST-carried top-level inventory를 읽는다
+- nominal registration은 MIR inventory를 직접 읽지만 dedicated declaration IR는 아니다
+- `main` wrapper / top-level executable contract는 더 MIR entry metadata 중심으로 밀 수 있다
+- ABI metadata 실사용은 C transpiler 쪽이 더 약하다
+
+이 목록은 더 줄어들어야 하며, routine-body fallback 항목이 다시 생기면 regression으로 본다.
 
 규칙:
 
@@ -128,10 +131,21 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 - class method emission도 MIR routine lookup 기반으로 전환
 - `main` wrapper가 HIR executable list 대신 MIR entry metadata를 읽게 전환
 
-완료 기준:
+현재 상태:
 
-- `llvm_codegen_with_mir(...)`에서 `mir != NULL`이면 HIR emission path를 타지 않는다
-- MIR 누락 시 fallback이 아니라 hard error로 실패한다
+- compiler mainline은 `llvm_codegen_from_mir(...)` / `llvm_codegen_to_object_from_mir(...)`를 사용한다
+- MIR 누락 시 routine/intent/method path는 fallback이 아니라 hard error로 실패한다
+- nominal registration은 MIR inventory와 legacy inventory가 같은 helper를 공유한다
+- transpiler의 MIR resource-op / DEF dumb emitter는 layout 누락 시 ABI table(`mir_abi_lookup`)을 다시 조회한다
+- `MIRProgram.has_main_function`은 이제 lowering 시 MIR function inventory를 직접 스캔해 채워진다
+- `MIRProgram.synthetic_executable_func`도 이제 HIR pointer 복사가 아니라 MIR function inventory에서 `__pgy_top_level_exec`를 다시 찾는다
+- `MIRProgram.has_top_level_exec`도 MIR function inventory에서 직접 파생된다
+- MIR backend main-wrapper path는 top-level statement list를 직접 순회하지 않고 `__pgy_top_level_exec`를 top-level execution source of truth로 사용한다
+
+남은 완료 기준:
+
+- declaration/top-level inventory도 dedicated declaration IR 또는 동등한 MIR-owned metadata로 더 밀어낸다
+- `main` wrapper metadata를 MIR entry contract로 더 정리한다
 
 ### Phase 5. C transpiler ABI 연계 강화
 
@@ -162,16 +176,16 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 
 지금 바로 시작할 우선 작업은 아래 네 개다.
 
-1. LLVM fallback inventory 만들기
-2. `intent`와 `class method`의 MIR coverage gap 확인
-3. `main wrapper`가 요구하는 metadata를 MIR 쪽에 정의
-4. `llvm_codegen_with_mir()`에서 fallback 제거를 위한 failure mode 설계
+1. declaration inventory AST-carried debt 목록화
+2. `main wrapper`가 요구하는 metadata를 MIR 쪽에 더 밀기
+3. transpiler ABI metadata 실사용 경로 강화
+4. declaration-side helper의 AST naming 의존 정리
 
-이 네 개가 끝나야 실제 코드를 안전하게 뜯을 수 있다.
+routine-body fallback 제거는 이미 끝났고, 이제는 declaration-side debt를 줄이는 단계다.
 
 ## 5. 절대 하지 말아야 할 것
 
-- LLVM에서 HIR fallback을 유지한 채 새 기능을 계속 추가하는 것
+- LLVM에서 routine-body fallback을 다시 도입한 채 새 기능을 계속 추가하는 것
 - backend에서 HIR AST shape를 보고 intent/cleanup semantics를 재구성하는 것
 - ABI 문제를 backend 개별 ad-hoc struct tweak로 덮는 것
 - `MIR missing -> silently fallback`을 계속 허용하는 것
@@ -180,20 +194,18 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 
 가장 안전한 순서는 아래다.
 
-1. LLVM fallback map 작성
-2. intent MIR-only emission
-3. class method MIR-only emission
-4. main wrapper metadata migration
-5. fallback hard-error 전환
-6. transpiler ABI metadata 실사용 전환
-7. CI에서 fallback 금지
+1. declaration inventory debt map 작성
+2. main wrapper metadata migration
+3. declaration-side AST naming 의존 정리
+4. transpiler ABI metadata 실사용 전환
+5. CI에서 routine-body fallback 금지 유지
 
 ## 7. 성공 판정
 
 이 마이그레이션은 아래가 모두 만족될 때 완료로 본다.
 
-- backend entry가 `MIR` 없이는 동작하지 않는다
+- compiler mainline backend entry가 `MIR` 기준으로 동작한다
 - `LLVM`과 `C` 모두 동일한 MIR routine/block graph를 기준으로 emit한다
-- `HIR`는 diagnostics/type/source metadata lookup 용도로만 남는다
+- `HIR`는 legacy compatibility path와 diagnostics/type/source metadata lookup 용도로만 남고, mainline codegen source of truth는 아니다
 - `DIR/RIR/MIR` 검증 실패는 backend 진입 전에 중단된다
 - ABI contract 위반은 spec/test/backend validation에서 모두 잡힌다

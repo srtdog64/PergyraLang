@@ -334,6 +334,17 @@ transpiler_active_has_main_function(const TranspilerCtx *ctx)
     return false;
 }
 
+static inline bool
+transpiler_active_has_top_level_exec(const TranspilerCtx *ctx)
+{
+    if (ctx != NULL && ctx->mir != NULL)
+        return ctx->mir->has_top_level_exec;
+    if (ctx != NULL && ctx->hir != NULL)
+        return ctx->hir->synthetic_executable_func != NULL
+            || ctx->hir->executable_count > 0;
+    return false;
+}
+
 TranspilerCtx *transpiler_ctx_create(void);
 void           transpiler_ctx_destroy(TranspilerCtx *ctx);
 

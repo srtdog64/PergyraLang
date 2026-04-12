@@ -248,11 +248,11 @@
 현재:
 
 - function/action clause parser는 이미 table-driven이고 clause 순서는 고정이 아니다
-- `transfer target -> using` inference 구현됨
-- `transfer target -> where` inference 구현됨
-- explicit `using` zone binding -> `where` inference 구현됨
-- explicit `where` + unique matching participant -> `using` inference 구현됨
-- intent transfer mismatch diagnostics는 이제 추론된 `using/where`를 직접 보여준다
+- `transfer target -> using` derivation 구현됨
+- `transfer target -> where` derivation 구현됨
+- explicit `using` zone binding -> `where` derivation 구현됨
+- explicit `where` + unique matching participant -> `using` derivation 구현됨
+- intent transfer mismatch diagnostics는 이제 유도된 `using/where`를 직접 보여준다
 - example smoke에 아래 예제가 올라가 있다
   - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
   - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
@@ -266,7 +266,7 @@
 - top-level `within Zone { ... }` lexical zone context 1차
 - `using self.route as route;` / `using self.seal as seal;` explicit alias
 - `move <from-alias> to <to-alias>;` transfer short surface 1차
-- `who`의 유일 subject participant + matching action 기반 추론
+- `who`의 유일 subject participant + matching action contract 기반 상속
 - `refresh/publish/bind ... map { target <- source; }` field-level projection remap
 - `Clone(...)` builtin이 semantic/C backend/LLVM 경로까지 닫혔다
 - world constructor에 direct zone binding을 넘기면 implicit-copy warning이 난다
@@ -320,7 +320,7 @@
     - authority-bearing intent step
     - transfer target / `using` mismatch
     부터 `Reason` / `Fix` 형식으로 올리는 중이다
-  - 여기서 `action -> step`은 inheritance가 아니라 contract inference로 다룬다
+  - 여기서 `action -> step`은 nominal hierarchy inheritance가 아니라 contract inheritance로 다룬다
   - lexical zone context / using-transfer 정렬 규칙은
     [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
     에 별도 설계로 분리했다
@@ -397,6 +397,7 @@
 - `intent` run-body의 step 순서도 이제 MIR `STMT(intent step)` carrier를 읽는다.
 - `intent` step check(`pre/guard/post/invariant/expect`)와 eval(`on:` / subintent / compensate), default dispatch alias, zone metadata(`where/using/from/who`)도 MIR carrier를 우선 읽는다.
 - `intent` forward declaration/signature seed도 MIR `IntentParticipant` carrier를 우선 읽는다.
+- 위 규칙은 이제 LLVM뿐 아니라 C transpiler intent path에도 동일하게 적용된다.
 - 남은 직접 AST/HIR 의존:
   - MIR participant metadata가 없을 때의 compatibility fallback
   - domain/world/zone declaration emission 자체
@@ -420,16 +421,17 @@
 - 현재 상태:
   - plain `class` method: MIR direct path 우선, routine 없으면 hard error
   - `subject` method: MIR direct path 우선, routine 없으면 hard error
-  - `subject` method: MIR direct path 우선, 없으면 compatibility fallback 유지
-  - direct MIR method emission을 모든 nominal family로 hard-require 하는 단계는 아직 남아 있다
-- 확인된 현재 한계:
-  - `subject` method는 MIR direct emission 우선 경로는 들어갔지만, 아직 hard-require fallback 제거까지는 안 갔다
-- 즉 이 항목은 "plain class method는 전진, subject method는 다음 단계" 상태다.
+  - `enum` method: MIR direct path 우선, routine 없으면 hard error
+- 즉 routine-body 기준 method fallback은 제거됐다.
+- 남은 debt는 method body fallback이 아니라 declaration inventory / naming helper가 AST-carried shape를 소비하는 쪽이다.
 
 ### 4.4 Main-wrapper fallback
 
-- main wrapper는 HIR executable/top-level 정보를 직접 참조한다.
-- 최종 목표는 executable/entry metadata를 MIR 쪽으로 옮겨 wrapper도 MIR-only로 만드는 것이다.
+- MIR path의 main wrapper는 이제 top-level statement list 직접 순회가 아니라
+  `__pgy_top_level_exec`를 source of truth로 사용한다.
+- `MIRProgram.has_main_function` / `synthetic_executable_func` / `has_top_level_exec`도
+  MIR function inventory에서 직접 채운다.
+- 남은 debt는 `executables` inventory 자체가 아직 AST-carried list라는 점이다.
 
 ### 4.5 제거 순서
 

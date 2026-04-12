@@ -114,10 +114,10 @@ intent DeleteEvent uses OwnerWriteIntent {
 - profile은 preset이어야 한다.
 - 상속/다중 병합처럼 복잡해지면 안 된다.
 
-### 2.2 action 계약의 step 기본 추론
+### 2.2 action 계약의 step 기본 상속
 
 `action`에 이미 `requires`, `within`, `authorized by`가 있으면
-`intent step`은 기본적으로 그 계약을 추론해 채우고, 필요할 때만 override한다.
+`intent step`은 기본적으로 그 계약을 상속해 채우고, 필요할 때만 override한다.
 
 현재 고정한 최소 surface는 `matching action contract pack`이다.
 
@@ -177,16 +177,16 @@ intent ManageEvent {
 
 필수 조건:
 
-- diagnostics는 반드시 "이 값은 action 선언에서 추론됨"을 보여줘야 한다.
-- `transfer target -> using/where`처럼 자동 추론된 값도
-  diagnostics에서 추론 출처를 직접 보여줘야 한다.
+- diagnostics는 반드시 "이 값은 matching action contract에서 상속됨"을 보여줘야 한다.
+- `transfer target -> using/where`처럼 자동 유도된 값도
+  diagnostics에서 유도 출처를 직접 보여줘야 한다.
 
 현재 정책은 아래처럼 고정한다.
 
 1. `matching action contract pack`
 - `who / where / requires / authorized by / causes`
 
-2. `transfer inference pack`
+2. `transfer derivation pack`
 - `where / using`
 
 3. declaration-local only
@@ -194,8 +194,8 @@ intent ManageEvent {
 
 용어:
 
-- 이것은 inheritance가 아니다.
-- nominal/object hierarchy가 아니라, 이미 선언된 계약에서 기본값을 채우는 inference다.
+- `action -> step`은 nominal/object hierarchy 상속이 아니라 contract inheritance다.
+- `transfer target -> where/using`은 이미 주어진 target에서 값을 채우는 derivation이다.
 
 ### 2.3 lexical default zone
 
@@ -502,14 +502,15 @@ token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
 
 The remaining compression work should not branch out into new feature families. The current execution order is fixed below.
 
-### P0.1 Contract provenance everywhere inference exists
+### P0.1 Contract provenance everywhere inheritance/derivation exists
 
 Goal:
-Whenever the compiler inherits or infers a step contract, the provenance must be visible in diagnostics, debug output, and docs.
+Whenever the compiler inherits or derives a step contract, the provenance must be visible in diagnostics, debug output, and docs.
 
 Done means:
 - step diagnostics mention matching-action inheritance where relevant
-- transfer diagnostics mention transfer-target inference where relevant
+- step diagnostics expose the concrete matching action contract when one exists
+- transfer diagnostics mention transfer-target derivation where relevant
 - AST/debug output shows contract-source markers
 
 ### P0.2 Canonical short surface for the common contract path
@@ -529,7 +530,7 @@ Make the boundary between reusable contract clauses and declaration-local clause
 
 Done means:
 - `who / where / requires / authorized by / causes` are treated as the matching action contract pack
-- `where / using` are treated as the transfer inference pack
+- `where / using` are treated as the transfer derivation pack
 - `with effects` is documented and surfaced as declaration-local only
 
 ### P0.4 Stable-reference example split

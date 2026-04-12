@@ -136,8 +136,23 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     MIR_COPY_AST_LIST(intents, intent_count);
     MIR_COPY_AST_LIST(functions, function_count);
     MIR_COPY_AST_LIST(executables, executable_count);
-    mir->synthetic_executable_func = hir->synthetic_executable_func;
-    mir->has_main_function = hir->has_main_function;
+    mir->synthetic_executable_func = NULL;
+    mir->has_top_level_exec = false;
+    mir->has_main_function = false;
+    for (size_t i = 0; i < mir->function_count; i++) {
+        ASTNode *fn = mir->functions[i];
+        if (fn == NULL || fn->type != AST_FUNC_DECL
+            || fn->data.func_decl.name == NULL) {
+            continue;
+        }
+        if (strcmp(fn->data.func_decl.name, "__pgy_top_level_exec") == 0) {
+            mir->synthetic_executable_func = fn;
+            mir->has_top_level_exec = true;
+        }
+        if (strcmp(fn->data.func_decl.name, "Main") == 0) {
+            mir->has_main_function = true;
+        }
+    }
 
 #undef MIR_COPY_AST_LIST
 

@@ -42,7 +42,8 @@ typedef struct
  * ----------------------------------------------------------------- */
 
 /*
- * Generate LLVM IR from lowered HIR and return it as text.
+ * Compatibility entrypoint for the legacy HIR-only pipeline.
+ * New compiler paths should prefer llvm_codegen_from_mir().
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen(const HIRProgram *hir, const char *module_name);
@@ -50,9 +51,12 @@ LLVMGenResult *llvm_codegen_from_mir(const MIRProgram *mir,
                                      const char *module_name);
 
 /*
- * Generate LLVM IR from MIR (preferred).
+ * Compatibility wrapper used while external callers still thread both HIR and
+ * MIR through the backend boundary.
+ * New compiler paths should prefer llvm_codegen_from_mir().
  * When `mir` is present, backend codegen uses MIR routines plus MIR-carried
- * declaration/top-level inventory. `hir` is only for the legacy non-MIR path.
+ * declaration/top-level inventory. `hir` remains only for the legacy
+ * non-MIR whole-program path.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
@@ -64,9 +68,7 @@ LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                                bool release_opt);
 
 /*
- * Generate LLVM IR from MIR and emit a native object file (.o).
- * If `mir` is NULL, this keeps the legacy behavior and falls back to HIR emission.
- * With `mir` present, routine and top-level codegen consumes MIR-backed data.
+ * MIR-native object emission entrypoint.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,
@@ -76,7 +78,8 @@ LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,
                                                bool release_opt);
 
 /*
- * Generate LLVM IR from lowered HIR, optimize, and emit a native object file (.o).
+ * Compatibility entrypoint for the legacy HIR-only object emission path.
+ * New compiler paths should prefer llvm_codegen_to_object_from_mir().
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_to_object(const HIRProgram *hir,

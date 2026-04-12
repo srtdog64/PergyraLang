@@ -22,7 +22,7 @@
 
 ## 1. 현재 이미 구현된 압축
 
-### 1.1 canonical pair: action contract inference / transfer inference
+### 1.1 canonical pair: action contract inheritance / transfer derivation
 
 우선 봐야 할 stable canonical pair:
 
@@ -81,10 +81,10 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 현재 구현 상태:
 
-- `who / where / requires / causes / authorized by`는 matching action contract과 유일 subject participant에서 기본 추론된다
-- `transfer target -> using/where inference`도 구현돼 있다
-- explicit `using:`이 zone binding이면 `where:`도 거기서 추론된다
-- explicit `where:`가 있고 matching zone participant가 유일하면 `using:`도 추론된다
+- `who / where / requires / causes / authorized by`는 matching action contract에서 기본 상속된다
+- `transfer target -> using/where derivation`도 구현돼 있다
+- explicit `using:`이 zone binding이면 `where:`도 거기서 유도된다
+- explicit `where:`가 있고 matching zone participant가 유일하면 `using:`도 유도된다
 
 설명:
 
@@ -95,7 +95,7 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 - `using: payment;`
 - `where: PaymentZone;`
 
-가 기본 추론된다.
+가 기본 상속/유도된다.
 
 stable example source of truth:
 
@@ -127,11 +127,11 @@ stable canonical pair:
 - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)는
   현재 실제로 되는 최소 surface만 보여준다
 - [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)는
-  action contract 기반 `who / where / requires / causes / authorized by` 추론을 보여준다
+  action contract 기반 `who / where / requires / causes / authorized by` 상속을 보여준다
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)는
-  `move <from> to <to>;`와 transfer inference를 함께 보여준다
+  `move <from> to <to>;`와 transfer derivation을 함께 보여준다
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)는
-  `move <from> to <ZoneType>;` target-zone 추론을 보여준다
+  `move <from> to <ZoneType>;` target-zone 유도를 보여준다
 - [surface_compression_maximal.pgy](/mnt/e/PergyraLang/examples/surface_compression_maximal.pgy)는
   현재 구현된 축소 표면을 한 번에 묶은 최대치 예제다
 - [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)는
@@ -139,12 +139,17 @@ stable canonical pair:
 - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)는
   `refresh [a, b] from source`와 `publish [x, y] from source` 그룹 표면을 보여준다
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)는
-  action contract 추론, `where/use` 상호 추론, projection field map, explicit `Clone` world embedding을 함께 보여준다
+  action contract 상속, `where/use` 상호 유도, projection field map, explicit `Clone` world embedding을 함께 보여준다
 - diagnostics는 이제 같은 vocabulary를 쓴다:
+  - `matching action contract: Subject.Action`
   - `locally declared ...`
-  - `inherited ... from matching action`
-  - `inferred ... from transfer target`
-- 즉 압축이 실패해도 사용자는 local/inherited/inferred provenance를 같은 용어로 읽을 수 있어야 한다
+  - `inherited ... from matching action contract`
+  - `derived ... from transfer target`
+- AST/debug dump도 같은 provenance vocabulary를 쓴다:
+  - `ContractProvenance: inherited who from matching action contract, ...`
+- step이 matching action contract와 같은 `who / where / requires / causes / authorized by`
+  를 그대로 다시 쓰면 redundancy warning으로 알려준다
+- 즉 압축이 실패해도 사용자는 local/inherited/derived provenance를 같은 용어로 읽을 수 있어야 한다
 
 ### 1.2 clause 순서 자유화
 
@@ -214,7 +219,7 @@ within CalendarZone {
 
 핵심:
 
-- inheritance가 아니라 zone context inference다
+- inheritance가 아니라 zone context derivation이다
 - 현재는 top-level block 1차 구현이다
 - 같은 파일/블록에서 `within CalendarZone`를 반복해서 쓰는 부담을 줄이는 용도다
 
@@ -271,7 +276,7 @@ bind snapshot from player
 
 - 새 projection 의미론을 추가하지 않는다
 - parser가 기존 `bind` 두 줄로 펼치기 때문에 semantic/codegen debt가 늘지 않는다
-- object/tobject target 혼합도 기존 `bind`의 target-kind inference를 그대로 탄다
+- object/tobject target 혼합도 기존 `bind`의 target-kind derivation을 그대로 탄다
 - 즉 surface만 줄이고 의미론은 넓히지 않는다
 
 같은 패턴으로 다음도 된다:
@@ -329,7 +334,7 @@ move loading to delivery;
 
 - `move <from-alias> to <to-alias>;`는
   `transfer: <from-alias> -> <to-alias>;`로 낮아진다
-- 기존 `transfer target -> using/where inference`도 그대로 적용된다
+- 기존 `transfer target -> using/where derivation`도 그대로 적용된다
 - `move <from-alias> to <ZoneType>;`는
   intent participant 중 해당 zone type이 유일하면 그 binding alias로 정규화된다
 
@@ -396,18 +401,19 @@ let world = PacketWorld(ConnectionZone(...));
 - `step requires: ...`
 
 즉 지금은 키워드를 줄이는 단계가 아니라,
-반복되는 cluster를 inference와 shorter surface로 압축하는 단계다.
+반복되는 cluster를 inheritance/derivation과 shorter surface로 압축하는 단계다.
 
 ## 4. 구현/설계 경계
 
 ### 이미 구현됨
 
-- action contract inference -> intent step
-- transfer target -> using inference
-- transfer target -> where inference
-- explicit `using` -> `where` inference
-- explicit `where` -> `using` inference
+- action contract inheritance -> intent step
+- transfer target -> using derivation
+- transfer target -> where derivation
+- explicit `using` -> `where` derivation
+- explicit `where` -> `using` derivation
 - clause order 자유화
+- 일반 `func`에 `requires/within/causes/authorized by`를 쓰면 action 전용 clause라는 직접 진단
 - `refresh/publish/bind ... map { ... }`
 - domain-first diagnostics 1차
 

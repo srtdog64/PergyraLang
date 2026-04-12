@@ -132,6 +132,54 @@ typedef bool (*FunctionClauseParser)(Parser *parser, ASTNode *func,
                                      bool is_action);
 
 static bool
+parser_decl_is_action_only_function_clause(Parser *parser)
+{
+    if (parser == NULL || !parser_check(parser, TOKEN_IDENTIFIER)
+        || parser->current_token.text == NULL) {
+        return false;
+    }
+
+    return strcmp(parser->current_token.text, "requires") == 0
+        || strcmp(parser->current_token.text, "within") == 0
+        || strcmp(parser->current_token.text, "causes") == 0
+        || strcmp(parser->current_token.text, "authorized") == 0;
+}
+
+static bool
+parser_decl_is_function_clause_leader(Parser *parser)
+{
+    return parser != NULL
+        && (parser_check(parser, TOKEN_WHERE)
+            || parser_check(parser, TOKEN_WITH)
+            || parser_decl_is_action_only_function_clause(parser));
+}
+
+static bool
+parser_decl_report_invalid_function_clause(Parser *parser, bool is_action)
+{
+    if (parser == NULL)
+        return false;
+
+    if (!is_action && parser_decl_is_action_only_function_clause(parser)) {
+        parser_error(parser,
+                     "'%s' clause is only valid on 'action' declarations; "
+                     "use 'action Name(...)' or remove the clause",
+                     parser->current_token.text);
+        return true;
+    }
+
+    if (parser_decl_is_function_clause_leader(parser)) {
+        parser_error(parser,
+                     "Invalid function/action clause; expected one of "
+                     "'where', 'with effects', 'requires', 'within', "
+                     "'causes', or 'authorized by'");
+        return true;
+    }
+
+    return false;
+}
+
+static bool
 parse_function_clause_where(Parser *parser, ASTNode *func, bool is_action)
 {
     WhereClause *where_clause = NULL;
@@ -174,6 +222,12 @@ parse_function_clause_requires(Parser *parser, ASTNode *func, bool is_action)
     if (func->data.func_decl.required_ability_count > 0)
         parser_error(parser, "Duplicate 'requires' clause");
     parser_advance(parser);
+    if (parser_match(parser, TOKEN_COLON)) {
+        parser_error(parser,
+                     "Intent-style 'requires:' is not valid in function/action clauses; "
+                     "use 'requires Ability[, Ability]'");
+        return true;
+    }
     do {
         ASTNode *ability = parse_type(parser);
         size_t next = func->data.func_decl.required_ability_count + 1;
@@ -197,6 +251,12 @@ parse_function_clause_within(Parser *parser, ASTNode *func, bool is_action)
     if (func->data.func_decl.within_zone != NULL)
         parser_error(parser, "Duplicate 'within' clause");
     parser_advance(parser);
+    if (parser_match(parser, TOKEN_COLON)) {
+        parser_error(parser,
+                     "Intent-style 'within:' is not valid in function/action clauses; "
+                     "use 'within ZoneName'");
+        return true;
+    }
     zone = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected zone name after 'within'");
     if (func->data.func_decl.within_zone == NULL)
@@ -215,6 +275,12 @@ parse_function_clause_causes(Parser *parser, ASTNode *func, bool is_action)
     if (func->data.func_decl.causes_effect != NULL)
         parser_error(parser, "Duplicate 'causes' clause");
     parser_advance(parser);
+    if (parser_match(parser, TOKEN_COLON)) {
+        parser_error(parser,
+                     "Intent-style 'causes:' is not valid in function/action clauses; "
+                     "use 'causes EffectName'");
+        return true;
+    }
     effect = parser_consume(parser, TOKEN_IDENTIFIER,
         "Expected effect name after 'causes'");
     if (func->data.func_decl.causes_effect == NULL)
@@ -236,6 +302,12 @@ parse_function_clause_authorized_by(Parser *parser, ASTNode *func,
     if (!parser_decl_match_contextual_keyword(parser, "by")) {
         parser_error(parser,
                      "Expected 'by' after 'authorized' in function/action clause; use 'authorized by <subject>'");
+        return true;
+    }
+    if (parser_match(parser, TOKEN_COLON)) {
+        parser_error(parser,
+                     "Intent-style 'authorized by:' is not valid in function/action clauses; "
+                     "use 'authorized by <subject>'");
         return true;
     }
     do {
@@ -642,8 +714,11 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
         }
         if (parser_has_error(parser))
             return func;
-        if (!matched)
+        if (!matched) {
+            if (parser_decl_report_invalid_function_clause(parser, is_action))
+                return func;
             break;
+        }
     }
 
     if (parser->in_extern_block) {

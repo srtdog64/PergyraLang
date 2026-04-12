@@ -457,7 +457,7 @@ Pergyra의 현재 pain point를 정리한다.
 
 핵심 압축 방향:
 
-- zone 내부 action은 `within` 기본 추론
+- zone 내부 action은 `within` 기본 유도
 - self-authorized 기본형은 더 짧은 surface 제공
 - `causes`는 effect slot 연결이 자명한 경우 축약 여지 검토
 
@@ -491,7 +491,7 @@ Pergyra의 현재 pain point를 정리한다.
 핵심 압축 방향:
 
 - intent-level default `who` / `where` 강화
-- action 계약의 step 기본 추론 강화
+- action 계약의 step 기본 상속 강화
 - `transfer` 축약 표면
 - `using`과 transfer target의 자동 정렬
 
@@ -517,9 +517,9 @@ Pergyra의 현재 pain point를 정리한다.
 
 핵심 압축 방향:
 
-- authority contract 기본 추론
-- action `requires`의 intent step 기본 추론
-- diagnostics에서 “어디서 추론됐는가”를 명확히 표시
+- authority contract 기본 상속
+- action `requires`의 intent step 기본 상속
+- diagnostics에서 “어디서 상속/유도됐는가”를 명확히 표시
 
 ## 2.6 용어 고정
 
@@ -528,12 +528,12 @@ Pergyra의 현재 pain point를 정리한다.
 - `inheritance`
   - nominal/object hierarchy 의미로만 쓴다
 - `inference`
-  - 이미 선언된 zone/world/action/authority 계약에서 기본값을 추론해 채우는 것
+  - 이미 선언된 zone/world/action/authority 계약에서 기본값을 상속/유도해 채우는 것
 - `preset/profile`
   - 반복되는 clause 묶음을 미리 정의한 authoring shortcut
 
 즉 `intent step`이 action의 `within/requires/authorized by/causes`를 가져오는 것은
-`상속`이 아니라 `계약 추론`이다.
+nominal 상속이 아니라 `계약 상속`이다.
 
 ### D. projection / domain wiring cluster
 
@@ -686,7 +686,7 @@ Once inference removes boilerplate, failures become harder to interpret unless t
 
 Closure target:
 - every boundary/authority/requires failure on an intent step should name the inferred source
-- error text should distinguish `locally declared`, `inherited from matching action`, and `inferred from transfer target`
+- error text should distinguish `locally declared`, `inherited from matching action contract`, and `derived from transfer target`
 - the user should not need to reconstruct hidden inference by reading multiple declarations manually
 
 Primary implementation fronts:

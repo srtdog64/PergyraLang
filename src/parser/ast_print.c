@@ -78,45 +78,45 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
 
     if (node == NULL || node->type != AST_INTENT_STEP)
         return;
-    if (!node->data.intent_step.inferred_who_from_action
+    if (!node->data.intent_step.inherited_who_from_action
         && !node->data.intent_step.inherited_where_from_action
         && !node->data.intent_step.inherited_requires_from_action
         && !node->data.intent_step.inherited_causes_from_action
         && !node->data.intent_step.inherited_authorized_by_from_action
-        && !node->data.intent_step.inferred_where_from_transfer
-        && !node->data.intent_step.inferred_using_from_transfer) {
+        && !node->data.intent_step.derived_where_from_transfer
+        && !node->data.intent_step.derived_using_from_transfer) {
         return;
     }
 
     print_indent(indent);
-    printf("ContractSource: ");
+    printf("ContractProvenance: ");
 
-    if (node->data.intent_step.inferred_who_from_action) {
-        printf("who<-action");
+    if (node->data.intent_step.inherited_who_from_action) {
+        printf("inherited who from matching action contract");
         printed = true;
     }
     if (node->data.intent_step.inherited_where_from_action) {
-        printf("%swhere<-action", printed ? ", " : "");
+        printf("%sinherited zone from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_requires_from_action) {
-        printf("%srequires<-action", printed ? ", " : "");
+        printf("%sinherited requires from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_causes_from_action) {
-        printf("%scauses<-action", printed ? ", " : "");
+        printf("%sinherited causes from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_authorized_by_from_action) {
-        printf("%sauthorized-by<-action", printed ? ", " : "");
+        printf("%sinherited authorized by from matching action contract", printed ? ", " : "");
         printed = true;
     }
-    if (node->data.intent_step.inferred_where_from_transfer) {
-        printf("%swhere<-transfer", printed ? ", " : "");
+    if (node->data.intent_step.derived_where_from_transfer) {
+        printf("%sderived zone from transfer target", printed ? ", " : "");
         printed = true;
     }
-    if (node->data.intent_step.inferred_using_from_transfer) {
-        printf("%susing<-transfer", printed ? ", " : "");
+    if (node->data.intent_step.derived_using_from_transfer) {
+        printf("%sderived using from transfer target", printed ? ", " : "");
     }
     printf("\n");
 }

@@ -4671,10 +4671,17 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
 
     const char *fn = NULL;
     const char *suffix = NULL;
+    const MIRTypeLayout *effective_layout = layout;
+
+    if (effective_layout == NULL) {
+        const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->subject;
+        if (abi_key != NULL)
+            effective_layout = mir_abi_lookup(abi_key);
+    }
 
     /* Priority 1: use runtime_fn from type_layout */
-    if (layout != NULL && layout->runtime_fn != NULL) {
-        fn = layout->runtime_fn;
+    if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
+        fn = effective_layout->runtime_fn;
         suffix = transpiler_extract_type_suffix_from_fn(fn);
     }
     /* Priority 2: fallback — extract from arg0 or name */
@@ -4717,7 +4724,10 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
         /* Rule 4: Slot Read
          * C: <inner_type> <name> = pgy_read_<T>(&<anchor>);
          */
-        const char *inner_c = (layout != NULL && layout->inner_c_type) ? layout->inner_c_type : "int32_t";
+        const char *inner_c =
+            (effective_layout != NULL && effective_layout->inner_c_type)
+                ? effective_layout->inner_c_type
+                : "int32_t";
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
 
@@ -4785,14 +4795,20 @@ transpiler_emit_mir_def(CodeBuf *out,
     if (out == NULL || inst == NULL)
         return false;
 
+    const MIRTypeLayout *effective_layout = layout;
+    if (effective_layout == NULL && inst->subject != NULL)
+        effective_layout = mir_abi_lookup(inst->subject);
+
     /* If this DEF has a type_layout with runtime_fn, emit as function call */
-    if (layout != NULL && layout->runtime_fn != NULL) {
-        const char *inner_c = layout->inner_c_type != NULL ? layout->inner_c_type : "int32_t";
+    if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
+        const char *inner_c = effective_layout->inner_c_type != NULL
+            ? effective_layout->inner_c_type : "int32_t";
         const char *result = inst->result_name != NULL ? inst->result_name : "tmp";
         const char *arg = inst->arg1 != NULL ? inst->arg1 : "";
 
         write_indent_to(out, indent);
-        codebuf_write(out, "%s %s = %s(%s);\n", inner_c, result, layout->runtime_fn, arg);
+        codebuf_write(out, "%s %s = %s(%s);\n", inner_c, result,
+                      effective_layout->runtime_fn, arg);
         return true;
     }
 

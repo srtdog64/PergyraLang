@@ -828,13 +828,13 @@ struct ASTNode
             char** authorized_by;
             size_t authorized_by_count;
             ASTNode* expect_expr;
-            bool inferred_who_from_action;
+            bool inherited_who_from_action;
             bool inherited_where_from_action;
             bool inherited_requires_from_action;
             bool inherited_causes_from_action;
             bool inherited_authorized_by_from_action;
-            bool inferred_where_from_transfer;
-            bool inferred_using_from_transfer;
+            bool derived_where_from_transfer;
+            bool derived_using_from_transfer;
         } intent_step;
 
         /* Relation declaration */

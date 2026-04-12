@@ -133,6 +133,12 @@ func Sort<T>(items: Array<T>) -> Array<T> where T: Comparable { return items; }
 - 제네릭 함수, `where` 제약
 - `async func`
 - `subject`는 일반 field로 `class`를 값 소유할 수 있다 (`let weapon: Item;`)
+- function/action clause 순서는 자유다. `where`, `with effects`, `requires`,
+  `within`, `causes`, `authorized by`는 고정 순서를 요구하지 않는다.
+- `requires`, `within`, `causes`, `authorized by`는 `action` 전용 clause다.
+  일반 `func`에 쓰면 parser가 해당 clause가 action 전용이라고 직접 진단한다.
+- action/function clause는 intent step처럼 `requires:` / `within:` /
+  `causes:` / `authorized by:` 콜론 표기를 쓰지 않는다.
 
 ### 2.2.1 intent 선언
 
@@ -335,7 +341,7 @@ enum Color { Red, Green, Blue }
 - `zone`은 `apply/detach/link/unlink/refresh/publish/bind/maintain` 뒤에 optional `by subjectSlot` authority annotation을 붙일 수 있다.
 - `zone`은 `apply stateName`, `link stateName`, `detach stateName`, `unlink stateName`, `maintain stateName` shorthand를 지원한다.
 - `zone`은 `publish packetSlot from subjectSlot`로 tobject projection 갱신을 명시할 수 있다.
-- `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 추론할 수 있다. object slot이면 `refresh`, tobject slot이면 `publish`와 같은 semantic 계약으로 해석된다.
+- `zone`은 `bind slotName from sourceSlot`로 projection target kind를 slot declaration에서 자동 유도할 수 있다. object slot이면 `refresh`, tobject slot이면 `publish`와 같은 semantic 계약으로 해석된다.
 - `HasLayer(layerSlot)`는 zone declaration / zone method 안에서 선언된 relation/effect layer slot 활성 여부를 Bool로 질의한다. C backend는 generated helper를 통해 zone rdlock과 generation stale-warning을 자동 삽입한다.
 - `HasState(stateName)`는 zone declaration / zone method 안에서 선언된 state alias를 Bool로 질의한다.
 - `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)`는 state와 slot 조합이 선언과 맞는지까지 질의한다.

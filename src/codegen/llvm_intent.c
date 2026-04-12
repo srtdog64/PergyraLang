@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend — intent declaration helpers and HIR fallback emission
+ * LLVM backend — MIR-backed intent declaration helpers
  */
 
 #ifdef PGY_LLVM_ENABLED

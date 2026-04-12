@@ -1,17 +1,17 @@
-# Zone Context and Transfer Inference Plan
+# Zone Context and Transfer Derivation Plan
 
 마지막 업데이트: 2026-04-11
 
 이 문서는 Pergyra의 authoring pain point를 줄이기 위해
-`zone/world/context inference`와 `using/transfer` 자동 정렬 규칙을 고정한다.
+`zone/world/context derivation`와 `using/transfer` 자동 정렬 규칙을 고정한다.
 
 핵심 목표:
 
 - 개념을 줄이지 않는다.
 - 같은 zone/world 문맥을 반복 서술하지 않게 한다.
 - `using:` / `transfer:`의 rigid surface를 그대로 두되,
-  흔한 경우는 추론으로 압축한다.
-- diagnostics는 반드시 "무엇이 추론됐고 무엇이 충돌했는가"를 보여준다.
+  흔한 경우는 유도로 압축한다.
+- diagnostics는 반드시 "무엇이 유도됐고 무엇이 충돌했는가"를 보여준다.
 
 ## 1. lexical zone context
 
@@ -104,7 +104,7 @@ Fix:
 - or add an explicit 'within PaymentZone'
 ```
 
-## 2. using / transfer inference
+## 2. using / transfer derivation
 
 ### 2.1 문제
 
@@ -127,7 +127,7 @@ step Pay {
 - `where`와 `transfer target`이 사실상 같은 zone을 가리킴
 - `using`도 대부분 transfer target과 동일
 
-### 2.2 기본 추론 규칙
+### 2.2 기본 유도 규칙
 
 #### Rule A. transfer target -> using
 
@@ -138,7 +138,7 @@ step Pay {
 
 동작:
 
-- `using: target;`을 자동 추론
+- `using: target;`을 자동 유도
 
 #### Rule B. transfer target -> where
 
@@ -150,7 +150,7 @@ step Pay {
 
 동작:
 
-- `where: <target-zone-type>;`를 자동 추론
+- `where: <target-zone-type>;`를 자동 유도
 
 #### Rule C. explicit wins
 
@@ -161,18 +161,18 @@ step Pay {
 동작:
 
 - explicit가 우선
-- 추론값과 충돌하면 domain-first diagnostic
+- 유도값과 충돌하면 domain-first diagnostic
 
 #### Rule D. no multi-hop inference
 
 금지:
 
-- `source -> target`만으로 authority, requires, causes까지 자동 추론
+- `source -> target`만으로 authority, requires, causes까지 자동 유도
 
 이유:
 
 - 그 수준까지 가면 규칙이 숨는다
-- P0에서는 zone alignment까지만 추론한다
+- P0에서는 zone alignment까지만 유도한다
 
 ### 2.3 diagnostics
 
@@ -196,32 +196,32 @@ Fix:
 
 P0:
 
-1. `transfer target -> using` 추론
-2. `transfer target -> where` 추론
+1. `transfer target -> using` 유도
+2. `transfer target -> where` 유도
 3. mismatch diagnostics를 `Reason / Fix` 형식으로 통일
 
 P1:
 
 1. intent-level default zone과 lexical zone context 연결
-2. world-local context inference 분리 설계
+2. world-local context derivation 분리 설계
 
 P2:
 
 1. more advanced routing presets
-2. profile/preset과 inference의 결합
+2. profile/preset과 derivation의 결합
 
 ## 3. boundary
 
-이 문서에서 `inference`는 아래 범위만 뜻한다.
+이 문서에서 `derivation`은 아래 범위만 뜻한다.
 
 - 이미 선언된 zone/world/action/authority 계약에서
 - 빠진 기본값을 채우는 것
 
 이 문서는 아래는 아직 포함하지 않는다.
 
-- implicit authority inference
-- implicit effect inference
-- implicit ability satisfaction inference
+- implicit authority derivation
+- implicit effect derivation
+- implicit ability satisfaction derivation
 - compact domain block
 
 ## 4. 결정
@@ -229,6 +229,6 @@ P2:
 현재 방향:
 
 1. `lexical zone context`는 block surface부터 시작하고, top-level block 1차 구현이 들어갔다
-2. `using/transfer`는 target-alignment inference만 먼저 넣는다
-3. explicit clause는 항상 inference보다 우선한다
-4. diagnostics는 "추론된 값"과 "명시된 값"의 충돌을 직접 보여준다
+2. `using/transfer`는 target-alignment derivation만 먼저 넣는다
+3. explicit clause는 항상 derivation보다 우선한다
+4. diagnostics는 "유도된 값"과 "명시된 값"의 충돌을 직접 보여준다

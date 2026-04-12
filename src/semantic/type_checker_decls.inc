@@ -4,14 +4,240 @@ static ASTNode *
 any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
 static bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
+static ASTNode *
+intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
+                                    SemanticContext *ctx,
+                                    ASTNode **subject_decl_out);
+static const char *
+intent_action_binding_type_name(ASTNode *action_decl, ASTNode *action_subject_decl,
+                                SemanticContext *ctx, const char *binding_name);
+
+static bool
+intent_step_same_ability_list(ASTNode *step, ASTNode *action_decl)
+{
+    if (step == NULL || action_decl == NULL
+        || step->type != AST_INTENT_STEP
+        || action_decl->type != AST_FUNC_DECL) {
+        return false;
+    }
+    if (step->data.intent_step.required_ability_count
+        != action_decl->data.func_decl.required_ability_count) {
+        return false;
+    }
+
+    for (size_t i = 0; i < step->data.intent_step.required_ability_count; i++) {
+        char *step_text = ability_ref_display(
+            step->data.intent_step.required_abilities[i]);
+        char *action_text = ability_ref_display(
+            action_decl->data.func_decl.required_abilities[i]);
+        bool same = step_text != NULL && action_text != NULL
+            && strcmp(step_text, action_text) == 0;
+        free(step_text);
+        free(action_text);
+        if (!same)
+            return false;
+    }
+
+    return true;
+}
+
+static bool
+intent_step_same_authorized_by_list(ASTNode *intent_decl,
+                                    ASTNode *step,
+                                    ASTNode *action_decl,
+                                    ASTNode *action_subject_decl,
+                                    SemanticContext *ctx)
+{
+    if (intent_decl == NULL || step == NULL || action_decl == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || action_decl->type != AST_FUNC_DECL) {
+        return false;
+    }
+
+    if (step->data.intent_step.authorized_by_count
+        != action_decl->data.func_decl.authorized_by_count) {
+        return false;
+    }
+
+    for (size_t i = 0; i < action_decl->data.func_decl.authorized_by_count; i++) {
+        const char *binding_name = action_decl->data.func_decl.authorized_by[i];
+        const char *binding_type_name = intent_action_binding_type_name(
+            action_decl, action_subject_decl, ctx, binding_name);
+        const char *mapped_alias = NULL;
+
+        if (binding_name == NULL)
+            return false;
+
+        if (strcmp(binding_name, "self") == 0) {
+            if (step->data.intent_step.who_count == 1)
+                mapped_alias = step->data.intent_step.who_names[0];
+        } else if (binding_type_name != NULL) {
+            for (size_t j = 0; j < intent_decl->data.intent_decl.involve_count; j++) {
+                ASTNode *involves = intent_decl->data.intent_decl.involves[j];
+                const char *participant_type_name = intent_involves_type_name(involves);
+                if (participant_type_name != NULL
+                    && strcmp(participant_type_name, binding_type_name) == 0) {
+                    if (mapped_alias != NULL)
+                        return false;
+                    mapped_alias = involves->data.intent_involves.alias;
+                }
+            }
+        }
+
+        if (mapped_alias == NULL
+            || step->data.intent_step.authorized_by[i] == NULL
+            || strcmp(step->data.intent_step.authorized_by[i], mapped_alias) != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+intent_step_same_who_binding(ASTNode *intent_decl,
+                             ASTNode *step,
+                             ASTNode *action_subject_decl)
+{
+    const char *subject_name;
+    const char *step_alias;
+    const char *matched_alias = NULL;
+
+    if (intent_decl == NULL || step == NULL || action_subject_decl == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.who_count != 1) {
+        return false;
+    }
+
+    subject_name = nominal_decl_name(action_subject_decl);
+    step_alias = step->data.intent_step.who_names[0];
+    if (subject_name == NULL || step_alias == NULL)
+        return false;
+
+    for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+        const char *participant_type_name = intent_involves_type_name(involves);
+        if (participant_type_name == NULL
+            || strcmp(participant_type_name, subject_name) != 0) {
+            continue;
+        }
+        if (matched_alias != NULL)
+            return false;
+        matched_alias = involves->data.intent_involves.alias;
+    }
+
+    return matched_alias != NULL && strcmp(matched_alias, step_alias) == 0;
+}
 
 static void
-intent_step_format_contract_source_summary(const ASTNode *step,
+intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
+                                           ASTNode *step,
+                                           SemanticContext *ctx)
+{
+    ASTNode *action_subject_decl = NULL;
+    ASTNode *action_decl = intent_step_find_inheritable_action(
+        intent_decl, step, ctx, &action_subject_decl);
+    char redundant[256];
+    size_t used = 0;
+    bool has_any = false;
+    const char *step_name;
+    const char *action_name;
+    const char *subject_name;
+
+    (void)action_subject_decl;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP) {
+        return;
+    }
+    if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
+        return;
+
+    redundant[0] = '\0';
+    step_name = step->data.intent_step.name != NULL
+        ? step->data.intent_step.name : "<step>";
+    action_name = action_decl->data.func_decl.name != NULL
+        ? action_decl->data.func_decl.name : "<action>";
+    subject_name = nominal_decl_name(action_subject_decl);
+
+    if (step->data.intent_step.where_type != NULL
+        && !step->data.intent_step.inherited_where_from_action
+        && !step->data.intent_step.derived_where_from_transfer
+        && action_decl->data.func_decl.within_zone != NULL
+        && step->data.intent_step.where_type->type == AST_TYPE
+        && step->data.intent_step.where_type->data.type.name != NULL
+        && strcmp(step->data.intent_step.where_type->data.type.name,
+                  action_decl->data.func_decl.within_zone) == 0) {
+        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
+            "%s- where", has_any ? "\n" : "");
+        has_any = true;
+    }
+
+    if (step->data.intent_step.who_count > 0
+        && !step->data.intent_step.inherited_who_from_action
+        && intent_step_same_who_binding(intent_decl, step, action_subject_decl)) {
+        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
+            "%s- who", has_any ? "\n" : "");
+        has_any = true;
+    }
+
+    if (step->data.intent_step.required_ability_count > 0
+        && !step->data.intent_step.inherited_requires_from_action
+        && action_decl->data.func_decl.required_ability_count > 0
+        && intent_step_same_ability_list(step, action_decl)) {
+        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
+            "%s- requires", has_any ? "\n" : "");
+        has_any = true;
+    }
+
+    if (step->data.intent_step.causes_effect != NULL
+        && !step->data.intent_step.inherited_causes_from_action
+        && action_decl->data.func_decl.causes_effect != NULL
+        && strcmp(step->data.intent_step.causes_effect,
+                  action_decl->data.func_decl.causes_effect) == 0) {
+        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
+            "%s- causes", has_any ? "\n" : "");
+        has_any = true;
+    }
+
+    if (step->data.intent_step.authorized_by_count > 0
+        && !step->data.intent_step.inherited_authorized_by_from_action
+        && action_decl->data.func_decl.authorized_by_count > 0
+        && intent_step_same_authorized_by_list(intent_decl, step, action_decl,
+                                               action_subject_decl, ctx)) {
+        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
+            "%s- authorized by", has_any ? "\n" : "");
+        has_any = true;
+    }
+
+    if (!has_any)
+        return;
+
+    semantic_warning(ctx, step,
+        "Intent step '%s' restates contract clauses already provided by the matching action contract.\n"
+        "Matching action contract: %s.%s\n"
+        "Redundant clauses:\n"
+        "%s\n"
+        "Fix:\n"
+        "- remove the duplicated step clauses and let matching action contract inheritance supply them\n"
+        "- keep the local clause only when you intentionally override the matching action contract",
+        step_name,
+        subject_name != NULL ? subject_name : "<subject>",
+        action_name,
+        redundant);
+}
+
+static void
+intent_step_format_contract_source_summary(const ASTNode *intent_decl,
+                                           const ASTNode *step,
+                                           SemanticContext *ctx,
                                            char *buffer,
                                            size_t buffer_size)
 {
     size_t used = 0;
     bool has_any = false;
+    ASTNode *matched_subject_decl = NULL;
+    ASTNode *matched_action = NULL;
 
     if (buffer == NULL || buffer_size == 0 || step == NULL
         || step->type != AST_INTENT_STEP) {
@@ -20,8 +246,34 @@ intent_step_format_contract_source_summary(const ASTNode *step,
 
     buffer[0] = '\0';
 
+    if (intent_decl != NULL && ctx != NULL) {
+        matched_action = intent_step_find_inheritable_action(
+            (ASTNode *)intent_decl, (ASTNode *)step, ctx, &matched_subject_decl);
+        if (matched_action != NULL) {
+            const char *subject_name =
+                matched_subject_decl != NULL
+                    ? nominal_decl_name(matched_subject_decl)
+                    : NULL;
+            const char *action_name =
+                matched_action->type == AST_FUNC_DECL
+                    ? matched_action->data.func_decl.name
+                    : NULL;
+            used += (size_t)snprintf(buffer + used, buffer_size - used,
+                "%s- matching action contract: %s.%s",
+                has_any ? "\n" : "",
+                subject_name != NULL ? subject_name : "<subject>",
+                action_name != NULL ? action_name : "<action>");
+            has_any = true;
+        } else if (step->data.intent_step.who_count > 0) {
+            used += (size_t)snprintf(buffer + used, buffer_size - used,
+                "%s- no unique matching action contract was found for this step name across current who participants",
+                has_any ? "\n" : "");
+            has_any = true;
+        }
+    }
+
     if (step->data.intent_step.who_count > 0
-        && !step->data.intent_step.inferred_who_from_action) {
+        && !step->data.intent_step.inherited_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
             "%s- locally declared who on step",
             has_any ? "\n" : "");
@@ -29,7 +281,7 @@ intent_step_format_contract_source_summary(const ASTNode *step,
     }
     if (step->data.intent_step.where_type != NULL
         && !step->data.intent_step.inherited_where_from_action
-        && !step->data.intent_step.inferred_where_from_transfer
+        && !step->data.intent_step.derived_where_from_transfer
         && step->data.intent_step.where_type->type == AST_TYPE
         && step->data.intent_step.where_type->data.type.name != NULL) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
@@ -61,7 +313,7 @@ intent_step_format_contract_source_summary(const ASTNode *step,
         has_any = true;
     }
     if (step->data.intent_step.using_expr != NULL
-        && !step->data.intent_step.inferred_using_from_transfer
+        && !step->data.intent_step.derived_using_from_transfer
         && step->data.intent_step.using_expr->type == AST_IDENTIFIER
         && step->data.intent_step.using_expr->data.identifier.name != NULL) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
@@ -71,9 +323,9 @@ intent_step_format_contract_source_summary(const ASTNode *step,
         has_any = true;
     }
 
-    if (step->data.intent_step.inferred_who_from_action) {
+    if (step->data.intent_step.inherited_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inferred who from matching action",
+            "%s- inherited who from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -85,19 +337,19 @@ intent_step_format_contract_source_summary(const ASTNode *step,
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited zone from matching action: %s",
+            "%s- inherited zone from matching action contract: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
     if (step->data.intent_step.inherited_requires_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited requires from matching action",
+            "%s- inherited requires from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
     if (step->data.intent_step.inherited_causes_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited causes from matching action: %s",
+            "%s- inherited causes from matching action contract: %s",
             has_any ? "\n" : "",
             step->data.intent_step.causes_effect != NULL
                 ? step->data.intent_step.causes_effect
@@ -106,11 +358,11 @@ intent_step_format_contract_source_summary(const ASTNode *step,
     }
     if (step->data.intent_step.inherited_authorized_by_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited authorized by from matching action",
+            "%s- inherited authorized by from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
-    if (step->data.intent_step.inferred_where_from_transfer) {
+    if (step->data.intent_step.derived_where_from_transfer) {
         const char *zone_name =
             (step->data.intent_step.where_type != NULL
              && step->data.intent_step.where_type->type == AST_TYPE
@@ -118,11 +370,11 @@ intent_step_format_contract_source_summary(const ASTNode *step,
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inferred zone from transfer target: %s",
+            "%s- derived zone from transfer target: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
-    if (step->data.intent_step.inferred_using_from_transfer) {
+    if (step->data.intent_step.derived_using_from_transfer) {
         const char *using_name =
             (step->data.intent_step.using_expr != NULL
              && step->data.intent_step.using_expr->type == AST_IDENTIFIER
@@ -130,7 +382,7 @@ intent_step_format_contract_source_summary(const ASTNode *step,
                 ? step->data.intent_step.using_expr->data.identifier.name
                 : "<binding>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inferred using from transfer target: %s",
+            "%s- derived using from transfer target: %s",
             has_any ? "\n" : "", using_name);
     }
 }
@@ -1045,7 +1297,7 @@ intent_step_infer_who_from_action(ASTNode *intent_decl, ASTNode *step,
     if (matched_alias != NULL
         && intent_semantic_append_name(&step->data.intent_step.who_names,
                &step->data.intent_step.who_count, matched_alias)) {
-        step->data.intent_step.inferred_who_from_action = true;
+        step->data.intent_step.inherited_who_from_action = true;
     }
 }
 
@@ -1162,14 +1414,14 @@ intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
 
     if (step->data.intent_step.using_expr == NULL) {
         step->data.intent_step.using_expr = ast_create_identifier(to_alias);
-        step->data.intent_step.inferred_using_from_transfer = true;
+        step->data.intent_step.derived_using_from_transfer = true;
     }
 
     if (step->data.intent_step.where_type == NULL
         && to_type != NULL
         && to_type->name != NULL) {
         step->data.intent_step.where_type = ast_create_type(to_type->name);
-        step->data.intent_step.inferred_where_from_transfer = true;
+        step->data.intent_step.derived_where_from_transfer = true;
     }
 }
 
@@ -1367,10 +1619,24 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         intent_step_inherit_action_contract(node, step, ctx);
         intent_step_infer_transfer_context(node, step, ctx);
         intent_step_infer_zone_binding_context(node, step, ctx);
+        intent_step_warn_redundant_action_contract(node, step, ctx);
 
         if (step->data.intent_step.where_type == NULL && !has_subintent) {
-            semantic_error(ctx, step, "Intent step '%s' requires a where zone type",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            char contract_summary[512];
+            intent_step_format_contract_source_summary(
+                node, step, ctx, contract_summary, sizeof(contract_summary));
+            semantic_error(ctx, step,
+                "Intent step '%s' requires a where zone type.\n"
+                "Reason:\n"
+                "- no local, inherited, or derived zone contract is available for this step\n"
+                "%s%s"
+                "Fix:\n"
+                "- add 'where: <Zone>;' to the step\n"
+                "- or add 'within <Zone>' to the matching action contract\n"
+                "- or add a transfer/using binding that can infer the zone",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                contract_summary[0] != '\0' ? contract_summary : "",
+                contract_summary[0] != '\0' ? "\n" : "");
         } else {
             Type *zone_type = resolve_type_node(step->data.intent_step.where_type, ctx);
             zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
@@ -1460,13 +1726,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             if (to_type != NULL && where_zone_type != NULL && !type_equals(to_type, where_zone_type)) {
                 char contract_summary[512];
                 intent_step_format_contract_source_summary(
-                    step, contract_summary, sizeof(contract_summary));
+                    node, step, ctx, contract_summary, sizeof(contract_summary));
                 semantic_error(ctx, step,
                     "Intent step '%s' transfer target '%s' does not match the current zone contract.\n"
                     "Reason:\n"
                     "- transfer target '%s' has zone type '%s'\n"
                     "- current step zone is '%s'\n"
-                    "- transfer target inference would choose zone '%s'\n"
+                    "- transfer target derivation would choose zone '%s'\n"
                     "%s%s"
                     "Fix:\n"
                     "- change the transfer target to a '%s' binding\n"
@@ -1488,13 +1754,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 && strcmp(step->data.intent_step.using_expr->data.identifier.name, to_alias) != 0) {
                 char contract_summary[512];
                 intent_step_format_contract_source_summary(
-                    step, contract_summary, sizeof(contract_summary));
+                    node, step, ctx, contract_summary, sizeof(contract_summary));
                 semantic_error(ctx, step->data.intent_step.using_expr,
                     "Intent step '%s' using binding does not match the transfer target.\n"
                     "Reason:\n"
                     "- current using binding is '%s'\n"
                     "- transfer target binding is '%s'\n"
-                    "- transfer target inference would choose using '%s'\n"
+                    "- transfer target derivation would choose using '%s'\n"
                     "%s%s"
                     "Fix:\n"
                     "- change 'using' to '%s'\n"
@@ -1703,7 +1969,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                     char contract_summary[512];
                     intent_step_format_contract_source_summary(
-                        step, contract_summary, sizeof(contract_summary));
+                        node, step, ctx, contract_summary, sizeof(contract_summary));
                     semantic_error(ctx, step,
                         actual_impl != NULL
                             ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
@@ -1777,7 +2043,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             char inherited_summary[512];
             const char *suggested_authorizer = intent_step_single_who_alias(step);
             intent_step_format_contract_source_summary(
-                step, inherited_summary, sizeof(inherited_summary));
+                node, step, ctx, inherited_summary, sizeof(inherited_summary));
             semantic_error(ctx, step,
                 step->data.intent_step.inherited_where_from_action
                     ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
@@ -1814,7 +2080,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             const char *participant_type_name = intent_involves_type_name(involves);
             char contract_summary[512];
             intent_step_format_contract_source_summary(
-                step, contract_summary, sizeof(contract_summary));
+                node, step, ctx, contract_summary, sizeof(contract_summary));
             if (involves == NULL) {
                 semantic_error(ctx, step,
                     "Intent step '%s' authorizes unknown participant '%s'.\n"
@@ -1907,9 +2173,20 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
         if (!matched_action && step->data.intent_step.on_expr_count == 0
             && step->data.intent_step.intent_expr == NULL) {
+            char contract_summary[512];
+            intent_step_format_contract_source_summary(
+                node, step, ctx, contract_summary, sizeof(contract_summary));
             semantic_warning(ctx, step,
-                "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only.\n"
+                "Reason:\n"
+                "- matching action contract inheritance only applies when a unique matching subject action exists\n"
+                "%s%s"
+                "Fix:\n"
+                "- align the step name and who participants with a subject action if you want inherited contracts\n"
+                "- or keep the step declarative and spell out who/where/requires/authorized by explicitly",
+                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                contract_summary[0] != '\0' ? contract_summary : "",
+                contract_summary[0] != '\0' ? "\n" : "");
         }
     }
 

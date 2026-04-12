@@ -564,13 +564,13 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.authorized_by = NULL;
     node->data.intent_step.authorized_by_count = 0;
     node->data.intent_step.expect_expr = NULL;
-    node->data.intent_step.inferred_who_from_action = false;
+    node->data.intent_step.inherited_who_from_action = false;
     node->data.intent_step.inherited_where_from_action = false;
     node->data.intent_step.inherited_requires_from_action = false;
     node->data.intent_step.inherited_causes_from_action = false;
     node->data.intent_step.inherited_authorized_by_from_action = false;
-    node->data.intent_step.inferred_where_from_transfer = false;
-    node->data.intent_step.inferred_using_from_transfer = false;
+    node->data.intent_step.derived_where_from_transfer = false;
+    node->data.intent_step.derived_using_from_transfer = false;
     return node;
 }
 

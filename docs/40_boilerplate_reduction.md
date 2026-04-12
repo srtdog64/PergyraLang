@@ -239,19 +239,19 @@ action NuclearLaunch(self)
 ```
 requires      → 유일한 핵심 계약. "자격 없는 action은 의미 없다"
 within        → 선택. 장소 제한이 필요할 때만.
-               zone 안 action은 자동 추론 (2026-04-06 구현)
+               zone 안 action은 자동 유도 (2026-04-06 구현)
 authorized by → 선택. 승인이 필요할 때만.
 causes        → 선택. 효과가 있을 때만.
 ```
 
-### zone 안 action의 within 자동 추론 (2026-04-06 구현)
+### zone 안 action의 within 자동 유도 (2026-04-06 구현)
 
 ```pergyra
 zone BattleZone
 {
     action Attack(self)
         requires Combatable
-        // within BattleZone ← 자동 추론. 컴파일러가 채움.
+        // within BattleZone ← 자동 유도. 컴파일러가 채움.
     {
         ...
     }
@@ -266,7 +266,7 @@ zone BattleZone
 
 | 기능 | 상태 | 파일 |
 |------|------|------|
-| action within 자동 추론 | 구현 완료 | type_checker.c (zone 내부 action within 자동 주입) |
+| action within 자동 유도 | 구현 완료 | type_checker.c (zone 내부 action within 자동 주입) |
 | action within/authorized/causes 선택적 | 이미 구현됨 | parser_decl.c (조건부 파싱) |
 | intent 공통 who/where | 구현 완료 | parser_intent.c (intent-level → step 전파) |
 | zone 그룹 slot | 구현 완료 | parser_domain.c (subjects/effects/relations 복수형 파싱) |
@@ -279,5 +279,5 @@ zone BattleZone
 |------|------|------|
 | 낱개/묶음 공존 | O | 자유도. 낱개 = 유연, 묶음 = 간결 |
 | zone 복수형 키워드 | subjects/effects/relations | 단수=낱개, 복수=묶음 직관적 |
-| within 자동 추론 | zone 내부만 | zone 외부는 명시 필수 (안전) |
+| within 자동 유도 | zone 내부만 | zone 외부는 명시 필수 (안전) |
 | intent 공통 절 | who, where | 반복 최소화. step에서 덮어쓰기 가능 |

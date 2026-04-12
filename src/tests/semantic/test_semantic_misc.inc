@@ -3743,7 +3743,7 @@ test_misc_grammar_edges(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(step != NULL && step->data.intent_step.inferred_who_from_action);
+        EXPECT(step != NULL && step->data.intent_step.inherited_who_from_action);
         EXPECT(step != NULL && step->data.intent_step.who_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "hero") == 0);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
