@@ -2544,6 +2544,18 @@ transpiler_expr_identifiers_mapped(const ASTNode *expr,
                                                      routine_name, reason, reason_cap);
         case AST_CALL:
             if (expr->data.call.callee != NULL
+                && expr->data.call.callee->type == AST_IDENTIFIER
+                && expr->data.call.callee->data.identifier.name != NULL
+                && (strcmp(expr->data.call.callee->data.identifier.name, "ToObject") == 0
+                    || strcmp(expr->data.call.callee->data.identifier.name, "ToTObject") == 0)) {
+                for (size_t i = 1; i < expr->data.call.arg_count; i++) {
+                    if (!transpiler_expr_identifiers_mapped(expr->data.call.arguments[i], ssa_map,
+                                                           routine_name, reason, reason_cap))
+                        return false;
+                }
+                return true;
+            }
+            if (expr->data.call.callee != NULL
                 && expr->data.call.callee->type != AST_IDENTIFIER) {
                 if (!transpiler_expr_identifiers_mapped(expr->data.call.callee, ssa_map,
                                                        routine_name, reason, reason_cap))
@@ -3076,6 +3088,13 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
 
     if (inst->kind == MIR_INST_RESOURCE_OP) {
         if (!transpiler_emit_mir_resource_op(out, indent, inst, inst->type_layout, NULL)) {
+            if (inst->name != NULL
+                && (strcmp(inst->name, "ProjectRefresh") == 0
+                    || strcmp(inst->name, "ProjectPublish") == 0)) {
+                /* Direct projection expressions already emit the concrete value
+                 * via MIR DEF/STMT paths; keep only the observability/export hook
+                 * for projection resource ops that do not have a slot runtime ABI. */
+            } else {
             if (ctx != NULL && ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(
                     "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
@@ -3083,6 +3102,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                     inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
             }
             return false;
+            }
         }
         if (!cleanup_hook)
             return true;
@@ -3122,12 +3142,28 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     int saved_typed_count = ctx->typed_var_count;
     CodeBuf *saved_out = ctx->out;
     TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    const char *saved_zone_name = ctx->current_zone_name;
+    const char *saved_class_name = ctx->current_class_name;
     char saved_return_type[128];
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
+    bool is_method = mir_routine != NULL
+        && mir_routine->kind == MIR_SCOPE_METHOD
+        && mir_routine->owner_name != NULL;
+    const char *owner_name = is_method ? mir_routine->owner_name : NULL;
+    bool owner_is_zone = owner_name != NULL && find_zone_decl(ctx, owner_name) != NULL;
+    bool owner_is_relation = owner_name != NULL && find_relation_decl(ctx, owner_name) != NULL;
+    bool owner_is_effect = owner_name != NULL && find_effect_decl(ctx, owner_name) != NULL;
+    bool owner_is_world = owner_name != NULL && find_world_decl(ctx, owner_name) != NULL;
+    bool pointer_self = false;
 
     ctx->out = buf;
     g_type_render_ctx = ctx;
+    if (owner_is_zone) {
+        ctx->current_zone_name = owner_name;
+    } else if (owner_name != NULL) {
+        ctx->current_class_name = owner_name;
+    }
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
     if (node->data.func_decl.return_type != NULL) {
@@ -3139,6 +3175,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
     }
 
+    if (owner_name != NULL) {
+        pointer_self = owner_is_zone || owner_is_relation
+            || owner_is_effect || owner_is_world
+            || is_pointer_self_host_type_name(ctx, owner_name);
+        codebuf_write(params_sig, "%s%s", owner_name, pointer_self ? " *self" : " self");
+    }
+
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = NULL;
@@ -3146,6 +3189,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
+        if (is_method && p != NULL && p->name != NULL
+            && strcmp(p->name, "self") == 0 && p->type == NULL) {
+            continue;
+        }
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
         else if (p->name != NULL
@@ -3172,7 +3219,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 "%s", saved_return_type);
             return;
         }
-        if (i > 0)
+        if (params_sig->len > 0)
             codebuf_write(params_sig, ", ");
         if (p->type != NULL && type_name == NULL)
             type_name = render_type_name(p->type);
@@ -3212,10 +3259,19 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     codebuf_destroy(params_sig);
 
     ctx->indent++;
+    if (owner_name != NULL) {
+        register_typed_var(ctx, "self", owner_name);
+        if (owner_is_zone || owner_is_relation || owner_is_effect || owner_is_world) {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s_sync(self);\n", owner_name);
+        }
+    }
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         char *type_name = NULL;
         if (p == NULL || p->name == NULL)
+            continue;
+        if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
         if (p->type != NULL)
             type_name = render_type_name(p->type);
@@ -3345,6 +3401,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 }
             }
         }
+        if (owner_name != NULL
+            && transpiler_resolve_ssa_name(&block_ssa_map, "self") == NULL) {
+            transpiler_ssa_name_map_set(&block_ssa_map, "self", "self");
+        }
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_RESOURCE_OP) {
@@ -3404,6 +3464,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     /* Emit cleanup blocks if present (for intent compensation) */
     if (mir_routine->has_cleanup_block) {
+        const char *cleanup_handle = node != NULL && node->type == AST_INTENT_DECL
+            ? "__intent_handle"
+            : "0";
         write_indent(ctx);
         codebuf_write(ctx->out, "/* cleanup-emitted-from-mir */\n");
         for (size_t i = 0; i < mir_routine->block_count; i++) {
@@ -3416,7 +3479,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 const MIRInstruction *inst = &block->instructions[j];
                 if (inst->kind == MIR_INST_CLEANUP_EDGE) {
                     if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst,
-                                                           "__intent_handle", true)) {
+                                                           cleanup_handle, true)) {
                         ctx->slot_var_count = saved_slot_count;
                         ctx->typed_var_count = saved_typed_count;
                         snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
@@ -3446,6 +3509,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->typed_var_count = saved_typed_count;
     snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
         "%s", saved_return_type);
+    ctx->current_zone_name = saved_zone_name;
+    ctx->current_class_name = saved_class_name;
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
 }

@@ -176,6 +176,7 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 
     if (step->data.intent_step.where_type != NULL
         && !step->data.intent_step.inherited_where_from_action
+        && !step->data.intent_step.derived_where_from_using
         && !step->data.intent_step.derived_where_from_transfer
         && action_decl->data.func_decl.within_zone != NULL
         && step->data.intent_step.where_type->type == AST_TYPE
@@ -295,6 +296,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.where_type != NULL
         && !step->data.intent_step.inherited_where_from_action
+        && !step->data.intent_step.derived_where_from_using
         && !step->data.intent_step.derived_where_from_transfer
         && step->data.intent_step.where_type->type == AST_TYPE
         && step->data.intent_step.where_type->data.type.name != NULL) {
@@ -339,7 +341,19 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (step->data.intent_step.inherited_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited from matching action contract",
+            has_any ? "\n" : "");
+        has_any = true;
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
             "%s- inherited who from matching action contract",
+            has_any ? "\n" : "");
+        has_any = true;
+    } else if (step->data.intent_step.inherited_where_from_action
+               || step->data.intent_step.inherited_requires_from_action
+               || step->data.intent_step.inherited_causes_from_action
+               || step->data.intent_step.inherited_authorized_by_from_action) {
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- inherited from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -385,6 +399,18 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 : "<zone>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
             "%s- derived zone from transfer target: %s",
+            has_any ? "\n" : "", zone_name);
+        has_any = true;
+    }
+    if (step->data.intent_step.derived_where_from_using) {
+        const char *zone_name =
+            (step->data.intent_step.where_type != NULL
+             && step->data.intent_step.where_type->type == AST_TYPE
+             && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name
+                : "<zone>";
+        used += (size_t)snprintf(buffer + used, buffer_size - used,
+            "%s- derived zone from using binding: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
@@ -1457,6 +1483,7 @@ intent_step_infer_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
             step->data.intent_step.where_type = ast_create_type(using_type->name);
+            step->data.intent_step.derived_where_from_using = true;
         }
     }
 
@@ -2047,19 +2074,31 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         if (zone_decl != NULL
             && zone_decl->data.zone_decl.authority_count > 0
             && step->data.intent_step.authorized_by_count == 0
-            && (step->data.intent_step.causes_effect != NULL
+            && !has_subintent
+            && (((step->data.intent_step.where_type != NULL
+                  && !step->data.intent_step.derived_where_from_using)
+                 || step->data.intent_step.inherited_where_from_action
+                 || step->data.intent_step.derived_where_from_transfer)
+                || step->data.intent_step.causes_effect != NULL
                 || step->data.intent_step.transfer_from_alias != NULL
                 || step->data.intent_step.transfer_to_alias != NULL
                 || step_requires_authority_flow)) {
             char inherited_summary[512];
             const char *suggested_authorizer = intent_step_single_who_alias(step);
+            const char *authority_reason =
+                (step->data.intent_step.causes_effect != NULL
+                 || step->data.intent_step.transfer_from_alias != NULL
+                 || step->data.intent_step.transfer_to_alias != NULL
+                 || step_requires_authority_flow)
+                    ? "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers"
+                    : "- zone authority requires explicit approval even for declarative steps in this zone";
             intent_step_format_contract_source_summary(
                 node, step, ctx, inherited_summary, sizeof(inherited_summary));
             semantic_error(ctx, step,
                 step->data.intent_step.inherited_where_from_action
                     ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                       "Reason:\n"
-                      "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
+                      "%s\n"
                       "- zone '%s' was inherited from the matching action contract\n"
                       "%s%s"
                       "Fix:\n"
@@ -2068,7 +2107,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "- or change the action contract that this step inherits"
                     : "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                       "Reason:\n"
-                      "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers\n"
+                      "%s\n"
                       "- zone '%s' declares authority, so explicit approval is required\n"
                       "%s%s"
                       "Fix:\n"
@@ -2077,10 +2116,12 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                       "- or remove the authority-sensitive operation from this step",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                authority_reason,
                 zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "",
                 suggested_authorizer != NULL ? suggested_authorizer : "<participant>",
+                authority_reason,
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "");
         }
@@ -2839,6 +2880,14 @@ type_check_domain_slot_initializers(ASTNode **slots,
             continue;
 
         if (!scope_declare(ctx->scope, sym)) {
+            Symbol *existing = scope_lookup_current(ctx->scope,
+                slot->data.domain_slot.slot_name);
+            if (existing != NULL
+                && existing->type != NULL
+                && type_equals(existing->type, slot_type)) {
+                symbol_destroy(sym);
+                continue;
+            }
             semantic_error(ctx, slot,
                 "Redeclaration of %s slot '%s'",
                 kind_name,

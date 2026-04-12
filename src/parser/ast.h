@@ -833,6 +833,7 @@ struct ASTNode
             bool inherited_requires_from_action;
             bool inherited_causes_from_action;
             bool inherited_authorized_by_from_action;
+            bool derived_where_from_using;
             bool derived_where_from_transfer;
             bool derived_using_from_transfer;
         } intent_step;

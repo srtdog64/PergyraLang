@@ -71,6 +71,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     bool is_method = false;
     const char *owner_name = NULL;
     LLVMClassTypeEntry *owner_cls = NULL;
+    LLVMFuncEntry *owner_sync = NULL;
     const char *fn_name = NULL;
     char qualified_name[256];
     if (routine == NULL || ctx == NULL || routine->ast == NULL)
@@ -88,6 +89,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     owner_cls = (is_method && owner_name != NULL)
         ? llvm_lookup_class(ctx, owner_name)
         : NULL;
+    if (is_method && owner_cls != NULL
+        && owner_cls->sync_function_name != NULL
+        && owner_cls->domain_kind != LLVM_DOMAIN_NONE
+        && owner_cls->domain_kind != LLVM_DOMAIN_SYSTEMIC) {
+        owner_sync = llvm_lookup_function(ctx, owner_cls->sync_function_name);
+    }
     param_count = is_intent
         ? (func_decl->data.intent_decl.involve_count
             + func_decl->data.intent_decl.value_count)
@@ -214,6 +221,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
     llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
                                 owner_cls, owner_name, param_count);
+    if (owner_sync != NULL) {
+        LLVMVarEntry *self_entry = llvm_scope_lookup(ctx, "self");
+        if (self_entry != NULL) {
+            LLVMValueRef self_ptr = LLVMBuildLoad2(ctx->builder,
+                LLVMPointerType(owner_cls->struct_type, 0),
+                self_entry->alloca, llvm_tmp_name(ctx));
+            LLVMValueRef sync_args[] = { self_ptr };
+            LLVMBuildCall2(ctx->builder, owner_sync->fn_type, owner_sync->fn,
+                sync_args, 1, "");
+        }
+    }
 
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx,
@@ -230,6 +248,21 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         } else if (!mir_block->is_cleanup) {
             LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[i]);
             LLVMBuildUnreachable(ctx->builder);
+        }
+    }
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *mir_block = &routine->blocks[i];
+        if (!mir_block->is_reachable || mir_block->is_cleanup)
+            continue;
+        LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[i]);
+        if (LLVMGetBasicBlockTerminator(llvm_blocks[i]) != NULL)
+            continue;
+        if (mir_block->has_succ_true) {
+            LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
+        } else if (ret_type == ctx->type_void) {
+            LLVMBuildRetVoid(ctx->builder);
+        } else {
+            LLVMBuildRet(ctx->builder, LLVMConstNull(ret_type));
         }
     }
     llvm_mir_debug_stage("emit_func_from_mir:blocks_emitted", routine);

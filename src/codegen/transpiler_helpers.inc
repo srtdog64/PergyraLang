@@ -952,29 +952,6 @@ domain_slot_is_projection_target_local(ASTNode *slot,
                                        size_t refresh_count);
 
 static bool
-domain_has_projection_slot(ASTNode **slots, size_t slot_count,
-                           ASTNode **refreshes, size_t refresh_count,
-                           const char *slot_name)
-{
-    if (slots == NULL || slot_name == NULL)
-        return false;
-
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.slot_name == NULL
-            || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
-            continue;
-        }
-        if (!slot->data.domain_slot.is_subject)
-            return true;
-        return false;
-    }
-
-    return false;
-}
-
-static bool
 domain_slot_is_projection_target_local(ASTNode *slot,
                                        ASTNode **refreshes,
                                        size_t refresh_count)
@@ -1163,51 +1140,6 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     codebuf_write(out, "%s_sync(&self->%s);\n",
         relation_decl->data.relation_decl.name,
         layer_slot_name);
-}
-
-static bool
-current_zone_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
-{
-    ASTNode *decl;
-    if (ctx == NULL || ctx->current_zone_name == NULL || slot_name == NULL)
-        return false;
-    decl = find_zone_decl(ctx, ctx->current_zone_name);
-    if (decl == NULL)
-        return false;
-    return domain_has_projection_slot(decl->data.zone_decl.slots,
-        decl->data.zone_decl.slot_count,
-        decl->data.zone_decl.refreshes,
-        decl->data.zone_decl.refresh_count, slot_name);
-}
-
-static bool
-current_relation_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
-{
-    ASTNode *decl;
-    if (ctx == NULL || ctx->current_relation_name == NULL || slot_name == NULL)
-        return false;
-    decl = find_relation_decl(ctx, ctx->current_relation_name);
-    if (decl == NULL)
-        return false;
-    return domain_has_projection_slot(decl->data.relation_decl.slots,
-        decl->data.relation_decl.slot_count,
-        decl->data.relation_decl.refreshes,
-        decl->data.relation_decl.refresh_count, slot_name);
-}
-
-static bool
-current_effect_has_projection_slot(TranspilerCtx *ctx, const char *slot_name)
-{
-    ASTNode *decl;
-    if (ctx == NULL || ctx->current_effect_name == NULL || slot_name == NULL)
-        return false;
-    decl = find_effect_decl(ctx, ctx->current_effect_name);
-    if (decl == NULL)
-        return false;
-    return domain_has_projection_slot(decl->data.effect_decl.slots,
-        decl->data.effect_decl.slot_count,
-        decl->data.effect_decl.refreshes,
-        decl->data.effect_decl.refresh_count, slot_name);
 }
 
 static ASTNode **

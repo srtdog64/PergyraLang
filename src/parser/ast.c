@@ -569,6 +569,7 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.inherited_requires_from_action = false;
     node->data.intent_step.inherited_causes_from_action = false;
     node->data.intent_step.inherited_authorized_by_from_action = false;
+    node->data.intent_step.derived_where_from_using = false;
     node->data.intent_step.derived_where_from_transfer = false;
     node->data.intent_step.derived_using_from_transfer = false;
     return node;

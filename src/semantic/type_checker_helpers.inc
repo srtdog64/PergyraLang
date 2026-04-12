@@ -107,8 +107,18 @@ static void
 emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
                  const ASTNode *node, const char *fmt, va_list ap)
 {
-    char buf[512];
-    vsnprintf(buf, sizeof(buf), fmt, ap);
+    char *message = NULL;
+    va_list ap_copy;
+    int len;
+    va_copy(ap_copy, ap);
+    len = vsnprintf(NULL, 0, fmt, ap_copy);
+    va_end(ap_copy);
+    if (len < 0)
+        return;
+    message = malloc((size_t)len + 1);
+    if (message == NULL)
+        return;
+    vsnprintf(message, (size_t)len + 1, fmt, ap);
 
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         Diagnostic *existing = ctx->diagnostics[i];
@@ -120,8 +130,10 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
             || existing->col != (node ? node->column : 0)) {
             continue;
         }
-        if (existing->message != NULL && strcmp(existing->message, buf) == 0)
+        if (existing->message != NULL && strcmp(existing->message, message) == 0) {
+            free(message);
             return;
+        }
     }
 
     if (ctx->diagnostic_count >= ctx->diagnostic_capacity) {
@@ -141,7 +153,7 @@ emit_diagnostic(SemanticContext *ctx, DiagnosticLevel level,
     d->level = level;
     d->line  = node ? node->line   : 0;
     d->col   = node ? node->column : 0;
-    d->message = pergyra_strdup(buf);
+    d->message = message;
 
     ctx->diagnostics[ctx->diagnostic_count++] = d;
 

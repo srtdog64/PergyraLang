@@ -5048,7 +5048,7 @@ StringSplit(const char *s, const char *delim)
         /* No delimiter found — return single element */
         result.capacity = 1;
         result.data = (char **)calloc(1, sizeof(char *));
-        result.data[0] = strdup(s);
+        result.data[0] = pgy_runtime_strdup(s);
         result.length = 1;
         return result;
     }
@@ -5059,7 +5059,7 @@ StringSplit(const char *s, const char *delim)
     while (*tmp && result.length < count) {
         const char *found = strstr(tmp, delim);
         if (found == NULL) {
-            result.data[result.length++] = strdup(tmp);
+            result.data[result.length++] = pgy_runtime_strdup(tmp);
             break;
         }
         size_t token_len = (size_t)(found - tmp);
@@ -5078,7 +5078,7 @@ static inline char *
 StringJoin(PgyArray_String *arr, const char *sep)
 {
     if (arr == NULL || arr->data == NULL || arr->length == 0) {
-        return strdup("");
+        return pgy_runtime_strdup("");
     }
     if (sep == NULL) sep = "";
     size_t sep_len = strlen(sep);
