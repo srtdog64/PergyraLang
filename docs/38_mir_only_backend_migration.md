@@ -143,6 +143,11 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 - MIR backend main-wrapper path는 top-level statement list를 직접 순회하지 않고 `__pgy_top_level_exec`를 top-level execution source of truth로 사용한다
 - LLVM/C main-wrapper와 thread-pool 판단의 MIR path도 raw `executables` list를 직접 소비하지 않는다
 - C declaration emit의 role/party include 및 ability-vtable naming 경로에서도 `UnknownAbility`/주석 fallback 대신 backend error로 실패시키기 시작했다
+- C let/MIR-local 선언 경로도 이제 타입을 모를 때 `int32_t`로 조용히 대체하지 않고 backend error로 실패한다
+- MIR resource-op dumb emitter helper도 unknown op를 주석으로 흘려보내지 않고 실패 신호를 반환한다
+- MIR function block emission 실패도 더 이상 주석 코멘트로 남지 않고 backend error로 전파된다
+- slot sugar / 일부 collection helper도 payload/element type을 모를 때 `Int`/`int32_t`로 덮지 않고 backend error로 실패시키기 시작했다
+- ordinary function / extern / class / enum / intent declaration signature 경로도 unresolved type을 `int32_t`로 덮지 않고 backend error로 실패시킨다
 
 남은 완료 기준:
 

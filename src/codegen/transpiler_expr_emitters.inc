@@ -95,7 +95,7 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
                     const char **inner_out, const char **slot_name_out,
                     bool *secure_out)
 {
-    const char *inner = "Int";
+    const char *inner = NULL;
     const char *slot_name = NULL;
     bool secure = false;
 
@@ -133,8 +133,13 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
         }
     }
 
-    if (inner == NULL)
-        inner = "Int";
+    if (inner == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot determine slot payload type for '%s'",
+            slot_name != NULL ? slot_name : "<slot>");
+        return false;
+    }
     if (inner_out != NULL)
         *inner_out = inner;
     if (slot_name_out != NULL)
@@ -2207,11 +2212,18 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             char *arr = emit_expression(call->data.call.arguments[0], ctx);
             const char *arr_type = infer_expression_type_name(ctx,
                 call->data.call.arguments[0]);
-            const char *inner = "Int";
-            const char *c_type = "int32_t";
+            const char *inner = NULL;
+            const char *c_type = NULL;
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0) {
                 inner = slot_inner_type_name(arr_type);
                 c_type = pergyra_type_to_c(inner);
+            }
+            if (inner == NULL || c_type == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot determine element type for ArrayReverse; explicit concrete Array<T> input is required");
+                free(arr);
+                return pergyra_strdup("0");
             }
             char *result = strdup_fmt(
                 "({ for (size_t _ri = 0; _ri < (%s).length / 2; _ri++) { "
@@ -3046,6 +3058,16 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
             ctx->suppress_slot_auto_read = true;
             char *obj_expr = emit_expression(obj, ctx);
             ctx->suppress_slot_auto_read = saved_suppress;
+            if (inner == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot determine slot payload type for method call on '%s'",
+                    obj->data.identifier.name != NULL
+                        ? obj->data.identifier.name
+                        : "<slot>");
+                free(obj_expr);
+                return pergyra_strdup("0");
+            }
             char *slot_ref = slot_ref_expr(ctx, obj->data.identifier.name, obj_expr);
 
             if (strcmp(method, "Write") == 0 && call->data.call.arg_count >= 1) {
@@ -3300,7 +3322,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     if (args_type_name != NULL) {
         codebuf_write(ctx->decls, "\ntypedef struct {\n");
         for (size_t i = 0; i < arg_count; i++) {
-            const char *arg_type = "int32_t";
+            const char *arg_type = NULL;
             if (decl != NULL && i < decl->data.func_decl.param_count
                 && decl->data.func_decl.params[i] != NULL
                 && decl->data.func_decl.params[i]->type != NULL) {
@@ -3316,6 +3338,15 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             } else if (call != NULL) {
                 arg_type = pergyra_type_to_c(infer_expression_type_name(
                     ctx, call->data.call.arguments[i]));
+            }
+            if (arg_type == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot determine spawn wrapper argument type for call '%s' at argument %zu",
+                    function_name != NULL ? function_name : "<function>",
+                    i);
+                free(args_type_name);
+                return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
             }
             codebuf_write(ctx->decls, "    %s arg%zu;\n", arg_type, i);
         }
@@ -3535,6 +3566,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             const char *inner = lookup_slot_type(ctx, id_name);
             bool secure = lookup_slot_is_secure(ctx, id_name);
+            if (inner == NULL) {
+                transpiler_set_backend_error(
+                    ctx,
+                    "cannot determine slot payload type for auto-read of '%s'",
+                    id_name != NULL ? id_name : "<slot>");
+                return pergyra_strdup("0");
+            }
             char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
             char *result = secure
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s_token)",
@@ -3678,6 +3716,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             if (is_slot_var(ctx, tgt_name)) {
                 const char *inner = lookup_slot_type(ctx, tgt_name);
                 bool secure = lookup_slot_is_secure(ctx, tgt_name);
+                if (inner == NULL) {
+                    transpiler_set_backend_error(
+                        ctx,
+                        "cannot determine slot payload type for assignment to '%s'",
+                        tgt_name != NULL ? tgt_name : "<slot>");
+                    return pergyra_strdup("0");
+                }
                 char *value = emit_expression(node->data.assignment.value, ctx);
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;

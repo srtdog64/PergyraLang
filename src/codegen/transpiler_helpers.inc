@@ -214,7 +214,7 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
     const char *typed_name;
 
     if (ctx == NULL || var_name == NULL)
-        return "Int";
+        return NULL;
 
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
@@ -237,7 +237,7 @@ lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
         }
         return ctx->active_type_hint;
     }
-    return "Int"; /* fallback */
+    return NULL;
 }
 
 static bool
@@ -4464,11 +4464,18 @@ emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
         if (strcmp(p->name, "self") == 0)
             continue;
 
-        const char *pt = "int32_t";
+        const char *pt = NULL;
+        char surface_desc[256];
         if (p->type != NULL)
             ensure_type_specializations_from_ast(ctx, p->type);
-        if (p->type != NULL)
-            pt = pergyra_ast_type_to_c(p->type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "hosted method parameter '%s.%s(%s)'",
+            host_name != NULL ? host_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)",
+            p->name != NULL ? p->name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(ctx, p->type, surface_desc);
+        if (pt == NULL)
+            return;
         {
             char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
             bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
@@ -4697,14 +4704,8 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
         }
     }
 
-    if (fn == NULL) {
-        /* Unknown operation — emit comment and skip */
-        write_indent_to(out, indent);
-        codebuf_write(out, "/* MIR RESOURCE_OP: unknown (name=%s, slot=%s) */\n",
-                      inst->name != NULL ? inst->name : "?",
-                      inst->slot_anchor != NULL ? inst->slot_anchor : "?");
-        return true;  /* not an error, just skip */
-    }
+    if (fn == NULL)
+        return false;
 
     const char *op_name = inst->name;  /* "CLAIM", "READ", "WRITE", "RELEASE", etc. */
 
@@ -4713,11 +4714,9 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
          * C: PgySlot_<T> <anchor> = pgy_claim_<T>();
          */
         char c_type_buf[64];
-        if (suffix != NULL) {
-            snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_%s", suffix);
-        } else {
-            snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_Value");
-        }
+        if (suffix == NULL)
+            return false;
+        snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_%s", suffix);
 
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         write_indent_to(out, indent);
@@ -4730,7 +4729,9 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
         const char *inner_c =
             (effective_layout != NULL && effective_layout->inner_c_type)
                 ? effective_layout->inner_c_type
-                : "int32_t";
+                : NULL;
+        if (inner_c == NULL)
+            return false;
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
 
@@ -4804,10 +4805,11 @@ transpiler_emit_mir_def(CodeBuf *out,
 
     /* If this DEF has a type_layout with runtime_fn, emit as function call */
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
-        const char *inner_c = effective_layout->inner_c_type != NULL
-            ? effective_layout->inner_c_type : "int32_t";
+        const char *inner_c = effective_layout->inner_c_type;
         const char *result = inst->result_name != NULL ? inst->result_name : "tmp";
         const char *arg = inst->arg1 != NULL ? inst->arg1 : "";
+        if (inner_c == NULL)
+            return false;
 
         write_indent_to(out, indent);
         codebuf_write(out, "%s %s = %s(%s);\n", inner_c, result,

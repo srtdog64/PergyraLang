@@ -5,6 +5,7 @@
 static void
 build_ability_ref_bindings(ASTNode *ability_decl,
                            ASTNode *ability_ref,
+                           TranspilerCtx *ctx,
                            GenericBindingEntry *bindings,
                            size_t *binding_count)
 {
@@ -33,9 +34,19 @@ build_ability_ref_bindings(ASTNode *ability_decl,
             continue;
 
         rendered = render_type_name(actual->constraint);
+        if (rendered == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot render generic ability binding '%s' for ability '%s'",
+                formal->name != NULL ? formal->name : "<param>",
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name
+                    : "<ability>");
+            return;
+        }
         snprintf(bindings[out].name, sizeof(bindings[out].name), "%s", formal->name);
         snprintf(bindings[out].concrete_type, sizeof(bindings[out].concrete_type),
-            "%s", rendered != NULL ? rendered : "Int");
+            "%s", rendered);
         free(rendered);
         out++;
     }
@@ -135,7 +146,11 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        build_ability_ref_bindings(ability_decl, ability_ref, bindings, &binding_count);
+        build_ability_ref_bindings(ability_decl, ability_ref, ctx, bindings, &binding_count);
+        if (ctx != NULL && ctx->backend_error != NULL) {
+            free(tag);
+            return;
+        }
         if (method->data.func_decl.return_type != NULL) {
             ret_name = render_type_name_with_bindings(ctx,
                 method->data.func_decl.return_type, bindings, binding_count);
@@ -148,14 +163,26 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
             char *param_name = NULL;
-            const char *pt = "int32_t";
+            const char *pt = NULL;
+            char surface_desc[256];
             if (p == NULL)
                 continue;
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
             if (p->type != NULL) {
                 param_name = render_type_name_with_bindings(ctx, p->type, bindings, binding_count);
-                pt = pergyra_type_to_c(param_name);
+            }
+            snprintf(surface_desc, sizeof(surface_desc),
+                "ability vtable parameter '%s.%s(%s)'",
+                ability_name != NULL ? ability_name : "(anonymous)",
+                method->data.func_decl.name != NULL ? method->data.func_decl.name : "(anonymous)",
+                p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_type_name_c_type(ctx, param_name, surface_desc);
+            if (pt == NULL) {
+                free(param_name);
+                free(ret_name);
+                free(tag);
+                return;
             }
             codebuf_write(target, ", %s %s", pt, p->name);
             free(param_name);
@@ -184,9 +211,16 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         FuncParam *p = method->data.func_decl.params[k];
         if (strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
-        const char *pt = "int32_t";
-        if (p->type != NULL)
-            pt = pergyra_ast_type_to_c(p->type);
+        const char *pt = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "role method parameter '%s.%s(%s)'",
+            role_name != NULL ? role_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)",
+            p != NULL && p->name != NULL ? p->name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+        if (pt == NULL)
+            return;
         codebuf_write(ctx->out, ", %s %s", pt, p->name);
     }
     codebuf_write(ctx->out, ")\n{\n");
@@ -325,15 +359,28 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             continue;
 
         const char *ret_type = "void";
-        const char *lhs_type = pergyra_ast_type_to_c(role->data.role_decl.for_type);
-        const char *rhs_type = "int32_t";
+        const char *lhs_type = transpiler_require_ast_c_type(
+            ctx,
+            role != NULL ? role->data.role_decl.for_type : NULL,
+            "role operator lhs type");
+        const char *rhs_type = NULL;
         const char *rhs_name = (rhs_param != NULL && rhs_param->name != NULL)
             ? rhs_param->name : "rhs";
+        char surface_desc[256];
 
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-        if (rhs_param != NULL && rhs_param->type != NULL)
-            rhs_type = pergyra_ast_type_to_c(rhs_param->type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "role operator parameter '%s.%s(%s)'",
+            role_name != NULL ? role_name : "(anonymous)",
+            method->data.func_decl.name != NULL ? method->data.func_decl.name : "(anonymous)",
+            rhs_name != NULL ? rhs_name : "(anonymous)");
+        rhs_type = transpiler_require_ast_c_type(
+            ctx,
+            rhs_param != NULL ? rhs_param->type : NULL,
+            surface_desc);
+        if (lhs_type == NULL || rhs_type == NULL)
+            return;
 
         codebuf_write(ctx->out,
             "\nstatic %s\noperator_%s_%s(%s lhs, %s %s)\n{\n",
@@ -428,9 +475,16 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
             FuncParam *p = method->data.func_decl.params[j];
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "ability method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             codebuf_write(ctx->out, ", %s %s", pt, p->name);
         }
         codebuf_write(ctx->out, ");\n");
@@ -485,9 +539,16 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                 FuncParam *p = func->data.func_decl.params[k];
                 if (strcmp(p->name, "self") == 0 && p->type == NULL)
                     continue;
-                const char *pt = "int32_t";
-                if (p->type != NULL)
-                    pt = pergyra_ast_type_to_c(p->type);
+                const char *pt = NULL;
+                char surface_desc[256];
+                snprintf(surface_desc, sizeof(surface_desc),
+                    "role override parameter '%s.%s(%s)'",
+                    name != NULL ? name : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)",
+                    p != NULL && p->name != NULL ? p->name : "(anonymous)");
+                pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+                if (pt == NULL)
+                    return;
                 codebuf_write(ctx->out, ", %s %s", pt, p->name);
             }
             codebuf_write(ctx->out, ")\n{\n");
@@ -562,9 +623,20 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Shared fields */
     for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
         ASTNode *shared = node->data.party_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "party shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -602,9 +674,16 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "party method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             codebuf_write(ctx->out, ", %s %s", pt, p->name);
         }
         codebuf_write(ctx->out, ")\n{\n");
@@ -680,9 +759,20 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Shared fields */
     for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
         ASTNode *shared = node->data.roster_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "roster shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -718,9 +808,16 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "roster method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             codebuf_write(ctx->out, ", %s %s", pt, p->name);
         }
         codebuf_write(ctx->out, ")\n{\n");
@@ -742,9 +839,20 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
         ASTNode *slot = node->data.relation_decl.slots[i];
-        const char *ft = "int32_t";
-        if (slot->data.domain_slot.type != NULL)
-            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "relation slot '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            slot != NULL && slot->data.domain_slot.slot_name != NULL
+                ? slot->data.domain_slot.slot_name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            slot != NULL ? slot->data.domain_slot.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
         if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
@@ -759,9 +867,20 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
         ASTNode *shared = node->data.relation_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "relation shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -876,9 +995,16 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "relation method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
@@ -942,9 +1068,20 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
         ASTNode *slot = node->data.effect_decl.slots[i];
-        const char *ft = "int32_t";
-        if (slot->data.domain_slot.type != NULL)
-            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "effect slot '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            slot != NULL && slot->data.domain_slot.slot_name != NULL
+                ? slot->data.domain_slot.slot_name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            slot != NULL ? slot->data.domain_slot.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
         if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
@@ -959,9 +1096,20 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
         ASTNode *shared = node->data.effect_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "effect shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -1076,9 +1224,16 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "effect method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
@@ -1158,9 +1313,20 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];
-        const char *ft = "int32_t";
-        if (slot->data.domain_slot.type != NULL)
-            ft = pergyra_ast_type_to_c(slot->data.domain_slot.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "zone slot '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            slot != NULL && slot->data.domain_slot.slot_name != NULL
+                ? slot->data.domain_slot.slot_name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            slot != NULL ? slot->data.domain_slot.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
         if (slot->data.domain_slot.is_tobject
             || domain_slot_is_projection_target_local(slot,
@@ -1196,9 +1362,20 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
         ASTNode *shared = node->data.zone_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "zone shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -1592,9 +1769,16 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "zone method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
@@ -1697,9 +1881,20 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Shared fields */
     for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
         ASTNode *shared = node->data.world_decl.shared_fields[i];
-        const char *ft = "int32_t";
-        if (shared->data.party_shared.type != NULL)
-            ft = pergyra_ast_type_to_c(shared->data.party_shared.type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "world shared field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            shared != NULL && shared->data.party_shared.name != NULL
+                ? shared->data.party_shared.name
+                : "(anonymous)");
+        ft = transpiler_require_ast_c_type(
+            ctx,
+            shared != NULL ? shared->data.party_shared.type : NULL,
+            surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
@@ -1921,9 +2116,16 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             if (p != NULL && p->type == NULL && p->name != NULL
                 && strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "world method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);

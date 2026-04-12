@@ -462,7 +462,8 @@ static bool transpiler_can_emit_intent_cleanup_from_mir_with_reason(const Transp
                                                                   const MIRRoutine **mir_routine_out,
                                                                   char *reason,
                                                                   size_t reason_cap);
-static void transpiler_emit_mir_resource_hook(CodeBuf *out,
+static bool transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
+                                              CodeBuf *out,
                                               int indent,
                                               const MIRInstruction *inst,
                                               const char *handle_expr,
@@ -477,6 +478,12 @@ static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const char *emitted_name,
                                           CodeBuf *buf,
                                           TranspilerCtx *ctx);
+static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
+                                                 ASTNode *type_ast,
+                                                 const char *surface_desc);
+static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
+                                                       const char *type_name,
+                                                       const char *surface_desc);
 
 /* Forward declarations for generic class monomorphization */
 static bool class_has_generic_params(ASTNode *node);
@@ -486,6 +493,59 @@ static const char *ensure_generic_class_specialization(
 /* -----------------------------------------------------------------
  * Let declaration emitter
  * ----------------------------------------------------------------- */
+
+static const char *
+transpiler_require_ast_c_type(TranspilerCtx *ctx,
+                              ASTNode *type_ast,
+                              const char *surface_desc)
+{
+    const char *c_type;
+    if (type_ast == NULL) {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "cannot emit %s in C backend: missing explicit type",
+                surface_desc != NULL ? surface_desc : "declaration");
+        }
+        return NULL;
+    }
+    c_type = pergyra_ast_type_to_c(type_ast);
+    if (c_type == NULL || c_type[0] == '\0') {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "cannot lower %s to a concrete C type",
+                surface_desc != NULL ? surface_desc : "declaration");
+        }
+        return NULL;
+    }
+    return c_type;
+}
+
+static const char *
+transpiler_require_type_name_c_type(TranspilerCtx *ctx,
+                                    const char *type_name,
+                                    const char *surface_desc)
+{
+    const char *c_type;
+    if (type_name == NULL || type_name[0] == '\0') {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "cannot emit %s in C backend: missing concrete type name",
+                surface_desc != NULL ? surface_desc : "declaration");
+        }
+        return NULL;
+    }
+    c_type = pergyra_type_to_c(type_name);
+    if (c_type == NULL || c_type[0] == '\0') {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "cannot lower %s type '%s' to a concrete C type",
+                surface_desc != NULL ? surface_desc : "declaration",
+                type_name);
+        }
+        return NULL;
+    }
+    return c_type;
+}
 
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
@@ -525,6 +585,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (gc_decl != NULL && class_has_generic_params(gc_decl)) {
             generic_class_spec_name =
                 ensure_generic_class_specialization(ctx, gc_decl, ann);
+            if (generic_class_spec_name == NULL)
+                return;
             /* Replace ann_type_name with the specialized name */
             free(ann_type_name);
             ann_type_name = pergyra_strdup(generic_class_spec_name);
@@ -555,7 +617,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     bool is_slot        = false;
     bool is_secure_slot = false;
     bool is_device_slot = false;
-    const char *slot_inner = "Int"; /* default */
+    const char *slot_inner = NULL;
 
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER) {
@@ -571,10 +633,6 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (is_slot) {
-        /*
-         * Resolve inner type from annotation.
-         * If not annotated, default to Int.
-         */
         if (ann != NULL) {
             if (ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
@@ -582,6 +640,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             } else {
                 slot_inner = slot_inner_type_name(ann->data.type.name);
             }
+        }
+        if (slot_inner == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot emit slot claim for '%s': missing explicit Slot<T>/SecureSlot<T> annotation",
+                    name != NULL ? name : "(anonymous)");
+            }
+            free(ann_type_name);
+            return;
         }
 
         register_slot_var(ctx, name, slot_inner, is_secure_slot, false);
@@ -1017,25 +1084,35 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     /* Normal variable with type inference */
-    const char *c_type = "int32_t"; /* fallback */
+    const char *c_type = NULL;
     if (ann != NULL) {
         c_type = pergyra_ast_type_to_c(ann);
     } else if (init != NULL) {
+        const char *inferred_type = NULL;
         /* Type inference from initializer */
         if (init->type == AST_NUMBER)  c_type = "int32_t";
         else if (init->type == AST_STRING)  c_type = "char*";
         else if (init->type == AST_BOOLEAN) c_type = "bool";
         else if (init->type == AST_SPAWN_EXPR) c_type = "PgyTaskHandle";
         else if (init->type == AST_CHANNEL_RECV) {
-            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
+            inferred_type = infer_expression_type_name(ctx, init);
+            if (inferred_type != NULL)
+                c_type = pergyra_type_to_c(inferred_type);
         }
-        else if (init->type == AST_CALL) {
-            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
+        else if (init->type == AST_CALL || init->type == AST_ARRAY_LITERAL || init != NULL) {
+            inferred_type = infer_expression_type_name(ctx, init);
+            if (inferred_type != NULL)
+                c_type = pergyra_type_to_c(inferred_type);
         }
-        else if (init->type == AST_ARRAY_LITERAL)
-            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
-        else
-            c_type = pergyra_type_to_c(infer_expression_type_name(ctx, init));
+    }
+
+    if (c_type == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot determine C type for let binding '%s'; explicit annotation or resolvable initializer type is required",
+            name != NULL ? name : "<binding>");
+        free(ann_type_name);
+        return;
     }
 
     /* Collection constructors: let s: Set<Int> = SetNew()
@@ -1190,7 +1267,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     ensure_type_specializations_from_ast(ctx, node->data.func_decl.return_type);
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         char *type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
@@ -1199,6 +1276,17 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             ensure_type_specializations_from_ast(ctx, p->type);
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
+        if (pt == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot determine parameter type for forward declaration '%s' at argument %zu",
+                name != NULL ? name : "<function>",
+                i);
+            codebuf_destroy(params_sig);
+            free(header_decl);
+            g_type_render_ctx = saved_render_ctx;
+            return;
+        }
         if (i > 0)
             codebuf_write(params_sig, ", ");
         if (p->type != NULL)
@@ -2887,8 +2975,9 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason_for_test(
     return can_emit;
 }
 
-static void
-transpiler_emit_mir_resource_hook(CodeBuf *out,
+static bool
+transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
+                                  CodeBuf *out,
                                   int indent,
                                   const MIRInstruction *inst,
                                   const char *handle_expr,
@@ -2901,7 +2990,21 @@ transpiler_emit_mir_resource_hook(CodeBuf *out,
         : "pgy_mir_resource_op_export";
 
     if (out == NULL || inst == NULL)
-        return;
+        return false;
+
+    if (inst->kind == MIR_INST_RESOURCE_OP) {
+        if (!transpiler_emit_mir_resource_op(out, indent, inst, inst->type_layout, NULL)) {
+            if (ctx != NULL && ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
+                    inst->name != NULL ? inst->name : "<op>",
+                    inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
+            }
+            return false;
+        }
+        if (!cleanup_hook)
+            return true;
+    }
 
     if (inst->name != NULL) {
         codebuf_write(out, "%*s%s(%s, ", indent * 4, "", helper,
@@ -2924,6 +3027,7 @@ transpiler_emit_mir_resource_hook(CodeBuf *out,
     codebuf_write(out, "\"%s\", \"%s\");\n",
         slot_anchor != NULL ? slot_anchor : "",
         arg_name != NULL ? arg_name : "");
+    return true;
 }
 
 static void
@@ -2955,13 +3059,30 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         char *type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
         if (p->type != NULL)
             pt = pergyra_ast_type_to_c(p->type);
+        if (pt == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot determine parameter type for MIR-emitted function '%s' at argument %zu",
+                    name != NULL ? name : "<function>",
+                    i);
+            }
+            codebuf_destroy(params_sig);
+            free(header_decl);
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
+            g_type_render_ctx = saved_render_ctx;
+            ctx->out = saved_out;
+            snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                "%s", saved_return_type);
+            return;
+        }
         if (i > 0)
             codebuf_write(params_sig, ", ");
         if (p->type != NULL)
@@ -3028,7 +3149,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             const char *type_name = NULL;
-            const char *c_type = "int32_t";
+            const char *c_type = NULL;
             char *c_name = NULL;
             if ((inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
                 || inst->result_name == NULL) {
@@ -3042,6 +3163,23 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 lookup_name);
             if (type_name != NULL)
                 c_type = pergyra_type_to_c(type_name);
+            if (c_type == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "cannot determine C type for MIR local '%s' in function '%s'",
+                        inst->result_name != NULL ? inst->result_name : "<ssa>",
+                        name != NULL ? name : "<function>");
+                }
+                codebuf_destroy(params_sig);
+                free(header_decl);
+                ctx->slot_var_count = saved_slot_count;
+                ctx->typed_var_count = saved_typed_count;
+                g_type_render_ctx = saved_render_ctx;
+                ctx->out = saved_out;
+                snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                    "%s", saved_return_type);
+                return;
+            }
             c_name = transpiler_make_c_ssa_name(inst->result_name);
             write_indent(ctx);
             if (transpiler_c_type_uses_scalar_zero(c_type))
@@ -3077,10 +3215,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                                                            sizeof(block_reason));
         if (!block_emitted) {
             transpiler_ssa_map_clear(&block_ssa_map);
-            write_indent(ctx);
-            codebuf_write(ctx->out,
-                "/* MIR block emission diagnostic: %s */\n",
-                block_reason[0] != '\0' ? block_reason : "unknown reason");
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "MIR block emission failed in function '%s' at block %zu: %s",
+                    name != NULL ? name : "<function>",
+                    block->id,
+                    block_reason[0] != '\0' ? block_reason : "unknown reason");
+            }
+            ctx->slot_var_count = saved_slot_count;
+            ctx->typed_var_count = saved_typed_count;
+            snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                "%s", saved_return_type);
+            g_type_render_ctx = saved_render_ctx;
+            ctx->out = saved_out;
+            return;
         }
 
         /* Ensure function parameters are in SSA map for expression resolution in branches/returns */
@@ -3095,7 +3243,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         for (size_t j = 0; j < block->instruction_count; j++) {
             const MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_RESOURCE_OP) {
-                transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "0", false);
+                if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "0", false)) {
+                    ctx->slot_var_count = saved_slot_count;
+                    ctx->typed_var_count = saved_typed_count;
+                    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                        "%s", saved_return_type);
+                    g_type_render_ctx = saved_render_ctx;
+                    ctx->out = saved_out;
+                    return;
+                }
             } else if (inst->kind == MIR_INST_BRANCH) {
                 char *cond = emit_expression_with_ssa_map(inst->ast, ctx,
                     &block_ssa_map);
@@ -3154,8 +3310,16 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             for (size_t j = 0; j < block->instruction_count; j++) {
                 const MIRInstruction *inst = &block->instructions[j];
                 if (inst->kind == MIR_INST_CLEANUP_EDGE) {
-                    transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst,
-                        "__intent_handle", true);
+                    if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst,
+                                                           "__intent_handle", true)) {
+                        ctx->slot_var_count = saved_slot_count;
+                        ctx->typed_var_count = saved_typed_count;
+                        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+                            "%s", saved_return_type);
+                        g_type_render_ctx = saved_render_ctx;
+                        ctx->out = saved_out;
+                        return;
+                    }
                 } else if (inst->kind == MIR_INST_RETURN) {
                     if (inst->ast != NULL) {
                         char *ret_expr = emit_expression(inst->ast, ctx);
@@ -3186,6 +3350,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx)
 {
     const MIRRoutine *mir_routine = NULL;
+    bool opened_body = false;
     if (ctx != NULL && ctx->mir != NULL) {
         char reason[256];
         if (transpiler_can_emit_function_from_mir_with_reason(
@@ -3232,13 +3397,19 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         char *type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
-        if (p->type != NULL)
-            pt = pergyra_ast_type_to_c(p->type);
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "function parameter '%s' of '%s'",
+            p != NULL && p->name != NULL ? p->name : "(anonymous)",
+            name != NULL ? name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+        if (pt == NULL)
+            goto emit_func_decl_named_fail;
         if (i > 0) codebuf_write(params_sig, ", ");
         if (p->type != NULL)
             type_name = render_type_name(p->type);
@@ -3269,8 +3440,11 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
         name, params_sig != NULL ? params_sig->data : "void");
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
+    opened_body = true;
     free(header_decl);
+    header_decl = NULL;
     codebuf_destroy(params_sig);
+    params_sig = NULL;
 
     ctx->indent++;
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
@@ -3308,6 +3482,20 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     codebuf_write(ctx->out, "}\n");
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
+    return;
+
+emit_func_decl_named_fail:
+    if (opened_body)
+        ctx->indent--;
+    free(header_decl);
+    if (params_sig != NULL)
+        codebuf_destroy(params_sig);
+    ctx->slot_var_count = saved_slot_count;
+    ctx->typed_var_count = saved_typed_count;
+    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
+        "%s", saved_return_type);
+    g_type_render_ctx = saved_render_ctx;
+    ctx->out = saved_out;
 }
 
 void
@@ -3338,9 +3526,15 @@ emit_extern_block(ASTNode *node, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < decl->data.func_decl.param_count; j++) {
             FuncParam *p = decl->data.func_decl.params[j];
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "extern parameter '%s' of '%s'",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)",
+                name != NULL ? name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             if (j > 0) {
                 codebuf_write(ctx->out, ", ");
             }
@@ -3398,8 +3592,17 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                  && garg->constraint->type == AST_TYPE
                  && garg->constraint->data.type.name != NULL)
             append_mangled_type_name(nbuf, garg->constraint->data.type.name);
-        else
-            codebuf_write(nbuf, "Unknown");
+        else {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot build generic specialization name for class '%s': unresolved generic argument at position %zu",
+                class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name
+                    : "<class>",
+                i);
+            codebuf_destroy(nbuf);
+            return class_decl->data.class_decl.name;
+        }
     }
 
     /* Check if already emitted */
@@ -3434,7 +3637,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         /* The concrete type name comes from the annotation's generic_args.
          * ga->params[i] is a GenericParam whose 'name' field holds the
          * actual type name (e.g. "Int") when used as a type argument. */
-        const char *concrete = "int32_t";
         if (ga->params[i] != NULL && ga->params[i]->name != NULL)
             snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
                      ga->params[i]->name);
@@ -3442,8 +3644,21 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                  && ga->params[i]->constraint->type == AST_TYPE)
             snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
                      ga->params[i]->constraint->data.type.name);
-        else
-            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s", concrete);
+        else {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot resolve generic class binding '%s' for specialization '%s'",
+                    gp->params[i] != NULL && gp->params[i]->name != NULL
+                        ? gp->params[i]->name
+                        : "(anonymous)",
+                    class_decl != NULL && class_decl->data.class_decl.name != NULL
+                        ? class_decl->data.class_decl.name
+                        : "(anonymous)");
+            }
+            ctx->generic_binding_count = saved_binding_count;
+            codebuf_destroy(nbuf);
+            return NULL;
+        }
 
         entry->bindings[i] = *b;
     }
@@ -3457,9 +3672,19 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
     for (size_t i = 0; i < class_decl->data.class_decl.field_count; i++) {
         ClassField *f = class_decl->data.class_decl.fields[i];
-        const char *ft = "int32_t";
-        if (f->type != NULL)
-            ft = pergyra_ast_type_to_c(f->type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "generic class field '%s.%s'",
+            spec_name != NULL ? spec_name : "(anonymous)",
+            f != NULL && f->name != NULL ? f->name : "(anonymous)");
+        ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
+        if (ft == NULL) {
+            g_type_render_ctx = saved_render_ctx;
+            ctx->generic_binding_count = saved_binding_count;
+            codebuf_destroy(nbuf);
+            return NULL;
+        }
         codebuf_write(ctx->helpers, "    %s %s;\n", ft, f->name);
     }
     codebuf_write(ctx->helpers, "} %s;\n", spec_name);
@@ -3507,9 +3732,20 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             FuncParam *p = method->data.func_decl.params[j];
             if (strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "generic class method parameter '%s.%s(%s)'",
+                spec_name != NULL ? spec_name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL) {
+                g_type_render_ctx = saved_render_ctx;
+                ctx->generic_binding_count = saved_binding_count;
+                codebuf_destroy(nbuf);
+                return NULL;
+            }
             codebuf_write(ctx->helpers, ", %s %s", pt, p->name);
         }
         codebuf_write(ctx->helpers, ")\n{\n");
@@ -3582,9 +3818,15 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Fields */
     for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
         ClassField *f = node->data.class_decl.fields[i];
-        const char *ft = "int32_t";
-        if (f->type != NULL)
-            ft = pergyra_ast_type_to_c(f->type);
+        const char *ft = NULL;
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "class field '%s.%s'",
+            name != NULL ? name : "(anonymous)",
+            f != NULL && f->name != NULL ? f->name : "(anonymous)");
+        ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
+        if (ft == NULL)
+            return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, f->name);
     }
 
@@ -3655,9 +3897,16 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             FuncParam *p = method->data.func_decl.params[j];
             if (strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = "int32_t";
-            if (p->type != NULL)
-                pt = pergyra_ast_type_to_c(p->type);
+            const char *pt = NULL;
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "class method parameter '%s.%s(%s)'",
+                name != NULL ? name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)",
+                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+            if (pt == NULL)
+                return;
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);
@@ -3722,9 +3971,17 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
 
-    const char *inner = "Int";
+    const char *inner = NULL;
     if (node->data.with_stmt.slot_type != NULL)
         inner = node->data.with_stmt.slot_type->data.type.name;
+    if (inner == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "cannot emit with-slot alias '%s': missing explicit slot type",
+                alias != NULL ? alias : "(anonymous)");
+        }
+        return;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
@@ -4097,7 +4354,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         char *coll = emit_expression(node->data.for_loop.iterable, ctx);
         const char *coll_type = infer_expression_type_name(ctx,
             node->data.for_loop.iterable);
-        const char *elem_type = "int32_t";
+        const char *elem_type = NULL;
         const char *length_field = "count";  /* default for List */
         if (coll_type != NULL
             && (strncmp(coll_type, "Array<", 6) == 0
@@ -4107,6 +4364,15 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         } else if (coll_type != NULL && strncmp(coll_type, "List<", 5) == 0) {
             elem_type = pergyra_type_to_c(slot_inner_type_name(coll_type));
             length_field = "count";  /* List uses .count */
+        }
+        if (elem_type == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot derive concrete element type for for-in iterable '%s'",
+                    coll_type != NULL ? coll_type : "(unknown)");
+            }
+            free(coll);
+            return;
         }
 
         int idx_id = ++ctx->tmp_counter;
@@ -4628,13 +4894,21 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         char *init_expr = emit_expression(init, ctx);
         const char *init_type = infer_expression_type_name(ctx, init);
         const char *c_init_type = pergyra_type_to_c(init_type);
-        const char *elem_c_type = "int32_t";
-        const char *inner = "Int";
+        const char *elem_c_type = NULL;
+        const char *inner = NULL;
         if (init_type != NULL
             && (strncmp(init_type, "Array<", 6) == 0
                 || strncmp(init_type, "Slice<", 6) == 0)) {
             inner = slot_inner_type_name(init_type);
             elem_c_type = pergyra_type_to_c(inner);
+        }
+        if (c_init_type == NULL || elem_c_type == NULL || inner == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot lower destructuring initializer of type '%s' to a concrete array element type",
+                    init_type != NULL ? init_type : "(unknown)");
+            }
+            return;
         }
         int tmp_id = ++ctx->tmp_counter;
         write_indent(ctx);
@@ -4902,11 +5176,12 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "        struct { ");
                 for (size_t p = 0; p < pc; p++) {
                     ASTNode *pt = node->data.enum_decl.variant_params[i][p];
-                    const char *ctype = "int32_t";
-                    if (pt != NULL && pt->type == AST_TYPE
-                        && pt->data.type.name != NULL) {
-                        ctype = pergyra_ast_type_to_c(pt);
-                    }
+                    const char *ctype = transpiler_require_ast_c_type(
+                        ctx,
+                        pt,
+                        "enum variant payload field");
+                    if (ctype == NULL)
+                        return;
                     codebuf_write(ctx->out, "%s _%zu; ", ctype, p);
                 }
                 codebuf_write(ctx->out, "} %s;\n",
@@ -4934,10 +5209,12 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                         "static inline %s %s_%s(", ename, ename, vname);
                     for (size_t p = 0; p < pc; p++) {
                         ASTNode *pt = node->data.enum_decl.variant_params[i][p];
-                        const char *ctype = "int32_t";
-                        if (pt != NULL && pt->type == AST_TYPE
-                            && pt->data.type.name != NULL)
-                            ctype = pergyra_ast_type_to_c(pt);
+                        const char *ctype = transpiler_require_ast_c_type(
+                            ctx,
+                            pt,
+                            "enum variant constructor parameter");
+                        if (ctype == NULL)
+                            return;
                         if (p > 0) codebuf_write(ctx->out, ", ");
                         codebuf_write(ctx->out, "%s _%zu", ctype, p);
                     }
@@ -4996,9 +5273,16 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 FuncParam *p = method->data.func_decl.params[j];
                 if (p == NULL || p->name == NULL || strcmp(p->name, "self") == 0)
                     continue;
-                const char *pt = "int32_t";
-                if (p->type != NULL)
-                    pt = pergyra_ast_type_to_c(p->type);
+                const char *pt = NULL;
+                char surface_desc[256];
+                snprintf(surface_desc, sizeof(surface_desc),
+                    "enum method parameter '%s.%s(%s)'",
+                    ename != NULL ? ename : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)",
+                    p != NULL && p->name != NULL ? p->name : "(anonymous)");
+                pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
+                if (pt == NULL)
+                    return;
                 codebuf_write(ctx->out, ", %s %s", pt, p->name);
             }
             codebuf_write(ctx->out, ")\n{\n");
@@ -5523,21 +5807,32 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     codebuf_write(buf, "\nbool\n%s(", node->data.intent_decl.name);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
             ? involves->data.intent_involves.alias : "participant";
         const char *participant_type = participant_types != NULL && i < participant_count
             ? participant_types[i]
             : NULL;
         bool pointer_param = false;
+        char surface_desc[256];
         if (i > 0)
             codebuf_write(buf, ", ");
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent participant '%s' of '%s'",
+            alias != NULL ? alias : "(anonymous)",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
         if (participant_type != NULL) {
-            pt = pergyra_type_to_c(participant_type);
+            pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
             pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
         } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-            pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+            pt = transpiler_require_ast_c_type(
+                ctx, involves->data.intent_involves.subject_type, surface_desc);
             pointer_param = intent_involves_uses_pointer_self(ctx, involves);
+        }
+        if (pt == NULL) {
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            return;
         }
         if (participant_aliases != NULL && i < participant_count
             && participant_aliases[i] != NULL) {
@@ -5547,11 +5842,25 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
         ASTNode *value = node->data.intent_decl.values[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
+        char surface_desc[256];
         if (node->data.intent_decl.involve_count > 0 || i > 0)
             codebuf_write(buf, ", ");
-        if (value != NULL && value->data.intent_value.value_type != NULL)
-            pt = pergyra_ast_type_to_c(value->data.intent_value.value_type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent value '%s' of '%s'",
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias
+                : "value",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(
+            ctx,
+            value != NULL ? value->data.intent_value.value_type : NULL,
+            surface_desc);
+        if (pt == NULL) {
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            return;
+        }
         codebuf_write(buf, "%s %s", pt,
             value != NULL && value->data.intent_value.alias != NULL
                 ? value->data.intent_value.alias : "value");
@@ -5681,7 +5990,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nbool\n%s(", node->data.intent_decl.name);
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
             ? involves->data.intent_involves.alias : "participant";
         const char *participant_type = participant_types != NULL && i < participant_count
@@ -5689,17 +5998,25 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             : NULL;
         char *type_name = NULL;
         bool pointer_param = false;
+        char surface_desc[256];
         if (i > 0)
             codebuf_write(ctx->out, ", ");
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent participant '%s' of '%s'",
+            alias != NULL ? alias : "(anonymous)",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
         if (participant_type != NULL) {
-            pt = pergyra_type_to_c(participant_type);
+            pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
             type_name = pergyra_strdup(participant_type);
             pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
         } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-            pt = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+            pt = transpiler_require_ast_c_type(
+                ctx, involves->data.intent_involves.subject_type, surface_desc);
             type_name = render_type_name(involves->data.intent_involves.subject_type);
             pointer_param = intent_involves_uses_pointer_self(ctx, involves);
         }
+        if (pt == NULL)
+            goto intent_emit_fail;
         if (participant_aliases != NULL && i < participant_count
             && participant_aliases[i] != NULL) {
             alias = participant_aliases[i];
@@ -5715,12 +6032,24 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
         ASTNode *value = node->data.intent_decl.values[i];
-        const char *pt = "int32_t";
+        const char *pt = NULL;
         char *type_name = NULL;
+        char surface_desc[256];
         if (node->data.intent_decl.involve_count > 0 || i > 0)
             codebuf_write(ctx->out, ", ");
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent value '%s' of '%s'",
+            value != NULL && value->data.intent_value.alias != NULL
+                ? value->data.intent_value.alias
+                : "value",
+            node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(
+            ctx,
+            value != NULL ? value->data.intent_value.value_type : NULL,
+            surface_desc);
+        if (pt == NULL)
+            goto intent_emit_fail;
         if (value != NULL && value->data.intent_value.value_type != NULL) {
-            pt = pergyra_ast_type_to_c(value->data.intent_value.value_type);
             type_name = render_type_name(value->data.intent_value.value_type);
         }
         codebuf_write(ctx->out, "%s %s", pt,
@@ -6144,7 +6473,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         for (size_t i = 0; i < cleanup_block->instruction_count; i++) {
             const MIRInstruction *inst = &cleanup_block->instructions[i];
             if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
-                transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "__intent_handle", true);
+                if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                    goto intent_emit_fail;
         }
         if (mir_routine->has_rollback_block) {
             write_indent(ctx);
@@ -6174,11 +6504,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
                 node->data.intent_decl.name, mir_routine, rollback_block);
             if (rollback_block != NULL) {
-                for (size_t i = 0; i < rollback_block->instruction_count; i++) {
-                    const MIRInstruction *inst = &rollback_block->instructions[i];
-                    if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
-                        transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "__intent_handle", true);
-                }
+                    for (size_t i = 0; i < rollback_block->instruction_count; i++) {
+                        const MIRInstruction *inst = &rollback_block->instructions[i];
+                        if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
+                            if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                                goto intent_emit_fail;
+                    }
             }
             if (has_compensate_steps && step_count > 0) {
                 for (size_t i = step_count; i-- > 0;) {
@@ -6273,11 +6604,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
                 node->data.intent_decl.name, mir_routine, invalidation_block);
             if (invalidation_block != NULL) {
-                for (size_t i = 0; i < invalidation_block->instruction_count; i++) {
-                    const MIRInstruction *inst = &invalidation_block->instructions[i];
-                    if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
-                        transpiler_emit_mir_resource_hook(ctx->out, ctx->indent, inst, "__intent_handle", true);
-                }
+                    for (size_t i = 0; i < invalidation_block->instruction_count; i++) {
+                        const MIRInstruction *inst = &invalidation_block->instructions[i];
+                        if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP)
+                            if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst, "__intent_handle", true))
+                                goto intent_emit_fail;
+                    }
             }
             write_indent(ctx);
             codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
@@ -6743,13 +7075,19 @@ char *
 emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 {
     int lambda_id = ++ctx->tmp_counter;
-    const char *return_type = "int32_t";
+    const char *return_type = NULL;
 
     if (node->data.lambda_expr.return_type != NULL) {
         return_type = pergyra_ast_type_to_c(node->data.lambda_expr.return_type);
     } else if (node->data.lambda_expr.body != NULL
                && node->data.lambda_expr.body->type == AST_BLOCK) {
         return_type = "void";
+    }
+    if (return_type == NULL) {
+        transpiler_set_backend_error(
+            ctx,
+            "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
+        return pergyra_strdup("0");
     }
 
     char *lambda_name = strdup_fmt("pgy_lambda_%d", lambda_id);
@@ -6759,7 +7097,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
         ASTNode *param = node->data.lambda_expr.params[i];
         const char *param_name = NULL;
-        const char *param_type = "int32_t";
+        const char *param_type = NULL;
         if (i > 0)
             codebuf_write(ctx->decls, ", ");
         if (param->type == AST_LET_DECL) {
@@ -6768,6 +7106,15 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
         } else {
             param_name = param->data.identifier.name;
+        }
+        if (param_type == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot determine lambda parameter type for '%s' at argument %zu",
+                lambda_name,
+                i);
+            free(lambda_name);
+            return pergyra_strdup("0");
         }
         codebuf_write(ctx->decls, "%s %s", param_type, param_name);
     }
@@ -6778,7 +7125,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
         ASTNode *param = node->data.lambda_expr.params[i];
         const char *param_name = NULL;
-        const char *param_type = "int32_t";
+        const char *param_type = NULL;
         if (i > 0)
             codebuf_write(ctx->helpers, ", ");
         if (param->type == AST_LET_DECL) {
@@ -6787,6 +7134,15 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
         } else {
             param_name = param->data.identifier.name;
+        }
+        if (param_type == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot determine lambda parameter type for '%s' at argument %zu",
+                lambda_name,
+                i);
+            free(lambda_name);
+            return pergyra_strdup("0");
         }
         codebuf_write(ctx->helpers, "%s %s", param_type, param_name);
     }
