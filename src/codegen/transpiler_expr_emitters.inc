@@ -1001,14 +1001,21 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     case BUILTIN_HAS_PROJECTION:
         if (call->data.call.arg_count == 1 && call->data.call.arguments[0] != NULL) {
             const char *slot_name = NULL;
+            ASTNode *slot_decl = NULL;
             if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
                 slot_name = call->data.call.arguments[0]->data.identifier.name;
             else if (call->data.call.arguments[0]->type == AST_STRING)
                 slot_name = call->data.call.arguments[0]->data.string.value;
+            slot_decl = current_overlay_domain_slot_decl(ctx, slot_name);
+            if (slot_decl != NULL
+                && slot_decl->type == AST_DOMAIN_SLOT
+                && !slot_decl->data.domain_slot.is_subject) {
+                return strdup_fmt("self->__projection_ready_%s", slot_name);
+            }
             if (slot_name != NULL
-                && (current_relation_has_projection_slot(ctx, slot_name)
-                    || current_effect_has_projection_slot(ctx, slot_name)
-                    || current_zone_has_projection_slot(ctx, slot_name))) {
+                && (ctx->current_relation_name != NULL
+                    || ctx->current_effect_name != NULL
+                    || ctx->current_zone_name != NULL)) {
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
             }
         }

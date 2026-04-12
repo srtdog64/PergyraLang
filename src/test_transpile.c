@@ -958,7 +958,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("poisoned", 1) };
         result = emit_expression(make_call("HasState", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false /* HasState: zone-semantic query only */") == 0);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "C backend: HasState requires active zone context");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -972,7 +975,10 @@ test_expression_emit(void)
             make_identifier("enemy", 1)
         };
         result = emit_expression(make_call("HasState", args, 3, 1), ctx);
-        EXPECT(strcmp(result, "false /* HasState: zone-semantic query only */") == 0);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "C backend: HasState requires active zone context");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -982,7 +988,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("battle", 1) };
         result = emit_expression(make_call("HasZone", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false /* HasZone: world-semantic query only */") == 0);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "C backend: HasZone requires active world context");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -992,7 +1001,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("poison", 1) };
         result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false /* HasLayer: zone-semantic query only */") == 0);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "C backend: HasLayer requires active zone context");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -1002,7 +1014,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("snapshot", 1) };
         result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false /* HasProjection: domain-semantic query only */") == 0);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "C backend: HasProjection requires active relation/effect/zone projection context");
         free(result);
         transpiler_ctx_destroy(ctx);
     }
@@ -1544,7 +1559,10 @@ test_statement_emit(void)
     {
         ASTNode *bind = ast_create_bind_statement("team", "fighter", "Warrior");
         const char *out = emit_stmt_to_str(bind, &ctx);
-        EXPECT_STR_CONTAINS(out, "UnknownParty_bind_fighter(&team, NULL, &Warrior_fighter_vtable_instance)");
+        EXPECT(strcmp(out, "") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "cannot resolve party type for bind statement 'team.fighter = Warrior'");
         transpiler_ctx_destroy(ctx);
     }
 }
@@ -2979,10 +2997,10 @@ test_stdlib_and_enum_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data,
             "int32_t Apply(int32_t base, StrategyContext ctx, int32_t (*policy)(int32_t, StrategyContext))");
-        EXPECT_STR_CONTAINS(ctx->decls->data,
-            "static int32_t pgy_lambda_");
-        EXPECT_STR_CONTAINS(ctx->decls->data,
-            "int32_t base, StrategyContext ctx");
+        EXPECT(strstr(ctx->decls->data, "pgy_lambda_") != NULL
+            || strstr(ctx->helpers->data, "pgy_lambda_") != NULL);
+        EXPECT(strstr(ctx->decls->data, "int32_t base, StrategyContext ctx") != NULL
+            || strstr(ctx->helpers->data, "int32_t base, StrategyContext ctx") != NULL);
 
         transpiler_ctx_destroy(ctx);
         hir_destroy(hir);

@@ -425,6 +425,13 @@ static bool transpiler_has_mapping_for_all_emitted_blocks(const MIRRoutine *rout
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
+static const char *lookup_typed_var(TranspilerCtx *ctx, const char *var_name);
+static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
+                                                 ASTNode *type_ast,
+                                                 const char *surface_desc);
+static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
+                                                       const char *type_name,
+                                                       const char *surface_desc);
 
 #include "transpiler_helpers.inc"
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
@@ -478,13 +485,6 @@ static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const char *emitted_name,
                                           CodeBuf *buf,
                                           TranspilerCtx *ctx);
-static const char *transpiler_require_ast_c_type(TranspilerCtx *ctx,
-                                                 ASTNode *type_ast,
-                                                 const char *surface_desc);
-static const char *transpiler_require_type_name_c_type(TranspilerCtx *ctx,
-                                                       const char *type_name,
-                                                       const char *surface_desc);
-
 /* Forward declarations for generic class monomorphization */
 static bool class_has_generic_params(ASTNode *node);
 static const char *ensure_generic_class_specialization(
@@ -681,6 +681,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 slot_inner = slot_inner_type_name(ann->data.type.name);
             }
         }
+        if (slot_inner == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot emit device slot claim for '%s': missing explicit DeviceSlot<T> annotation",
+                    name != NULL ? name : "(anonymous)");
+            }
+            free(ann_type_name);
+            return;
+        }
 
         write_indent(ctx);
         codebuf_write(ctx->out,
@@ -718,16 +727,25 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                           || strcmp(callee_name, "ViewWrite") == 0);
         bool is_move_decl = strcmp(callee_name, "Move") == 0;
         if (is_view_decl || is_move_decl) {
-            const char *inner = "Int";
+            const char *inner = NULL;
             bool source_secure = lookup_slot_is_secure(ctx, source_name);
-            const char *ctype;
+            const char *ctype = NULL;
             if (ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
                 inner = ann->data.type.generic_args->params[0]->name;
             } else {
                 inner = slot_inner_type_name(ann_name);
             }
-            ctype = source_secure ? pergyra_type_to_c("SecureSlot<Int>") : pergyra_type_to_c("Slot<Int>");
+            if (inner == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "cannot emit %s declaration for '%s': missing explicit inner type",
+                        is_move_decl ? "move-token" : "view",
+                        name != NULL ? name : "(anonymous)");
+                }
+                free(ann_type_name);
+                return;
+            }
             if (source_secure) {
                 char secure_name[128];
                 snprintf(secure_name, sizeof(secure_name), "SecureSlot<%s>", inner);
@@ -736,6 +754,17 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 char slot_name_buf[128];
                 snprintf(slot_name_buf, sizeof(slot_name_buf), "Slot<%s>", inner);
                 ctype = pergyra_type_to_c(slot_name_buf);
+            }
+            if (ctype == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "cannot lower %s declaration '%s' with inner type '%s' to a concrete slot type",
+                        is_move_decl ? "move-token" : "view",
+                        name != NULL ? name : "(anonymous)",
+                        inner);
+                }
+                free(ann_type_name);
+                return;
             }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = %s;\n", ctype, name, source_name);
@@ -775,12 +804,21 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (is_slot_sugar) {
-            const char *sugar_inner = "Int";
+            const char *sugar_inner = NULL;
             if (ann->data.type.generic_args != NULL
                 && ann->data.type.generic_args->count > 0) {
                 sugar_inner = ann->data.type.generic_args->params[0]->name;
             } else {
                 sugar_inner = slot_inner_type_name(ann_name);
+            }
+            if (sugar_inner == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "cannot emit slot sugar declaration for '%s': missing explicit Slot<T>/SecureSlot<T> inner type",
+                        name != NULL ? name : "(anonymous)");
+                }
+                free(ann_type_name);
+                return;
             }
 
             if (init != NULL && init->type == AST_IDENTIFIER) {
@@ -847,7 +885,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     if (init != NULL && init->type == AST_CALL
         && init->data.call.callee->type == AST_IDENTIFIER
         && strcmp(init->data.call.callee->data.identifier.name, "BoxArray") == 0) {
-        const char *inner = "Int";
+        const char *inner = NULL;
         if (ann_type_name != NULL && strncmp(ann_type_name, "Box<Array<", 10) == 0) {
             inner = ann_type_name + 10;
             const char *close = strstr(inner, ">>");
@@ -858,6 +896,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             memcpy(inner_buf, inner, len);
             inner_buf[len] = '\0';
             inner = inner_buf;
+        }
+        if (inner == NULL) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "cannot emit BoxArray declaration for '%s': missing explicit Box<Array<T>> annotation",
+                    name != NULL ? name : "(anonymous)");
+            }
+            free(ann_type_name);
+            return;
         }
 
         char *capacity = (init->data.call.arg_count > 0)
@@ -870,8 +917,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out,
             "PgyBoxArray_%s %s = pgy_box_array_new_%s(%s, %s);\n",
             inner, name, inner, capacity, allocator);
-        register_typed_var(ctx, name,
-            ann_type_name != NULL ? ann_type_name : "Box<Array<Int>>");
+        if (ann_type_name != NULL) {
+            register_typed_var(ctx, name, ann_type_name);
+        } else {
+            char *box_array_type = strdup_fmt("Box<Array<%s>>", inner);
+            register_typed_var(ctx, name, box_array_type);
+            free(box_array_type);
+        }
         free(capacity);
         free(allocator);
         free(ann_type_name);
@@ -2151,6 +2203,8 @@ transpiler_mir_type_supported(const char *type_name)
 {
     if (type_name == NULL)
         return false;
+    if (strcmp(type_name, "Void") == 0)
+        return true;
     return strcmp(type_name, "Int") == 0
            || strcmp(type_name, "Long") == 0
            || strcmp(type_name, "Float") == 0
@@ -2162,29 +2216,64 @@ transpiler_mir_type_supported(const char *type_name)
 }
 
 static bool
+transpiler_mir_ast_type_supported(const ASTNode *type_node)
+{
+    char *type_name = NULL;
+    const char *c_type = NULL;
+
+    if (type_node == NULL)
+        return true;
+
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        if (!transpiler_mir_ast_type_supported(
+                type_node->data.event_handler_type.return_type)) {
+            return false;
+        }
+        for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+            if (!transpiler_mir_ast_type_supported(
+                    type_node->data.event_handler_type.param_types[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    type_name = render_type_name((ASTNode *)type_node);
+    if (type_name == NULL)
+        return false;
+    if (transpiler_mir_type_supported(type_name)) {
+        free(type_name);
+        return true;
+    }
+
+    c_type = pergyra_ast_type_to_c((ASTNode *)type_node);
+    if (c_type == NULL || c_type[0] == '\0') {
+        free(type_name);
+        return false;
+    }
+    if (strcmp(type_name, "Unknown") == 0 || strcmp(c_type, "Unknown") == 0) {
+        free(type_name);
+        return false;
+    }
+
+    free(type_name);
+    return true;
+}
+
+static bool
 transpiler_mir_function_signature_supported(const ASTNode *func_decl)
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
 
-    if (func_decl->data.func_decl.return_type != NULL) {
-        char *return_type = render_type_name(func_decl->data.func_decl.return_type);
-        bool ok = transpiler_mir_type_supported(return_type);
-        free(return_type);
-        if (!ok)
-            return false;
-    }
+    if (!transpiler_mir_ast_type_supported(func_decl->data.func_decl.return_type))
+        return false;
 
     for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
         FuncParam *param = func_decl->data.func_decl.params[i];
-        char *param_type = NULL;
-        bool ok;
         if (param == NULL || param->type == NULL)
             continue;
-        param_type = render_type_name(param->type);
-        ok = transpiler_mir_type_supported(param_type);
-        free(param_type);
-        if (!ok)
+        if (!transpiler_mir_ast_type_supported(param->type))
             return false;
     }
 
@@ -2826,13 +2915,6 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
                          routine_name, block->id);
             return false;
         }
-        if (!block->has_succ_true) {
-            if (reason != NULL && reason_cap > 0)
-                snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %zu has exceptional successor without normal fallthrough",
-                         routine_name, block->id);
-            return false;
-        }
     }
 
     return true;
@@ -3115,6 +3197,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         name, params_sig != NULL ? params_sig->data : "void");
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
     free(header_decl);
+    header_decl = NULL;
     codebuf_destroy(params_sig);
 
     ctx->indent++;
@@ -7082,6 +7165,11 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     } else if (node->data.lambda_expr.body != NULL
                && node->data.lambda_expr.body->type == AST_BLOCK) {
         return_type = "void";
+    } else if (node->data.lambda_expr.body != NULL) {
+        const char *inferred_return_type =
+            infer_expression_type_name(ctx, node->data.lambda_expr.body);
+        if (inferred_return_type != NULL)
+            return_type = pergyra_type_to_c(inferred_return_type);
     }
     if (return_type == NULL) {
         transpiler_set_backend_error(

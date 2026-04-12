@@ -148,6 +148,8 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 - MIR function block emission 실패도 더 이상 주석 코멘트로 남지 않고 backend error로 전파된다
 - slot sugar / 일부 collection helper도 payload/element type을 모를 때 `Int`/`int32_t`로 덮지 않고 backend error로 실패시키기 시작했다
 - ordinary function / extern / class / enum / intent declaration signature 경로도 unresolved type을 `int32_t`로 덮지 않고 backend error로 실패시킨다
+- `select` channel receive type, `ViewRead`/`ViewWrite`/`Move` declaration, `BoxArray` declaration도 inner type을 모를 때 `Int`로 덮지 않고 backend error로 실패시킨다
+- MIR resource-op helper도 unknown op를 generic runtime call로 흘려보내지 않고 실패시킨다
 
 남은 완료 기준:
 

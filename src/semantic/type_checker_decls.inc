@@ -2,6 +2,8 @@ static bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
 static ASTNode *
 any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
+static const char *
+intent_involves_type_name(ASTNode *involves);
 static bool
 intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
 static ASTNode *
@@ -11,6 +13,18 @@ intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
 static const char *
 intent_action_binding_type_name(ASTNode *action_decl, ASTNode *action_subject_decl,
                                 SemanticContext *ctx, const char *binding_name);
+static const char *
+nominal_decl_name(ASTNode *decl);
+
+static const char *
+nominal_decl_name(ASTNode *decl)
+{
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL)
+        return decl->data.class_decl.name;
+    return NULL;
+}
 
 static bool
 intent_step_same_ability_list(ASTNode *step, ASTNode *action_decl)
@@ -896,9 +910,6 @@ find_intent_involves_local(ASTNode *intent, const char *alias)
     }
     return NULL;
 }
-
-static const char *
-intent_involves_type_name(ASTNode *involves);
 
 static ASTNode *
 find_unique_intent_involves_by_type_name(ASTNode *intent,

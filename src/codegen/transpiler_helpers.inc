@@ -966,11 +966,9 @@ domain_has_projection_slot(ASTNode **slots, size_t slot_count,
             || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
             continue;
         }
-        if (slot->data.domain_slot.is_tobject)
+        if (!slot->data.domain_slot.is_subject)
             return true;
-        if (slot->data.domain_slot.is_subject)
-            return false;
-        return domain_slot_is_projection_target_local(slot, refreshes, refresh_count);
+        return false;
     }
 
     return false;
@@ -4684,7 +4682,7 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
     const MIRTypeLayout *effective_layout = layout;
 
     if (effective_layout == NULL) {
-        const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->subject;
+        const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
         if (abi_key != NULL)
             effective_layout = mir_abi_lookup(abi_key);
     }
@@ -4693,15 +4691,6 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
         fn = effective_layout->runtime_fn;
         suffix = transpiler_extract_type_suffix_from_fn(fn);
-    }
-    /* Priority 2: fallback — extract from arg0 or name */
-    else if (inst->arg0 != NULL) {
-        /* Try to infer from the op name */
-        const char *op_name = inst->name;  /* e.g. "CLAIM", "READ", "WRITE", "RELEASE" */
-        if (op_name != NULL) {
-            /* Try slot anchor type inference */
-            /* This is a fallback — ideally layout is always set */
-        }
     }
 
     if (fn == NULL)
@@ -4768,16 +4757,7 @@ transpiler_emit_mir_resource_op(CodeBuf *out,
         codebuf_write(out, "%s = %s;\n", dst, src);
     }
     else {
-        /* Generic fallback — emit function call as-is */
-        const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "";
-        write_indent_to(out, indent);
-        if (inst->arg0 != NULL && inst->arg1 != NULL) {
-            codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, inst->arg1);
-        } else if (inst->arg0 != NULL) {
-            codebuf_write(out, "%s(&%s, %s);\n", fn, anchor, inst->arg0);
-        } else {
-            codebuf_write(out, "%s(&%s);\n", fn, anchor);
-        }
+        return false;
     }
 
     return true;
@@ -4800,8 +4780,8 @@ transpiler_emit_mir_def(CodeBuf *out,
         return false;
 
     const MIRTypeLayout *effective_layout = layout;
-    if (effective_layout == NULL && inst->subject != NULL)
-        effective_layout = mir_abi_lookup(inst->subject);
+    if (effective_layout == NULL && inst->slot_anchor != NULL)
+        effective_layout = mir_abi_lookup(inst->slot_anchor);
 
     /* If this DEF has a type_layout with runtime_fn, emit as function call */
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {

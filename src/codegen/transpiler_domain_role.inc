@@ -854,10 +854,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         if (ft == NULL)
             return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_tobject
-            || domain_slot_is_projection_target_local(slot,
-                node->data.relation_decl.refreshes,
-                node->data.relation_decl.refresh_count)) {
+        if (!slot->data.domain_slot.is_subject) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
@@ -895,10 +892,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "if (!(");
         for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
             ASTNode *slot = node->data.relation_decl.slots[i];
-            if (!(slot->data.domain_slot.is_tobject
-                || domain_slot_is_projection_target_local(slot,
-                    node->data.relation_decl.refreshes,
-                    node->data.relation_decl.refresh_count))) {
+            if (slot->data.domain_slot.is_subject) {
                 continue;
             }
             if (emitted_condition)
@@ -1083,10 +1077,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         if (ft == NULL)
             return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_tobject
-            || domain_slot_is_projection_target_local(slot,
-                node->data.effect_decl.refreshes,
-                node->data.effect_decl.refresh_count)) {
+        if (!slot->data.domain_slot.is_subject) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
@@ -1124,10 +1115,7 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "if (!(");
         for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
             ASTNode *slot = node->data.effect_decl.slots[i];
-            if (!(slot->data.domain_slot.is_tobject
-                || domain_slot_is_projection_target_local(slot,
-                    node->data.effect_decl.refreshes,
-                    node->data.effect_decl.refresh_count))) {
+            if (slot->data.domain_slot.is_subject) {
                 continue;
             }
             if (emitted_condition)
@@ -1328,10 +1316,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         if (ft == NULL)
             return;
         codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (slot->data.domain_slot.is_tobject
-            || domain_slot_is_projection_target_local(slot,
-                node->data.zone_decl.refreshes,
-                node->data.zone_decl.refresh_count)) {
+        if (!slot->data.domain_slot.is_subject) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
                 slot->data.domain_slot.slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
@@ -2216,7 +2201,7 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *body = NULL;
         const char *bind_name = NULL;
         bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
-        const char *inner = "Int";
+        const char *inner = NULL;
 
         if (!valid_case || bind_name == NULL || channel == NULL
             || channel->type != AST_IDENTIFIER)
@@ -2226,6 +2211,15 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
             const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
             if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
                 inner = slot_inner_type_name(type_name);
+        }
+        if (inner == NULL) {
+            transpiler_set_backend_error(
+                ctx,
+                "cannot derive receive type for select case channel '%s'",
+                channel->data.identifier.name != NULL
+                    ? channel->data.identifier.name
+                    : "(anonymous)");
+            return;
         }
 
         write_indent(ctx);
@@ -2257,12 +2251,22 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 ASTNode *body = NULL;
                 const char *bind_name = NULL;
                 bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
-                const char *inner = "Int";
+                const char *inner = NULL;
 
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
                     const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
                     if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
                         inner = slot_inner_type_name(type_name);
+                }
+                if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER
+                    && inner == NULL) {
+                    transpiler_set_backend_error(
+                        ctx,
+                        "cannot derive receive type for select case channel '%s'",
+                        channel->data.identifier.name != NULL
+                            ? channel->data.identifier.name
+                            : "(anonymous)");
+                    return;
                 }
 
                 write_indent(ctx);
