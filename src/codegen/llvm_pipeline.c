@@ -288,12 +288,10 @@ llvm_requires_thread_pool(const LLVMGenCtx *ctx)
         return true;
     }
 
-    if (ctx->hir != NULL) {
-        llvm_active_executables(ctx, &executables, &executable_count);
-        for (size_t i = 0; i < executable_count; i++) {
-            if (llvm_ast_uses_thread_pool(executables[i]))
-                return true;
-        }
+    llvm_active_executables(ctx, &executables, &executable_count);
+    for (size_t i = 0; i < executable_count; i++) {
+        if (llvm_ast_uses_thread_pool(executables[i]))
+            return true;
     }
 
     return false;
@@ -391,8 +389,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
     synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
     has_top_level_exec = llvm_active_has_top_level_exec(ctx);
-    if (ctx->hir != NULL)
-        llvm_active_executables(ctx, &executables, &executable_count);
+    llvm_active_executables(ctx, &executables, &executable_count);
     has_main_function = llvm_active_has_main_function(ctx);
     needs_thread_pool = llvm_requires_thread_pool(ctx);
 
@@ -467,7 +464,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
                 }
             }
         }
-    } else if (ctx->hir != NULL && executable_count > 0) {
+    } else if (executable_count > 0) {
         for (size_t i = 0; i < executable_count; i++) {
             ASTNode *stmt = executables[i];
             if (stmt != NULL) {

@@ -75,7 +75,7 @@ transpiler_require_ast_c_type(TranspilerCtx *ctx,
         return NULL;
     }
     c_type = pergyra_ast_type_to_c(type_ast);
-    if (c_type == NULL || c_type[0] == '\0') {
+    if (c_type == NULL || c_type[0] == '\0' || strcmp(c_type, "Unknown") == 0) {
         if (ctx != NULL && ctx->backend_error == NULL) {
             ctx->backend_error = strdup_fmt(
                 "cannot lower %s to a concrete C type",
@@ -101,7 +101,7 @@ transpiler_require_type_name_c_type(TranspilerCtx *ctx,
         return NULL;
     }
     c_type = pergyra_type_to_c(type_name);
-    if (c_type == NULL || c_type[0] == '\0') {
+    if (c_type == NULL || c_type[0] == '\0' || strcmp(c_type, "Unknown") == 0) {
         if (ctx != NULL && ctx->backend_error == NULL) {
             ctx->backend_error = strdup_fmt(
                 "cannot lower %s type '%s' to a concrete C type",

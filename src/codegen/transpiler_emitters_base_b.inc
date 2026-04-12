@@ -1461,11 +1461,19 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         }
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
-            const char *c_type = entry != NULL
-                ? pergyra_type_to_c(entry->type_name)
-                : NULL;
+            char surface_desc[256];
+            const char *c_type;
+            snprintf(surface_desc, sizeof(surface_desc),
+                "parallel capture '%s'",
+                capture_typed_names[i]);
+            c_type = transpiler_require_type_name_c_type(
+                ctx,
+                entry != NULL ? entry->type_name : NULL,
+                surface_desc);
+            if (c_type == NULL)
+                return;
             codebuf_write(ctx->helpers,
-                "    %s *%s;\n", c_type != NULL ? c_type : "int32_t",
+                "    %s *%s;\n", c_type,
                 capture_typed_names[i]);
         }
         codebuf_write(ctx->helpers,
@@ -1599,11 +1607,19 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         }
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
-            const char *c_type = entry != NULL
-                ? pergyra_type_to_c(entry->type_name)
-                : NULL;
+            char surface_desc[256];
+            const char *c_type;
+            snprintf(surface_desc, sizeof(surface_desc),
+                "async capture '%s'",
+                capture_typed_names[i]);
+            c_type = transpiler_require_type_name_c_type(
+                ctx,
+                entry != NULL ? entry->type_name : NULL,
+                surface_desc);
+            if (c_type == NULL)
+                return;
             codebuf_write(ctx->helpers, "    %s *%s;\n",
-                c_type != NULL ? c_type : "int32_t",
+                c_type,
                 capture_typed_names[i]);
         }
         codebuf_write(ctx->helpers, "} _pgy_async_ctx_%u;\n\n", pid);

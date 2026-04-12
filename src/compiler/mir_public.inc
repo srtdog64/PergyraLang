@@ -263,48 +263,6 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     return mir;
 }
 
-void
-mir_build_hir_inventory_view(const MIRProgram *mir, HIRProgram *hir_view)
-{
-    if (hir_view == NULL)
-        return;
-    memset(hir_view, 0, sizeof(*hir_view));
-    if (mir == NULL)
-        return;
-
-    hir_view->externs = mir->externs;
-    hir_view->extern_count = mir->extern_count;
-    hir_view->types = mir->types;
-    hir_view->type_count = mir->type_count;
-    hir_view->abilities = mir->abilities;
-    hir_view->ability_count = mir->ability_count;
-    hir_view->roles = mir->roles;
-    hir_view->role_count = mir->role_count;
-    hir_view->parties = mir->parties;
-    hir_view->party_count = mir->party_count;
-    hir_view->rosters = mir->rosters;
-    hir_view->roster_count = mir->roster_count;
-    hir_view->worlds = mir->worlds;
-    hir_view->world_count = mir->world_count;
-    hir_view->relations = mir->relations;
-    hir_view->relation_count = mir->relation_count;
-    hir_view->effects = mir->effects;
-    hir_view->effect_count = mir->effect_count;
-    hir_view->zones = mir->zones;
-    hir_view->zone_count = mir->zone_count;
-    hir_view->events = mir->events;
-    hir_view->event_count = mir->event_count;
-    hir_view->intents = mir->intents;
-    hir_view->intent_count = mir->intent_count;
-    hir_view->functions = mir->functions;
-    hir_view->function_count = mir->function_count;
-    hir_view->executables = NULL;
-    hir_view->executable_count = 0;
-    hir_view->synthetic_executable_func =
-        mir_find_function_decl(mir, "__pgy_top_level_exec");
-    hir_view->has_main_function = mir->has_main_function;
-}
-
 ASTNode *
 mir_find_function_decl(const MIRProgram *mir, const char *name)
 {

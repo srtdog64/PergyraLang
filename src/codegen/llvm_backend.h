@@ -42,7 +42,7 @@ typedef struct
  * ----------------------------------------------------------------- */
 
 /*
- * Compatibility entrypoint for the legacy HIR-only pipeline.
+ * Legacy whole-program HIR entrypoint.
  * New compiler paths should prefer llvm_codegen_from_mir().
  * Caller must free with llvm_gen_result_destroy().
  */
@@ -51,12 +51,10 @@ LLVMGenResult *llvm_codegen_from_mir(const MIRProgram *mir,
                                      const char *module_name);
 
 /*
- * Compatibility wrapper used while external callers still thread both HIR and
- * MIR through the backend boundary.
+ * Thin compatibility wrapper for mixed call sites.
+ * When `mir` is present, this delegates to the MIR-native path.
+ * Otherwise it delegates to the legacy HIR whole-program path.
  * New compiler paths should prefer llvm_codegen_from_mir().
- * When `mir` is present, backend codegen uses MIR routines plus MIR-carried
- * declaration/top-level inventory. `hir` remains only for the legacy
- * non-MIR whole-program path.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_with_mir(const HIRProgram *hir,
@@ -68,7 +66,9 @@ LLVMGenResult *llvm_codegen_to_object_from_mir(const MIRProgram *mir,
                                                bool release_opt);
 
 /*
- * MIR-native object emission entrypoint.
+ * Thin compatibility wrapper for object emission.
+ * When `mir` is present, this delegates to the MIR-native object path.
+ * Otherwise it delegates to the legacy HIR whole-program object path.
  * Caller must free with llvm_gen_result_destroy().
  */
 LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,
@@ -78,7 +78,7 @@ LLVMGenResult *llvm_codegen_to_object_with_mir(const HIRProgram *hir,
                                                bool release_opt);
 
 /*
- * Compatibility entrypoint for the legacy HIR-only object emission path.
+ * Legacy whole-program HIR object emission entrypoint.
  * New compiler paths should prefer llvm_codegen_to_object_from_mir().
  * Caller must free with llvm_gen_result_destroy().
  */

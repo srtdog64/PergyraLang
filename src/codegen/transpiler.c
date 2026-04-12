@@ -338,9 +338,6 @@ transpiler_requires_thread_pool(const TranspilerCtx *ctx)
         return true;
     }
 
-    if (ctx->mir != NULL)
-        return false;
-
     transpiler_active_executables(ctx, &executables, &executable_count);
     for (size_t i = 0; i < executable_count; i++) {
         if (ast_uses_thread_pool(executables[i]))
@@ -481,7 +478,6 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     if (hir == NULL && mir == NULL)
         return;
 
-    ctx->hir = (mir == NULL) ? hir : NULL;
     transpiler_active_externs(ctx, &externs, &extern_count);
     transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
     transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
@@ -498,8 +494,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
     synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
     has_main_function = transpiler_active_has_main_function(ctx);
     has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
-    if (ctx->hir != NULL)
-        transpiler_active_executables(ctx, &executables, &executable_count);
+    transpiler_active_executables(ctx, &executables, &executable_count);
 
     /* File header */
     codebuf_write(ctx->out,
@@ -671,7 +666,7 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
         if (synthetic_executable_func != NULL) {
             write_indent(ctx);
             codebuf_write(ctx->out, "__pgy_top_level_exec();\n");
-        } else if (ctx->hir != NULL) {
+        } else if (executable_count > 0) {
             for (size_t i = 0; i < executable_count; i++)
                 emit_statement(executables[i], ctx);
         }
@@ -699,20 +694,8 @@ emit_program(const HIRProgram *hir, TranspilerCtx *ctx)
  * Main entry point
  * ----------------------------------------------------------------- */
 
-TranspileResult *
-transpile(const HIRProgram *hir, const char *output_path)
-{
-    return transpile_with_mir(hir, NULL, output_path);
-}
-
-TranspileResult *
-transpile_from_mir(const MIRProgram *mir, const char *output_path)
-{
-    return transpile_with_mir(NULL, mir, output_path);
-}
-
-TranspileResult *
-transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
+static TranspileResult *
+transpile_hir_only(const HIRProgram *hir, const char *output_path)
 {
     TranspileResult *result = calloc(1, sizeof(TranspileResult));
     if (result == NULL)
@@ -725,8 +708,9 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
         return result;
     }
 
-    ctx->mir = mir;
-    emit_program(mir != NULL ? NULL : hir, ctx);
+    ctx->hir = hir;
+    ctx->mir = NULL;
+    emit_program(hir, ctx);
 
     if (ctx->backend_error != NULL) {
         result->success = false;
@@ -749,6 +733,67 @@ transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *out
     result->uses_intent_observability = ctx->uses_intent_observability;
     transpiler_ctx_destroy(ctx);
     return result;
+}
+
+static TranspileResult *
+transpile_mir_only(const MIRProgram *mir, const char *output_path)
+{
+    TranspileResult *result = calloc(1, sizeof(TranspileResult));
+    if (result == NULL)
+        return NULL;
+
+    TranspilerCtx *ctx = transpiler_ctx_create();
+    if (ctx == NULL) {
+        result->success       = false;
+        result->error_message = pergyra_strdup("Out of memory");
+        return result;
+    }
+
+    ctx->hir = NULL;
+    ctx->mir = mir;
+    emit_program(NULL, ctx);
+
+    if (ctx->backend_error != NULL) {
+        result->success = false;
+        result->error_message = pergyra_strdup(ctx->backend_error);
+        transpiler_ctx_destroy(ctx);
+        return result;
+    }
+
+    if (output_path != NULL) {
+        if (!codebuf_dump_file(ctx->out, output_path)) {
+            result->success       = false;
+            result->error_message = strdup_fmt(
+                "Cannot write output file: %s", output_path);
+            transpiler_ctx_destroy(ctx);
+            return result;
+        }
+    }
+
+    result->success = true;
+    result->uses_intent_observability = ctx->uses_intent_observability;
+    transpiler_ctx_destroy(ctx);
+    return result;
+}
+
+TranspileResult *
+transpile(const HIRProgram *hir, const char *output_path)
+{
+    return transpile_hir_only(hir, output_path);
+}
+
+TranspileResult *
+transpile_from_mir(const MIRProgram *mir, const char *output_path)
+{
+    return transpile_mir_only(mir, output_path);
+}
+
+TranspileResult *
+transpile_with_mir(const HIRProgram *hir, const MIRProgram *mir, const char *output_path)
+{
+    if (mir != NULL)
+        return transpile_mir_only(mir, output_path);
+    return transpile_hir_only(hir, output_path);
 }
 
 void
