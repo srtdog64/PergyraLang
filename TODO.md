@@ -285,6 +285,10 @@
 - [ ] **MIR full SSA / flow merge**
   - block-level version map은 시작됨, rename을 full def-use chain/liveness 수준으로 확장
   - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
+- [ ] **MIR DCE 확장 (statement-level)**
+  - dead DEF/PHI 제거를 넘어 side-effect-free STMT/unused call 제거
+  - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시
+  - RPO 기반 liveness와 결합해 제거 정확도 개선
 ## P2.0 — Backend MIR 기반 전환 ✅ 완료
 
 - [x] **emit_program()을 HIR 기반 → MIR 기반으로 전환**

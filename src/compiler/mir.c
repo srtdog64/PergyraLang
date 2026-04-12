@@ -1848,6 +1848,9 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         /* Separate existing instructions into categories */
         MIRInstruction *old_insts = block->instructions;
         size_t old_count = block->instruction_count;
+        bool *copied_flags = calloc(old_count, sizeof(bool));
+        if (copied_flags == NULL)
+            return false;
 
         /* Count max possible new STMT instructions (worst case: all
          * non-control-flow statements including let/assignment that
@@ -1871,7 +1874,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         /* Phase 1: copy PHI instructions */
         size_t old_cursor = 0;
         while (old_cursor < old_count && old_insts[old_cursor].kind == MIR_INST_PHI) {
-            new_insts[new_count++] = old_insts[old_cursor++];
+            new_insts[new_count++] = old_insts[old_cursor];
+            copied_flags[old_cursor++] = true;
         }
 
         /* Phase 2: interleave DEFs and STMTs based on HIR statement order */
@@ -1886,6 +1890,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             if (old_insts[r].kind == MIR_INST_RESOURCE_OP
                 || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
                 new_insts[new_count++] = old_insts[r];
+                copied_flags[r] = true;
             }
         }
 
@@ -1921,6 +1926,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     if (def_inst.ast == NULL)
                         def_inst.ast = stmt;
                     new_insts[new_count++] = def_inst;
+                    copied_flags[def_cursor] = true;
                     def_cursor++;
                 } else {
                     /* No matching DEF (SSA had no local_defs for this var).
@@ -1947,19 +1953,14 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
         }
 
-        /* Copy remaining RESOURCE_OP / CLEANUP_EDGE after DEFs */
-        for (size_t r = old_cursor; r < old_count; r++) {
+        /* Copy remaining RESOURCE_OP / CLEANUP_EDGE after DEFs (preserve order) */
+        for (size_t r = 0; r < old_count; r++) {
             if (old_insts[r].kind == MIR_INST_RESOURCE_OP
                 || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
-                /* Avoid duplicating ones already copied above */
-                bool already_copied = (r < def_cursor);
-                /* We copied resource ops before def_cursor in Phase 2 preamble,
-                 * but only those between old_cursor and the first def_cursor.
-                 * Resource ops after that point were not copied. */
-                if (r >= old_cursor && r < def_cursor)
-                    continue; /* already copied */
-                (void)already_copied;
+                if (copied_flags[r])
+                    continue;
                 new_insts[new_count++] = old_insts[r];
+                copied_flags[r] = true;
             }
         }
 
@@ -1972,6 +1973,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         }
 
         /* Replace block's instruction array */
+        free(copied_flags);
         free(old_insts);
         block->instructions = new_insts;
         block->instruction_count = new_count;

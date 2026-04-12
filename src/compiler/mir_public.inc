@@ -1326,10 +1326,10 @@ abi_type_table_init(void)
     do { \
         if ((out)->field_count < MIR_MAX_TYPE_FIELDS) { \
             MIRFieldLayout *f = &(out)->fields[(out)->field_count++]; \
-            f->name = (field_label); \
+            f->field_name = (field_label); \
             f->offset = offsetof(struct_type, member); \
-            f->size_bytes = sizeof(((struct_type *)0)->member); \
-            f->align_bytes = _Alignof(((struct_type *)0)->member); \
+            f->field_size = sizeof(((struct_type *)0)->member); \
+            f->field_align = _Alignof(((struct_type *)0)->member); \
         } \
     } while (0)
 
@@ -1337,10 +1337,10 @@ abi_type_table_init(void)
     do { \
         if ((out)->field_count < MIR_MAX_TYPE_FIELDS) { \
             MIRFieldLayout *f = &(out)->fields[(out)->field_count++]; \
-            f->name = (field_label); \
+            f->field_name = (field_label); \
             f->offset = 0; \
-            f->size_bytes = sizeof(scalar_type); \
-            f->align_bytes = _Alignof(scalar_type); \
+            f->field_size = sizeof(scalar_type); \
+            f->field_align = _Alignof(scalar_type); \
         } \
     } while (0)
 
