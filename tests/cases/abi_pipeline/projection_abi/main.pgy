@@ -1,0 +1,29 @@
+object PlayerView {
+    hp: Int;
+    ready: Bool;
+}
+tobject PlayerPacket {
+    hp: Int;
+    mp: Int;
+}
+subject Player {
+    let hp: Int;
+    let mp: Int;
+    let ready: Bool;
+}
+func Main() -> Void {
+    let player: Player = Player(42, 7, true);
+    let view: PlayerView = ToObject(PlayerView, player);
+    let packet: PlayerPacket = ToTObject(PlayerPacket, player);
+    let maybe: Option<Int> = Some(packet.hp + packet.mp);
+    Log(view.hp);
+    Log(view.ready);
+    Log(packet.hp);
+    Log(packet.mp);
+    match maybe {
+        case .Some(v):
+            Log(v);
+        case .None:
+            Log(-1);
+    }
+}

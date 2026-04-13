@@ -171,6 +171,10 @@
 
 ## 완료 (최근)
 
+- [x] **surface trust docs 정렬 — collection/result/struct baseline**
+  - `Array<T>`는 `[]`, `List<T>`는 `ListNew()`, `HashMap<K,V>`는 `MapNew()`를 canonical 생성 surface로 고정
+  - `Result<T>` 추출 API는 `Unwrap` / `UnwrapOr` / postfix `?`로 고정, `UnwrapResult()` 표면은 비채택
+  - `struct` field의 legacy `let`은 불변 표식이 아니라 declaration introducer임을 문서화하고, 읽기 전용 계약은 `object/tobject`에만 둔다
 - [x] **generic default-arg closure 1차 복구** — declaration acceptance만이 아니라 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range화, semantic/backend parity까지 다시 녹색으로 정렬
 - [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
 - [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
@@ -221,6 +225,31 @@
 원칙:
 - 기능을 더 넓히기 전에 반복해서 다시 깨지는 작성/진단 pain point를 먼저 고정한다
 - 각 pain point는 `stable contract + regression + docs wording`까지 같이 잠근다
+- recoverable failure와 invariant break를 같은 방식으로 처리하지 않는다
+
+### Failure handling policy freeze
+
+분류:
+- `recoverable failure`
+  - 사용자 코드가 예상 가능한 실패
+  - 예: intent failure, authority/boundary rejection, timeout, remote failure, empty/closed operational state
+  - 원칙:
+    - 프로세스를 죽이지 않는다
+    - `Bool` / `Result<T>` / queryable runtime state로 드러낸다
+    - reason / boundary / authority / step provenance를 조회 가능하게 남긴다
+- `contract violation`
+  - 원칙적으로 semantic 단계에서 차단
+  - 런타임까지 오면 structured panic
+  - 예: released slot access, invalid secure token, ownership boundary 위반
+- `internal compiler/runtime bug`
+  - 즉시 중단
+  - internal error / panic로 명확히 분리
+  - 사용자 코드 실패처럼 위장하지 않는다
+
+현재 고정:
+- intent/zone/world 쪽 실패는 장기적으로 `recoverable failure`로 수렴시킨다
+- slot/token/invariant 계열은 계속 hard fail로 둔다
+- `Unwrap(...)`는 panic 성격의 sharp tool로 유지하고, recoverable path의 기본 계약으로 쓰지 않는다
 
 - [ ] **large canonical pair 예제 추가**
   - 큰 예제에서 `explicit`와 `compressed`를 둘 다 stable source of truth로 유지한다
@@ -268,6 +297,38 @@
     - 일반 compiler 의미는 type/effect `inference`에만 남긴다
   - 회귀 기준:
     - parser/semantic diagnostics 기대 문자열 고정
+
+### P0.5 — recoverable failure 분류/고정
+
+- [ ] **failure class inventory 정리**
+  - intent/zone/world/runtime API를 `recoverable failure / contract violation / internal bug`로 분류
+  - 현재 panic인 경로 중 recoverable이어야 하는 것을 표로 정리
+- 현재 inventory baseline:
+  - recoverable 유지:
+    - `Result<T>` / `?`
+    - `RemoteFuture<T> -> Result<T>`
+    - channel timeout / non-blocking / closed state
+    - world roster timeout
+    - `IntentLast* / History* / Active* / Recent*`
+  - hard-fail 유지:
+    - released slot / invalid token / token permission mismatch
+    - `Unwrap(...)` on `Err`, option unwrap on `None`
+    - allocator / box / rc / weak invariant break
+    - array / slice bounds violation
+    - current runtime zone authority null-guard
+      - 참고: 이건 아직 real authority rejection이 아니라 invariant check라서 hard-fail 유지 쪽이 맞다
+  - first-wave conversion targets:
+    - future real runtime authority rejection
+    - intent boundary/authority mismatch provenance at runtime
+- [ ] **intent/zone/world recoverable failure baseline**
+  - intent failure, authority rejection, boundary mismatch는 process abort 대신 queryable reason/state로 노출
+  - runtime observability와 diagnostics wording을 같은 provenance vocabulary로 정렬
+- [ ] **runtime authority guard downshift**
+  - 현재 `pgy_zone_authority_check_export(...)`는 null self/null participant invariant guard다
+  - 이 guard 자체는 hard-fail 유지
+  - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
+- [ ] **hard-fail boundary 명시**
+  - released slot, invalid token, invariant corruption은 계속 panic이라는 점을 문서와 테스트에 명시
     - docs wording search 기준 고정
 
 - [ ] **projection contract diagnostics 고정**

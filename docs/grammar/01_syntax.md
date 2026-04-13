@@ -77,6 +77,10 @@ x := 42;                           // := 단축 선언
 - `name := expr;` — `let`의 축약 (타입 추론 전용)
 - `let`은 가변(mutable). 재할당 가능.
 - `let`이 필요한 이유: 제네릭 `<>` 파서 모호성 해결 (`Array<Int> x` → 비교? 타입?)
+- nominal field에서는 `let`이 불변 표식이 아니다.
+  - `struct`의 canonical field surface는 `name: Type;`
+  - legacy 호환으로 `let name: Type;`도 받지만, 이는 declaration introducer일 뿐이다
+  - 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다
 
 구조 분해(destructuring):
 

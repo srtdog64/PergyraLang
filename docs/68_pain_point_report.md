@@ -153,7 +153,7 @@ warning: unused function 'pgy_read_Vec2'
 
 ---
 
-### 8. 컬렉션 생성 API 혼란 — `Array()`, `ListNew()`, `HashMap()` 중 뭐가 맞나?
+### 8. 컬렉션 생성 API 혼란 — canonical surface를 문서로 고정
 
 **현상:**
 | 문법 | 결과 |
@@ -164,16 +164,19 @@ warning: unused function 'pgy_read_Vec2'
 | `let m: Map<K,V> = Map();` | ❌ Unknown type 'Map' |
 | `let m: HashMap<K,V> = HashMap();` | ❌ Undefined function 'HashMap' |
 
-**문제:**
-- `Array<T>`는 리터럴 `[]`로만 생성 가능. 동적 생성 API(`ArrayNew()`)가 없거나 불명확
-- `List<T>`는 `ListNew()`로 생성. `Array`와 `List`의 용도 차이가 불명확
-- `Map`/`HashMap`은 문서에 있으나 실제로 사용 가능한 예제가 없음
+**현재 canonical contract:**
+- `Array<T>`는 리터럴 `[]`가 canonical 생성 표면이다. `ArrayNew()`는 현재 stable surface가 아니다.
+- `List<T>`는 `ListNew()`로 생성한다.
+- `HashMap<K, V>`는 `MapNew()`로 생성한다. `HashMapNew()`는 현재 canonical surface가 아니다.
+- `Map<K, V>`라는 별도 nominal surface를 쓰는 것이 아니라, 실제 타입 표면은 `HashMap<K, V>`다.
 
-**영향:** 컬렉션을 쓰려면 예제를 뒤져야 함. 직관적인 API 아님.
+**정리:**
+- 이름 비대칭은 남아 있지만, beta surface trust 기준에서는 더 이상 모호한 상태로 두지 않는다.
+- 예제/문서/TODO는 위 세 줄을 기준 계약으로 본다.
 
 ---
 
-### 9. `Result<T>`에서 값 추출 방법 불명확
+### 9. `Result<T>`에서 값 추출 방법 불명확 — canonical API를 문서로 고정
 
 **현상:**
 ```pergyra
@@ -182,12 +185,16 @@ let r: Result<Int> = RiskyOperation(5);
 // r에서 Int 값을 어떻게 꺼내는가?
 ```
 
-`Ok`/`Err` 생성자는 동작하지만, 결과에서 값을 추출하는 표준 방법이 없음.
-- `UnwrapResult()`? → 미정의
-- `?` 연산자? → 시맨틱은 있으나 사용법이 문서화되지 않음
-- match 패턴? → `case Ok(v):` 같은 variant destructuring이 제한적
+**현재 canonical contract:**
+- 생성: `Ok(...)`, `Err(...)`
+- 질의: `IsOk(...)`, `IsErr(...)`
+- 추출: `Unwrap(...)`, `UnwrapOr(...)`
+- 조기 반환: postfix `?`
+- `UnwrapResult()`는 현재 surface에 없다. 별칭도 두지 않는다.
 
-**영향:** Result<T>를 받아도 쓸 방법이 모호함.
+**정리:**
+- `Result<T>` 언랩 이름은 `Unwrap` 계열로 고정한다.
+- 문서와 예제는 `UnwrapResult()`를 더 이상 암시하지 않는다.
 
 ---
 
@@ -220,7 +227,7 @@ f-string이 동작하는 것은 확인됨. 하지만 문서와 예제에서 `+`/
 
 ---
 
-### 12. `struct` 필드 수정 가능 여부 불명확
+### 12. `struct` 필드 수정 가능 여부 불명확 — 필드 규칙을 문서로 고정
 
 **현상:**
 ```pergyra
@@ -233,7 +240,16 @@ let p: Player = Player("Hero", 100);
 p.hp = 90;  // 될까? 안 될까?
 ```
 
-`struct` 필드에 `let`을 쓰면 불변? `let` 없이 쓰면 가변? 문법이 모호함.
+**현재 canonical contract:**
+- `struct`의 canonical field surface는 bare field다: `hp: Int;`
+- parser는 legacy 호환을 위해 `let hp: Int;`도 받지만, 여기서 `let`은 불변 표식이 아니라 declaration introducer다.
+- 즉 `struct` field에서 `let` 유무로 불변/가변이 갈리지 않는다.
+- `struct` 값이 mutable binding에 놓여 있으면 필드 대입은 허용된다.
+- 읽기 전용/불변 계약은 `object` / `tobject` projection surface에 별도로 적용된다.
+
+**정리:**
+- `struct`는 plain nominal data다.
+- `object`는 read-only projection, `tobject`는 immutable transfer snapshot이다.
 
 ---
 
@@ -268,9 +284,9 @@ match가 exhaustiveness를 검증하지 못해 C 코드에서 default return이 
 | **P0-4** | enum match OR 패턴 + exhaustive checker | 2-4시간 |
 | ~~**P0-6**~~ | defer 변수 스코프 버그 | **✅ 완료** |
 | ~~**P1-7**~~ | struct/subject Slot 매크로 warning 억제 | **✅ 완료** |
-| **P1-8** | 컬렉션 생성 API 통일 | 4-8시간 |
-| **P1-9** | `Result<T>` 언랩 API 명확히 | 2-4시간 |
-| **P2-12** | struct 필드 가변성 규칙 명시 | 1시간 |
+| ~~**P1-8**~~ | 컬렉션 생성 API 통일 | **✅ 문서 contract 고정** |
+| ~~**P1-9**~~ | `Result<T>` 언랩 API 명확히 | **✅ `Unwrap` / `UnwrapOr` / `?` canonical** |
+| ~~**P2-12**~~ | struct 필드 가변성 규칙 명시 | **✅ bare field canonical, `let` is not immutability** |
 | **P2-13** | match 기반 함수 default return 자동 생성 | 1-2시간 |
 
 ---

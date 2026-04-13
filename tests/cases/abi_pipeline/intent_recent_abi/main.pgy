@@ -1,0 +1,47 @@
+subject Buyer {
+    let hp: Int;
+    action Verify(self) -> Void { }
+    action Confirm(self) -> Void { }
+}
+zone CheckoutZone {
+    subject slot buyer: Buyer
+}
+intent Charge(checkout: CheckoutZone, buyer: Buyer) {
+    step verify {
+        where: CheckoutZone;
+        using: checkout;
+        who: buyer;
+        on: buyer.Verify();
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+intent Confirm(checkout: CheckoutZone, buyer: Buyer) {
+    step confirm {
+        where: CheckoutZone;
+        using: checkout;
+        who: buyer;
+        on: buyer.Confirm();
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let buyer: Buyer = Buyer(1);
+    let checkout: CheckoutZone = CheckoutZone(buyer);
+    Log(Charge(checkout, buyer));
+    Log(Confirm(checkout, buyer));
+    Log(ToString(IntentRecentCount()));
+    Log(IntentRecentName(0));
+    Log(ToString(StringLength(IntentRecentTrace(0)) > 0));
+    Log(ToString(StringLength(IntentRecentFailure(0)) == 0));
+    Log(ToString(IntentRecentStepCount(0)));
+    Log(ToString(IntentRecentFailed(0)));
+    Log(IntentRecentName(1));
+    Log(ToString(StringLength(IntentRecentTrace(1)) > 0));
+    Log(ToString(StringLength(IntentRecentFailure(1)) == 0));
+    Log(ToString(IntentRecentStepCount(1)));
+    Log(ToString(IntentRecentFailed(1)));
+}

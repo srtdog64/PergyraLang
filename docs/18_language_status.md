@@ -161,6 +161,76 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
   - explicit reject: 없음
   - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
 
+## Failure handling status and policy boundary
+
+현재 구현은 실패를 세 층으로 나눠 읽어야 한다.
+
+- `recoverable failure`
+  - 도메인 실행 중 예상 가능한 실패
+  - 원칙: 값을 통해 반환하고, reason/state를 조회 가능하게 남긴다
+- `contract violation`
+  - semantic 단계에서 막는 것이 원칙
+  - 런타임까지 도달하면 structured panic
+- `internal bug / invariant break`
+  - 즉시 중단
+
+### 이미 recoverable path로 올라온 것
+
+- `Result<T>` + `Ok/Err` + `UnwrapOr` + postfix `?`
+- `RemoteFuture<T> -> await -> Result<T>`
+- channel timed / non-blocking surface
+  - `TryRecv`
+  - `RecvTimeout`
+  - `TrySend`
+  - `SendTimeout`
+  - `TrySendStatus`
+  - `SendTimeoutStatus`
+- channel closed/empty/full operational 상태는 warning + false/None/Some(false) 경로로 노출
+- world roster wait timeout은 warning + false 경로를 가진다
+- intent observability
+  - `IntentLast*`
+  - `IntentHistoryStep*`
+  - `IntentActive*`
+  - `IntentRecent*`
+
+### 현재 hard-fail로 남아 있는 것
+
+- slot/secure-slot invariant break
+  - released slot read/write/release
+  - invalid token
+  - token permission mismatch
+- explicit unwrap sharp tools
+  - `Unwrap(result)` on `Err`
+  - `UnwrapOption(option)` / option unwrap on `None`
+- memory/runtime invariant break
+  - allocator / box / rc / weak misuse
+  - array/slice out of bounds
+- current runtime zone authority guard
+  - `pgy_zone_authority_check_export(...)`는 현재 real authority rejection이 아니라 `null self / null participant ptr` invariant guard이며, validation 실패 시 panic한다
+
+### strict beta-quality 기준에서 다음으로 내려야 할 것
+
+아래는 `panic`보다 `recoverable failure + observability`가 더 맞는 축이다.
+
+- intent/zone/world authority rejection
+  - authority 없음
+  - wrong participant
+  - boundary mismatch
+- intent runtime failure provenance
+  - failed step
+  - failure reason
+  - derived/inherited contract source
+
+주의:
+- 현재 runtime zone authority guard는 아직 위 축을 구현하지 않는다.
+- 지금 guard는 internal/invariant check에 가깝고, future real authority rejection path가 추가되면 그때 recoverable failure로 내려야 한다.
+
+반대로 아래는 panic을 유지하는 편이 맞다.
+
+- released slot / invalid token / ownership invariant break
+- internal compiler/runtime invariant corruption
+- explicit `Unwrap(...)` misuse
+
 ## 2026-04-11 기준 확인된 상태
 
 - `make test-transpile` 통과 (`464 passed`)

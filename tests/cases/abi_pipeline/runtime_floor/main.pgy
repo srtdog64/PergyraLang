@@ -1,0 +1,12 @@
+func Spin(limit: Int) -> Int {
+    let i: Int = 0;
+    let acc: Int = 0;
+    while i < limit {
+        acc = acc + 1;
+        i = i + 1;
+    }
+    return acc;
+}
+func Main() -> Void {
+    Log(Spin(2000000));
+}

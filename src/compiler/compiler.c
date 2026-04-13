@@ -82,6 +82,15 @@ pgy_exec_argv(const char *const argv[], bool verbose)
 #endif
 }
 
+static void
+compiler_debug_llvm_host_stage(const char *stage)
+{
+    if (stage == NULL || getenv("PGY_DEBUG_LLVM_HOST") == NULL)
+        return;
+    printf("[llvm host] %s\n", stage);
+    fflush(stdout);
+}
+
 #ifdef _WIN32
 /* Silent probe via CreateProcess: stdout/stderr → NUL in the child only.
  * Parent's file descriptors are never touched. */
@@ -846,6 +855,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     if (verbose)
         printf("pgy: LLVM codegen → %s\n", output_obj_path);
 
+    compiler_debug_llvm_host_stage("codegen_begin");
     phase_start = compiler_now_seconds();
     LLVMGenResult *gen = llvm_codegen_to_object_from_mir(
         bundle->mir,
@@ -866,6 +876,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     }
     uses_intent_observability = gen->uses_intent_observability;
     llvm_gen_result_destroy(gen);
+    compiler_debug_llvm_host_stage("codegen_done");
 
     /* Link object file with GCC + runtime library */
     if (!pgy_path_is_safe(output_binary_path) ||
@@ -900,6 +911,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return NULL;
     }
     result->backend_timings.codegen = compiler_now_seconds() - phase_start;
+    compiler_debug_llvm_host_stage("runtime_prepare");
 #ifdef _WIN32
     const char *compile_runtime_argv[] = {
         pgy_detect_c_compiler(), "-std=c11", "-Wall", opt_flag,
@@ -933,6 +945,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         return result;
     }
     if (!using_prebuilt_runtime && !compiler_runtime_cache_is_fresh(runtime_obj_path)) {
+        compiler_debug_llvm_host_stage("runtime_compile");
         int rc = pgy_exec_argv(compile_runtime_argv, verbose);
         compiled_runtime = true;
         if (rc != 0) {
@@ -948,6 +961,7 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     }
     result->backend_timings.native_compile = compiler_now_seconds() - phase_start;
 
+    compiler_debug_llvm_host_stage("link_begin");
     phase_start = compiler_now_seconds();
     int rc;
 #ifdef _WIN32
@@ -1012,7 +1026,9 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     }
     result->backend_timings.link = compiler_now_seconds() - phase_start;
 
+    compiler_debug_llvm_host_stage("link_done");
     free(runtime_obj_path);
+    compiler_debug_llvm_host_stage("return");
     return result;
 }
 

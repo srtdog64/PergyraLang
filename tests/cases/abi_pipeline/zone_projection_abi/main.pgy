@@ -1,0 +1,31 @@
+object PlayerView {
+    hp: Int;
+    ready: Bool;
+}
+tobject PlayerPacket {
+    hp: Int;
+    mp: Int;
+}
+subject Player {
+    let hp: Int;
+    let mp: Int;
+    let ready: Bool;
+}
+zone ArenaZone {
+    subject slot player: Player
+    object slot view: PlayerView
+    tobject slot packet: PlayerPacket
+    authority player
+    bind view from player by player
+    bind packet from player by player
+    func Snapshot() -> Void {
+        Log(view.hp);
+        Log(view.ready);
+        Log(packet.hp);
+        Log(packet.mp);
+    }
+}
+func Main() -> Void {
+    let zone: ArenaZone = ArenaZone(Player(42, 7, true));
+    zone.Snapshot();
+}

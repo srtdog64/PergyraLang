@@ -38,6 +38,7 @@
 #else
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #define PGY_DUP dup
 #define PGY_DUP2 dup2
@@ -53,6 +54,11 @@
 static int g_pass = 0;
 static int g_fail = 0;
 static unsigned g_temp_counter = 0;
+static const char *g_case_filter = NULL;
+static const char *g_backend_filter = NULL;
+static const char *g_case_start = NULL;
+static const char *g_case_stop = NULL;
+static bool g_case_window_open = false;
 
 static void
 abi_expect(const char *name, bool cond)
@@ -249,6 +255,8 @@ capture_driver_output(const DriverFlags *flags,
                       DriverPhaseTimings *timings,
                       double *compile_seconds)
 {
+    const char *same_process_env = getenv("PGY_ABI_PIPELINE_SAME_PROCESS");
+#ifdef _WIN32
     int saved_stdout;
     int saved_stderr;
     FILE *capture;
@@ -297,6 +305,107 @@ capture_driver_output(const DriverFlags *flags,
     PGY_CLOSE(saved_stderr);
     fclose(capture);
     return rc;
+#else
+    if (same_process_env != NULL && same_process_env[0] != '\0'
+        && strcmp(same_process_env, "0") != 0) {
+        int saved_stdout;
+        int saved_stderr;
+        FILE *capture;
+        int rc;
+        double start;
+        double end;
+
+        fflush(stdout);
+        fflush(stderr);
+        saved_stdout = PGY_DUP(PGY_FILENO(stdout));
+        saved_stderr = PGY_DUP(PGY_FILENO(stderr));
+        if (saved_stdout < 0 || saved_stderr < 0) {
+            if (saved_stdout >= 0)
+                PGY_CLOSE(saved_stdout);
+            if (saved_stderr >= 0)
+                PGY_CLOSE(saved_stderr);
+            return -1;
+        }
+
+        capture = fopen(capture_path, "wb");
+        if (capture == NULL) {
+            PGY_CLOSE(saved_stdout);
+            PGY_CLOSE(saved_stderr);
+            return -1;
+        }
+
+        if (PGY_DUP2(PGY_FILENO(capture), PGY_FILENO(stdout)) < 0
+            || PGY_DUP2(PGY_FILENO(capture), PGY_FILENO(stderr)) < 0) {
+            fclose(capture);
+            PGY_CLOSE(saved_stdout);
+            PGY_CLOSE(saved_stderr);
+            return -1;
+        }
+
+        start = pgy_now_seconds();
+        rc = driver_run_pipeline_timed(flags, timings);
+        end = pgy_now_seconds();
+        if (compile_seconds != NULL)
+            *compile_seconds = end - start;
+
+        fflush(stdout);
+        fflush(stderr);
+        PGY_DUP2(saved_stdout, PGY_FILENO(stdout));
+        PGY_DUP2(saved_stderr, PGY_FILENO(stderr));
+        PGY_CLOSE(saved_stdout);
+        PGY_CLOSE(saved_stderr);
+        fclose(capture);
+        return rc;
+    }
+
+    FILE *capture;
+    pid_t pid;
+    int status = 0;
+    double start;
+    double end;
+
+    if (timings != NULL)
+        memset(timings, 0, sizeof(*timings));
+
+    fflush(stdout);
+    fflush(stderr);
+
+    capture = fopen(capture_path, "wb");
+    if (capture == NULL)
+        return -1;
+
+    start = pgy_now_seconds();
+    pid = fork();
+    if (pid < 0) {
+        fclose(capture);
+        return -1;
+    }
+
+    if (pid == 0) {
+        int fd = PGY_FILENO(capture);
+        int rc;
+
+        if (PGY_DUP2(fd, PGY_FILENO(stdout)) < 0
+            || PGY_DUP2(fd, PGY_FILENO(stderr)) < 0) {
+            _exit(127);
+        }
+        fclose(capture);
+        rc = driver_run_pipeline_timed(flags, NULL);
+        fflush(stdout);
+        fflush(stderr);
+        _exit(rc);
+    }
+
+    fclose(capture);
+    waitpid(pid, &status, 0);
+    end = pgy_now_seconds();
+    if (compile_seconds != NULL)
+        *compile_seconds = end - start;
+
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status);
+    return -1;
+#endif
 }
 
 static void
@@ -357,6 +466,7 @@ run_pipeline_case(const char *case_name,
                   double max_compile_seconds,
                   double max_run_seconds)
 {
+    const char *backend_label = backend_name(backend);
     char source_path[1024];
     char binary_path[1024];
     char compile_capture_path[1024];
@@ -372,6 +482,20 @@ run_pipeline_case(const char *case_name,
     char *normalized_expected = NULL;
     char *compile_captured = NULL;
     char msg[256];
+
+    if (g_case_filter != NULL && g_case_filter[0] != '\0'
+        && strcmp(g_case_filter, case_name) != 0) {
+        return;
+    }
+    if (g_case_start != NULL && g_case_start[0] != '\0' && !g_case_window_open) {
+        if (strcmp(g_case_start, case_name) != 0)
+            return;
+        g_case_window_open = true;
+    }
+    if (g_backend_filter != NULL && g_backend_filter[0] != '\0'
+        && strcmp(g_backend_filter, backend_label) != 0) {
+        return;
+    }
 
     pgy_make_temp_paths(case_name, source_path, sizeof(source_path),
                         binary_path, sizeof(binary_path),
@@ -471,11 +595,22 @@ run_pipeline_case(const char *case_name,
         remove_if_exists(binary_path);
         remove_if_exists(source_path);
     }
+    if (g_case_stop != NULL && g_case_stop[0] != '\0'
+        && strcmp(g_case_stop, case_name) == 0) {
+        g_case_window_open = false;
+    }
 }
 
 int
 main(void)
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+    g_case_filter = getenv("PGY_ABI_PIPELINE_CASE");
+    g_backend_filter = getenv("PGY_ABI_PIPELINE_BACKEND");
+    g_case_start = getenv("PGY_ABI_PIPELINE_START_AT");
+    g_case_stop = getenv("PGY_ABI_PIPELINE_STOP_AFTER");
+    g_case_window_open = (g_case_start == NULL || g_case_start[0] == '\0');
     bool perf_mode = abi_perf_mode_enabled();
     static const char *projection_source =
         "object PlayerView {\n"

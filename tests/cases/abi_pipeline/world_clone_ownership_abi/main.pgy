@@ -1,0 +1,20 @@
+subject Player {
+    let hp: Int;
+}
+zone BattleZone {
+    subject slot player: Player
+    shared hp: Int = 0
+    func Hurt() -> Void { hp = hp + 1; }
+}
+world GameWorld {
+    zone battle: BattleZone
+    func ReadHp() -> Int { return battle.hp; }
+}
+func Main() -> Void {
+    let battle = BattleZone(Player(10));
+    let world = GameWorld(Clone(battle));
+    battle.hp = 3;
+    battle.Hurt();
+    Log(world.ReadHp());
+    Log(battle.hp);
+}

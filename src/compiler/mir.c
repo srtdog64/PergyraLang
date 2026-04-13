@@ -98,18 +98,18 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
 }
 
 static bool
-mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block, const HIRBasicBlock *hir_block)
+mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
 {
-    if (routine == NULL || block == NULL || hir_block == NULL)
+    if (routine == NULL || block == NULL)
         return false;
 
-    for (size_t i = 0; i < hir_block->phi_node_count; i++) {
+    for (size_t i = 0; i < block->source_phi_node_count; i++) {
         MIRInstruction inst;
         memset(&inst, 0, sizeof(inst));
         inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_PHI;
-        inst.name = hir_block->phi_nodes[i].name;
-        inst.slot_anchor = hir_block->phi_nodes[i].name;
+        inst.name = block->source_phi_nodes[i].name;
+        inst.slot_anchor = block->source_phi_nodes[i].name;
         inst.arg0 = "phi";
         if (!append_instruction(block, inst))
             return false;
@@ -140,24 +140,89 @@ mir_add_def_instruction(MIRRoutine *routine,
 }
 
 static bool
-mir_add_terminator_instruction(MIRRoutine *routine, MIRBasicBlock *block, const HIRBasicBlock *hir_block)
+mir_add_terminator_instruction(MIRRoutine *routine, MIRBasicBlock *block)
 {
     MIRInstruction inst;
-    if (routine == NULL || block == NULL || hir_block == NULL)
+    if (routine == NULL || block == NULL)
         return false;
-    if (hir_block->terminator_kind != HIR_BLOCK_BRANCH
-        && hir_block->terminator_kind != HIR_BLOCK_RETURN)
+    if (block->source_terminator_kind != HIR_BLOCK_BRANCH
+        && block->source_terminator_kind != HIR_BLOCK_RETURN)
         return true;
     memset(&inst, 0, sizeof(inst));
     inst.id = routine->instruction_count++;
-    inst.kind = (hir_block->terminator_kind == HIR_BLOCK_BRANCH)
+    inst.kind = (block->source_terminator_kind == HIR_BLOCK_BRANCH)
                     ? MIR_INST_BRANCH
                     : MIR_INST_RETURN;
-    inst.name = (hir_block->terminator_kind == HIR_BLOCK_BRANCH) ? "branch" : "return";
-    inst.ast = (hir_block->terminator_kind == HIR_BLOCK_BRANCH)
-                   ? hir_block->terminator_condition
-                   : hir_block->terminator_value;
+    inst.name = (block->source_terminator_kind == HIR_BLOCK_BRANCH) ? "branch" : "return";
+    inst.ast = (block->source_terminator_kind == HIR_BLOCK_BRANCH)
+                   ? block->source_terminator_condition
+                   : block->source_terminator_value;
     return append_instruction(block, inst);
+}
+
+static bool
+mir_copy_ast_nodes(ASTNode ***dst, size_t *dst_count, ASTNode **src, size_t src_count)
+{
+    if (dst == NULL || dst_count == NULL)
+        return false;
+    *dst = NULL;
+    *dst_count = 0;
+    if (src == NULL || src_count == 0)
+        return true;
+    *dst = calloc(src_count, sizeof(ASTNode *));
+    if (*dst == NULL)
+        return false;
+    memcpy(*dst, src, src_count * sizeof(ASTNode *));
+    *dst_count = src_count;
+    return true;
+}
+
+static bool
+mir_copy_names(const char ***dst, size_t *dst_count, const char **src, size_t src_count)
+{
+    if (dst == NULL || dst_count == NULL)
+        return false;
+    *dst = NULL;
+    *dst_count = 0;
+    if (src == NULL || src_count == 0)
+        return true;
+    *dst = calloc(src_count, sizeof(const char *));
+    if (*dst == NULL)
+        return false;
+    memcpy((void *)*dst, src, src_count * sizeof(const char *));
+    *dst_count = src_count;
+    return true;
+}
+
+static bool
+mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
+                   const HIRPhiNode *src, size_t src_count)
+{
+    if (dst == NULL || dst_count == NULL)
+        return false;
+    *dst = NULL;
+    *dst_count = 0;
+    if (src == NULL || src_count == 0)
+        return true;
+    *dst = calloc(src_count, sizeof(MIRSourcePhiNode));
+    if (*dst == NULL)
+        return false;
+    *dst_count = src_count;
+    for (size_t i = 0; i < src_count; i++) {
+        (*dst)[i].name = src[i].name;
+        if (!copy_indices(&(*dst)[i].incoming_predecessors,
+                          &(*dst)[i].incoming_predecessor_count,
+                          src[i].incoming_predecessors,
+                          src[i].incoming_predecessor_count)) {
+            for (size_t j = 0; j < i; j++)
+                free((*dst)[j].incoming_predecessors);
+            free(*dst);
+            *dst = NULL;
+            *dst_count = 0;
+            return false;
+        }
+    }
+    return true;
 }
 
 static bool
@@ -539,7 +604,7 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
 }
 
 static bool
-mir_collect_ssa_names(const HIRRoutine *hir_routine, const char ***names_out, size_t *count_out)
+mir_collect_ssa_names(const MIRRoutine *routine, const char ***names_out, size_t *count_out)
 {
     const char **names = NULL;
     size_t count = 0;
@@ -548,19 +613,19 @@ mir_collect_ssa_names(const HIRRoutine *hir_routine, const char ***names_out, si
         return false;
     *names_out = NULL;
     *count_out = 0;
-    if (hir_routine == NULL || !hir_routine->has_cfg)
+    if (routine == NULL)
         return true;
 
-    for (size_t i = 0; i < hir_routine->cfg.block_count; i++) {
-        const HIRBasicBlock *block = &hir_routine->cfg.blocks[i];
-        for (size_t j = 0; j < block->local_def_count; j++) {
-            if (!append_name_unique(&names, &count, block->local_defs[j])) {
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        for (size_t j = 0; j < block->source_local_def_count; j++) {
+            if (!append_name_unique(&names, &count, block->source_local_defs[j])) {
                 free((void *)names);
                 return false;
             }
         }
-        for (size_t j = 0; j < block->phi_node_count; j++) {
-            if (!append_name_unique(&names, &count, block->phi_nodes[j].name)) {
+        for (size_t j = 0; j < block->source_phi_node_count; j++) {
+            if (!append_name_unique(&names, &count, block->source_phi_nodes[j].name)) {
                 free((void *)names);
                 return false;
             }
@@ -639,18 +704,14 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
                          const size_t *incoming_versions,
                          size_t **out_versions)
 {
-    const HIRRoutine *hir_routine;
-    const HIRBasicBlock *hir_block;
     MIRBasicBlock *mir_block;
     size_t *current_versions = NULL;
 
-    if (routine == NULL || routine->hir_routine == NULL)
+    if (routine == NULL)
         return false;
     if (block_id >= routine->block_count)
         return false;
 
-    hir_routine = routine->hir_routine;
-    hir_block = &hir_routine->cfg.blocks[block_id];
     mir_block = &routine->blocks[block_id];
 
     if (!copy_versions(&current_versions, incoming_versions, ssa_name_count))
@@ -680,10 +741,10 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
         routine->phi_inserted_count++;
     }
 
-    for (size_t i = 0; i < hir_block->local_def_count; i++) {
+    for (size_t i = 0; i < mir_block->source_local_def_count; i++) {
         int name_index;
         char *versioned;
-        const char *name = hir_block->local_defs[i];
+        const char *name = mir_block->source_local_defs[i];
         name_index = mir_find_ssa_name_index(ssa_names, ssa_name_count, name);
         if (name_index < 0)
             continue;
@@ -701,7 +762,7 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
         }
         if (!mir_add_def_instruction(routine,
                                      mir_block,
-                                     hir_block->phi_node_count + i,
+                                     mir_block->source_phi_node_count + i,
                                      name,
                                      versioned)) {
             free(current_versions);
@@ -715,8 +776,8 @@ mir_assign_ssa_recursive(MIRRoutine *routine,
         return false;
     }
     out_versions[block_id] = current_versions;
-    for (size_t i = 0; i < hir_block->dom_tree_child_count; i++) {
-        size_t child = hir_block->dom_tree_children[i];
+    for (size_t i = 0; i < mir_block->source_dom_tree_child_count; i++) {
+        size_t child = mir_block->source_dom_tree_children[i];
         if (!mir_assign_ssa_recursive(routine,
                                       child,
                                       ssa_names,
@@ -735,19 +796,16 @@ mir_materialize_phi_inputs(MIRRoutine *routine,
                            const char **ssa_names,
                            size_t ssa_name_count)
 {
-    const HIRRoutine *hir_routine;
     if (routine == NULL || routine->hir_routine == NULL)
         return false;
-    hir_routine = routine->hir_routine;
-    if (!hir_routine->has_cfg)
+    if (!routine->hir_routine->has_cfg)
         return true;
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
-        const HIRBasicBlock *hir_block = &hir_routine->cfg.blocks[block_id];
         MIRBasicBlock *mir_block = &routine->blocks[block_id];
-        for (size_t i = 0; i < hir_block->phi_node_count && i < mir_block->instruction_count; i++) {
+        for (size_t i = 0; i < mir_block->source_phi_node_count && i < mir_block->instruction_count; i++) {
             MIRInstruction *inst = &mir_block->instructions[i];
-            const HIRPhiNode *phi = &hir_block->phi_nodes[i];
+            const MIRSourcePhiNode *phi = &mir_block->source_phi_nodes[i];
             int name_index;
             if (inst->kind != MIR_INST_PHI)
                 continue;
@@ -790,7 +848,7 @@ mir_apply_ssa_rename(MIRRoutine *routine)
     if (routine == NULL || routine->hir_routine == NULL || !routine->hir_routine->has_cfg)
         return true;
 
-    if (!mir_collect_ssa_names(routine->hir_routine, &ssa_names, &ssa_name_count))
+    if (!mir_collect_ssa_names(routine, &ssa_names, &ssa_name_count))
         goto cleanup;
     if (ssa_name_count == 0) {
         ok = true;
@@ -880,16 +938,14 @@ mir_parse_versioned_name(const char *versioned, char *base, size_t base_size, si
 static bool
 mir_populate_use_edges(MIRRoutine *routine)
 {
-    const HIRRoutine *hir_routine;
     const char **ssa_names = NULL;
     size_t ssa_name_count = 0;
 
     if (routine == NULL || routine->hir_routine == NULL)
         return false;
-    hir_routine = routine->hir_routine;
-    if (!hir_routine->has_cfg)
+    if (!routine->hir_routine->has_cfg)
         return true;
-    if (!mir_collect_ssa_names(hir_routine, &ssa_names, &ssa_name_count))
+    if (!mir_collect_ssa_names(routine, &ssa_names, &ssa_name_count))
         return false;
     if (ssa_name_count == 0) {
         free((void *)ssa_names);
@@ -897,7 +953,6 @@ mir_populate_use_edges(MIRRoutine *routine)
     }
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
-        const HIRBasicBlock *hir_block = &hir_routine->cfg.blocks[block_id];
         MIRBasicBlock *block = &routine->blocks[block_id];
         size_t *current_versions;
         size_t stmt_index = 0;
@@ -943,8 +998,8 @@ mir_populate_use_edges(MIRRoutine *routine)
                 continue;
             }
             if (inst->kind == MIR_INST_DEF) {
-                while (hir_block != NULL && stmt_index < hir_block->statement_count) {
-                    ASTNode *stmt = hir_block->statements[stmt_index];
+                while (stmt_index < block->source_statement_count) {
+                    ASTNode *stmt = block->source_statements[stmt_index];
                     if (stmt != NULL
                         && (stmt->type == AST_LET_DECL
                             || (stmt->type == AST_ASSIGNMENT
@@ -954,8 +1009,8 @@ mir_populate_use_edges(MIRRoutine *routine)
                     }
                     stmt_index++;
                 }
-                if (hir_block != NULL && stmt_index < hir_block->statement_count) {
-                    ASTNode *stmt = hir_block->statements[stmt_index];
+                if (stmt_index < block->source_statement_count) {
+                    ASTNode *stmt = block->source_statements[stmt_index];
                     ASTNode *expr = NULL;
                     const char **raw_uses = NULL;
                     size_t raw_use_count = 0;
@@ -1001,8 +1056,8 @@ mir_populate_use_edges(MIRRoutine *routine)
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;
                 ASTNode *expr = (inst->kind == MIR_INST_BRANCH)
-                                    ? hir_block->terminator_condition
-                                    : hir_block->terminator_value;
+                                    ? block->source_terminator_condition
+                                    : block->source_terminator_value;
                 if (!mir_collect_expr_identifier_uses(expr, &raw_uses, &raw_use_count)) {
                     free((void *)raw_uses);
                     return false;
@@ -1380,10 +1435,10 @@ mir_build_value_summaries(MIRRoutine *routine)
     }
 
     if (routine->hir_routine != NULL && routine->hir_routine->has_cfg) {
-        for (size_t block_id = 0; block_id < routine->hir_routine->cfg.block_count; block_id++) {
-            const HIRBasicBlock *hir_block = &routine->hir_routine->cfg.blocks[block_id];
-            for (size_t stmt_id = 0; stmt_id < hir_block->statement_count; stmt_id++) {
-                const char *write_name = mir_stmt_def_name(hir_block->statements[stmt_id]);
+        for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
+            const MIRBasicBlock *block = &routine->blocks[block_id];
+            for (size_t stmt_id = 0; stmt_id < block->source_statement_count; stmt_id++) {
+                const char *write_name = mir_stmt_def_name(block->source_statements[stmt_id]);
                 if (write_name == NULL)
                     continue;
                 for (size_t summary_id = 0; summary_id < routine->value_summary_count; summary_id++) {
@@ -2053,27 +2108,17 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry);
 static bool
 mir_populate_stmt_instructions(MIRRoutine *routine)
 {
-    const HIRRoutine *hir_routine;
     bool has_stmt_inst = false;
     if (routine == NULL)
         return true;
-    hir_routine = routine->hir_routine;
-    if (hir_routine == NULL || !hir_routine->has_cfg)
+    if (routine->hir_routine == NULL || !routine->hir_routine->has_cfg)
         return true;
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
-        const HIRBasicBlock *hir_block;
-
         if (block->is_cleanup)
             continue;
-        if (block->source_hir_block_id == SIZE_MAX)
-            continue;
-        if (block->source_hir_block_id >= hir_routine->cfg.block_count)
-            continue;
-
-        hir_block = &hir_routine->cfg.blocks[block->source_hir_block_id];
-        if (hir_block->statement_count == 0)
+        if (block->source_statement_count == 0)
             continue;
 
         /* Separate existing instructions into categories */
@@ -2087,8 +2132,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
          * non-control-flow statements including let/assignment that
          * might not have matching DEFs). */
         size_t stmt_count = 0;
-        for (size_t s = 0; s < hir_block->statement_count; s++) {
-            ASTNode *stmt = hir_block->statements[s];
+        for (size_t s = 0; s < block->source_statement_count; s++) {
+            ASTNode *stmt = block->source_statements[s];
             if (!mir_stmt_is_control_flow(stmt, block))
                 stmt_count++;
         }
@@ -2125,8 +2170,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
         }
 
-        for (size_t s = 0; s < hir_block->statement_count; s++) {
-            ASTNode *stmt = hir_block->statements[s];
+        for (size_t s = 0; s < block->source_statement_count; s++) {
+            ASTNode *stmt = block->source_statements[s];
             if (mir_stmt_is_control_flow(stmt, block))
                 continue;
             if (mir_stmt_is_def_source(stmt)) {
@@ -2397,6 +2442,10 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.is_entry = (i == hir_routine->cfg.entry_block);
         block.is_reachable = src->is_reachable;
         block.source_hir_block_id = src->id;
+        block.source_hir_block = src;
+        block.source_terminator_condition = src->terminator_condition;
+        block.source_terminator_value = src->terminator_value;
+        block.source_terminator_kind = src->terminator_kind;
         if (src->statement_count > 0)
             block.source_ast = src->statements[0];
         else if (src->terminator_condition != NULL)
@@ -2416,14 +2465,41 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
             free(block.predecessors);
             return false;
         }
+        if (!mir_copy_ast_nodes(&block.source_statements,
+                                &block.source_statement_count,
+                                src->statements,
+                                src->statement_count)
+            || !mir_copy_names(&block.source_local_defs,
+                               &block.source_local_def_count,
+                               src->local_defs,
+                               src->local_def_count)
+            || !copy_indices(&block.source_dom_tree_children,
+                             &block.source_dom_tree_child_count,
+                             src->dom_tree_children,
+                             src->dom_tree_child_count)
+            || !mir_copy_phi_nodes(&block.source_phi_nodes,
+                                   &block.source_phi_node_count,
+                                   src->phi_nodes,
+                                   src->phi_node_count)) {
+            free(block.predecessors);
+            free(block.source_statements);
+            free((void *)block.source_local_defs);
+            free(block.source_dom_tree_children);
+            if (block.source_phi_nodes != NULL) {
+                for (size_t j = 0; j < block.source_phi_node_count; j++)
+                    free(block.source_phi_nodes[j].incoming_predecessors);
+            }
+            free(block.source_phi_nodes);
+            return false;
+        }
         if (!append_block(routine, block))
             return false;
     }
 
     for (size_t i = 0; i < hir_routine->cfg.block_count; i++) {
-        if (!mir_add_phi_placeholders(routine, &routine->blocks[i], &hir_routine->cfg.blocks[i]))
+        if (!mir_add_phi_placeholders(routine, &routine->blocks[i]))
             return false;
-        if (!mir_add_terminator_instruction(routine, &routine->blocks[i], &hir_routine->cfg.blocks[i]))
+        if (!mir_add_terminator_instruction(routine, &routine->blocks[i]))
             return false;
     }
 

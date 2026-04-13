@@ -1,0 +1,29 @@
+subject Player {
+    let hp: Int;
+}
+zone BattleZone {
+    subject slot player: Player
+    shared hp: Int = 0
+    authority player
+    func BumpBy(amount: Int) -> Void {
+        hp = hp + amount;
+    }
+}
+world GameWorld {
+    zone battle: BattleZone
+    func Advance(self) -> Void {
+        battle.BumpBy(5);
+        Log(battle.hp);
+    }
+    func Read(self) -> Void {
+        Log(battle.hp);
+    }
+}
+func Main() -> Void {
+    let battle = BattleZone(Player(10));
+    let world = GameWorld(Clone(battle));
+    world.Advance();
+    battle.BumpBy(1);
+    world.Read();
+    Log(battle.hp);
+}

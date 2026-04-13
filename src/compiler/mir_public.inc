@@ -213,6 +213,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *hir_routine = &hir->routines[i];
         MIRRoutine routine;
+        const HIRBasicBlock *cfg_blocks_before = NULL;
+        size_t cfg_block_count_before = 0;
         memset(&routine, 0, sizeof(routine));
         routine.id = mir->routine_count;
         routine.kind = mir_scope_kind_from_hir(hir_routine);
@@ -225,6 +227,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             ? routine.rir_scope->owner_name
             : hir_routine->owner_name;
         routine.owner_ast_type = hir_routine->owner_ast_type;
+        cfg_blocks_before = hir_routine->has_cfg ? hir_routine->cfg.blocks : NULL;
+        cfg_block_count_before = hir_routine->has_cfg ? hir_routine->cfg.block_count : 0;
 
         if (!mir_build_blocks_from_hir(&routine, hir_routine)
             || !mir_append_cleanup_block(&routine, routine.rir_scope)
@@ -237,6 +241,22 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             || !append_routine(mir, routine)) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+
+        if (hir_routine->has_cfg
+            && (hir_routine->cfg.blocks != cfg_blocks_before
+                || hir_routine->cfg.block_count != cfg_block_count_before)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "HIR CFG pointer changed during MIR lowering for routine '%s' (before=%p/%zu after=%p/%zu)",
+                    routine.name != NULL ? routine.name : "(anonymous)",
+                    (void *)cfg_blocks_before,
+                    cfg_block_count_before,
+                    (void *)hir_routine->cfg.blocks,
+                    hir_routine->cfg.block_count);
+            }
             mir_destroy(mir);
             return NULL;
         }
@@ -380,6 +400,14 @@ mir_destroy(MIRProgram *mir)
         MIRRoutine *routine = &mir->routines[i];
         for (size_t j = 0; j < routine->block_count; j++) {
             free(routine->blocks[j].predecessors);
+            free(routine->blocks[j].source_statements);
+            free((void *)routine->blocks[j].source_local_defs);
+            free(routine->blocks[j].source_dom_tree_children);
+            if (routine->blocks[j].source_phi_nodes != NULL) {
+                for (size_t m = 0; m < routine->blocks[j].source_phi_node_count; m++)
+                    free(routine->blocks[j].source_phi_nodes[m].incoming_predecessors);
+            }
+            free(routine->blocks[j].source_phi_nodes);
             for (size_t k = 0; k < routine->blocks[j].instruction_count; k++) {
                 free((void *)routine->blocks[j].instructions[k].result_name);
                 for (size_t m = 0; m < routine->blocks[j].instructions[k].use_count; m++)
@@ -1139,7 +1167,6 @@ mir_dump(const MIRProgram *mir, FILE *out)
             const MIRBasicBlock *block = &routine->blocks[j];
         const char *label_name = NULL;
         const ASTNode *source_stmt = NULL;
-        const HIRBasicBlock *source_hir_block = NULL;
         char source_ast_loc[64] = "<none>";
         char source_ast_id[32] = "<none>";
         char label[128];
@@ -1148,16 +1175,13 @@ mir_dump(const MIRProgram *mir, FILE *out)
             snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", routine->name, j);
         else
             snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", "(anonymous)", j);
-        if (routine->hir_routine != NULL && routine->hir_routine->has_cfg
-            && block->source_hir_block_id != SIZE_MAX
-            && block->source_hir_block_id < routine->hir_routine->cfg.block_count) {
-            source_hir_block = &routine->hir_routine->cfg.blocks[block->source_hir_block_id];
-            if (source_hir_block->statement_count > 0)
-                source_stmt = source_hir_block->statements[0];
-            else if (source_hir_block->terminator_condition != NULL)
-                source_stmt = source_hir_block->terminator_condition;
-            else if (source_hir_block->terminator_value != NULL)
-                source_stmt = source_hir_block->terminator_value;
+        if (block->source_statement_count > 0)
+            source_stmt = block->source_statements[0];
+        else if (block->source_terminator_condition != NULL)
+            source_stmt = block->source_terminator_condition;
+        else if (block->source_terminator_value != NULL)
+            source_stmt = block->source_terminator_value;
+        if (source_stmt != NULL) {
             if (source_stmt != NULL)
                 snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
                     source_stmt->line, source_stmt->column);

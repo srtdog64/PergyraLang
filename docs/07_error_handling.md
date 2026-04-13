@@ -4,6 +4,26 @@
 
 이 문서는 현재 구현 기준으로 정리한 에러 처리 표면이다. 과거 설계 문서에 있던 `Result<T, E>`, `try/catch`, 에러 매크로 시스템은 아직 현재 구현 기준의 stable feature가 아니다.
 
+## 0. 실패 분류 기준
+
+Pergyra는 모든 실패를 같은 방식으로 처리하지 않는다.
+
+- `recoverable failure`
+  - 사용자 코드가 예상 가능한 실패
+  - 기본 정책: 값을 통해 반환하고, 필요하면 reason/state를 조회 가능하게 남긴다
+  - 예: intent failure, authority rejection, timeout, remote failure
+- `contract violation`
+  - semantic 단계에서 막는 것이 원칙
+  - 런타임까지 도달하면 structured panic 대상이다
+  - 예: released slot access, invalid secure token
+- `internal bug`
+  - 컴파일러/런타임 자체 불변식 파손
+  - 즉시 중단하며, 사용자 도메인 실패처럼 위장하지 않는다
+
+중요:
+- `Result<T>`는 recoverable path의 기본 수단이다
+- `Unwrap(...)`는 recoverable failure를 조용히 삼키는 API가 아니라 panic 성격의 sharp tool이다
+
 ## 1. 현재 구현 중심
 
 현재 코드와 테스트가 실제로 보장하는 축은 다음이다.
@@ -20,6 +40,16 @@
 ## 2. Result<T>
 
 현재 예제와 프론트엔드 경로는 `Result<T>`를 중심으로 사용한다.
+
+canonical 이름 규칙:
+- `Unwrap(result)` — 성공값 추출
+- `UnwrapOr(result, fallback)` — 실패 시 대체값
+- `expr?` — 실패 시 현재 함수에서 즉시 반환
+- `UnwrapResult(...)`는 현재 surface에 없다
+
+권장:
+- recoverable flow의 기본은 `IsOk/IsErr`, `UnwrapOr`, `?`
+- `Unwrap(...)`는 실패가 논리적으로 불가능하거나 개발용 crash-fast가 필요한 지점에서만 사용
 
 ```pergyra
 func SafeDiv(a: Int, b: Int) -> Result<Int> {

@@ -225,14 +225,24 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 param_types[i] = ctx->type_i8ptr;
             }
         } else {
-            size_t param_index = i;
-            FuncParam *p = func_decl->data.func_decl.params[param_index];
-            while (is_method && p != NULL && p->type == NULL
-                   && p->name != NULL && strcmp(p->name, "self") == 0) {
-                param_index++;
-                p = (param_index < func_decl->data.func_decl.param_count)
-                    ? func_decl->data.func_decl.params[param_index]
-                    : NULL;
+            size_t logical_index = is_method ? (i - 1) : i;
+            size_t seen = 0;
+            FuncParam *p = NULL;
+            for (size_t param_index = 0;
+                 param_index < func_decl->data.func_decl.param_count;
+                 param_index++) {
+                FuncParam *candidate = func_decl->data.func_decl.params[param_index];
+                if (candidate != NULL
+                    && candidate->type == NULL
+                    && candidate->name != NULL
+                    && strcmp(candidate->name, "self") == 0) {
+                    continue;
+                }
+                if (seen == logical_index) {
+                    p = candidate;
+                    break;
+                }
+                seen++;
             }
             if (p != NULL && p->type != NULL)
                 param_types[i] = llvm_mir_type_from_ast(ctx, p->type);

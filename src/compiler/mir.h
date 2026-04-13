@@ -32,6 +32,13 @@ typedef struct
 
 typedef struct
 {
+    const char *name;
+    size_t     *incoming_predecessors;
+    size_t      incoming_predecessor_count;
+} MIRSourcePhiNode;
+
+typedef struct
+{
     const char      *abi_type_name;    /* e.g. "pgy_abi_slot_int_dbg" */
     uint32_t         size_bytes;
     uint32_t         align_bytes;
@@ -91,7 +98,19 @@ typedef struct
     bool             is_reachable;
     bool             is_cleanup;
     size_t           source_hir_block_id;
+    const HIRBasicBlock *source_hir_block;
     ASTNode         *source_ast;
+    ASTNode        **source_statements;
+    size_t           source_statement_count;
+    ASTNode         *source_terminator_condition;
+    ASTNode         *source_terminator_value;
+    HIRBlockTerminatorKind source_terminator_kind;
+    const char     **source_local_defs;
+    size_t           source_local_def_count;
+    size_t          *source_dom_tree_children;
+    size_t           source_dom_tree_child_count;
+    MIRSourcePhiNode *source_phi_nodes;
+    size_t           source_phi_node_count;
     size_t          *predecessors;
     size_t           predecessor_count;
     size_t           succ_true;

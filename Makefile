@@ -456,11 +456,13 @@ test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
 	"$(MEMORY_TEST)"
 
-test-abi: $(ABI_TEST) $(ABI_PIPELINE_TEST)
+test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Spec Validation ==="
 	"$(ABI_TEST)"
-	@echo "=== ABI Pipeline Integration ==="
-	"$(ABI_PIPELINE_TEST)"
+	@echo "=== ABI Pipeline Smoke ==="
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_ABI_PIPELINE_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
+	bash tests/abi_pipeline_smoke.sh
 
 $(ABI_PERF_RUNTIME_RELEASE_OBS0): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
 	@mkdir -p $(dir $@)

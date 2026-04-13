@@ -1,0 +1,38 @@
+subject Driver {
+    let started: Bool;
+    action Ignite(self) -> Void { self.started = true; }
+    action RollbackIgnite(self) -> Void { self.started = false; }
+}
+zone CockpitZone {
+    subject slot driver: Driver
+}
+intent DriveCar(cockpit: CockpitZone, driver: Driver) {
+    rollback: current;
+    step Ignite {
+        where: CockpitZone;
+        using: cockpit;
+        on: driver.Ignite();
+        compensate: driver.RollbackIgnite();
+        pre: true;
+        guard: false;
+        post: driver.started;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+func Main() -> Void {
+    let driver = Driver(false);
+    let cockpit = CockpitZone(driver);
+    Log(DriveCar(cockpit, driver));
+    Log(ToString(StringLength(IntentLastTrace()) > 0));
+    Log(ToString(StringLength(IntentLastFailure()) > 0));
+    Log(ToString(IntentLastFailed()));
+    Log(ToString(IntentHistoryCount()));
+    Log(IntentHistoryStepPhase(0));
+    Log(ToString(IntentHistoryStepOk(0)));
+    Log(ToString(IntentRecentCount()));
+    Log(ToString(StringLength(IntentRecentTrace(0)) > 0));
+    Log(ToString(StringLength(IntentRecentFailure(0)) > 0));
+    Log(ToString(IntentRecentFailed(0)));
+}
