@@ -149,6 +149,7 @@ typedef struct
     size_t             id;
     MIRScopeKind       kind;
     const char        *owner_name;
+    ASTNodeType        owner_ast_type;
     const char        *name;
     ASTNode           *ast;
     bool               is_action_like;

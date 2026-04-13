@@ -1,0 +1,47 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+}
+
+relation Alliance for source: Player, dest: Player {
+}
+
+zone BattleZone {
+    subject slot player: Player
+    subject slot ally: Player
+    object slot playerView: PlayerView
+    effect slot poison: Poisoned
+    relation slot trust: Alliance
+
+    refresh playerView from player
+    apply poison to player
+    link trust between player, ally
+
+    state poisoned: effect poison on player
+    state allied: relation trust between player, ally
+}
+
+world GameWorld {
+    zone battle: BattleZone
+
+    func Show(self) -> Void {
+        Log("projection=" + ToString(HasZoneProjection(battle, playerView)));
+        Log("effect.layer=" + ToString(HasZoneLayer(battle, poison)));
+        Log("relation.layer=" + ToString(HasZoneLayer(battle, trust)));
+        Log("effect.state=" + ToString(HasZoneState(battle, poisoned)));
+        Log("relation.state=" + ToString(HasZoneState(battle, allied)));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(9, "neo"), Player(7, "trinity"));
+    let world = GameWorld(Clone(battle));
+    world.Show();
+}

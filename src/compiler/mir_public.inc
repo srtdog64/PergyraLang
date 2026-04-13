@@ -223,7 +223,8 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
         routine.owner_name = routine.rir_scope != NULL
             ? routine.rir_scope->owner_name
-            : NULL;
+            : hir_routine->owner_name;
+        routine.owner_ast_type = hir_routine->owner_ast_type;
 
         if (!mir_build_blocks_from_hir(&routine, hir_routine)
             || !mir_append_cleanup_block(&routine, routine.rir_scope)

@@ -1,25 +1,3 @@
-static bool
-transpiler_strip_suffix(const char *name, const char *suffix,
-                        char *out, size_t out_cap)
-{
-    size_t name_len;
-    size_t suffix_len;
-
-    if (name == NULL || suffix == NULL || out == NULL || out_cap == 0)
-        return false;
-    name_len = strlen(name);
-    suffix_len = strlen(suffix);
-    if (name_len <= suffix_len)
-        return false;
-    if (strcmp(name + name_len - suffix_len, suffix) != 0)
-        return false;
-    if (name_len - suffix_len + 1 > out_cap)
-        return false;
-    memcpy(out, name, name_len - suffix_len);
-    out[name_len - suffix_len] = '\0';
-    return true;
-}
-
 static void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
@@ -40,48 +18,45 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     bool is_method = mir_routine != NULL
-        && mir_routine->kind == MIR_SCOPE_METHOD
-        && mir_routine->owner_name != NULL;
+        && mir_routine->kind == MIR_SCOPE_METHOD;
     const char *owner_name = is_method ? mir_routine->owner_name : NULL;
-    char owner_zone_buf[128];
-    char owner_prefix_buf[128];
+    ASTNodeType owner_ast_type = is_method ? mir_routine->owner_ast_type : AST_PROGRAM;
     const char *owner_zone_name = NULL;
+    const char *owner_role_subject_name = NULL;
+    const char *owner_role_subject_c_type = NULL;
     bool owner_is_zone = false;
-    bool owner_is_relation = owner_name != NULL && find_relation_decl(ctx, owner_name) != NULL;
-    bool owner_is_effect = owner_name != NULL && find_effect_decl(ctx, owner_name) != NULL;
-    bool owner_is_world = owner_name != NULL && find_world_decl(ctx, owner_name) != NULL;
+    bool owner_is_role = owner_ast_type == AST_ROLE_DECL;
+    bool owner_is_relation = owner_ast_type == AST_RELATION_DECL;
+    bool owner_is_effect = owner_ast_type == AST_EFFECT_DECL;
+    bool owner_is_world = owner_ast_type == AST_WORLD_DECL;
     bool pointer_self = false;
 
-    if (owner_name != NULL) {
-        if (find_zone_decl(ctx, owner_name) != NULL) {
-            owner_zone_name = owner_name;
-        } else if (transpiler_strip_suffix(owner_name, "Zone",
-                                           owner_zone_buf, sizeof(owner_zone_buf))
-                   && find_zone_decl(ctx, owner_zone_buf) != NULL) {
-            owner_zone_name = owner_zone_buf;
+    if (is_method && owner_name == NULL) {
+        if (ctx->backend_error == NULL) {
+            ctx->backend_error = strdup_fmt(
+                "MIR-only transpiler missing owner metadata for method '%s'",
+                name != NULL ? name : "<method>");
         }
-        if (owner_zone_name == NULL) {
-            size_t owner_len = strlen(owner_name);
-            if (owner_len > 4 && strcmp(owner_name + owner_len - 4, "Zone") == 0)
-                owner_zone_name = owner_name;
+        codebuf_destroy(params_sig);
+        return;
+    }
+
+    if (owner_name != NULL) {
+        if (owner_ast_type == AST_ZONE_DECL) {
+            owner_zone_name = owner_name;
         }
         owner_is_zone = owner_zone_name != NULL;
-    }
-    if (owner_name == NULL && emitted_name != NULL) {
-        const char *underscore = strchr(emitted_name, '_');
-        if (underscore != NULL && underscore != emitted_name) {
-            size_t prefix_len = (size_t)(underscore - emitted_name);
-            if (prefix_len + 1 < sizeof(owner_prefix_buf)) {
-                memcpy(owner_prefix_buf, emitted_name, prefix_len);
-                owner_prefix_buf[prefix_len] = '\0';
-                if (find_zone_decl(ctx, owner_prefix_buf) != NULL) {
-                    owner_zone_name = owner_prefix_buf;
-                    owner_is_zone = true;
-                } else if (prefix_len > 4
-                           && strcmp(owner_prefix_buf + prefix_len - 4, "Zone") == 0) {
-                    owner_zone_name = owner_prefix_buf;
-                    owner_is_zone = true;
-                }
+        if (owner_is_role) {
+            ASTNode *role_decl = find_role_decl(ctx, owner_name);
+            if (role_decl != NULL
+                && role_decl->type == AST_ROLE_DECL
+                && role_decl->data.role_decl.for_type != NULL
+                && role_decl->data.role_decl.for_type->type == AST_TYPE
+                && role_decl->data.role_decl.for_type->data.type.name != NULL) {
+                owner_role_subject_name =
+                    role_decl->data.role_decl.for_type->data.type.name;
+                owner_role_subject_c_type =
+                    pergyra_type_to_c(owner_role_subject_name);
             }
         }
     }
@@ -90,6 +65,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     g_type_render_ctx = ctx;
     if (owner_is_zone) {
         ctx->current_zone_name = owner_zone_name;
+    } else if (owner_is_role) {
+        if (owner_role_subject_name != NULL)
+            ctx->current_class_name = owner_role_subject_name;
     } else if (owner_is_relation) {
         ctx->current_relation_name = owner_name;
     } else if (owner_is_effect) {
@@ -98,20 +76,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         ctx->current_world_name = owner_name;
     } else if (owner_name != NULL) {
         ctx->current_class_name = owner_name;
-    }
-    if (ctx->current_zone_name == NULL && emitted_name != NULL) {
-        const char *underscore = strchr(emitted_name, '_');
-        if (underscore != NULL && underscore != emitted_name) {
-            size_t prefix_len = (size_t)(underscore - emitted_name);
-            if (prefix_len + 1 < sizeof(owner_prefix_buf)) {
-                memcpy(owner_prefix_buf, emitted_name, prefix_len);
-                owner_prefix_buf[prefix_len] = '\0';
-                if (prefix_len > 4
-                    && strcmp(owner_prefix_buf + prefix_len - 4, "Zone") == 0) {
-                    ctx->current_zone_name = owner_prefix_buf;
-                }
-            }
-        }
     }
     if (!owner_is_zone
         && owner_name == NULL
@@ -135,10 +99,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
 
     if (owner_name != NULL) {
+        if (owner_is_role) {
+            codebuf_write(params_sig, "void *_raw_self");
+        } else {
         pointer_self = owner_is_zone || owner_is_relation
             || owner_is_effect || owner_is_world
             || is_pointer_self_host_type_name(ctx, owner_name);
         codebuf_write(params_sig, "%s%s", owner_name, pointer_self ? " *self" : " self");
+        }
     }
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
@@ -222,8 +190,34 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ctx->indent++;
     if (owner_name != NULL) {
-        register_typed_var(ctx, "self", owner_name);
-        if (owner_is_zone || owner_is_relation || owner_is_effect || owner_is_world) {
+        if (owner_is_role) {
+            if (owner_role_subject_name != NULL) {
+                register_typed_var(ctx, "self", owner_role_subject_name);
+                write_indent(ctx);
+                if (is_pointer_self_host_type_name(ctx, owner_role_subject_name)) {
+                    codebuf_write(ctx->out, "%s *self = (%s *)_raw_self;\n",
+                        owner_role_subject_c_type != NULL ? owner_role_subject_c_type
+                                                          : owner_role_subject_name,
+                        owner_role_subject_c_type != NULL ? owner_role_subject_c_type
+                                                          : owner_role_subject_name);
+                } else {
+                    codebuf_write(ctx->out, "%s self = *(%s *)_raw_self;\n",
+                        owner_role_subject_c_type != NULL ? owner_role_subject_c_type
+                                                          : owner_role_subject_name,
+                        owner_role_subject_c_type != NULL ? owner_role_subject_c_type
+                                                          : owner_role_subject_name);
+                }
+                write_indent(ctx);
+                codebuf_write(ctx->out, "(void)self;\n");
+            } else {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "(void)_raw_self;\n");
+            }
+        } else {
+            register_typed_var(ctx, "self", owner_name);
+        }
+        if (!owner_is_role
+            && (owner_is_zone || owner_is_relation || owner_is_effect || owner_is_world)) {
             if (owner_is_zone) {
                 ASTNode *zone_decl = find_zone_decl(ctx, owner_zone_name);
                 if (zone_decl != NULL

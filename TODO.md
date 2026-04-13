@@ -43,6 +43,7 @@
   - `IntentRecent*`
   - runtime 내부 recent ring + active registry + typed step history storage 연결 완료
   - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 고정
+  - backend parity: embedded world -> zone projection visibility regression 고정
 
 남은 것:
 - embedding ownership / handoff policy를 surface trust 수준까지 명확히 고정
@@ -56,6 +57,9 @@
 - declaration, lifecycle shorthand, `refresh/publish/bind`, layer/state query, overlay sync baseline 존재
 - effect join/meet/conflict API와 basic closure 존재
 - projection contract diagnostics는 target/source/mode/fix를 포함하는 structured error 쪽으로 보강됨
+- backend parity:
+  - embedded world -> zone projection visibility regression 고정
+  - relation/effect layer + state propagation parity regression 고정
 
 남은 것:
 - authority/resource와 effect partial order의 더 완전한 통합
@@ -113,6 +117,7 @@
 
 - C backend:
   - 코어 surface는 가장 성숙
+  - method owner metadata가 HIR->MIR로 내려와 declaration-side zone/relation/effect/world context 복원 시 이름 추정보다 MIR metadata를 우선 사용
 - LLVM backend:
   - MIR-led / HIR-assisted hybrid
   - ordinary routine은 MIR 중심이지만 domain declaration과 일부 bootstrap/helper path에 HIR/AST 의존 잔존

@@ -62,6 +62,7 @@ typedef struct
     HIRTopLevelKind  kind;
     const char      *name;
     const char      *owner_name;
+    ASTNodeType      owner_ast_type;
     ASTNode         *ast;
     ASTNode         *body;
     bool             is_hosted;

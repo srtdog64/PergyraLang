@@ -1289,6 +1289,7 @@ static bool
 hir_append_hidden_method_routine(HIRProgram *hir,
                                  size_t decl_id,
                                  const char *owner_name,
+                                 ASTNodeType owner_ast_type,
                                  ASTNode *method)
 {
     HIRRoutine routine;
@@ -1302,6 +1303,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
     routine.kind = HIR_TOPLEVEL_FUNCTION;
     routine.name = method->data.func_decl.name;
     routine.owner_name = owner_name;
+    routine.owner_ast_type = owner_ast_type;
     routine.ast = method;
     routine.body = hir_routine_body(method);
     routine.is_hosted = true;
@@ -1435,6 +1437,38 @@ hir_decl_method_slice(ASTNode *decl, ASTNode ***methods_out, size_t *method_coun
     default:
         return false;
     }
+}
+
+static bool
+hir_append_role_impl_method_routines(HIRProgram *hir, size_t decl_id, ASTNode *role_decl)
+{
+    const char *owner_name;
+
+    if (hir == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return true;
+
+    owner_name = role_decl->data.role_decl.name;
+    if (owner_name == NULL)
+        return true;
+
+    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+
+        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+            ASTNode *method = impl->data.impl_ability.methods[j];
+            if (!hir_append_hidden_method_routine(hir,
+                                                  decl_id,
+                                                  owner_name,
+                                                  AST_ROLE_DECL,
+                                                  method)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 static bool
@@ -1604,11 +1638,14 @@ oom_free_calls:
                 if (!hir_append_hidden_method_routine(hir,
                                                       decl.id,
                                                       owner_name,
+                                                      item.ast->type,
                                                       methods[i])) {
                     goto oom;
                 }
             }
         }
+        if (!hir_append_role_impl_method_routines(hir, decl.id, item.ast))
+            goto oom;
     }
 
     return true;
