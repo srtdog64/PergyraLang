@@ -292,7 +292,9 @@
   - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
 - [ ] **MIR DCE 확장 (statement-level)**
   - dead DEF/PHI 제거를 넘어 side-effect-free STMT/unused call 제거
-  - 현재는 pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)과 pure literal/binary/unary/member RHS의 dead `let`/identifier-assign 제거까지 시작
+  - 현재는 pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)만 안전 제거 시작
+  - dead `let`/identifier-assign 제거는 loop/phi/live-out 오판이 남아 있어 계속 보수 보류
+  - 다음 reopen 조건: value summary의 block-boundary / phi provenance를 이용해 loop-carried DEF와 진짜 dead local DEF를 분리
   - user call purity는 아직 보수적으로 side-effect 있다고 간주
   - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시
   - RPO 기반 liveness와 결합해 제거 정확도 개선

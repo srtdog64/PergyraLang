@@ -14,7 +14,6 @@
 static void mir_clear_block_name_set(const char ***names, size_t *count);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
 static bool mir_compute_liveness(MIRRoutine *routine);
-static bool mir_def_stmt_is_side_effect_free(const ASTNode *stmt);
 
 static char *
 mir_render_type_name(ASTNode *type_node)
@@ -1154,6 +1153,91 @@ mir_collect_successor_live_in(const MIRRoutine *routine,
     return true;
 }
 
+static bool
+mir_postorder_visit(const MIRRoutine *routine,
+                    size_t block_index,
+                    bool *visited,
+                    size_t *order,
+                    size_t *order_count)
+{
+    const MIRBasicBlock *block;
+    size_t succs[5];
+    size_t succ_count = 0;
+
+    if (routine == NULL || visited == NULL || order == NULL || order_count == NULL)
+        return false;
+    if (block_index >= routine->block_count)
+        return true;
+    if (visited[block_index])
+        return true;
+
+    visited[block_index] = true;
+    block = &routine->blocks[block_index];
+
+    if (block->has_succ_true)
+        succs[succ_count++] = block->succ_true;
+    if (block->has_succ_false)
+        succs[succ_count++] = block->succ_false;
+    if (block->has_cleanup_succ)
+        succs[succ_count++] = block->cleanup_succ;
+    if (block->has_rollback_succ)
+        succs[succ_count++] = block->rollback_succ;
+    if (block->has_invalidation_succ)
+        succs[succ_count++] = block->invalidation_succ;
+
+    for (size_t i = 0; i < succ_count; i++) {
+        if (!mir_postorder_visit(routine, succs[i], visited, order, order_count))
+            return false;
+    }
+
+    order[(*order_count)++] = block_index;
+    return true;
+}
+
+static bool
+mir_build_liveness_postorder(const MIRRoutine *routine, size_t **order_out, size_t *count_out)
+{
+    bool *visited = NULL;
+    size_t *order = NULL;
+    size_t order_count = 0;
+
+    if (order_out != NULL)
+        *order_out = NULL;
+    if (count_out != NULL)
+        *count_out = 0;
+    if (routine == NULL || order_out == NULL || count_out == NULL)
+        return false;
+    if (routine->block_count == 0)
+        return true;
+
+    visited = calloc(routine->block_count, sizeof(bool));
+    order = calloc(routine->block_count, sizeof(size_t));
+    if (visited == NULL || order == NULL) {
+        free(visited);
+        free(order);
+        return false;
+    }
+
+    if (!mir_postorder_visit(routine, routine->entry_block, visited, order, &order_count)) {
+        free(visited);
+        free(order);
+        return false;
+    }
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        if (!visited[i] && !mir_postorder_visit(routine, i, visited, order, &order_count)) {
+            free(visited);
+            free(order);
+            return false;
+        }
+    }
+
+    free(visited);
+    *order_out = order;
+    *count_out = order_count;
+    return true;
+}
+
 static void
 mir_clear_block_name_set(const char ***names, size_t *count)
 {
@@ -1199,6 +1283,9 @@ mir_append_value_summary(MIRRoutine *routine,
     summary.def_inst = def_inst;
     summary.first_use_block = SIZE_MAX;
     summary.last_use_block = SIZE_MAX;
+    summary.used_outside_def_block = false;
+    summary.used_by_phi = false;
+    summary.crosses_block_boundary = false;
 
     grown = realloc(routine->value_summaries,
                     sizeof(MIRValueSummary) * (routine->value_summary_count + 1));
@@ -1265,9 +1352,27 @@ mir_build_value_summaries(MIRRoutine *routine)
                 if (summary->first_use_block == SIZE_MAX)
                     summary->first_use_block = block_id;
                 summary->last_use_block = block_id;
+                if (block_id != summary->def_block) {
+                    summary->used_outside_def_block = true;
+                    summary->crosses_block_boundary = true;
+                }
+                if (inst->kind == MIR_INST_PHI) {
+                    summary->used_by_phi = true;
+                    summary->crosses_block_boundary = true;
+                }
                 if (block->is_cleanup)
                     summary->reaches_cleanup = true;
             }
+        }
+    }
+
+    for (size_t i = 0; i < routine->value_summary_count; i++) {
+        MIRValueSummary *summary = &routine->value_summaries[i];
+        if (summary->live_in_block_count > 0
+            || summary->live_out_block_count > 0
+            || summary->used_outside_def_block
+            || summary->used_by_phi) {
+            summary->crosses_block_boundary = true;
         }
     }
 
@@ -1361,13 +1466,16 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
         return false;
     if (inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
         return false;
-    if (inst->ast != NULL && !mir_def_stmt_is_side_effect_free(inst->ast))
-        return false;
-
     idx = mir_find_value_summary(routine, inst->result_name);
     if (idx < 0)
         return false;
     summary = &routine->value_summaries[idx];
+    /* AST-backed DEFs (let / assignment) remain conservatively preserved.
+     * Value-summary provenance is now richer, but loop-carried seed values
+     * still are not distinguished well enough to reopen dead local removal
+     * without changing runtime behavior. */
+    if (inst->ast != NULL)
+        return false;
     return summary->use_count == 0
            && summary->live_in_block_count == 0
            && summary->live_out_block_count == 0
@@ -1403,58 +1511,6 @@ mir_call_is_whitelisted_pure_query(const char *callee)
         || strcmp(callee, "ChannelSpace") == 0
         || strcmp(callee, "ChannelFull") == 0
         || strcmp(callee, "ChannelClosed") == 0;
-}
-
-static bool
-mir_expr_is_side_effect_free(const ASTNode *expr)
-{
-    if (expr == NULL)
-        return true;
-
-    switch (expr->type) {
-        case AST_NUMBER:
-        case AST_STRING:
-        case AST_BOOLEAN:
-        case AST_IDENTIFIER:
-            return true;
-        case AST_BINARY:
-            return mir_expr_is_side_effect_free(expr->data.binary.left)
-                && mir_expr_is_side_effect_free(expr->data.binary.right);
-        case AST_UNARY:
-            return mir_expr_is_side_effect_free(expr->data.unary.operand);
-        case AST_MEMBER_ACCESS:
-            return mir_expr_is_side_effect_free(expr->data.member.object);
-        case AST_CALL:
-            if (expr->data.call.callee == NULL
-                || expr->data.call.callee->type != AST_IDENTIFIER
-                || expr->data.call.callee->data.identifier.name == NULL
-                || !mir_call_is_whitelisted_pure_query(
-                    expr->data.call.callee->data.identifier.name)) {
-                return false;
-            }
-            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
-                if (!mir_expr_is_side_effect_free(expr->data.call.arguments[i]))
-                    return false;
-            }
-            return true;
-        default:
-            return false;
-    }
-}
-
-static bool
-mir_def_stmt_is_side_effect_free(const ASTNode *stmt)
-{
-    if (stmt == NULL)
-        return false;
-    if (stmt->type == AST_LET_DECL)
-        return mir_expr_is_side_effect_free(stmt->data.let_decl.initializer);
-    if (stmt->type == AST_ASSIGNMENT
-        && stmt->data.assignment.target != NULL
-        && stmt->data.assignment.target->type == AST_IDENTIFIER) {
-        return mir_expr_is_side_effect_free(stmt->data.assignment.value);
-    }
-    return false;
 }
 
 static bool
@@ -1547,15 +1603,20 @@ static bool
 mir_compute_liveness(MIRRoutine *routine)
 {
     bool changed;
+    size_t *order = NULL;
+    size_t order_count = 0;
 
     if (routine == NULL)
         return false;
     if (!mir_collect_block_defs_uses(routine))
         return false;
+    if (!mir_build_liveness_postorder(routine, &order, &order_count))
+        return false;
 
     do {
         changed = false;
-        for (size_t idx = routine->block_count; idx-- > 0;) {
+        for (size_t order_index = 0; order_index < order_count; order_index++) {
+            size_t idx = order[order_index];
             MIRBasicBlock *block = &routine->blocks[idx];
             const char **new_live_out = NULL;
             size_t new_live_out_count = 0;
@@ -1630,6 +1691,7 @@ mir_compute_liveness(MIRRoutine *routine)
         }
     } while (changed);
 
+    free(order);
     routine->live_value_count = 0;
     routine->has_liveness = true;
     for (size_t i = 0; i < routine->block_count; i++)

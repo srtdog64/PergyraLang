@@ -179,48 +179,6 @@ make_program(ASTNode **stmts, size_t count)
 static MIRProgram *
 mir_program_from_ast(ASTNode *program);
 
-static HIRProgram * __attribute__((unused))
-lower_program(ASTNode *program)
-{
-    SemanticResult *sem = semantic_analyze(program);
-    char *hir_error = NULL;
-    char *rir_error = NULL;
-    char *mir_error = NULL;
-    HIRProgram *hir = NULL;
-    RIRProgram *rir = NULL;
-    MIRProgram *mir = NULL;
-
-    if (sem != NULL && sem->success) {
-        hir = hir_lower(sem->annotated_ast, &hir_error);
-        rir = rir_lower(sem->annotated_ast, &rir_error);
-        if (hir != NULL && rir != NULL)
-            (void)rir_enrich_with_hir_flow(rir, hir, &rir_error);
-        if (hir != NULL && rir != NULL)
-            mir = mir_lower(hir, rir, &mir_error);
-    }
-
-    if (hir == NULL) {
-        fprintf(stderr, "HIR lowering failed in test: %s\n",
-                hir_error != NULL ? hir_error : "out of memory");
-    }
-    if (rir == NULL && hir != NULL) {
-        fprintf(stderr, "RIR lowering failed in test: %s\n",
-                rir_error != NULL ? rir_error : "out of memory");
-    }
-    if (mir == NULL && hir != NULL && rir != NULL) {
-        fprintf(stderr, "MIR lowering failed in test: %s\n",
-                mir_error != NULL ? mir_error : "out of memory");
-    }
-
-    if (mir == NULL)
-        mir = mir_program_from_ast(program);
-    g_last_mir = mir;
-    free(hir_error);
-    free(rir_error);
-    free(mir_error);
-    return hir;
-}
-
 static MIRProgram *
 lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_out)
 {

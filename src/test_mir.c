@@ -439,6 +439,8 @@ test_mir_lowering(void)
                && score_summary->slot_anchor != NULL
                && strcmp(score_summary->slot_anchor, "score") == 0
                && score_summary->use_count > 0
+               && score_summary->used_outside_def_block
+               && score_summary->crosses_block_boundary
                && score_summary->live_out_block_count > 0);
         mir_destroy(mir);
         rir_destroy(rir);
