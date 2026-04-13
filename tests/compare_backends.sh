@@ -19,6 +19,24 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 1
 fi
 
+if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
+    ABI_PIPELINE_BIN="${PGY_ABI_PIPELINE_TEST_BIN:-}"
+    if [[ -z "$ABI_PIPELINE_BIN" ]]; then
+        echo "backend-compare: PGY_ABI_PIPELINE_TEST_BIN is required when same-process precheck is enabled" >&2
+        exit 1
+    fi
+    if [[ ! -x "$ABI_PIPELINE_BIN" && -x "${ABI_PIPELINE_BIN}.exe" ]]; then
+        ABI_PIPELINE_BIN="${ABI_PIPELINE_BIN}.exe"
+    fi
+    if [[ ! -x "$ABI_PIPELINE_BIN" ]]; then
+        echo "backend-compare: missing ABI pipeline test binary: $ABI_PIPELINE_BIN" >&2
+        exit 1
+    fi
+    PGY_ABI_PIPELINE_SAME_PROCESS=1 \
+    PGY_ABI_PIPELINE_BACKEND=llvm \
+    "$ABI_PIPELINE_BIN"
+fi
+
 resolve_native_bin() {
     local path="$1"
     if [[ -x "$path" ]]; then

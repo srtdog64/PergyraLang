@@ -436,7 +436,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
             if (type_name != NULL)
                 c_type = pergyra_type_to_c(type_name);
-            if (c_type == NULL) {
+            if (c_type == NULL
+                || c_type[0] == '\0'
+                || (type_name != NULL && strcmp(type_name, "Unknown") == 0)
+                || strcmp(c_type, "Unknown") == 0) {
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(
                         "cannot determine C type for MIR local '%s' in function '%s'",

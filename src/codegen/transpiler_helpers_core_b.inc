@@ -1699,6 +1699,48 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             && expr->data.call.callee->type == AST_IDENTIFIER
             && expr->data.call.callee->data.identifier.name != NULL) {
             const char *name = expr->data.call.callee->data.identifier.name;
+            if (strcmp(name, "Min") == 0
+                || strcmp(name, "Max") == 0
+                || strcmp(name, "Abs") == 0
+                || strcmp(name, "Clone") == 0) {
+                if (expr->data.call.arg_count >= 1) {
+                    const char *arg_type = infer_expression_type_name(ctx,
+                        expr->data.call.arguments[0]);
+                    if (arg_type != NULL && strcmp(arg_type, "Unknown") != 0)
+                        return arg_type;
+                }
+                return "Int";
+            }
+            if (strcmp(name, "ToInt") == 0)
+                return "Int";
+            if (strcmp(name, "ToFloat") == 0)
+                return "Float";
+            if (strcmp(name, "Floor") == 0
+                || strcmp(name, "Ceil") == 0
+                || strcmp(name, "Sqrt") == 0
+                || strcmp(name, "Pow") == 0)
+                return "Float";
+            if (strcmp(name, "Replace") == 0
+                || strcmp(name, "Trim") == 0
+                || strcmp(name, "Upper") == 0
+                || strcmp(name, "Lower") == 0
+                || strcmp(name, "Join") == 0)
+                return "String";
+            if (strcmp(name, "Split") == 0)
+                return "Array<String>";
+            if (strcmp(name, "Length") == 0
+                || strcmp(name, "Random") == 0)
+                return "Int";
+            if (strcmp(name, "FileOpen") == 0)
+                return "Int";
+            if (strcmp(name, "FileRead") == 0)
+                return "String";
+            if (strcmp(name, "FileWrite") == 0
+                || strcmp(name, "FileClose") == 0
+                || strcmp(name, "WriteFile") == 0)
+                return "Void";
+            if (strcmp(name, "ReadFile") == 0)
+                return "String";
             if (strcmp(name, "MapNew") == 0)
                 return "HashMap";
             if (strcmp(name, "MapGet") == 0 && expr->data.call.arg_count >= 1) {

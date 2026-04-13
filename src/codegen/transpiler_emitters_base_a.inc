@@ -14,6 +14,9 @@ static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
                                            size_t pred_block_index,
                                            const MIRBasicBlock *pred_block,
                                            const MIRBasicBlock *target_block);
+static const char *transpiler_find_prior_block_ssa_name(const MIRBasicBlock *block,
+                                                        size_t limit_inst_index,
+                                                        const char *base_name);
 static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
                                                  const ASTNode *func_decl,
                                                  const MIRRoutine *mir_routine,
@@ -2559,6 +2562,36 @@ transpiler_emit_mir_phi_copies(CodeBuf *buf, TranspilerCtx *ctx, int indent,
     return true;
 }
 
+static const char *
+transpiler_find_prior_block_ssa_name(const MIRBasicBlock *block,
+                                     size_t limit_inst_index,
+                                     const char *base_name)
+{
+    const char *resolved = NULL;
+
+    if (block == NULL || base_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < block->instruction_count && i < limit_inst_index; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        char parsed_base[128];
+        size_t version = 0;
+
+        if ((inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
+            || inst->result_name == NULL) {
+            continue;
+        }
+        if (!transpiler_parse_versioned_name(inst->result_name, parsed_base,
+                                             sizeof(parsed_base), &version)) {
+            continue;
+        }
+        if (strcmp(parsed_base, base_name) == 0)
+            resolved = inst->result_name;
+    }
+
+    return resolved;
+}
+
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
@@ -2785,7 +2818,43 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     target_is_field = true;
             }
             if (target_is_field) {
-                emit_statement(stmt, ctx);
+                char *field_lhs = NULL;
+                char *field_rhs = NULL;
+
+                if (stmt->data.assignment.value != NULL
+                    && stmt->data.assignment.value->type == AST_IDENTIFIER
+                    && stmt->data.assignment.value->data.identifier.name != NULL
+                    && transpiler_resolve_ssa_name(
+                           (const TranspilerSSANameMap *)ssa_map_out,
+                           stmt->data.assignment.value->data.identifier.name) == NULL) {
+                    const char *prior_ssa = transpiler_find_prior_block_ssa_name(
+                        block, i, stmt->data.assignment.value->data.identifier.name);
+                    if (prior_ssa != NULL) {
+                        transpiler_ssa_name_map_set(ssa_map_out,
+                            stmt->data.assignment.value->data.identifier.name,
+                            prior_ssa);
+                    }
+                }
+                field_lhs = emit_expression_with_ssa_map(
+                    stmt->data.assignment.target, ctx, ssa_map_out);
+                field_rhs = emit_expression_with_ssa_map(
+                    stmt->data.assignment.value, ctx, ssa_map_out);
+                if (field_lhs == NULL || field_rhs == NULL) {
+                    free(field_lhs);
+                    free(field_rhs);
+                    if (reason != NULL && reason_cap > 0) {
+                        snprintf(reason, reason_cap,
+                                 "MIR block %zu emission failed: unable to render field assignment to '%s'",
+                                 block->id,
+                                 target_name != NULL ? target_name : "<field>");
+                    }
+                    ok = false;
+                    break;
+                }
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s = %s;\n", field_lhs, field_rhs);
+                free(field_lhs);
+                free(field_rhs);
                 continue;
             }
             if (!is_local_binding) {
@@ -2826,6 +2895,23 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN) {
             continue;
+        }
+        if (stmt->type == AST_ASSIGNMENT
+            && stmt->data.assignment.target != NULL
+            && stmt->data.assignment.target->type == AST_IDENTIFIER
+            && stmt->data.assignment.target->data.identifier.name != NULL
+            && transpiler_is_implicit_field(ctx,
+                stmt->data.assignment.target->data.identifier.name)) {
+            char map_reason[256];
+            if (!transpiler_expr_identifiers_mapped(
+                    ctx,
+                    stmt->data.assignment.value,
+                    ssa_map_out,
+                    mir_routine->name,
+                    map_reason,
+                    sizeof(map_reason))) {
+                continue;
+            }
         }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
             && (stmt->type == AST_WITH_STMT

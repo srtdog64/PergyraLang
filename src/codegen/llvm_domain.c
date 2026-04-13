@@ -44,6 +44,15 @@ llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
     return NULL;
 }
 
+static bool
+llvm_param_is_implicit_self_local(const FuncParam *param)
+{
+    return param != NULL
+        && param->type == NULL
+        && param->name != NULL
+        && strcmp(param->name, "self") == 0;
+}
+
 static const char *
 llvm_operator_suffix(PgyTokenType op)
 {
@@ -1701,7 +1710,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             size_t user_pc = 0;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
-                if (p->type == NULL && strcmp(p->name, "self") == 0)
+                if (llvm_param_is_implicit_self_local(p))
                     continue;
                 user_pc++;
             }
@@ -1714,7 +1723,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 FuncParam *p = method->data.func_decl.params[k];
                 const char *type_name = NULL;
                 LLVMClassTypeEntry *param_cls = NULL;
-                if (p->type == NULL && strcmp(p->name, "self") == 0)
+                if (llvm_param_is_implicit_self_local(p))
                     continue;
                 if (p->type != NULL && p->type->type == AST_TYPE)
                     type_name = p->type->data.type.name;
@@ -1771,8 +1780,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             size_t user_pc = 0;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
-                if (p->type == NULL && p->name != NULL
-                    && strcmp(p->name, "self") == 0)
+                if (llvm_param_is_implicit_self_local(p))
                     continue;
                 user_pc++;
             }
@@ -1781,8 +1789,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             size_t pidx = 1;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];
-                if (p->type == NULL && p->name != NULL
-                    && strcmp(p->name, "self") == 0)
+                if (llvm_param_is_implicit_self_local(p))
                     continue;
                 ptypes[pidx++] = (p->type != NULL)
                     ? ast_type_to_llvm(ctx, p->type)
@@ -1849,7 +1856,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 size_t user_pc = 0;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                    if (llvm_param_is_implicit_self_local(p))
                         continue;
                     user_pc++;
                 }
@@ -1860,7 +1867,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 size_t pidx = 1;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                    if (llvm_param_is_implicit_self_local(p))
                         continue;
                     ptypes[pidx++] = (p->type != NULL)
                         ? ast_type_to_llvm(ctx, p->type)
@@ -1910,7 +1917,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 size_t rhs_param_count = 0;
                 for (size_t pj = 0; pj < method->data.func_decl.param_count; pj++) {
                     FuncParam *p = method->data.func_decl.params[pj];
-                    if (p != NULL && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
+                    if (!llvm_param_is_implicit_self_local(p)) {
                         rhs_param = p;
                         rhs_param_count++;
                     }
@@ -2295,7 +2302,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 unsigned lpidx = 1;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p = method->data.func_decl.params[k];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                    if (llvm_param_is_implicit_self_local(p))
                         continue;
                     LLVMTypeRef pt = (p->type != NULL)
                         ? ast_type_to_llvm(ctx, p->type)
@@ -2577,7 +2584,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
                 const char *type_name = NULL;
                 LLVMClassTypeEntry *param_cls = NULL;
                 LLVMTypeRef pt;
-                if (p->type == NULL && strcmp(p->name, "self") == 0)
+                if (llvm_param_is_implicit_self_local(p))
                     continue;
                 if (p->type != NULL && p->type->type == AST_TYPE)
                     type_name = p->type->data.type.name;
