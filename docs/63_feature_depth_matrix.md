@@ -43,12 +43,12 @@ subset surface는 아래 세 분류를 같이 써야 한다.
 현재 핵심 축의 적용:
 
 - generics
-  - stable subset: exact/ability/multi-bound baseline
-  - explicit reject: default type argument surface
+  - current stable subset: exact/ability/multi-bound baseline
+  - strict closure target: default type argument actual resolution across declaration/instantiation paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
-  - explicit reject: general own/ref on non-anchored/general value types
+  - strict closure target: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`

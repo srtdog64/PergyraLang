@@ -2893,34 +2893,34 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     {
-        uint32_t inferred_effects = type_effect_mask_closure(ctx->current_function_effects);
+        uint32_t derived_effects = type_effect_mask_closure(ctx->current_function_effects);
         uint32_t missing_effects =
-            type_effect_mask_closure(inferred_effects) & ~type_effect_mask_closure(declared_effects);
-        char inferred_buf[128];
+            type_effect_mask_closure(derived_effects) & ~type_effect_mask_closure(declared_effects);
+        char derived_buf[128];
         char missing_buf[128];
         char declared_buf[128];
 
         if (has_effect_contract && missing_effects != EFFECT_NONE) {
-            effect_mask_to_string(inferred_effects, inferred_buf, sizeof(inferred_buf));
+            effect_mask_to_string(derived_effects, derived_buf, sizeof(derived_buf));
             effect_mask_to_string(missing_effects, missing_buf, sizeof(missing_buf));
             effect_mask_to_string(declared_effects, declared_buf, sizeof(declared_buf));
             semantic_error(ctx, node,
-                "Function '%s' is missing declared effects: %s (declared: %s, inferred from body: %s)",
+                "Function '%s' is missing declared effects: %s (declared: %s, derived from body: %s)",
                 name != NULL ? name : "<anonymous>",
-                missing_buf, declared_buf, inferred_buf);
+                missing_buf, declared_buf, derived_buf);
         }
 
         func_type->data.function.effect_mask =
-            type_effect_mask_join(declared_effects, inferred_effects);
+            type_effect_mask_join(declared_effects, derived_effects);
 
         if (type_effect_mask_conflicts(func_type->data.function.effect_mask,
                                        func_type->data.function.effect_mask)) {
             effect_mask_to_string(func_type->data.function.effect_mask,
-                                  inferred_buf, sizeof(inferred_buf));
+                                  derived_buf, sizeof(derived_buf));
             semantic_warning(ctx, node,
                 "Function '%s' combines effect classes that are currently treated as conflicting (%s); consider splitting authority-sensitive and remote/resource-boundary work",
                 name != NULL ? name : "<anonymous>",
-                inferred_buf);
+                derived_buf);
         }
 
         if (is_action

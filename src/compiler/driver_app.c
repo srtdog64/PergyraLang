@@ -49,6 +49,13 @@ driver_now_seconds(void)
 #endif
 }
 
+static void
+driver_debug_stage(const char *stage)
+{
+    if (stage != NULL && getenv("PGY_DEBUG_PIPELINE_STAGE") != NULL)
+        fprintf(stderr, "[driver stage] %s\n", stage);
+}
+
 static int
 run_token_dump(const char *source, const char *path)
 {
@@ -898,6 +905,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (flags->verbose)
         printf("pgy: loading modules\n");
 
+    driver_debug_stage("module_load");
     phase_start = driver_now_seconds();
     ast = module_loader_load_program(flags->source_path, &load_error);
     if (timings != NULL)
@@ -917,6 +925,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (flags->verbose)
         printf("pgy: semantic analysis\n");
 
+    driver_debug_stage("semantic");
     phase_start = driver_now_seconds();
     sem = semantic_analyze(ast);
     if (timings != NULL)
@@ -932,6 +941,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
+    driver_debug_stage("hir_lower");
     phase_start = driver_now_seconds();
     hir = hir_lower(sem->annotated_ast, &hir_error);
     if (timings != NULL)
@@ -942,6 +952,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
+    driver_debug_stage("dir_lower");
     phase_start = driver_now_seconds();
     dir = dir_lower(sem->annotated_ast, &hir_error);
     if (timings != NULL)
@@ -951,6 +962,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    driver_debug_stage("dir_validate");
     phase_start = driver_now_seconds();
     if (!dir_validate(dir, &hir_error)) {
         if (timings != NULL)
@@ -962,6 +974,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->dir_validate = driver_now_seconds() - phase_start;
 
+    driver_debug_stage("rir_lower");
     phase_start = driver_now_seconds();
     rir = rir_lower(sem->annotated_ast, &hir_error);
     if (timings != NULL)
@@ -971,6 +984,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    driver_debug_stage("rir_enrich");
     phase_start = driver_now_seconds();
     if (!rir_enrich_with_hir_flow(rir, hir, &hir_error)) {
         if (timings != NULL)
@@ -981,6 +995,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
     if (timings != NULL)
         timings->rir_enrich = driver_now_seconds() - phase_start;
+    driver_debug_stage("rir_validate");
     phase_start = driver_now_seconds();
     if (!rir_validate(rir, &hir_error)) {
         if (timings != NULL)
@@ -991,6 +1006,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
     if (timings != NULL)
         timings->rir_validate = driver_now_seconds() - phase_start;
+    driver_debug_stage("rir_dir_validate");
     phase_start = driver_now_seconds();
     if (!rir_validate_against_dir(rir, dir, &hir_error)) {
         if (timings != NULL)
@@ -1002,6 +1018,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     if (timings != NULL)
         timings->rir_dir_validate = driver_now_seconds() - phase_start;
 
+    driver_debug_stage("mir_lower");
     phase_start = driver_now_seconds();
     mir = mir_lower(hir, rir, &hir_error);
     if (timings != NULL)
@@ -1011,6 +1028,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
                 hir_error != NULL ? hir_error : "out of memory");
         goto cleanup;
     }
+    driver_debug_stage("mir_validate");
     phase_start = driver_now_seconds();
     if (!mir_validate(mir, &hir_error)) {
         if (timings != NULL)
@@ -1052,6 +1070,9 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
     }
 
     /* Dispatch to backend runner */
+    driver_debug_stage(flags->backend == BACKEND_LLVM && !flags->emit_c_only
+                       ? "backend_llvm"
+                       : "backend_c");
     phase_start = driver_now_seconds();
     if (flags->backend == BACKEND_LLVM && !flags->emit_c_only) {
         CompilerBackendTimings backend_timings = {0};

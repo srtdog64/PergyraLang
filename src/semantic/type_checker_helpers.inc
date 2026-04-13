@@ -2013,7 +2013,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 "Type '%s' does not satisfy constraint '%s' for generic parameter '%s'.\n"
                                 "Reason:\n"
                                 "- function '%s' requires '%s: %s'\n"
-                                "- call-site inferred type argument is '%s'\n"
+                                "- call-site derived type argument is '%s'\n"
                                 "Fix:\n"
                                 "- pass an argument whose type satisfies '%s'\n"
                                 "- or relax the function where-clause",

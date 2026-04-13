@@ -79,36 +79,22 @@ llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
         LLVMPointerType(owner_cls->struct_type, 0),
         self_entry->alloca, llvm_tmp_name(ctx));
 
-    if (owner_cls->domain_kind == LLVM_DOMAIN_WORLD && ctx->mir != NULL) {
-        const MIRDeclHeader *decl = mir_find_decl_header(ctx->mir, owner_name);
-        ASTNode *world_decl = (decl != NULL && decl->ast_type == AST_WORLD_DECL)
-            ? decl->ast : NULL;
+    if (owner_cls->domain_kind == LLVM_DOMAIN_WORLD) {
+        for (int i = 0; i < owner_cls->field_count; i++) {
+            const char *field_name = owner_cls->fields[i].field_name;
+            LLVMValueRef dirty_ptr;
 
-        if (world_decl != NULL) {
-            for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-                ASTNode *zone = world_decl->data.world_decl.zones[i];
-                const char *slot_name = zone != NULL
-                    ? zone->data.world_zone.slot_name
-                    : NULL;
-                char dirty_field[256];
-                int dirty_idx;
-                LLVMValueRef dirty_ptr;
-
-                if (slot_name == NULL)
-                    continue;
-
-                snprintf(dirty_field, sizeof(dirty_field),
-                    "__zone_dirty_%s", slot_name);
-                dirty_idx = llvm_class_field_index(owner_cls, dirty_field);
-                if (dirty_idx < 0)
-                    continue;
-
-                dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
-                    owner_cls->struct_type, self_ptr, (unsigned)dirty_idx,
-                    llvm_tmp_name(ctx));
-                LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
-                    dirty_ptr);
+            if (field_name == NULL
+                || strncmp(field_name, "__zone_dirty_", 13) != 0) {
+                continue;
             }
+
+            dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
+                owner_cls->struct_type, self_ptr,
+                (unsigned)owner_cls->fields[i].index,
+                llvm_tmp_name(ctx));
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                dirty_ptr);
         }
 
         {

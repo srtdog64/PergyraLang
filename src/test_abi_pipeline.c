@@ -629,9 +629,13 @@ main(void)
         "    Log(Confirm(checkout, buyer));\n"
         "    Log(ToString(IntentRecentCount()));\n"
         "    Log(IntentRecentName(0));\n"
+        "    Log(ToString(StringLength(IntentRecentTrace(0)) > 0));\n"
+        "    Log(ToString(StringLength(IntentRecentFailure(0)) == 0));\n"
         "    Log(ToString(IntentRecentStepCount(0)));\n"
         "    Log(ToString(IntentRecentFailed(0)));\n"
         "    Log(IntentRecentName(1));\n"
+        "    Log(ToString(StringLength(IntentRecentTrace(1)) > 0));\n"
+        "    Log(ToString(StringLength(IntentRecentFailure(1)) == 0));\n"
         "    Log(ToString(IntentRecentStepCount(1)));\n"
         "    Log(ToString(IntentRecentFailed(1)));\n"
         "}\n";
@@ -640,11 +644,239 @@ main(void)
         "true\n"
         "2\n"
         "Confirm\n"
+        "true\n"
+        "true\n"
         "1\n"
         "false\n"
         "Charge\n"
+        "true\n"
+        "true\n"
         "1\n"
         "false\n";
+    static const char *intent_failure_source =
+        "subject Driver {\n"
+        "    let started: Bool;\n"
+        "    action Ignite(self) -> Void { self.started = true; }\n"
+        "    action RollbackIgnite(self) -> Void { self.started = false; }\n"
+        "}\n"
+        "zone CockpitZone {\n"
+        "    subject slot driver: Driver\n"
+        "}\n"
+        "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+        "    rollback: current;\n"
+        "    step Ignite {\n"
+        "        where: CockpitZone;\n"
+        "        using: cockpit;\n"
+        "        on: driver.Ignite();\n"
+        "        compensate: driver.RollbackIgnite();\n"
+        "        pre: true;\n"
+        "        guard: false;\n"
+        "        post: driver.started;\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let driver = Driver(false);\n"
+        "    let cockpit = CockpitZone(driver);\n"
+        "    Log(DriveCar(cockpit, driver));\n"
+        "    Log(ToString(StringLength(IntentLastTrace()) > 0));\n"
+        "    Log(ToString(StringLength(IntentLastFailure()) > 0));\n"
+        "    Log(ToString(IntentLastFailed()));\n"
+        "    Log(ToString(IntentHistoryCount()));\n"
+        "    Log(IntentHistoryStepPhase(0));\n"
+        "    Log(ToString(IntentHistoryStepOk(0)));\n"
+        "    Log(ToString(IntentRecentCount()));\n"
+        "    Log(ToString(StringLength(IntentRecentTrace(0)) > 0));\n"
+        "    Log(ToString(StringLength(IntentRecentFailure(0)) > 0));\n"
+        "    Log(ToString(IntentRecentFailed(0)));\n"
+        "}\n";
+    static const char *intent_failure_expected =
+        "false\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "1\n"
+        "materialize\n"
+        "false\n"
+        "1\n"
+        "true\n"
+        "true\n"
+        "true\n";
+    static const char *world_clone_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    shared hp: Int = 0\n"
+        "    func Hurt() -> Void { hp = hp + 1; }\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func ReadHp() -> Int { return battle.hp; }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let battle = BattleZone(Player(10));\n"
+        "    let world = GameWorld(Clone(battle));\n"
+        "    battle.hp = 3;\n"
+        "    battle.Hurt();\n"
+        "    Log(world.ReadHp());\n"
+        "    Log(battle.hp);\n"
+        "}\n";
+    static const char *world_clone_expected =
+        "0\n"
+        "4\n";
+    static const char *world_zone_query_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "effect Poisoned for bearer: Player { }\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    effect slot poison: Poisoned\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "    refresh playerView from player by player\n"
+        "    maintain poisoned by player\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func Show(self) -> Void {\n"
+        "        Log(HasZoneProjection(battle, playerView));\n"
+        "        Log(HasZoneLayer(battle, poison));\n"
+        "        Log(HasZoneState(battle, poisoned));\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let world = GameWorld(BattleZone(Player(7)));\n"
+        "    world.Show();\n"
+        "}\n";
+    static const char *world_zone_query_expected =
+        "true\n"
+        "true\n"
+        "true\n";
+    static const char *relation_effect_zone_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "effect Poisoned for bearer: Player { }\n"
+        "relation Allied for source: Player, target: Player { }\n"
+        "zone ArenaZone {\n"
+        "    subject slot player: Player\n"
+        "    subject slot ally: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    effect slot poison: Poisoned\n"
+        "    relation slot alliance: Allied\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "    state allied: relation alliance between player, ally\n"
+        "    refresh playerView from player by player\n"
+        "    maintain poisoned by player\n"
+        "    maintain allied by player\n"
+        "    func Snapshot(self) -> Void {\n"
+        "        Log(HasLayer(poison));\n"
+        "        Log(HasLayer(alliance));\n"
+        "        Log(HasState(poisoned));\n"
+        "        Log(HasState(poisoned, player));\n"
+        "        Log(HasState(allied, player, ally));\n"
+        "        Log(playerView.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let arena = ArenaZone(Player(42), Player(7));\n"
+        "    arena.Snapshot();\n"
+        "}\n";
+    static const char *relation_effect_zone_expected =
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "true\n"
+        "42\n";
+    static const char *world_handoff_mutation_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "zone BattleZone {\n"
+        "    subject slot player: Player\n"
+        "    shared hp: Int = 0\n"
+        "    authority player\n"
+        "    func BumpBy(amount: Int) -> Void {\n"
+        "        hp = hp + amount;\n"
+        "    }\n"
+        "}\n"
+        "world GameWorld {\n"
+        "    zone battle: BattleZone\n"
+        "    func Advance(self) -> Void {\n"
+        "        battle.BumpBy(5);\n"
+        "        Log(battle.hp);\n"
+        "    }\n"
+        "    func Read(self) -> Void {\n"
+        "        Log(battle.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let battle = BattleZone(Player(10));\n"
+        "    let world = GameWorld(Clone(battle));\n"
+        "    world.Advance();\n"
+        "    battle.BumpBy(1);\n"
+        "    world.Read();\n"
+        "    Log(battle.hp);\n"
+        "}\n";
+    static const char *world_handoff_mutation_expected =
+        "5\n"
+        "5\n"
+        "1\n";
+    static const char *relation_effect_propagation_source =
+        "subject Player {\n"
+        "    let hp: Int;\n"
+        "}\n"
+        "object PlayerView {\n"
+        "    hp: Int;\n"
+        "}\n"
+        "effect Poisoned for bearer: Player { }\n"
+        "relation Allied for source: Player, target: Player { }\n"
+        "zone ArenaZone {\n"
+        "    subject slot player: Player\n"
+        "    subject slot ally: Player\n"
+        "    object slot playerView: PlayerView\n"
+        "    effect slot poison: Poisoned\n"
+        "    relation slot alliance: Allied\n"
+        "    authority player\n"
+        "    state poisoned: effect poison on player\n"
+        "    state allied: relation alliance between player, ally\n"
+        "    refresh playerView from player by player\n"
+        "    maintain poisoned by player\n"
+        "    maintain allied by player\n"
+        "    func Pulse() -> Void {\n"
+        "        player.hp = player.hp + 3;\n"
+        "    }\n"
+        "    func Report() -> Void {\n"
+        "        Log(HasLayer(poison));\n"
+        "        Log(HasState(poisoned, player));\n"
+        "        Log(HasState(allied, player, ally));\n"
+        "        Log(playerView.hp);\n"
+        "    }\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let arena = ArenaZone(Player(40), Player(7));\n"
+        "    arena.Pulse();\n"
+        "    arena.Report();\n"
+        "}\n";
+    static const char *relation_effect_propagation_expected =
+        "true\n"
+        "true\n"
+        "true\n"
+        "43\n";
     static const char *loop_source =
         "func Spin(limit: Int) -> Int {\n"
         "    let i: Int = 0;\n"
@@ -853,6 +1085,24 @@ main(void)
     run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("intent_failure_abi", intent_failure_source, intent_failure_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_clone_ownership_abi", world_clone_source, world_clone_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_handoff_mutation_abi", world_handoff_mutation_source, world_handoff_mutation_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("relation_effect_zone_abi", relation_effect_zone_source, relation_effect_zone_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("relation_effect_propagation_abi", relation_effect_propagation_source, relation_effect_propagation_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -883,6 +1133,24 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("intent_failure_abi", intent_failure_source, intent_failure_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_clone_ownership_abi", world_clone_source, world_clone_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_handoff_mutation_abi", world_handoff_mutation_source, world_handoff_mutation_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("world_zone_query_abi", world_zone_query_source, world_zone_query_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("relation_effect_zone_abi", relation_effect_zone_source, relation_effect_zone_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("relation_effect_propagation_abi", relation_effect_propagation_source, relation_effect_propagation_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,

@@ -131,7 +131,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `ref Slot<subject-host>`와 `own SecureSlot<subject-host>`는 semantic + C/LLVM backend에서 함수 경계 전달이 가능하다
 - secure boundary slot은 함수 body 안에서 paired `s_token` 심볼을 자동 제공받는다
 - secure boundary slot은 helper forwarding call에서도 paired token을 유지한다
-- 베타 기준에서 `own/ref` stable surface는 여기까지다. 일반 ownership system은 아직 surface에 올리지 않는다
+- 현재 stable surface는 anchored subset까지다. strict beta-quality closure track에서는 일반 ownership system을 다시 연다
 - LLVM backend는 nested member assignment와 world-owned zone mutation propagation까지 runtime smoke로 검증된다
 - 남은 공백은 deeper handle/runtime propagation model이다
 - `QubitSlot` / `ClaimQubit` / `Measure` / `Entangle` 표면은 남아 있지만, full quantum resource semantics는 베타 대상이 아니라 `v2 / experimental`이다
@@ -145,12 +145,12 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 문서와 구현을 같은 기준으로 읽기 위해, subset surface는 아래처럼 분류한다.
 
 - generics
-  - stable subset: exact/ability/multi-bound baseline
-  - explicit reject: default type argument surface
+  - current stable subset: exact/ability/multi-bound baseline
+  - strict closure target: default type argument actual resolution across declaration/instantiation paths
   - beta-out-of-scope: broader generic generalization
 - own/ref
   - stable subset: anchored slot-handle boundary subset
-  - explicit reject: general own/ref on non-anchored/general value types
+  - strict closure target: general own/ref on non-anchored/general movable value types
   - beta-out-of-scope: general ownership system
 - collections
   - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
@@ -164,7 +164,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 ## 2026-04-11 기준 확인된 상태
 
 - `make test-transpile` 통과 (`464 passed`)
-- `make test-abi` 통과 (`56 passed`)
+- `make test-abi` 통과 (`126 passed`)
 - `make llvm-test-backend-compare` 통과
 - `make example-test-smoke` 통과
 - `make ir-pipeline-test-smoke` 통과

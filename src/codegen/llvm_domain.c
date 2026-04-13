@@ -1708,7 +1708,7 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
 
             LLVMTypeRef *ptypes = calloc(user_pc + 1,
                                            sizeof(LLVMTypeRef));
-            ptypes[0] = ctx->type_i8ptr;
+            ptypes[0] = LLVMPointerType(struct_ty, 0);
             size_t pidx = 1;
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = method->data.func_decl.params[k];

@@ -2429,7 +2429,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("declared effects must cover inferred body effects");
+    TEST("declared effects must cover derived body effects");
     {
         const char *source =
             "/// @effects local\n"
@@ -2453,7 +2453,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("signature effects must cover inferred body effects");
+    TEST("signature effects must cover derived body effects");
     {
         const char *source =
             "func Dispatch() -> Int with effects local {\n"
@@ -2476,7 +2476,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("signature effects may exactly match inferred body effects");
+    TEST("signature effects may exactly match derived body effects");
     {
         const char *source =
             "func Dispatch() -> Int with effects remote {\n"
@@ -2497,7 +2497,7 @@ test_effect_inference(void)
         lexer_destroy(lexer);
     }
 
-    TEST("declared effects may exactly match inferred body effects");
+    TEST("declared effects may exactly match derived body effects");
     {
         const char *source =
             "/// @effects remote\n"

@@ -65,6 +65,7 @@ rir_destroy(RIRProgram *rir)
 {
     if (rir == NULL)
         return;
+    g_rir_program_root = NULL;
     for (size_t i = 0; i < rir->scope_count; i++) {
         free(rir->scopes[i].facts);
         free(rir->scopes[i].ops);

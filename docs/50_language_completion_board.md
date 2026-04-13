@@ -50,7 +50,7 @@
 - authority/resource helper (`requires_authority`, `touches_resource_boundary`)
 - resource-boundary conflict class는 `secure` vs `remote|collapse`까지 정렬됨
 
-베타 stable subset:
+현재 stable subset:
 
 - function-level declared/inferred effect contract
 - join/meet/conflict API
@@ -186,17 +186,17 @@
 
 베타 stable subset:
 
-- default type argument는 explicit reject
+- default type argument는 현재 stable subset에서 explicit reject
 - exact bound (`where T: Int`) 동작
 - ability-style bound (`where T: Comparable`) baseline 동작
 - multi-bound (`where T: A + B`) baseline 동작
 - `ability<T> where ...` bound는 reference/impl 경로에서 재검증
 
-아직 부족한 것:
+strict beta-quality closure target:
 
-- `Comparable` 같은 ability-style constraint를 전 타입군으로 일반화
-- generic class 이외의 instantiation 경로 전반에서 constraint enforcement 확장
-- richer diagnostics (`expected constraint`, `actual type`, fix suggestion)
+- default type argument actual resolution across declaration / call / constructed-type / contract paths
+- generic class 이외의 instantiation 경로 전반에서 constraint enforcement parity
+- richer diagnostics (`expected constraint`, `actual type`, provenance, fix suggestion)
 
 현재 진입점:
 

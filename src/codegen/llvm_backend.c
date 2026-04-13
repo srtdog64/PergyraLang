@@ -27,6 +27,8 @@
 
 /* Types, context, and constants are defined in llvm_internal.h */
 
+static LLVMGenCtx *g_llvm_type_render_ctx = NULL;
+
 #if 0 /* --- removed: now in llvm_internal.h --- */
 #define MAX_SCOPE_DEPTH 64
 #define MAX_SCOPE_VARS  256
@@ -366,6 +368,9 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     if (ctx == NULL)
         return;
 
+    if (g_llvm_type_render_ctx == ctx)
+        g_llvm_type_render_ctx = NULL;
+
     if (ctx->builder != NULL)
         LLVMDisposeBuilder(ctx->builder);
     if (ctx->module != NULL)
@@ -379,6 +384,7 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     free(ctx->view_vars);
     free(ctx->device_slot_vars);
     free(ctx->future_vars);
+    free(ctx->channel_vars);
     free(ctx->class_types);
     free(ctx->var_classes);
     free(ctx->projection_borrows);
@@ -410,7 +416,6 @@ static bool llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_n
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
 
 static char *llvm_render_type_name(ASTNode *type_node);
-static LLVMGenCtx *g_llvm_type_render_ctx = NULL;
 
 void
 llvm_set_type_render_ctx(LLVMGenCtx *ctx)

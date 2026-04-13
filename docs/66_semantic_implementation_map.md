@@ -248,18 +248,18 @@
 - hidden/default-export generic ability visibility baseline
 - action / zone authority / party role slot consumer path 회귀
 - 일부 bound validation
-- default type argument explicit reject
+- current stable subset still uses default type argument explicit reject
 - exact bound / ability-style bound / multi-bound baseline
 - `ability<T> where ...` bound의 reference/impl revalidation
 
 이번 알파/베타 범위에서 끝내야 할 것:
-- default type arg를 beta-stable generic surface에서 unsupported로 고정
-- broader type-family generalization은 beta 이후 과제로 분리
-- parser가 받는 표면 대비 beta-stable semantic closure 범위를 고정
+- strict beta-quality closure track에서는 default type arg actual resolution을 다시 연다
+- broader type-family generalization이 아니라 parser가 이미 받는 표면의 actual closure를 우선한다
+- parser가 받는 표면 대비 semantic closure 범위를 실제 구현 기준으로 다시 맞춘다
 
 판단:
 - parser가 넓게 받아들인다고 구현이 깊은 것은 아니다
-- generic은 stable subset이 생겼고, 남은 것은 주로 policy와 broader generalization 범위다
+- generic은 current stable subset이 있지만, strict beta-quality closure에서는 unresolved parser surface를 다시 닫아야 한다
 
 ### 5.3 own/ref ownership surface
 
@@ -269,13 +269,13 @@
 - secure boundary paired-token 경로
 
 베타 기준 고정:
-- stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`다
-- 일반 ownership system은 베타 범위 밖이다
-- unsupported 조합은 explicit semantic error로 유지한다
+- current stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`다
+- strict beta-quality closure track에서는 일반 movable type ownership을 다시 연다
+- unsupported 조합을 유지하더라도 parser/semantic/documentation의 범위를 다시 좁히지 않고 actual closure로 밀어야 한다
 
 판단:
 - `own/ref`는 존재하지만 아직 일반 목적 ownership system이라고 부르기 어렵다
-- 정확한 표현은 `anchored-slot subset이 stable surface로 닫힌 상태`다
+- 현재 정확한 표현은 `anchored-slot subset이 먼저 닫힌 상태`이고, strict closure target은 여기서 멈추지 않는다
 
 ---
 

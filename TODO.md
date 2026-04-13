@@ -42,6 +42,7 @@
   - `IntentActive*`
   - `IntentRecent*`
   - runtime 내부 recent ring + active registry + typed step history storage 연결 완료
+  - ABI regression: `IntentRecent*` trace/failure baseline, failed-intent provenance, world zone query, relation/effect zone state parity 고정
 
 남은 것:
 - embedding ownership / handoff policy를 surface trust 수준까지 명확히 고정
@@ -187,14 +188,12 @@
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
-- [x] **generic contract 완전 closure**
-  - `ability<T>`, `requires Ability<T>`, `zone authority requires Ability<T>`, `party role slot: Ability<T>` baseline이 semantic/C/LLVM/test까지 정렬됨
-  - mismatch diagnostics, hidden/default-export visibility, `where T: A + B` baseline, default type arg explicit reject가 회귀로 고정됨
-  - broader type-family generalization은 beta-out-of-scope로 분리
-- [x] **own/ref 완전 closure**
-  - 베타 stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`로 고정
-  - move/borrow/escape/rebind/return/channel 경계 규칙, forwarding 규칙, diagnostics, regression을 현재 stable subset 기준으로 정렬 완료
-  - general ownership system은 beta-out-of-scope이며 explicit reject surface로 고정
+- [ ] **generic contract 완전 closure**
+  - strict beta-quality 기준으로 stable subset closure에서 재개방
+  - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
+- [ ] **own/ref 완전 closure**
+  - strict beta-quality 기준으로 anchored subset closure에서 재개방
+  - 일반 movable type ownership, move/borrow/escape/rebind/channel/return provenance, diagnostics/test parity까지 닫는다
 
 ### B1 — 베타 신뢰도 필수
 
@@ -303,7 +302,7 @@
     - LLVM/C backend helper duplication 감소
     - debt ledger와 TODO 표현 정렬
 
-- [ ] **runtime observability baseline vs richer query 구분 고정**
+- [x] **runtime observability baseline vs richer query 구분 고정**
   - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
   - 문제: baseline이 이미 있는데 문서가 thin이라고 쓰면 반대로 surface trust를 깎음
   - 고정 기준:

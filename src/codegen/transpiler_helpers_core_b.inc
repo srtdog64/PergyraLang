@@ -1534,7 +1534,7 @@ collection_runtime_suffix(const char *inner_type)
 static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
-    static char inferred_call_type[128];
+    static char derived_call_type[128];
 
     if (expr == NULL)
         return "Int";
@@ -1690,9 +1690,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
                 && method_decl->data.func_decl.return_type != NULL) {
                 char *resolved = render_type_name(method_decl->data.func_decl.return_type);
-                snprintf(inferred_call_type, sizeof(inferred_call_type), "%s", resolved);
+                snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
                 free(resolved);
-                return inferred_call_type;
+                return derived_call_type;
             }
         }
         if (expr->data.call.callee != NULL
@@ -1722,6 +1722,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 || strcmp(name, "IntentHistoryStepFromSlot") == 0
                 || strcmp(name, "IntentHistoryStepToZone") == 0
                 || strcmp(name, "IntentHistoryStepToSlot") == 0
+                || strcmp(name, "IntentHistoryStepFailure") == 0
                 || strcmp(name, "IntentActiveName") == 0
                 || strcmp(name, "IntentActiveFailure") == 0
                 || strcmp(name, "IntentActiveTrace") == 0
@@ -1921,9 +1922,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     && host_method->type == AST_FUNC_DECL
                     && host_method->data.func_decl.return_type != NULL) {
                     char *resolved = render_type_name(host_method->data.func_decl.return_type);
-                    snprintf(inferred_call_type, sizeof(inferred_call_type), "%s", resolved);
+                    snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
                     free(resolved);
-                    return inferred_call_type;
+                    return derived_call_type;
                 }
             }
 
@@ -1940,9 +1941,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     }
                     if (resolved == NULL)
                         resolved = render_type_name(decl->data.func_decl.return_type);
-                    snprintf(inferred_call_type, sizeof(inferred_call_type), "%s", resolved);
+                    snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
                     free(resolved);
-                    return inferred_call_type;
+                    return derived_call_type;
                 }
             }
         }

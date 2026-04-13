@@ -22,10 +22,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     llvm_emit_statement(inst->ast, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
-                    if (alloca != NULL) {
-                        LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
-                        if (val != NULL)
-                            LLVMBuildStore(ctx->builder, val, alloca);
+                    LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
+                    if (val != NULL && alloca != NULL) {
+                        LLVMBuildStore(ctx->builder, val, alloca);
                     }
                 }
             }

@@ -1,0 +1,55 @@
+subject Driver {
+    let hp: Int;
+    let started: Bool;
+
+    action Ignite(self) -> Void {
+        started = true;
+        hp = hp + 1;
+    }
+
+    action RollbackIgnite(self) -> Void {
+        started = false;
+        hp = hp - 1;
+    }
+}
+
+zone CockpitZone {
+    subject slot driver: Driver
+}
+
+intent DriveCar(cockpit: CockpitZone, driver: Driver) {
+    exclusive;
+    priority: 5;
+
+    step Ignite {
+        where: CockpitZone;
+        using: cockpit;
+        who: driver;
+        on: Log("active.count.inner=" + ToString(IntentActiveCount()));
+        on: Log("active.name.inner=" + IntentActiveName(0));
+        on: driver.Ignite();
+        compensate: driver.RollbackIgnite();
+        pre: true;
+        expect: cockpit.driver.hp == driver.hp;
+        post: driver.started;
+        guard: false;
+        invariant: cockpit.driver.started == driver.started;
+    }
+
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let d = Driver(0, false);
+    let cockpit = CockpitZone(Driver(9, true));
+    let ok = DriveCar(cockpit, d);
+
+    Log("ok=" + ToString(ok));
+    Log("last.failure=" + IntentLastFailure());
+    Log("history.failure=" + IntentHistoryStepFailure(0));
+    Log("recent.count=" + ToString(IntentRecentCount()));
+    Log("recent.failure=" + IntentRecentFailure(0));
+    Log("recent.failed=" + ToString(IntentRecentFailed(0)));
+    Log("active.count.after=" + ToString(IntentActiveCount()));
+}

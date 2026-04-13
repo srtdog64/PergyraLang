@@ -2048,9 +2048,13 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
 }
 
 static bool
+mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry);
+
+static bool
 mir_populate_stmt_instructions(MIRRoutine *routine)
 {
     const HIRRoutine *hir_routine;
+    bool has_stmt_inst = false;
     if (routine == NULL)
         return true;
     hir_routine = routine->hir_routine;
@@ -2206,6 +2210,84 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         block->instruction_count = new_count;
     }
 
+    for (size_t block_id = 0; block_id < routine->block_count && !has_stmt_inst; block_id++) {
+        MIRBasicBlock *block = &routine->blocks[block_id];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            if (block->instructions[i].kind == MIR_INST_STMT) {
+                has_stmt_inst = true;
+                break;
+            }
+        }
+    }
+
+    if (!has_stmt_inst) {
+        MIRBasicBlock *entry = &routine->blocks[routine->entry_block];
+        if (!mir_append_non_cfg_body_statements(routine, entry))
+            return false;
+    }
+
+    return true;
+}
+
+static bool
+mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
+{
+    ASTNode *func_decl;
+    ASTNode *body;
+
+    if (routine == NULL || entry == NULL || routine->ast == NULL)
+        return true;
+
+    func_decl = routine->ast;
+    if (func_decl->type != AST_FUNC_DECL
+        || func_decl->data.func_decl.body == NULL) {
+        return true;
+    }
+
+    body = func_decl->data.func_decl.body;
+    if (body->type != AST_BLOCK)
+        return append_instruction(entry, (MIRInstruction){
+            .id = routine->instruction_count++,
+            .kind = MIR_INST_STMT,
+            .name = "stmt",
+            .ast = body,
+        });
+
+    for (size_t i = 0; i < body->data.block.count; i++) {
+        ASTNode *stmt = body->data.block.statements[i];
+        bool matched_def = false;
+        if (stmt == NULL)
+            continue;
+        if (mir_stmt_is_def_source(stmt)) {
+            const char *stmt_name = mir_stmt_def_name(stmt);
+            for (size_t j = 0; j < entry->instruction_count; j++) {
+                MIRInstruction *inst = &entry->instructions[j];
+                const char *def_name;
+                if (inst->kind != MIR_INST_DEF)
+                    continue;
+                def_name = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
+                if (stmt_name == NULL || def_name == NULL
+                    || strcmp(stmt_name, def_name) != 0) {
+                    continue;
+                }
+                if (inst->ast == NULL)
+                    inst->ast = stmt;
+                matched_def = true;
+                break;
+            }
+            if (matched_def)
+                continue;
+        }
+        if (!append_instruction(entry, (MIRInstruction){
+                .id = routine->instruction_count++,
+                .kind = MIR_INST_STMT,
+                .name = "stmt",
+                .ast = stmt,
+            })) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -2276,6 +2358,10 @@ mir_populate_instructions(MIRRoutine *routine)
         && routine->hir_routine != NULL
         && !routine->hir_routine->has_cfg) {
         if (!mir_append_intent_step_instructions(routine, entry))
+            return false;
+    } else if (routine->hir_routine != NULL
+               && !routine->hir_routine->has_cfg) {
+        if (!mir_append_non_cfg_body_statements(routine, entry))
             return false;
     }
 
