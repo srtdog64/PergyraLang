@@ -175,7 +175,7 @@
 - participant binding
 - step contract validation
 - rollback/compensate/cleanup 경로
-- action contract inheritance
+- action contract reuse
 - transfer derivation
 - history 일부
 

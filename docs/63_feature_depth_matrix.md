@@ -43,7 +43,7 @@
 - tooling은 `있다`와 `완성됐다`를 분리해 `debugger/formatter/LSP`를 별도 축으로 분리
 - `debugger`는 단순 스텁이 아니라 `AST-walking source debugger`로, `formatter`는 Windows LF 안정성까지 포함한 basic formatter로, `LSP`는 lightweight semantic tooling으로 재분류
 - authoring compression 중 일부는 더 이상 "나중 sugar"가 아니라 실제 depth-closure 수단으로 반영
-  - `using <-> where` intent step 상호 추론
+  - `using <-> where` intent step 상호 유도
   - `refresh/publish/bind ... map { target <- source; }`
   - explicit `Clone(...)` world embedding surface
 
@@ -76,9 +76,9 @@
 | 기본 코어 (`let/func/if/for/while/match`) | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 현재 언어의 가장 안정된 축 |
 | 타입/제네릭 surface | ✅ | ◐ | ◐ | ◐ | ◐ | 해당 없음 | ◐ | 중간 | default type arg는 beta-stable surface에서 explicit reject로 고정됐다. exact/ability/multi-bound baseline은 동작하고, 남은 것은 broader generalization이 아니라 module contract와 richer diagnostics/tooling 정렬이다 |
 | `subject/class/object/tobject/enum/vessel` | ✅ | ✅ | ✅ | ✅ | ✅ | 해당 없음 | ✅ | 깊음 | 6종 존재론 전부 동작 확인 |
-| `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중상 | `fields` canonical surface, generic ability ref, action/step/zone/party-role contract inference·diagnostics, ability-bound revalidation은 정렬됨. `override/dyn/extends`는 비코어 축으로 분리 |
+| `ability/role/require/use` 계약 | ✅ | ◐ | ◐ | ✅ | ✅ | 해당 없음 | ◐ | 중상 | `fields` canonical surface, generic ability ref, action/step/zone/party-role contract derivation·diagnostics, ability-bound revalidation은 정렬됨. `override/dyn/extends`는 비코어 축으로 분리 |
 | `Slot/SecureSlot/DeviceSlot/QubitSlot` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 깊음 | 현재 가장 완성도 높은 도메인 축 |
-| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+추론 강함, `with name: Type;` 값 파라미터 지원 |
+| `Intent` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | 오케스트레이션+상속/유도 강함, `with name: Type;` 값 파라미터 지원 |
 | `Zone` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | authority/contract 연결됨, move/clone ownership 정리 중 |
 | `World` | ✅ | ✅ | ✅ | ✅ | ✅ | ◐ | ✅ | 중상 | C/LLVM 검증됨, zone embedding ownership 정리 중 |
 | `relation/effect/projection` | ✅ | ◐ | ◐ | ✅ | ◐ | ◐ | ✅ | 중간 | stable subset은 declaration/constructor, projection slot family, `refresh/publish/bind`, query family, incremental sync parity, 그리고 RIR projection/authority/handoff conservative merge helper까지 포함한다. 남은 것은 authority-resource-effect 통합과 deeper propagation이다 |
@@ -180,7 +180,7 @@
 - MIR cleanup/rollback/invalidation exceptional topology와 회귀 테스트가 다시 정렬됨
 - C/LLVM 양쪽 경로 존재
 - 예제와 smoke 범위가 실제로 있다
-- `transfer -> using/where`, `using -> where`, `where -> using` 추론이 이미 연결돼 있다
+- `transfer -> using/where`, `using -> where`, `where -> using` 유도가 이미 연결돼 있다
 
 남은 gap:
 - intent history/storage는 여전히 thin

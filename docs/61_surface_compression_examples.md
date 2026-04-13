@@ -9,7 +9,7 @@
 
 - [58_keyword_authorship_pain_points.md](/mnt/e/PergyraLang/docs/58_keyword_authorship_pain_points.md)
 - [59_authoring_surface_compression_plan.md](/mnt/e/PergyraLang/docs/59_authoring_surface_compression_plan.md)
-- [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+- [60_zone_context_and_transfer_derivation.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_derivation.md)
 - [65_stable_example_surface_board.md](/mnt/e/PergyraLang/docs/65_stable_example_surface_board.md)
 
 이 문서의 운영 규칙:
@@ -22,7 +22,7 @@
 
 ## 1. 현재 이미 구현된 압축
 
-### 1.1 canonical pair: action contract inheritance / transfer derivation
+### 1.1 canonical pair: action contract reuse / transfer derivation
 
 우선 봐야 할 stable canonical pair:
 
@@ -99,8 +99,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 stable example source of truth:
 
-- [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)
-- [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
+- [action_contract_inheritance_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inheritance_minimal.pgy)
+- [intent_contract_derivation_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_derivation_minimal.pgy)
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)
 - [surface_compression_maximal.pgy](/mnt/e/PergyraLang/examples/surface_compression_maximal.pgy)
@@ -124,10 +124,10 @@ stable canonical pair:
 
 주의:
 
-- [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)는
+- [intent_contract_derivation_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_derivation_minimal.pgy)는
   현재 실제로 되는 최소 surface만 보여준다
-- [action_contract_inference_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inference_minimal.pgy)는
-  action contract 기반 `who / where / requires / causes / authorized by` 상속을 보여준다
+- [action_contract_inheritance_minimal.pgy](/mnt/e/PergyraLang/examples/action_contract_inheritance_minimal.pgy)는
+  action contract 기반 `who / where / requires / causes / authorized by` 재사용을 보여준다
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)는
   `move <from> to <to>;`와 transfer derivation을 함께 보여준다
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)는
@@ -139,17 +139,17 @@ stable canonical pair:
 - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)는
   `refresh [a, b] from source`와 `publish [x, y] from source` 그룹 표면을 보여준다
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)는
-  action contract 상속, `where/use` 상호 유도, projection field map, explicit `Clone` world embedding을 함께 보여준다
+  action contract 재사용, `where/use` 상호 유도, projection field map, explicit `Clone` world embedding을 함께 보여준다
 - diagnostics는 이제 같은 vocabulary를 쓴다:
   - `matching action contract: Subject.Action`
   - `locally declared ...`
-  - `inherited ... from matching action contract`
+  - `reused ... from matching action contract`
   - `derived ... from transfer target`
 - AST/debug dump도 같은 provenance vocabulary를 쓴다:
-  - `ContractProvenance: inherited who from matching action contract, ...`
+  - `ContractProvenance: reused who from matching action contract, ...`
 - step이 matching action contract와 같은 `who / where / requires / causes / authorized by`
   를 그대로 다시 쓰면 redundancy warning으로 알려준다
-- 즉 압축이 실패해도 사용자는 local/inherited/derived provenance를 같은 용어로 읽을 수 있어야 한다
+- 즉 압축이 실패해도 사용자는 local/reused/derived provenance를 같은 용어로 읽을 수 있어야 한다
 
 ### 1.2 clause 순서 자유화
 
@@ -188,7 +188,7 @@ stable canonical pair:
 - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
 
 즉 지금은 "어떤 순서로 써야 하지?"보다
-"무엇을 생략/추론할 수 있지?"가 더 큰 문제다.
+"무엇을 생략/유도할 수 있지?"가 더 큰 문제다.
 
 ## 2. 다음으로 줄여야 할 표면
 
@@ -407,7 +407,7 @@ let world = PacketWorld(ConnectionZone(...));
 
 ### 이미 구현됨
 
-- action contract inheritance -> intent step
+- action contract reuse -> intent step
 - transfer target -> using derivation
 - transfer target -> where derivation
 - explicit `using` -> `where` derivation

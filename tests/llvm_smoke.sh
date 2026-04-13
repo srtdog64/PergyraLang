@@ -953,12 +953,8 @@ func Main() -> Void {
     async {
         ch <- 11;
     }
-    select {
-        case v = <-ch:
-            Log(v);
-        default:
-            Log(0);
-    }
+    let value: Int = <-ch;
+    Log(value);
 }
 EOF
 run_case "async_block_runtime" "$TMPDIR/async_block_runtime.pgy" "11"

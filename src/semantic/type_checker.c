@@ -2412,7 +2412,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
         validate_action_required_abilities(node, enclosing_nominal, ctx);
 
-        /* Auto-infer 'within' when action is inside a zone */
+        /* Derive 'within' from the surrounding lexical zone */
         if (node->data.func_decl.within_zone == NULL
             && ctx->current_zone != NULL
             && ctx->current_zone->type == AST_ZONE_DECL) {

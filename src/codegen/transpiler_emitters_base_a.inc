@@ -1,5 +1,7 @@
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
                                             const char *label);
+static bool transpiler_is_implicit_field(TranspilerCtx *ctx,
+                                         const char *base_name);
 static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                                               const ASTNode *expr,
                                               const TranspilerSSANameMap *ssa_map,
@@ -7,6 +9,7 @@ static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                                               char *reason,
                                               size_t reason_cap);
 static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
+                                           TranspilerCtx *ctx,
                                            int indent,
                                            size_t pred_block_index,
                                            const MIRBasicBlock *pred_block,
@@ -1601,6 +1604,10 @@ transpiler_find_mir_method(const TranspilerCtx *ctx,
 static bool
 transpiler_name_is_token_local(const char *name);
 
+static bool
+transpiler_has_explicit_local_binding(const ASTNode *func_decl,
+                                      const char *base_name);
+
 static const char *
 transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
                                    const char *base_name)
@@ -1646,6 +1653,48 @@ transpiler_type_name_is_slot_like(const char *type_name)
     return strncmp(type_name, "Slot<", 5) == 0
         || strncmp(type_name, "SecureSlot<", 11) == 0
         || strncmp(type_name, "DeviceSlot<", 11) == 0;
+}
+
+static bool
+transpiler_block_has_claim_for_slot_local(const MIRBasicBlock *block,
+                                          const char *slot_name)
+{
+    if (block == NULL || slot_name == NULL)
+        return false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        const char *claim_name;
+        if (inst->kind != MIR_INST_RESOURCE_OP
+            || inst->name == NULL
+            || strcmp(inst->name, "Claim") != 0) {
+            continue;
+        }
+        claim_name = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
+        if (claim_name != NULL && strcmp(claim_name, slot_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+transpiler_mir_routine_has_explicit_cfg(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->block_count > 1)
+        return true;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_BRANCH
+                || inst->kind == MIR_INST_PHI
+                || inst->kind == MIR_INST_CLEANUP_EDGE) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 static bool
@@ -1699,6 +1748,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (ctx == NULL || base_name == NULL)
         return false;
     if (strcmp(base_name, "self") == 0)
+        return false;
+    if (ctx->current_func_decl != NULL
+        && transpiler_has_explicit_local_binding(ctx->current_func_decl, base_name))
         return false;
     if (ctx->current_class_name != NULL && current_class_has_field(ctx, base_name))
         return true;
@@ -2366,7 +2418,7 @@ emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
 }
 
 static bool
-transpiler_emit_mir_phi_copies(CodeBuf *buf, int indent,
+transpiler_emit_mir_phi_copies(CodeBuf *buf, TranspilerCtx *ctx, int indent,
                                size_t pred_block_index,
                                const MIRBasicBlock *pred_block,
                                const MIRBasicBlock *target_block)
@@ -2570,9 +2622,23 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 if (inferred != NULL)
                     local_type_name_owned = pergyra_strdup(inferred);
             }
-            if (transpiler_type_name_is_slot_like(local_type_name_owned)
-                || (local_type_name_owned != NULL
-                    && strncmp(local_type_name_owned, "Channel<", 8) == 0)) {
+            if (transpiler_type_name_is_slot_like(local_type_name_owned)) {
+                bool claim_backed_slot = transpiler_block_has_claim_for_slot_local(
+                    block, stmt->data.let_decl.name);
+                if (claim_backed_slot) {
+                    ctx->active_type_hint = saved_type_hint;
+                    free(rendered_type_hint);
+                    free(local_type_name_owned);
+                    continue;
+                }
+                emit_statement(stmt, ctx);
+                ctx->active_type_hint = saved_type_hint;
+                free(rendered_type_hint);
+                free(local_type_name_owned);
+                continue;
+            }
+            if (local_type_name_owned != NULL
+                && strncmp(local_type_name_owned, "Channel<", 8) == 0) {
                 emit_statement(stmt, ctx);
                 ctx->active_type_hint = saved_type_hint;
                 free(rendered_type_hint);
@@ -2708,10 +2774,13 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
         if (inst->kind != MIR_INST_STMT)
             continue;
-        if (stmt == NULL
-            || stmt->type == AST_IF_STMT
-            || stmt->type == AST_WHILE_LOOP
-            || stmt->type == AST_RETURN) {
+        if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN) {
+            continue;
+        }
+        if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
+            && (stmt->type == AST_WITH_STMT
+                || stmt->type == AST_IF_STMT
+                || stmt->type == AST_WHILE_LOOP)) {
             continue;
         }
         emit_statement(stmt, ctx);
@@ -3411,5 +3480,3 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         arg_name != NULL ? arg_name : "");
     return true;
 }
-
-static void

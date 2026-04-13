@@ -39,8 +39,8 @@
 | `examples/pattern_library_basics/` | stable | basic pattern surface |
 | `examples/function_clause_order_minimal/` | stable | clause reordering subset |
 | `examples/generic_ability_requires_minimal/` | stable | generic ability baseline |
-| `examples/action_contract_inference_minimal/` | stable | action contract inheritance |
-| `examples/intent_inference_minimal/` | stable | intent inference subset |
+| `examples/action_contract_inheritance_minimal.pgy` | stable | action contract reuse |
+| `examples/intent_contract_derivation_minimal.pgy` | stable | intent contract derivation subset |
 | `examples/intent_contract_pair_minimal.pgy` | stable | verbose/compressed action-contract pair |
 | `examples/authority_contract_pair_minimal.pgy` | stable | verbose/compressed authority-contract pair |
 | `examples/transfer_contract_pair_minimal.pgy` | stable | verbose/compressed transfer-contract pair |

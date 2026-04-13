@@ -2,7 +2,7 @@
 //
 // 통합 surface 예제:
 // - refresh/publish map
-// - intent step who/where/using/action-contract inference
+// - intent step who/where/using/action-contract inheritance and derivation
 // - IntentHistoryCount()
 // - exhaustive match + defensive default
 // - world에는 inline zone constructor 사용

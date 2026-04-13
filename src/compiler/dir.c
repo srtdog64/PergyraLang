@@ -405,7 +405,7 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                             DIR_EDGE_PROJECTION_SLOT_SOURCE,
                             (size_t)projection_slot_id,
                             source_slot_id >= 0 ? (size_t)source_slot_id : SIZE_MAX,
-                            refresh->data.zone_refresh.infer_target_kind
+                            refresh->data.zone_refresh.derive_target_kind
                                 ? "bind"
                                 : (refresh->data.zone_refresh.requires_dto
                                        ? "publish"

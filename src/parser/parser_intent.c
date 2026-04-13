@@ -380,7 +380,7 @@ parse_intent_step(Parser *parser)
         if (parser_intent_match_keyword(parser, "within")) {
             parser_error(parser,
                 "'within' is an action clause, not an intent step clause; "
-                "use 'where: <Zone>;' on the step or omit it to inherit the zone from the matching action contract");
+                "use 'where: <Zone>;' on the step or omit it to reuse the matching action zone contract");
             return step;
         }
 

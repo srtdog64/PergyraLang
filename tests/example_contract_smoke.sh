@@ -288,10 +288,10 @@ run_stable_examples() {
         "$ROOT_DIR/examples/function_clause_order_minimal.pgy" "clause-order-minimal"
     run_expect_lines "generic_ability_requires_minimal" "$backend" \
         "$ROOT_DIR/examples/generic_ability_requires_minimal.pgy" "generic-ability-requires-minimal"
-    run_expect_lines "action_contract_inference_minimal" "$backend" \
-        "$ROOT_DIR/examples/action_contract_inference_minimal.pgy" "action contract inference minimal"
-    run_expect_lines "intent_inference_minimal" "$backend" \
-        "$ROOT_DIR/examples/intent_inference_minimal.pgy" "intent inference minimal"
+    run_expect_lines "action_contract_inheritance_minimal" "$backend" \
+        "$ROOT_DIR/examples/action_contract_inheritance_minimal.pgy" "action contract reuse minimal"
+    run_expect_lines "intent_contract_derivation_minimal" "$backend" \
+        "$ROOT_DIR/examples/intent_contract_derivation_minimal.pgy" "intent contract derivation minimal"
     run_expect_lines "intent_contract_pair_minimal" "$backend" \
         "$ROOT_DIR/examples/intent_contract_pair_minimal.pgy" "intent-contract-pair-minimal"
     run_expect_lines "authority_contract_pair_minimal" "$backend" \

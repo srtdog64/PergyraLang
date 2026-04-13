@@ -67,7 +67,7 @@
 - `zone`은 `link relationSlot between left, right`, `unlink relationSlot between left, right`로 local relation wiring을 최소 surface로 표현할 수 있음
 - `zone`은 `refresh objectSlot from subjectSlot`으로 subject -> object projection 갱신을 명시할 수 있음
 - `zone`은 `publish dtoSlot from subjectSlot`으로 subject -> tobject projection 갱신을 명시할 수 있음
-- `zone`은 `bind slotName from sourceSlot`으로 object/tobject target kind를 slot declaration에서 추론하는 projection sync surface를 가짐
+- `zone`은 `bind slotName from sourceSlot`으로 object/tobject target kind를 slot declaration에서 유도하는 projection sync surface를 가짐
 - `HasProjection(slotName)` builtin은 relation/effect/zone declaration / method 안에서 선언된 object/tobject projection slot의 sync-ready 여부를 Bool query로 읽을 수 있음
 - `zone`은 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right`로 지속 lifecycle rule을 선언할 수 있음
 - `zone`은 `authority subjectSlot`으로 mutation/projection 승인 주체를 선언할 수 있음

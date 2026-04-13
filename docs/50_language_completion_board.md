@@ -1,6 +1,6 @@
 # Language Completion Board
 
-마지막 업데이트: 2026-04-12 (visibility/callable export boundary closure, name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target inference diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체, `refresh/publish/bind map { ... }` 연결, explicit `Clone(...)` surface 정식화, world zone embedding warning 추가)
+마지막 업데이트: 2026-04-12 (visibility/callable export boundary closure, name-token 분해, effect token family 정리, generic default type arg explicit reject, multiple ability-style bounds 회귀, transfer target derivation diagnostics/예제 강화, using alias surface 1차 구현, lexical zone context 1차 구현, move transfer short surface 1차 구현, runtime authority validation 실교체, `refresh/publish/bind map { ... }` 연결, explicit `Clone(...)` surface 정식화, world zone embedding warning 추가)
 
 이 문서는 아직 비어 있거나 부분 구현인 핵심 언어/컴파일러 축을 한 곳에서 추적한다.
 
@@ -257,7 +257,7 @@
   - [function_clause_order_minimal.pgy](/mnt/e/PergyraLang/examples/function_clause_order_minimal.pgy)
   - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
   - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)
-  - [intent_inference_minimal.pgy](/mnt/e/PergyraLang/examples/intent_inference_minimal.pgy)
+  - [intent_contract_derivation_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_derivation_minimal.pgy)
   - [zone_context_minimal.pgy](/mnt/e/PergyraLang/examples/zone_context_minimal.pgy)
   - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)
 
@@ -310,7 +310,7 @@
     `within`, `causes`, `authorized by`를 table-driven으로 처리한다
   - clause 순서는 현재 고정이 아니고, duplicate clause는 명시적으로 진단한다
 - 남은 부채는 parser ordering보다 authoring compression 쪽이다
-  - intent 계약 추론
+  - intent 계약 상속/유도
   - nested/file-global lexical zone context
   - type-directed transfer 축약 표면
   - domain-first diagnostics
@@ -322,7 +322,7 @@
     부터 `Reason` / `Fix` 형식으로 올리는 중이다
   - 여기서 `action -> step`은 nominal hierarchy inheritance가 아니라 contract inheritance로 다룬다
   - lexical zone context / using-transfer 정렬 규칙은
-    [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+    [60_zone_context_and_transfer_derivation.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_derivation.md)
     에 별도 설계로 분리했다
 
 - [58_keyword_authorship_pain_points.md](/mnt/e/PergyraLang/docs/58_keyword_authorship_pain_points.md)

@@ -234,7 +234,7 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         "Redundant clauses:\n"
         "%s\n"
         "Fix:\n"
-        "- remove the duplicated step clauses and let matching action contract inheritance supply them\n"
+        "- remove the duplicated step clauses and let the matching action contract supply them\n"
         "- keep the local clause only when you intentionally override the matching action contract",
         step_name,
         subject_name != NULL ? subject_name : "<subject>",
@@ -341,11 +341,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (step->data.intent_step.inherited_who_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited from matching action contract",
+            "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited who from matching action contract",
+            "%s- reused who from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     } else if (step->data.intent_step.inherited_where_from_action
@@ -353,7 +353,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                || step->data.intent_step.inherited_causes_from_action
                || step->data.intent_step.inherited_authorized_by_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited from matching action contract",
+            "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -365,19 +365,19 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 ? step->data.intent_step.where_type->data.type.name
                 : "<zone>";
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited zone from matching action contract: %s",
+            "%s- reused zone from matching action contract: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
     if (step->data.intent_step.inherited_requires_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited requires from matching action contract",
+            "%s- reused requires from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
     if (step->data.intent_step.inherited_causes_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited causes from matching action contract: %s",
+            "%s- reused causes from matching action contract: %s",
             has_any ? "\n" : "",
             step->data.intent_step.causes_effect != NULL
                 ? step->data.intent_step.causes_effect
@@ -386,7 +386,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.inherited_authorized_by_from_action) {
         used += (size_t)snprintf(buffer + used, buffer_size - used,
-            "%s- inherited authorized by from matching action contract",
+            "%s- reused authorized by from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -1301,8 +1301,8 @@ intent_step_find_inheritable_action(ASTNode *intent_decl, ASTNode *step,
 }
 
 static void
-intent_step_infer_who_from_action(ASTNode *intent_decl, ASTNode *step,
-                                  SemanticContext *ctx)
+intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
+                                   SemanticContext *ctx)
 {
     const char *matched_alias = NULL;
 
@@ -1431,8 +1431,8 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
 }
 
 static void
-intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
-                                   SemanticContext *ctx)
+intent_step_derive_transfer_context(ASTNode *intent_decl, ASTNode *step,
+                                    SemanticContext *ctx)
 {
     const char *to_alias = NULL;
     ASTNode *to_involves;
@@ -1463,8 +1463,8 @@ intent_step_infer_transfer_context(ASTNode *intent_decl, ASTNode *step,
 }
 
 static void
-intent_step_infer_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
-                                       SemanticContext *ctx)
+intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
+                                        SemanticContext *ctx)
 {
     if (intent_decl == NULL || step == NULL || ctx == NULL
         || step->type != AST_INTENT_STEP) {

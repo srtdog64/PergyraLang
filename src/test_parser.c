@@ -589,7 +589,7 @@ run_intent_step_within_clause_hint_test(void)
     if (error == NULL
         || strstr(error, "'within' is an action clause") == NULL
         || strstr(error, "use 'where: <Zone>;' on the step") == NULL
-        || strstr(error, "inherit the zone from the matching action") == NULL) {
+        || strstr(error, "reuse the matching action zone contract") == NULL) {
         printf("[FAIL] Expected helpful within->where diagnostic, got: %s\n",
                error != NULL ? error : "<null>");
         failed = 1;

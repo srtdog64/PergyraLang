@@ -1,7 +1,7 @@
-// intent_inference_minimal.pgy
+// intent_contract_derivation_minimal.pgy
 //
 // 현재 구현된 surface compression 예제:
-// 1. transfer target -> using/where inference
+// 1. transfer target -> using/where derivation
 
 subject Buyer {
     let hp: Int;
@@ -22,12 +22,11 @@ zone PaymentZone {
 intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
     step Promote {
         transfer: cart -> payment;
-        who: buyer;
         on: buyer.Promote();
         expect: true;
     }
 }
 
 func Main() -> Void {
-    Log("intent inference minimal");
+    Log("intent contract derivation minimal");
 }

@@ -1,28 +1,30 @@
+static bool
+transpiler_strip_suffix(const char *name, const char *suffix,
+                        char *out, size_t out_cap)
+{
+    size_t name_len;
+    size_t suffix_len;
+
+    if (name == NULL || suffix == NULL || out == NULL || out_cap == 0)
+        return false;
+    name_len = strlen(name);
+    suffix_len = strlen(suffix);
+    if (name_len <= suffix_len)
+        return false;
+    if (strcmp(name + name_len - suffix_len, suffix) != 0)
+        return false;
+    if (name_len - suffix_len + 1 > out_cap)
+        return false;
+    memcpy(out, name, name_len - suffix_len);
+    out[name_len - suffix_len] = '\0';
+    return true;
+}
+
+static void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
                               TranspilerCtx *ctx)
 {
-    static bool
-    transpiler_strip_suffix(const char *name, const char *suffix,
-                            char *out, size_t out_cap)
-    {
-        size_t name_len;
-        size_t suffix_len;
-        if (name == NULL || suffix == NULL || out == NULL || out_cap == 0)
-            return false;
-        name_len = strlen(name);
-        suffix_len = strlen(suffix);
-        if (name_len <= suffix_len)
-            return false;
-        if (strcmp(name + name_len - suffix_len, suffix) != 0)
-            return false;
-        if (name_len - suffix_len + 1 > out_cap)
-            return false;
-        memcpy(out, name, name_len - suffix_len);
-        out[name_len - suffix_len] = '\0';
-        return true;
-    }
-
     const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
@@ -33,6 +35,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     const char *saved_relation_name = ctx->current_relation_name;
     const char *saved_effect_name = ctx->current_effect_name;
     const char *saved_world_name = ctx->current_world_name;
+    const ASTNode *saved_func_decl = ctx->current_func_decl;
     char saved_return_type[128];
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
@@ -118,6 +121,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         && find_zone_decl(ctx, node->data.func_decl.within_zone) != NULL) {
         ctx->current_zone_name = node->data.func_decl.within_zone;
     }
+    if (node != NULL && node->type == AST_FUNC_DECL)
+        ctx->current_func_decl = node;
     snprintf(saved_return_type, sizeof(saved_return_type), "%s",
         ctx->current_return_type);
     if (node->data.func_decl.return_type != NULL) {
@@ -551,7 +556,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (cond == NULL)
                     cond = pergyra_strdup("false");
                 if (block->has_succ_true)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, i, block,
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
                         &mir_routine->blocks[block->succ_true]);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if (%s) {\n", cond != NULL ? cond : "false");
@@ -560,7 +565,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 write_indent(ctx);
                 codebuf_write(ctx->out, "} else {\n");
                 if (block->has_succ_false)
-                    transpiler_emit_mir_phi_copies(ctx->out, ctx->indent + 1, i, block,
+                    transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent + 1, i, block,
                         &mir_routine->blocks[block->succ_false]);
                 write_indent_to(ctx->out, ctx->indent + 1);
                 codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_false);
@@ -583,7 +588,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
         }
         if (!terminator_emitted && block->has_succ_true) {
-            transpiler_emit_mir_phi_copies(ctx->out, ctx->indent, i, block,
+            transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, i, block,
                 &mir_routine->blocks[block->succ_true]);
             write_indent(ctx);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n", name, block->succ_true);
@@ -653,6 +658,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->current_relation_name = saved_relation_name;
     ctx->current_effect_name = saved_effect_name;
     ctx->current_world_name = saved_world_name;
+    ctx->current_func_decl = saved_func_decl;
     g_type_render_ctx = saved_render_ctx;
     ctx->out = saved_out;
 }
@@ -1730,6 +1736,8 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->helpers,
             "    _pgy_async_ctx_%u *_pctx = (_pgy_async_ctx_%u *)_arg;\n",
             pid, pid);
+        codebuf_write(ctx->helpers,
+            "    if (_pctx == NULL) return NULL;\n");
     } else {
         codebuf_write(ctx->helpers, "    (void)_arg;\n");
     }
@@ -1763,6 +1771,8 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->par_capture_slot_count = saved_slot_count;
     ctx->par_capture_typed_count = saved_typed_count;
 
+    if (has_captures)
+        codebuf_write(ctx->helpers, "    free(_pctx);\n");
     codebuf_write(ctx->helpers, "    return NULL;\n}\n\n");
 
     write_indent(ctx);
@@ -1770,7 +1780,15 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     if (has_captures) {
         write_indent(ctx);
-        codebuf_write(ctx->out, "_pgy_async_ctx_%u _pctx%u = { ", pid, pid);
+        codebuf_write(ctx->out,
+            "_pgy_async_ctx_%u *_pctx%u = (_pgy_async_ctx_%u *)malloc(sizeof(_pgy_async_ctx_%u));\n",
+            pid, pid, pid, pid);
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "if (_pctx%u == NULL) { PGY_PANIC(\"async capture allocation failed\"); }\n",
+            pid);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "*_pctx%u = (_pgy_async_ctx_%u){ ", pid, pid);
         bool first = true;
         for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
@@ -1785,8 +1803,15 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, " };\n");
     }
     write_indent(ctx);
-    codebuf_write(ctx->out, "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, %s);\n",
-        pid, pid, has_captures ? "&_pctx" : "NULL");
+    if (has_captures) {
+        codebuf_write(ctx->out,
+            "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, _pctx%u);\n",
+            pid, pid, pid);
+    } else {
+        codebuf_write(ctx->out,
+            "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, NULL);\n",
+            pid, pid);
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "pgy_async_detach(_ah_%u);\n", pid);
     ctx->indent--;

@@ -981,20 +981,21 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *callee = init->data.call.callee->data.identifier.name;
         if (strcmp(callee, "ClaimSlot") == 0
             || strcmp(callee, "ClaimSecureSlot") == 0) {
-            /* Resolve inner type from type annotation */
-            const char *inner = "Int";
+            /* Resolve inner type from explicit type annotation. */
+            const char *inner = NULL;
             bool is_secure = (strcmp(callee, "ClaimSecureSlot") == 0);
             if (type_ann != NULL && type_ann->type == AST_TYPE) {
-                /* Check for generic args: Slot<Int> */
                 if (type_ann->data.type.generic_args != NULL
                     && type_ann->data.type.generic_args->count > 0)
                     inner = type_ann->data.type.generic_args->params[0]->name;
-                else if (type_ann->data.type.name != NULL) {
-                    /* Try to extract inner from type name like "Slot_Int" */
-                    const char *tn = type_ann->data.type.name;
-                    if (strncmp(tn, "Slot", 4) == 0)
-                        inner = "Int"; /* default */
-                }
+            }
+            if (inner == NULL) {
+                llvm_set_error_at(ctx, node,
+                    "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
+                    callee,
+                    name != NULL ? name : "<slot>",
+                    is_secure ? "SecureSlot" : "Slot");
+                return;
             }
 
             LLVMTypeRef slot_ty = is_secure
@@ -1052,11 +1053,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             return;
         }
         if (strcmp(callee, "ClaimDeviceSlot") == 0) {
-            const char *inner = "Int";
+            const char *inner = NULL;
             if (type_ann != NULL && type_ann->type == AST_TYPE
                 && type_ann->data.type.generic_args != NULL
                 && type_ann->data.type.generic_args->count > 0) {
                 inner = type_ann->data.type.generic_args->params[0]->name;
+            }
+            if (inner == NULL) {
+                llvm_set_error_at(ctx, node,
+                    "LLVM ClaimDeviceSlot let-binding for '%s' requires an explicit DeviceSlot<T> annotation",
+                    name != NULL ? name : "<slot>");
+                return;
             }
 
             LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);

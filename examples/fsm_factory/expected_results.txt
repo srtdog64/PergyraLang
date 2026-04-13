@@ -1,17 +1,17 @@
 === FACTORY FSM REPORT ===
-shift=5
-sealed=0
-rejects=0
+shift=0
+sealed=60
+rejects=3
 projection_ready=true
 packet_ready=true
 
 --- ALPHA ---
-sealed=30 rejects=0 alarms=10
-furnaceView mode=2 heat=36 faults=0
+sealed=30 rejects=2 alarms=10
+furnaceView mode=2 heat=35 faults=0
 furnacePacket completed=30 alarms=0 quality=3
 Alpha Loader backlog=23 mode=2
 --- BETA ---
-sealed=30 rejects=0 alarms=9
+sealed=30 rejects=1 alarms=8
 furnaceView mode=2 heat=36 faults=0
 furnacePacket completed=30 alarms=0 quality=2
 Beta Loader backlog=12 mode=2

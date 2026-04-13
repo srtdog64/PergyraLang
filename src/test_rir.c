@@ -776,7 +776,7 @@ test_rir_lowering(void)
                && !handoff_conflict);
     }
 
-    TEST("RIR bind infers tobject target as published boundary projection");
+    TEST("RIR bind derives tobject target as published boundary projection");
     {
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;

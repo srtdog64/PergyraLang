@@ -2,7 +2,7 @@
 //
 // 현재 구현된 transfer short surface 예제:
 // 1. move <from> to <to>; -> transfer: <from> -> <to>;
-// 2. transfer target -> using/where inference
+// 2. transfer target -> using/where derivation
 
 subject Buyer {
     let hp: Int;

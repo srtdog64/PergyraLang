@@ -3012,8 +3012,21 @@ bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
         return false;
     }
     pthread_mutex_lock(&ch->mutex);
-    while (ch->count == 0 && !ch->closed)
-        pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+    while (ch->count == 0 && !ch->closed) {
+        if (pgy_async_in_coroutine()) {
+            pthread_mutex_unlock(&ch->mutex);
+            pgy_async_yield();
+            pthread_mutex_lock(&ch->mutex);
+        } else {
+            pthread_mutex_unlock(&ch->mutex);
+            if (!pgy_async_progress_one()) {
+                pthread_mutex_lock(&ch->mutex);
+                pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+            } else {
+                pthread_mutex_lock(&ch->mutex);
+            }
+        }
+    }
     if (ch->count == 0 && ch->closed) {
         pgy_runtime_warn_invalid_channel("recv_Int", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
@@ -3033,6 +3046,8 @@ bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
         pgy_runtime_warn_invalid_channel("ready_Int", "null channel");
         return false;
     }
+    if (!pgy_async_in_coroutine())
+        (void)pgy_async_progress_one();
     pthread_mutex_lock(&ch->mutex);
     bool ready = ch->count > 0;
     pthread_mutex_unlock(&ch->mutex);
@@ -3110,6 +3125,8 @@ bool pgy_channel_try_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
         pgy_runtime_warn_invalid_channel("try_recv_Int", "channel is not initialized");
         return false;
     }
+    if (!pgy_async_in_coroutine())
+        (void)pgy_async_progress_one();
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
         pgy_runtime_warn_invalid_channel("try_recv_Int", "channel is empty");
@@ -3139,11 +3156,23 @@ bool pgy_channel_recv_timeout_Int(PgyChannel_Int_RT *ch, int32_t *out,
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
-        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
-            == ETIMEDOUT && ch->count == 0 && !ch->closed) {
-            pgy_runtime_warn_invalid_channel("recv_timeout_Int", "deadline reached while channel remained empty");
+        if (pgy_async_in_coroutine()) {
             pthread_mutex_unlock(&ch->mutex);
-            return false;
+            pgy_async_yield();
+            pthread_mutex_lock(&ch->mutex);
+        } else {
+            pthread_mutex_unlock(&ch->mutex);
+            if (!pgy_async_progress_one()) {
+                pthread_mutex_lock(&ch->mutex);
+                if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
+                    == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+                    pgy_runtime_warn_invalid_channel("recv_timeout_Int", "deadline reached while channel remained empty");
+                    pthread_mutex_unlock(&ch->mutex);
+                    return false;
+                }
+            } else {
+                pthread_mutex_lock(&ch->mutex);
+            }
         }
     }
     if (ch->count == 0 && ch->closed) {
@@ -3318,8 +3347,21 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
         return false;
     }
     pthread_mutex_lock(&ch->mutex);
-    while (ch->count == 0 && !ch->closed)
-        pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+    while (ch->count == 0 && !ch->closed) {
+        if (pgy_async_in_coroutine()) {
+            pthread_mutex_unlock(&ch->mutex);
+            pgy_async_yield();
+            pthread_mutex_lock(&ch->mutex);
+        } else {
+            pthread_mutex_unlock(&ch->mutex);
+            if (!pgy_async_progress_one()) {
+                pthread_mutex_lock(&ch->mutex);
+                pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+            } else {
+                pthread_mutex_lock(&ch->mutex);
+            }
+        }
+    }
     if (ch->count == 0 && ch->closed) {
         pgy_runtime_warn_invalid_channel("recv_String", "channel is closed and empty");
         pthread_mutex_unlock(&ch->mutex);
@@ -3348,11 +3390,23 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count == 0 && !ch->closed) {
-        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
-            == ETIMEDOUT && ch->count == 0 && !ch->closed) {
-            pgy_runtime_warn_invalid_channel("recv_timeout_String", "deadline reached while channel remained empty");
+        if (pgy_async_in_coroutine()) {
             pthread_mutex_unlock(&ch->mutex);
-            return false;
+            pgy_async_yield();
+            pthread_mutex_lock(&ch->mutex);
+        } else {
+            pthread_mutex_unlock(&ch->mutex);
+            if (!pgy_async_progress_one()) {
+                pthread_mutex_lock(&ch->mutex);
+                if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
+                    == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+                    pgy_runtime_warn_invalid_channel("recv_timeout_String", "deadline reached while channel remained empty");
+                    pthread_mutex_unlock(&ch->mutex);
+                    return false;
+                }
+            } else {
+                pthread_mutex_lock(&ch->mutex);
+            }
         }
     }
     if (ch->count == 0 && ch->closed) {
@@ -3379,6 +3433,8 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
         pgy_runtime_warn_invalid_channel("try_recv_String", "channel is not initialized");
         return false;
     }
+    if (!pgy_async_in_coroutine())
+        (void)pgy_async_progress_one();
     pthread_mutex_lock(&ch->mutex);
     if (ch->count == 0) {
         pgy_runtime_warn_invalid_channel("try_recv_String", "channel is empty");
@@ -3399,6 +3455,8 @@ bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
         pgy_runtime_warn_invalid_channel("ready_String", "null channel");
         return false;
     }
+    if (!pgy_async_in_coroutine())
+        (void)pgy_async_progress_one();
     pthread_mutex_lock(&ch->mutex);
     bool ready = ch->count > 0;
     pthread_mutex_unlock(&ch->mutex);

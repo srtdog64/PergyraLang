@@ -2,9 +2,9 @@
 //
 // 현재 구현된 authoring compression을 한 파일에 모은 예제:
 // - top-level lexical zone context
-// - action contract inference
-// - who inference from unique matching subject action
-// - transfer target -> using inference
+// - action contract reuse
+// - who derivation from unique matching subject action
+// - transfer target -> using derivation
 // - move <from-alias> to <ZoneType>
 
 ability Payable {

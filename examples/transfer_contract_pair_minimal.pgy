@@ -4,7 +4,7 @@
 //
 // Same semantics, two authoring styles:
 // 1. MoveVerbose repeats `where` and `using`.
-// 2. MoveCompressed relies on transfer target inference pack:
+// 2. MoveCompressed relies on transfer target derivation pack:
 //    where / using <- transfer target.
 
 subject Courier {

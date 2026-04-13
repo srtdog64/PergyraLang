@@ -228,7 +228,13 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
             pgy_async_yield(); \
             pthread_mutex_lock(&ch->mutex); \
         } else { \
-            pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+            pthread_mutex_unlock(&ch->mutex); \
+            if (!pgy_async_progress_one()) { \
+                pthread_mutex_lock(&ch->mutex); \
+                pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+            } else { \
+                pthread_mutex_lock(&ch->mutex); \
+            } \
         } \
     } \
     if (ch->count == 0 && ch->closed) { \
@@ -257,12 +263,24 @@ pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count == 0 && !ch->closed) { \
-        if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline) \
-            == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
-            pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
-                "deadline reached while channel remained empty"); \
+        if (pgy_async_in_coroutine()) { \
             pthread_mutex_unlock(&ch->mutex); \
-            return false; \
+            pgy_async_yield(); \
+            pthread_mutex_lock(&ch->mutex); \
+        } else { \
+            pthread_mutex_unlock(&ch->mutex); \
+            if (!pgy_async_progress_one()) { \
+                pthread_mutex_lock(&ch->mutex); \
+                if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline) \
+                    == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
+                    pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
+                        "deadline reached while channel remained empty"); \
+                    pthread_mutex_unlock(&ch->mutex); \
+                    return false; \
+                } \
+            } else { \
+                pthread_mutex_lock(&ch->mutex); \
+            } \
         } \
     } \
     if (ch->count == 0 && ch->closed) { \

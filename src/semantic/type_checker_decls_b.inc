@@ -91,10 +91,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         has_subintent = (step->data.intent_step.intent_expr != NULL);
-        intent_step_infer_who_from_action(node, step, ctx);
+        intent_step_derive_who_from_action(node, step, ctx);
         intent_step_inherit_action_contract(node, step, ctx);
-        intent_step_infer_transfer_context(node, step, ctx);
-        intent_step_infer_zone_binding_context(node, step, ctx);
+        intent_step_derive_transfer_context(node, step, ctx);
+        intent_step_derive_zone_binding_context(node, step, ctx);
         intent_step_warn_redundant_action_contract(node, step, ctx);
 
         if (step->data.intent_step.where_type == NULL && !has_subintent) {
@@ -104,7 +104,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error(ctx, step,
                 "Intent step '%s' requires a where zone type.\n"
                 "Reason:\n"
-                "- no local, inherited, or derived zone contract is available for this step\n"
+                "- no local, reused, or derived zone contract is available for this step\n"
                 "%s%s"
                 "Fix:\n"
                 "- add 'where: <Zone>;' to the step\n"
@@ -537,12 +537,12 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     ? "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                       "Reason:\n"
                       "%s\n"
-                      "- zone '%s' was inherited from the matching action contract\n"
+                      "- zone '%s' was reused from the matching action contract\n"
                       "%s%s"
                       "Fix:\n"
                       "- add 'authorized by: %s;' to the step\n"
                       "- or move the step to a non-authority zone\n"
-                      "- or change the action contract that this step inherits"
+                      "- or change the action contract that this step reuses"
                     : "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                       "Reason:\n"
                       "%s\n"
@@ -669,10 +669,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             semantic_warning(ctx, step,
                 "Intent step '%s' does not currently match a subject action of the same name; intent is declarative only.\n"
                 "Reason:\n"
-                "- matching action contract inheritance only applies when a unique matching subject action exists\n"
+                "- matching action contract reuse only applies when a unique matching subject action exists\n"
                 "%s%s"
                 "Fix:\n"
-                "- align the step name and who participants with a subject action if you want inherited contracts\n"
+                "- align the step name and who participants with a subject action if you want reused contracts\n"
                 "- or keep the step declarative and spell out who/where/requires/authorized by explicitly",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 contract_summary[0] != '\0' ? contract_summary : "",
@@ -1968,7 +1968,7 @@ type_check_projection_contract(ASTNode **slots,
     }
     requires_dto =
         site != NULL && site->type == AST_ZONE_REFRESH
-        && (site->data.zone_refresh.infer_target_kind
+        && (site->data.zone_refresh.derive_target_kind
             ? object_slot->data.domain_slot.is_tobject
             : site->data.zone_refresh.requires_dto);
     if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
@@ -2534,7 +2534,7 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.relation_decl.refreshes[i];
         const char *action_name =
-            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (refresh == NULL)
             continue;
@@ -2607,7 +2607,7 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.effect_decl.refresh_count; i++) {
         ASTNode *refresh = node->data.effect_decl.refreshes[i];
         const char *action_name =
-            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (refresh == NULL)
             continue;
@@ -2969,7 +2969,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *target_slot = NULL;
         bool boundary_projection = false;
         const char *action_name =
-            refresh->data.zone_refresh.infer_target_kind ? "bind"
+            refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error(ctx, refresh,

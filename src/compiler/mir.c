@@ -14,6 +14,7 @@
 static void mir_clear_block_name_set(const char ***names, size_t *count);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
 static bool mir_compute_liveness(MIRRoutine *routine);
+static bool mir_def_stmt_is_side_effect_free(const ASTNode *stmt);
 
 static char *
 mir_render_type_name(ASTNode *type_node)
@@ -1360,9 +1361,7 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
         return false;
     if (inst->kind != MIR_INST_DEF && inst->kind != MIR_INST_PHI)
         return false;
-    /* DEFs with an attached AST carry side effects (variable declaration /
-     * assignment) that are invisible to MIR analysis.  Keep them alive. */
-    if (inst->ast != NULL)
+    if (inst->ast != NULL && !mir_def_stmt_is_side_effect_free(inst->ast))
         return false;
 
     idx = mir_find_value_summary(routine, inst->result_name);
@@ -1376,10 +1375,109 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
 }
 
 static bool
+mir_stmt_is_semantic_carrier(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
+        return false;
+
+    if (strncmp(inst->name, "Intent", 6) == 0)
+        return true;
+
+    return false;
+}
+
+static bool
+mir_call_is_whitelisted_pure_query(const char *callee)
+{
+    if (callee == NULL)
+        return false;
+    return strcmp(callee, "HasState") == 0
+        || strcmp(callee, "HasLayer") == 0
+        || strcmp(callee, "HasProjection") == 0
+        || strcmp(callee, "HasZone") == 0
+        || strcmp(callee, "HasZoneProjection") == 0
+        || strcmp(callee, "HasZoneLayer") == 0
+        || strcmp(callee, "HasZoneState") == 0
+        || strcmp(callee, "ChannelLength") == 0
+        || strcmp(callee, "ChannelCapacity") == 0
+        || strcmp(callee, "ChannelSpace") == 0
+        || strcmp(callee, "ChannelFull") == 0
+        || strcmp(callee, "ChannelClosed") == 0;
+}
+
+static bool
+mir_expr_is_side_effect_free(const ASTNode *expr)
+{
+    if (expr == NULL)
+        return true;
+
+    switch (expr->type) {
+        case AST_NUMBER:
+        case AST_STRING:
+        case AST_BOOLEAN:
+        case AST_IDENTIFIER:
+            return true;
+        case AST_BINARY:
+            return mir_expr_is_side_effect_free(expr->data.binary.left)
+                && mir_expr_is_side_effect_free(expr->data.binary.right);
+        case AST_UNARY:
+            return mir_expr_is_side_effect_free(expr->data.unary.operand);
+        case AST_MEMBER_ACCESS:
+            return mir_expr_is_side_effect_free(expr->data.member.object);
+        case AST_CALL:
+            if (expr->data.call.callee == NULL
+                || expr->data.call.callee->type != AST_IDENTIFIER
+                || expr->data.call.callee->data.identifier.name == NULL
+                || !mir_call_is_whitelisted_pure_query(
+                    expr->data.call.callee->data.identifier.name)) {
+                return false;
+            }
+            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+                if (!mir_expr_is_side_effect_free(expr->data.call.arguments[i]))
+                    return false;
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool
+mir_def_stmt_is_side_effect_free(const ASTNode *stmt)
+{
+    if (stmt == NULL)
+        return false;
+    if (stmt->type == AST_LET_DECL)
+        return mir_expr_is_side_effect_free(stmt->data.let_decl.initializer);
+    if (stmt->type == AST_ASSIGNMENT
+        && stmt->data.assignment.target != NULL
+        && stmt->data.assignment.target->type == AST_IDENTIFIER) {
+        return mir_expr_is_side_effect_free(stmt->data.assignment.value);
+    }
+    return false;
+}
+
+static bool
 mir_stmt_has_side_effect(const ASTNode *stmt)
 {
     if (stmt == NULL)
         return false;
+    if (stmt->type == AST_IF_STMT
+        || stmt->type == AST_FOR_LOOP
+        || stmt->type == AST_WHILE_LOOP
+        || stmt->type == AST_MATCH_STMT
+        || stmt->type == AST_DEFER_STMT
+        || stmt->type == AST_ASYNC_BLOCK
+        || stmt->type == AST_PARALLEL_BLOCK
+        || stmt->type == AST_SELECT_STMT
+        || stmt->type == AST_SPAWN_EXPR
+        || stmt->type == AST_AWAIT_EXPR
+        || stmt->type == AST_CHANNEL_SEND
+        || stmt->type == AST_CHANNEL_RECV
+        || stmt->type == AST_EVENT_SUBSCRIBE
+        || stmt->type == AST_EVENT_UNSUBSCRIBE
+        || stmt->type == AST_EVENT_INVOKE)
+        return true;
     if (stmt->type == AST_ASSIGNMENT)
         return true;
     if (stmt->type == AST_BIND_STMT)
@@ -1390,58 +1488,17 @@ mir_stmt_has_side_effect(const ASTNode *stmt)
         return true;
     if (stmt->type == AST_WITH_STMT)
         return true;
-    if (stmt->type == AST_CALL)
-        return true;
     if (stmt->type == AST_CALL
         && stmt->data.call.callee != NULL
         && stmt->data.call.callee->type == AST_IDENTIFIER
         && stmt->data.call.callee->data.identifier.name != NULL) {
         const char *callee = stmt->data.call.callee->data.identifier.name;
-        if (strcmp(callee, "ClaimSlot") == 0
-            || strcmp(callee, "ClaimSecureSlot") == 0
-            || strcmp(callee, "ClaimDeviceSlot") == 0
-            || strcmp(callee, "Write") == 0
-            || strcmp(callee, "Release") == 0
-            || strcmp(callee, "Log") == 0
-            || strcmp(callee, "LogRaw") == 0
-            || strcmp(callee, "LogBlock") == 0
-            || strcmp(callee, "LogBanner") == 0
-            || strcmp(callee, "Emit") == 0
-            || strcmp(callee, "Spawn") == 0
-            || strcmp(callee, "Send") == 0
-            || strcmp(callee, "Recv") == 0
-            || strcmp(callee, "TrySend") == 0
-            || strcmp(callee, "TryRecv") == 0
-            || strcmp(callee, "Await") == 0
-            || strcmp(callee, "Cancel") == 0
-            || strcmp(callee, "Select") == 0
-            || strcmp(callee, "Exit") == 0
-            || strcmp(callee, "Abort") == 0
-            || strcmp(callee, "Fail") == 0
-            || strcmp(callee, "Panic") == 0
-            || strcmp(callee, "Raise") == 0) {
-            return true;
-        }
-        if (strncmp(callee, "pgy_", 4) == 0)
-            return true;
-        if (strncmp(callee, "Channel", 7) == 0
-            || strncmp(callee, "Map", 3) == 0
-            || strncmp(callee, "Set", 3) == 0
-            || strncmp(callee, "List", 4) == 0
-            || strncmp(callee, "Queue", 5) == 0
-            || strncmp(callee, "Box", 3) == 0
-            || strncmp(callee, "Rc", 2) == 0
-            || strncmp(callee, "Weak", 4) == 0
-            || strncmp(callee, "Allocator", 9) == 0
-            || strncmp(callee, "ReadFile", 8) == 0
-            || strncmp(callee, "WriteFile", 9) == 0
-            || strncmp(callee, "Sleep", 5) == 0
-            || strncmp(callee, "Now", 3) == 0
-            || strncmp(callee, "Random", 6) == 0) {
-            return true;
-        }
-        return false;
+        if (mir_call_is_whitelisted_pure_query(callee))
+            return false;
+        return true;
     }
+    if (stmt->type == AST_CALL)
+        return true;
     return false;
 }
 
@@ -1449,6 +1506,8 @@ static bool
 mir_instruction_is_dead_stmt(const MIRInstruction *inst)
 {
     if (inst == NULL || inst->kind != MIR_INST_STMT)
+        return false;
+    if (mir_stmt_is_semantic_carrier(inst))
         return false;
     if (inst->ast == NULL)
         return true;

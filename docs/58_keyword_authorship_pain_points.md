@@ -104,8 +104,8 @@ Pergyra의 현재 pain point를 정리한다.
 
 필요한 방향:
 
-- `intent` 작성 시 반복되는 `who/where/requires` 추론
-- zone/world/context 기반 기본값 추론
+- `intent` 작성 시 반복되는 `who/where/requires` 유도
+- zone/world/context 기반 기본값 유도
 - action/ability에 이미 박힌 계약의 재기술 최소화
 
 현재 완화된 부분:
@@ -270,7 +270,7 @@ Pergyra의 현재 pain point를 정리한다.
 문제:
 
 - 이미 action/zone/authority에 있는 정보를 intent step에서 다시 쓰게 된다
-- 추론이 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
+- 유도가 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
 - 진단이 inheritance/inference provenance를 더 직접적으로 보여주지 않으면 부담이 줄지 않는다
 
 ### 2.3 trust-signaling family
@@ -353,12 +353,12 @@ Pergyra의 현재 pain point를 정리한다.
 5. action/intent/zone contract 중복 기술
 - action 선언에 이미 들어 있는 `requires/within/authorized by/causes`
   정보가 intent step에서 반복되면 authoring friction이 커진다
-- 현재는 intent-side inference가 꽤 올라왔지만, 사용자는 여전히
+- 현재는 intent-side derivation이 꽤 올라왔지만, 사용자는 여전히
   "어디까지 생략해도 안전한가"를 한 번 더 생각해야 한다
 
-6. diagnostics는 좋아졌지만 "상속/추론된 계약" 설명은 더 필요하다
+6. diagnostics는 좋아졌지만 "상속/유도된 계약" 설명은 더 필요하다
 - 최근 진단은 `Reason/Fix` 형태로 개선됐고 anchored boundary도 더 분명해졌다
-- 하지만 intent/action/zone 계약 추론에서는
+- 하지만 intent/action/zone 계약 유도에서는
   - 무엇이 상속되었는지
   - 무엇이 명시 override인지
   - 왜 이 위치에서 실패했는지
@@ -374,11 +374,11 @@ Pergyra의 현재 pain point를 정리한다.
 2. contract duplication
 - action/intent/zone 사이에서 같은 의미를 두 번 적는 순간 피로가 크게 올라간다
 
-3. inferred contract diagnostics
-- 추론이 강해질수록 "무엇을 상속했는지"를 에러와 hover에서 더 잘 보여줘야 한다
+3. inherited/derived contract diagnostics
+- 유도가 강해질수록 "무엇을 상속했는지"를 에러와 hover에서 더 잘 보여줘야 한다
 
 즉 현재 단계의 폐인포인트는 lexer/token 문제가 아니라
-**authoring density + duplicate description + inference explainability**다.
+**authoring density + duplicate description + inheritance/derivation explainability**다.
 - 남은 것은 richer constraint semantics 쪽이다
 
 ### 2.2 boundary clause family
@@ -527,8 +527,8 @@ Pergyra의 현재 pain point를 정리한다.
 
 - `inheritance`
   - nominal/object hierarchy 의미로만 쓴다
-- `inference`
-  - 이미 선언된 zone/world/action/authority 계약에서 기본값을 상속/유도해 채우는 것
+- `derivation`
+  - 이미 선언된 zone/world/action/authority 계약에서 빠진 기본값을 유도해 채우는 것
 - `preset/profile`
   - 반복되는 clause 묶음을 미리 정의한 authoring shortcut
 
@@ -593,7 +593,7 @@ nominal 상속이 아니라 `계약 상속`이다.
 
 필요한 것:
 
-- `intent` clause 추론
+- `intent` clause 유도
 - zone authority 자동 승계
 - effect/relation 연결 축약
 - common pattern scaffold
@@ -630,7 +630,7 @@ nominal 상속이 아니라 `계약 상속`이다.
 
 ## 4. 지금 당장 해야 하는 일
 
-1. `intent` 반복 clause 추론 규칙 정리
+1. `intent` 반복 clause 유도 규칙 정리
 2. authority 자동 승계 규칙 정리
 3. projection/transfer scaffold 예제 추가
 4. "정석 작성 경로" 3개를 문서 첫 계층에 명시
@@ -682,12 +682,12 @@ Primary implementation fronts:
 ### 3. Inferred-contract failure opacity
 
 Problem:
-Once inference removes boilerplate, failures become harder to interpret unless the compiler shows where the inherited contract came from.
+Once derivation removes boilerplate, failures become harder to interpret unless the compiler shows where the inherited contract came from.
 
 Closure target:
-- every boundary/authority/requires failure on an intent step should name the inferred source
-- error text should distinguish `locally declared`, `inherited from matching action contract`, and `derived from transfer target`
-- the user should not need to reconstruct hidden inference by reading multiple declarations manually
+- every boundary/authority/requires failure on an intent step should name the derived or inherited source
+- error text should distinguish `locally declared`, `reused from matching action contract`, and `derived from transfer target`
+- the user should not need to reconstruct hidden derivation by reading multiple declarations manually
 
 Primary implementation fronts:
 - semantic diagnostics
@@ -702,7 +702,7 @@ Problem:
 Closure target:
 - treat `with effects` as declaration-local only
 - state this rule consistently in docs, hover text, and reference examples
-- avoid implying that all post-signature clauses participate in step inference
+- avoid implying that all post-signature clauses participate in step derivation
 
 Primary implementation fronts:
 - docs and hover text
@@ -727,7 +727,7 @@ Primary implementation fronts:
 
 For the next authoring-surface passes, prioritize in this order:
 1. reduce repeated writing
-2. explain inferred behavior where repetition was removed
+2. explain inherited/derived behavior where repetition was removed
 3. keep the short surface singular and documented
 4. only then widen syntax or add new abstraction layers
 

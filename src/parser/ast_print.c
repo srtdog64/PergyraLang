@@ -92,23 +92,23 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
     printf("ContractProvenance: ");
 
     if (node->data.intent_step.inherited_who_from_action) {
-        printf("inherited who from matching action contract");
+        printf("reused who from matching action contract");
         printed = true;
     }
     if (node->data.intent_step.inherited_where_from_action) {
-        printf("%sinherited zone from matching action contract", printed ? ", " : "");
+        printf("%sreused zone from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_requires_from_action) {
-        printf("%sinherited requires from matching action contract", printed ? ", " : "");
+        printf("%sreused requires from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_causes_from_action) {
-        printf("%sinherited causes from matching action contract", printed ? ", " : "");
+        printf("%sreused causes from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_authorized_by_from_action) {
-        printf("%sinherited authorized by from matching action contract", printed ? ", " : "");
+        printf("%sreused authorized by from matching action contract", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.derived_where_from_transfer) {
@@ -1570,7 +1570,7 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_ZONE_REFRESH:
             printf("%s: %s from %s",
-                   node->data.zone_refresh.infer_target_kind ? "Bind"
+                   node->data.zone_refresh.derive_target_kind ? "Bind"
                    : (node->data.zone_refresh.requires_dto ? "Publish" : "Refresh"),
                    node->data.zone_refresh.object_slot_name,
                    node->data.zone_refresh.source_slot_name);

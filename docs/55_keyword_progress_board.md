@@ -92,7 +92,7 @@
 | `requires` | 95% | action/intent/zone authority/party role slot contract에 type-reference AST가 연결되고 generic ability ref validation, generic mismatch diagnostics, matching action inheritance diagnostics, LSP hover/completion, semantic 회귀가 정렬됨. 남은 일은 richer generic constraint validation과 broader authoring surface 문서화 |
 | `authorized` | 90% | authority-sensitive action/step/effect/secure flow에 explicit clause 강제가 연결되고 inherited-action diagnostics와 semantic 회귀가 존재함 |
 | `by` | 90% | `authorized by` 및 authority-bearing bind/publish/boundary flow tail로 실제 계약 의미를 가지며 parser/semantic/LSP 회귀가 정렬됨 |
-| `within` | 90% | action zone contract, lexical zone context, step/action/transfer 추론, inherited-zone diagnostics, semantic 회귀까지 연결됨 |
+| `within` | 90% | action zone contract, lexical zone context, step/action/transfer 유도, inherited-zone diagnostics, semantic 회귀까지 연결됨 |
 | `causes` | 90% | action/step effect contract, authority-sensitive diagnostics, inferred/inherited explanation, semantic 회귀가 정렬됨 |
 | `expect` | 80% | intent check MIR carrier 존재 |
 | `success` | 75% | intent contract 존재 |

@@ -179,7 +179,7 @@ make_program(ASTNode **stmts, size_t count)
 static MIRProgram *
 mir_program_from_ast(ASTNode *program);
 
-static HIRProgram *
+static HIRProgram * __attribute__((unused))
 lower_program(ASTNode *program)
 {
     SemanticResult *sem = semantic_analyze(program);
@@ -3083,20 +3083,6 @@ test_slot_sugar(void)
         log_call->data.call.arguments = malloc(sizeof(ASTNode*));
         log_call->data.call.arguments[0] = x_ident;
         log_call->data.call.arg_count = 1;
-
-        ASTNode *fn_body = ast_create_block();
-        ast_add_statement(fn_body, let_node);
-        ast_add_statement(fn_body, log_call);
-
-        ASTNode *fn = calloc(1, sizeof(ASTNode));
-        fn->type = AST_FUNC_DECL;
-        fn->data.func_decl.name = "Main";
-        fn->data.func_decl.return_type = make_type_node("Void");
-        fn->data.func_decl.body = fn_body;
-        fn->data.func_decl.param_count = 0;
-
-        ASTNode *stmts[1] = { fn };
-        ASTNode *prog = make_program(stmts, 1);
         ctx = transpiler_ctx_create();
         emit_statement(let_node, ctx);
         emit_statement(log_call, ctx);
@@ -3115,20 +3101,6 @@ test_slot_sugar(void)
         tgt->type = AST_IDENTIFIER; tgt->data.identifier.name = pergyra_strdup("x");
         assign->data.assignment.target = tgt;
         assign->data.assignment.value  = make_number(5, 2);
-
-        ASTNode *fn_body = ast_create_block();
-        ast_add_statement(fn_body, let_node);
-        ast_add_statement(fn_body, assign);
-
-        ASTNode *fn = calloc(1, sizeof(ASTNode));
-        fn->type = AST_FUNC_DECL;
-        fn->data.func_decl.name = "Main";
-        fn->data.func_decl.return_type = make_type_node("Void");
-        fn->data.func_decl.body = fn_body;
-        fn->data.func_decl.param_count = 0;
-
-        ASTNode *stmts[1] = { fn };
-        ASTNode *prog = make_program(stmts, 1);
         ctx = transpiler_ctx_create();
         emit_statement(let_node, ctx);
         emit_statement(assign, ctx);
@@ -3152,21 +3124,6 @@ test_slot_sugar(void)
         a_id2->type = AST_IDENTIFIER; a_id2->data.identifier.name = pergyra_strdup("a");
         ASTNode *r_args[] = { a_id2 };
         ASTNode *rel_call = make_call("Release", r_args, 1, 3);
-
-        ASTNode *fn_body = ast_create_block();
-        ast_add_statement(fn_body, let_node);
-        ast_add_statement(fn_body, write_call);
-        ast_add_statement(fn_body, rel_call);
-
-        ASTNode *fn = calloc(1, sizeof(ASTNode));
-        fn->type = AST_FUNC_DECL;
-        fn->data.func_decl.name = "Main";
-        fn->data.func_decl.return_type = make_type_node("Void");
-        fn->data.func_decl.body = fn_body;
-        fn->data.func_decl.param_count = 0;
-
-        ASTNode *stmts[1] = { fn };
-        ASTNode *prog = make_program(stmts, 1);
         ctx = transpiler_ctx_create();
         emit_statement(let_node, ctx);
         emit_statement(write_call, ctx);

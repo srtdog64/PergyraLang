@@ -95,7 +95,7 @@ market.ShowState();  // seller.gold=0 (기대: 200)
 ```
 - `authority` 선언 시 모든 zone 연산에 `by <slot>` 필수
 - **영향**: 보일러플레이트 증가
-- **제안**: authority가 1개면 auto-infer
+- **제안**: authority가 1개면 자동 유도
 
 #### 7. `Emit(event, args)` 구문 미동작
 ```pergyra
@@ -227,6 +227,6 @@ with
 | Zone slot 시맨틱 문서화 | P1 | 값 복사 vs 참조 바인딩 명확화 |
 | Emit() 빌트인 | P2 | 이벤트 발화 통합 |
 | 에러 메시지 개선 | P2 | 행번호 + 컨텍스트 |
-| Zone authority auto-infer | P2 | 보일러플레이트 감소 |
+| Zone authority 자동 유도 | P2 | 보일러플레이트 감소 |
 | 표준 수학 라이브러리 | P2 | Math.Sin/Cos/Sqrt |
 | LSP 서버 | P3 | IDE 지원 |

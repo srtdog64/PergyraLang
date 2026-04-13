@@ -1,5 +1,3 @@
-
-0 error(s), 0 warning(s)
 === DND TAVERN CAMPAIGN ===
   tavern recruitment, 3-floor dungeon, affinity events, dragon boss
 [Mode] SCRIPTED seed=19
@@ -165,8 +163,8 @@
   [Fighter] Ari lv=1 aff=7
   [MagePacket] Sol hp=21 gold=0
   [Objective] loot=guild rumor map
-[World] mode=SCRIPTED phase=TAVERN day=1 omen=1 fame=4 gold=0 morale=5 route=6/3/6/6
-  [Journey] stage=TAVERN floor=TAVERN trapName=crowded tables monsterName=restless mercenaries rumor=2 threat=0 trap=0 monster=0 treasure=0 affinityPulse=2 morale=5 keys=0 dragonHp=0 victory=0
+[World] mode=SCRIPTED phase=TAVERN day=1 omen=1 fame=4 gold=0 morale=9 route=10/3/6/6
+  [Journey] stage=TAVERN floor=TAVERN trapName=crowded tables monsterName=restless mercenaries rumor=6 threat=0 trap=0 monster=0 treasure=0 affinityPulse=2 morale=9 keys=0 dragonHp=0 victory=0
   [Layers] bless=true/true bonds=true/true
   [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
@@ -312,84 +310,84 @@
     [Resolution] Scouting cuts risk and turns rumor into route control.
     [Pressure] Missing one vent or dart seam can snowball the whole cellar.
     [Prize] A clean scout run changes every later angle of attack.
-    [PartyState] Ari hp=22 focus=11 | Mira hp=25 mana=18
-    [PartyState] Nyx hp=22 stamina=10 | Sol hp=23 mana=22
+    [PartyState] Ari hp=30 focus=13 | Mira hp=29 mana=20
+    [PartyState] Nyx hp=26 stamina=8 | Sol hp=31 mana=26
     [CampForeshadow] The first camp smells of spores, lamp oil, and relief that still refuses to relax.
   [Node 2] A fork of root-choked halls asks whether speed or caution owns the next minute.
     [Resolution] The party redraws the route with every trap they refuse to trigger twice.
     [Pressure] Missing one vent or dart seam can snowball the whole cellar.
     [Prize] A clean scout run changes every later angle of attack.
-    [PartyState] Ari hp=22 focus=11 | Mira hp=25 mana=18
-    [PartyState] Nyx hp=22 stamina=10 | Sol hp=23 mana=22
+    [PartyState] Ari hp=30 focus=13 | Mira hp=29 mana=20
+    [PartyState] Nyx hp=26 stamina=8 | Sol hp=31 mana=26
     [CampForeshadow] No one says they were lucky, but everyone inventories what nearly went wrong.
   [Node 3] A reliquary room offers loot only after the traps are understood.
     [Resolution] Reliquary dust turns treasure counting into theology and theft at once.
     [Pressure] Missing one vent or dart seam can snowball the whole cellar.
     [Prize] A clean scout run changes every later angle of attack.
-    [PartyState] Ari hp=22 focus=11 | Mira hp=25 mana=18
-    [PartyState] Nyx hp=22 stamina=10 | Sol hp=23 mana=22
+    [PartyState] Ari hp=30 focus=13 | Mira hp=29 mana=20
+    [PartyState] Nyx hp=26 stamina=8 | Sol hp=31 mana=26
     [CampForeshadow] The tavern already feels far away enough to be myth.
   [Node 4] A fungus cistern whispers with trapped air and worse guidance.
     [Resolution] The cistern rewards whoever understands that bad air is also a warning system.
     [Pressure] Missing one vent or dart seam can snowball the whole cellar.
     [Prize] A clean scout run changes every later angle of attack.
-    [PartyState] Ari hp=22 focus=11 | Mira hp=25 mana=18
-    [PartyState] Nyx hp=22 stamina=10 | Sol hp=23 mana=22
+    [PartyState] Ari hp=30 focus=13 | Mira hp=29 mana=20
+    [PartyState] Nyx hp=26 stamina=8 | Sol hp=31 mana=26
     [CampForeshadow] The tavern already feels far away enough to be myth.
   [Node 5] A broken dumbwaiter shaft suggests a riskier route back toward the main cellar.
     [Resolution] The dumbwaiter route is faster only if nobody minds climbing through old panic.
     [Pressure] Missing one vent or dart seam can snowball the whole cellar.
     [Prize] A clean scout run changes every later angle of attack.
-    [PartyState] Ari hp=22 focus=11 | Mira hp=25 mana=18
-    [PartyState] Nyx hp=22 stamina=10 | Sol hp=23 mana=22
+    [PartyState] Ari hp=30 focus=13 | Mira hp=29 mana=20
+    [PartyState] Nyx hp=26 stamina=8 | Sol hp=31 mana=26
     [CampForeshadow] The tavern already feels far away enough to be myth.
 [Substate] floor1.combat
-  [Round 1] pulse=3
+  [Round 1] pulse=1
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into gnoll captain
-    [Effect] guard crack, aggression=3, guard=2, morale=1
+    [Effect] guard crack, aggression=1, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at spore-hound
-    [Effect] saint flare, aggression=3, guard=1, morale=2
+    [Effect] saint flare, aggression=1, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against barrel lurker
-    [Effect] bleed feint, aggression=3, guard=1, morale=1
+    [Effect] bleed feint, aggression=1, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through cellar hexer
-    [Effect] cinder arc, aggression=4, guard=1, morale=1
-    [Resolve] Ari hp=19 focus=11
-    [Resolve] Mira hp=27 mana=23
-    [Resolve] Nyx hp=19 stamina=10
-    [Resolve] Sol hp=17 mana=22
-  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=2 threat=2 trap=0 monster=3 treasure=10 affinityPulse=3 morale=12 keys=1 dragonHp=0 victory=0
-  [Round 2] pulse=3
+    [Effect] cinder arc, aggression=2, guard=1, morale=1
+    [Resolve] Ari hp=30 focus=13
+    [Resolve] Mira hp=33 mana=22
+    [Resolve] Nyx hp=30 stamina=10
+    [Resolve] Sol hp=33 mana=28
+  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=2 trap=0 monster=3 treasure=8 affinityPulse=3 morale=18 keys=1 dragonHp=0 victory=0
+  [Round 2] pulse=1
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into gnoll captain
-    [Effect] guard crack, aggression=3, guard=2, morale=1
+    [Effect] guard crack, aggression=1, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at spore-hound
-    [Effect] saint flare, aggression=3, guard=1, morale=2
+    [Effect] saint flare, aggression=1, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against barrel lurker
-    [Effect] bleed feint, aggression=3, guard=1, morale=1
+    [Effect] bleed feint, aggression=1, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through cellar hexer
-    [Effect] cinder arc, aggression=4, guard=1, morale=1
-    [Resolve] Ari hp=18 focus=11
-    [Resolve] Mira hp=29 mana=24
-    [Resolve] Nyx hp=15 stamina=10
-    [Resolve] Sol hp=11 mana=22
-  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=2 threat=1 trap=0 monster=3 treasure=13 affinityPulse=3 morale=17 keys=1 dragonHp=0 victory=0
-  [Round 3] pulse=3
+    [Effect] cinder arc, aggression=2, guard=1, morale=1
+    [Resolve] Ari hp=34 focus=14
+    [Resolve] Mira hp=33 mana=22
+    [Resolve] Nyx hp=30 stamina=10
+    [Resolve] Sol hp=32 mana=28
+  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=1 trap=0 monster=3 treasure=9 affinityPulse=3 morale=23 keys=1 dragonHp=0 victory=0
+  [Round 3] pulse=1
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into gnoll captain
-    [Effect] guard crack, aggression=3, guard=2, morale=1
+    [Effect] guard crack, aggression=1, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at spore-hound
-    [Effect] saint flare, aggression=3, guard=1, morale=2
+    [Effect] saint flare, aggression=1, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against barrel lurker
-    [Effect] bleed feint, aggression=3, guard=1, morale=1
+    [Effect] bleed feint, aggression=1, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through cellar hexer
-    [Effect] cinder arc, aggression=4, guard=1, morale=1
-    [Resolve] Ari hp=18 focus=11
-    [Resolve] Mira hp=26 mana=24
-    [Resolve] Nyx hp=11 stamina=10
-    [Resolve] Sol hp=5 mana=22
-  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=2 threat=0 trap=0 monster=3 treasure=16 affinityPulse=3 morale=22 keys=1 dragonHp=0 victory=0
+    [Effect] cinder arc, aggression=2, guard=1, morale=1
+    [Resolve] Ari hp=34 focus=14
+    [Resolve] Mira hp=37 mana=24
+    [Resolve] Nyx hp=34 stamina=12
+    [Resolve] Sol hp=35 mana=30
+  [Skirmish] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=0 trap=0 monster=3 treasure=10 affinityPulse=3 morale=28 keys=1 dragonHp=0 victory=0
   [Hazard] trap=spore darts monster=cellar gnolls
   [Loot] mildewed reliquary secured
-[World] mode=SCRIPTED phase=FLOOR1 day=2 omen=2 fame=8 gold=76 morale=22 route=5/6/7/8
-  [Journey] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=2 threat=0 trap=0 monster=3 treasure=16 affinityPulse=3 morale=22 keys=1 dragonHp=0 victory=0
+[World] mode=SCRIPTED phase=FLOOR1 day=2 omen=2 fame=21 gold=86 morale=28 route=9/6/7/8
+  [Journey] stage=FLOOR1 floor=ROOT CELLAR trapName=spore darts monsterName=cellar gnolls rumor=6 threat=0 trap=0 monster=3 treasure=10 affinityPulse=3 morale=28 keys=1 dragonHp=0 victory=0
   [Layers] bless=true/true bonds=true/true
   [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
@@ -534,84 +532,84 @@
     [Resolution] The split pays off only because no one hesitates at the wrong second.
     [Pressure] A split party risks turning trust into distance.
     [Prize] If timing holds, the court loses its easiest target map.
-    [PartyState] Ari hp=17 focus=12 | Mira hp=26 mana=24
-    [PartyState] Nyx hp=11 stamina=2 | Sol hp=3 mana=22
+    [PartyState] Ari hp=34 focus=15 | Mira hp=32 mana=24
+    [PartyState] Nyx hp=34 stamina=4 | Sol hp=35 mana=30
     [CampForeshadow] Mirror shards turn the campfire into a council of uncertain faces.
   [Node 2] A saint-glass alcove offers a shortcut to anyone willing to pay in blood or trust.
     [Resolution] The saint-glass alcove measures sincerity in blood and never refunds the difference.
     [Pressure] A split party risks turning trust into distance.
     [Prize] If timing holds, the court loses its easiest target map.
-    [PartyState] Ari hp=17 focus=12 | Mira hp=26 mana=24
-    [PartyState] Nyx hp=11 stamina=2 | Sol hp=3 mana=22
+    [PartyState] Ari hp=34 focus=15 | Mira hp=32 mana=24
+    [PartyState] Nyx hp=34 stamina=4 | Sol hp=35 mana=30
     [CampForeshadow] Trust becomes practical here: who wakes first, who watches longest, who lies least.
   [Node 3] The wraith court arrives as reflections first and enemies second.
     [Resolution] Once the reflections attack, trust becomes a faster resource than healing.
     [Pressure] A split party risks turning trust into distance.
     [Prize] If timing holds, the court loses its easiest target map.
-    [PartyState] Ari hp=17 focus=12 | Mira hp=26 mana=24
-    [PartyState] Nyx hp=11 stamina=2 | Sol hp=3 mana=22
+    [PartyState] Ari hp=34 focus=15 | Mira hp=32 mana=24
+    [PartyState] Nyx hp=34 stamina=4 | Sol hp=35 mana=30
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
   [Node 4] A choir loft of glass eyes catalogues every hesitation.
     [Resolution] The choir loft reveals who can move under surveillance without becoming slower.
     [Pressure] A split party risks turning trust into distance.
     [Prize] If timing holds, the court loses its easiest target map.
-    [PartyState] Ari hp=17 focus=12 | Mira hp=26 mana=24
-    [PartyState] Nyx hp=11 stamina=2 | Sol hp=3 mana=22
+    [PartyState] Ari hp=34 focus=15 | Mira hp=32 mana=24
+    [PartyState] Nyx hp=34 stamina=4 | Sol hp=35 mana=30
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
   [Node 5] A split stair of mirrored steps rewards rhythm more than caution.
     [Resolution] The mirrored stair is less a path than a coordinated lie told with perfect timing.
     [Pressure] A split party risks turning trust into distance.
     [Prize] If timing holds, the court loses its easiest target map.
-    [PartyState] Ari hp=17 focus=12 | Mira hp=26 mana=24
-    [PartyState] Nyx hp=11 stamina=2 | Sol hp=3 mana=22
+    [PartyState] Ari hp=34 focus=15 | Mira hp=32 mana=24
+    [PartyState] Nyx hp=34 stamina=4 | Sol hp=35 mana=30
     [CampForeshadow] The party learns that surviving together and agreeing together are separate skills.
 [Substate] floor2.combat
-  [Round 1] pulse=2
+  [Round 1] pulse=3
     [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into mirror knight
-    [Effect] guard crack, aggression=2, guard=3, morale=0
+    [Effect] guard crack, aggression=3, guard=3, morale=0
     [Action] Mira ward weave with Sunlance Censer in a guarded pattern at saint-glass shade
-    [Effect] saint flare, aggression=2, guard=2, morale=1
+    [Effect] saint flare, aggression=3, guard=2, morale=1
     [Action] Nyx ward weave with Crowhook Knives in a guarded pattern against silver wraith
-    [Effect] bleed feint, aggression=2, guard=2, morale=0
+    [Effect] bleed feint, aggression=3, guard=2, morale=0
     [Action] Sol ward weave with Emberglass Staff in a guarded pattern through echo priest
-    [Effect] cinder arc, aggression=3, guard=2, morale=0
-    [Resolve] Ari hp=17 focus=13
-    [Resolve] Mira hp=24 mana=24
-    [Resolve] Nyx hp=8 stamina=2
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=2 threat=8 trap=3 monster=5 treasure=29 affinityPulse=6 morale=26 keys=2 dragonHp=0 victory=0
-  [Round 2] pulse=2
+    [Effect] cinder arc, aggression=4, guard=2, morale=0
+    [Resolve] Ari hp=38 focus=17
+    [Resolve] Mira hp=32 mana=24
+    [Resolve] Nyx hp=37 stamina=6
+    [Resolve] Sol hp=37 mana=32
+  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=8 trap=3 monster=5 treasure=24 affinityPulse=6 morale=35 keys=2 dragonHp=0 victory=0
+  [Round 2] pulse=3
     [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into mirror knight
-    [Effect] guard crack, aggression=2, guard=3, morale=0
+    [Effect] guard crack, aggression=3, guard=3, morale=0
     [Action] Mira ward weave with Sunlance Censer in a guarded pattern at saint-glass shade
-    [Effect] saint flare, aggression=2, guard=2, morale=1
+    [Effect] saint flare, aggression=3, guard=2, morale=1
     [Action] Nyx ward weave with Crowhook Knives in a guarded pattern against silver wraith
-    [Effect] bleed feint, aggression=2, guard=2, morale=0
+    [Effect] bleed feint, aggression=3, guard=2, morale=0
     [Action] Sol ward weave with Emberglass Staff in a guarded pattern through echo priest
-    [Effect] cinder arc, aggression=3, guard=2, morale=0
-    [Resolve] Ari hp=17 focus=14
-    [Resolve] Mira hp=22 mana=24
-    [Resolve] Nyx hp=6 stamina=2
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=2 threat=7 trap=2 monster=5 treasure=32 affinityPulse=6 morale=27 keys=2 dragonHp=0 victory=0
-  [Round 3] pulse=2
+    [Effect] cinder arc, aggression=4, guard=2, morale=0
+    [Resolve] Ari hp=38 focus=18
+    [Resolve] Mira hp=36 mana=26
+    [Resolve] Nyx hp=37 stamina=6
+    [Resolve] Sol hp=36 mana=32
+  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=7 trap=2 monster=5 treasure=28 affinityPulse=6 morale=36 keys=2 dragonHp=0 victory=0
+  [Round 3] pulse=3
     [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into mirror knight
-    [Effect] guard crack, aggression=2, guard=3, morale=0
+    [Effect] guard crack, aggression=3, guard=3, morale=0
     [Action] Mira ward weave with Sunlance Censer in a guarded pattern at saint-glass shade
-    [Effect] saint flare, aggression=2, guard=2, morale=1
+    [Effect] saint flare, aggression=3, guard=2, morale=1
     [Action] Nyx ward weave with Crowhook Knives in a guarded pattern against silver wraith
-    [Effect] bleed feint, aggression=2, guard=2, morale=0
+    [Effect] bleed feint, aggression=3, guard=2, morale=0
     [Action] Sol ward weave with Emberglass Staff in a guarded pattern through echo priest
-    [Effect] cinder arc, aggression=3, guard=2, morale=0
-    [Resolve] Ari hp=17 focus=15
-    [Resolve] Mira hp=20 mana=24
-    [Resolve] Nyx hp=4 stamina=2
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=2 threat=6 trap=1 monster=5 treasure=35 affinityPulse=6 morale=28 keys=2 dragonHp=0 victory=0
+    [Effect] cinder arc, aggression=4, guard=2, morale=0
+    [Resolve] Ari hp=42 focus=20
+    [Resolve] Mira hp=36 mana=26
+    [Resolve] Nyx hp=41 stamina=8
+    [Resolve] Sol hp=35 mana=32
+  [Skirmish] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=6 trap=1 monster=5 treasure=32 affinityPulse=6 morale=37 keys=2 dragonHp=0 victory=0
   [Hazard] trap=mirror sigils monster=silver wraiths
   [Loot] glass saint icons secured
-[World] mode=SCRIPTED phase=FLOOR2 day=3 omen=3 fame=12 gold=156 morale=28 route=4/9/16/10
-  [Journey] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=2 threat=6 trap=1 monster=5 treasure=35 affinityPulse=6 morale=28 keys=2 dragonHp=0 victory=0
+[World] mode=SCRIPTED phase=FLOOR2 day=3 omen=3 fame=31 gold=222 morale=37 route=8/9/16/10
+  [Journey] stage=FLOOR2 floor=MIRROR HALL trapName=mirror sigils monsterName=silver wraiths rumor=6 threat=6 trap=1 monster=5 treasure=32 affinityPulse=6 morale=37 keys=2 dragonHp=0 victory=0
   [Layers] bless=true/true bonds=true/true
   [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
@@ -756,84 +754,84 @@
     [Resolution] Momentum steals the first move from the vault.
     [Pressure] A mistimed rush feeds the chains instead of beating them.
     [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=20 mana=24
-    [PartyState] Nyx hp=4 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=42 focus=23 | Mira hp=36 mana=26
+    [PartyState] Nyx hp=41 stamina=0 | Sol hp=35 mana=32
     [CampForeshadow] Ash settles on armor and bread alike, making every ration taste like tomorrow.
   [Node 2] The crown-seal vault forces the party to choose between loot discipline and speed.
     [Resolution] Speed and discipline argue here, and only one gets to keep the keys.
     [Pressure] A mistimed rush feeds the chains instead of beating them.
     [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=20 mana=24
-    [PartyState] Nyx hp=4 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=42 focus=23 | Mira hp=36 mana=26
+    [PartyState] Nyx hp=41 stamina=0 | Sol hp=35 mana=32
     [CampForeshadow] The key count is spoken aloud three times, as if numbers could guard themselves.
   [Node 3] The final antechamber tastes of metal, smoke, and almost-dragon.
     [Resolution] The antechamber decides whether fear becomes caution or noise.
     [Pressure] A mistimed rush feeds the chains instead of beating them.
     [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=20 mana=24
-    [PartyState] Nyx hp=4 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=42 focus=23 | Mira hp=36 mana=26
+    [PartyState] Nyx hp=41 stamina=0 | Sol hp=35 mana=32
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
   [Node 4] A hall of spent braziers hides vents that wake when the wrong seal is moved.
     [Resolution] Braziers reward anyone who remembers that heat can be navigated, not only endured.
     [Pressure] A mistimed rush feeds the chains instead of beating them.
     [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=20 mana=24
-    [PartyState] Nyx hp=4 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=42 focus=23 | Mira hp=36 mana=26
+    [PartyState] Nyx hp=41 stamina=0 | Sol hp=35 mana=32
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
   [Node 5] A molten counting room still tracks tribute no dragon plans to collect again.
     [Resolution] The counting room turns greed into a tactical time limit.
     [Pressure] A mistimed rush feeds the chains instead of beating them.
     [Prize] If the line gets under the first pull, the seals can still be stolen cleanly.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=20 mana=24
-    [PartyState] Nyx hp=4 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=42 focus=23 | Mira hp=36 mana=26
+    [PartyState] Nyx hp=41 stamina=0 | Sol hp=35 mana=32
     [CampForeshadow] Everyone rehearses what to say to a dragon and hopes not to need the words.
 [Substate] floor3.combat
-  [Round 1] pulse=1
+  [Round 1] pulse=2
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into cinder marshal
-    [Effect] guard crack, aggression=1, guard=2, morale=1
+    [Effect] guard crack, aggression=2, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at ash chanter
-    [Effect] saint flare, aggression=1, guard=1, morale=2
+    [Effect] saint flare, aggression=2, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against vault sentry
-    [Effect] bleed feint, aggression=1, guard=1, morale=1
+    [Effect] bleed feint, aggression=2, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through seal guardian
-    [Effect] cinder arc, aggression=2, guard=1, morale=1
-    [Resolve] Ari hp=17 focus=18
-    [Resolve] Mira hp=17 mana=24
-    [Resolve] Nyx hp=0 stamina=0
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=2 threat=10 trap=4 monster=7 treasure=53 affinityPulse=9 morale=38 keys=4 dragonHp=0 victory=0
-  [Round 2] pulse=1
+    [Effect] cinder arc, aggression=3, guard=1, morale=1
+    [Resolve] Ari hp=42 focus=23
+    [Resolve] Mira hp=40 mana=28
+    [Resolve] Nyx hp=41 stamina=0
+    [Resolve] Sol hp=38 mana=34
+  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=10 trap=4 monster=7 treasure=51 affinityPulse=9 morale=51 keys=4 dragonHp=0 victory=0
+  [Round 2] pulse=2
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into cinder marshal
-    [Effect] guard crack, aggression=1, guard=2, morale=1
+    [Effect] guard crack, aggression=2, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at ash chanter
-    [Effect] saint flare, aggression=1, guard=1, morale=2
+    [Effect] saint flare, aggression=2, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against vault sentry
-    [Effect] bleed feint, aggression=1, guard=1, morale=1
+    [Effect] bleed feint, aggression=2, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through seal guardian
-    [Effect] cinder arc, aggression=2, guard=1, morale=1
-    [Resolve] Ari hp=17 focus=18
-    [Resolve] Mira hp=14 mana=24
-    [Resolve] Nyx hp=0 stamina=0
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=2 threat=9 trap=3 monster=7 treasure=56 affinityPulse=9 morale=43 keys=5 dragonHp=0 victory=0
-  [Round 3] pulse=1
+    [Effect] cinder arc, aggression=3, guard=1, morale=1
+    [Resolve] Ari hp=46 focus=24
+    [Resolve] Mira hp=40 mana=28
+    [Resolve] Nyx hp=45 stamina=2
+    [Resolve] Sol hp=37 mana=34
+  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=9 trap=3 monster=7 treasure=55 affinityPulse=9 morale=56 keys=5 dragonHp=0 victory=0
+  [Round 3] pulse=2
     [Action] Ari anchor drive with Iron Kite Shieldblade in a front-footed pattern into cinder marshal
-    [Effect] guard crack, aggression=1, guard=2, morale=1
+    [Effect] guard crack, aggression=2, guard=2, morale=1
     [Action] Mira anchor drive with Sunlance Censer in a front-footed pattern at ash chanter
-    [Effect] saint flare, aggression=1, guard=1, morale=2
+    [Effect] saint flare, aggression=2, guard=1, morale=2
     [Action] Nyx anchor drive with Crowhook Knives in a front-footed pattern against vault sentry
-    [Effect] bleed feint, aggression=1, guard=1, morale=1
+    [Effect] bleed feint, aggression=2, guard=1, morale=1
     [Action] Sol anchor drive with Emberglass Staff in a front-footed pattern through seal guardian
-    [Effect] cinder arc, aggression=2, guard=1, morale=1
-    [Resolve] Ari hp=17 focus=18
-    [Resolve] Mira hp=11 mana=24
-    [Resolve] Nyx hp=0 stamina=0
-    [Resolve] Sol hp=0 mana=22
-  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=2 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=48 keys=6 dragonHp=0 victory=0
+    [Effect] cinder arc, aggression=3, guard=1, morale=1
+    [Resolve] Ari hp=46 focus=24
+    [Resolve] Mira hp=40 mana=28
+    [Resolve] Nyx hp=45 stamina=2
+    [Resolve] Sol hp=36 mana=34
+  [Skirmish] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=61 keys=6 dragonHp=0 victory=0
   [Hazard] trap=ash chains monster=cinder knights
   [Loot] smoldering crown seals secured
-[World] mode=SCRIPTED phase=FLOOR3 day=4 omen=2 fame=28 gold=246 morale=48 route=6/12/21/13
-  [Journey] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=2 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=48 keys=6 dragonHp=0 victory=0
+[World] mode=SCRIPTED phase=FLOOR3 day=4 omen=2 fame=51 gold=404 morale=61 route=10/12/21/13
+  [Journey] stage=FLOOR3 floor=ASH VAULT trapName=ash chains monsterName=cinder knights rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=61 keys=6 dragonHp=0 victory=0
   [Layers] bless=true/true bonds=true/true
   [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
@@ -979,32 +977,32 @@
     [Resolution] Saint-fire reduces panic and opens a survivable center.
     [Pressure] If the rhythm breaks, fear rushes back into every gap.
     [Prize] A held ward turns panic into positioning.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=11 mana=24
-    [PartyState] Nyx hp=0 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=46 focus=24 | Mira hp=40 mana=28
+    [PartyState] Nyx hp=45 stamina=2 | Sol hp=40 mana=36
   [Node 2] The hoard field is both battlefield and argument about greed.
     [Resolution] The hoard makes footing political; everyone chooses what not to step on.
     [Pressure] If the rhythm breaks, fear rushes back into every gap.
     [Prize] A held ward turns panic into positioning.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=11 mana=24
-    [PartyState] Nyx hp=0 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=46 focus=24 | Mira hp=40 mana=28
+    [PartyState] Nyx hp=45 stamina=2 | Sol hp=40 mana=36
   [Node 3] The kill window appears only if the party still trusts each other enough to take it.
     [Resolution] The kill window appears, disappears, and appears again only for the disciplined.
     [Pressure] If the rhythm breaks, fear rushes back into every gap.
     [Prize] A held ward turns panic into positioning.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=11 mana=24
-    [PartyState] Nyx hp=0 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=46 focus=24 | Mira hp=40 mana=28
+    [PartyState] Nyx hp=45 stamina=2 | Sol hp=40 mana=36
   [Node 4] The dragon's second wingbeat rearranges the whole battlefield and every plan on it.
     [Resolution] One wingbeat changes cover, range, and courage in the same instant.
     [Pressure] If the rhythm breaks, fear rushes back into every gap.
     [Prize] A held ward turns panic into positioning.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=11 mana=24
-    [PartyState] Nyx hp=0 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=46 focus=24 | Mira hp=40 mana=28
+    [PartyState] Nyx hp=45 stamina=2 | Sol hp=40 mana=36
   [Node 5] The last safe ground is not safe, only familiar enough to die on.
     [Resolution] The final ground teaches that survival and victory are not always the same geometry.
     [Pressure] If the rhythm breaks, fear rushes back into every gap.
     [Prize] A held ward turns panic into positioning.
-    [PartyState] Ari hp=17 focus=18 | Mira hp=11 mana=24
-    [PartyState] Nyx hp=0 stamina=0 | Sol hp=0 mana=22
+    [PartyState] Ari hp=46 focus=24 | Mira hp=40 mana=28
+    [PartyState] Nyx hp=45 stamina=2 | Sol hp=40 mana=36
 [Lair] The dragon descends through brass smoke and molten paper.
 [Substate] dragon.phase_machine
   [BossPhase 1] OPENING :: OPENING
@@ -1012,40 +1010,21 @@
     [DragonIntent] The dragon tries to define the room before the party does.
     [PartyWindow] Claim a stable lane before the second wingbeat.
     [FailureCost] If the opening belongs to the dragon, every later phase gets shorter and meaner.
-  [BossRound 1] pulse=3
+  [BossRound 1] pulse=2
     [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into dragon foreclaw
-    [Effect] guard crack, aggression=4, guard=3, morale=1
+    [Effect] guard crack, aggression=3, guard=3, morale=1
     [Action] Mira ward weave with Sunlance Censer in a guarded pattern at dragon throat
-    [Effect] saint flare, aggression=4, guard=2, morale=2
+    [Effect] saint flare, aggression=3, guard=2, morale=2
     [Action] Nyx ward weave with Crowhook Knives in a guarded pattern against dragon wing root
-    [Effect] bleed feint, aggression=4, guard=2, morale=1
+    [Effect] bleed feint, aggression=3, guard=2, morale=1
     [Action] Sol ward weave with Emberglass Staff in a guarded pattern through dragon eye ridge
-    [Effect] cinder arc, aggression=5, guard=2, morale=1
-  [Boss] hp=27 flame=10 armor=6
-    [Resolve] Ari hp=17 focus=19
-    [Resolve] Mira hp=0 mana=24
-    [Resolve] Nyx hp=0 stamina=0
-    [Resolve] Sol hp=0 mana=22
-  [BossPhase 2] FLAME TURN :: FLAME TURN
-    [Narration] Coins, bones, and library ash shift together whenever the dragon breathes.
-    [DragonIntent] The dragon shifts from threat to terrain and makes the lair part of its body.
-    [PartyWindow] Use blessing, footing, or speed before the vent pattern locks in.
-    [FailureCost] If the fire map settles first, recovery becomes taxation.
-  [BossRound 2] pulse=3
-    [Action] Ari ward weave with Iron Kite Shieldblade in a guarded pattern into molten breastplate scales
-    [Effect] guard crack, aggression=4, guard=3, morale=1
-    [Action] Mira ward weave with Sunlance Censer in a guarded pattern at flame sac
-    [Effect] saint flare, aggression=4, guard=2, morale=2
-    [Action] Nyx ward weave with Crowhook Knives in a guarded pattern against hoard-side tendon
-    [Effect] bleed feint, aggression=4, guard=2, morale=1
-    [Action] Sol ward weave with Emberglass Staff in a guarded pattern through rune-burn scar
-    [Effect] cinder arc, aggression=5, guard=2, morale=1
+    [Effect] cinder arc, aggression=4, guard=2, morale=1
   [BossBreak] the dragon buckles under the combined push.
   [Boss] trap=dragonfire vents monster=wyrm herald
   [Epilogue] The wyrm collapses across the hoard while the party drags the crown seals into dawn.
 [Ledger] morale=50
-[World] mode=SCRIPTED phase=DRAGON day=5 omen=1 fame=53 gold=253 morale=84 route=8/12/21/12
-  [Journey] stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=2 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=84 keys=6 dragonHp=0 victory=1
+[World] mode=SCRIPTED phase=DRAGON day=5 omen=1 fame=80 gold=430 morale=93 route=12/12/21/12
+  [Journey] stage=DONE floor=DRAGON LAIR trapName=dragonfire vents monsterName=wyrm herald rumor=6 threat=8 trap=2 monster=7 treasure=59 affinityPulse=9 morale=93 keys=6 dragonHp=0 victory=1
   [Layers] bless=true/true bonds=true/true
   [States] bless=true/true bond=true/true
   [LayerText] Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
@@ -1061,15 +1040,15 @@
 [Camp] Morning turns dragon smoke into weather and the campaign into memory.
 
 === FINAL PARTY SNAPSHOT ===
-mode=SCRIPTED phase=EPILOGUE day=5 omen=1 fame=53 gold=253 morale=84 route=8/12/21/12
+mode=SCRIPTED phase=EPILOGUE day=5 omen=1 fame=80 gold=430 morale=93 route=12/12/21/12
 choices=3/1/2/1/2
 ready=true/true
 layers=true/true
 states=true/true
 layer_text=Ari carries battle blessing(2) | Sol carries battle blessing(3) | Ari keeps faith with Mira (+1) | Nyx keeps faith with Sol (+2)
-fighter: Ari [Vanguard] crest=iron wolf weapon=Iron Kite Shieldblade [line-break] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=1 hp=17 mp=11 sta=0 atk=7 grd=3 focus=19 affinity=11 trust=10 relics=31 gold=44 fx=0/3/1/22 dragon=36
-cleric: Mira [Cleric] crest=sun chalice weapon=Sunlance Censer [radiant reach] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=1 hp=0 mp=24 sta=0 atk=3 grd=3 focus=24 affinity=15 trust=11 relics=28 gold=40 fx=0/3/6/0 dragon=27
-rogue: Nyx [Rogue] crest=crow lockpick weapon=Crowhook Knives [shadow cut] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=1 hp=0 mp=10 sta=0 atk=5 grd=3 focus=36 affinity=16 trust=13 relics=42 gold=55 fx=2/8/2/0 dragon=33
-mage: Sol [Mage] crest=ember eye weapon=Emberglass Staff [arcane burst] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=1 hp=0 mp=22 sta=0 atk=7 grd=2 focus=21 affinity=9 trust=8 relics=42 gold=55 fx=1/9/2/0 dragon=42
+fighter: Ari [Vanguard] crest=iron wolf weapon=Iron Kite Shieldblade [line-break] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=15 CON=10 INT=13 WIS=15 CHA=9} lv=8 hp=50 mp=25 sta=2 atk=14 grd=10 focus=26 affinity=11 trust=10 relics=31 gold=90 fx=0/2/1/19 dragon=19
+cleric: Mira [Cleric] crest=sun chalice weapon=Sunlance Censer [radiant reach] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=15 WIS=11 CHA=14} lv=7 hp=44 mp=30 sta=2 atk=9 grd=9 focus=30 affinity=15 trust=11 relics=28 gold=74 fx=0/1/6/0 dragon=15
+rogue: Nyx [Rogue] crest=crow lockpick weapon=Crowhook Knives [shadow cut] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=11 CON=13 INT=16 WIS=9 CHA=13} lv=8 hp=49 mp=24 sta=2 atk=12 grd=10 focus=41 affinity=16 trust=13 relics=42 gold=101 fx=2/4/3/0 dragon=17
+mage: Sol [Mage] crest=ember eye weapon=Emberglass Staff [arcane burst] state=idle floor=DRAGON LAIR sheet={STR=15 DEX=9 CON=13 INT=17 WIS=10 CHA=13} lv=8 hp=37 mp=36 sta=0 atk=14 grd=9 focus=28 affinity=9 trust=8 relics=42 gold=106 fx=1/5/2/0 dragon=22
 saving examples/dnd_tavern_campaign/results.txt
-pgy: compiled → /tmp/dnd_probe
+pgy: compiled → /tmp/dnd_tavern_bin

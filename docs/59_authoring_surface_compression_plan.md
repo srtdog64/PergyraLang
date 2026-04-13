@@ -8,7 +8,7 @@ authoring pain point를 줄이기 위한 표면 설계 방향을 고정한다.
 핵심 원칙:
 
 - 개념을 지우는 것이 아니라 반복 기술을 줄인다.
-- 규칙은 유지하되, 자주 반복되는 선언은 추론/승계/preset으로 압축한다.
+- 규칙은 유지하되, 자주 반복되는 선언은 유도/승계/preset으로 압축한다.
 - diagnostics는 문법 부속물이 아니라 제품 기능으로 취급한다.
 
 ## 1. 가장 큰 pain point
@@ -223,7 +223,7 @@ within CalendarZone {
 
 상세 설계:
 
-- [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+- [60_zone_context_and_transfer_derivation.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_derivation.md)
 
 현재 상태:
 
@@ -231,7 +231,7 @@ within CalendarZone {
 - nested lexical zone context는 아직 금지
 - file-global `zone context`는 아직 설계 단계
 - 현재 구현된 것은
-  - `transfer target -> using/where inference`
+  - `transfer target -> using/where derivation`
   - `within Zone { ... }` lexical zone context 1차
 
 ### 2.4 relation/effect alias 또는 implicit member resolution
@@ -273,14 +273,14 @@ move loading to delivery;
 
 상세 설계:
 
-- [60_zone_context_and_transfer_inference.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_inference.md)
+- [60_zone_context_and_transfer_derivation.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_derivation.md)
 
 현재 상태:
 
 - 1차 구현 완료
 - `using self.route as route;` 형태를 statement-start alias surface로 지원
 - `move <from-alias> to <to-alias>;`를 `transfer: <from-alias> -> <to-alias>;`로 낮춘다
-- `transfer target -> using/where inference`도 이미 구현됐다
+- `transfer target -> using/where derivation`도 이미 구현됐다
 - type-directed `move <value> to <ZoneType>;`는 아직 설계 단계다
 
 ### 2.6 group bind / projection scaffold
@@ -438,7 +438,7 @@ Fix:
 
 ### P0
 
-- intent 계약 추론
+- intent 계약 상속/유도
 - relation/effect 접근 완화
 - transfer 축약 표면
 - domain-first diagnostics 개선
@@ -464,11 +464,11 @@ token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
   family의 동시 서술량을 줄이는 방향
 
 2. contract duplication 제거
-- action 선언에 있는 계약을 intent/zone 쪽이 자연스럽게 상속/추론하게 만들고,
+- action 선언에 있는 계약을 intent/zone 쪽이 자연스럽게 상속/유도하게 만들고,
   override가 있을 때만 더 쓰게 하는 방향
 
-3. inferred contract diagnostics 강화
-- 추론이 강할수록 "무엇이 어디서 상속되었는가"를
+3. inherited/derived contract diagnostics 강화
+- 유도가 강할수록 "무엇이 어디서 상속되었는가"를
   오류 메시지와 tooling이 먼저 설명하게 만드는 방향
 
 현재 기준으로는 새로운 키워드 추가보다
@@ -489,14 +489,14 @@ token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
 
 - 언어 철학은 유지한다.
 - authoring pressure는 surface compression으로 줄인다.
-- 반복 선언은 추론과 preset으로 줄인다.
+- 반복 선언은 유도와 preset으로 줄인다.
 - diagnostics 품질을 제품 기능으로 끌어올린다.
 - surface trust는 기능 completeness와 별도 축으로 계속 관리한다.
 
 추가 결정:
 
 - `상속`이라는 표현은 여기서 쓰지 않는다.
-- `zone/world/action/authority`에서 step/body로 내려오는 기본값은 모두 `추론`으로 부른다.
+- `zone/world/action/authority`에서 step/body로 내려오는 기본값은 모두 `유도/상속`으로 부른다.
 
 ## P0 execution order reset
 
@@ -557,7 +557,7 @@ Done means:
 
 The following are not part of the current compression pass unless they directly unblock one of the five items above:
 - new ontology keywords
-- profile/inheritance systems beyond today's simple inference rules
+- profile/inheritance systems beyond today's simple derivation rules
 - new transfer semantics
 - new runtime subsystems
 

@@ -622,51 +622,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     /* Built-in: ClaimSlot<T>() — handled mostly in let_decl, but standalone */
     if (strcmp(callee_name, "ClaimSlot") == 0
         || strcmp(callee_name, "ClaimSecureSlot") == 0) {
-        if (strcmp(callee_name, "ClaimSecureSlot") == 0) {
-            LLVMTypeRef slot_ty = llvm_secure_slot_struct_type(ctx, "Int");
-            LLVMTypeRef token_ty = llvm_secure_token_type(ctx, "Int");
-            LLVMValueRef slot_tmp = llvm_create_entry_alloca(ctx, slot_ty, llvm_tmp_name(ctx));
-            LLVMValueRef token_tmp = llvm_create_entry_alloca(ctx, token_ty, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, LLVMConstNull(slot_ty), slot_tmp);
-            LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_tmp);
-
-            LLVMValueRef claimed_ptr = LLVMBuildStructGEP2(ctx->builder,
-                slot_ty, slot_tmp, 1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder,
-                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
-                claimed_ptr);
-
-            LLVMValueRef slot_ptr_i64 = LLVMBuildPtrToInt(ctx->builder,
-                slot_tmp, ctx->type_i64, llvm_tmp_name(ctx));
-            LLVMValueRef token_id = LLVMBuildXor(ctx->builder, slot_ptr_i64,
-                LLVMConstInt(ctx->type_i64, 0xDEADBEEFCAFEBABEULL, 0),
-                llvm_tmp_name(ctx));
-            LLVMValueRef slot_token_ptr = LLVMBuildStructGEP2(ctx->builder,
-                slot_ty, slot_tmp, 2, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, token_id, slot_token_ptr);
-            LLVMValueRef token_id_ptr = LLVMBuildStructGEP2(ctx->builder,
-                token_ty, token_tmp, 0, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, token_id, token_id_ptr);
-            LLVMValueRef token_write_ptr = LLVMBuildStructGEP2(ctx->builder,
-                token_ty, token_tmp, 1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder,
-                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
-                token_write_ptr);
-            LLVMValueRef token_read_ptr = LLVMBuildStructGEP2(ctx->builder,
-                token_ty, token_tmp, 2, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder,
-                LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
-                token_read_ptr);
-            return LLVMBuildLoad2(ctx->builder, slot_ty, slot_tmp, llvm_tmp_name(ctx));
-        } else {
-            char fn_name[64];
-            snprintf(fn_name, sizeof(fn_name), "pgy_claim_Int");
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-            if (fn == NULL)
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                                   NULL, 0, llvm_tmp_name(ctx));
-        }
+        llvm_set_error_at(ctx, node,
+            "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
+            callee_name,
+            strcmp(callee_name, "ClaimSecureSlot") == 0 ? "SecureSlot" : "Slot",
+            callee_name);
+        return NULL;
     }
 
     if (strcmp(callee_name, "ClaimDeviceSlot") == 0) {
@@ -819,7 +780,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMVarEntry *slot_var = NULL;
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
+        if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+            llvm_set_error_at(ctx, slot_arg,
+                "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
+                slot_arg->data.identifier.name);
+            return NULL;
+        }
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -844,7 +810,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMVarEntry *slot_var = NULL;
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
+        if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+            llvm_set_error_at(ctx, slot_arg,
+                "LLVM DeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+                slot_arg->data.identifier.name);
+            return NULL;
+        }
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -868,7 +839,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMVarEntry *slot_var = NULL;
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
+        if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+            llvm_set_error_at(ctx, slot_arg,
+                "LLVM ReleaseDeviceSlot on '%s' requires a concrete DeviceSlot<T> inner type",
+                slot_arg->data.identifier.name);
+            return NULL;
+        }
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -894,7 +870,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMVarEntry *slot_var = NULL;
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
             slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
-        if (inner == NULL) inner = "Int";
+        if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
+            llvm_set_error_at(ctx, slot_arg,
+                "LLVM SubmitDeviceRead on '%s' requires a concrete DeviceSlot<T> inner type",
+                slot_arg->data.identifier.name);
+            return NULL;
+        }
         if (slot_var == NULL)
             return LLVMConstInt(ctx->type_i32, 0, 0);
 

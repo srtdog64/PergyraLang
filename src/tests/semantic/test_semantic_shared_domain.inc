@@ -372,7 +372,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("zone bind infers object and tobject projection targets from slot kind");
+    TEST("zone bind derives object and tobject projection targets from slot kind");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
@@ -1027,7 +1027,7 @@ test_shared_memory_features(void)
         lexer_destroy(lexer);
     }
 
-    TEST("relation/effect bind infers object and tobject projection targets from slot kind");
+    TEST("relation/effect bind derives object and tobject projection targets from slot kind");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"

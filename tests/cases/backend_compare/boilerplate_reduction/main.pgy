@@ -1,5 +1,5 @@
 // Test: boilerplate reduction features
-// 1. zone action within auto-inference
+// 1. zone action within lexical derivation
 // 2. intent-level who/where propagation
 // 3. action with optional clauses (no within, no authorized by, no causes)
 
@@ -38,7 +38,7 @@ zone CampZone
 {
     subjects [camper, guide]: Adventurer
 
-    // within CampZone is auto-inferred — not written explicitly
+    // within CampZone is lexically derived — not written explicitly
     action Rest(self) -> Void
         requires Climber
     {
@@ -79,7 +79,7 @@ func Main() -> Void
     hero.Climb();
     Log("after climb hp=" + ToString(hero.hp));
 
-    // Test 2: zone action with auto-inferred within
+    // Test 2: zone action with lexically derived within
     let camp = CampZone(Adventurer("Bob", 5));
     // camp.Rest() would use within CampZone automatically
 

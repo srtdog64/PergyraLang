@@ -1454,7 +1454,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step inherits action requires within causes and authorized by");
+    TEST("intent step reuses action requires within causes and authorized by");
     {
         const char *source =
             "ability Payable { func Pay() -> Void; }\n"
@@ -1502,7 +1502,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority diagnostic mentions inherited action zone");
+    TEST("intent authority diagnostic mentions reused action zone");
     {
         const char *source =
             "/// @effects secure\n"
@@ -1534,9 +1534,9 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inherited from matching action contract"));
+            "reused from matching action contract"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "inherited zone from matching action contract: CockpitZone"));
+            "reused zone from matching action contract: CockpitZone"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2071,7 +2071,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step infers using and where from transfer target");
+    TEST("intent step derives using and where from transfer target");
     {
         const char *source =
             "subject Buyer {\n"
@@ -2106,7 +2106,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step move shorthand infers using and where from transfer target");
+    TEST("intent step move shorthand derives using and where from transfer target");
     {
         const char *source =
             "subject Buyer {\n"
@@ -2205,7 +2205,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step inherits action where requires causes and authorized by");
+    TEST("intent step reuses action where requires causes and authorized by");
     {
         const char *source =
             "ability Prepared {\n"
@@ -2291,7 +2291,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step infers who from unique matching subject action");
+    TEST("intent step derives who from unique matching subject action");
     {
         const char *source =
             "subject Hero {\n"
@@ -2350,7 +2350,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent step infers where from explicit using zone binding");
+    TEST("intent step derives where from explicit using zone binding");
     {
         const char *source =
             "subject Hero {\n"
@@ -3437,7 +3437,7 @@
         remove(module_path);
     }
 
-    TEST("zone bind group expands into multiple inferred projection sync entries");
+    TEST("zone bind group expands into multiple derived projection sync entries");
     {
         const char *source =
             "subject Player { let hp: Int; let name: String; }\n"
@@ -3474,11 +3474,11 @@
             ASTNode *first = zone->data.zone_decl.refreshes[0];
             ASTNode *second = zone->data.zone_decl.refreshes[1];
             EXPECT(first != NULL
-                && first->data.zone_refresh.infer_target_kind
+                && first->data.zone_refresh.derive_target_kind
                 && strcmp(first->data.zone_refresh.object_slot_name, "playerView") == 0
                 && strcmp(first->data.zone_refresh.source_slot_name, "player") == 0);
             EXPECT(second != NULL
-                && second->data.zone_refresh.infer_target_kind
+                && second->data.zone_refresh.derive_target_kind
                 && strcmp(second->data.zone_refresh.object_slot_name, "snapshot") == 0
                 && strcmp(second->data.zone_refresh.source_slot_name, "player") == 0);
         }
@@ -3535,22 +3535,22 @@
 
             EXPECT(refresh_a != NULL
                 && !refresh_a->data.zone_refresh.requires_dto
-                && !refresh_a->data.zone_refresh.infer_target_kind
+                && !refresh_a->data.zone_refresh.derive_target_kind
                 && strcmp(refresh_a->data.zone_refresh.object_slot_name, "playerView") == 0
                 && strcmp(refresh_a->data.zone_refresh.participant_slot_name, "player") == 0);
             EXPECT(refresh_b != NULL
                 && !refresh_b->data.zone_refresh.requires_dto
-                && !refresh_b->data.zone_refresh.infer_target_kind
+                && !refresh_b->data.zone_refresh.derive_target_kind
                 && strcmp(refresh_b->data.zone_refresh.object_slot_name, "playerCard") == 0
                 && strcmp(refresh_b->data.zone_refresh.participant_slot_name, "player") == 0);
             EXPECT(publish_a != NULL
                 && publish_a->data.zone_refresh.requires_dto
-                && !publish_a->data.zone_refresh.infer_target_kind
+                && !publish_a->data.zone_refresh.derive_target_kind
                 && strcmp(publish_a->data.zone_refresh.object_slot_name, "snapshot") == 0
                 && strcmp(publish_a->data.zone_refresh.participant_slot_name, "player") == 0);
             EXPECT(publish_b != NULL
                 && publish_b->data.zone_refresh.requires_dto
-                && !publish_b->data.zone_refresh.infer_target_kind
+                && !publish_b->data.zone_refresh.derive_target_kind
                 && strcmp(publish_b->data.zone_refresh.object_slot_name, "packet") == 0
                 && strcmp(publish_b->data.zone_refresh.participant_slot_name, "player") == 0);
         }

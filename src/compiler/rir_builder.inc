@@ -397,16 +397,16 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             node, refresh->data.zone_refresh.object_slot_name);
         bool tobject =
             refresh->data.zone_refresh.requires_dto
-            || (refresh->data.zone_refresh.infer_target_kind
+            || (refresh->data.zone_refresh.derive_target_kind
                 && target_slot != NULL
                 && target_slot->data.domain_slot.is_tobject);
 
         if (!add_projection_fact(&scope,
                                  refresh->data.zone_refresh.object_slot_name,
                                  refresh->data.zone_refresh.source_slot_name,
-                                 tobject ? "publish" : (refresh->data.zone_refresh.infer_target_kind ? "bind" : "refresh"),
+                                 tobject ? "publish" : (refresh->data.zone_refresh.derive_target_kind ? "bind" : "refresh"),
                                  tobject ? RIR_STATE_PUBLISHED
-                                     : (refresh->data.zone_refresh.infer_target_kind ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
+                                     : (refresh->data.zone_refresh.derive_target_kind ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
                                  tobject ? RIR_RESOURCE_PROJECTION_TOBJECT : RIR_RESOURCE_PROJECTION_OBJECT,
                                  refresh))
             goto oom;

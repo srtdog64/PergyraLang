@@ -1,6 +1,6 @@
-// action_contract_inference_minimal.pgy
+// action_contract_inheritance_minimal.pgy
 //
-// 현재 구현된 action contract inference 예제:
+// 현재 구현된 action contract reuse 예제:
 // - action within -> step where
 // - action requires -> step requires
 // - action authorized by -> step authorized by
@@ -52,5 +52,5 @@ intent Patrol(battle: BattleZone, hero: Hero) {
 }
 
 func Main() -> Void {
-    Log("action contract inference minimal");
+    Log("action contract reuse minimal");
 }

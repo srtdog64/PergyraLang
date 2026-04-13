@@ -1833,9 +1833,9 @@ llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
 }
 
 static const char *
-llvm_fallback_slot_inner_from_current_decl(LLVMGenCtx *ctx,
-                                           const char *source_name,
-                                           bool *secure_out)
+llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
+                                         const char *source_name,
+                                         bool *secure_out)
 {
     const char *current_name;
     ASTNode *current_decl;
@@ -1895,7 +1895,7 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
                          const char **source_name_out,
                          bool *secure_out)
 {
-    const char *inner = "Int";
+    const char *inner = NULL;
     const char *source_name = NULL;
     bool is_secure = false;
 
@@ -1931,14 +1931,23 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
     }
 
     if (inner == NULL && source_name != NULL) {
-        const char *fallback_inner =
-            llvm_fallback_slot_inner_from_current_decl(ctx, source_name, &is_secure);
-        if (fallback_inner != NULL)
-            inner = fallback_inner;
+        const char *derived_inner =
+            llvm_derive_slot_inner_from_current_decl(ctx, source_name, &is_secure);
+        if (derived_inner != NULL)
+            inner = derived_inner;
     }
 
-    if (inner == NULL)
-        inner = "Int";
+    if (source_name == NULL) {
+        llvm_set_error_at(ctx, slot_arg,
+            "LLVM slot operation requires an identifier/view/move source with a known slot binding");
+        return NULL;
+    }
+    if (inner == NULL) {
+        llvm_set_error_at(ctx, slot_arg,
+            "LLVM slot operation on '%s' requires a concrete slot inner type; silent Int fallback is no longer allowed",
+            source_name);
+        return NULL;
+    }
     if (inner_out != NULL)
         *inner_out = inner;
     if (source_name_out != NULL)

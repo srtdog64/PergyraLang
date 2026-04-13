@@ -34,7 +34,7 @@
 #### 1. Intent / Zone / World closure
 
 현재:
-- intent orchestration, inferred contract, rollback/cleanup carrier, zone/world declaration과 기본 lowering은 존재
+- intent orchestration, inherited/derived contract, rollback/cleanup carrier, zone/world declaration과 기본 lowering은 존재
 - zone/world projection/layer/state query도 존재
 
 남은 것:
@@ -175,7 +175,7 @@
 ### B0 — 의미론 클로저 필수
 
 - [ ] **Intent/Zone/World semantics 완전 closure**
-  - inference / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
+  - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
 - [ ] **generic contract 완전 closure**
@@ -208,6 +208,11 @@
 - [ ] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
 
 ## P1.5 — 언어/컴파일러 보강
+
+- [ ] **MIR DCE statement-level 확장**
+  - 현재는 `Intent*` 같은 semantic carrier를 보존하도록 방어됐지만, statement-level DCE 자체는 아직 정교하지 않음
+  - 다음 단계: pure expression stmt / dead call / dead resource-op / carrier stmt를 분리해 제거 정책을 세분화
+  - 목표: MIR-only emitter가 기대하는 metadata carrier를 잃지 않으면서도 불필요한 stmt는 실제로 제거
 
 - [x] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
   - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)
@@ -287,6 +292,8 @@
   - cleanup convergence root는 시작됨, MIR-level `RIR-flow` merge와 cleanup convergence policy를 더 고도화
 - [ ] **MIR DCE 확장 (statement-level)**
   - dead DEF/PHI 제거를 넘어 side-effect-free STMT/unused call 제거
+  - 현재는 pure query builtin (`Has*`, `ChannelLength/Capacity/Space/Full/Closed`)과 pure literal/binary/unary/member RHS의 dead `let`/identifier-assign 제거까지 시작
+  - user call purity는 아직 보수적으로 side-effect 있다고 간주
   - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시
   - RPO 기반 liveness와 결합해 제거 정확도 개선
 ## P2.0 — Backend MIR 기반 전환 ✅ 완료
@@ -344,7 +351,7 @@
 - [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
 - [x] **`let` 타입 추론** — initializer 기반 기본 추론은 현재 구현됨
   - 완료: annotation이 없을 때 initializer 타입으로 추론
-  - 남음: 문서/표면 예시를 더 공격적으로 inference 중심으로 정리할지 결정
+  - 남음: 문서/표면 예시를 더 공격적으로 타입 추론 중심으로 정리할지 결정
 
 ### 제네릭 클래스
 - [x] **제네릭 클래스** — `class Pair<T>` 문법 + 시맨틱 + C 코드젠 (단형화). 예제: `examples/generic_class.pgy`

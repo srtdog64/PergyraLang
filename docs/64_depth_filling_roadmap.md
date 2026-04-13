@@ -29,7 +29,7 @@
 - 지금은 empty cell 제거 우선
 - scaffold와 pure sugar는 마지막 단계
 - 다만 아래 항목은 이미 depth-closure 목적의 shorthand로 구현 반영됨
-  - `using <-> where` intent step 상호 추론
+  - `using <-> where` intent step 상호 유도
   - `refresh/publish/bind ... map { target <- source; }`
   - explicit `Clone(...)` world embedding surface
 
@@ -74,7 +74,7 @@
 
 이미 반영된 예:
 - `move <from> to <to>;`
-- `using <-> where` intent step inference
+- `using <-> where` intent step derivation
 - `refresh/publish/bind ... map { ... }`
 - explicit `Clone(...)` for world embedding
 
@@ -121,7 +121,7 @@ open:
 현재 이미 있는 압축 수단:
 - intent-level `who:`
 - intent-level `where:`
-- `using <-> where` step inference
+- `using <-> where` step derivation
 
 open:
 - step profile/preset 없이 큰 intent에서 반복 선언이 여전히 크다

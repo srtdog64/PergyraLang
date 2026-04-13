@@ -724,7 +724,7 @@ ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* sourc
         source_slot_name ? pergyra_strdup(source_slot_name) : NULL;
     node->data.zone_refresh.participant_slot_name = NULL;
     node->data.zone_refresh.requires_dto = false;
-    node->data.zone_refresh.infer_target_kind = false;
+    node->data.zone_refresh.derive_target_kind = false;
     node->data.zone_refresh.mapped_target_fields = NULL;
     node->data.zone_refresh.mapped_source_fields = NULL;
     node->data.zone_refresh.field_map_count = 0;

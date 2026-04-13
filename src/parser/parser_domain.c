@@ -674,11 +674,11 @@ append_domain_projection_sync_entries(Parser *parser,
                                       size_t *refresh_count,
                                       bool allow_participant)
 {
-    bool infer_target_kind =
+    bool derive_target_kind =
         parser->previous_token.text != NULL
         && strcmp(parser->previous_token.text, "bind") == 0;
     bool requires_dto =
-        !infer_target_kind
+        !derive_target_kind
         && parser->previous_token.text != NULL
         && strcmp(parser->previous_token.text, "publish") == 0;
     char **target_names = NULL;
@@ -692,7 +692,7 @@ append_domain_projection_sync_entries(Parser *parser,
     if (parser_match(parser, TOKEN_LBRACKET)) {
         do {
             Token target_name = consume_name_token(parser,
-                infer_target_kind
+                derive_target_kind
                     ? "Expected object/tobject slot name in bind group"
                     : (requires_dto
                         ? "Expected tobject slot name in publish group"
@@ -707,7 +707,7 @@ append_domain_projection_sync_entries(Parser *parser,
         parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after projection group slot names");
     } else {
         Token target_name = consume_name_token(parser,
-            infer_target_kind
+            derive_target_kind
                 ? "Expected object/tobject slot name after 'bind'"
                 : (requires_dto
                     ? "Expected tobject slot name after 'publish'"
@@ -720,7 +720,7 @@ append_domain_projection_sync_entries(Parser *parser,
 
     if (!parser_match_identifier_keyword(parser, "from")) {
         parser_error(parser,
-            infer_target_kind
+            derive_target_kind
                 ? "Expected 'from' after bind slot name or group"
                 : (requires_dto
                     ? "Expected 'from' after publish slot name or group"
@@ -747,7 +747,7 @@ append_domain_projection_sync_entries(Parser *parser,
     for (size_t i = 0; i < target_count; i++) {
         ASTNode *refresh = ast_create_zone_refresh(target_names[i], source_slot.text);
         refresh->data.zone_refresh.requires_dto = requires_dto;
-        refresh->data.zone_refresh.infer_target_kind = infer_target_kind;
+        refresh->data.zone_refresh.derive_target_kind = derive_target_kind;
         refresh->data.zone_refresh.participant_slot_name =
             participant_slot_name != NULL ? pergyra_strdup(participant_slot_name) : NULL;
         if (field_map_count > 0 && target_count == 1) {
