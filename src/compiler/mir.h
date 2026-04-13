@@ -136,9 +136,11 @@ typedef struct
     size_t      last_use_block;
     size_t      live_in_block_count;
     size_t      live_out_block_count;
+    size_t      ast_write_count;
     bool        used_outside_def_block;
     bool        used_by_phi;
     bool        crosses_block_boundary;
+    bool        has_ast_reassignment;
     bool        reaches_cleanup;
 } MIRValueSummary;
 

@@ -2264,12 +2264,54 @@ transpiler_has_explicit_local_binding(const ASTNode *func_decl,
 }
 
 static const char *
+transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
+                                                 const char *member_name)
+{
+    const char *member_type = NULL;
+
+    if (ctx == NULL || member_name == NULL)
+        return NULL;
+
+    if (ctx->current_class_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_class_name, member_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+    if (ctx->current_relation_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_relation_name, member_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+    if (ctx->current_effect_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_effect_name, member_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+    if (ctx->current_zone_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_zone_name, member_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+    if (ctx->current_world_name != NULL) {
+        member_type = lookup_nominal_host_member_type_name(ctx,
+            ctx->current_world_name, member_name);
+        if (member_type != NULL)
+            return member_type;
+    }
+
+    return NULL;
+}
+
+static const char *
 transpiler_find_local_type_name(TranspilerCtx *ctx,
                                 const ASTNode *func_decl,
                                 const char *base_name)
 {
     const char *typed_name = NULL;
-    const char *member_type = NULL;
 
     if (base_name == NULL)
         return NULL;
@@ -2286,34 +2328,21 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
             static char *rendered_param = NULL;
             free(rendered_param);
             rendered_param = render_type_name(p->type);
+            if (ctx != NULL && rendered_param != NULL)
+                register_typed_var(ctx, base_name, rendered_param);
             return rendered_param;
         }
     }
     typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
         func_decl->data.func_decl.body, base_name);
-    if (typed_name != NULL)
+    if (typed_name != NULL) {
+        if (ctx != NULL)
+            register_typed_var(ctx, base_name, typed_name);
         return typed_name;
+    }
 
 owner_fallback:
-    if (ctx != NULL && ctx->current_class_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_class_name, base_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx != NULL && ctx->current_zone_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_zone_name, base_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    if (ctx != NULL && ctx->current_world_name != NULL) {
-        member_type = lookup_nominal_host_member_type_name(ctx,
-            ctx->current_world_name, base_name);
-        if (member_type != NULL)
-            return member_type;
-    }
-    return NULL;
+    return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
 }
 
 static bool

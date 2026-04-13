@@ -439,6 +439,8 @@ test_mir_lowering(void)
                && score_summary->slot_anchor != NULL
                && strcmp(score_summary->slot_anchor, "score") == 0
                && score_summary->use_count > 0
+               && score_summary->ast_write_count > 1
+               && score_summary->has_ast_reassignment
                && score_summary->used_outside_def_block
                && score_summary->crosses_block_boundary
                && score_summary->live_out_block_count > 0);

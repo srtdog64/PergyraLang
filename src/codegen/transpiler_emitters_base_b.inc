@@ -402,23 +402,23 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (transpiler_is_implicit_field(ctx, base))
                 continue;
             type_name = transpiler_find_local_type_name(ctx, node, base);
-            type_ast = transpiler_find_local_type_ast(ctx, node, base);
             if (transpiler_type_name_is_slot_like(type_name))
                 continue;
-            if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
-                c_name = transpiler_render_ssa_name(ctx, versioned_name);
-                decl = pergyra_ast_typed_declarator(type_ast, c_name);
-                write_indent(ctx);
-                codebuf_write(ctx->out, "%s = 0;\n", decl);
-                write_indent(ctx);
-                codebuf_write(ctx->out, "(void)%s;\n", c_name);
-                free(decl);
-                free(c_name);
-                continue;
-            }
             if (type_name != NULL)
                 c_type = pergyra_type_to_c(type_name);
             if (c_type == NULL) {
+                type_ast = transpiler_find_local_type_ast(ctx, node, base);
+                if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
+                    c_name = transpiler_render_ssa_name(ctx, versioned_name);
+                    decl = pergyra_ast_typed_declarator(type_ast, c_name);
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "%s = 0;\n", decl);
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "(void)%s;\n", c_name);
+                    free(decl);
+                    free(c_name);
+                    continue;
+                }
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(
                         "cannot determine C type for MIR local '%s' in function '%s'",

@@ -162,6 +162,25 @@ llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+static const char *
+llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    decl = llvm_stmt_find_function_decl_by_name(ctx, name);
+    if (decl == NULL
+        || decl->data.func_decl.return_type == NULL
+        || decl->data.func_decl.return_type->type != AST_TYPE
+        || decl->data.func_decl.return_type->data.type.name == NULL) {
+        return NULL;
+    }
+
+    return decl->data.func_decl.return_type->data.type.name;
+}
+
 static bool
 llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
 {
@@ -802,27 +821,34 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         }
         if (callee != NULL
             && callee->type == AST_IDENTIFIER
-            && callee->data.identifier.name != NULL
-            && expr->data.call.arg_count >= 1
-            && expr->data.call.arguments[0] != NULL
-            && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *name = expr->data.call.arguments[0]->data.identifier.name;
-            const char *inner = NULL;
-            if (strcmp(callee->data.identifier.name, "Read") == 0
-                || strcmp(callee->data.identifier.name, "Write") == 0
-                || strcmp(callee->data.identifier.name, "Release") == 0) {
-                inner = llvm_lookup_slot_inner(ctx, name);
-                if (inner == NULL) {
-                    LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
-                    if (view != NULL)
-                        inner = view->inner_type;
+            && callee->data.identifier.name != NULL) {
+            const char *callee_name = callee->data.identifier.name;
+            if (expr->data.call.arg_count >= 1
+                && expr->data.call.arguments[0] != NULL
+                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                const char *name = expr->data.call.arguments[0]->data.identifier.name;
+                const char *inner = NULL;
+                if (strcmp(callee_name, "Read") == 0
+                    || strcmp(callee_name, "Write") == 0
+                    || strcmp(callee_name, "Release") == 0) {
+                    inner = llvm_lookup_slot_inner(ctx, name);
+                    if (inner == NULL) {
+                        LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
+                        if (view != NULL)
+                            inner = view->inner_type;
+                    }
+                    if (inner == NULL)
+                        inner = llvm_lookup_device_slot_inner(ctx, name);
+                    if (inner != NULL && strcmp(callee_name, "Read") == 0)
+                        return inner;
+                    if (inner != NULL)
+                        return "Void";
                 }
-                if (inner == NULL)
-                    inner = llvm_lookup_device_slot_inner(ctx, name);
-                if (inner != NULL && strcmp(callee->data.identifier.name, "Read") == 0)
-                    return inner;
-                if (inner != NULL)
-                    return "Void";
+            }
+            {
+                const char *declared_ret = llvm_stmt_declared_return_type_name(ctx, callee_name);
+                if (declared_ret != NULL)
+                    return declared_ret;
             }
         }
         return "Int";

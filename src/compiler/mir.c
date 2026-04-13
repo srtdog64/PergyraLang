@@ -14,6 +14,7 @@
 static void mir_clear_block_name_set(const char ***names, size_t *count);
 static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
 static bool mir_compute_liveness(MIRRoutine *routine);
+static const char *mir_stmt_def_name(const ASTNode *stmt);
 
 static char *
 mir_render_type_name(ASTNode *type_node)
@@ -1283,9 +1284,11 @@ mir_append_value_summary(MIRRoutine *routine,
     summary.def_inst = def_inst;
     summary.first_use_block = SIZE_MAX;
     summary.last_use_block = SIZE_MAX;
+    summary.ast_write_count = 0;
     summary.used_outside_def_block = false;
     summary.used_by_phi = false;
     summary.crosses_block_boundary = false;
+    summary.has_ast_reassignment = false;
 
     grown = realloc(routine->value_summaries,
                     sizeof(MIRValueSummary) * (routine->value_summary_count + 1));
@@ -1373,6 +1376,27 @@ mir_build_value_summaries(MIRRoutine *routine)
             || summary->used_outside_def_block
             || summary->used_by_phi) {
             summary->crosses_block_boundary = true;
+        }
+    }
+
+    if (routine->hir_routine != NULL && routine->hir_routine->has_cfg) {
+        for (size_t block_id = 0; block_id < routine->hir_routine->cfg.block_count; block_id++) {
+            const HIRBasicBlock *hir_block = &routine->hir_routine->cfg.blocks[block_id];
+            for (size_t stmt_id = 0; stmt_id < hir_block->statement_count; stmt_id++) {
+                const char *write_name = mir_stmt_def_name(hir_block->statements[stmt_id]);
+                if (write_name == NULL)
+                    continue;
+                for (size_t summary_id = 0; summary_id < routine->value_summary_count; summary_id++) {
+                    MIRValueSummary *summary = &routine->value_summaries[summary_id];
+                    if (summary->slot_anchor == NULL)
+                        continue;
+                    if (strcmp(summary->slot_anchor, write_name) != 0)
+                        continue;
+                    summary->ast_write_count++;
+                    if (summary->ast_write_count > 1)
+                        summary->has_ast_reassignment = true;
+                }
+            }
         }
     }
 

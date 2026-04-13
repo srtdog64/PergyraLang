@@ -1110,7 +1110,7 @@ mir_dump(const MIRProgram *mir, FILE *out)
             for (size_t j = 0; j < routine->value_summary_count; j++) {
                 const MIRValueSummary *summary = &routine->value_summaries[j];
                 fprintf(out,
-                        "      value[%02zu] %s slot=%s def=b%zu:i%zu uses=%zu liveIn=%zu liveOut=%zu xblock=%s phi=%s cleanup=%s\n",
+                        "      value[%02zu] %s slot=%s def=b%zu:i%zu uses=%zu liveIn=%zu liveOut=%zu writes=%zu rewrite=%s xblock=%s phi=%s cleanup=%s\n",
                         j,
                         summary->name != NULL ? summary->name : "(anonymous)",
                         summary->slot_anchor != NULL ? summary->slot_anchor : "-",
@@ -1119,6 +1119,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
                         summary->use_count,
                         summary->live_in_block_count,
                         summary->live_out_block_count,
+                        summary->ast_write_count,
+                        summary->has_ast_reassignment ? "yes" : "no",
                         summary->crosses_block_boundary ? "yes" : "no",
                         summary->used_by_phi ? "yes" : "no",
                         summary->reaches_cleanup ? "yes" : "no");
