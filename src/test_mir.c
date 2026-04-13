@@ -150,6 +150,31 @@ block_has_inst_named_with_slot(const MIRBasicBlock *block, const char *name, con
 }
 
 static bool
+block_has_inst_named_args(const MIRBasicBlock *block,
+                          const char *name,
+                          const char *arg0,
+                          const char *arg1)
+{
+    if (block == NULL || name == NULL)
+        return false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *inst = &block->instructions[i];
+        if (inst->name == NULL || strcmp(inst->name, name) != 0)
+            continue;
+        if (arg0 != NULL) {
+            if (inst->arg0 == NULL || strcmp(inst->arg0, arg0) != 0)
+                continue;
+        }
+        if (arg1 != NULL) {
+            if (inst->arg1 == NULL || strcmp(inst->arg1, arg1) != 0)
+                continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+static bool
 routine_has_stmt_call_named(const MIRRoutine *routine, const char *callee_name)
 {
     if (routine == NULL || callee_name == NULL)
@@ -355,6 +380,16 @@ test_mir_lowering(void)
         EXPECT(ok
                && mir_validate(mir, NULL)
                && purchase != NULL
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "payment", "PaymentZone")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "buyer", "Buyer")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneWhere", "PaymentZone", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneAlias", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentWho", "buyer", "pay")
                && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
                    "IntentAuthorizedBy", "pay")
                && purchase->has_cleanup_block
@@ -375,6 +410,51 @@ test_mir_lowering(void)
                && cleanup_has_policy
                && cleanup_has_invalidation
                && block_has_inst_named_with_slot(&purchase->blocks[purchase->rollback_block], "AbortIntent", "Purchase"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR captures intent dispatch and causes metadata");
+    {
+        const char *src =
+            "subject Hero {\n"
+            "    action Guard(self) -> Void { return; }\n"
+            "}\n"
+            "effect Guarded {\n"
+            "    subject slot hero: Hero\n"
+            "}\n"
+            "zone Arena {\n"
+            "    subject slot hero: Hero\n"
+            "}\n"
+            "intent Patrol(arena: Arena, hero: Hero) {\n"
+            "    step Guard {\n"
+            "        where: Arena;\n"
+            "        using: arena;\n"
+            "        who: hero;\n"
+            "        causes: Guarded;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *patrol = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            patrol = find_mir_routine(mir, "Patrol", MIR_SCOPE_INTENT);
+        EXPECT(ok && mir_validate(mir, NULL) && patrol != NULL);
+        if (patrol != NULL) {
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentParticipant", "hero", "Hero"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentZoneWhere", "Arena", "Guard"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentWho", "hero", "Guard"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentDispatch", "hero", "Guard"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentCauses", "Guarded", "Guard"));
+        }
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

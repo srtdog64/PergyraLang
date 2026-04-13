@@ -71,10 +71,48 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         ctx->out = saved_out;
         return;
     }
+    if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
+        if (participant_count < node->data.intent_decl.involve_count) {
+            if (ctx->backend_error == NULL) {
+                ctx->backend_error = strdup_fmt(
+                    "MIR-only C path missing intent participant metadata for '%s'",
+                    node->data.intent_decl.name != NULL
+                        ? node->data.intent_decl.name
+                        : "(anonymous-intent)");
+            }
+            free(mir_steps);
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            g_type_render_ctx = saved_render_ctx;
+            ctx->out = saved_out;
+            return;
+        }
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+            if (participant_aliases == NULL || participant_types == NULL
+                || participant_aliases[i] == NULL || participant_types[i] == NULL) {
+                if (ctx->backend_error == NULL) {
+                    ctx->backend_error = strdup_fmt(
+                        "MIR-only C path has incomplete intent participant metadata for '%s'",
+                        node->data.intent_decl.name != NULL
+                            ? node->data.intent_decl.name
+                            : "(anonymous-intent)");
+                }
+                free(mir_steps);
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                g_type_render_ctx = saved_render_ctx;
+                ctx->out = saved_out;
+                return;
+            }
+        }
+    }
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
         if (step != NULL && step->type == AST_INTENT_STEP
-            && step->data.intent_step.compensate_expr_count > 0) {
+            && ((mir_only_intent && mir_routine != NULL
+                 && transpiler_mir_intent_has_stmt(mir_routine,
+                     step->data.intent_step.name, "IntentEval", "compensate"))
+                || (!mir_only_intent && step->data.intent_step.compensate_expr_count > 0))) {
             has_compensate_steps = true;
             break;
         }
@@ -88,8 +126,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
         ASTNode *involves = node->data.intent_decl.involves[i];
         const char *pt = NULL;
-        const char *alias = involves != NULL && involves->data.intent_involves.alias != NULL
-            ? involves->data.intent_involves.alias : "participant";
+        const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count
+            && participant_aliases[i] != NULL)
+            ? participant_aliases[i]
+            : (involves != NULL && involves->data.intent_involves.alias != NULL
+                ? involves->data.intent_involves.alias : "participant");
         const char *participant_type = participant_types != NULL && i < participant_count
             ? participant_types[i]
             : NULL;
@@ -106,7 +147,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
             type_name = pergyra_strdup(participant_type);
             pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
-        } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+        } else if (!mir_only_intent
+                   && involves != NULL
+                   && involves->data.intent_involves.subject_type != NULL) {
             pt = transpiler_require_ast_c_type(
                 ctx, involves->data.intent_involves.subject_type, surface_desc);
             type_name = render_type_name(involves->data.intent_involves.subject_type);
@@ -114,10 +157,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         }
         if (pt == NULL)
             goto intent_emit_fail;
-        if (participant_aliases != NULL && i < participant_count
-            && participant_aliases[i] != NULL) {
-            alias = participant_aliases[i];
-        }
         codebuf_write(ctx->out, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
         if (type_name != NULL) {
             register_typed_var(ctx, alias, type_name);
@@ -174,8 +213,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             step_count);
     }
     for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        if (intent_involves_is_subject_participant(ctx,
-                node->data.intent_decl.involves[i])) {
+        ASTNode *involves = node->data.intent_decl.involves[i];
+        const char *participant_type = participant_types != NULL && i < participant_count
+            ? participant_types[i]
+            : NULL;
+        bool is_subject = participant_type != NULL
+            ? is_subject_type_name(ctx, participant_type)
+            : intent_involves_is_subject_participant(ctx, involves);
+        if (is_subject) {
             subject_count++;
         }
     }
@@ -187,13 +232,18 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             size_t subject_index = 0;
             for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
                 ASTNode *involves = node->data.intent_decl.involves[i];
-                const char *alias = (involves != NULL && involves->data.intent_involves.alias != NULL)
-                    ? involves->data.intent_involves.alias : "participant";
-                if (participant_aliases != NULL && i < participant_count
-                    && participant_aliases[i] != NULL) {
-                    alias = participant_aliases[i];
-                }
-                if (!intent_involves_is_subject_participant(ctx, involves))
+                const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count
+                    && participant_aliases[i] != NULL)
+                    ? participant_aliases[i]
+                    : ((involves != NULL && involves->data.intent_involves.alias != NULL)
+                        ? involves->data.intent_involves.alias : "participant");
+                const char *participant_type = participant_types != NULL && i < participant_count
+                    ? participant_types[i]
+                    : NULL;
+                bool is_subject = participant_type != NULL
+                    ? is_subject_type_name(ctx, participant_type)
+                    : intent_involves_is_subject_participant(ctx, involves);
+                if (!is_subject)
                     continue;
                 write_indent(ctx);
                 codebuf_write(ctx->out, "__intent_subjects[%zu] = (void *)%s;\n",
@@ -277,32 +327,41 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             dispatch_alias_count = transpiler_collect_mir_intent_dispatch_aliases(mir_routine, step_name, &dispatch_aliases);
         }
         if (mir_only_intent) {
-            if (step->data.intent_step.pre_expr != NULL && pre_expr == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "pre")
+                && pre_expr == NULL)
                 goto mir_step_missing_pre;
-            if (step->data.intent_step.guard_expr != NULL && guard_expr == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "guard")
+                && guard_expr == NULL)
                 goto mir_step_missing_guard;
-            if (step->data.intent_step.post_expr != NULL && post_expr == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "post")
+                && post_expr == NULL)
                 goto mir_step_missing_post;
-            if (step->data.intent_step.expect_expr != NULL && expect_expr == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "expect")
+                && expect_expr == NULL)
                 goto mir_step_missing_expect;
-            if (step->data.intent_step.invariant_expr != NULL
+            if ((transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-pre")
+                 || transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-post"))
                 && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
                 goto mir_step_missing_invariant;
-            if (step->data.intent_step.intent_expr != NULL && subintent_expr == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "intent")
+                && subintent_expr == NULL)
                 goto mir_step_missing_subintent;
-            if (step->data.intent_step.on_expr_count > 0 && on_expr_count == 0)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "on")
+                && on_expr_count == 0)
                 goto mir_step_missing_on;
-            if (step->data.intent_step.where_type != NULL && step_zone_name == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
+                && step_zone_name == NULL)
                 goto mir_step_missing_zone_where;
-            if (intent_step_effective_zone_alias(step) != NULL && step_zone_alias == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
+                && step_zone_alias == NULL)
                 goto mir_step_missing_zone_alias;
-            if (step->data.intent_step.transfer_from_alias != NULL && step_from_alias == NULL)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
+                && step_from_alias == NULL)
                 goto mir_step_missing_zone_from;
-            if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
+                && who_alias_count == 0)
                 goto mir_step_missing_who;
-            if (step->data.intent_step.on_expr_count == 0
-                && step->data.intent_step.intent_expr == NULL
-                && step->data.intent_step.who_count > 0
+            if (transpiler_mir_intent_has_stmt(mir_routine, step_name, "IntentDispatch", NULL)
                 && dispatch_alias_count == 0) {
                 goto mir_step_missing_dispatch;
             }
@@ -354,20 +413,30 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "pgy_intent_trace_step_export(__intent_handle, \"%s\", \"%s\");\n",
             step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-            (step->data.intent_step.where_type != NULL
-                && step->data.intent_step.where_type->type == AST_TYPE
-                && step->data.intent_step.where_type->data.type.name != NULL)
-                ? step->data.intent_step.where_type->data.type.name : "<zone>");
+            step_zone_name != NULL ? step_zone_name : "<zone>");
         for (size_t j = 0; j < who_alias_count; j++) {
             const char *alias = who_aliases[j];
-            const char *slot_name = resolve_intent_zone_slot_name(ctx, node, step, alias);
+            const char *slot_name = (mir_only_intent && step_zone_name != NULL)
+                ? resolve_intent_zone_slot_name_for_zone(ctx, node, step_zone_name, alias)
+                : resolve_intent_zone_slot_name(ctx, node, step, alias);
             write_indent(ctx);
             codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
                 alias != NULL ? alias : "<participant>",
                 slot_name != NULL ? slot_name : "<unbound>");
         }
-        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
-        rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
+        if (mir_only_intent) {
+            emit_intent_step_bind_bound_zone_with_metadata(
+                ctx->out, ctx, node, step_zone_name, step_zone_alias, step_from_alias,
+                who_aliases, who_alias_count,
+                participant_aliases, participant_types, participant_count);
+            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases_with_metadata(
+                ctx->out, ctx, node, step_zone_name, step_zone_alias,
+                who_aliases, who_alias_count, i,
+                participant_aliases, participant_types, participant_count);
+        } else {
+            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+            rebound_aliases = emit_intent_step_rebind_bound_zone_aliases(ctx->out, ctx, node, step, i);
+        }
 
         if (pre_expr != NULL) {
             char *pre = emit_expression(pre_expr, ctx);
@@ -431,12 +500,17 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         } else if (on_expr_count == 0) {
             for (size_t j = 0; j < dispatch_alias_count; j++) {
                 const char *alias = dispatch_aliases[j];
-                ASTNode *involves = find_intent_participant_local(node, alias);
                 const char *subject_name = NULL;
                 ASTNode *action_decl = NULL;
-                if (involves != NULL && involves->data.intent_involves.subject_type != NULL
-                    && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-                    subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                if (mir_only_intent) {
+                    subject_name = intent_zone_binding_type_name_with_metadata(
+                        node, alias, participant_aliases, participant_types, participant_count);
+                } else {
+                    ASTNode *involves = find_intent_participant_local(node, alias);
+                    if (involves != NULL && involves->data.intent_involves.subject_type != NULL
+                        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+                        subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                    }
                 }
                 action_decl = find_subject_action_decl(ctx,
                     subject_name, step->data.intent_step.name);
@@ -448,12 +522,29 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 }
             }
         }
-        if (rebound_aliases)
-            emit_intent_step_sync_effective_zone(ctx->out, ctx, step);
-        else
-            emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
-        if (rebound_aliases)
-            emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
+        if (rebound_aliases) {
+            if (mir_only_intent)
+                emit_intent_step_sync_effective_zone_with_metadata(ctx->out, ctx, step_zone_name, step_zone_alias);
+            else
+                emit_intent_step_sync_effective_zone(ctx->out, ctx, step);
+        } else {
+            if (mir_only_intent) {
+                emit_intent_step_bind_bound_zone_with_metadata(
+                    ctx->out, ctx, node, step_zone_name, step_zone_alias, step_from_alias,
+                    who_aliases, who_alias_count,
+                    participant_aliases, participant_types, participant_count);
+            } else {
+                emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+            }
+        }
+        if (rebound_aliases) {
+            if (mir_only_intent) {
+                emit_intent_step_restore_bound_zone_aliases_with_metadata(
+                    ctx->out, ctx, node, step_zone_name, who_aliases, who_alias_count, i);
+            } else {
+                emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
+            }
+        }
         ctx->current_zone_name = saved_zone_name;
         ctx->current_overlay_receiver_expr = saved_overlay_receiver;
 
@@ -533,8 +624,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "pgy_intent_trace_step_ok_export(__intent_handle, \"%s\");\n",
             step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
         free(on_exprs);
-        free((void *)who_aliases);
-        free((void *)dispatch_aliases);
+        if (mir_only_intent)
+            free((void *)who_aliases);
+        if (mir_only_intent)
+            free((void *)dispatch_aliases);
     }
 
     write_indent(ctx);
@@ -618,8 +711,15 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     const char *from_alias = NULL;
                     const char **who_aliases = NULL;
                     size_t who_alias_count = 0;
-                    if (step == NULL || step->type != AST_INTENT_STEP
-                        || step->data.intent_step.compensate_expr_count == 0)
+                    bool has_compensate = false;
+                    if (step != NULL && step->type == AST_INTENT_STEP) {
+                        has_compensate = mir_only_intent
+                            ? transpiler_mir_intent_has_stmt(
+                                mir_routine, step->data.intent_step.name,
+                                "IntentEval", "compensate")
+                            : step->data.intent_step.compensate_expr_count > 0;
+                    }
+                    if (step == NULL || step->type != AST_INTENT_STEP || !has_compensate)
                         continue;
                     if (mir_routine != NULL) {
                         compensate_expr_count = transpiler_collect_mir_intent_eval_exprs(
@@ -633,7 +733,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         who_alias_count = transpiler_collect_mir_intent_who_aliases(
                             mir_routine, step->data.intent_step.name, &who_aliases);
                     }
-                    if (mir_only_intent && step->data.intent_step.compensate_expr_count > 0
+                    if (mir_only_intent
+                        && transpiler_mir_intent_has_stmt(
+                            mir_routine, step->data.intent_step.name,
+                            "IntentEval", "compensate")
                         && compensate_expr_count == 0)
                         goto mir_step_missing_compensate;
                     if (!mir_only_intent && compensate_expr_count == 0) {
@@ -661,7 +764,14 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         }
                         free(expr);
                     }
-                    emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                    if (mir_only_intent) {
+                        emit_intent_step_bind_bound_zone_with_metadata(
+                            ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
+                            who_aliases, who_alias_count,
+                            participant_aliases, participant_types, participant_count);
+                    } else {
+                        emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
+                    }
                     if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
                         if (mir_routine->has_invalidation_block) {
                             write_indent(ctx);
@@ -677,8 +787,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     ctx->indent--;
                     write_indent(ctx);
                     codebuf_write(ctx->out, "}\n");
-                    free(compensate_exprs);
-                    free((void *)who_aliases);
+                    if (mir_only_intent)
+                        free(compensate_exprs);
+                    if (mir_only_intent)
+                        free((void *)who_aliases);
                 }
             }
             if (mir_routine->has_invalidation_block) {

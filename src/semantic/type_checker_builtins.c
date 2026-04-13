@@ -2917,17 +2917,24 @@ type_check_projection_call(ASTNode *call,
 
         source_status = resolve_projection_source_field_type_rec(
             ctx->program_root, source_decl, target_field->name, 0, ctx, &source_field_type);
+        if (source_status == 2) {
+            semantic_error(ctx, call,
+                "%s target field '%s' is ambiguous in source subject '%s'.\n"
+                "Reason:\n"
+                "- multiple projection source paths match field '%s'\n"
+                "- automatic projection cannot choose one path safely\n"
+                "Fix:\n"
+                "- rename one of the source fields to make the path unique\n"
+                "- or expose the desired value directly on the subject host",
+                builtin_name,
+                target_field->name,
+                source_type->name != NULL ? source_type->name : "<unknown>",
+                target_field->name);
+            continue;
+        }
         if (source_status == 0 || source_field_type == NULL) {
             semantic_error(ctx, call,
                 "%s target field '%s' is missing from source subject '%s'",
-                builtin_name,
-                target_field->name,
-                source_type->name != NULL ? source_type->name : "<unknown>");
-            continue;
-        }
-        if (source_status == 2) {
-            semantic_error(ctx, call,
-                "%s target field '%s' is ambiguous in source subject '%s'; rename the field or expose it directly on the host",
                 builtin_name,
                 target_field->name,
                 source_type->name != NULL ? source_type->name : "<unknown>");

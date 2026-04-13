@@ -111,6 +111,42 @@ llvm_find_mir_intent_meta_arg(const MIRRoutine *routine,
     return NULL;
 }
 
+static bool
+llvm_mir_intent_has_stmt(const MIRRoutine *routine,
+                         const char *step_name,
+                         const char *inst_name,
+                         const char *arg0)
+{
+    if (routine == NULL || inst_name == NULL)
+        return false;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            if (arg0 != NULL) {
+                if (inst->arg0 == NULL || strcmp(inst->arg0, arg0) != 0)
+                    continue;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static size_t
 llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
                                     const char *step_name,
@@ -913,6 +949,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     const char **participant_types = NULL;
     size_t participant_count = 0;
     size_t param_count = 0;
+    bool mir_only_intent = false;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
@@ -923,6 +960,36 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     if (mir_routine != NULL) {
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
+    }
+    mir_only_intent = ctx->mir != NULL && node->data.intent_decl.step_count > 0;
+    if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
+        if (participant_count < node->data.intent_decl.involve_count) {
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                     "MIR-only LLVM path missing intent participant metadata for '%s'",
+                     node->data.intent_decl.name != NULL
+                         ? node->data.intent_decl.name
+                         : "(anonymous)");
+            llvm_set_error(ctx, msg);
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            return;
+        }
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+            if (participant_aliases == NULL || participant_types == NULL
+                || participant_aliases[i] == NULL || participant_types[i] == NULL) {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
+                         node->data.intent_decl.name != NULL
+                             ? node->data.intent_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                return;
+            }
+        }
     }
     param_count = node->data.intent_decl.involve_count
         + node->data.intent_decl.value_count;
@@ -936,18 +1003,22 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < param_count; i++) {
             LLVMTypeRef pt = ctx->type_i32;
             if (i < node->data.intent_decl.involve_count) {
-                ASTNode *involves = node->data.intent_decl.involves[i];
-                const char *type_name = participant_types != NULL && i < participant_count
+            ASTNode *involves = node->data.intent_decl.involves[i];
+            const char *type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
+                ? participant_types[i]
+                : (participant_types != NULL && i < participant_count
                     ? participant_types[i]
-                    : llvm_intent_involves_type_name(involves);
-                if (type_name != NULL) {
-                    pt = pergyra_type_to_llvm(ctx, type_name);
-                    if (llvm_intent_type_uses_pointer_self(ctx, type_name))
-                        pt = LLVMPointerType(pt, 0);
-                } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
-                    pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
-                    if (llvm_intent_involves_uses_pointer_self(ctx, involves))
-                        pt = LLVMPointerType(pt, 0);
+                    : llvm_intent_involves_type_name(involves));
+            if (type_name != NULL) {
+                pt = pergyra_type_to_llvm(ctx, type_name);
+                if (llvm_intent_type_uses_pointer_self(ctx, type_name))
+                    pt = LLVMPointerType(pt, 0);
+            } else if (!mir_only_intent
+                       && involves != NULL
+                       && involves->data.intent_involves.subject_type != NULL) {
+                pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                if (llvm_intent_involves_uses_pointer_self(ctx, involves))
+                    pt = LLVMPointerType(pt, 0);
                 }
             } else {
                 ASTNode *value = node->data.intent_decl.values[
@@ -1057,6 +1128,37 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
     }
+    if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
+        if (participant_count < node->data.intent_decl.involve_count) {
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                     "MIR-only LLVM path missing intent participant metadata for '%s'",
+                     node->data.intent_decl.name != NULL
+                         ? node->data.intent_decl.name
+                         : "(anonymous)");
+            llvm_set_error(ctx, msg);
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            free(mir_steps);
+            return;
+        }
+        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+            if (participant_aliases == NULL || participant_types == NULL
+                || participant_aliases[i] == NULL || participant_types[i] == NULL) {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
+                         node->data.intent_decl.name != NULL
+                             ? node->data.intent_decl.name
+                             : "(anonymous)");
+                llvm_set_error(ctx, msg);
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                free(mir_steps);
+                return;
+            }
+        }
+    }
     if (participant_count == 0)
         participant_count = node->data.intent_decl.involve_count;
     param_count = node->data.intent_decl.involve_count
@@ -1067,7 +1169,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
         if (step != NULL && step->type == AST_INTENT_STEP
-            && step->data.intent_step.compensate_expr_count > 0) {
+            && ((mir_only_intent && mir_routine != NULL
+                 && llvm_mir_intent_has_stmt(
+                     mir_routine, step->data.intent_step.name,
+                     "IntentEval", "compensate"))
+                || (!mir_only_intent && step->data.intent_step.compensate_expr_count > 0))) {
             has_compensate_steps = true;
             break;
         }
@@ -1112,20 +1218,26 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *type_name = NULL;
         if (i < node->data.intent_decl.involve_count) {
             ASTNode *involves = node->data.intent_decl.involves[i];
-            alias = participant_aliases != NULL && i < participant_count
+            alias = (mir_only_intent && participant_aliases != NULL && i < participant_count)
                 ? participant_aliases[i]
-                : (involves != NULL ? involves->data.intent_involves.alias : NULL);
-            type_name = participant_types != NULL && i < participant_count
+                : (participant_aliases != NULL && i < participant_count
+                    ? participant_aliases[i]
+                    : (involves != NULL ? involves->data.intent_involves.alias : NULL));
+            type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
                 ? participant_types[i]
-                : ((involves != NULL
-                    && involves->data.intent_involves.subject_type != NULL
-                    && involves->data.intent_involves.subject_type->type == AST_TYPE)
-                    ? involves->data.intent_involves.subject_type->data.type.name : NULL);
+                : (participant_types != NULL && i < participant_count
+                    ? participant_types[i]
+                    : ((involves != NULL
+                        && involves->data.intent_involves.subject_type != NULL
+                        && involves->data.intent_involves.subject_type->type == AST_TYPE)
+                        ? involves->data.intent_involves.subject_type->data.type.name : NULL));
             if (type_name != NULL) {
                 pt = pergyra_type_to_llvm(ctx, type_name);
                 if (llvm_intent_type_uses_pointer_self(ctx, type_name))
                     pt = LLVMPointerType(pt, 0);
-            } else if (involves != NULL && involves->data.intent_involves.subject_type != NULL) {
+            } else if (!mir_only_intent
+                       && involves != NULL
+                       && involves->data.intent_involves.subject_type != NULL) {
                 pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
                 if (llvm_intent_involves_uses_pointer_self(ctx, involves))
                     pt = LLVMPointerType(pt, 0);
@@ -1170,9 +1282,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         ASTNode *involves = i < node->data.intent_decl.involve_count
             ? node->data.intent_decl.involves[i]
             : NULL;
-        const char *type_name = participant_types != NULL
+        const char *type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
             ? participant_types[i]
-            : llvm_intent_involves_type_name(involves);
+            : (participant_types != NULL && i < participant_count
+                ? participant_types[i]
+                : llvm_intent_involves_type_name(involves));
         if (llvm_intent_type_is_subject_participant(ctx, type_name)) {
             subject_count++;
         }
@@ -1190,12 +1304,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             ASTNode *involves = i < node->data.intent_decl.involve_count
                 ? node->data.intent_decl.involves[i]
                 : NULL;
-            const char *alias = participant_aliases != NULL
+            const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count)
                 ? participant_aliases[i]
-                : (involves != NULL ? involves->data.intent_involves.alias : NULL);
-            const char *type_name = participant_types != NULL
+                : (participant_aliases != NULL && i < participant_count
+                    ? participant_aliases[i]
+                    : (involves != NULL ? involves->data.intent_involves.alias : NULL));
+            const char *type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
                 ? participant_types[i]
-                : llvm_intent_involves_type_name(involves);
+                : (participant_types != NULL && i < participant_count
+                    ? participant_types[i]
+                    : llvm_intent_involves_type_name(involves));
             LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "participant");
             LLVMValueRef indices[] = {
                 zero,
@@ -1297,28 +1415,39 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 mir_routine, step_name, &dispatch_aliases);
         }
         if (mir_only_intent) {
-            if (step->data.intent_step.pre_expr != NULL && pre_expr == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "pre")
+                && pre_expr == NULL)
                 goto mir_step_missing_pre;
-            if (step->data.intent_step.guard_expr != NULL && guard_expr == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "guard")
+                && guard_expr == NULL)
                 goto mir_step_missing_guard;
-            if (step->data.intent_step.post_expr != NULL && post_expr == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "post")
+                && post_expr == NULL)
                 goto mir_step_missing_post;
-            if (step->data.intent_step.expect_expr != NULL && expect_expr == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "expect")
+                && expect_expr == NULL)
                 goto mir_step_missing_expect;
-            if (step->data.intent_step.invariant_expr != NULL
+            if ((llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-pre")
+                 || llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentCheck", "invariant-post"))
                 && (invariant_pre_expr == NULL || invariant_post_expr == NULL))
                 goto mir_step_missing_invariant;
-            if (step->data.intent_step.intent_expr != NULL && subintent_expr == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "intent")
+                && subintent_expr == NULL)
                 goto mir_step_missing_subintent;
-            if (step->data.intent_step.on_expr_count > 0 && on_expr_count == 0)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentEval", "on")
+                && on_expr_count == 0)
                 goto mir_step_missing_on;
-            if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
+                && zone_type_name == NULL)
                 goto mir_step_missing_zone_where;
-            if (llvm_intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
+                && zone_alias == NULL)
                 goto mir_step_missing_zone_alias;
-            if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
+                && from_alias == NULL)
                 goto mir_step_missing_zone_from;
-            if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+            if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
+                && who_alias_count == 0)
                 goto mir_step_missing_who;
         } else {
             if (pre_expr == NULL)
@@ -1624,8 +1753,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             const char *from_alias = NULL;
             const char **who_aliases = NULL;
             size_t who_alias_count = 0;
-            if (step == NULL || step->type != AST_INTENT_STEP
-                || step->data.intent_step.compensate_expr_count == 0)
+            bool has_compensate = false;
+            if (step != NULL && step->type == AST_INTENT_STEP) {
+                has_compensate = mir_only_intent
+                    ? llvm_mir_intent_has_stmt(
+                        mir_routine, step->data.intent_step.name,
+                        "IntentEval", "compensate")
+                    : step->data.intent_step.compensate_expr_count > 0;
+            }
+            if (step == NULL || step->type != AST_INTENT_STEP || !has_compensate)
                 continue;
             if (mir_routine != NULL) {
                 compensate_expr_count = llvm_collect_mir_intent_eval_exprs(
@@ -1639,7 +1775,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 who_alias_count = llvm_collect_mir_intent_who_aliases(
                     mir_routine, step->data.intent_step.name, &who_aliases);
             }
-            if (mir_only_intent && step->data.intent_step.compensate_expr_count > 0
+            if (mir_only_intent
+                && llvm_mir_intent_has_stmt(mir_routine, step->data.intent_step.name,
+                                            "IntentEval", "compensate")
                 && compensate_expr_count == 0)
                 goto mir_step_missing_compensate;
             if (!mir_only_intent && compensate_expr_count == 0) {

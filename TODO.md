@@ -1,10 +1,32 @@
 # Pergyra TODO (배포 준비)
 
-마지막 업데이트: 2026-04-12
+마지막 업데이트: 2026-04-14
 
 ## 현재 상태 냉정 평가 (2026-04-12 재정렬)
 
 ### 종합 판단: Late-Stage Alpha
+
+- 베타 진행률 추정: 약 `83%`
+- 현재 표현: `late-stage alpha / beta-closure sprint`
+
+### 최근 closure 진행 (2026-04-14)
+
+- declaration-side MIR-only intent inventory를 더 밀었다
+  - MIR가 `IntentParticipant(alias,type)` metadata를 직접 운반
+  - C/LLVM intent declaration emission이 participant alias/type를 AST 재해석 없이 MIR metadata로 우선 소비
+- step-level MIR-only validation을 AST field 존재 검사에서 metadata 존재 검사로 옮겼다
+  - `IntentCheck`
+  - `IntentEval`
+  - `IntentZoneWhere/IntentZoneAlias/IntentZoneFrom`
+  - `IntentWho/IntentDispatch`
+  - `compensate` 존재 판정
+- intent emission cleanup/rollback 경로의 metadata gate를 C/LLVM 둘 다 정렬했다
+- 관련 회귀:
+  - `test-mir` green
+  - `test-transpile` green
+
+즉, intent declaration/step emission은 아직 완전 MIR-only 선언이 끝난 것은 아니지만,
+`participant/step contract inventory`를 AST presence에 기대던 가장 거친 fallback는 한 단계 더 제거됐다.
 
 실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
 
@@ -174,6 +196,20 @@
 
 ## 완료 (최근)
 
+- [x] **nested vessel-source projection ambiguity closure**
+  - zone `refresh/publish/bind` projection contract 경로에서 ambiguous source path가 `missing`으로 오진되던 분기 순서를 수정
+  - builtin `ToObject` / `ToTObject`도 동일한 structured `Reason/Fix` ambiguity diagnostic으로 정렬
+  - nested vessel ambiguity semantic regressions 추가
+- [x] **generic consumer provenance diagnostics 보강**
+  - `action requires` / `zone authority` / `party role slot` / `intent step requires`에서 generic ability mismatch가 `actual type argument` / `actual implementation` provenance를 함께 보고하도록 정렬
+  - 관련 semantic 회귀 추가
+- [x] **anchored own/ref provenance diagnostics 보강**
+  - closed-subset / local-only / missing `own/ref` / `ref` escape 진단에 `Reason/Fix`와 borrowed-here provenance를 추가
+  - 관련 semantic 회귀 추가
+- [x] **world embedding structured diagnostics 회귀 고정**
+  - embedded zone old-binding mutation이 assignment / hosted func-action call 모두에서 `Reason/Fix`와 world-owned-copy provenance를 남기도록 semantic 회귀 강화
+- [x] **Windows shell smoke portability 보강**
+  - `abi_pipeline_smoke.sh`, `compare_backends.sh`가 `cmp`/`diff` 부재 환경에서도 `git` 또는 Python fallback으로 비교/차이 출력을 수행하도록 정리
 - [x] **surface trust docs 정렬 — collection/result/struct baseline**
   - `Array<T>`는 `[]`, `List<T>`는 `ListNew()`, `HashMap<K,V>`는 `MapNew()`를 canonical 생성 surface로 고정
   - `Result<T>` 추출 API는 `Unwrap` / `UnwrapOr` / postfix `?`로 고정, `UnwrapResult()` 표면은 비채택
@@ -220,6 +256,8 @@
   - alpha-complete / experimental / removed 기준으로 전면 재정리
 - [ ] **stable example / smoke source of truth 확대**
   - canonical examples와 closure examples를 smoke에 직접 연결
+  - explicit surface vs compressed surface를 같은 의미로 보여주는 pair example 최소 4쌍 고정
+  - 대상: app/web orchestration, game/simulation, async/worker/device, world-handoff/domain propagation
 - [ ] **experimental surface 제거 또는 격리**
   - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
 

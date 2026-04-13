@@ -2868,7 +2868,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && !type_is_anchored_resource_handle(param_types[i])) {
             semantic_error(ctx, node,
                 "'%s' parameter mode is currently a closed subset: only ref/own Slot<subject-host> / "
-                "own SecureSlot<subject-host> are supported at function boundaries",
+                "own SecureSlot<subject-host> are supported at function boundaries.\n"
+                "Reason:\n"
+                "- this parameter type is not part of the anchored-handle boundary subset\n"
+                "- the compiler does not yet enforce general own/ref rules for arbitrary value types at call boundaries\n"
+                "Fix:\n"
+                "- keep this value local to the function boundary\n"
+                "- or pass a Slot<subject-host> / own SecureSlot<subject-host> handle instead",
                 param->mode == PARAM_MODE_OWN ? "own" : "ref");
         }
         if (type_is_anchored_resource_handle(param_types[i])) {
@@ -2876,11 +2882,23 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             if (!allowed_subject_slot) {
                 semantic_error(ctx, node,
                     "Anchored handle parameters are currently closed to ref/own Slot<subject-host> / "
-                    "own SecureSlot<subject-host>; other anchored handles remain local-only");
+                    "own SecureSlot<subject-host>; other anchored handles remain local-only.\n"
+                    "Reason:\n"
+                    "- this anchored handle kind is not part of the stable boundary subset\n"
+                    "- passing it across the function boundary would require a stronger ownership contract than the compiler currently guarantees\n"
+                    "Fix:\n"
+                    "- keep this anchored handle local to the current scope\n"
+                    "- or convert it to a projection/value/boundary-safe result before the call");
             } else if (param->mode == PARAM_MODE_DEFAULT) {
                 semantic_error(ctx, node,
                     "Slot<subject-host>/SecureSlot<subject-host> parameters are part of the anchored "
-                    "subject-slot boundary and require explicit 'own' or 'ref'");
+                    "subject-slot boundary and require explicit 'own' or 'ref'.\n"
+                    "Reason:\n"
+                    "- anchored subject-slot handles must declare whether the boundary borrows or transfers ownership\n"
+                    "- implicit parameter passing would hide that boundary contract\n"
+                    "Fix:\n"
+                    "- mark the parameter as 'ref' for borrowing\n"
+                    "- or mark it as 'own' for transfer");
             } else if (param_types[i]->data.slot.is_secure
                        && param->mode != PARAM_MODE_OWN) {
                 semantic_error(ctx, node,
@@ -3017,34 +3035,37 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape via return.\n"
                     "Reason:\n"
+                    "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the caller scope\n"
                     "- returning it would let the borrow outlive the call boundary\n"
                     "Fix:\n"
                     "- return a projection/object/tobject/value instead\n"
                     "- or change the parameter to 'own' if transfer is intended",
-                    param->name);
+                    param->name, param->name);
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through channel send.\n"
                     "Reason:\n"
+                    "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the current call\n"
                     "- channel send would transfer the borrow beyond that boundary\n"
                     "Fix:\n"
                     "- send a projection/object/tobject/value snapshot instead\n"
                     "- or take ownership with 'own' before transfer",
-                    param->name);
+                    param->name, param->name);
             }
             if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                 semantic_error(ctx, node,
                     "Borrowed ref slot '%s' cannot escape through helper/function call.\n"
                     "Reason:\n"
+                    "- '%s' entered this function as a borrowed 'ref' handle\n"
                     "- 'ref' is a non-owning borrow tied to the current call boundary\n"
                     "- forwarding it to another call would create a transitive borrow the compiler does not yet track precisely\n"
                     "Fix:\n"
                     "- perform the slot operation locally in this function\n"
                     "- or change the parameter to 'own' if transfer/forwarding is intended",
-                    param->name);
+                    param->name, param->name);
             }
         }
     }

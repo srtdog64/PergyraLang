@@ -451,6 +451,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                             ? "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' implements '%s' instead.\n"
                               "Reason:\n"
                               "- participant type '%s' does not satisfy required ability '%s'\n"
+                              "- actual implementation is '%s'\n"
                               "%s%s"
                               "Fix:\n"
                               "- implement '%s' for subject type '%s'\n"
@@ -459,6 +460,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                             : "Intent step '%s' requires ability '%s', but participant '%s' of type '%s' does not implement it.\n"
                               "Reason:\n"
                               "- participant type '%s' does not satisfy required ability '%s'\n"
+                              "- no matching implementation was found for '%s'\n"
                               "%s%s"
                               "Fix:\n"
                               "- implement '%s' for subject type '%s'\n"
@@ -473,12 +475,17 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                         participant_type_name,
                         required_text != NULL ? required_text
                                               : (ability != NULL ? ability : "<ability>"),
+                        actual_text != NULL ? actual_text
+                                            : (required_text != NULL ? required_text
+                                                                     : (ability != NULL ? ability : "<ability>")),
                         contract_summary[0] != '\0' ? contract_summary : "",
                         contract_summary[0] != '\0' ? "\n" : "",
                         required_text != NULL ? required_text
                                               : (ability != NULL ? ability : "<ability>"),
                         participant_type_name,
                         participant_type_name,
+                        required_text != NULL ? required_text
+                                              : (ability != NULL ? ability : "<ability>"),
                         required_text != NULL ? required_text
                                               : (ability != NULL ? ability : "<ability>"),
                         contract_summary[0] != '\0' ? contract_summary : "",
@@ -2135,6 +2142,21 @@ type_check_projection_contract(ASTNode **slots,
         source_status = resolve_projection_source_field_path(
             ctx->program_root, source_decl, source_field_name, ctx,
             &source_path, &source_field_type);
+        if (source_status == 2) {
+            semantic_error(ctx, site,
+                "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
+                "Reason:\n"
+                "- multiple projection source paths match field '%s'\n"
+                "- automatic projection cannot choose one path safely\n"
+                "Fix:\n"
+                "- rename one of the source fields to make the path unique\n"
+                "- or expose the desired value through a dedicated object/tobject field",
+                owner_label, action_name,
+                target_field->name,
+                source_slot_name != NULL ? source_slot_name : "<unknown>",
+                source_field_name != NULL ? source_field_name : target_field->name);
+            continue;
+        }
         if (source_status == 0 || source_field_type == NULL) {
             if (source_field_name != NULL
                 && strcmp(source_field_name, target_field->name) != 0) {
@@ -2182,21 +2204,6 @@ type_check_projection_contract(ASTNode **slots,
                         ? source_type->name
                         : "<unknown>");
             }
-            continue;
-        }
-        if (source_status == 2) {
-            semantic_error(ctx, site,
-                "%s %s target field '%s' is ambiguous in source slot '%s'.\n"
-                "Reason:\n"
-                "- multiple projection source paths match field '%s'\n"
-                "- automatic projection cannot choose one path safely\n"
-                "Fix:\n"
-                "- rename one of the source fields to make the path unique\n"
-                "- or expose the desired value through a dedicated object/tobject field",
-                owner_label, action_name,
-                target_field->name,
-                source_slot_name != NULL ? source_slot_name : "<unknown>",
-                source_field_name != NULL ? source_field_name : target_field->name);
             continue;
         }
 
@@ -2796,36 +2803,13 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 ASTNode *actual_impl = subject_type_find_base_ability_impl(
                     ctx->program_root, slot_type->name, ability_name);
                 char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
-                semantic_error(ctx, authority,
-                    actual_impl != NULL
-                        ? "Zone authority '%s' requires ability '%s', but subject type '%s' implements '%s' instead.\n"
-                          "Reason:\n"
-                          "- subject type '%s' does not satisfy required ability '%s'\n"
-                          "Fix:\n"
-                          "- implement '%s' for subject type '%s'\n"
-                          "- or change/remove the zone authority requirement"
-                        : "Zone authority '%s' requires ability '%s', but subject type '%s' has no matching role impl.\n"
-                          "Reason:\n"
-                          "- subject type '%s' does not satisfy required ability '%s'\n"
-                          "Fix:\n"
-                          "- implement '%s' for subject type '%s'\n"
-                          "- or change/remove the zone authority requirement",
+                report_subject_ability_requirement_mismatch(
+                    ctx, authority, "Zone authority",
                     authority->data.zone_authority.subject_slot_name,
+                    "subject type", slot_type->name,
                     required_text != NULL ? required_text : ability_name,
-                    slot_type->name,
-                    actual_text != NULL ? actual_text : NULL,
-                    slot_type->name,
-                    required_text != NULL ? required_text : ability_name,
-                    required_text != NULL ? required_text : ability_name,
-                    slot_type->name,
-                    authority->data.zone_authority.subject_slot_name,
-                    required_text != NULL ? required_text : ability_name,
-                    slot_type->name,
-                    slot_type->name,
-                    required_text != NULL ? required_text : ability_name,
-                    required_text != NULL ? required_text : ability_name,
-                    slot_type->name,
-                    actual_text != NULL ? actual_text : NULL);
+                    actual_text,
+                    "change/remove the zone authority requirement");
                 free(actual_text);
             }
             free(required_text);

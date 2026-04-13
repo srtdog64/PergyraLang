@@ -120,178 +120,56 @@ llvm_ast_uses_thread_pool(ASTNode *node)
 }
 
 static bool
-llvm_decl_uses_thread_pool(ASTNode *node)
+llvm_mir_routine_uses_thread_pool(const MIRRoutine *routine)
 {
-    if (node == NULL)
+    if (routine == NULL)
         return false;
 
-    switch (node->type) {
-    case AST_FUNC_DECL:
-        return llvm_ast_uses_thread_pool(node->data.func_decl.body);
-    case AST_CLASS_DECL:
-        for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.class_decl.methods[i]))
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+
+        if (block->source_terminator_condition != NULL
+            && llvm_ast_uses_thread_pool(block->source_terminator_condition)) {
+            return true;
+        }
+        if (block->source_terminator_value != NULL
+            && llvm_ast_uses_thread_pool(block->source_terminator_value)) {
+            return true;
+        }
+
+        for (size_t j = 0; j < block->source_statement_count; j++) {
+            if (llvm_ast_uses_thread_pool(block->source_statements[j]))
                 return true;
         }
-        return false;
-    case AST_ENUM_DECL:
-        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.enum_decl.methods[i]))
+
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            if (llvm_ast_uses_thread_pool(block->instructions[j].ast))
                 return true;
         }
-        return false;
-    case AST_ABILITY_DECL:
-        for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.ability_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_ROLE_DECL:
-        for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
-            ASTNode *impl = node->data.role_decl.impl_abilities[i];
-            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
-                continue;
-            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-                if (llvm_decl_uses_thread_pool(impl->data.impl_ability.methods[j]))
-                    return true;
-            }
-        }
-        return false;
-    case AST_PARTY_DECL:
-        for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.party_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_ROSTER_DECL:
-        for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.roster_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_WORLD_DECL:
-        for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.world_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_RELATION_DECL:
-        for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.relation_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_EFFECT_DECL:
-        for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.effect_decl.methods[i]))
-                return true;
-        }
-        return false;
-    case AST_ZONE_DECL:
-        for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
-            if (llvm_decl_uses_thread_pool(node->data.zone_decl.methods[i]))
-                return true;
-        }
-        return false;
-    default:
-        return false;
     }
+
+    return false;
 }
 
 static bool
 llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 {
-    ASTNode **functions = NULL;
-    ASTNode **types = NULL;
-    ASTNode **abilities = NULL;
-    ASTNode **roles = NULL;
-    ASTNode **parties = NULL;
-    ASTNode **rosters = NULL;
-    ASTNode **relations = NULL;
-    ASTNode **effects = NULL;
-    ASTNode **zones = NULL;
-    ASTNode **worlds = NULL;
-    ASTNode **executables = NULL;
-    size_t function_count = 0;
-    size_t type_count = 0;
-    size_t ability_count = 0;
-    size_t role_count = 0;
-    size_t party_count = 0;
-    size_t roster_count = 0;
-    size_t relation_count = 0;
-    size_t effect_count = 0;
-    size_t zone_count = 0;
-    size_t world_count = 0;
-    size_t executable_count = 0;
     ASTNode *synthetic_executable_func = NULL;
 
-    if (ctx == NULL)
+    if (ctx == NULL || ctx->mir == NULL)
         return false;
 
-    llvm_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count);
-    llvm_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
-    llvm_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
-    llvm_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count);
-    llvm_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count);
-    llvm_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count);
-    llvm_active_inventory(ctx, AST_RELATION_DECL, &relations, &relation_count);
-    llvm_active_inventory(ctx, AST_EFFECT_DECL, &effects, &effect_count);
-    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
-    llvm_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
-
-    for (size_t i = 0; i < function_count; i++) {
-        if (llvm_decl_uses_thread_pool(functions[i]))
-            return true;
-    }
-    for (size_t i = 0; i < type_count; i++) {
-        if (llvm_decl_uses_thread_pool(types[i]))
-            return true;
-    }
-    for (size_t i = 0; i < ability_count; i++) {
-        if (llvm_decl_uses_thread_pool(abilities[i]))
-            return true;
-    }
-    for (size_t i = 0; i < role_count; i++) {
-        if (llvm_decl_uses_thread_pool(roles[i]))
-            return true;
-    }
-    for (size_t i = 0; i < party_count; i++) {
-        if (llvm_decl_uses_thread_pool(parties[i]))
-            return true;
-    }
-    for (size_t i = 0; i < roster_count; i++) {
-        if (llvm_decl_uses_thread_pool(rosters[i]))
-            return true;
-    }
-    for (size_t i = 0; i < relation_count; i++) {
-        if (llvm_decl_uses_thread_pool(relations[i]))
-            return true;
-    }
-    for (size_t i = 0; i < effect_count; i++) {
-        if (llvm_decl_uses_thread_pool(effects[i]))
-            return true;
-    }
-    for (size_t i = 0; i < zone_count; i++) {
-        if (llvm_decl_uses_thread_pool(zones[i]))
-            return true;
-    }
-    for (size_t i = 0; i < world_count; i++) {
-        if (llvm_decl_uses_thread_pool(worlds[i]))
+    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
+        if (llvm_mir_routine_uses_thread_pool(&ctx->mir->routines[i]))
             return true;
     }
 
-    synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
+    synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
     if (synthetic_executable_func != NULL
         && synthetic_executable_func->type == AST_FUNC_DECL
         && llvm_ast_uses_thread_pool(
             synthetic_executable_func->data.func_decl.body)) {
         return true;
-    }
-
-    llvm_active_executables(ctx, &executables, &executable_count);
-    for (size_t i = 0; i < executable_count; i++) {
-        if (llvm_ast_uses_thread_pool(executables[i]))
-            return true;
     }
 
     return false;
@@ -376,8 +254,6 @@ llvm_find_mir_method_routine(const MIRProgram *mir,
 void
 llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 {
-    ASTNode **executables = NULL;
-    size_t executable_count = 0;
     ASTNode *synthetic_executable_func = NULL;
     bool has_top_level_exec = false;
     bool has_main_function = false;
@@ -387,10 +263,9 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         return;
 
     LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
-    synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
-    has_top_level_exec = llvm_active_has_top_level_exec(ctx);
-    llvm_active_executables(ctx, &executables, &executable_count);
-    has_main_function = llvm_active_has_main_function(ctx);
+    synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
+    has_top_level_exec = ctx->mir->has_top_level_exec;
+    has_main_function = ctx->mir->has_main_function;
     needs_thread_pool = llvm_requires_thread_pool(ctx);
 
     bool has_top_level = has_top_level_exec
@@ -454,11 +329,6 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             llvm_scope_pop(ctx);
             return;
         }
-    } else if (executable_count > 0) {
-        llvm_set_error(ctx,
-                       "MIR-only LLVM path missing '__pgy_top_level_exec' for top-level exec");
-        llvm_scope_pop(ctx);
-        return;
     }
 
     llvm_scope_pop(ctx);

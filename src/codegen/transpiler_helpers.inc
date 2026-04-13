@@ -360,5 +360,41 @@ transpiler_emit_mir_def(CodeBuf *out,
     return false;  /* signal caller to use default handling */
 }
 
+static bool
+transpiler_mir_intent_has_stmt(const MIRRoutine *routine,
+                               const char *step_name,
+                               const char *inst_name,
+                               const char *arg0)
+{
+    if (routine == NULL || inst_name == NULL)
+        return false;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+                continue;
+            if (step_name != NULL) {
+                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
+                    continue;
+            } else if (inst->arg1 != NULL) {
+                continue;
+            }
+            if (arg0 != NULL) {
+                if (inst->arg0 == NULL || strcmp(inst->arg0, arg0) != 0)
+                    continue;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
 #include "transpiler_expr_emitters.inc"
 

@@ -1,6 +1,6 @@
 # Surface Compression Examples
 
-마지막 업데이트: 2026-04-12
+마지막 업데이트: 2026-04-14
 
 이 문서는 Pergyra의 authoring pain point를 줄이기 위해,
 이미 구현된 압축과 아직 설계 단계인 압축을 예제로 나눠 보여준다.
@@ -11,6 +11,7 @@
 - [59_authoring_surface_compression_plan.md](/mnt/e/PergyraLang/docs/59_authoring_surface_compression_plan.md)
 - [60_zone_context_and_transfer_derivation.md](/mnt/e/PergyraLang/docs/60_zone_context_and_transfer_derivation.md)
 - [65_stable_example_surface_board.md](/mnt/e/PergyraLang/docs/65_stable_example_surface_board.md)
+- [69_authoring_pair_examples.md](/mnt/e/PergyraLang/docs/69_authoring_pair_examples.md)
 
 이 문서의 운영 규칙:
 
@@ -29,6 +30,7 @@
 - [intent_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_pair_minimal.pgy)
 - [authority_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/authority_contract_pair_minimal.pgy)
 - [transfer_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_contract_pair_minimal.pgy)
+- [69_authoring_pair_examples.md](/mnt/e/PergyraLang/docs/69_authoring_pair_examples.md) 의 projection/context pair
 
 이 세 파일은 같은 의미를 `긴 버전`과 `압축 버전`으로 나란히 보여 주는 canonical pair다.
 이제 smoke source of truth에도 포함되므로, contract compression 설명의 기준 예제로 먼저 링크해야 한다.
@@ -128,6 +130,10 @@ stable canonical pair:
 - [intent_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_pair_minimal.pgy)
 - [authority_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/authority_contract_pair_minimal.pgy)
 - [transfer_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_contract_pair_minimal.pgy)
+- projection/context pair
+  - [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)
+  - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)
+  - [zone_context_minimal.pgy](/mnt/e/PergyraLang/examples/zone_context_minimal.pgy)
 
 현재 권장 읽기 순서:
 

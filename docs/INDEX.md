@@ -1,6 +1,6 @@
 # PergyraLang 전체 문서 인덱스
 
-마지막 업데이트: 2026-04-12
+마지막 업데이트: 2026-04-14
 
 ## 문서 분류
 
@@ -34,6 +34,7 @@
 | **사용성** | [`docs/59_authoring_surface_compression_plan.md`](docs/59_authoring_surface_compression_plan.md) | 작성 경로 압축과 P0/P1/P2 설계 방향 |
 | **사용성** | [`docs/60_zone_context_and_transfer_derivation.md`](docs/60_zone_context_and_transfer_derivation.md) | lexical zone context와 `using/transfer` 유도 규칙 |
 | **사용성** | [`docs/61_surface_compression_examples.md`](docs/61_surface_compression_examples.md) | surface compression의 구현 예제와 목표 예제 |
+| **사용성** | [`docs/69_authoring_pair_examples.md`](docs/69_authoring_pair_examples.md) | explicit vs compressed 작성 pair와 pain point 비교 기준 |
 | **리뷰** | [`review/abi_unification_log.md`](review/abi_unification_log.md) | ABI 통일 실행 로그 |
 | **리뷰** | [`review/channel_ownership_tier.md`](review/channel_ownership_tier.md) | Channel Zone/World 이중 소유 모델 |
 | **리뷰** | [`review/object_vs_tobject_semantics.md`](review/object_vs_tobject_semantics.md) | object vs tobject 의미론 |

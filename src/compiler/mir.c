@@ -360,6 +360,34 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         return true;
 
     intent = routine->hir_routine->ast;
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        MIRInstruction inst;
+        const char *alias = NULL;
+        const char *type_name = NULL;
+
+        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+            continue;
+        alias = involves->data.intent_involves.alias;
+        if (involves->data.intent_involves.subject_type != NULL
+            && involves->data.intent_involves.subject_type->type == AST_TYPE) {
+            type_name = involves->data.intent_involves.subject_type->data.type.name;
+        }
+        if (alias == NULL || type_name == NULL)
+            continue;
+
+        memset(&inst, 0, sizeof(inst));
+        inst.id = routine->instruction_count++;
+        inst.kind = MIR_INST_STMT;
+        inst.name = "IntentParticipant";
+        inst.slot_anchor = routine->name;
+        inst.arg0 = alias;
+        inst.arg1 = type_name;
+        inst.ast = involves;
+        if (!append_instruction(block, inst))
+            return false;
+    }
+
     for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
         ASTNode *step = intent->data.intent_decl.steps[i];
         MIRInstruction inst;

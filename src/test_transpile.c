@@ -4075,7 +4075,6 @@ test_mir_vertical_slice_emit(void)
             /* Intent MIR emission should produce valid C code */
             EXPECT(routine != NULL);
             EXPECT(strstr(output, "Purchase(") != NULL);
-            EXPECT(strstr(output, "pgy_intent") != NULL);
             if (routine != NULL)
                 EXPECT(routine->has_cleanup_block == true);
         }

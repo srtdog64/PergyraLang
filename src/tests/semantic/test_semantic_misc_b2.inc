@@ -466,6 +466,18 @@
         EXPECT(result != NULL && result->warning_count >= 1);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implicitly copies zone binding 'battle'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot be mutated via assignment after it was embedded into a world value"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot be mutated via hosted func/action call after it was embedded into a world value"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "embeds zone state by value into the world value"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "mutate it through the owning world after embedding"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -725,6 +737,8 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy constraint 'Comparable'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'Merchant'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "Fix:"));
 
@@ -1571,7 +1585,13 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot run in authority-bearing zone 'CockpitZone' without 'authorized by'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "zone 'CockpitZone' declares authority, so explicit approval is required"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "add 'authorized by: driver;' to the step"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1798,6 +1818,12 @@
             "derived zone from transfer target: DeliveryZone"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "derived using from transfer target: deliver"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "transfers zone state"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot run in authority-bearing zone 'DeliveryZone' without 'authorized by'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -1832,6 +1858,123 @@
             "Fix:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "choose an object slot for local projection sync"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone projection ambiguous source field includes reason and fix");
+    {
+        const char *source =
+            "vessel CombatStats { hp: Int; }\n"
+            "vessel ShieldState { hp: Int; }\n"
+            "subject Player {\n"
+            "    vessel combat: CombatStats;\n"
+            "    vessel shield: ShieldState;\n"
+            "}\n"
+            "object PlayerView { hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "target field 'hp' is ambiguous in source slot 'player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "multiple projection source paths match field 'hp'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "automatic projection cannot choose one path safely"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToObject ambiguous source field includes reason and fix");
+    {
+        const char *source =
+            "vessel CombatStats { hp: Int; }\n"
+            "vessel ShieldState { hp: Int; }\n"
+            "subject Player {\n"
+            "    vessel combat: CombatStats;\n"
+            "    vessel shield: ShieldState;\n"
+            "}\n"
+            "object PlayerView { hp: Int; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let view: PlayerView = ToObject(PlayerView, player);\n"
+            "    Log(view.hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ToObject target field 'hp' is ambiguous in source subject 'Player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "multiple projection source paths match field 'hp'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "automatic projection cannot choose one path safely"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ToTObject ambiguous source field includes reason and fix");
+    {
+        const char *source =
+            "vessel CombatStats { hp: Int; }\n"
+            "vessel ShieldState { hp: Int; }\n"
+            "subject Player {\n"
+            "    vessel combat: CombatStats;\n"
+            "    vessel shield: ShieldState;\n"
+            "}\n"
+            "tobject PlayerPacket { hp: Int; }\n"
+            "func Main() -> Void {\n"
+            "    let player: Player = Player();\n"
+            "    let packet: PlayerPacket = ToTObject(PlayerPacket, player);\n"
+            "    Log(packet.hp);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "ToTObject target field 'hp' is ambiguous in source subject 'Player'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "multiple projection source paths match field 'hp'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "automatic projection cannot choose one path safely"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -2971,6 +3114,8 @@
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "implement 'Combatable<String>' instead"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual implementation is 'Combatable<String>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Reason:"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Fix:"));
@@ -3424,6 +3569,8 @@
             "uses ability 'Bufferable' with generic argument 'String'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3482,6 +3629,81 @@
             "party role slot 'fighter' uses ability 'Bufferable' with generic argument 'String'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "does not satisfy bound 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone authority rejects generic ability reference that violates ability where bound");
+    {
+        const char *source =
+            "ability Bufferable<T> where T: Int {\n"
+            "    func Put(value: T) -> Void;\n"
+            "}\n"
+            "subject Hero { let hp: Int; }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Bufferable<String> {\n"
+            "        func Put(value: String) -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero requires Bufferable<String>\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Zone authority 'hero' uses ability 'Bufferable' with generic argument 'String'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy bound 'Int'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual type argument is 'String'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step requires reports actual implementation provenance");
+    {
+        const char *source =
+            "ability Combatable<T> { func Ping() -> Void; }\n"
+            "subject Hero { action Act(self) -> Void { return; } }\n"
+            "role HeroRole for Hero {\n"
+            "    impl ability Combatable<String> { func Ping() -> Void { return; } }\n"
+            "}\n"
+            "intent Battle(hero: Hero) {\n"
+            "    step Attack {\n"
+            "        who: hero;\n"
+            "        requires: Combatable<Int>;\n"
+            "        on: hero.Act();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Intent step 'Attack' requires ability 'Combatable<Int>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "implements 'Combatable<String>' instead"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "actual implementation is 'Combatable<String>'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -3907,6 +4129,44 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("zone projection map duplicate target field includes reason and fix");
+    {
+        const char *source =
+            "subject Player { let hp: Int; let mana: Int; }\n"
+            "object PlayerView { total: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot player: Player\n"
+            "    object slot playerView: PlayerView\n"
+            "    refresh playerView from player map {\n"
+            "        total <- hp;\n"
+            "        total <- mana;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "projection map duplicates target field 'total'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "each projection target field may be filled from exactly one source field"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "keep a single mapping for 'total'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
 }
 
 /* -----------------------------------------------------------------

@@ -24,6 +24,15 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    fi
+fi
+
 BACKENDS="${PGY_ABI_PIPELINE_BACKENDS:-c}"
 CASE_ROOT="$ROOT_DIR/tests/cases/abi_pipeline"
 WORK_BASE="$ROOT_DIR/.tmp/abi-pipeline-smoke"
@@ -42,11 +51,61 @@ normalize_output() {
 }
 
 files_equal() {
-    cmp -s "$1" "$2"
+    local left="$1"
+    local right="$2"
+
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_bytes()
+right = pathlib.Path(sys.argv[2]).read_bytes()
+raise SystemExit(0 if left == right else 1)
+PY
+        return $?
+    fi
+
+    [[ "$(cat "$left")" == "$(cat "$right")" ]]
 }
 
 show_diff() {
-    diff -u "$1" "$2" || true
+    local left="$1"
+    local right="$2"
+
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
+        return 0
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import difflib, pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines(True)
+right = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines(True)
+sys.stdout.writelines(difflib.unified_diff(left, right, fromfile=sys.argv[1], tofile=sys.argv[2]))
+PY
+        return 0
+    fi
+
+    echo "--- expected ---"
+    cat "$left"
+    echo "--- actual ---"
+    cat "$right"
+    return 0
 }
 
 compile_expect_for_case() {

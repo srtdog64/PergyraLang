@@ -49,6 +49,65 @@ static bool
 subject_type_has_ability(ASTNode *program, const char *type_name,
                          ASTNode *ability_ref);
 
+static void
+report_subject_ability_requirement_mismatch(SemanticContext *ctx,
+                                            const ASTNode *site,
+                                            const char *owner_label,
+                                            const char *owner_name,
+                                            const char *subject_label,
+                                            const char *subject_name,
+                                            const char *required_text,
+                                            const char *actual_text,
+                                            const char *fix_tail)
+{
+    if (ctx == NULL || site == NULL)
+        return;
+
+    semantic_error(ctx, site,
+        actual_text != NULL
+            ? "%s '%s' requires ability '%s', but %s '%s' implements '%s' instead.\n"
+              "Reason:\n"
+              "- %s '%s' does not satisfy required ability '%s'\n"
+              "- actual implementation is '%s'\n"
+              "Fix:\n"
+              "- implement '%s' for %s '%s'\n"
+              "- %s"
+            : "%s '%s' requires ability '%s', but %s '%s' has no matching role impl.\n"
+              "Reason:\n"
+              "- %s '%s' does not satisfy required ability '%s'\n"
+              "- no matching implementation was found for '%s'\n"
+              "Fix:\n"
+              "- implement '%s' for %s '%s'\n"
+              "- %s",
+        owner_label != NULL ? owner_label : "construct",
+        owner_name != NULL ? owner_name : "<anonymous>",
+        required_text != NULL ? required_text : "<ability>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        actual_text != NULL ? actual_text : NULL,
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        required_text != NULL ? required_text : "<ability>",
+        actual_text != NULL ? actual_text : required_text != NULL ? required_text : "<ability>",
+        required_text != NULL ? required_text : "<ability>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        fix_tail != NULL ? fix_tail : "change/remove the ability requirement",
+        owner_label != NULL ? owner_label : "construct",
+        owner_name != NULL ? owner_name : "<anonymous>",
+        required_text != NULL ? required_text : "<ability>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        required_text != NULL ? required_text : "<ability>",
+        required_text != NULL ? required_text : "<ability>",
+        required_text != NULL ? required_text : "<ability>",
+        subject_label != NULL ? subject_label : "subject",
+        subject_name != NULL ? subject_name : "<subject>",
+        fix_tail != NULL ? fix_tail : "change/remove the ability requirement");
+}
+
 static int
 ability_decl_generic_param_index(GenericParams *gp, const char *param_name)
 {
@@ -173,6 +232,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     "Reason:\n"
                     "- ability declaration '%s' requires '%s: %s'\n"
                     "- %s uses '%s'\n"
+                    "- actual type argument is '%s'\n"
                     "Fix:\n"
                     "- pass a type argument that satisfies '%s'\n"
                     "- or relax the bound on ability '%s'",
@@ -188,6 +248,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     bound_name,
                     owner_label != NULL ? owner_label : "construct",
                     required_text != NULL ? required_text : "<ability>",
+                    concrete_type->name != NULL ? concrete_type->name : "<type>",
                     bound_name,
                     ability_decl->data.ability_decl.name != NULL
                         ? ability_decl->data.ability_decl.name : "<ability>");
@@ -530,42 +591,13 @@ validate_action_required_abilities(ASTNode *node,
             ASTNode *actual_impl = subject_type_find_base_ability_impl(
                 ctx->program_root, subject_name, ability);
             char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
-            semantic_error(ctx, node,
-                actual_impl != NULL
-                    ? "action '%s' requires ability '%s', but subject '%s' implements '%s' instead.\n"
-                      "Reason:\n"
-                      "- subject '%s' does not satisfy required ability '%s'\n"
-                      "Fix:\n"
-                      "- implement '%s' for subject '%s'\n"
-                      "- or change/remove the action requirement"
-                    : "action '%s' requires ability '%s', but subject '%s' does not implement it.\n"
-                      "Reason:\n"
-                      "- subject '%s' does not satisfy required ability '%s'\n"
-                      "Fix:\n"
-                      "- implement '%s' for subject '%s'\n"
-                      "- or change/remove the action requirement",
-                name != NULL ? name : "<anonymous>",
+            report_subject_ability_requirement_mismatch(
+                ctx, node, "action", name != NULL ? name : "<anonymous>",
+                "subject", subject_name,
                 required_text != NULL ? required_text
                                       : (ability != NULL ? ability : "<ability>"),
-                subject_name,
-                actual_text != NULL ? actual_text : NULL,
-                subject_name,
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"),
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"),
-                subject_name,
-                name != NULL ? name : "<anonymous>",
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"),
-                subject_name,
-                subject_name,
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"),
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"),
-                subject_name,
-                actual_text != NULL ? actual_text : NULL);
+                actual_text,
+                "change/remove the action requirement");
             free(actual_text);
         }
         free(required_text);

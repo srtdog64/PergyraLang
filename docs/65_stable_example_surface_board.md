@@ -1,6 +1,6 @@
 # Stable Example Surface Board
 
-마지막 업데이트: 2026-04-12
+마지막 업데이트: 2026-04-14
 
 이 문서는 예제를 세 가지로 분리한다.
 
@@ -68,6 +68,7 @@
   - `examples/intent_contract_pair_minimal.pgy`
   - `examples/authority_contract_pair_minimal.pgy`
   - `examples/transfer_contract_pair_minimal.pgy`
+  - `docs/69_authoring_pair_examples.md`의 projection/context pair
 - stable minimal subset
   - `examples/action_contract_inheritance_minimal.pgy`
   - `examples/intent_contract_derivation_minimal.pgy`
@@ -78,6 +79,11 @@
 운영 규칙:
 
 - canonical pair는 long-form vs compressed-form 의미 동등성의 기준이다
+- 베타 전 canonical pair는 최소 4쌍을 유지한다
+  - action-contract pair
+  - authority-contract pair
+  - transfer-contract pair
+  - projection/context pair
 - minimal subset은 현재 stable authoring subset의 기준이다
 - clause density 관련 문서는 maximal/composite example보다 이 두 층을 먼저 링크해야 한다
 

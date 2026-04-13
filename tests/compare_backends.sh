@@ -1,6 +1,73 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python3)"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python)"
+    fi
+fi
+
+files_equal() {
+    local left="$1"
+    local right="$2"
+
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_bytes()
+right = pathlib.Path(sys.argv[2]).read_bytes()
+raise SystemExit(0 if left == right else 1)
+PY
+        return $?
+    fi
+
+    [[ "$(cat "$left")" == "$(cat "$right")" ]]
+}
+
+show_diff() {
+    local left="$1"
+    local right="$2"
+
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
+        return 0
+    fi
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+
+    if [[ -n "$PYTHON_BIN" ]]; then
+        "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import difflib, pathlib, sys
+left = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines(True)
+right = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines(True)
+sys.stdout.writelines(difflib.unified_diff(left, right, fromfile=sys.argv[1], tofile=sys.argv[2]))
+PY
+        return 0
+    fi
+
+    echo "--- left ---"
+    cat "$left"
+    echo "--- right ---"
+    cat "$right"
+    return 0
+}
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
@@ -121,15 +188,15 @@ run_case() {
         return 1
     fi
 
-    if ! diff -u "$c_out" "$llvm_out" >/dev/null; then
+    if ! files_equal "$c_out" "$llvm_out"; then
         echo "backend-compare: stdout mismatch for $source_rel" >&2
-        diff -u "$c_out" "$llvm_out" >&2 || true
+        show_diff "$c_out" "$llvm_out" >&2
         return 1
     fi
 
-    if ! diff -u "$c_err" "$llvm_err" >/dev/null; then
+    if ! files_equal "$c_err" "$llvm_err"; then
         echo "backend-compare: stderr mismatch for $source_rel" >&2
-        diff -u "$c_err" "$llvm_err" >&2 || true
+        show_diff "$c_err" "$llvm_err" >&2
         return 1
     fi
 

@@ -901,18 +901,23 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             ? "Party role slot '%s' requires ability '%s', but subject-bound roles implement '%s' instead.\n"
                               "Reason:\n"
                               "- no subject-bound role satisfies required ability '%s'\n"
+                              "- actual implementation is '%s'\n"
                               "Fix:\n"
                               "- implement '%s' on a subject-bound role\n"
                               "- or change the role slot contract"
                             : "Party role slot '%s' requires ability '%s', but no subject-bound role implements it.\n"
                               "Reason:\n"
                               "- no subject-bound role satisfies required ability '%s'\n"
+                              "- no matching implementation was found for '%s'\n"
                               "Fix:\n"
                               "- implement '%s' on a subject-bound role\n"
                               "- or change the role slot contract",
                         rs->data.role_slot.slot_name,
                         required_text != NULL ? required_text : ability_name,
                         actual_text != NULL ? actual_text : NULL,
+                        required_text != NULL ? required_text : ability_name,
+                        actual_text != NULL ? actual_text
+                                            : (required_text != NULL ? required_text : ability_name),
                         required_text != NULL ? required_text : ability_name,
                         required_text != NULL ? required_text : ability_name);
                     free(actual_text);
