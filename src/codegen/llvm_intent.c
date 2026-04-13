@@ -763,7 +763,7 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
                 || inst->ast->type != AST_INTENT_STEP) {
                 continue;
             }
-            if (inst->name != NULL && strncmp(inst->name, "Intent", 6) == 0)
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
                 continue;
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
@@ -780,6 +780,49 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_out)
     }
 
     *steps_out = steps;
+    return count;
+}
+
+static size_t
+llvm_collect_mir_intent_step_names(const MIRRoutine *routine, const char ***names_out)
+{
+    const char **names = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (names_out != NULL)
+        *names_out = NULL;
+    if (routine == NULL || names_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+                continue;
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
+                grown = realloc((void *)names, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)names);
+                    return 0;
+                }
+                names = grown;
+                capacity = new_capacity;
+            }
+            names[count++] = inst->arg0 != NULL ? inst->arg0 : inst->name;
+        }
+    }
+
+    *names_out = names;
     return count;
 }
 
@@ -1054,6 +1097,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     const MIRRoutine *mir_routine;
     ASTNode **mir_steps = NULL;
     ASTNode **step_nodes = NULL;
+    const char **mir_step_names = NULL;
     const char **participant_aliases = NULL;
     const char **participant_types = NULL;
     LLVMFuncEntry *entry;
@@ -1091,8 +1135,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
-    if (mir_routine != NULL)
+    if (mir_routine != NULL) {
         step_count = llvm_collect_mir_intent_steps(mir_routine, &mir_steps);
+        (void)llvm_collect_mir_intent_step_names(mir_routine, &mir_step_names);
+    }
     if (ctx->mir != NULL && node->data.intent_decl.step_count > 0) {
         if (mir_routine == NULL) {
             char msg[256];
@@ -1103,6 +1149,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
             free(mir_steps);
+            free((void *)mir_step_names);
             return;
         }
         if (step_count == 0) {
@@ -1114,6 +1161,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                          : "(anonymous)");
             llvm_set_error(ctx, msg);
             free(mir_steps);
+            free((void *)mir_step_names);
             return;
         }
         mir_only_intent = true;
@@ -1140,6 +1188,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             free((void *)participant_aliases);
             free((void *)participant_types);
             free(mir_steps);
+            free((void *)mir_step_names);
             return;
         }
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
@@ -1155,6 +1204,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 free((void *)participant_aliases);
                 free((void *)participant_types);
                 free(mir_steps);
+                free((void *)mir_step_names);
                 return;
             }
         }
@@ -1168,10 +1218,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
+        const char *step_name = (mir_step_names != NULL) ? mir_step_names[i] : NULL;
         if (step != NULL && step->type == AST_INTENT_STEP
             && ((mir_only_intent && mir_routine != NULL
                  && llvm_mir_intent_has_stmt(
-                     mir_routine, step->data.intent_step.name,
+                     mir_routine, step_name != NULL ? step_name : step->data.intent_step.name,
                      "IntentEval", "compensate"))
                 || (!mir_only_intent && step->data.intent_step.compensate_expr_count > 0))) {
             has_compensate_steps = true;
@@ -1375,7 +1426,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
-        const char *step_name = NULL;
+        const char *step_name = (mir_step_names != NULL) ? mir_step_names[i] : NULL;
         ASTNode *pre_expr = NULL;
         ASTNode *guard_expr = NULL;
         ASTNode *post_expr = NULL;
@@ -1396,7 +1447,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         bool rebound_aliases = false;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
-        step_name = step->data.intent_step.name;
+        if (step_name == NULL)
+            step_name = step->data.intent_step.name;
         if (mir_routine != NULL) {
             pre_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "pre");
             guard_expr = llvm_find_mir_intent_check_expr(mir_routine, step_name, "guard");
@@ -1485,7 +1537,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef args[] = {
                 handle,
                 LLVMBuildGlobalStringPtr(ctx->builder,
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    step_name != NULL ? step_name : "<step>",
                     llvm_tmp_name(ctx)),
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     zone_type_name != NULL ? zone_type_name : "<zone>",
@@ -1522,7 +1574,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.pre.ok");
             LLVMValueRef cond = llvm_emit_expression(pre_expr, ctx);
             snprintf(reason, sizeof(reason), "pre:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1537,7 +1589,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.pre.ok");
             LLVMValueRef cond = llvm_emit_expression(invariant_pre_expr, ctx);
             snprintf(reason, sizeof(reason), "invariant-pre:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1558,7 +1610,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
             LLVMValueRef cond = llvm_emit_expression(subintent_expr, ctx);
             snprintf(reason, sizeof(reason), "intent:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1570,7 +1622,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             size_t alias_count = dispatch_alias_count;
             if (!mir_only_intent && alias_count == 0)
                 alias_count = step->data.intent_step.who_count;
-            else if (mir_only_intent && alias_count == 0 && step->data.intent_step.who_count > 0)
+            else if (mir_only_intent && alias_count == 0
+                     && llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentDispatch", NULL))
                 goto mir_step_missing_dispatch;
             for (size_t j = 0; j < alias_count; j++) {
                 const char *alias = dispatch_alias_count > 0
@@ -1582,7 +1635,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMFuncEntry *action_fn;
                     LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias);
                     snprintf(full_name, sizeof(full_name), "%s_%s",
-                        subject_name, step->data.intent_step.name);
+                        subject_name, step_name);
                     action_fn = llvm_lookup_function(ctx, full_name);
                     if (action_fn != NULL && action_fn->is_action
                         && action_fn->action_self_only && participant_var != NULL) {
@@ -1618,7 +1671,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.guard.ok");
             LLVMValueRef cond = llvm_emit_expression(guard_expr, ctx);
             snprintf(reason, sizeof(reason), "guard:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1633,7 +1686,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.expect.ok");
             LLVMValueRef cond = llvm_emit_expression(expect_expr, ctx);
             snprintf(reason, sizeof(reason), "expect:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1648,7 +1701,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.post.ok");
             LLVMValueRef cond = llvm_emit_expression(post_expr, ctx);
             snprintf(reason, sizeof(reason), "post:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1663,7 +1716,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.post.ok");
             LLVMValueRef cond = llvm_emit_expression(invariant_post_expr, ctx);
             snprintf(reason, sizeof(reason), "invariant-post:%s",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+                step_name != NULL ? step_name : "<step>");
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -1673,9 +1726,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         }
         free(on_exprs);
-        if (who_aliases != NULL && who_aliases != (const char **)step->data.intent_step.who_names)
+        if (mir_only_intent && who_aliases != NULL)
             free((void *)who_aliases);
-        free((void *)dispatch_aliases);
+        if (mir_only_intent && dispatch_aliases != NULL)
+            free((void *)dispatch_aliases);
         free(saved_participant_ptrs);
         saved_participant_ptrs = NULL;
         {
@@ -1684,7 +1738,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef args[] = {
                 handle,
                 LLVMBuildGlobalStringPtr(ctx->builder,
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    step_name != NULL ? step_name : "<step>",
                     llvm_tmp_name(ctx))
             };
             LLVMBuildCall2(ctx->builder, trace_step_ok_fn->fn_type, trace_step_ok_fn->fn, args, 2, "");
@@ -1746,6 +1800,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (completed_allocas != NULL) {
         for (size_t i = step_count; i-- > 0;) {
             ASTNode *step = step_nodes[i];
+            const char *step_name = (mir_step_names != NULL) ? mir_step_names[i] : NULL;
             ASTNode **compensate_exprs = NULL;
             size_t compensate_expr_count = 0;
             const char *zone_type_name = NULL;
@@ -1755,9 +1810,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             size_t who_alias_count = 0;
             bool has_compensate = false;
             if (step != NULL && step->type == AST_INTENT_STEP) {
+                if (step_name == NULL)
+                    step_name = step->data.intent_step.name;
                 has_compensate = mir_only_intent
                     ? llvm_mir_intent_has_stmt(
-                        mir_routine, step->data.intent_step.name,
+                        mir_routine, step_name,
                         "IntentEval", "compensate")
                     : step->data.intent_step.compensate_expr_count > 0;
             }
@@ -1765,18 +1822,18 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 continue;
             if (mir_routine != NULL) {
                 compensate_expr_count = llvm_collect_mir_intent_eval_exprs(
-                    mir_routine, step->data.intent_step.name, "compensate", &compensate_exprs);
+                    mir_routine, step_name, "compensate", &compensate_exprs);
                 zone_type_name = llvm_find_mir_intent_meta_arg(
-                    mir_routine, step->data.intent_step.name, "IntentZoneWhere");
+                    mir_routine, step_name, "IntentZoneWhere");
                 zone_alias = llvm_find_mir_intent_meta_arg(
-                    mir_routine, step->data.intent_step.name, "IntentZoneAlias");
+                    mir_routine, step_name, "IntentZoneAlias");
                 from_alias = llvm_find_mir_intent_meta_arg(
-                    mir_routine, step->data.intent_step.name, "IntentZoneFrom");
+                    mir_routine, step_name, "IntentZoneFrom");
                 who_alias_count = llvm_collect_mir_intent_who_aliases(
-                    mir_routine, step->data.intent_step.name, &who_aliases);
+                    mir_routine, step_name, &who_aliases);
             }
             if (mir_only_intent
-                && llvm_mir_intent_has_stmt(mir_routine, step->data.intent_step.name,
+                && llvm_mir_intent_has_stmt(mir_routine, step_name,
                                             "IntentEval", "compensate")
                 && compensate_expr_count == 0)
                 goto mir_step_missing_compensate;
@@ -1785,13 +1842,17 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 compensate_exprs = step->data.intent_step.compensate_exprs;
             }
             if (mir_only_intent) {
-                if (step->data.intent_step.where_type != NULL && zone_type_name == NULL)
+                if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
+                    && zone_type_name == NULL)
                     goto mir_step_missing_zone_where;
-                if (llvm_intent_step_effective_zone_alias(step) != NULL && zone_alias == NULL)
+                if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneAlias", NULL)
+                    && zone_alias == NULL)
                     goto mir_step_missing_zone_alias;
-                if (step->data.intent_step.transfer_from_alias != NULL && from_alias == NULL)
+                if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneFrom", NULL)
+                    && from_alias == NULL)
                     goto mir_step_missing_zone_from;
-                if (step->data.intent_step.who_count > 0 && who_alias_count == 0)
+                if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentWho", NULL)
+                    && who_alias_count == 0)
                     goto mir_step_missing_who;
             } else {
                 if (zone_type_name == NULL
@@ -1827,11 +1888,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMBuildBr(ctx->builder, next_bb);
                 LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
             }
-            if (compensate_exprs != NULL
-                && compensate_exprs != step->data.intent_step.compensate_exprs) {
+            if (mir_only_intent && compensate_exprs != NULL) {
                 free(compensate_exprs);
             }
-            if (who_aliases != NULL && who_aliases != (const char **)step->data.intent_step.who_names)
+            if (mir_only_intent && who_aliases != NULL)
                 free((void *)who_aliases);
         }
     }
@@ -1877,6 +1937,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     free((void *)participant_aliases);
     free((void *)participant_types);
     free(mir_steps);
+    free((void *)mir_step_names);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
 
@@ -1932,6 +1993,7 @@ intent_emit_fail:
     free((void *)participant_aliases);
     free((void *)participant_types);
     free(mir_steps);
+    free((void *)mir_step_names);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
     if (saved_fn != NULL) {

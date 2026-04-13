@@ -1189,7 +1189,7 @@ transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_
                 || inst->ast->type != AST_INTENT_STEP) {
                 continue;
             }
-            if (inst->name != NULL && strncmp(inst->name, "Intent", 6) == 0)
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
                 continue;
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
@@ -1206,6 +1206,49 @@ transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_
     }
 
     *steps_out = steps;
+    return count;
+}
+
+static size_t
+transpiler_collect_mir_intent_step_names(const MIRRoutine *routine, const char ***names_out)
+{
+    const char **names = NULL;
+    size_t count = 0;
+    size_t capacity = 0;
+
+    if (names_out != NULL)
+        *names_out = NULL;
+    if (routine == NULL || names_out == NULL)
+        return 0;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block->is_cleanup || !block->is_reachable)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            const char **grown;
+
+            if (inst->kind != MIR_INST_STMT)
+                continue;
+            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+                continue;
+
+            if (count >= capacity) {
+                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
+                grown = realloc((void *)names, new_capacity * sizeof(const char *));
+                if (grown == NULL) {
+                    free((void *)names);
+                    return 0;
+                }
+                names = grown;
+                capacity = new_capacity;
+            }
+            names[count++] = inst->arg0 != NULL ? inst->arg0 : inst->name;
+        }
+    }
+
+    *names_out = names;
     return count;
 }
 

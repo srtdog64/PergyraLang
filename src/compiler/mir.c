@@ -405,6 +405,18 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         if (!append_instruction(block, inst))
             return false;
 
+        memset(&inst, 0, sizeof(inst));
+        inst.id = routine->instruction_count++;
+        inst.kind = MIR_INST_STMT;
+        inst.name = "IntentStep";
+        inst.slot_anchor = step->data.intent_step.name;
+        inst.arg0 = step->data.intent_step.name != NULL
+            ? step->data.intent_step.name
+            : "intent.step";
+        inst.ast = step;
+        if (!append_instruction(block, inst))
+            return false;
+
         if (step->data.intent_step.where_type != NULL
             && step->data.intent_step.where_type->type == AST_TYPE
             && step->data.intent_step.where_type->data.type.name != NULL) {
