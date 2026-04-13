@@ -2019,6 +2019,12 @@
             "    Log(ToString(IntentActiveFailed(0)));\n"
             "    Log(IntentActiveFailure(0));\n"
             "    Log(IntentActiveTrace(0));\n"
+            "    Log(ToString(IntentRecentCount()));\n"
+            "    Log(IntentRecentName(0));\n"
+            "    Log(IntentRecentTrace(0));\n"
+            "    Log(IntentRecentFailure(0));\n"
+            "    Log(ToString(IntentRecentStepCount(0)));\n"
+            "    Log(ToString(IntentRecentFailed(0)));\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
         Parser *parser = parser_create(lexer);
@@ -3404,6 +3410,98 @@
             "}\n"
             "subject Boss {\n"
             "    action Do(self) -> Void requires HiddenAbility<Int> { return; }\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "non-exported ability 'HiddenAbility'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("zone authority generic ability stays hidden across modules");
+    {
+        const char *module_path = "test_private_generic_zone_authority_module_a.pgy";
+        const char *main_path = "test_private_generic_zone_authority_module_main_a.pgy";
+        const char *module_source =
+            "private ability HiddenAbility<T> {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_generic_zone_authority_module_a.pgy\";\n"
+            "subject Hero { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero requires HiddenAbility<Int>\n"
+            "}\n";
+        FILE *module_file = fopen(module_path, "wb");
+        FILE *main_file = fopen(main_path, "wb");
+        char *error_message = NULL;
+        ASTNode *program = NULL;
+        SemanticResult *result = NULL;
+
+        EXPECT(module_file != NULL && main_file != NULL);
+        if (module_file != NULL) {
+            fputs(module_source, module_file);
+            fclose(module_file);
+        }
+        if (main_file != NULL) {
+            fputs(main_source, main_file);
+            fclose(main_file);
+        }
+
+        program = import_resolver_load_program(main_path, &error_message);
+        EXPECT(program != NULL);
+        if (program != NULL)
+            result = semantic_analyze(program);
+        EXPECT(error_message == NULL);
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "non-exported ability 'HiddenAbility'"));
+
+        free(error_message);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        remove(main_path);
+        remove(module_path);
+    }
+
+    TEST("party role slot generic ability stays hidden across modules");
+    {
+        const char *module_path = "test_private_generic_party_role_slot_module_a.pgy";
+        const char *main_path = "test_private_generic_party_role_slot_module_main_a.pgy";
+        const char *module_source =
+            "private ability HiddenAbility<T> {\n"
+            "    func Ping() -> Void;\n"
+            "}\n";
+        const char *main_source =
+            "import \"test_private_generic_party_role_slot_module_a.pgy\";\n"
+            "party RaidTeam {\n"
+            "    role slot fighter: HiddenAbility<Int>\n"
             "}\n";
         FILE *module_file = fopen(module_path, "wb");
         FILE *main_file = fopen(main_path, "wb");

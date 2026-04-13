@@ -60,6 +60,40 @@
 - "언어 전체가 완성됐다"는 뜻은 아니다
 - "이 예제가 사용하는 표면은 현재 회귀 테스트가 직접 밟는다"는 뜻이다
 
+### 1.1 Contract clause density source-of-truth
+
+계약 밀도 압축은 아래 두 층으로 읽는다.
+
+- canonical pair
+  - `examples/intent_contract_pair_minimal.pgy`
+  - `examples/authority_contract_pair_minimal.pgy`
+  - `examples/transfer_contract_pair_minimal.pgy`
+- stable minimal subset
+  - `examples/action_contract_inheritance_minimal.pgy`
+  - `examples/intent_contract_derivation_minimal.pgy`
+  - `examples/transfer_move_minimal.pgy`
+  - `examples/transfer_move_typed_minimal.pgy`
+  - `examples/zone_context_minimal.pgy`
+
+운영 규칙:
+
+- canonical pair는 long-form vs compressed-form 의미 동등성의 기준이다
+- minimal subset은 현재 stable authoring subset의 기준이다
+- clause density 관련 문서는 maximal/composite example보다 이 두 층을 먼저 링크해야 한다
+
+### 1.2 Projection contract diagnostics source-of-truth
+
+- stable example
+  - `examples/projection_bind_group_minimal.pgy`
+  - `examples/projection_refresh_publish_group_minimal.pgy`
+- semantic regression
+  - `src/test_semantic.c:test_projection_contract_diagnostics`
+
+운영 규칙:
+
+- projection diagnostics 문서는 위 stable example과 semantic regression을 함께 기준으로 삼는다
+- projection failure wording을 바꿀 때는 `target/source/projection-kind/field-path-or-map/Reason/Fix`가 유지돼야 한다
+
 ## 2. Design sketch examples
 
 다음 예제는 현재 구현보다 앞선 표면을 포함한 설계 스케치다.

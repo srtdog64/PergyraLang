@@ -378,6 +378,10 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
 }
 
 static ASTNode *
+transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
+                                 const char *name);
+
+static ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {
     return transpiler_find_named_decl_local(ctx, AST_ROLE_DECL, role_name);
@@ -420,12 +424,27 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type, const char *
     case AST_ENUM_DECL:
         return stmt->data.enum_decl.name != NULL
             && strcmp(stmt->data.enum_decl.name, name) == 0;
+    case AST_ROLE_DECL:
+        return stmt->data.role_decl.name != NULL
+            && strcmp(stmt->data.role_decl.name, name) == 0;
     case AST_CLASS_DECL:
         return stmt->data.class_decl.name != NULL
             && strcmp(stmt->data.class_decl.name, name) == 0;
+    case AST_FUNC_DECL:
+        return stmt->data.func_decl.name != NULL
+            && strcmp(stmt->data.func_decl.name, name) == 0;
+    case AST_INTENT_DECL:
+        return stmt->data.intent_decl.name != NULL
+            && strcmp(stmt->data.intent_decl.name, name) == 0;
     case AST_TYPE_ALIAS:
         return stmt->data.type_alias.name != NULL
             && strcmp(stmt->data.type_alias.name, name) == 0;
+    case AST_ABILITY_DECL:
+        return stmt->data.ability_decl.name != NULL
+            && strcmp(stmt->data.ability_decl.name, name) == 0;
+    case AST_EVENT_DECL:
+        return stmt->data.event_decl.name != NULL
+            && strcmp(stmt->data.event_decl.name, name) == 0;
     case AST_ZONE_DECL:
         return stmt->data.zone_decl.name != NULL
             && strcmp(stmt->data.zone_decl.name, name) == 0;

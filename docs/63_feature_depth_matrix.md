@@ -29,6 +29,36 @@
 즉 `◐`는 최종 상태가 아니라 작업 큐다.
 베타 목표에서는 `◐`를 설명하는 것이 아니라 없애는 것이 목적이다.
 
+### Stable subset / explicit reject / beta-out-of-scope
+
+subset surface는 아래 세 분류를 같이 써야 한다.
+
+- stable subset
+  - 지금 바로 문서/예제/회귀의 기준으로 삼는 범위
+- explicit reject
+  - parser가 받아들이더라도 semantic에서 명시적으로 거부해야 하는 범위
+- beta-out-of-scope
+  - 장기 방향일 수는 있지만 현재 베타 표면으로 약속하지 않는 범위
+
+현재 핵심 축의 적용:
+
+- generics
+  - stable subset: exact/ability/multi-bound baseline
+  - explicit reject: default type argument surface
+  - beta-out-of-scope: broader generic generalization
+- own/ref
+  - stable subset: anchored slot-handle boundary subset
+  - explicit reject: general own/ref on non-anchored/general value types
+  - beta-out-of-scope: general ownership system
+- collections
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - explicit reject: unsupported map key kinds
+  - beta-out-of-scope: arbitrary key-universal collection contracts
+- runtime observability
+  - stable subset: `last / history / active / recent`
+  - explicit reject: 없음
+  - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
+
 ---
 
 ## 0. 최근 수정 사항
@@ -111,7 +141,7 @@
 파서는 많이 받아들이지만, 시맨틱과 lower 단계가 아직 surface를 다 따라가지 못한다.
 
 대표 gap:
-- default type arg는 surface 대비 시맨틱 뒷받침이 약하다.
+- default type arg는 beta-stable generic surface에서 explicit reject로 고정됐다.
 - `where T: A + B` 같은 richer bound는 parser가 받을 수 있어도 검증과 활용이 얕다.
 - generic ability reference는 구조는 올라왔지만 완전한 declaration/validation 체인은 닫히지 않았다.
 

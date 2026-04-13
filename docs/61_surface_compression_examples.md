@@ -33,6 +33,13 @@
 이 세 파일은 같은 의미를 `긴 버전`과 `압축 버전`으로 나란히 보여 주는 canonical pair다.
 이제 smoke source of truth에도 포함되므로, contract compression 설명의 기준 예제로 먼저 링크해야 한다.
 
+역할 분리:
+
+- canonical pair
+  - long-form contract와 compressed-form contract의 의미 동등성을 보여 주는 기준 예제
+- stable minimal subset
+  - 현재 parser/semantic/codegen이 실제로 닫힌 최소 authoring subset을 보여 주는 기준 예제
+
 긴 표면:
 
 ```pgy
@@ -83,8 +90,8 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 
 - `who / where / requires / causes / authorized by`는 matching action contract에서 기본 상속된다
 - `transfer target -> using/where derivation`도 구현돼 있다
-- explicit `using:`이 zone binding이면 `where:`도 거기서 유도된다
-- explicit `where:`가 있고 matching zone participant가 유일하면 `using:`도 유도된다
+- explicit `using:`이 zone binding이면 `where:`도 거기서 파생된다
+- explicit `where:`가 있고 matching zone participant가 유일하면 `using:`도 파생된다
 
 설명:
 
@@ -95,7 +102,7 @@ intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {
 - `using: payment;`
 - `where: PaymentZone;`
 
-가 기본 상속/유도된다.
+가 기본 상속/파생된다.
 
 stable example source of truth:
 
@@ -110,6 +117,12 @@ stable example source of truth:
 - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)
 
+이 목록의 역할:
+
+- canonical pair는 "같은 계약을 얼마나 덜 쓰게 만들었는가"를 설명한다
+- minimal subset은 "지금 무엇을 바로 믿고 써도 되는가"를 설명한다
+- maximal/composite example은 설명 보조용이지 clause-density 기준 예제가 아니다
+
 stable canonical pair:
 
 - [intent_contract_pair_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_pair_minimal.pgy)
@@ -122,6 +135,9 @@ stable canonical pair:
 2. smoke-covered minimal example으로 현재 stable syntax subset을 확인한다
 3. maximal/composite example은 마지막에 본다
 
+즉 clause-density 관련 문서와 diagnostics는 먼저 canonical pair를 기준으로 설명하고,
+syntax subset 설명은 minimal example을 기준으로 설명해야 한다.
+
 주의:
 
 - [intent_contract_derivation_minimal.pgy](/mnt/e/PergyraLang/examples/intent_contract_derivation_minimal.pgy)는
@@ -131,7 +147,7 @@ stable canonical pair:
 - [transfer_move_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_minimal.pgy)는
   `move <from> to <to>;`와 transfer derivation을 함께 보여준다
 - [transfer_move_typed_minimal.pgy](/mnt/e/PergyraLang/examples/transfer_move_typed_minimal.pgy)는
-  `move <from> to <ZoneType>;` target-zone 유도를 보여준다
+  `move <from> to <ZoneType>;` target-zone 파생을 보여준다
 - [surface_compression_maximal.pgy](/mnt/e/PergyraLang/examples/surface_compression_maximal.pgy)는
   현재 구현된 축소 표면을 한 번에 묶은 최대치 예제다
 - [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)는
@@ -139,7 +155,7 @@ stable canonical pair:
 - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)는
   `refresh [a, b] from source`와 `publish [x, y] from source` 그룹 표면을 보여준다
 - [six_item_alignment_demo.pgy](/mnt/e/PergyraLang/examples/six_item_alignment_demo.pgy)는
-  action contract 재사용, `where/use` 상호 유도, projection field map, explicit `Clone` world embedding을 함께 보여준다
+  action contract 재사용, `where/use` 상호 파생, projection field map, explicit `Clone` world embedding을 함께 보여준다
 - diagnostics는 이제 같은 vocabulary를 쓴다:
   - `matching action contract: Subject.Action`
   - `locally declared ...`
@@ -188,7 +204,7 @@ stable canonical pair:
 - [generic_ability_requires_minimal.pgy](/mnt/e/PergyraLang/examples/generic_ability_requires_minimal.pgy)
 
 즉 지금은 "어떤 순서로 써야 하지?"보다
-"무엇을 생략/유도할 수 있지?"가 더 큰 문제다.
+"무엇을 생략하고 어디서 상속/파생되는가?"가 더 큰 문제다.
 
 ## 2. 다음으로 줄여야 할 표면
 
@@ -309,7 +325,22 @@ publish buyerPacket from buyer by buyer map {
 
 - `refresh/publish/bind ... map { target <- source; }` 지원
 - unknown target field, missing source field, duplicate mapped target field는 semantic error다
+- diagnostics baseline은 structured `Reason:` / `Fix:`다
+- projection failure 설명에는 최소한 다음이 들어가야 한다
+  - target slot
+  - source slot
+  - projection kind
+  - 실패한 field path 또는 field map
 - authority-bearing zone에서는 기존과 동일하게 explicit `by` 규칙을 따른다
+
+source-of-truth:
+
+- stable example
+  - [projection_bind_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_bind_group_minimal.pgy)
+  - [projection_refresh_publish_group_minimal.pgy](/mnt/e/PergyraLang/examples/projection_refresh_publish_group_minimal.pgy)
+- semantic regression
+  - [test_semantic.c](/mnt/e/PergyraLang/src/test_semantic.c)
+  - entry point: `test_projection_contract_diagnostics`
 
 ### 2.5 transfer short surface
 
@@ -334,7 +365,7 @@ move loading to delivery;
 
 - `move <from-alias> to <to-alias>;`는
   `transfer: <from-alias> -> <to-alias>;`로 낮아진다
-- 기존 `transfer target -> using/where derivation`도 그대로 적용된다
+- 기존 `transfer target -> using/where` 파생도 그대로 적용된다
 - `move <from-alias> to <ZoneType>;`는
   intent participant 중 해당 zone type이 유일하면 그 binding alias로 정규화된다
 

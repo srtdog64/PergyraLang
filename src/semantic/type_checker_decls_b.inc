@@ -2700,10 +2700,13 @@ bool
 type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
     ASTNode *saved_zone = ctx->current_zone;
+    const char *prev_module_path = ctx->current_module_path;
     size_t subject_count;
     size_t object_count;
     size_t mutation_rule_count;
     ctx->current_zone = node;
+    if (node->origin_path != NULL)
+        ctx->current_module_path = node->origin_path;
 
     bool ok = type_check_overlay_decl_common(node, ctx,
         node->data.zone_decl.name,
@@ -3359,6 +3362,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->current_zone = saved_zone;
+    ctx->current_module_path = prev_module_path;
     return ok && !ctx->has_error;
 }
 

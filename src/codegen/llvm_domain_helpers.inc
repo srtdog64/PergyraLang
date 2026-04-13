@@ -244,51 +244,7 @@ llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
 static ASTNode *
 llvm_find_named_domain_decl_local(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
 {
-    const MIRDeclHeader *decl_header = NULL;
-    ASTNode **decls = NULL;
-    size_t decl_count = 0;
-
-    if (ctx == NULL || name == NULL)
-        return NULL;
-
-    if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, name);
-        if (decl_header != NULL && decl_header->ast_type == decl_type)
-            return decl_header->ast;
-    }
-    llvm_active_inventory(ctx, decl_type, &decls, &decl_count);
-
-    for (size_t i = 0; i < decl_count; i++) {
-        ASTNode *stmt = decls[i];
-        if (stmt == NULL)
-            continue;
-        switch (decl_type) {
-        case AST_RELATION_DECL:
-            if (stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_EFFECT_DECL:
-            if (stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_ZONE_DECL:
-            if (stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, name) == 0)
-                return stmt;
-            break;
-        case AST_WORLD_DECL:
-            if (stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, name) == 0)
-                return stmt;
-            break;
-        default:
-            break;
-        }
-    }
-
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, decl_type, name);
 }
 
 static ASTNode *

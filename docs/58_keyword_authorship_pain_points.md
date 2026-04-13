@@ -104,8 +104,8 @@ Pergyra의 현재 pain point를 정리한다.
 
 필요한 방향:
 
-- `intent` 작성 시 반복되는 `who/where/requires` 유도
-- zone/world/context 기반 기본값 유도
+- `intent` 작성 시 반복되는 `who/where/requires` 계약 상속/파생
+- zone/world/context 기반 기본값 상속/파생
 - action/ability에 이미 박힌 계약의 재기술 최소화
 
 현재 완화된 부분:
@@ -270,7 +270,7 @@ Pergyra의 현재 pain point를 정리한다.
 문제:
 
 - 이미 action/zone/authority에 있는 정보를 intent step에서 다시 쓰게 된다
-- 유도가 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
+- 계약 상속/파생이 들어와도 작성자는 "언제 생략해도 되는가"를 다시 학습해야 한다
 - 진단이 inheritance/derivation provenance를 더 직접적으로 보여주지 않으면 부담이 줄지 않는다
 
 ### 2.3 trust-signaling family
@@ -356,13 +356,20 @@ Pergyra의 현재 pain point를 정리한다.
 - 현재는 intent-side derivation이 꽤 올라왔지만, 사용자는 여전히
   "어디까지 생략해도 안전한가"를 한 번 더 생각해야 한다
 
-6. diagnostics는 좋아졌지만 "상속/유도된 계약" 설명은 더 필요하다
+6. diagnostics는 좋아졌지만 "상속/파생된 계약" 설명은 더 필요하다
 - 최근 진단은 `Reason/Fix` 형태로 개선됐고 anchored boundary도 더 분명해졌다
-- 하지만 intent/action/zone 계약 유도에서는
+- 하지만 intent/action/zone 계약 상속/파생에서는
   - 무엇이 상속되었는지
   - 무엇이 명시 override인지
   - 왜 이 위치에서 실패했는지
   를 더 직접 보여줄수록 authoring 피로가 줄어든다
+- projection contract도 같은 기준을 따라야 한다
+  - target slot
+  - source slot
+  - projection kind
+  - field path 또는 field map
+  - structured `Reason:` / `Fix:`
+  가 빠지면 다시 가장 먼저 피로를 준다
 
 ### 3.4 현재 기준 P0 폐인포인트
 
@@ -375,7 +382,7 @@ Pergyra의 현재 pain point를 정리한다.
 - action/intent/zone 사이에서 같은 의미를 두 번 적는 순간 피로가 크게 올라간다
 
 3. inherited/derived contract diagnostics
-- 유도가 강해질수록 "무엇을 상속했는지"를 에러와 hover에서 더 잘 보여줘야 한다
+- 상속/파생이 강해질수록 "무엇을 상속했고 무엇이 파생됐는지"를 에러와 hover에서 더 잘 보여줘야 한다
 
 즉 현재 단계의 폐인포인트는 lexer/token 문제가 아니라
 **authoring density + duplicate description + inheritance/derivation explainability**다.
@@ -457,7 +464,7 @@ Pergyra의 현재 pain point를 정리한다.
 
 핵심 압축 방향:
 
-- zone 내부 action은 `within` 기본 유도
+- zone 내부 action은 `within` 기본 파생
 - self-authorized 기본형은 더 짧은 surface 제공
 - `causes`는 effect slot 연결이 자명한 경우 축약 여지 검토
 
@@ -519,7 +526,7 @@ Pergyra의 현재 pain point를 정리한다.
 
 - authority contract 기본 상속
 - action `requires`의 intent step 기본 상속
-- diagnostics에서 “어디서 상속/유도됐는가”를 명확히 표시
+- diagnostics에서 “어디서 상속/파생됐는가”를 명확히 표시
 
 ## 2.6 용어 고정
 
@@ -528,7 +535,7 @@ Pergyra의 현재 pain point를 정리한다.
 - `inheritance`
   - nominal/object hierarchy 의미로만 쓴다
 - `derivation`
-  - 이미 선언된 zone/world/action/authority 계약에서 빠진 기본값을 유도해 채우는 것
+  - 이미 선언된 zone/world/action/authority 계약에서 빠진 기본값을 상속/파생으로 채우는 것
 - `preset/profile`
   - 반복되는 clause 묶음을 미리 정의한 authoring shortcut
 
@@ -593,7 +600,7 @@ nominal 상속이 아니라 `계약 상속`이다.
 
 필요한 것:
 
-- `intent` clause 유도
+- `intent` clause 상속/파생
 - zone authority 자동 승계
 - effect/relation 연결 축약
 - common pattern scaffold
@@ -630,7 +637,7 @@ nominal 상속이 아니라 `계약 상속`이다.
 
 ## 4. 지금 당장 해야 하는 일
 
-1. `intent` 반복 clause 유도 규칙 정리
+1. `intent` 반복 clause 상속/파생 규칙 정리
 2. authority 자동 승계 규칙 정리
 3. projection/transfer scaffold 예제 추가
 4. "정석 작성 경로" 3개를 문서 첫 계층에 명시

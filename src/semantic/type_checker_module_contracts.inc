@@ -245,6 +245,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
     const char *ability = ability_ref_name(ability_ref);
     ASTNode *ability_decl;
     char *required_text = ability_ref_display(ability_ref);
+    const char *site_module = NULL;
 
     resolve_type_node(ability_ref, ctx);
     if (ability == NULL) {
@@ -268,6 +269,28 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             owner_label != NULL ? owner_label : "construct",
             owner_name != NULL ? owner_name : "<anonymous>",
             ability,
+            ability);
+        free(required_text);
+        return NULL;
+    }
+
+    site_module = (site != NULL && site->origin_path != NULL)
+        ? site->origin_path
+        : (ctx != NULL ? ctx->current_module_path : NULL);
+    if (ability_decl->type == AST_ABILITY_DECL
+        && ((site_module != NULL
+             && ability_decl->origin_path != NULL
+             && !same_module_origin(site_module, ability_decl->origin_path)
+             && !ability_decl->is_exported)
+            || ((site_module == NULL
+                 || ability_decl->origin_path == NULL
+                 || !same_module_origin(site_module, ability_decl->origin_path))
+                && ability_decl->data.ability_decl.has_explicit_access
+                && ability_decl->data.ability_decl.access != ACCESS_PUBLIC))) {
+        semantic_error(ctx, site,
+            "%s '%s' cannot require non-exported ability '%s' from another module",
+            owner_label != NULL ? owner_label : "construct",
+            owner_name != NULL ? owner_name : "<anonymous>",
             ability);
         free(required_text);
         return NULL;
@@ -431,8 +454,7 @@ validate_action_required_abilities(ASTNode *node,
             semantic_error(ctx, node,
                 "action '%s' cannot require non-exported ability '%s' from another module",
                 name != NULL ? name : "<anonymous>",
-                required_text != NULL ? required_text
-                                      : (ability != NULL ? ability : "<ability>"));
+                ability != NULL ? ability : "<ability>");
             free(required_text);
             continue;
         }

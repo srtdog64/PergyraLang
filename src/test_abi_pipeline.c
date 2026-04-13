@@ -591,6 +591,60 @@ main(void)
         "Charge\n"
         "1\n"
         "false\n";
+    static const char *intent_recent_source =
+        "subject Buyer {\n"
+        "    let hp: Int;\n"
+        "    action Verify(self) -> Void { }\n"
+        "    action Confirm(self) -> Void { }\n"
+        "}\n"
+        "zone CheckoutZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "}\n"
+        "intent Charge(checkout: CheckoutZone, buyer: Buyer) {\n"
+        "    step verify {\n"
+        "        where: CheckoutZone;\n"
+        "        using: checkout;\n"
+        "        who: buyer;\n"
+        "        on: buyer.Verify();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "intent Confirm(checkout: CheckoutZone, buyer: Buyer) {\n"
+        "    step confirm {\n"
+        "        where: CheckoutZone;\n"
+        "        using: checkout;\n"
+        "        who: buyer;\n"
+        "        on: buyer.Confirm();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n"
+        "func Main() -> Void {\n"
+        "    let buyer: Buyer = Buyer(1);\n"
+        "    let checkout: CheckoutZone = CheckoutZone(buyer);\n"
+        "    Log(Charge(checkout, buyer));\n"
+        "    Log(Confirm(checkout, buyer));\n"
+        "    Log(ToString(IntentRecentCount()));\n"
+        "    Log(IntentRecentName(0));\n"
+        "    Log(ToString(IntentRecentStepCount(0)));\n"
+        "    Log(ToString(IntentRecentFailed(0)));\n"
+        "    Log(IntentRecentName(1));\n"
+        "    Log(ToString(IntentRecentStepCount(1)));\n"
+        "    Log(ToString(IntentRecentFailed(1)));\n"
+        "}\n";
+    static const char *intent_recent_expected =
+        "true\n"
+        "true\n"
+        "2\n"
+        "Confirm\n"
+        "1\n"
+        "false\n"
+        "Charge\n"
+        "1\n"
+        "false\n";
     static const char *loop_source =
         "func Spin(limit: Int) -> Int {\n"
         "    let i: Int = 0;\n"
@@ -796,6 +850,9 @@ main(void)
     run_pipeline_case("intent_trace_abi", intent_source, intent_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
+    run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
@@ -823,6 +880,9 @@ main(void)
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("intent_trace_abi", intent_source, intent_expected,
+                      "0 error(s), 0 warning(s)",
+                      BACKEND_LLVM, !perf_mode, 45.0, 5.0);
+    run_pipeline_case("intent_recent_abi", intent_recent_source, intent_recent_expected,
                       "0 error(s), 0 warning(s)",
                       BACKEND_LLVM, !perf_mode, 45.0, 5.0);
     run_pipeline_case("runtime_floor", loop_source, loop_expected,

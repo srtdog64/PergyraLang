@@ -8,7 +8,7 @@ authoring pain point를 줄이기 위한 표면 설계 방향을 고정한다.
 핵심 원칙:
 
 - 개념을 지우는 것이 아니라 반복 기술을 줄인다.
-- 규칙은 유지하되, 자주 반복되는 선언은 유도/승계/preset으로 압축한다.
+- 규칙은 유지하되, 자주 반복되는 선언은 상속/파생/preset으로 압축한다.
 - diagnostics는 문법 부속물이 아니라 제품 기능으로 취급한다.
 
 ## 1. 가장 큰 pain point
@@ -178,8 +178,8 @@ intent ManageEvent {
 필수 조건:
 
 - diagnostics는 반드시 "이 값은 matching action contract에서 상속됨"을 보여줘야 한다.
-- `transfer target -> using/where`처럼 자동 유도된 값도
-  diagnostics에서 유도 출처를 직접 보여줘야 한다.
+- `transfer target -> using/where`처럼 자동 파생된 값도
+  diagnostics에서 파생 출처를 직접 보여줘야 한다.
 
 현재 정책은 아래처럼 고정한다.
 
@@ -438,7 +438,7 @@ Fix:
 
 ### P0
 
-- intent 계약 상속/유도
+- intent 계약 상속/파생
 - relation/effect 접근 완화
 - transfer 축약 표면
 - domain-first diagnostics 개선
@@ -464,11 +464,11 @@ token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
   family의 동시 서술량을 줄이는 방향
 
 2. contract duplication 제거
-- action 선언에 있는 계약을 intent/zone 쪽이 자연스럽게 상속/유도하게 만들고,
+- action 선언에 있는 계약을 intent/zone 쪽이 자연스럽게 상속/파생하게 만들고,
   override가 있을 때만 더 쓰게 하는 방향
 
 3. inherited/derived contract diagnostics 강화
-- 유도가 강할수록 "무엇이 어디서 상속되었는가"를
+- 상속/파생이 강할수록 "무엇이 어디서 상속되었고 파생되었는가"를
   오류 메시지와 tooling이 먼저 설명하게 만드는 방향
 
 현재 기준으로는 새로운 키워드 추가보다
@@ -489,14 +489,15 @@ token split, declaration trust, stable-vs-sketch trust는 많이 닫혔다.
 
 - 언어 철학은 유지한다.
 - authoring pressure는 surface compression으로 줄인다.
-- 반복 선언은 유도와 preset으로 줄인다.
+- 반복 선언은 상속/파생과 preset으로 줄인다.
 - diagnostics 품질을 제품 기능으로 끌어올린다.
 - surface trust는 기능 completeness와 별도 축으로 계속 관리한다.
 
 추가 결정:
 
-- `상속`이라는 표현은 여기서 쓰지 않는다.
-- `zone/world/action/authority`에서 step/body로 내려오는 기본값은 모두 `유도/상속`으로 부른다.
+- 명목 타입 계층 의미의 `상속`은 여기서 쓰지 않는다.
+- `zone/world/action/authority`에서 step/body로 내려오는 계약 기본값은 `계약 상속`으로 부른다.
+- transfer target이나 zone binding처럼 이미 주어진 정보에서 채워지는 값은 `파생`으로 부른다.
 
 ## P0 execution order reset
 

@@ -372,6 +372,12 @@ post-beta / follow-up:
 
 작업:
 1. intent history baseline(`last` / `history` / `active` / `recent`)을 source-of-truth로 문서화하고 richer timeline query를 확장한다.
+
+현재 subset 분류:
+
+- stable subset: `last / history / active / recent`
+- explicit reject: 없음
+- beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
 2. zone/world runtime 상태를 최소 조회 가능 형태에서 더 설명 가능한 inspection surface로 올린다.
 3. 실패 원인을 authority, boundary, slot, projection 단위로 진단에 노출한다.
 

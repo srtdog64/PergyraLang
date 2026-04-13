@@ -621,51 +621,13 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 static ASTNode *
 find_ability_decl(TranspilerCtx *ctx, const char *ability_name)
 {
-    ASTNode **abilities = NULL;
-    size_t ability_count = 0;
-
-    if (ctx == NULL || ability_name == NULL)
-        return NULL;
-    transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
-    if (abilities == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < ability_count; i++) {
-        ASTNode *stmt = abilities[i];
-        if (stmt != NULL && stmt->type == AST_ABILITY_DECL
-            && stmt->data.ability_decl.name != NULL
-            && strcmp(stmt->data.ability_decl.name, ability_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_ABILITY_DECL, ability_name);
 }
 
 static ASTNode *
 find_event_decl(TranspilerCtx *ctx, const char *event_name)
 {
-    ASTNode **events = NULL;
-    size_t event_count = 0;
-
-    if (ctx == NULL || event_name == NULL)
-        return NULL;
-    transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
-    if (events == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < event_count; i++) {
-        ASTNode *stmt = events[i];
-        if (stmt != NULL && stmt->type == AST_EVENT_DECL
-            && stmt->data.event_decl.name != NULL
-            && strcmp(stmt->data.event_decl.name, event_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
+    return transpiler_find_named_decl_local(ctx, AST_EVENT_DECL, event_name);
 }
 
 static bool

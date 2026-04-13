@@ -228,6 +228,7 @@
   - wrong projection kind
   - missing/ambiguous source field
   - structured reason/fix text
+  - failed field path 또는 field map detail
 
 이번 알파 범위에서 끝내야 할 것:
 - full effect lattice
@@ -244,6 +245,8 @@
 현재 되는 것:
 - generic declaration baseline
 - generic ability baseline
+- hidden/default-export generic ability visibility baseline
+- action / zone authority / party role slot consumer path 회귀
 - 일부 bound validation
 - default type argument explicit reject
 - exact bound / ability-style bound / multi-bound baseline
@@ -319,7 +322,7 @@
 
 ### 6.2 Transfer derivation pack
 
-현재 transfer target에서 기본 유도되는 묶음은 다음이다.
+현재 transfer target에서 기본 파생되는 묶음은 다음이다.
 
 - `where`
 - `using`
@@ -346,7 +349,7 @@
 
 판단:
 - compression이 강해질수록, 이 provenance vocabulary가 surface trust의 핵심이 된다
-- 사용자가 상속/유도를 머리로 재구성하게 만들면 안 된다
+- 사용자가 상속/파생을 머리로 재구성하게 만들면 안 된다
 
 ---
 

@@ -741,6 +741,9 @@ bool
 type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = node->data.party_decl.name;
+    const char *prev_module_path = ctx->current_module_path;
+    if (node->origin_path != NULL)
+        ctx->current_module_path = node->origin_path;
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -759,6 +762,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     } else if (existing != NULL) {
         semantic_error(ctx, node, "Redeclaration of party '%s'", name);
         symbol_destroy(sym);
+        ctx->current_module_path = prev_module_path;
         return false;
     } else {
         scope_declare(ctx->scope, sym);
@@ -851,6 +855,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_exit(&ctx->scope);
 
+    ctx->current_module_path = prev_module_path;
     return !ctx->has_error;
 }
 

@@ -67,6 +67,7 @@
 현재:
 - generic ability declaration/reference baseline 존재
 - action / intent step / zone authority / party role slot generic mismatch diagnostics baseline 존재
+- hidden/default-export generic ability visibility는 action/role impl뿐 아니라 zone authority/party role slot consumer path까지 회귀로 고정
 - `ability<T> where ...` bound는 `requires` / `impl ability` / party role slot ref에서 다시 검증됨
 - default type argument는 beta-stable surface에서 `unsupported`로 고정되어 있으며 semantic에서 explicit reject됨
 - multi-bound `where T: A + B` baseline은 현재 동작함
@@ -75,7 +76,7 @@
 남은 것:
 - broader type-family generalization을 beta 범위 밖으로 명시
 - richer generic constraint validation의 beta contract 범위를 문서/board에 일치시켜 고정
-- module contract `use/require`까지의 일관된 closure
+- import/use surface와 diagnostics/tooling 표현을 module contract 기준으로 더 일관되게 정리
 
 #### 4. own/ref closure
 
@@ -186,10 +187,14 @@
   - contract reuse/derivation / authority / lifecycle / embedding ownership / runtime observability / C/LLVM parity / regression
 - [ ] **relation/effect/projection semantics 완전 closure**
   - effect lattice, authority-resource partial order 통합, refresh/publish/bind/causes 일관화, diagnostics, C/LLVM parity
-- [ ] **generic contract 완전 closure**
-  - `ability<T>`, `requires Ability<T>`, `zone authority requires Ability<T>`, mismatch diagnostics, unsupported generic surface 정리
-- [ ] **own/ref 완전 closure**
-  - 허용 타입 범위, move/borrow/escape/rebind/return/channel 경계 규칙, forwarding 규칙, diagnostics, regression
+- [x] **generic contract 완전 closure**
+  - `ability<T>`, `requires Ability<T>`, `zone authority requires Ability<T>`, `party role slot: Ability<T>` baseline이 semantic/C/LLVM/test까지 정렬됨
+  - mismatch diagnostics, hidden/default-export visibility, `where T: A + B` baseline, default type arg explicit reject가 회귀로 고정됨
+  - broader type-family generalization은 beta-out-of-scope로 분리
+- [x] **own/ref 완전 closure**
+  - 베타 stable subset은 `ref Slot<subject-host>` / `own SecureSlot<subject-host>`로 고정
+  - move/borrow/escape/rebind/return/channel 경계 규칙, forwarding 규칙, diagnostics, regression을 현재 stable subset 기준으로 정렬 완료
+  - general ownership system은 beta-out-of-scope이며 explicit reject surface로 고정
 
 ### B1 — 베타 신뢰도 필수
 
@@ -199,6 +204,113 @@
   - canonical examples와 closure examples를 smoke에 직접 연결
 - [ ] **experimental surface 제거 또는 격리**
   - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
+
+## Pain point freeze board
+
+원칙:
+- 기능을 더 넓히기 전에 반복해서 다시 깨지는 작성/진단 pain point를 먼저 고정한다
+- 각 pain point는 `stable contract + regression + docs wording`까지 같이 잠근다
+- 이 보드는 sugar backlog가 아니라 beta surface trust를 지키기 위한 고정판이다
+- P0 pain point가 잠기기 전에는 declaration-side MIR-only debt를 국소 복구 외에는 넓게 건드리지 않는다
+- backend 내부 정리는 pain point 기준선과 회귀가 먼저 고정된 뒤에만 다시 확장한다
+
+### P0 — 작성/계약 pain point
+
+- [ ] **contract clause density 고정**
+  - 대상: `requires / within / authorized by / causes / refresh / publish / bind`
+  - 문제: 같은 의미를 action / intent step / zone에서 중복 기술하게 되어 작성 피로가 커짐
+  - 고정 기준:
+    - 어디까지 inherited/derived 되는지 vocabulary를 고정
+    - 길게 쓰는 버전과 압축 버전의 의미 차이가 문서/진단/예제에서 같아야 함
+    - canonical pair와 minimal subset example의 역할을 분리해 source-of-truth를 고정
+  - 회귀 기준:
+    - semantic regression: inherited/derived contract source가 진단에 노출
+    - example smoke: long-form vs compressed-form 예제 둘 다 유지
+
+현재 source-of-truth:
+- canonical pair
+  - `examples/intent_contract_pair_minimal.pgy`
+  - `examples/authority_contract_pair_minimal.pgy`
+  - `examples/transfer_contract_pair_minimal.pgy`
+- stable minimal subset
+  - `examples/action_contract_inheritance_minimal.pgy`
+  - `examples/intent_contract_derivation_minimal.pgy`
+  - `examples/transfer_move_minimal.pgy`
+  - `examples/transfer_move_typed_minimal.pgy`
+  - `examples/zone_context_minimal.pgy`
+
+- [ ] **contract provenance vocabulary 고정**
+  - 대상: `inferred_*` 잔여 표현, contract source wording, docs/example terminology
+  - 문제: compiler type/effect inference와 domain contract 상속/파생이 같은 단어로 섞이면 설명력이 무너짐
+  - 고정 기준:
+    - domain contract는 `상속 / 파생`과 `inherited / derived`로만 부른다
+    - 일반 compiler 의미는 type/effect `inference`에만 남긴다
+  - 회귀 기준:
+    - parser/semantic diagnostics 기대 문자열 고정
+    - docs wording search 기준 고정
+
+- [ ] **projection contract diagnostics 고정**
+  - 대상: `refresh/publish/bind` source/target/path/field-map 실패
+  - 문제: projection은 언어 강점인데 실패 이유가 약하면 가장 먼저 피로를 줌
+  - 고정 기준:
+    - target slot / source slot / projection kind / field path / fix가 모두 진단에 들어감
+    - structured `Reason:` / `Fix:` formatting을 source-of-truth로 고정
+  - 회귀 기준:
+    - semantic regression: missing source field / ambiguous path / wrong projection kind / duplicate field map
+
+현재 source-of-truth:
+- stable example
+  - `examples/projection_bind_group_minimal.pgy`
+  - `examples/projection_refresh_publish_group_minimal.pgy`
+- semantic regression
+  - `src/test_semantic.c:test_projection_contract_diagnostics`
+
+- [ ] **surface trust subset 분류 고정**
+  - 대상: generics, own/ref, collections, runtime observability
+  - 문제: 되는 것처럼 보이는데 실제로는 subset만 되는 surface가 가장 큰 신뢰 손상 지점
+  - 고정 기준:
+    - `stable subset / explicit reject / beta-out-of-scope`를 TODO/docs/diagnostic에서 같은 말로 쓴다
+  - 회귀 기준:
+    - semantic tests와 depth docs가 같은 subset을 가리킴
+
+현재 고정하려는 baseline:
+- generics
+  - stable subset: exact/ability/multi-bound baseline
+  - explicit reject: default type argument surface
+  - beta-out-of-scope: broader generic generalization
+- own/ref
+  - stable subset: anchored slot-handle boundary subset
+  - explicit reject: general own/ref on non-anchored/general value types
+  - beta-out-of-scope: general ownership system
+- collections
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - explicit reject: unsupported map key kinds
+  - beta-out-of-scope: arbitrary key-universal collection contracts
+- runtime observability
+  - stable subset: `last / history / active / recent`
+  - explicit reject: 없음
+  - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
+
+### P1 — 내부 구조 pain point
+
+- [ ] **declaration-side MIR-only debt 고정**
+  - 대상: declaration inventory / metadata helper / duplicated named-decl lookup
+  - 문제: routine body는 MIR로 정리돼도 decl-side helper debt가 남으면 parity bug가 반복됨
+  - 고정 기준:
+    - backend lookup은 공통 inventory helper를 사용
+    - 남은 debt는 “기능 미구현”이 아니라 “AST-carried decl metadata 구조 debt”로 분리해서 기록
+  - 회귀 기준:
+    - LLVM/C backend helper duplication 감소
+    - debt ledger와 TODO 표현 정렬
+
+- [ ] **runtime observability baseline vs richer query 구분 고정**
+  - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
+  - 문제: baseline이 이미 있는데 문서가 thin이라고 쓰면 반대로 surface trust를 깎음
+  - 고정 기준:
+    - baseline observability는 complete로, richer timeline/provenance는 open debt로 분리
+  - 회귀 기준:
+    - docs/board/status 문구 일치
+    - observability regression이 baseline API를 계속 고정
 
 ## 완료 (P0 — 즉시 수정)
 

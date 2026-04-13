@@ -53,6 +53,7 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - `HasZone(zoneOrState)` builtin이 world method 안에서 선언된 zone slot / world state alias를 Bool query로 읽을 수 있음
 - `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)` builtin이 world method 안에서 embedded zone의 projection/layer/state flag를 직접 읽을 수 있음
 - 파생 `world state`는 zone active flag와 embedded zone projection/layer/state flag를 자동 조합하는 읽기 전용 contract로 동작함
+- intent observability는 `IntentLast*`, `IntentHistoryStep*`, `IntentActive*`에 더해 최근 완료 ring을 읽는 `IntentRecent*` (`Count/Name/Trace/Failure/StepCount/Failed`)까지 semantic/C/LLVM/runtime surface가 연결되어 있다
 - `all` / `any` 조합 state는 앞서 선언된 zone slot 또는 world state alias를 다시 조합하는 최소 inter-layer composition policy로 동작함
 - `all` / `any` 조합 state는 duplicate input과 direct zone slot + plain zone alias 중복을 warning으로 정리해 policy를 더 엄격히 가짐
 - `all` / `any` 조합 state는 raw zone slot 직접 입력도 warning으로 낮춰, command layer보다 plain world state alias 중심의 derived layer 조합을 권장함
@@ -138,6 +139,27 @@ Pergyra는 **실행 가능한 실험 언어 알파** 단계다.
 - 패키지 매니저, WASM, product-grade debugger/LSP 같은 생태계 영역은 아직 미완성
 - backpressure는 관측 surface와 send result surface까지는 올라왔지만, bounded policy/backpressure protocol 자체는 아직 미완성
 - cancellation은 cooperative + descendant propagation 수준, fairness는 round-robin 시작 인덱스 수준까지 올라온 상태
+
+## Stable subset / explicit reject / beta-out-of-scope
+
+문서와 구현을 같은 기준으로 읽기 위해, subset surface는 아래처럼 분류한다.
+
+- generics
+  - stable subset: exact/ability/multi-bound baseline
+  - explicit reject: default type argument surface
+  - beta-out-of-scope: broader generic generalization
+- own/ref
+  - stable subset: anchored slot-handle boundary subset
+  - explicit reject: general own/ref on non-anchored/general value types
+  - beta-out-of-scope: general ownership system
+- collections
+  - stable subset: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`
+  - explicit reject: unsupported map key kinds
+  - beta-out-of-scope: arbitrary key-universal collection contracts
+- runtime observability
+  - stable subset: `last / history / active / recent`
+  - explicit reject: 없음
+  - beta-out-of-scope: richer multi-instance timeline query와 deeper failure provenance query
 
 ## 2026-04-11 기준 확인된 상태
 
